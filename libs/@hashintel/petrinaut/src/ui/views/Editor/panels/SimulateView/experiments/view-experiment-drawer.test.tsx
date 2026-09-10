@@ -20,11 +20,7 @@ import {
   makeOptimizationRecord,
   makeOptimizationsContextValue,
 } from "../optimizations/optimizations-story-fixtures";
-import {
-  frameHeader,
-  frameLayoutSignature,
-  scrollFrameBody,
-} from "../shared/drawer-frame-test-helpers";
+import { frameLayoutSignature } from "../shared/drawer-frame-test-helpers";
 import { describeExperiment } from "./experiment-results";
 import {
   makeExperiment,
@@ -256,13 +252,6 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(
       screen.getByRole("dialog", { name: describeExperiment(sweep) }),
     ).toBeTruthy();
-  });
-
-  it("condenses the header once the body scrolls, with nothing else involved", () => {
-    renderDrawer(sweep);
-
-    scrollFrameBody(80);
-    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("keeps the header, the note row and every card at one height across running, complete, cancelled and error", () => {

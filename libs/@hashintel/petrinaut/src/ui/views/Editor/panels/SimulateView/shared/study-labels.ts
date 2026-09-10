@@ -4,7 +4,10 @@
  * frozen model no longer knows the entity, so a title never goes blank.
  */
 import type { Metric } from "@hashintel/petrinaut-core";
-import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core/optimization";
+import type {
+  PetrinautOptimizationDirection,
+  PetrinautOptimizationInput,
+} from "@hashintel/petrinaut-core/optimization";
 
 /** The objective's metric as the frozen model defines it; undefined when the model lost it. */
 export const objectiveMetric = (
@@ -29,6 +32,6 @@ export const scenarioName = (
 
 /** `Maximize` or `Minimize`, as titles and readouts spell the direction. */
 export const directionWord = (
-  direction: PetrinautOptimizationInput["objective"]["direction"],
+  direction: PetrinautOptimizationDirection,
 ): "Maximize" | "Minimize" =>
   direction === "maximize" ? "Maximize" : "Minimize";

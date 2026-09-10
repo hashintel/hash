@@ -18,11 +18,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import {
   SWEEP_OPTIMIZATION_DEFAULT_STEPS,
-  type SweepOptimizationDirection,
   type SweepOptimizer,
 } from "./sweep-optimizer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";
 
 // The ds Button has no purple tone; the optimizer's button wears the
 // optimizing purple over the subtle variant.
@@ -61,7 +61,7 @@ const errorStyle = css({
 });
 
 const DIRECTION_OPTIONS: {
-  value: SweepOptimizationDirection;
+  value: PetrinautOptimizationDirection;
   label: string;
 }[] = [
   { value: "maximize", label: "Maximize" },
@@ -79,7 +79,7 @@ export const SweepOptimizeControl = ({
   const [open, setOpen] = useState(false);
   const [metricId, setMetricId] = useState(experiment.metricSpecs[0]?.id ?? "");
   const [direction, setDirection] =
-    useState<SweepOptimizationDirection>("maximize");
+    useState<PetrinautOptimizationDirection>("maximize");
   const [steps, setSteps] = useState<number | null>(
     SWEEP_OPTIMIZATION_DEFAULT_STEPS,
   );
@@ -159,7 +159,7 @@ export const SweepOptimizeControl = ({
                 items={DIRECTION_OPTIONS}
                 value={direction}
                 onChange={(value) =>
-                  setDirection(value as SweepOptimizationDirection)
+                  setDirection(value as PetrinautOptimizationDirection)
                 }
               />
               <span className={labelStyle}>Steps</span>

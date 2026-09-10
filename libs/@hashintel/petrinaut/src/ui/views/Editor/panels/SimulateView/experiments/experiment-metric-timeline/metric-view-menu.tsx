@@ -86,7 +86,7 @@ const timeChoices: readonly ViewChoice[] = [
 ];
 
 /** The menu's entries for these settings; picking one calls `onChange` with the new settings. */
-export const metricViewMenuItems = (
+const metricViewMenuItems = (
   outputType: MetricFrame["outputType"],
   value: MetricViewSettings,
   onChange: (settings: MetricViewSettings) => void,

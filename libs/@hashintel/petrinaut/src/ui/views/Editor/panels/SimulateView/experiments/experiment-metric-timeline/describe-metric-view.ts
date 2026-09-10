@@ -44,13 +44,13 @@ const lowerFirst = (label: string): string =>
   label.charAt(0).toLowerCase() + label.slice(1);
 
 /** How the runs collapse into the series: "median over runs", "heatmap". */
-export const describeRunsView = (settings: MetricViewSettings): string =>
+const describeRunsView = (settings: MetricViewSettings): string =>
   settings.aggregateRuns
     ? `${lowerFirst(RUN_AGGREGATION_LABELS[settings.runAggregation])} over runs`
     : lowerFirst(DISTRIBUTION_VIEW_LABELS[settings.distributionView]);
 
 /** How the series reads along time: "value over time", "maximum to date", "sum over time". */
-export const describeTimeView = (settings: MetricViewSettings): string => {
+const describeTimeView = (settings: MetricViewSettings): string => {
   if (settings.aggregateTime) {
     return `${lowerFirst(TIME_AGGREGATION_LABELS[settings.timeAggregation])} over time`;
   }

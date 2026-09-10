@@ -4,13 +4,10 @@
  * the way Optuna's `plot_optimization_history` draws a study.
  */
 import type {
-  PetrinautOptimizationInput,
+  PetrinautOptimizationDirection,
   PetrinautOptimizationTrialEvent,
 } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
-
-export type ObjectiveDirection =
-  PetrinautOptimizationInput["objective"]["direction"];
 
 /**
  * Whether the step's parameters satisfied the study's constraints. `unknown`
@@ -44,7 +41,7 @@ export type ObjectiveHistoryPoint = {
 };
 
 const isBetter = (
-  direction: ObjectiveDirection,
+  direction: PetrinautOptimizationDirection,
   candidate: number,
   best: number,
 ): boolean => (direction === "maximize" ? candidate > best : candidate < best);
@@ -56,7 +53,7 @@ const isBetter = (
  */
 export const buildObjectiveHistory = (
   trials: readonly PetrinautOptimizationTrialEvent[],
-  direction: ObjectiveDirection,
+  direction: PetrinautOptimizationDirection,
 ): ObjectiveHistoryPoint[] => {
   // Parallel steps report out of order; the history reads in step order.
   const ordered = trials.toSorted((left, right) => left.trial - right.trial);

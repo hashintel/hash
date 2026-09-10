@@ -29,16 +29,15 @@ import type {
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 import type { Metric, Scenario, SDCPN } from "@hashintel/petrinaut-core";
 import type {
+  PetrinautOptimizationDirection,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
 } from "@hashintel/petrinaut-core/optimization";
 
-export type SweepOptimizationDirection = "maximize" | "minimize";
-
 /** What the Optimize prompt asks for. */
 export type SweepOptimizationChoice = {
   metricId: string;
-  direction: SweepOptimizationDirection;
+  direction: PetrinautOptimizationDirection;
   /** Optimizer steps: one sweep point each. */
   steps: number;
 };
@@ -103,7 +102,7 @@ export const buildSweepOptimizationInput = ({
   scenario: Scenario;
   experiment: ExperimentRecord;
   metric: Metric;
-  direction: SweepOptimizationDirection;
+  direction: PetrinautOptimizationDirection;
   steps: number;
   /** Runs each point computes before its value is read. */
   runsPerStep: number;
