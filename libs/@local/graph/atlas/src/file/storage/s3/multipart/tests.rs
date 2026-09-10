@@ -1,7 +1,7 @@
 use core::{
     assert_matches,
     cell::{Cell, RefCell},
-    future::poll_fn,
+    future::{poll_fn, ready},
     pin::pin,
     task::{Context, Poll, Waker},
 };
@@ -52,40 +52,44 @@ impl Fixture {
 impl Backend for &Fixture {
     type Upload = Upload;
 
-    async fn start(&mut self) -> Result<Upload, StorageError> {
+    fn start(&mut self) -> impl Future<Output = Result<Upload, StorageError>> {
         self.events.borrow_mut().push(Event::Start);
         if matches!(self.failure, Some(Failure::Start)) {
-            return Err(StorageError::MissingUploadId);
+            return ready(Err(StorageError::MissingUploadId));
         }
-        Ok(Upload)
+        ready(Ok(Upload))
     }
 
-    async fn part(&mut self, _: &Upload, part: Part) -> Result<CompletedPart, StorageError> {
+    fn part(
+        &mut self,
+        _: &Upload,
+        part: Part,
+    ) -> impl Future<Output = Result<CompletedPart, StorageError>> {
         let number = part.number;
         self.events.borrow_mut().push(Event::Part(number));
         if matches!(self.failure, Some(Failure::Part(failed)) if failed == number) {
-            return Err(StorageError::Io(io::Error::new(
+            return ready(Err(StorageError::Io(io::Error::new(
                 io::ErrorKind::BrokenPipe,
                 "fixture part failure",
-            )));
+            ))));
         }
-        part.complete(
+        ready(part.complete(
             Some(format!("etag-{number}")),
             Some(format!("checksum-{number}")),
-        )
+        ))
     }
 
-    async fn complete(
+    fn complete(
         &mut self,
         _: &Upload,
         parts: CompletedMultipartUpload,
-    ) -> Result<(), StorageError> {
+    ) -> impl Future<Output = Result<(), StorageError>> {
         self.events.borrow_mut().push(Event::Complete);
         *self.completed.borrow_mut() = Some(parts);
         if matches!(self.failure, Some(Failure::Complete)) {
-            return Err(StorageError::MissingEntityTag);
+            return ready(Err(StorageError::MissingEntityTag));
         }
-        Ok(())
+        ready(Ok(()))
     }
 
     async fn abort(&mut self, _: &Upload) {
