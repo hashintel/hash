@@ -40,7 +40,9 @@ export function ChatAgent() {
   ) {
     useInstruction(`Voice response presentation for this delivery only:
 Write the complete canonical on-screen response normally, with the same content and detail you would provide for typed delivery. Do not shorten or reshape it for speech: Realtime rephrases the completed response later.
-Present any marked question in its exact wording so its authoritative text remains available for exact delivery.
+Before presenting a direct question for the person to answer, call brunch_mark_question with its exact text; then present the marked question in its exact wording in ordinary assistant prose.
+A source-attributed or repeated question still needs a marker when you ask the person to answer it. Do not mark quoted questions you are only discussing, rhetorical questions, or headings.
+The marker supplies question_text for exact Voice delivery. An unmarked question may be omitted from the spoken rephrasing.
 These are presentation instructions only. Retain all domain, evidence, workpiece, and tool obligations.`);
   }
 

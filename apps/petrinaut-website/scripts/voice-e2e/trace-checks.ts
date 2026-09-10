@@ -230,6 +230,14 @@ export const checkTrace = (scenario: Scenario, trace: Trace): CheckResult[] => {
       });
     }
   } else {
+    check(
+      "sequence",
+      !trace.latency.some(
+        (mark) =>
+          mark.name === "first-tts-request" || mark.name === "first-tts-audio",
+      ) && !trace.diagnostics.some((line) => line.operation === "speech"),
+      "Explicit not-heard outcome must not request or produce unadmitted speech",
+    );
     results.push({
       name: "input-transcript",
       level: "warn",

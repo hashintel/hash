@@ -540,6 +540,14 @@ export class RealtimeBrunchBridge {
       });
       return;
     }
+    // Completion can arrive before a React chat update observes the text.
+    if (!delivery.firstTextEmitted) {
+      delivery.firstTextEmitted = true;
+      this.#emit({
+        type: "canonical-text-ready",
+        deliveryId: delivery.deliveryId,
+      });
+    }
     this.#deliveries.delete(delivery.deliveryId);
     this.#emit({ type: "submission-settled", deliveryId: delivery.deliveryId });
     delivery.speechCancelled ||= this.#activeEpoch === null;

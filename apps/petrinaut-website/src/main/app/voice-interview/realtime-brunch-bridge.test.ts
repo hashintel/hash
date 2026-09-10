@@ -133,6 +133,57 @@ describe("RealtimeBrunchBridge completed-response experiment", () => {
     expect(harness.session.speakParaphrase).toHaveBeenCalledOnce();
   });
 
+  test.each(["same-update", "settlement-first", "already-observed"] as const)(
+    "reports canonical text once before settlement with a queued follow-up: %s",
+    async (ordering) => {
+      const harness = createHarness();
+      const first = await harness.submit("First request", "a");
+      harness.admit(first, "root-a", "reply-a");
+      await harness.submit("Queued request", "b");
+      const messages = [response("reply-a", "First complete answer.")];
+      const update = {
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: selectCanonicalSpeech(messages).segments,
+        status: "ready" as const,
+      };
+      const settlement = {
+        submissionId: "root-a",
+        outcome: "completed" as const,
+      };
+      if (ordering === "already-observed") harness.bridge.updateChat(update);
+      if (ordering === "settlement-first")
+        harness.bridge.notifySubmissionSettled(settlement);
+      harness.finish(first, messages);
+      harness.bridge.updateChat({ ...update, settlements: [settlement] });
+      // A later React update and repeated completion must not duplicate the mark.
+      harness.bridge.updateChat(update);
+      harness.finish(first, messages);
+
+      expect(
+        harness.events.filter((event) => event.type === "canonical-text-ready"),
+      ).toEqual([{ type: "canonical-text-ready", deliveryId: first.id }]);
+      expect(
+        harness.events
+          .filter((event) =>
+            [
+              "canonical-text-ready",
+              "submission-settled",
+              "canonical-response-ready",
+            ].includes(event.type),
+          )
+          .map((event) => event.type),
+      ).toEqual([
+        "canonical-text-ready",
+        "submission-settled",
+        "canonical-response-ready",
+      ]);
+      expect(harness.session.speakParaphrase).toHaveBeenCalledExactlyOnceWith(
+        [expect.objectContaining({ text: "First complete answer." })],
+        { deliveryId: first.id },
+      );
+    },
+  );
+
   test("supplies the full ordered report including later corrections only after the last continuation", async () => {
     const harness = createHarness();
     const input = await harness.submit();
@@ -366,6 +417,9 @@ describe("RealtimeBrunchBridge completed-response experiment", () => {
     });
     harness.finish(input, [response("unrelated", "Not this turn.")]);
     expect(harness.session.speakParaphrase).not.toHaveBeenCalled();
+    expect(
+      harness.events.filter((event) => event.type === "canonical-text-ready"),
+    ).toEqual([]);
     expect(harness.events).toContainEqual({
       type: "error",
       code: "interview-response",
