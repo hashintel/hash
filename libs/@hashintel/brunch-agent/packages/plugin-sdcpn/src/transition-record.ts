@@ -258,6 +258,11 @@ export const expectedNodeDefinition = (
     { sanitizeAfterMutation: false },
   );
   switch (request.toolName) {
+    case "addParameter":
+      actions.addParameter(
+        mutationActionInputSchemas.addParameter.parse(request.input),
+      );
+      break;
     case "addPlace":
       actions.addPlace(
         mutationActionInputSchemas.addPlace.parse(request.input),

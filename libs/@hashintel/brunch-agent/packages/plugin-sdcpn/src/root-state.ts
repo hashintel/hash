@@ -9,6 +9,7 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { z } from "zod";
 
 export const observedStateMutationNames = [
+  "addParameter",
   "addType",
   "updateType",
   "addTypeElement",
@@ -25,6 +26,10 @@ export const isObservedStateMutation = (
 const rootOnly = (input: { targetSubnetId?: string | null }) =>
   !input.targetSubnetId;
 const schemas = {
+  addParameter: petrinautAiTools.addParameter.inputSchema
+    .safeExtend({ brunch: observedArcEnvelopeSchema })
+    .refine(rootOnly, "Nested parameter construction is unavailable.")
+    .meta(petrinautAiTools.addParameter.inputSchema.meta() ?? {}),
   addType: petrinautAiTools.addType.inputSchema
     .safeExtend({ brunch: observedArcEnvelopeSchema })
     .refine(rootOnly)
@@ -61,7 +66,7 @@ export const parseObservedStateInput = (
 };
 
 export const rootStateWhyInputSchema = v.strictObject({
-  kind: v.picklist(["type", "type-element", "scenario"]),
+  kind: v.picklist(["parameter", "type", "type-element", "scenario"]),
   name: v.string(),
   type: v.optional(v.string()),
   field: v.optional(v.string(), "entity"),
@@ -89,7 +94,9 @@ export const locateRootState = (
       ? parent!.elements
       : query.kind === "type"
         ? definition.types
-        : (definition.scenarios ?? []);
+        : query.kind === "parameter"
+          ? definition.parameters
+          : (definition.scenarios ?? []);
   const matches = entries.filter(
     (entry) =>
       ("elementId" in entry ? entry.elementId : entry.id) === query.name ||
@@ -102,7 +109,7 @@ export const locateRootState = (
   const nodePath =
     query.kind === "type-element"
       ? `/types/${definition.types.indexOf(parent!)}/elements/${index}`
-      : `/${query.kind === "type" ? "types" : "scenarios"}/${index}`;
+      : `/${query.kind === "type" ? "types" : query.kind === "parameter" ? "parameters" : "scenarios"}/${index}`;
   const fields =
     query.field === "entity"
       ? []
@@ -133,7 +140,9 @@ export const locateRootState = (
     path: nodePath + fields.map((field) => `/${pointer(field)}`).join(""),
     value,
     formalism:
-      "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
+      query.kind === "parameter"
+        ? "A net parameter has a concrete declared default. This record describes that definition, not an unobserved scenario or run override. The default alone establishes neither an operational quantity nor whether runtime input was provided. Compilation is not simulation."
+        : "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
   };
 };
 
@@ -272,11 +281,14 @@ export const stateMutationTarget = (
           : "elementId" in input
             ? input.elementId
             : input.typeId;
-  const kind = request.toolName.includes("Scenario")
-    ? "scenario"
-    : request.toolName.includes("Element")
-      ? "type-element"
-      : "type";
+  const kind =
+    request.toolName === "addParameter"
+      ? "parameter"
+      : request.toolName.includes("Scenario")
+        ? "scenario"
+        : request.toolName.includes("Element")
+          ? "type-element"
+          : "type";
   const parent =
     "typeId" in input
       ? definition.types.find((entry) => entry.id === input.typeId)
@@ -284,9 +296,11 @@ export const stateMutationTarget = (
   const entries =
     kind === "scenario"
       ? (definition.scenarios ?? [])
-      : kind === "type-element"
-        ? (parent?.elements ?? [])
-        : definition.types;
+      : kind === "parameter"
+        ? definition.parameters
+        : kind === "type-element"
+          ? (parent?.elements ?? [])
+          : definition.types;
   const exists = entries.some(
     (entry) => ("elementId" in entry ? entry.elementId : entry.id) === id,
   );
@@ -296,7 +310,7 @@ export const stateMutationTarget = (
           nodePath:
             kind === "type-element"
               ? `/types/${definition.types.findIndex((entry) => entry === parent)}/elements/${entries.length}`
-              : `/${kind === "type" ? "types" : "scenarios"}/${entries.length}`,
+              : `/${kind === "type" ? "types" : kind === "parameter" ? "parameters" : "scenarios"}/${entries.length}`,
           value: undefined,
         }
       : locateRootState(definition, {

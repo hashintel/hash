@@ -71,6 +71,8 @@ When an unavailable operation blocks an actual workpiece-supported construction 
 
 The potential envelope remains root places/transitions/arcs, types/elements, scenarios, parameters when used, and necessary reads/checks/title/layout. Subnets, component instances, type-element moves, arbitrary position tools, differential equations, executable metrics and optimisation are not admitted by default. Stock layout consent remains intact. A class needed for one actual action does not admit its whole neighbourhood.
 
+**Reached parameter boundary, 2026-09-10:** the actual bound browser read confirms an empty definition with native parameters enabled; the elicitor's attempted required-input model exposes missing `addParameter` admission. Hardcoded lambda constants requiring code edits do not meet the requested input contract. The bounded repair admits only root `addParameter` through the observed construction/effect/why path, borrowing the canonical schema and preserving defaults as configuration rather than operational evidence. Parameter update/delete and nested observed construction remain unavailable; pre-existing unobserved/headless behaviour is not widened or retired. Synthetic schema, default, identity and browser/why proofs support integration, not genuine parameter carriage or semantic acceptance. The elicitor must still correct unsupported qualification permissions and preserve the requested unknown-input behaviour before the full region can be accepted. Mixed browser/server proposals remain refused; no payload rewrite, automatic split or unsupported provider option is introduced.
+
 ### Work selection and delegation
 
 #### AFK provisional progression

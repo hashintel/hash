@@ -98,7 +98,7 @@ export const createObservedArcTool = (
 ) =>
   defineTool({
     name,
-    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
+    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) && name !== "addParameter" ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
     input: isObservedNodeMutation(name)
       ? observedNodeInputSchema(name)
       : isObservedStateMutation(name)

@@ -321,7 +321,7 @@ const place = (id: string, name: string, colorId: string, x: number) => ({
   y: 0,
 });
 const initial =
-  "# GENERIC TEST workpiece\n\nTestQueue holds typed tokens with a text value. TestResult initially retains the same attributes. The labelled TestInitial scenario starts TestQueue with exactly two synthetic rows, text values 2 and bad. These are test conditions, not observed inventory. No actual timing, rate or plant claim is supplied.";
+  "# GENERIC TEST workpiece\n\nTestQueue holds typed tokens with a text value. TestResult initially retains the same attributes. The labelled TestInitial scenario starts TestQueue with exactly two synthetic rows, text values 2 and bad. These are test conditions, not observed inventory. Test rate input has a real default of zero and Test inputs ready has a boolean default of false; these are test configuration, not operational values or evidence that inputs were supplied. No actual timing, rate or plant claim is supplied.";
 const correction =
   "# GENERIC TEST corrected workpiece\n\nTestQueue holds typed tokens. Add an active boolean attribute, whose migration default false is a canonical default, not testimony. Correct value from text to integer: canonical migration may coerce 2 to 2 and invalid text to zero; this is not evidence of intended initial values. Explicitly correct TestInitial to rows [2,true] and [3,false] as synthetic initial conditions. Test transfer is predicate-enabled for this test only and moves one token to TestResult. Then correct TestResult to an uncoloured count: attributes are intentionally discarded there. Timing, actual inventory and operational rates remain unknown. Compilation is not simulation or behavioral validation.";
 const answers: Record<string, unknown>[] = [];
@@ -382,6 +382,38 @@ try {
   );
   faux.setResponses([
     ...settle(initial, "typed-revision-one"),
+    mutate("addParameter", "typed-parameter-rate", () => ({
+      id: "test-rate",
+      name: "Test rate input",
+      variableName: "test_rate",
+      type: "real",
+      defaultValue: "0",
+    })),
+    after("addParameter", "typed-read-parameter-rate", (record) =>
+      assert.equal(
+        unique(
+          record.attempts[0]!.post!.definition.parameters,
+          "Test rate input",
+        ).defaultValue,
+        "0",
+      ),
+    ),
+    mutate("addParameter", "typed-parameter-ready", () => ({
+      id: "test-inputs-ready",
+      name: "Test inputs ready",
+      variableName: "test_inputs_ready",
+      type: "boolean",
+      defaultValue: "false",
+    })),
+    after("addParameter", "typed-read-parameter-ready", (record) =>
+      assert.equal(
+        unique(
+          record.attempts[0]!.post!.definition.parameters,
+          "Test inputs ready",
+        ).defaultValue,
+        "false",
+      ),
+    ),
     mutate("addType", "typed-type", (definition) => {
       assert.equal(
         definition.types.length,
@@ -435,7 +467,7 @@ try {
     "GENERIC TEST account: two test items wait with text values 2 and bad. Initially preserve their attributes at the result. This is a synthetic setup, not plant inventory; timing is unknown.",
     "GENERIC TEST typed initial state created.",
   );
-  assert.equal(completed, 11);
+  assert.equal(completed, 15);
   faux.setResponses([
     ...settle(correction, "typed-revision-two"),
     mutate("addTypeElement", "typed-active", (definition) => ({
@@ -578,7 +610,7 @@ try {
     "GENERIC TEST correction: add an active flag; value is an integer, not text. Explicit initial values are 2/true and 3/false, not whatever migration defaults produce. Transfer is test-enabled and ultimately discards attributes at the result. Check the correction without claiming behavior or actual inventory.",
     "GENERIC TEST correction checked; compilation is not simulation.",
   );
-  assert.equal(completed, 31);
+  assert.equal(completed, 35);
   const stored = await page.evaluate(() => {
     const document = (
       JSON.parse(localStorage.getItem("petrinaut-sdcpn") ?? "{}") as Record<
@@ -613,6 +645,24 @@ try {
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
   const queries = [
+    {
+      kind: "parameter",
+      name: "Test rate input",
+      field: "defaultValue",
+      expected: "partially-supported",
+      expectedDefault: "0",
+      change: "typed-parameter-rate",
+      origin: "typed-parameter-rate",
+    },
+    {
+      kind: "parameter",
+      name: "Test inputs ready",
+      field: "defaultValue",
+      expected: "partially-supported",
+      expectedDefault: "false",
+      change: "typed-parameter-ready",
+      origin: "typed-parameter-ready",
+    },
     {
       kind: "type-element",
       type: "TestCorrectedAttributes",
@@ -713,7 +763,17 @@ try {
     tool("getLatestNetDefinition", {}, "typed-reopened-read"),
   ];
   queries.forEach(
-    ({ expected, change, origin: original, aggregate, ...args }, index) => {
+    (
+      {
+        expected,
+        expectedDefault,
+        change,
+        origin: original,
+        aggregate,
+        ...args
+      },
+      index,
+    ) => {
       responses.push(
         checked((context) =>
           query(context, args, `typed-reopened-why-${index}`),
@@ -730,6 +790,20 @@ try {
               change,
             );
           if (original) assert.equal(answer.originToolCallId, original);
+          if (expectedDefault !== undefined) {
+            const target = answer.target;
+            assert(
+              target &&
+                typeof target === "object" &&
+                "value" in target &&
+                "formalism" in target,
+            );
+            assert.equal(target.value, expectedDefault);
+            assert.match(
+              String(target.formalism),
+              /concrete declared default/u,
+            );
+          }
           if (aggregate) {
             assert.match(String(answer.reason), /aggregate.*descendant/iu);
             assert.equal(answer.governing, undefined);
@@ -783,7 +857,7 @@ try {
         ?.transitionRecord,
   );
   save("records", records);
-  assert.equal(records.length, 10);
+  assert.equal(records.length, 12);
   for (const result of records) {
     const record = (
       result.metadata as { transitionRecord: ConstructionTransitionRecord }
@@ -837,7 +911,7 @@ try {
         observedStateInputSchema(name).toJSONSchema({ io: "input" }),
       );
   }
-  assert.equal(completed, 55);
+  assert.equal(completed, 63);
   // Controls use the actual retained raw definition, not known factory IDs as evidence.
   const selectedType = unique(
     reopened.definition.types,
@@ -1116,8 +1190,8 @@ try {
   );
   assert.equal(
     controlRecords.length,
-    12,
-    "Ten applied, one no-op, one stale; pre-execution refusals have no browser record",
+    14,
+    "Twelve applied, one no-op, one stale; pre-execution refusals have no browser record",
   );
   for (const entry of controlRecords)
     for (const attempt of (
@@ -1166,7 +1240,7 @@ try {
   }
   assert.equal(
     completed,
-    64,
+    72,
     "Every planned callback assertion completes outside the faux boundary",
   );
   assert.deepEqual(callbackErrors, []);

@@ -80,6 +80,94 @@ describe("native typed state construction", () => {
       }).toEqual(canonical);
     },
   );
+  test("admits a root parameter and locates it for ordinary why", () => {
+    const parameter = {
+      id: "line_rate",
+      name: "Line rate",
+      variableName: "line_rate",
+      type: "real" as const,
+      defaultValue: "1",
+    };
+    const raw = {
+      ...parameter,
+      brunch: {
+        basis: { kind: "absent" as const, reason: "TEST" },
+        observationToolCallId: "test-read",
+        requestedBaseHash: "a".repeat(64),
+      },
+    };
+    expect(observedStateInputSchema("addParameter").parse(raw)).toMatchObject(
+      parameter,
+    );
+    expect(
+      petrinautAiTools.addParameter.inputSchema.safeParse({
+        ...parameter,
+        targetSubnetId: "nested-net",
+      }).success,
+    ).toBe(true);
+    expect(() =>
+      observedStateInputSchema("addParameter").parse({
+        ...raw,
+        targetSubnetId: "nested-net",
+      }),
+    ).toThrow("Nested parameter construction is unavailable.");
+    const before = empty();
+    const req = request("addParameter", parameter);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.parameters).toEqual([parameter]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
+    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
+    expect(
+      locateRootState(after, {
+        kind: "parameter",
+        name: parameter.id,
+        field: "entity",
+      }),
+    ).toMatchObject({
+      id: parameter.id,
+      nodePath: "/parameters/0",
+      path: "/parameters/0",
+      value: parameter,
+    });
+    const defaultField = locateRootState(after, {
+      kind: "parameter",
+      name: parameter.name,
+      field: "defaultValue",
+    });
+    expect(defaultField).toMatchObject({
+      path: "/parameters/0/defaultValue",
+      value: "1",
+    });
+    expect(defaultField.formalism).toContain("concrete declared default");
+    expect(
+      parseConstructionWhyInput({ kind: "parameter", name: parameter.id }),
+    ).toEqual({
+      kind: "parameter",
+      name: parameter.id,
+      field: "entity",
+    });
+  });
+  test.each([
+    ["real", "0"],
+    ["boolean", "false"],
+  ] as const)(
+    "preserves native %s parameter default %s",
+    (parameterType, defaultValue) => {
+      const parameter = {
+        id: "test-input",
+        name: "Test input",
+        variableName: "test_input",
+        type: parameterType,
+        defaultValue,
+      } satisfies PetrinautAiToolInput<"addParameter">;
+      const before = empty();
+      const req = request("addParameter", parameter);
+      const after = expectedNodeDefinition(req, before);
+      expect(after.parameters).toEqual([parameter]);
+      expect(outcome(req, before, after)).toBe("applied");
+    },
+  );
   test("scenario input omission survives while the canonical execution inserts its own default", () => {
     const schema = observedStateInputSchema("addScenario");
     expect(schema.toJSONSchema({ io: "input" }).required).not.toContain(

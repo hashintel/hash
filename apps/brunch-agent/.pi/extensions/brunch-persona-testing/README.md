@@ -46,7 +46,7 @@ cdp-cli --cdp-url "$cdp" screenshot "$page" "$run/browser-observer.png"
 
 The debugging endpoint controls this browser: keep it loopback-only and keep its run-private profile/control material out of commits and shared proof artifacts. Pair any screenshot with its canonical history observation; the screenshot alone does not establish a settlement, freshness, or utility verdict.
 
-A failed or indeterminate admitted submission stops the persona without replay. Inspect its canonical history before deciding whether to continue or start another run. A tool failure is not a reason to rewrite testimony, manufacture results or silently switch identity.
+A failed or indeterminate admitted submission stops the persona without replay. Inspect its canonical history before deciding whether to continue or start another run. A tool failure is not a reason to rewrite testimony, manufacture results or silently switch identity. The ordinary UI may restore a failed message as a draft: clear and verify the exact composer text before submitting a different turn. A browser tool's fill receipt does not prove that it replaced the existing draft.
 
 ## Retained data
 
