@@ -14,6 +14,7 @@ import { ComputeBackendBadge } from "../compute-backend-badge";
 import {
   ComputeBatchesChip,
   DrawerFrame,
+  type DrawerFrameProps,
   FrameCard,
   FrameColumns,
   FrameStat,
@@ -66,7 +67,7 @@ export const ResultsView = ({
 }: {
   model: ResultsModel;
   /** Given, the view renders inside a ds `Drawer`; otherwise it fills its section. */
-  drawer?: { onClose: () => void; swapKey: string };
+  drawer?: DrawerFrameProps["drawer"];
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
 }) => {
@@ -77,10 +78,10 @@ export const ResultsView = ({
       drawer={drawer}
       leading={leading}
       title={header.title}
-      headline={header.headline ?? undefined}
+      headline={header.headline}
       stats={<ResultsStats header={header} />}
       badge={
-        header.compute === null ? undefined : (
+        header.compute === null ? null : (
           <ComputeBackendBadge backend={header.compute} />
         )
       }
@@ -94,7 +95,7 @@ export const ResultsView = ({
           title={band.title}
           subtitle={band.subtitle}
           help={band.help}
-          trailing={band.trailing ?? undefined}
+          trailing={band.trailing}
           more={band.more}
           tone={band.tone}
         >
@@ -102,9 +103,9 @@ export const ResultsView = ({
         </FrameCard>
       ))}
       <FrameColumns
-        primary={surface ?? undefined}
+        primary={surface}
         secondary={
-          metrics === null ? undefined : (
+          metrics === null ? null : (
             <MetricTiles
               key={metrics.key}
               tiles={metrics.tiles}
@@ -117,7 +118,7 @@ export const ResultsView = ({
             </MetricTiles>
           )
         }
-        after={after ?? undefined}
+        after={after}
       />
     </DrawerFrame>
   );

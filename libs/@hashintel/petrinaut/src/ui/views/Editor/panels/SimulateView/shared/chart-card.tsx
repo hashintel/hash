@@ -192,7 +192,7 @@ export type ChartCardProps = {
   /** A help tooltip after the title. */
   help?: string;
   /** The header's right side: a `ChartCardMenu`, icon buttons, a chip. */
-  actions?: ReactNode;
+  actions?: ReactNode | null;
   /**
    * The body's fixed content height in pixels. The body clips; it never grows
    * or shrinks with its content. Omit only for a card whose height is the
@@ -233,9 +233,7 @@ export const ChartCard = ({
           {subtitle}
         </span>
       </div>
-      {actions === undefined ? null : (
-        <div className={actionsStyle}>{actions}</div>
-      )}
+      {actions == null ? null : <div className={actionsStyle}>{actions}</div>}
     </div>
     <div
       className={cx(

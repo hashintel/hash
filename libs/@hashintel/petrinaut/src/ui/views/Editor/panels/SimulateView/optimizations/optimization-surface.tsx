@@ -116,8 +116,14 @@ const initialView = (
 
 export const OptimizationSurface = ({
   optimization,
+  actions,
+  tone,
 }: {
   optimization: OptimizationRecord;
+  /** The card header's right side, e.g. a help tooltip. */
+  actions?: ReactNode;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const { sampleDetachedObjective } = use(ExperimentsActionsContext);
   const { input, axes } = optimization;
@@ -282,6 +288,8 @@ export const OptimizationSurface = ({
       onPick={(picked) =>
         setChosenPositions((previous) => ({ ...previous, ...picked }))
       }
+      actions={actions}
+      tone={tone}
       caption={describeSurfaceSampling({
         sampledCount: cellValues.size,
         totalCells,

@@ -18,11 +18,11 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
+  frameLayoutSignature,
   scrollFrameBody,
-} from "../shared/drawer-frame/frame-test-helpers";
+} from "../shared/drawer-frame-test-helpers";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,

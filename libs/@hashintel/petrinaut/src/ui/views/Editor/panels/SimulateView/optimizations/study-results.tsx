@@ -35,11 +35,6 @@ import {
   CHART_CARD_FOOTER_CHROME,
   type ChartCardTone,
 } from "../shared/chart-card";
-import {
-  FrameBand,
-  type FrameNote,
-  type FrameStatusTone,
-} from "../shared/drawer-frame";
 import { formatNumber, formatParameters } from "../shared/format-value";
 import {
   SURFACE_FOOTER_HEIGHT,
@@ -68,13 +63,14 @@ import { StudyHeader } from "./study-results/study-header";
 import { type StudyPhase, studyPhase } from "./study-results/study-phase";
 import { StudySteps } from "./study-results/study-steps";
 
+import type { FrameNote, FrameStatusTone } from "../shared/drawer-frame";
 import type {
   ResultsBand,
   ResultsMetrics,
   ResultsModel,
   ResultsStat,
   ResultsStatus,
-} from "../shared/results";
+} from "../shared/results/results-model";
 import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
 
 export { studyPhase, type StudyPhase } from "./study-results/study-phase";
@@ -432,9 +428,12 @@ const studySurface = (
     );
   }
   return enableOptimizationSurface ? (
-    <FrameBand title="Surface" help={REMOTE_SURFACE_HELP}>
-      <OptimizationSurface key={optimization.id} optimization={optimization} />
-    </FrameBand>
+    <OptimizationSurface
+      key={optimization.id}
+      optimization={optimization}
+      actions={<HelpTooltip content={REMOTE_SURFACE_HELP} align="center" />}
+      tone={tone}
+    />
   ) : null;
 };
 

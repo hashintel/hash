@@ -244,7 +244,7 @@ describe("studyResultsModel for a remote study", () => {
     expect(isValidElement(result.after)).toBe(true);
   });
 
-  it("shows the self-navigating surface in a band behind the setting", () => {
+  it("shows the self-navigating surface as the surface card behind the setting", () => {
     expect(
       isValidElement(
         model(remote, { enableOptimizationSurface: true }).surface,

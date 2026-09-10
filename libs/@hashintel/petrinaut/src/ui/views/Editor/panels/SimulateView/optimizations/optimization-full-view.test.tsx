@@ -10,7 +10,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import {
   frameHeader,
   scrollFrameBody,
-} from "../shared/drawer-frame/frame-test-helpers";
+} from "../shared/drawer-frame-test-helpers";
 import { OptimizationFullView } from "./optimization-full-view";
 import {
   makeConnectedStudyState,

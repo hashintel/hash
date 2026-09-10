@@ -15,7 +15,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FrameBand,
   FrameCard,
   FrameColumns,
   FrameStat,
@@ -24,7 +23,7 @@ import {
 import {
   frameHeader as header,
   scrollFrameBody as scrollBodyTo,
-} from "./drawer-frame/frame-test-helpers";
+} from "./drawer-frame-test-helpers";
 
 import type { ReactNode } from "react";
 
@@ -307,39 +306,6 @@ describe("DrawerFrame", () => {
         .getByRole("button", { name: "1 computing" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
-  });
-
-  it("folds a collapsible band's controls away without unmounting them", () => {
-    render(
-      <FrameBand title="Parameters" collapsible>
-        <input aria-label="population" defaultValue="42" />
-      </FrameBand>,
-    );
-
-    const toggle = screen.getByRole("button", { name: "Collapse Parameters" });
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(toggle);
-
-    const content = document.querySelector<HTMLElement>(
-      "[data-frame-band-content]",
-    )!;
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("true");
-    expect(content.getAttribute("aria-hidden")).toBe("true");
-    expect(content.hasAttribute("inert")).toBe(true);
-    expect(content.querySelector("input")?.value).toBe("42");
-    expect(
-      screen
-        .getByRole("button", { name: "Expand Parameters" })
-        .getAttribute("aria-expanded"),
-    ).toBe("false");
-
-    fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
-    expect(content.hasAttribute("inert")).toBe(false);
-    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
   });
 
   it("keeps a card's fixed part folded until its footer button opens it, mounted throughout", () => {
