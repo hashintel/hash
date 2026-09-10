@@ -1,7 +1,7 @@
-//! On-disk storage for atlas artifacts.
+//! Storage and file formats for atlas artifacts.
 //!
-//! Artifacts are plain files in a directory, one artifact per file, described by metadata stored
-//! beside them. No container format exists: the filesystem is the container. Publishing a
+//! Local artifacts are plain files in a directory, one artifact per file, described by metadata
+//! stored beside them. No container format exists: the filesystem is the container. Publishing a
 //! generation writes every file to a temporary directory, syncs, and renames it into place. A
 //! generation is therefore either absent or complete. Published files never change, hence caching
 //! them forever is safe.
@@ -35,6 +35,7 @@
 //!   of and the metadata describing them.
 //! - [`generation`] is the directory layer around them, with staging, the atomic publish, and the
 //!   current-generation pointer.
+//! - [`storage`] provides local and S3 file access through configured backends.
 //!
 //! Integrity mechanisms layer by cost. Array headers validate by parsing, because the pinned magic
 //! and version make foreign bytes fail to parse. The one structural rule is the file length
@@ -198,6 +199,7 @@ pub(crate) mod region;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;
+pub(crate) mod storage;
 
 pub(crate) trait ArtifactFile {
     type Error: core::error::Error;

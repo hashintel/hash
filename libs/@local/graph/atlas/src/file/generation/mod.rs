@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 use crate::integrity::{ParseHexError, Sha256Digest};
 
+mod document;
 mod error;
 mod open;
 mod scratch;
@@ -28,6 +29,7 @@ mod staging;
 mod tests;
 
 pub(crate) use self::{
+    document::GenerationDocument,
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,

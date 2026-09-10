@@ -84,60 +84,6 @@ fn config(seed: u64) -> FitConfig {
     }
 }
 
-fn repository() -> SaltRepository {
-    SaltRepository {
-        version: RepositoryVersion::V2,
-        files: SaltFiles {
-            representations: binding("representations.arr"),
-            card_embeddings: binding("card-embeddings.arr"),
-            card_hashes: binding("card-hashes.arr"),
-            knn: binding("knn.sprs"),
-            semantic: binding("semantic.sprs"),
-            landmarks: binding("landmarks.lndm"),
-            classifier: binding("classifier.clsf"),
-            policy: binding("policy.plcy"),
-            attraction: binding("attraction.atrc"),
-            protection: binding("protection.sprs"),
-            coordinates: binding("coordinates.arr"),
-            morton: binding("morton.mrtn"),
-            quad: binding("quadtree.quad"),
-            postings: binding("postings.post"),
-            wire_coordinates: binding("wire-coordinates.arr"),
-            rank_of_position: binding("rank-of-position.arr"),
-            position_of_rank: binding("position-of-rank.arr"),
-            position_of_row: binding("position-of-row.arr"),
-            row_of_position: binding("row-of-position.arr"),
-            node_identities: binding("node-identities.idnt"),
-            edge_identities: binding("edge-identities.idnt"),
-            ontology_identities: binding("ontology-identities.idnt"),
-            edge_endpoints: binding("edge-endpoints.arr"),
-            adjacency: binding("adjacency.sprs"),
-            projector: None,
-            reviewed_verdicts: Some(binding("reviewed-verdicts.json")),
-            annotation_corpus: None,
-            annotation_embeddings: None,
-            annotation_hashes: None,
-        },
-        metadata: SaltMetadata {
-            snapshot: Snapshot {
-                axes: None,
-                nodes: 4,
-                edges: 2,
-                ontology_types: 3,
-            },
-            reproducibility: Reproducibility {
-                config: config(7),
-                embedder: EmbedderFingerprint::new(digest("embedder")),
-                prior: None,
-            },
-            dataset: Some(DatasetOrigin::Memory),
-            placement: Placement::LandmarkBaseline,
-            ranking: RankingOrigin::ConstantColumns,
-            evidence: evidence(),
-        },
-    }
-}
-
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -214,15 +160,69 @@ fn evidence() -> Evidence {
     }
 }
 
+pub(super) fn repository() -> SaltRepository {
+    SaltRepository {
+        version: RepositoryVersion::V2,
+        files: SaltFiles {
+            representations: binding("representations.arr"),
+            card_embeddings: binding("card-embeddings.arr"),
+            card_hashes: binding("card-hashes.arr"),
+            knn: binding("knn.sprs"),
+            semantic: binding("semantic.sprs"),
+            landmarks: binding("landmarks.lndm"),
+            classifier: binding("classifier.clsf"),
+            policy: binding("policy.plcy"),
+            attraction: binding("attraction.atrc"),
+            protection: binding("protection.sprs"),
+            coordinates: binding("coordinates.arr"),
+            morton: binding("morton.mrtn"),
+            quad: binding("quadtree.quad"),
+            postings: binding("postings.post"),
+            wire_coordinates: binding("wire-coordinates.arr"),
+            rank_of_position: binding("rank-of-position.arr"),
+            position_of_rank: binding("position-of-rank.arr"),
+            position_of_row: binding("position-of-row.arr"),
+            row_of_position: binding("row-of-position.arr"),
+            node_identities: binding("node-identities.idnt"),
+            edge_identities: binding("edge-identities.idnt"),
+            ontology_identities: binding("ontology-identities.idnt"),
+            edge_endpoints: binding("edge-endpoints.arr"),
+            adjacency: binding("adjacency.sprs"),
+            projector: None,
+            reviewed_verdicts: Some(binding("reviewed-verdicts.json")),
+            annotation_corpus: None,
+            annotation_embeddings: None,
+            annotation_hashes: None,
+        },
+        metadata: SaltMetadata {
+            snapshot: Snapshot {
+                axes: None,
+                nodes: 4,
+                edges: 2,
+                ontology_types: 3,
+            },
+            reproducibility: Reproducibility {
+                config: config(7),
+                embedder: EmbedderFingerprint::new(digest("embedder")),
+                prior: None,
+            },
+            dataset: Some(DatasetOrigin::Memory),
+            placement: Placement::LandmarkBaseline,
+            ranking: RankingOrigin::ConstantColumns,
+            evidence: evidence(),
+        },
+    }
+}
+
 /// Restores write permission for tampering with published bytes.
+#[expect(
+    clippy::permissions_set_readonly_false,
+    reason = "the test tampers with its own scratch files"
+)]
 fn make_writable(path: &camino::Utf8Path) {
     let mut permissions = fs::metadata(path)
         .expect("a published file should stat")
         .permissions();
-    #[expect(
-        clippy::permissions_set_readonly_false,
-        reason = "the test tampers with its own scratch files"
-    )]
     permissions.set_readonly(false);
     fs::set_permissions(path, permissions).expect("the permissions should set");
 }
@@ -543,7 +543,7 @@ fn staging_drop_cleanup() {
     );
 }
 
-fn root() -> (ScratchDirectory, GenerationRoot) {
+pub(super) fn root() -> (ScratchDirectory, GenerationRoot) {
     let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should have a UTF-8 path")
         .join(format!("atlas-generation-lock-{}", Uuid::now_v7()));
