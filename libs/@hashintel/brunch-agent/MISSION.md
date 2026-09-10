@@ -68,9 +68,8 @@ history, and test files.
 
 ## Deferred
 
-Automatic construction, fresh current-turn proof across multiple turns, user-facing
-documentation, provenance, and Voice/browser witness work remain in the linked plan for later
-tasks. This mission does not claim them.
+Automatic construction and provenance remain future work. Paid-provider output, browser behavior,
+and audible Voice behavior remain skipped witness boundaries; this mission does not claim them.
  
 
 ## FE-1653 Verification Close
@@ -86,7 +85,9 @@ with type-aware proof fixes in `6f1713f28c`.
 - `NODE_OPTIONS=--no-experimental-webstorage yarn workspace @apps/petrinaut-website
   test:unit` — **PASS**: 41 files, 372 tests.
 - `yarn workspace @hashintel/petrinaut test:unit` — **PASS**: 94 files, 802 tests.
-- All three requested `lint:tsc` commands — **PASS**.
+- `yarn workspace @apps/brunch-agent lint:tsc` — **PASS**.
+- `yarn workspace @apps/petrinaut-website lint:tsc` — **PASS**.
+- `yarn workspace @hashintel/petrinaut lint:tsc` — **PASS**.
 - `yarn workspace @apps/brunch-agent lint:eslint` — **PASS**, with 14 pre-existing
   warnings and 0 errors.
 - `yarn workspace @apps/petrinaut-website lint:eslint` — **PASS**, with 0 warnings/errors.

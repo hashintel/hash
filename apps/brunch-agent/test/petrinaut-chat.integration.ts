@@ -239,6 +239,7 @@ try {
         for (const requiredPromptText of [
           "Before answering a user request about this model or the current, open, visible, or existing net",
           "getLatestNetDefinition",
+          "unless its client-tool result is already present in the current continuation",
         ]) {
           if (!modelRequest.includes(requiredPromptText)) {
             throw new Error(`model request omitted: ${requiredPromptText}`);
@@ -387,14 +388,16 @@ try {
           chunk.type === "tool-input-available" &&
           chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
       ) ?? null;
-    const firstCurrentNetCall =
-      initialChunks.find(
+    const currentNetCallsFromChunks = (chunks: readonly UIMessageChunk[]) =>
+      chunks.filter(
         (
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
           chunk.toolName === "getLatestNetDefinition",
-      ) ?? null;
+      );
+    const firstCurrentNetCalls = currentNetCallsFromChunks(initialChunks);
+    const firstCurrentNetCall = firstCurrentNetCalls.at(0) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
     const pendingHistoryClientToolState = pendingHistory
@@ -408,6 +411,7 @@ try {
     if (
       startChunk?.type !== "start" ||
       clientToolCall === null ||
+      firstCurrentNetCalls.length !== 1 ||
       firstCurrentNetCall === null
     ) {
       throw new Error("initial stream did not reach the client-tool pause");
@@ -462,15 +466,14 @@ try {
     const secondStartChunk = secondInitialChunks.find(
       (chunk) => chunk.type === "start",
     );
-    const secondCurrentNetCall =
-      secondInitialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === "getLatestNetDefinition",
-      ) ?? null;
-    if (secondStartChunk?.type !== "start" || secondCurrentNetCall === null) {
+    const secondCurrentNetCalls =
+      currentNetCallsFromChunks(secondInitialChunks);
+    const secondCurrentNetCall = secondCurrentNetCalls.at(0) ?? null;
+    if (
+      secondStartChunk?.type !== "start" ||
+      secondCurrentNetCalls.length !== 1 ||
+      secondCurrentNetCall === null
+    ) {
       throw new Error(
         "second stream did not reach the current-net client-tool pause",
       );

@@ -99,5 +99,6 @@ export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautFixtureToolNames,
   petrinautConstructionTools,
+  petrinautFixtureTools,
   type PetrinautConstructionToolName,
 } from "./tools/petrinaut-construction";

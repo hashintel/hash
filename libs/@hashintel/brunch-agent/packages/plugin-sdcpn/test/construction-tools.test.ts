@@ -7,6 +7,7 @@ import {
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
   validatedFixtureMutationMode,
+  petrinautFixtureTools as publicPetrinautFixtureTools,
 } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -52,6 +53,12 @@ describe("Petrinaut construction tools", () => {
 
   test("limits prepared fixtures to one canonical read and arc mutation", () => {
     expect(petrinautFixtureTools.map((tool) => tool.name)).toEqual([
+      ...petrinautFixtureToolNames,
+    ]);
+  });
+
+  test("re-exports prepared-fixture tools from the public Flue entrypoint", () => {
+    expect(publicPetrinautFixtureTools.map((tool) => tool.name)).toEqual([
       ...petrinautFixtureToolNames,
     ]);
   });
