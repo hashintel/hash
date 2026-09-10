@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "../run-node-script";
+import { runNodeScript } from "./run-node-script";
 
 import type {
   PetrinautChatResult,
