@@ -100,6 +100,48 @@ export const padWavWithSilence = (
   return padded;
 };
 
+/** One-shot fake microphone: eight seconds to connect, five between turns, three to commit. */
+export const composeCaptureWav = (
+  utterances: readonly Uint8Array[],
+  gapSeconds = 5,
+): Uint8Array => {
+  const first = utterances[0];
+  if (!first || !Number.isInteger(gapSeconds) || gapSeconds < 3) {
+    throw new Error(
+      "Expected an utterance and at least three whole seconds between turns",
+    );
+  }
+  const audio = utterances.map((wav) => {
+    const header = readWavHeader(wav);
+    if (header.channels !== 1 || header.sampleRate !== 48_000) {
+      throw new Error("Fake capture requires 48 kHz mono PCM");
+    }
+    let end = header.dataOffset + header.dataBytes;
+    // Normalize only trailing digital silence, preserving hesitation pauses.
+    while (end > header.dataOffset && wav[end - 1] === 0 && wav[end - 2] === 0)
+      end -= 2;
+    if (end === header.dataOffset)
+      throw new Error("Utterance contains only silence");
+    return wav.subarray(header.dataOffset, end);
+  });
+  const bytesPerSecond = 96_000;
+  const header = readWavHeader(first);
+  const dataBytes =
+    audio.reduce((total, samples) => total + samples.length, 0) +
+    (8 + 3 + gapSeconds * (audio.length - 1)) * bytesPerSecond;
+  const output = new Uint8Array(header.dataOffset + dataBytes);
+  output.set(first.subarray(0, header.dataOffset));
+  let offset = header.dataOffset + 8 * bytesPerSecond;
+  for (const samples of audio) {
+    output.set(samples, offset);
+    offset += samples.length + gapSeconds * bytesPerSecond;
+  }
+  const view = new DataView(output.buffer);
+  view.setUint32(4, output.length - 8, true);
+  view.setUint32(header.dataOffset - 4, dataBytes, true);
+  return output;
+};
+
 export const synthesizeUtterance = async (
   text: string,
   outPath: string,

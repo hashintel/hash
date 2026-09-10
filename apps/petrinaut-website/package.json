@@ -14,7 +14,8 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
-    "test:unit": "vitest run --passWithNoTests"
+    "test:unit": "vitest run --passWithNoTests",
+    "voice:e2e": "node --experimental-strip-types scripts/voice-e2e/run.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
@@ -52,6 +53,7 @@
     "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "playwright": "1.58.2",
     "sharp": "0.35.3",
     "vite": "8.2.2",
     "vitest": "4.1.10"
