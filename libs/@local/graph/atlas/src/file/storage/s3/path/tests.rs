@@ -66,3 +66,34 @@ fn display_scheme() {
     let path: Box<S3Path> = "s3://bucket/key".parse().expect("should parse an S3 path");
     assert_eq!(path.to_string(), "s3://bucket/key");
 }
+
+mod miri {
+    use zerocopy::FromZeros as _;
+
+    use super::S3Path;
+
+    #[test]
+    fn clone_tail() {
+        for length in [1, 7, 8, 9, 255, 256] {
+            let bucket = "b".repeat(length);
+            let key = format!("{}%2F/../🎈", "k".repeat(length));
+            let spelling = format!("s3://{bucket}/{key}");
+            let source: Box<S3Path> = spelling.parse().expect("should parse the source");
+            let cloned = source.clone();
+            assert_ne!(source.as_ref().path.as_ptr(), cloned.as_ref().path.as_ptr());
+            drop(source);
+            assert_eq!(cloned.bucket(), bucket);
+            assert_eq!(cloned.key(), key);
+            assert_eq!(cloned.to_string(), spelling);
+        }
+    }
+
+    #[test]
+    fn clone_empty_tail() {
+        let source = S3Path::new_box_zeroed_with_elems(0).expect("should allocate an empty tail");
+        let cloned = source.clone();
+        drop(source);
+        assert_eq!(cloned.separator.get(), 0);
+        assert_eq!(&cloned.path, "");
+    }
+}
