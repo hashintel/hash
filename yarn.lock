@@ -968,6 +968,7 @@ __metadata:
     oxc-transform-react: "npm:0.145.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    playwright: "npm:1.58.2"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     react-icons: "npm:5.5.0"
