@@ -115,7 +115,7 @@ export const useGpuAvailability = ({
   }
 
   if (histogramSpecs.length > 0) {
-    const gpuMetrics = toGpuMetricSpecs(histogramSpecs);
+    const gpuMetrics = toGpuMetricSpecs(histogramSpecs, { sdcpn, extensions });
     if (!gpuMetrics.ok) {
       return { available: false, reason: gpuMetrics.reason, pending: false };
     }

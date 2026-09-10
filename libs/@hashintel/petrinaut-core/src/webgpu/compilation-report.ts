@@ -9,11 +9,14 @@
  * 2. `compileNetShader` — bails while emitting WGSL, with a message written for
  *    whoever wrote the emitter (`field access on a array, which has no fields`)
  *    rather than for whoever wrote the net.
- * 3. `toGpuMetricSpecs` — refuses metric shapes the on-GPU histogram cannot serve.
+ * 3. `toGpuMetricSpecs` — refuses metrics the shader cannot compute: transition
+ *    firings, time aggregations, and expression bodies `tryTranslateMetric`
+ *    cannot emit.
  *
- * A user hitting gate 2 or 3 currently sees a single fallback sentence and has no
- * way to find out which transition caused it. This report attributes each failure
- * to an item so the UI can point at it.
+ * A user hitting gate 2 or 3 would otherwise see one fallback sentence with no
+ * way to find out which transition or metric caused it. This report attributes
+ * each failure to an item so the UI can point at it: one row per condition,
+ * kernel, dynamics body and model metric.
  *
  * It is deliberately read-only and device-free: it answers "would this compile"
  * without acquiring a GPU, so it can run while editing.
@@ -24,15 +27,17 @@ import { assessGpuEligibility } from "./eligibility";
 import { toGpuMetricSpecs } from "./gpu-metric-frames";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { tryTranslateKernel } from "./try-translate-kernel";
+import { tryTranslateMetric } from "./try-translate-metric";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuIneligibilityReason } from "./eligibility";
+import type { GpuMetricSpecsResult } from "./gpu-metric-frames";
 
 /** What kind of user code an item carries. */
-export type CompilationItemKind = "lambda" | "kernel" | "dynamics";
+export type CompilationItemKind = "lambda" | "kernel" | "dynamics" | "metric";
 
 export type CompilationItemStatus =
   /** Lowered to HIR and emittable as WGSL. */
@@ -51,7 +56,10 @@ export type CompilationItemStatus =
   | "disabled";
 
 export type CompilationItemReport = {
-  /** Place, transition or differential-equation id, for selecting the item. */
+  /**
+   * Place, transition or differential-equation id, for selecting the item; a
+   * metric row carries the metric's id, which is not a canvas item.
+   */
   itemId: string;
   itemName: string;
   kind: CompilationItemKind;
@@ -113,7 +121,11 @@ export type AnalyzeCompilationInput = {
    * parameter's own declared default, which is what the net means on its own.
    */
   parameterValues?: Readonly<Record<string, number | boolean>>;
-  /** Metric specs an experiment would run. Omit to skip the metric gate. */
+  /**
+   * Metric specs an experiment would run. Omit to skip the metric gate; the
+   * accepted metrics are compiled into the shader, so `wgsl` and
+   * `shaderFailure` cover their emission and bin sizing.
+   */
   metricSpecs?: readonly MonteCarloMetricSpec[];
   dt?: number;
 };
@@ -138,6 +150,15 @@ export function analyzeCompilation({
     );
   const netHir = hirFromArtifacts(sdcpn, artifacts, extensions);
   const eligibility = assessGpuEligibility(sdcpn);
+  const gpuMetrics: GpuMetricSpecsResult =
+    metricSpecs === undefined
+      ? { ok: true, metrics: [] }
+      : toGpuMetricSpecs(metricSpecs, {
+          sdcpn,
+          extensions,
+          parameterValues: resolvedParameterValues,
+        });
+  const metricFailure = gpuMetrics.ok ? null : gpuMetrics.reason;
 
   let shaderFailure: string | null = null;
   let wgsl: string | null = null;
@@ -156,21 +177,13 @@ export function analyzeCompilation({
       dt,
       // Only affects the emitted loop bound, not whether emission succeeds.
       framesPerDispatch: 64,
-      metrics: [],
+      metrics: gpuMetrics.ok ? gpuMetrics.metrics : [],
       odeMethod: "rk4",
     });
     if (compiled.ok) {
       wgsl = compiled.shader.wgsl;
     } else {
       shaderFailure = compiled.reason;
-    }
-  }
-
-  let metricFailure: string | null = null;
-  if (metricSpecs !== undefined && metricSpecs.length > 0) {
-    const gpuMetrics = toGpuMetricSpecs(metricSpecs);
-    if (!gpuMetrics.ok) {
-      metricFailure = gpuMetrics.reason;
     }
   }
 
@@ -277,6 +290,45 @@ export function analyzeCompilation({
           : // A failed translation is a *tested* negative, so it stays `cpu-only`
             // even when the net was refused before emission ran. Only a successful
             // translation defers to how far the pipeline got.
+            translation?.translatable === false
+            ? "cpu-only"
+            : emittedStatus,
+      detail:
+        translation === null
+          ? "Its compiled artifact carries no HIR, so it cannot be translated."
+          : translation.translatable
+            ? emittedDetail
+            : `Cannot be translated to WGSL: ${translation.reason}`,
+      hirNodeCount: hir ? countHirNodes(hir.body) : null,
+    });
+  }
+
+  // The model's own metrics, whether or not an experiment measures them: the
+  // panel shows a net being edited, and an author deciding how to write a
+  // metric wants to know before creating an experiment.
+  for (const metric of sdcpn.metrics ?? []) {
+    if (metric.code.trim() === "") {
+      continue;
+    }
+    const hir = artifacts.metrics[metric.id]?.hir;
+    const translation =
+      hir === undefined
+        ? null
+        : tryTranslateMetric({
+            sdcpn,
+            hir,
+            extensions,
+            parameterValues: resolvedParameterValues,
+          });
+    items.push({
+      itemId: metric.id,
+      itemName: metric.name,
+      kind: "metric",
+      status:
+        hir === undefined
+          ? "no-hir"
+          : // As for kernels: a failed translation is a tested negative and stays
+            // `cpu-only` even when the net was refused before emission ran.
             translation?.translatable === false
             ? "cpu-only"
             : emittedStatus,
