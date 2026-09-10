@@ -7,8 +7,7 @@
     "build": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build"
-      ],
-      "cache": false
+      ]
     },
     "codegen": {
       "dependsOn": [
