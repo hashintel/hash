@@ -12,6 +12,7 @@
  * cleanly, because by then the experiment is already registered and showing as
  * running.
  */
+import { resolveNetParameterValues } from "../parameter-values";
 import {
   appendMetricFrames,
   createEmptyMetricsState,
@@ -172,7 +173,15 @@ const initialCount = (marking: InitialMarking[string] | undefined): number =>
 export async function createGpuMonteCarloExperiment(
   config: CreateGpuMonteCarloExperimentConfig,
 ): Promise<CreateGpuMonteCarloExperimentResult> {
-  const gpuMetrics = toGpuMetricSpecs(config.metricSpecs);
+  const gpuMetrics = toGpuMetricSpecs(config.metricSpecs, {
+    sdcpn: config.sdcpn,
+    extensions: config.extensions,
+    parameterValues: resolveNetParameterValues(
+      config.sdcpn.parameters,
+      config.parameterValues,
+      config.extensions?.parameters ?? true,
+    ),
+  });
   if (!gpuMetrics.ok) {
     return {
       supported: false,

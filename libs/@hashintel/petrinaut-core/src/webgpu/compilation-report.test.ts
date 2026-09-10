@@ -11,6 +11,7 @@ import {
   summarizeGpuUnavailability,
 } from "./compilation-report";
 
+import type { MonteCarloExpressionMetricSpec } from "../simulation/monte-carlo/metrics";
 import type { SDCPN } from "../types/sdcpn";
 
 function analyze(sdcpn: SDCPN) {
@@ -20,6 +21,26 @@ function analyze(sdcpn: SDCPN) {
   // Parameter values are deliberately not passed: the net's own defaults are the
   // documented fallback, and every caller in the app relies on that.
   return analyzeCompilation({ sdcpn, artifacts });
+}
+
+/** One of the net's model metrics as the expression spec an experiment sends. */
+function modelMetricSpec(
+  sdcpn: SDCPN,
+  metricId: string,
+): MonteCarloExpressionMetricSpec {
+  const metric = sdcpn.metrics?.find((candidate) => candidate.id === metricId);
+  const artifact = compileHirArtifacts(sdcpn, undefined, { includeHir: true })
+    .artifacts.metrics[metricId];
+  if (metric === undefined || artifact === undefined) {
+    throw new Error(`metric ${metricId} is not on the net or did not compile`);
+  }
+  return {
+    kind: "expression",
+    id: metric.id,
+    label: metric.name,
+    code: metric.code,
+    artifact,
+  };
 }
 
 const satellites = probabilisticSatellitesSDCPN.petriNetDefinition;
@@ -254,6 +275,118 @@ describe("analyzeCompilation", () => {
     expect(crash?.hirNodeCount).toBeGreaterThan(8);
   });
 
+  it("classifies every bundled example's model metrics", () => {
+    // One `metric` row per model metric, whether or not an experiment
+    // measures it. Deliberately exhaustive over the examples namespace, like
+    // the readiness matrix: a metric added to an example fails here until its
+    // GPU verdict is recorded. Every translatable metric on a GPU-ready net is
+    // `gpu-ready`; the two `.concat` averages are `cpu-only` with their own
+    // reason; Production Machines' other metrics are `cpu-only` because the
+    // net's shader fails, which is a different sentence.
+    const statuses = Object.fromEntries(
+      Object.entries(allExamples).map(([name, example]) => {
+        const definition = (example as { petriNetDefinition: SDCPN })
+          .petriNetDefinition;
+        const rows = analyze(definition).items.filter(
+          (item) => item.kind === "metric",
+        );
+        expect(rows.map((row) => row.itemId).sort(), name).toStrictEqual(
+          (definition.metrics ?? []).map((metric) => metric.id).sort(),
+        );
+        return [
+          name,
+          Object.fromEntries(rows.map((row) => [row.itemId, row.status])),
+        ];
+      }),
+    );
+    expect(statuses).toStrictEqual({
+      productionMachines: {
+        metric__good_products: "cpu-only",
+        metric__defective_products: "cpu-only",
+        metric__yield: "cpu-only",
+        metric__machines_down: "cpu-only",
+        metric__average_machine_damage: "cpu-only",
+      },
+      deploymentPipelineSDCPN: {
+        metric__successful_deployments: "gpu-ready",
+        metric__failed_deployments: "gpu-ready",
+        metric__release_queue_length: "gpu-ready",
+        metric__active_incidents: "gpu-ready",
+        metric__deployment_gate_blocked: "gpu-ready",
+        metric__failure_share: "gpu-ready",
+      },
+      probabilisticSatellitesSDCPN: {
+        metric__satellites_in_orbit: "gpu-ready",
+        metric__debris: "gpu-ready",
+        metric__average_orbital_radius: "gpu-ready",
+        metric__average_orbital_speed: "gpu-ready",
+      },
+      sirModel: { metric__infected_fraction: "gpu-ready" },
+      cafeQueue: {},
+      dronePatrol: {},
+      supplyChainWithDisruption: {
+        metric_service_level: "gpu-ready",
+        metric_customer_pressure: "gpu-ready",
+        metric_stock_position: "gpu-ready",
+        metric_inbound_pipeline: "gpu-ready",
+        metric_average_inbound_risk: "gpu-ready",
+        metric_factory_available: "gpu-ready",
+        metric_scrap_rate: "gpu-ready",
+        metric_supplier_outages: "gpu-ready",
+        metric_average_order_age: "cpu-only",
+      },
+      supplyChainProfit: {
+        metric_service_level: "gpu-ready",
+        metric_profit: "gpu-ready",
+      },
+      vaccinationCampaign: {
+        metric__total_cost: "gpu-ready",
+        metric__infected: "gpu-ready",
+        metric__attack_rate: "gpu-ready",
+      },
+    });
+
+    const production = analyze(
+      allExamples.productionMachines.petriNetDefinition,
+    );
+    const productionRows = production.items.filter(
+      (item) => item.kind === "metric",
+    );
+    for (const row of productionRows) {
+      if (row.itemId === "metric__average_machine_damage") {
+        expect(row.detail).toMatch(/Cannot be translated to WGSL: .*concat/);
+      } else {
+        expect(row.detail, row.itemId).toBe(production.shaderFailure);
+      }
+      expect(row.hirNodeCount).toBeGreaterThan(0);
+    }
+    const orderAge = analyze(
+      allExamples.supplyChainWithDisruption.petriNetDefinition,
+    ).items.find((item) => item.itemId === "metric_average_order_age");
+    expect(orderAge?.detail).toMatch(/Cannot be translated to WGSL: .*concat/);
+  });
+
+  it("compiles the shader with the experiment's metrics", () => {
+    // Without specs no metric is emitted; with SIR's own metric as an
+    // expression spec the sample block is in the WGSL, so `wgsl` and
+    // `shaderFailure` cover metric emission and not only the net's code.
+    const sdcpn = sirModel.petriNetDefinition;
+    expect(analyze(sdcpn).wgsl).not.toContain("let v0: f32");
+
+    const { artifacts } = compileHirArtifacts(sdcpn, undefined, {
+      includeHir: true,
+    });
+    const report = analyzeCompilation({
+      sdcpn,
+      artifacts,
+      metricSpecs: [modelMetricSpec(sdcpn, "metric__infected_fraction")],
+    });
+
+    expect(report.gpuReady).toBe(true);
+    expect(report.metricFailure).toBeNull();
+    expect(report.wgsl).toContain("let v0: f32 = select(");
+  });
+
   it("reports metric shapes the GPU histogram cannot serve", () => {
     const sdcpn = sirModel.petriNetDefinition;
     const { artifacts } = compileHirArtifacts(sdcpn, undefined, {
@@ -286,8 +419,37 @@ describe("analyzeCompilation", () => {
         },
       ],
     });
-    expect(withFiringCount.metricFailure).not.toBeNull();
+    expect(withFiringCount.metricFailure).toMatch(/transition firings/);
     expect(withFiringCount.gpuReady).toBe(false);
+
+    const infectedFraction = modelMetricSpec(
+      sdcpn,
+      "metric__infected_fraction",
+    );
+    const { hir: _stripped, ...artifactWithoutHir } = infectedFraction.artifact;
+    const withoutHir = analyzeCompilation({
+      sdcpn,
+      artifacts,
+      metricSpecs: [{ ...infectedFraction, artifact: artifactWithoutHir }],
+    });
+    expect(withoutHir.metricFailure).toMatch(/HIR tree/);
+    expect(withoutHir.gpuReady).toBe(false);
+  });
+
+  it("names the construct that keeps an expression metric on the CPU", () => {
+    const sdcpn = allExamples.productionMachines.petriNetDefinition;
+    const { artifacts } = compileHirArtifacts(sdcpn, undefined, {
+      includeHir: true,
+    });
+    const report = analyzeCompilation({
+      sdcpn,
+      artifacts,
+      metricSpecs: [modelMetricSpec(sdcpn, "metric__average_machine_damage")],
+    });
+
+    expect(report.metricFailure).toMatch(
+      /Metric "Average machine damage" cannot be translated to WGSL: .*concat.*\.$/,
+    );
   });
 
   it("does not run the metric gate when no metrics are given", () => {

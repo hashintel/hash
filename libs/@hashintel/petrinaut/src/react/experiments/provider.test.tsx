@@ -1391,9 +1391,10 @@ describe("ExperimentsProvider", () => {
   });
 
   it("falls back to the CPU and records why when the GPU declines the net", async () => {
-    // The GPU backend cannot serve expression metrics, so requesting it for this
-    // experiment is declined. It must still run — silently switching backends is
-    // wrong, and failing outright is worse.
+    // The constant metric translates to WGSL, so the GPU backend gets as far as
+    // the net itself, which has nothing to simulate, and declines it. It must
+    // still run — silently switching backends is wrong, and failing outright is
+    // worse.
     const worker = new FakeMonteCarloWorker();
     const notifications: AddNotificationInput[] = [];
     const { getValue, renderResult } = renderExperimentsProvider(worker, {
@@ -1430,10 +1431,10 @@ describe("ExperimentsProvider", () => {
 
         const experiment = getValue().selectedExperiment;
         expect(experiment?.computeBackend).toBe("cpu");
-        // The metric shape, not "no GPU here": with an adapter present the backend
-        // is genuinely asked about the net, and this is the reason it gives.
+        // The net, not "no GPU here": with an adapter present the backend is
+        // genuinely asked about the net, and this is the reason it gives.
         expect(experiment?.computeBackendFallbackReason).toMatch(
-          /place token counts/i,
+          /no transitions/i,
         );
         // It still ran, on the CPU worker.
         expect(worker.sent.map((message) => message.type)).toEqual([
