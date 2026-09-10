@@ -768,7 +768,10 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    if (event.type === "canonical-speech-requested") {
+    if (
+      event.type === "canonical-speech-requested" ||
+      event.type === "bridging-speech-requested"
+    ) {
       this.#pendingSpeechRequestIds.add(event.speechRequestId);
       if (
         this.#snapshot.interruptionBySpeaking &&
@@ -792,6 +795,7 @@ export class VoiceTurnController {
             : "",
       });
       if (
+        event.type === "canonical-speech-requested" &&
         this.#latencyCorrelationId !== null &&
         this.#ttsSpeechRequestId === null
       ) {

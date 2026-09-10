@@ -391,6 +391,163 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   });
 });
 
+test("carries only a fixed per-turn Voice preference without changing user text", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  const voice: UIMessage = {
+    id: "voice-user",
+    role: "user",
+    metadata: { source: "voice", instructions: "Untrusted instruction." },
+    parts: [{ type: "text", text: "What does reserving a crew mean?" }],
+  };
+  await readChunks(await transport.sendMessages(sendOptions([voice])));
+  await readChunks(await transport.sendMessages(sendOptions([voice])));
+  expect(send.mock.calls[0]?.[0]).toEqual({
+    idempotencyKey: "ai-sdk:user:voice-user",
+    message: {
+      kind: "user",
+      body: "What does reserving a crew mean?",
+      context: { responseMode: "voice" },
+    },
+    signal: undefined,
+  });
+  expect(send.mock.calls[1]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        voice,
+        {
+          id: "typed-next",
+          role: "user",
+          parts: [{ type: "text", text: "Give me the details." }],
+        },
+      ]),
+    ),
+  );
+  expect(send.mock.calls[2]?.[0].message).toEqual({
+    kind: "user",
+    body: "Give me the details.",
+  });
+});
+
+test.each([true, false])(
+  "tool result context follows the actual Voice result: %s",
+  async (voice) => {
+    const { client, send } = clientWith(completedEvents);
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set(["readPetrinautDoc"]),
+    });
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [
+            {
+              id: "assistant-original",
+              role: "assistant",
+              metadata: {
+                voiceToolCallIds: voice ? ["tool-1"] : ["earlier-tool"],
+              },
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "readPetrinautDoc",
+                  toolCallId: "tool-1",
+                  state: "output-available",
+                  input: {},
+                  output: "The guide.",
+                },
+              ],
+            },
+          ],
+          "assistant-original",
+        ),
+      ),
+    );
+    const message = send.mock.calls[0]?.[0].message;
+    expect(message?.context).toEqual(
+      voice ? { responseMode: "voice" } : undefined,
+    );
+    expect(message?.body).toBe(
+      JSON.stringify([
+        {
+          toolCallId: "tool-1",
+          toolName: "readPetrinautDoc",
+          output: "The guide.",
+          ...(voice ? { source: "voice" } : {}),
+        },
+      ]),
+    );
+    expect(send).toHaveBeenCalledOnce();
+  },
+);
+
+test.each([
+  { source: "voice", dynamic: false, voice: true },
+  { source: undefined, dynamic: false, voice: false },
+  { source: "voice", dynamic: true, voice: false },
+])(
+  "automatic result preference stays causal without inventing Voice provenance: %o",
+  async ({ source, dynamic, voice }) => {
+    const { client, send } = clientWith(completedEvents);
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set(["readPetrinautDoc"]),
+    });
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [
+            {
+              id: "origin",
+              role: "user",
+              metadata: { source },
+              parts: [{ type: "text", text: "Read the guide." }],
+            },
+            {
+              id: "reply",
+              role: "assistant",
+              parts: [
+                {
+                  type: dynamic ? "dynamic-tool" : "tool-readPetrinautDoc",
+                  toolName: "readPetrinautDoc",
+                  toolCallId: "tool-doc",
+                  state: "output-available",
+                  input: {},
+                  output: "The guide.",
+                },
+              ],
+            },
+            {
+              id: "later",
+              role: "user",
+              parts: [{ type: "text", text: "An unrelated typed turn." }],
+            },
+          ],
+          "reply",
+        ),
+      ),
+    );
+    expect(send.mock.calls[0]?.[0].message).toEqual({
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-doc",
+          toolName: "readPetrinautDoc",
+          output: "The guide.",
+        },
+      ]),
+      attributes: { toolCallIds: "tool-doc" },
+      ...(voice ? { context: { responseMode: "voice" } } : {}),
+    });
+  },
+);
+
 test("derives the same idempotency key for exact AI SDK retries", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({

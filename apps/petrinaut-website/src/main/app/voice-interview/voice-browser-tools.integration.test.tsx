@@ -159,6 +159,7 @@ test.each([
     > as FlueClient;
     const bridge = new RealtimeBrunchBridge({
       session: {
+        offerFullResponse: vi.fn(),
         speakCanonical,
         subscribe: (listener) => {
           emitInput = listener;
@@ -281,6 +282,7 @@ test.each([
     ).toBe(false);
     expect(send.mock.calls[1]?.[0].message).toMatchObject({
       kind: "signal",
+      context: { responseMode: "voice" },
       attributes: { toolCallIds: "read-guide" },
     });
     await act(async () => {

@@ -132,6 +132,7 @@ const createAdmissionOutcomeHarness = (
     | undefined;
   const bridge = new RealtimeBrunchBridge({
     session: {
+      offerFullResponse: vi.fn(),
       speakCanonical: vi.fn(),
       subscribe: (listener) => {
         realtimeListener = listener;
@@ -483,7 +484,11 @@ describe("controlled voice preview", () => {
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         idempotencyKey: "ai-sdk:user:voice-realtime:1:user-item:0",
-        message: { body: spokenAnswer, kind: "user" },
+        message: {
+          body: spokenAnswer,
+          kind: "user",
+          context: { responseMode: "voice" },
+        },
       }),
     );
     await vi.waitFor(() =>
@@ -706,6 +711,7 @@ describe("controlled voice preview", () => {
       | undefined;
     const bridge = new RealtimeBrunchBridge({
       session: {
+        offerFullResponse: vi.fn(),
         speakCanonical: vi.fn(),
         subscribe: (listener) => {
           realtimeListener = listener;

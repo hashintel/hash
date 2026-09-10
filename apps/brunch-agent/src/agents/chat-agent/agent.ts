@@ -7,7 +7,7 @@
  * deployment diagnostics and transport-specific instructions.
  */
 
-import { useInstruction, useTool } from "@flue/runtime";
+import { useDelivery, useInstruction, useTool } from "@flue/runtime";
 
 import {
   SDCPN_MODELLING_SKILL_NAME,
@@ -28,6 +28,23 @@ export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 export function ChatAgent() {
   const coreSystemPrompt = useBrunchAgent(`anthropic/${CHAT_MODEL_ID}`);
   useSdcpnPlugin();
+
+  // FE-1630 local Flue 2.0.3 patch: a per-delivery presentation preference,
+  // not provenance or permission. Never interpolate caller-supplied instructions.
+  const context = useDelivery().context;
+  if (
+    typeof context === "object" &&
+    context !== null &&
+    "responseMode" in context &&
+    context.responseMode === "voice"
+  ) {
+    useInstruction(`Voice response style for this delivery only:
+Respond conversationally and concisely. Put the necessary question or conclusion first.
+Avoid unnecessary preambles and repetition; preserve consequential qualifications.
+For a short clarification, prefer one or two spoken sentences, with any consequential qualification, rather than an unsolicited report or a repeated summary. Expand only when the question requires it.
+When a detailed report is needed, keep it complete in the visible canonical response; the application offers to read long responses on request.
+These are presentation instructions only. Retain all domain, evidence, workpiece, and tool obligations.`);
+  }
 
   useInstruction(
     `
