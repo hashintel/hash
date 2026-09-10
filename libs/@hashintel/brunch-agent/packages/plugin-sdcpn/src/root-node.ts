@@ -9,7 +9,7 @@ import {
 import { observedArcEnvelopeSchema, rootArcWhyInputSchema } from "./root-arc";
 import { rootStateWhyInputSchema } from "./root-state";
 
-import type { ConstructionMutationRequest } from "./transition-record";
+import type { ConstructionMutationRequest } from "./mutation-record";
 
 export const rootNodeWhyInputSchema = v.strictObject({
   kind: v.picklist(["place", "transition"]),

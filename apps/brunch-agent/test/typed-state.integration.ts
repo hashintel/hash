@@ -31,9 +31,9 @@ import {
   canonicalContent,
   observedStateInputSchema,
   observedStateMutationNames,
-  verifyArcTransitionAttempt,
+  verifyMutationAttempt,
   verifyDefinitionObservation,
-  type ConstructionTransitionRecord,
+  type ConstructionMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
@@ -282,12 +282,12 @@ const mutate = (
 const after = (
   name: string,
   id: string,
-  inspect?: (record: ConstructionTransitionRecord) => void,
+  inspect?: (record: ConstructionMutationRecord) => void,
 ) =>
   checked((context) => {
     const result = browserResult(context, name);
     assert.equal((result.output as { applied?: boolean }).applied, true);
-    const record = result.metadata?.transitionRecord;
+    const record = result.metadata?.mutationRecord;
     assert(record);
     assert.equal(record.outcome, "applied");
     inspect?.(record);
@@ -898,23 +898,22 @@ try {
   const results = clientToolHistoryFrom(history.messages).results;
   const records = results.filter(
     (result) =>
-      (result.metadata as { transitionRecord?: unknown } | undefined)
-        ?.transitionRecord,
+      (result.metadata as { mutationRecord?: unknown } | undefined)
+        ?.mutationRecord,
   );
   save("records", records);
   assert.equal(records.length, 14);
   for (const result of records) {
     const record = (
-      result.metadata as { transitionRecord: ConstructionTransitionRecord }
-    ).transitionRecord;
-    for (const attempt of record.attempts)
-      await verifyArcTransitionAttempt(attempt);
+      result.metadata as { mutationRecord: ConstructionMutationRecord }
+    ).mutationRecord;
+    for (const attempt of record.attempts) await verifyMutationAttempt(attempt);
   }
   const final = (
     records.at(-1)!.metadata as {
-      transitionRecord: ConstructionTransitionRecord;
+      mutationRecord: ConstructionMutationRecord;
     }
-  ).transitionRecord.attempts[0]!.post!;
+  ).mutationRecord.attempts[0]!.post!;
   const reopened = (
     results.find((result) => result.toolCallId === "typed-reopened-read")!
       .metadata as { observation: { observed: typeof final } }
@@ -932,9 +931,9 @@ try {
   assert(scenarioRecord);
   const scenarioAttempt = (
     scenarioRecord.metadata as {
-      transitionRecord: ConstructionTransitionRecord;
+      mutationRecord: ConstructionMutationRecord;
     }
-  ).transitionRecord.attempts[0]!;
+  ).mutationRecord.attempts[0]!;
   assert(!Object.hasOwn(scenarioAttempt.request.input, "parameterOverrides"));
   assert.deepEqual(
     scenarioAttempt.post?.definition.scenarios?.[0]?.parameterOverrides,
@@ -1142,7 +1141,7 @@ try {
     checked((context) => {
       const result = browserResult(context, "updateType");
       assert.equal((result.output as { applied: boolean }).applied, false);
-      assert.equal(result.metadata?.transitionRecord?.outcome, "no-op");
+      assert.equal(result.metadata?.mutationRecord?.outcome, "no-op");
       return text("Unchanged type is not a change.");
     }),
   ]);
@@ -1163,7 +1162,7 @@ try {
     checked((context) => {
       const result = browserResult(context, "updateType");
       assert.equal((result.output as { applied: boolean }).applied, false);
-      assert.equal(result.metadata?.transitionRecord?.outcome, "stale");
+      assert.equal(result.metadata?.mutationRecord?.outcome, "stale");
       return text("Stale type correction was not applied.");
     }),
   ]);
@@ -1230,8 +1229,8 @@ try {
     );
   const controlRecords = controlResults.filter(
     (entry) =>
-      (entry.metadata as { transitionRecord?: unknown } | undefined)
-        ?.transitionRecord,
+      (entry.metadata as { mutationRecord?: unknown } | undefined)
+        ?.mutationRecord,
   );
   assert.equal(
     controlRecords.length,
@@ -1240,9 +1239,9 @@ try {
   );
   for (const entry of controlRecords)
     for (const attempt of (
-      entry.metadata as { transitionRecord: ConstructionTransitionRecord }
-    ).transitionRecord.attempts)
-      await verifyArcTransitionAttempt(attempt);
+      entry.metadata as { mutationRecord: ConstructionMutationRecord }
+    ).mutationRecord.attempts)
+      await verifyMutationAttempt(attempt);
   save("records", controlRecords);
   const original = records.find(
     (entry) => entry.toolCallId === "typed-integer",
@@ -1250,8 +1249,8 @@ try {
   assert(original);
   for (const variant of ["foreign", "conflicting"] as const) {
     const record = structuredClone(
-      (original.metadata as { transitionRecord: ConstructionTransitionRecord })
-        .transitionRecord,
+      (original.metadata as { mutationRecord: ConstructionMutationRecord })
+        .mutationRecord,
     );
     if (variant === "foreign")
       for (const attempt of record.attempts) {
@@ -1272,7 +1271,7 @@ try {
               type: CLIENT_TOOL_RESULT_SIGNAL,
               tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify([
-                { ...original, metadata: { transitionRecord: record } },
+                { ...original, metadata: { mutationRecord: record } },
               ]),
             },
           }),

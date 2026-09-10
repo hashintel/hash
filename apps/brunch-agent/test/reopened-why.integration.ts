@@ -14,8 +14,8 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  verifyArcTransitionAttempt,
-  type ArcTransitionAttempt,
+  verifyMutationAttempt,
+  type ArcMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
@@ -428,8 +428,8 @@ export const runReopenedWhyWitness = async ({
         ).results.find((result) => result.toolCallId === "a5-no-op");
         assert(noOp, "The actual no-op must deliver its browser record.");
         assert.equal(
-          (noOp.metadata as { transitionRecord: { outcome: string } })
-            .transitionRecord.outcome,
+          (noOp.metadata as { mutationRecord: { outcome: string } })
+            .mutationRecord.outcome,
           "no-op",
         );
         save("no-op-result", noOp);
@@ -471,13 +471,13 @@ export const runReopenedWhyWitness = async ({
       );
       assert(browserResult);
       const metadata = browserResult.metadata as {
-        transitionRecord: { attempts: ArcTransitionAttempt[] };
+        mutationRecord: { attempts: ArcMutationAttempt[] };
       };
-      const actualAttempt = metadata.transitionRecord.attempts[0];
+      const actualAttempt = metadata.mutationRecord.attempts[0];
       assert(actualAttempt);
-      await verifyArcTransitionAttempt(actualAttempt);
+      await verifyMutationAttempt(actualAttempt);
       assert.equal(actualAttempt.outcome, "applied");
-      save(`${cohort}-transition-record`, browserResult);
+      save(`${cohort}-mutation-record`, browserResult);
       const post = (await storedDocument(page)).document.sdcpn;
       save(`${cohort}-canonical-post`, post);
       const createdPath = actualAttempt.effects.created[0]?.path;

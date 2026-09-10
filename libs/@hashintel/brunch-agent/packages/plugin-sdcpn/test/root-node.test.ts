@@ -4,15 +4,15 @@ import { createPetrinautActions, type SDCPN } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  deriveMutationEffects,
+  expectedNodeDefinition,
+} from "../src/mutation-record";
+import {
   assertNodeIdentity,
   locateRootNode,
   observedNodeInputSchema,
   observedNodeMutationNames,
 } from "../src/root-node";
-import {
-  deriveArcEffects,
-  expectedNodeDefinition,
-} from "../src/transition-record";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -106,7 +106,7 @@ describe("native root node construction", () => {
     });
     const corrected = expectedNodeDefinition(correction, post);
     expect(outcome(correction, post, corrected)).toBe("applied");
-    expect(deriveArcEffects(correction, post, corrected).created).toEqual([
+    expect(deriveMutationEffects(correction, post, corrected).created).toEqual([
       { kind: "created", path: "/places/0/capacity", after: 2 },
     ]);
   });
@@ -126,7 +126,7 @@ describe("native root node construction", () => {
     });
     const post = expectedNodeDefinition(req, pre);
     expect(post.transitions[0]!.transitionKernelCode).not.toBe("");
-    const effects = deriveArcEffects(req, pre, post);
+    const effects = deriveMutationEffects(req, pre, post);
     expect(effects.derived).toEqual([
       {
         kind: "created",
@@ -162,7 +162,7 @@ describe("native root node construction", () => {
       update: { colorId: null },
     });
     const post = expectedNodeDefinition(req, pre);
-    const effects = deriveArcEffects(req, pre, post);
+    const effects = deriveMutationEffects(req, pre, post);
     expect(effects.updated).toContainEqual({
       kind: "updated",
       path: "/places/0/colorId",

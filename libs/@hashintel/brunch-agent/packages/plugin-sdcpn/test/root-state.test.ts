@@ -6,6 +6,10 @@ import {
   type PetrinautAiToolInput,
 } from "@hashintel/petrinaut-core/ai";
 
+import {
+  deriveMutationEffects,
+  expectedNodeDefinition,
+} from "../src/mutation-record";
 import { parseConstructionWhyInput } from "../src/root-node";
 import {
   assertStateIdentity,
@@ -14,10 +18,6 @@ import {
   observedStateMutationNames,
   parseObservedStateInput,
 } from "../src/root-state";
-import {
-  deriveArcEffects,
-  expectedNodeDefinition,
-} from "../src/transition-record";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -224,7 +224,7 @@ describe("native typed state construction", () => {
       name: equation.id,
       field: "entity",
     });
-    const effects = deriveArcEffects(req, before, after);
+    const effects = deriveMutationEffects(req, before, after);
     expect(effects.derived).toEqual([]);
     expect(effects.created).toContainEqual({
       kind: "created",
@@ -294,7 +294,7 @@ describe("native typed state construction", () => {
     const after = expectedNodeDefinition(req, before);
     expect(after.scenarios?.[0]?.parameterOverrides).toEqual({});
     expect(outcome(req, before, after)).toBe("applied");
-    const effects = deriveArcEffects(req, before, after);
+    const effects = deriveMutationEffects(req, before, after);
     expect(effects.derived).toEqual([
       { kind: "created", path: "/scenarios/0/parameterOverrides", after: {} },
     ]);
@@ -310,7 +310,7 @@ describe("native typed state construction", () => {
     before.places.push(place);
     const req = request("addScenario", { ...scenario, parameterOverrides: {} });
     expect(
-      deriveArcEffects(req, before, expectedNodeDefinition(req, before))
+      deriveMutationEffects(req, before, expectedNodeDefinition(req, before))
         .derived,
     ).toEqual([]);
   });
@@ -330,7 +330,7 @@ describe("native typed state construction", () => {
         ],
       },
     });
-    const effects = deriveArcEffects(req, before, after);
+    const effects = deriveMutationEffects(req, before, after);
     expect(effects.created.map((effect) => effect.path)).toEqual([
       "/types/0/elements/1/elementId",
       "/types/0/elements/1/name",
@@ -357,7 +357,7 @@ describe("native typed state construction", () => {
       type: "per_place",
       content: { [place.id]: [[2], [0]] },
     });
-    expect(deriveArcEffects(req, before, after).updated).toEqual([
+    expect(deriveMutationEffects(req, before, after).updated).toEqual([
       {
         kind: "updated",
         path: "/types/0/elements/0/type",
@@ -365,7 +365,7 @@ describe("native typed state construction", () => {
         after: "integer",
       },
     ]);
-    expect(deriveArcEffects(req, before, after).derived).toHaveLength(2);
+    expect(deriveMutationEffects(req, before, after).derived).toHaveLength(2);
     expect(outcome(req, before, after)).toBe("applied");
     expect(outcome(req, before, before)).toBe("no-op");
   });
@@ -381,7 +381,7 @@ describe("native typed state construction", () => {
       },
     });
     const after = expectedNodeDefinition(req, before);
-    const effects = deriveArcEffects(req, before, after);
+    const effects = deriveMutationEffects(req, before, after);
     expect(effects.updated).toEqual([
       {
         kind: "updated",

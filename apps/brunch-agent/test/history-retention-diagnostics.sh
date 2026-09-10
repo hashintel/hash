@@ -43,7 +43,7 @@ run() {
   if [[ "$code" != "$expected" ]]; then failed=1; fi
 }
 if [[ "$MODE" == all ]]; then
-  run 0 "$OUT/browser.log" env M7_BROWSER_OUTPUT="$OUT/browser" node --experimental-strip-types test/transition-records.integration.ts
+  run 0 "$OUT/browser.log" env M7_BROWSER_OUTPUT="$OUT/browser" node --experimental-strip-types test/mutation-records.integration.ts
   run 0 "$OUT/fold.log" env A4_OUTPUT_DIRECTORY="$OUT/browser" node --experimental-strip-types test/history-retention-new-records.integration.ts
   run 0 "$OUT/reopen.log" env A4_OUTPUT_DIRECTORY="$OUT/browser" A4_PHASE=reopen node --experimental-strip-types test/history-retention-new-records.integration.ts
 fi

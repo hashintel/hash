@@ -80,6 +80,10 @@ import {
 } from "./local-storage-demo-search";
 import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
 import {
+  createJoinedBrowserMutationRecorder,
+  observeBrowserDefinition,
+} from "./mutation-record";
+import {
   crewReservationDocumentId,
   preparedCrewReservationNet,
 } from "./prepared-crew-reservation-fixture";
@@ -89,10 +93,6 @@ import {
   RootArcTracerBanner,
 } from "./prepared-fixture-banner";
 import { resolveCrewReservationBundle } from "./resolve-crew-reservation-bundle";
-import {
-  createJoinedBrowserTransitionRecorder,
-  observeBrowserDefinition,
-} from "./transition-record";
 import {
   crewReservationFixtureConfiguration,
   useCrewReservationFixtureSession,
@@ -726,14 +726,14 @@ export const LocalStorageDemoApp = ({
         : undefined,
     () => undefined,
   );
-  const transitionRecorder = useMemo(
+  const mutationRecorder = useMemo(
     () =>
       rootArcBrowser && activeHandle
-        ? createJoinedBrowserTransitionRecorder({
+        ? createJoinedBrowserMutationRecorder({
             handle: activeHandle.handle,
             ...rootArcBrowser,
             onContainedFailure: (failure) =>
-              reportBrunchFailure("transition-record", failure.error, {
+              reportBrunchFailure("mutation-record", failure.error, {
                 kind: failure.kind,
                 toolCallId: failure.toolCallId,
               }),
@@ -756,9 +756,9 @@ export const LocalStorageDemoApp = ({
         ? batchedConstructionClientToolNames
         : constructionClientToolNames
       : fixtureConfiguration?.clientToolNames,
-    transitionRecorder?.mapClientToolInput ??
+    mutationRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
-    transitionRecorder?.validatedClientToolNames,
+    mutationRecorder?.validatedClientToolNames,
     rootCreationSelected ? batchedConstructionDynamicToolNames : undefined,
   );
   useEffect(() => {
@@ -825,12 +825,12 @@ export const LocalStorageDemoApp = ({
                     : constructionClientToolNames
                   : fixtureConfiguration.clientToolNames,
                 mapClientToolInput:
-                  transitionRecorder?.mapClientToolInput ??
+                  mutationRecorder?.mapClientToolInput ??
                   fixtureConfiguration.mapClientToolInput,
                 validatedClientToolNames:
-                  transitionRecorder?.validatedClientToolNames,
+                  mutationRecorder?.validatedClientToolNames,
                 clientToolResultMetadata:
-                  transitionRecorder?.clientToolResultMetadata,
+                  mutationRecorder?.clientToolResultMetadata,
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -858,7 +858,7 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
-    transitionRecorder,
+    mutationRecorder,
   ]);
 
   const aiAssistant = useMemo(
@@ -895,9 +895,9 @@ export const LocalStorageDemoApp = ({
           : [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
-      ...(transitionRecorder === undefined
+      ...(mutationRecorder === undefined
         ? {}
-        : { executeMutation: transitionRecorder.executeMutation }),
+        : { executeMutation: mutationRecorder.executeMutation }),
       ...(flueClientPromise === null
         ? {}
         : {
@@ -959,7 +959,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.snapshot,
       petrinautAiChatTransport,
       reportBrunchFailure,
-      transitionRecorder,
+      mutationRecorder,
       setAiMessagesByNetId,
     ],
   );

@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 import {
-  deriveArcEffects,
+  deriveMutationEffects,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
-  type ArcEffects,
+  type MutationEffects,
   type BrowserBinding,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -16,7 +16,7 @@ import {
   type SelectedMutationOperation,
 } from "@hashintel/petrinaut-core";
 
-import { observeBrowserDefinition } from "./transition-record";
+import { observeBrowserDefinition } from "./mutation-record";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 const effectSchema = z.intersection(
@@ -111,7 +111,9 @@ const executeCanonicalMutation = (
   }
 };
 
-const structuralEffects = (effects: ArcEffects): SelectedMutationEffect[] => [
+const structuralEffects = (
+  effects: MutationEffects,
+): SelectedMutationEffect[] => [
   ...effects.created.map((effect) => ({
     classification: "direct" as const,
     ...effect,
@@ -187,7 +189,11 @@ export const createMutatePetrinetAutomaticTool = (
           executeCanonicalMutation(instance, operation);
           const post = observeBrowserDefinition(instance.handle);
           const effects = structuralEffects(
-            deriveArcEffects(mutationRequest, pre.definition, post.definition),
+            deriveMutationEffects(
+              mutationRequest,
+              pre.definition,
+              post.definition,
+            ),
           );
           return {
             status: pre.sha256 === post.sha256 ? "no-op" : "applied",

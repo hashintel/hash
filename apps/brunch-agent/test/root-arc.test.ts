@@ -8,7 +8,7 @@ import { verifyRootArcResults } from "../src/conversation/root-arc.ts";
 import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { ArcTransitionRecord } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { ArcMutationRecord } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 // Immutable positive fixture earned by the actual local browser, not an invented applied record.
 const witness = new URL("./fixtures/root-arc/history.json", import.meta.url);
@@ -21,8 +21,8 @@ const fixture = () => {
   );
   if (!result)
     throw new Error("The browser witness must contain its canonical result");
-  const record = (result.metadata as { transitionRecord: ArcTransitionRecord })
-    .transitionRecord;
+  const record = (result.metadata as { mutationRecord: ArcMutationRecord })
+    .mutationRecord;
   const request = record.attempts[0]!.request;
   return {
     snapshot,
@@ -67,7 +67,7 @@ describe("bound root-arc receiving boundary", () => {
       ].map(async (result) => {
         await expect(
           verifyRootArcResults({ ...input, body: JSON.stringify([result]) }),
-        ).rejects.toThrow(/canonical call|browser transition record/u);
+        ).rejects.toThrow(/canonical call|browser mutation record/u);
       }),
     );
     await expect(

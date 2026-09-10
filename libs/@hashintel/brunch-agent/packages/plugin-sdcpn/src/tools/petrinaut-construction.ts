@@ -21,7 +21,7 @@ import type {
   DefinitionObservation,
   BrowserBinding,
   ConstructionMutationRequest,
-} from "../transition-record";
+} from "../mutation-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export { joinedRootArcInputSchema } from "../root-arc";

@@ -1,4 +1,4 @@
-/** Focused actual-Chrome seed. The ephemeral HTTP adapter follows transition-records.integration.ts; no new product route. */
+/** Focused actual-Chrome seed. The ephemeral HTTP adapter follows mutation-records.integration.ts; no new product route. */
 /* eslint-disable no-await-in-loop -- HTTP request/response streams preserve byte order. */
 import assert from "node:assert/strict";
 import { once } from "node:events";
@@ -14,7 +14,7 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium } from "@playwright/test";
 
-import { verifyArcTransitionAttempt } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { verifyMutationAttempt } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
@@ -24,7 +24,7 @@ import {
 
 import type { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import type { Context, FauxProviderHandle } from "@earendil-works/pi-ai";
-import type { ArcTransitionAttempt } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { ArcMutationAttempt } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export const retentionQuote =
@@ -362,11 +362,11 @@ export const seedRetentionBrowser = async (options: {
     assert(result);
     const attempt = (
       result.metadata as {
-        transitionRecord: { attempts: ArcTransitionAttempt[] };
+        mutationRecord: { attempts: ArcMutationAttempt[] };
       }
-    ).transitionRecord.attempts[0];
+    ).mutationRecord.attempts[0];
     assert(attempt);
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     assert.equal(attempt.outcome, "applied");
     assert.equal(attempt.effects.created.length, 1);
     save("browser-record", result);

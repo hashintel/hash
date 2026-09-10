@@ -11,7 +11,7 @@ import {
   type MutatePetrinetOperationFailure,
   mutatePetrinetOutputSchema,
 } from "./mutate-petrinet-tool";
-import { observeBrowserDefinition } from "./transition-record";
+import { observeBrowserDefinition } from "./mutation-record";
 
 const hash = "a".repeat(64);
 const binding = {

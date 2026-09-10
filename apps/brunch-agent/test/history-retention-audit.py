@@ -183,7 +183,7 @@ def browser():
     assert "A4 new-record controlled summary" in serialized
     for folded in ("m7-browser-arc", "m7-browser-unknown-revision", '"id": "m7-browser-revision"', "Settle the labelled prepared workpiece for this unpaid mechanical tracer"):
         assert folded not in serialized
-    assert "transitionRecord" not in json.dumps(last_context["messages"])
+    assert "mutationRecord" not in json.dumps(last_context["messages"])
     compactions = [event for event in load(directory / "retention-fold-events.json") if event["type"] in ("compaction_start", "compaction")]
     assert any(event.get("reason") == "threshold" for event in compactions)
     assert not any(event.get("reason") == "overflow" for event in compactions)

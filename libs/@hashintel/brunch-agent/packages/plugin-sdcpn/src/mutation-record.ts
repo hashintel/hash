@@ -62,7 +62,7 @@ export type UnverifiedDefinitionObservation = {
   sha256: string;
 };
 
-const constructionOutcomes = [
+const mutationOutcomes = [
   "applied",
   "no-op",
   "failed",
@@ -73,8 +73,8 @@ const constructionOutcomes = [
 /**
  * Host-owned sidecar the browser attaches to a client-tool result. Parsing
  * establishes shape only: `observation.observed` still needs
- * `verifyDefinitionObservation`, and each `transitionRecord.attempts` member
- * still needs `verifyArcTransitionAttempt` at the receiving boundary.
+ * `verifyDefinitionObservation`, and each `mutationRecord.attempts` member
+ * still needs `verifyMutationAttempt` at the receiving boundary.
  */
 export const clientToolResultMetadataSchema = v.object({
   observation: v.optional(
@@ -87,10 +87,10 @@ export const clientToolResultMetadataSchema = v.object({
       }),
     }),
   ),
-  transitionRecord: v.optional(
+  mutationRecord: v.optional(
     v.object({
       attempts: v.array(v.unknown()),
-      outcome: v.picklist(constructionOutcomes),
+      outcome: v.picklist(mutationOutcomes),
     }),
   ),
 });
@@ -115,7 +115,7 @@ export type DefinitionChange = {
   | { kind: "deleted"; before: unknown }
 );
 
-export type ArcEffects = {
+export type MutationEffects = {
   created: DefinitionChange[];
   updated: DefinitionChange[];
   deleted: DefinitionChange[];
@@ -123,28 +123,27 @@ export type ArcEffects = {
   derived: DefinitionChange[];
 };
 
-export type ConstructionTransitionAttempt = {
+export type ConstructionMutationAttempt = {
   request: ConstructionMutationRequest;
   binding: ArcMutationRequest["binding"];
   pre: DefinitionObservation;
   post?: DefinitionObservation;
-  outcome: (typeof constructionOutcomes)[number];
-  effects: ArcEffects;
+  outcome: (typeof mutationOutcomes)[number];
+  effects: MutationEffects;
   error?: string;
 };
 
-export type ArcTransitionAttempt = Omit<
-  ConstructionTransitionAttempt,
+export type ArcMutationAttempt = Omit<
+  ConstructionMutationAttempt,
   "request"
 > & { request: ArcMutationRequest };
-export type ConstructionTransitionRecord = {
-  attempts: ConstructionTransitionAttempt[];
-  outcome: ConstructionTransitionAttempt["outcome"];
+export type ConstructionMutationRecord = {
+  attempts: ConstructionMutationAttempt[];
+  outcome: ConstructionMutationAttempt["outcome"];
 };
-export type ArcTransitionRecord = Omit<
-  ConstructionTransitionRecord,
-  "attempts"
-> & { attempts: ArcTransitionAttempt[] };
+export type ArcMutationRecord = Omit<ConstructionMutationRecord, "attempts"> & {
+  attempts: ArcMutationAttempt[];
+};
 
 const objectValue = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -193,11 +192,11 @@ const definitionChanges = (
 };
 
 /** Partition the named root operation; unrequested fields remain derived, never inherited basis. */
-export const deriveArcEffects = (
+export const deriveMutationEffects = (
   request: ConstructionMutationRequest,
   pre: SDCPN,
   post: SDCPN,
-): ArcEffects => {
+): MutationEffects => {
   if (
     isObservedNodeMutation(request.toolName) ||
     isObservedStateMutation(request.toolName)
@@ -221,7 +220,7 @@ export const deriveArcEffects = (
         )
       : -1;
   const arcPath = `/transitions/${transitionIndex}/${direction}/${arcIndex}`;
-  const effects: ArcEffects = {
+  const effects: MutationEffects = {
     created: [],
     updated: [],
     deleted: [],
@@ -341,7 +340,7 @@ const deriveNodeEffects = (
   request: ConstructionMutationRequest,
   pre: SDCPN,
   post: SDCPN,
-): ArcEffects => {
+): MutationEffects => {
   const state = isObservedStateMutation(request.toolName)
     ? stateMutationTarget(
         request,
@@ -378,7 +377,7 @@ const deriveNodeEffects = (
             ([key]) => key !== "targetSubnetId",
           ),
         ))) as Record<string, unknown>;
-  const effects: ArcEffects = {
+  const effects: MutationEffects = {
     created: [],
     updated: [],
     deleted: [],
@@ -447,11 +446,11 @@ const deriveNodeEffects = (
   return effects;
 };
 
-export const assertArcEffects = (
-  attempt: ConstructionTransitionAttempt,
+export const assertMutationEffects = (
+  attempt: ConstructionMutationAttempt,
 ): void => {
   const expected = attempt.post
-    ? deriveArcEffects(
+    ? deriveMutationEffects(
         attempt.request,
         attempt.pre.definition,
         attempt.post.definition,
@@ -465,26 +464,26 @@ export const assertArcEffects = (
 };
 
 /** An outcome classification plus, for `unknown`, the reason when one was thrown. */
-export interface ClassifiedTransitionOutcome {
-  readonly outcome: ConstructionTransitionAttempt["outcome"];
+export interface ClassifiedMutationOutcome {
+  readonly outcome: ConstructionMutationAttempt["outcome"];
   /** Present only when classification itself failed; the outcome is then `unknown`. */
   readonly reason?: string;
 }
 
 /** Observed effect, not canonical void success: only the verified bounded footprint earns applied. */
-export const observedArcOutcome = (
-  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
-): ConstructionTransitionAttempt["outcome"] =>
-  classifyTransitionOutcome(attempt).outcome;
+export const observedMutationOutcome = (
+  attempt: Omit<ConstructionMutationAttempt, "outcome">,
+): ConstructionMutationAttempt["outcome"] =>
+  classifyMutationOutcome(attempt).outcome;
 
 /**
- * `observedArcOutcome` with the reason an outcome became `unknown` because the
+ * `observedMutationOutcome` with the reason an outcome became `unknown` because the
  * expected definition could not be derived. Recorders store that reason on the
  * attempt so an unknown outcome is explicable, not merely declared.
  */
-export const classifyTransitionOutcome = (
-  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
-): ClassifiedTransitionOutcome => {
+export const classifyMutationOutcome = (
+  attempt: Omit<ConstructionMutationAttempt, "outcome">,
+): ClassifiedMutationOutcome => {
   if (!attempt.post) return { outcome: "unknown" };
   const unchanged =
     canonicalContent(attempt.pre.definition) ===
@@ -525,8 +524,8 @@ export const classifyTransitionOutcome = (
 };
 
 const observedArcEffectOutcome = (
-  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
-): ConstructionTransitionAttempt["outcome"] => {
+  attempt: Omit<ConstructionMutationAttempt, "outcome">,
+): ConstructionMutationAttempt["outcome"] => {
   const effects = attempt.effects;
   if (attempt.request.toolName === "updateArcWeight") {
     const change = effects.updated[0];
@@ -626,8 +625,8 @@ export const reconcileDefinitionObservations = async (
 };
 
 /** Recompute observation hashes at a receiving boundary, not from the request's base. */
-export const verifyArcTransitionAttempt = async <
-  Attempt extends ConstructionTransitionAttempt,
+export const verifyMutationAttempt = async <
+  Attempt extends ConstructionMutationAttempt,
 >(
   delivery: Attempt,
 ): Promise<Attempt> => {
@@ -646,7 +645,7 @@ export const verifyArcTransitionAttempt = async <
   ) {
     throw new Error("Malformed arc transition identity.");
   }
-  deriveArcEffects(
+  deriveMutationEffects(
     attempt.request,
     attempt.pre.definition,
     attempt.pre.definition,
@@ -657,10 +656,10 @@ export const verifyArcTransitionAttempt = async <
       await verifyDefinitionObservation(observation);
     }),
   );
-  assertArcEffects(attempt);
+  assertMutationEffects(attempt);
   if (
     attempt.outcome !== "unknown" &&
-    attempt.outcome !== observedArcOutcome(attempt)
+    attempt.outcome !== observedMutationOutcome(attempt)
   ) {
     throw new Error(
       "The transition outcome is not supported by its observations.",
@@ -669,17 +668,17 @@ export const verifyArcTransitionAttempt = async <
   return attempt;
 };
 
-/** Inputs must first pass verifyArcTransitionAttempt at an external receiving boundary. */
-export const reconcileArcTransitionAttempts = <
-  Attempt extends ConstructionTransitionAttempt,
+/** Inputs must first pass verifyMutationAttempt at an external receiving boundary. */
+export const reconcileMutationAttempts = <
+  Attempt extends ConstructionMutationAttempt,
 >(
   attempts: Attempt[],
 ): {
   attempts: Attempt[];
-  outcome: ConstructionTransitionAttempt["outcome"];
+  outcome: ConstructionMutationAttempt["outcome"];
 } => {
   const first = attempts[0];
-  if (!first) throw new Error("A transition record requires an attempt.");
+  if (!first) throw new Error("A mutation record requires an attempt.");
   if (
     attempts.some(
       (attempt) => attempt.request.toolCallId !== first.request.toolCallId,
