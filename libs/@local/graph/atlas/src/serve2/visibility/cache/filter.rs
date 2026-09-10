@@ -4,8 +4,6 @@ use crate::integrity::{Sha256, Sha256Digest, Update as _};
     Debug,
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     Hash,
     zerocopy::IntoBytes,
     zerocopy::FromBytes,
@@ -25,3 +23,12 @@ impl FilterDigest {
         Self(hasher.finalize())
     }
 }
+
+const impl PartialEq for FilterDigest {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl Eq for FilterDigest {}

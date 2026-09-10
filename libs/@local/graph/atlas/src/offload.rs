@@ -125,11 +125,21 @@ fn panic_message(panic: Box<dyn Any + Send>) -> Option<Cow<'static, str>> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{OffloadError, run};
+    use core::any::Any;
+
+    use tokio::sync::oneshot;
+
+    use super::{OffloadError, OffloadHandle, run};
+
+    pub(crate) fn from_receiver<T>(
+        receiver: oneshot::Receiver<Result<T, Box<dyn Any + Send>>>,
+    ) -> OffloadHandle<T> {
+        OffloadHandle { receiver }
+    }
 
     /// A completed computation answers its value.
     #[tokio::test]
-    async fn completed_work_answers_its_value() {
+    async fn work_completed() {
         let value = run(|| 6 * 7).await.expect("the work completes");
         assert_eq!(value, 42);
     }
@@ -140,7 +150,7 @@ pub(crate) mod tests {
     /// because the pool has no join point to observe it. The follow-up call witnesses that the
     /// pool keeps serving after the caught panic.
     #[tokio::test]
-    async fn panicking_work_answers_an_error_without_aborting() {
+    async fn work_panic() {
         let error = run(|| -> u32 { panic!("the fixture panicked on purpose") })
             .await
             .expect_err("the panic answers as an error");
@@ -156,7 +166,7 @@ pub(crate) mod tests {
 
     /// A formatted panic payload crosses as its rendered text.
     #[tokio::test]
-    async fn formatted_panic_payload_keeps_its_text() {
+    async fn panic_formatted() {
         let error = run(|| -> u32 { panic!("row {} is out of range", 41) })
             .await
             .expect_err("the panic answers as an error");
@@ -169,7 +179,7 @@ pub(crate) mod tests {
 
     /// A payload that is not text answers the panic without one.
     #[tokio::test]
-    async fn textless_panic_payload_answers_none() {
+    async fn panic_nontext() {
         let error = run(|| -> u32 { std::panic::panic_any(41_u64) })
             .await
             .expect_err("the panic answers as an error");
@@ -187,7 +197,7 @@ pub(crate) mod tests {
     /// point to observe it, and rayon aborts a process on such a panic. Under nextest, a
     /// regression here therefore fails this one test with its own process's SIGABRT.
     #[tokio::test]
-    async fn cancelled_send_with_panicking_destructor_does_not_abort() {
+    async fn cancelled_send_panicking_destructor() {
         /// Signals that its drop ran, then panics inside it.
         struct PanicsOnDrop(std::sync::mpsc::Sender<()>);
 

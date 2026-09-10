@@ -94,3 +94,16 @@ impl RuntimeSource {
         })))
     }
 }
+
+#[cfg(test)]
+pub(super) mod tests {
+    use error_stack::Report;
+
+    use super::{ManagerError, OffloadHandle, RuntimeSourceHandle};
+
+    pub(in super::super) fn from_offload<T>(
+        handle: OffloadHandle<Result<T, Report<ManagerError>>>,
+    ) -> RuntimeSourceHandle<T> {
+        RuntimeSourceHandle(handle)
+    }
+}

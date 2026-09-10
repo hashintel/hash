@@ -5,6 +5,8 @@
 
 use alloc::sync::Arc;
 use core::{
+    any::Any,
+    assert_matches, fmt,
     future::{self, Future},
     mem,
     pin::pin,
@@ -13,7 +15,7 @@ use core::{
 use std::{fs, time::Instant};
 
 use error_stack::Report;
-use futures::{FutureExt as _, future::BoxFuture};
+use futures::FutureExt as _;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
@@ -28,7 +30,7 @@ use super::{
     GenerationManager, ManagerOptions,
     error::ManagerError,
     slot::{Execution, Registration, RuntimeSlot},
-    source::RuntimeSource,
+    source::{self, RuntimeSource, RuntimeSourceHandle},
 };
 use crate::{
     file::{
@@ -38,6 +40,7 @@ use crate::{
     },
     identity::NodeRowId,
     math::nz,
+    offload,
     serve2::{
         delta::{Delta, DeltaReader, DeltaReference},
         runtime::{
@@ -48,6 +51,21 @@ use crate::{
         world::World,
     },
 };
+
+impl fmt::Debug for Execution {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let variant = match self {
+            Self::Opening { .. } => "Opening",
+            Self::Ready(_) => "Ready",
+            Self::Running(_) => "Running",
+            Self::Joining(_) => "Joining",
+            Self::Stopped(_) => "Stopped",
+            Self::Removing(_) => "Removing",
+            Self::Removed => return fmt.write_str("Removed"),
+        };
+        fmt.debug_tuple(variant).finish_non_exhaustive()
+    }
+}
 
 /// The retention interval every case measures its deadlines against.
 const HARD: Duration = Duration::from_secs(60);
@@ -147,11 +165,26 @@ async fn pool() -> Arc<PostgresStorePool> {
     )
 }
 
-/// A manager over `fixture`'s root whose current-pointer read never resolves.
-///
-/// The unresolved read leaves the source's own pointer read unstarted. Each case supplies its
-/// selection directly, and draining the manager removes the read first.
-async fn maintainer(fixture: &Fixture, options: ManagerOptions) -> GenerationManager {
+type SourceReply<T> = oneshot::Sender<Result<Result<T, Report<ManagerError>>, Box<dyn Any + Send>>>;
+
+fn pending<T>() -> (RuntimeSourceHandle<T>, SourceReply<T>) {
+    let (reply, receiver) = oneshot::channel();
+    let task = source::tests::from_offload(offload::tests::from_receiver(receiver));
+    (task, reply)
+}
+
+#[track_caller]
+fn settled<T>(result: Result<T, Report<ManagerError>>) -> RuntimeSourceHandle<T> {
+    let (task, reply) = pending();
+    assert!(reply.send(Ok(result)).is_ok(), "should retain the receiver");
+    task
+}
+
+/// Keeps the current-pointer read pending while each case supplies its selection.
+async fn maintainer(
+    fixture: &Fixture,
+    options: ManagerOptions,
+) -> (GenerationManager, SourceReply<Option<GenerationId>>) {
     let source = RuntimeSource {
         root: fixture.root(),
         secret: secret(),
@@ -160,9 +193,10 @@ async fn maintainer(fixture: &Fixture, options: ManagerOptions) -> GenerationMan
     };
     let mut manager = GenerationManager::new(source, options, HARD)
         .expect("a non-zero interval should construct a manager");
-    manager.current = Some(unresolved_pointer());
+    let (current, reply) = pending();
+    manager.current = Some(current);
 
-    manager
+    (manager, reply)
 }
 
 /// The instant `offset` after `base`.
@@ -170,45 +204,6 @@ async fn maintainer(fixture: &Fixture, options: ManagerOptions) -> GenerationMan
 fn after(base: Instant, offset: Duration) -> Instant {
     base.checked_add(offset)
         .expect("the offset should fit the instant's range")
-}
-
-/// A current-pointer read that never resolves.
-fn unresolved_pointer() -> BoxFuture<'static, Result<Option<GenerationId>, Report<ManagerError>>> {
-    Box::pin(future::pending())
-}
-
-/// An opening that never resolves.
-fn unresolved_opening() -> BoxFuture<'static, Result<Runtime, Report<ManagerError>>> {
-    Box::pin(future::pending())
-}
-
-/// An opening that has already failed.
-fn failed_opening() -> BoxFuture<'static, Result<Runtime, Report<ManagerError>>> {
-    Box::pin(future::ready(Err(Report::new(ManagerError::Runtime))))
-}
-
-/// An opening that has already produced `runtime`.
-fn settled_opening(runtime: Runtime) -> BoxFuture<'static, Result<Runtime, Report<ManagerError>>> {
-    Box::pin(future::ready(Ok(runtime)))
-}
-
-/// A removal that completes once released, and its release.
-fn released_removal() -> (
-    BoxFuture<'static, Result<(), Report<ManagerError>>>,
-    oneshot::Sender<()>,
-) {
-    let (release, released) = oneshot::channel::<()>();
-    let task = Box::pin(async move {
-        released.await.expect("the test should release removal");
-        Ok(())
-    });
-
-    (task, release)
-}
-
-/// Returns a failed removal result without changing the directory.
-fn failed_removal() -> BoxFuture<'static, Result<(), Report<ManagerError>>> {
-    Box::pin(future::ready(Err(Report::new(ManagerError::Remove))))
 }
 
 /// A feed that reports observing cancellation and then ends.
@@ -295,7 +290,7 @@ fn ready(runtime: Runtime) -> RuntimeSlot {
 }
 
 /// A candidate slot holding a started opening.
-fn opening(task: BoxFuture<'static, Result<Runtime, Report<ManagerError>>>) -> RuntimeSlot {
+fn opening(task: RuntimeSourceHandle<Runtime>) -> RuntimeSlot {
     RuntimeSlot {
         registration: Registration::Candidate,
         execution: Execution::Opening { world: None, task },
@@ -343,8 +338,8 @@ fn assert_unavailable(registry: &UniverseRegistry, generation: GenerationId) {
     let Err(error) = registry.observe(Some(generation)) else {
         panic!("the unavailable generation should not admit")
     };
-    assert!(
-        matches!(error, ObserveError::Unavailable(refused) if refused == generation),
+    assert_matches!(
+        error, ObserveError::Unavailable(refused) if refused == generation,
         "the refusal should name the unavailable generation"
     );
 }
@@ -355,8 +350,9 @@ fn assert_closed(registry: &UniverseRegistry) {
     let Err(error) = registry.observe(None) else {
         panic!("a closed registry should not admit")
     };
-    assert!(
-        matches!(error, ObserveError::Closed),
+    assert_matches!(
+        error,
+        ObserveError::Closed,
         "the refusal should name closed admission"
     );
 }
@@ -375,7 +371,7 @@ async fn settle_opening(manager: &mut GenerationManager, generation: GenerationI
     let result = task.await;
     slot.execution = Execution::Opening {
         world,
-        task: Box::pin(future::ready(result)),
+        task: settled(result),
     };
 }
 
@@ -390,7 +386,7 @@ async fn settle_removal(manager: &mut GenerationManager, generation: GenerationI
     };
 
     let result = task.await;
-    slot.execution = Execution::Removing(Box::pin(future::ready(result)));
+    slot.execution = Execution::Removing(settled(result));
 }
 
 /// Removes the pointer read, drains the manager and checks every feed observed cancellation.
@@ -423,7 +419,7 @@ fn run_poll_interval() {
     controlled(async {
         let fixture = Fixture::new("manager-run-poll-interval");
         let interval = Duration::from_millis(10);
-        let mut manager = maintainer(
+        let (mut manager, _pointer_reply) = maintainer(
             &fixture,
             ManagerOptions {
                 poll_interval: interval,
@@ -433,21 +429,10 @@ fn run_poll_interval() {
         .await;
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
-        let (pointer, pending_pointer) = oneshot::channel();
-        manager.current = Some(Box::pin(async move {
-            pending_pointer
-                .await
-                .expect("the test should finish the pointer read")
-        }));
-        let (initialize, initialized) = oneshot::channel();
-        manager.slots.insert(
-            generation,
-            opening(Box::pin(async move {
-                Ok(initialized
-                    .await
-                    .expect("the test should finish initialization"))
-            })),
-        );
+        let (current, pointer) = pending();
+        manager.current = Some(current);
+        let (task, initialize) = pending();
+        manager.slots.insert(generation, opening(task));
         manager.desired = Some(generation);
 
         let shutdown = CancellationToken::new();
@@ -456,15 +441,16 @@ fn run_poll_interval() {
             running.as_mut().now_or_never().is_none(),
             "the run loop should await initialization"
         );
-        assert!(
-            matches!(registry.observe(None), Err(ObserveError::Empty)),
+        assert_matches!(
+            registry.observe(None).err(),
+            Some(ObserveError::Empty),
             "a pending opening should admit no request"
         );
 
         let (feed, observed) = prompt_feed();
         assert!(
             initialize
-                .send(runtime(Arc::clone(&fixture.world), 1, Some(feed)))
+                .send(Ok(Ok(runtime(Arc::clone(&fixture.world), 1, Some(feed)))))
                 .is_ok(),
             "the manager should retain its opening future"
         );
@@ -472,8 +458,9 @@ fn run_poll_interval() {
             running.as_mut().now_or_never().is_none(),
             "the run loop should await its next maintenance pass"
         );
-        assert!(
-            matches!(registry.observe(None), Err(ObserveError::Empty)),
+        assert_matches!(
+            registry.observe(None).err(),
+            Some(ObserveError::Empty),
             "a completed opening should await the next maintenance pass"
         );
 
@@ -500,7 +487,7 @@ fn run_poll_interval() {
             "shutdown should retain the pending pointer read"
         );
         assert!(
-            pointer.send(Ok(None)).is_ok(),
+            pointer.send(Ok(Ok(None))).is_ok(),
             "shutdown should retain the pointer future's receiver"
         );
         running.await;
@@ -545,8 +532,9 @@ async fn new_zero_interval() {
         panic!("a zero polling interval should not construct a manager")
     };
 
-    assert!(
-        matches!(error.current_context(), ManagerError::InvalidInterval),
+    assert_matches!(
+        error.current_context(),
+        ManagerError::InvalidInterval,
         "the refusal should name the invalid interval"
     );
 }
@@ -555,7 +543,7 @@ async fn new_zero_interval() {
 #[tokio::test]
 async fn open_promotes_selection() {
     let fixture = Fixture::new("manager-open-promotes-selection");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -566,8 +554,9 @@ async fn open_promotes_selection() {
     let Err(error) = registry.observe(None) else {
         panic!("an unfinished opening should not publish")
     };
-    assert!(
-        matches!(error, ObserveError::Empty),
+    assert_matches!(
+        error,
+        ObserveError::Empty,
         "the refusal should name the missing active generation"
     );
 
@@ -589,7 +578,7 @@ fn promote_pending_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-promote-pending-opening");
         let replacement = fixture.variant("pending opening");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let active = fixture.world.generation().id();
@@ -604,9 +593,8 @@ fn promote_pending_opening() {
         manager.tick(base);
         let (world, lifetime) = published(&registry, active);
 
-        manager
-            .slots
-            .insert(candidate, opening(unresolved_opening()));
+        let (task, _opening_reply) = pending();
+        manager.slots.insert(candidate, opening(task));
         manager.desired = Some(candidate);
         manager.tick(after(base, Duration::from_secs(1)));
 
@@ -631,7 +619,7 @@ fn promote_pending_opening() {
 async fn promote_failed_opening() {
     let fixture = Fixture::new("manager-promote-failed-opening");
     let replacement = fixture.variant("failed opening");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let active = fixture.world.generation().id();
@@ -646,7 +634,10 @@ async fn promote_failed_opening() {
     manager.tick(base);
     let (world, lifetime) = published(&registry, active);
 
-    manager.slots.insert(candidate, opening(failed_opening()));
+    manager.slots.insert(
+        candidate,
+        opening(settled(Err(Report::new(ManagerError::Runtime)))),
+    );
     manager.desired = Some(candidate);
     manager.tick(after(base, Duration::from_secs(1)));
 
@@ -663,8 +654,9 @@ async fn promote_failed_opening() {
         .slots
         .get(&candidate)
         .expect("the selected candidate should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Opening { .. }),
+    assert_matches!(
+        slot.execution,
+        Execution::Opening { .. } | Execution::Ready(_),
         "the selected candidate should reopen after its failure"
     );
 
@@ -678,7 +670,7 @@ fn promote_reselected_before_expiry() {
     controlled(async {
         let fixture = Fixture::new("manager-promote-reselected-before-expiry");
         let replacement = fixture.variant("reselected before expiry");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -726,7 +718,7 @@ fn promote_reselected_before_expiry() {
 async fn promote_reactivated_after_expiry() {
     let fixture = Fixture::new("manager-promote-reactivated-after-expiry");
     let replacement = fixture.variant("reactivated after expiry");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -765,8 +757,9 @@ async fn promote_reactivated_after_expiry() {
         .slots
         .get(&first)
         .expect("the reselected generation should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Joining(_)),
+    assert_matches!(
+        slot.execution,
+        Execution::Joining(_),
         "reactivation should wait for the feed to join"
     );
 
@@ -802,7 +795,7 @@ fn expire_stops_retained_feed() {
     controlled(async {
         let fixture = Fixture::new("manager-expire-stops-retained-feed");
         let replacement = fixture.variant("expire stops retained feed");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -861,7 +854,7 @@ fn expire_stalled_join() {
         let fixture = Fixture::new("manager-expire-stalled-join");
         let second_world = fixture.variant("stalled join second");
         let third_world = fixture.variant("stalled join third");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let base = Instant::now();
         let first = fixture.world.generation().id();
         let second = second_world.generation().id();
@@ -926,7 +919,7 @@ fn expire_stalled_join() {
 #[tokio::test]
 async fn recovery_after_present_feed_end() {
     let fixture = Fixture::new("manager-recovery-after-present-feed-end");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -975,7 +968,7 @@ async fn recovery_after_present_feed_end() {
 async fn recovery_deferred_while_retained() {
     let fixture = Fixture::new("manager-recovery-deferred-while-retained");
     let replacement = fixture.variant("deferred recovery");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1017,8 +1010,9 @@ async fn recovery_deferred_while_retained() {
         .slots
         .get(&first)
         .expect("the retained generation should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Stopped(_)),
+    assert_matches!(
+        slot.execution,
+        Execution::Stopped(_),
         "a retained generation should not start recovery"
     );
 
@@ -1045,7 +1039,7 @@ async fn recovery_deferred_while_retained() {
 fn recovery_absent_without_feed() {
     controlled(async {
         let fixture = Fixture::new("manager-recovery-absent-without-feed");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let generation = fixture.world.generation().id();
@@ -1074,8 +1068,9 @@ fn recovery_absent_without_feed() {
             .slots
             .get(&generation)
             .expect("the static generation should keep its slot");
-        assert!(
-            matches!(slot.execution, Execution::Running(_)),
+        assert_matches!(
+            slot.execution,
+            Execution::Running(_),
             "a static generation should stay healthy"
         );
 
@@ -1089,7 +1084,7 @@ fn shutdown_signals_before_join() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-signals-before-join");
         let replacement = fixture.variant("shutdown signals");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -1152,7 +1147,7 @@ fn shutdown_signals_before_join() {
 fn shutdown_cancelled_wait() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-cancelled-wait");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let base = Instant::now();
         let generation = fixture.world.generation().id();
 
@@ -1195,7 +1190,7 @@ fn shutdown_cancelled_wait() {
 fn reconcile_superseded_candidate() {
     controlled(async {
         let fixture = Fixture::new("manager-reconcile-superseded-candidate");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let generation = fixture.world.generation().id();
@@ -1213,8 +1208,9 @@ fn reconcile_superseded_candidate() {
         let Err(error) = registry.observe(None) else {
             panic!("an unselected candidate should not publish")
         };
-        assert!(
-            matches!(error, ObserveError::Empty),
+        assert_matches!(
+            error,
+            ObserveError::Empty,
             "the refusal should name the missing active generation"
         );
 
@@ -1233,18 +1229,18 @@ fn reconcile_superseded_candidate() {
 fn shutdown_superseded_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-superseded-opening");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
 
         let (feed, observed) = prompt_feed();
         manager.slots.insert(
             generation,
-            opening(settled_opening(runtime(
+            opening(settled(Ok(runtime(
                 Arc::clone(&fixture.world),
                 1,
                 Some(feed),
-            ))),
+            )))),
         );
 
         drain(&mut manager, [observed]).await;
@@ -1257,7 +1253,8 @@ fn shutdown_superseded_opening() {
 async fn expire_precedes_unlink() {
     let fixture = Fixture::new("manager-expire-precedes-unlink");
     let replacement = fixture.variant("expiry precedes unlink");
-    let mut manager = maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) =
+        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1288,8 +1285,9 @@ async fn expire_precedes_unlink() {
         .slots
         .get(&first)
         .expect("the reselected generation should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Opening { .. }),
+    assert_matches!(
+        slot.execution,
+        Execution::Opening { .. } | Execution::Ready(_),
         "selection should reopen the expired generation"
     );
     assert!(
@@ -1318,7 +1316,8 @@ async fn expire_precedes_unlink() {
 async fn open_after_started_removal() {
     let fixture = Fixture::new("manager-open-after-started-removal");
     let replacement = fixture.variant("open after started removal");
-    let mut manager = maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) =
+        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1338,13 +1337,14 @@ async fn open_after_started_removal() {
     manager.tick(retired);
 
     manager.tick(after(retired, HARD));
-    let (removal, release) = released_removal();
+    let (removal, release) = pending();
     let slot = manager
         .slots
         .get_mut(&first)
         .expect("the expired generation should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Stopped(_)),
+    assert_matches!(
+        slot.execution,
+        Execution::Stopped(_),
         "expiry should join the generation before its removal"
     );
     slot.execution = Execution::Removing(removal);
@@ -1355,12 +1355,16 @@ async fn open_after_started_removal() {
         .slots
         .get(&first)
         .expect("the removing generation should keep its slot");
-    assert!(
-        matches!(slot.execution, Execution::Removing(_)),
+    assert_matches!(
+        slot.execution,
+        Execution::Removing(_),
         "a started removal should finish before a fresh opening"
     );
 
-    release.send(()).expect("the removal should await release");
+    assert!(
+        release.send(Ok(Ok(()))).is_ok(),
+        "should retain the removal"
+    );
     manager.tick(after(retired, HARD));
     settle_opening(&mut manager, first).await;
     manager.tick(after(retired, HARD));
@@ -1379,7 +1383,8 @@ async fn open_after_started_removal() {
 async fn remove_expired_directory() {
     let fixture = Fixture::new("manager-remove-expired-directory");
     let replacement = fixture.variant("remove expired directory");
-    let mut manager = maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) =
+        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1441,7 +1446,8 @@ async fn remove_expired_directory() {
 async fn remove_failure_reopens_from_disk() {
     let fixture = Fixture::new("manager-remove-failure-reopens-from-disk");
     let replacement = fixture.variant("remove failure reopens");
-    let mut manager = maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) =
+        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1465,7 +1471,7 @@ async fn remove_failure_reopens_from_disk() {
         .slots
         .get_mut(&first)
         .expect("the expired generation should keep its slot");
-    slot.execution = Execution::Removing(failed_removal());
+    slot.execution = Execution::Removing(settled(Err(Report::new(ManagerError::Remove))));
 
     manager.desired = Some(first);
     manager.tick(after(retired, HARD));
@@ -1479,21 +1485,6 @@ async fn remove_failure_reopens_from_disk() {
     );
 
     drain(&mut manager, []).await;
-}
-
-/// An opening that completes with the runtime its case delivers.
-fn delivered_opening() -> (
-    BoxFuture<'static, Result<Runtime, Report<ManagerError>>>,
-    oneshot::Sender<Runtime>,
-) {
-    let (delivery, arrival) = oneshot::channel::<Runtime>();
-    let task = Box::pin(async move {
-        Ok(arrival
-            .await
-            .expect("the case should deliver the initialized runtime"))
-    });
-
-    (task, delivery)
 }
 
 /// Completes the real opening before substituting a failed recovery result.
@@ -1510,7 +1501,7 @@ async fn fail_started_opening(manager: &mut GenerationManager, generation: Gener
     drop(task.await.expect("the manager's recovery should open"));
     slot.execution = Execution::Opening {
         world,
-        task: failed_opening(),
+        task: settled(Err(Report::new(ManagerError::Runtime))),
     };
 }
 
@@ -1518,7 +1509,7 @@ async fn fail_started_opening(manager: &mut GenerationManager, generation: Gener
 #[tokio::test]
 async fn recovery_failed_attempt() {
     let fixture = Fixture::new("manager-recovery-failed-attempt");
-    let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -1569,11 +1560,11 @@ async fn recovery_failed_attempt() {
 fn shutdown_pending_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-pending-opening");
-        let mut manager = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
 
-        let (task, delivery) = delivered_opening();
+        let (task, delivery) = pending();
         manager.slots.insert(generation, opening(task));
         manager.desired = Some(generation);
         manager.current = None;
@@ -1587,7 +1578,7 @@ fn shutdown_pending_opening() {
         let (feed, observed) = prompt_feed();
         assert!(
             delivery
-                .send(runtime(Arc::clone(&fixture.world), 1, Some(feed)))
+                .send(Ok(Ok(runtime(Arc::clone(&fixture.world), 1, Some(feed)))))
                 .is_ok(),
             "the pending opening should still await its runtime"
         );

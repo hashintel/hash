@@ -5,7 +5,10 @@ use super::source::{RuntimeSource, RuntimeSourceHandle};
 use crate::{
     file::generation::GenerationId,
     offload::OffloadState,
-    serve2::{runtime::Runtime, world::World},
+    serve2::{
+        runtime::{FeedState, Runtime},
+        world::World,
+    },
 };
 
 /// Admission history used to distinguish failed candidates from expired generations.
@@ -55,24 +58,24 @@ impl Execution {
                 },
                 Self::Running(runtime) => {
                     match runtime.try_join() {
-                        Some(Ok(())) => {
+                        Ok(FeedState::Finished) => {
                             tracing::warn!(%generation, "generation feed ended prematurely");
                         }
-                        Some(Err(error)) => {
+                        Err(error) => {
                             tracing::warn!(%generation, ?error, "unable to join runtime, generation feed failed")
                         }
-                        None => return,
+                        Ok(FeedState::Absent | FeedState::Running) => return,
                     }
 
                     Self::Stopped(Some(Arc::clone(runtime.world())))
                 }
                 Self::Joining(runtime) => {
                     match runtime.try_join() {
-                        Some(Ok(())) => {}
-                        Some(Err(error)) => {
+                        Ok(FeedState::Absent | FeedState::Finished) => {}
+                        Err(error) => {
                             tracing::warn!(%generation, ?error, "unable to join runtime, generation feed failed");
                         }
-                        None => return,
+                        Ok(FeedState::Running) => return,
                     }
 
                     Self::Stopped(Some(Arc::clone(runtime.world())))

@@ -90,17 +90,17 @@ impl TileDetail {
 pub(super) struct TileQuery {
     /// The delivery mode, defaulting to delta when the request names none.
     #[serde(default)]
-    pub(super) mode: Mode,
+    pub mode: Mode,
     /// Versioned type URLs conditioning the `TYPE_MASK` column, in request order.
     ///
     /// Entries parse at the transport boundary: a malformed URL rejects the body, while a
     /// well-formed URL this generation never ingested is legal and reads zero bits.
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
-    pub(super) colored_type_ids: Vec<VersionedUrl>,
+    pub colored_type_ids: Vec<VersionedUrl>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
-    pub(super) detail: TileDetail,
+    pub detail: TileDetail,
 }
 
 /// `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one tile as `SALTILET` bytes.

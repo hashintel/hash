@@ -12,7 +12,7 @@ pub(crate) mod scene;
 mod schedule;
 pub(crate) mod secret;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 pub(crate) mod visibility;
 mod walk;
 mod world;

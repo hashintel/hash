@@ -64,6 +64,15 @@ struct Feed {
     task: JoinHandle<Result<(), Report<[DeltaTaskError]>>>,
 }
 
+/// The outcome of checking for an unjoined feed runner.
+#[derive(Debug)]
+enum FeedState {
+    /// No runner exists, or an earlier join consumed its result.
+    Absent,
+    Running,
+    Finished,
+}
+
 /// The opened world, publication reader and shutdown authority for one generation.
 ///
 /// Dropping the runtime requests graceful shutdown. [`Self::shutdown`] also joins the runner.
@@ -162,22 +171,23 @@ impl Runtime {
         }
     }
 
-    fn try_join(&mut self) -> Option<Result<(), Report<RuntimeError>>> {
-        let feed = self.feed.as_mut()?;
+    fn try_join(&mut self) -> Result<FeedState, Report<RuntimeError>> {
+        let Some(feed) = self.feed.as_mut() else {
+            return Ok(FeedState::Absent);
+        };
 
         if !feed.task.is_finished() {
-            return None;
+            return Ok(FeedState::Running);
         }
 
         // We have just confirmed the task is finished, so blocking is safe.
         let result = block_on(&mut feed.task);
 
         self.feed = None;
-        Some(
-            result
-                .change_context(RuntimeError::Join)
-                .and_then(|result| result.change_context(RuntimeError::Feed)),
-        )
+        result
+            .change_context(RuntimeError::Join)
+            .and_then(|result| result.change_context(RuntimeError::Feed))
+            .map(|()| FeedState::Finished)
     }
 
     /// Waits for the runner's result, or returns `None` without an unjoined runner.

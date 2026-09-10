@@ -17,7 +17,7 @@ use tokio::{sync::oneshot, task::JoinHandle};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
-use super::{Feed, FeedOptions, Runtime, RuntimeError};
+use super::{Feed, FeedOptions, FeedState, Runtime, RuntimeError};
 use crate::{
     dataset::TemporalAxes,
     device::Device,
@@ -185,7 +185,7 @@ async fn open_disabled() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
-    assert!(runtime.try_join().is_none());
+    core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
     assert!(runtime.join().await.is_none());
 }
 
@@ -204,7 +204,7 @@ async fn open_without_axes() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
-    assert!(runtime.try_join().is_none());
+    core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
     assert!(runtime.join().await.is_none());
 }
 
@@ -252,7 +252,7 @@ async fn open_invalid_interval() {
     .err()
     .expect("a zero interval should fail");
 
-    assert!(matches!(error.current_context(), RuntimeError::Feed));
+    core::assert_matches!(error.current_context(), RuntimeError::Feed);
     assert!(weak_pool.upgrade().is_none());
 }
 
@@ -267,7 +267,7 @@ async fn start_entropy_failure() {
         .err()
         .expect("unavailable entropy should fail");
 
-    assert!(matches!(error.current_context(), RuntimeError::Entropy));
+    core::assert_matches!(error.current_context(), RuntimeError::Entropy);
     assert!(weak_pool.upgrade().is_none());
 }
 
@@ -366,7 +366,7 @@ fn join_feed_error() {
             .await
             .expect("the runner should have a result")
             .expect_err("the runner should report its failure");
-        assert!(matches!(error.current_context(), RuntimeError::Feed));
+        core::assert_matches!(error.current_context(), RuntimeError::Feed);
         assert!(runtime.join().await.is_none());
     });
 }
@@ -391,7 +391,7 @@ fn join_panic() {
             .await
             .expect("the runner should have a result")
             .expect_err("the runner should report its panic");
-        assert!(matches!(error.current_context(), RuntimeError::Join));
+        core::assert_matches!(error.current_context(), RuntimeError::Join);
         assert!(runtime.join().await.is_none());
     });
 }
@@ -412,17 +412,14 @@ fn try_join_pending() {
             },
         );
 
-        assert!(runtime.try_join().is_none());
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Running));
         assert!(runtime.feed.is_some());
         release.send(()).expect("should retain the waiting worker");
         feed_finished(&runtime).await;
 
-        runtime
-            .try_join()
-            .expect("should return the finished runner's result")
-            .expect("should join the successful runner");
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
         assert!(runtime.feed.is_none());
-        assert!(runtime.try_join().is_none());
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(runtime.join().await.is_none());
         runtime.shutdown().await.expect("should remain joined");
     });
@@ -443,11 +440,10 @@ fn try_join_feed_error() {
 
         let error = runtime
             .try_join()
-            .expect("should return the finished runner's result")
             .expect_err("should report the feed failure");
-        assert!(matches!(error.current_context(), RuntimeError::Feed));
+        core::assert_matches!(error.current_context(), RuntimeError::Feed);
         assert!(runtime.feed.is_none());
-        assert!(runtime.try_join().is_none());
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(runtime.join().await.is_none());
         runtime.shutdown().await.expect("should remain joined");
     });
@@ -468,11 +464,10 @@ fn try_join_panic() {
 
         let error = runtime
             .try_join()
-            .expect("should return the finished runner's result")
             .expect_err("should report the runner panic");
-        assert!(matches!(error.current_context(), RuntimeError::Join));
+        core::assert_matches!(error.current_context(), RuntimeError::Join);
         assert!(runtime.feed.is_none());
-        assert!(runtime.try_join().is_none());
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(runtime.join().await.is_none());
         runtime.shutdown().await.expect("should remain joined");
     });

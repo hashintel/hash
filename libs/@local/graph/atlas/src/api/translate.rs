@@ -64,7 +64,7 @@ pub(super) struct TranslateRequest {
     /// The upstream entity ids to translate, in the `webId~entityUuid` form.
     ///
     /// Duplicates are legal and collapse.
-    pub(super) entity_ids: Vec<String>,
+    pub entity_ids: Vec<String>,
 }
 
 /// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity ids to atlas identity.

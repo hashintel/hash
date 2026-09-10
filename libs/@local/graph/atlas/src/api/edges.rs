@@ -87,10 +87,10 @@ impl EdgesDetail {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
-    pub(super) tiles: Vec<MortonTile>,
+    pub tiles: Vec<MortonTile>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
-    pub(super) detail: EdgesDetail,
+    pub detail: EdgesDetail,
 }
 
 /// `POST /v1/atlas/edges/{generation}/{variant}`.

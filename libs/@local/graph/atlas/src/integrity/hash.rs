@@ -24,8 +24,6 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
     Debug,
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     PartialOrd,
     Ord,
     serde::Serialize,
@@ -74,6 +72,15 @@ impl Sha256Digest {
         hasher.finalize()
     }
 }
+
+const impl PartialEq for Sha256Digest {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl Eq for Sha256Digest {}
 
 impl fmt::Display for Sha256Digest {
     #[inline]

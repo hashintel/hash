@@ -30,6 +30,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone)]
 struct ActorCache(Result<Actor, AuthenticationRejection>);
 
