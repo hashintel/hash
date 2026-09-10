@@ -78,11 +78,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.firstCurrentNetSnapshot).toMatchObject({
       title: "SIR epidemic model",
       definition: {
-        places: expect.arrayContaining([
+        places: [
           { id: "susceptible", name: "Susceptible" },
           { id: "infected", name: "Infected" },
           { id: "recovered", name: "Recovered" },
-        ]),
+        ],
+        transitions: [],
       },
     });
     expect(result.firstGroundingText).toContain("SIR epidemic model");
@@ -106,11 +107,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.secondCurrentNetSnapshot).toMatchObject({
       title: "SIR epidemic model (revised)",
       definition: {
-        places: expect.arrayContaining([
+        places: [
           { id: "susceptible", name: "Susceptible" },
           { id: "infected", name: "Infected" },
           { id: "recovered", name: "Recovered cases" },
-        ]),
+        ],
+        transitions: [],
       },
     });
     expect(result.secondGroundingText).toContain(

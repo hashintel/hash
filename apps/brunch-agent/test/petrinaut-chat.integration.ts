@@ -531,7 +531,9 @@ try {
         if (!Array.isArray(parsed)) {
           throw new Error("client-tool-result signal body was not an array");
         }
-        return parsed;
+        const normalized: unknown[] = [];
+        for (const entry of parsed) normalized.push(entry);
+        return normalized;
       });
     const clientToolResultMatches = (
       toolCall: Extract<UIMessageChunk, { type: "tool-input-available" }>,
