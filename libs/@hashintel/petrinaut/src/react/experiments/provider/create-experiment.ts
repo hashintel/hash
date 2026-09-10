@@ -3,6 +3,7 @@ import {
   getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
+  synthesizeAdHocOptimization,
   synthesizeAdHocScenario,
   type InitialMarking,
   type PetrinautExtensionSettings,
@@ -15,7 +16,11 @@ import {
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
-import { buildParameterAxis, fullSweepSelection } from "../parameter-grid";
+import {
+  buildAdHocSweepAxes,
+  buildParameterAxis,
+  fullSweepSelection,
+} from "../parameter-grid";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type { CreateExperimentInput, ExperimentRecord } from "../context";
@@ -171,13 +176,45 @@ const formatCompileErrors = (
 export type CompiledExperimentScenario = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  /** Present for a selected scenario; a sweep compiles through it per batch. */
+  /**
+   * Present for a selected scenario and for an ad-hoc definition with Sweep
+   * selections; a sweep compiles through it per batch.
+   */
   sweptCompiler: SweptScenarioCompiler | null;
+  /** The swept parameters, empty for a plain experiment. */
+  axes: ExperimentParameterAxis[];
 };
 
 /**
+ * Wraps a prepared scenario compiler for the sweep session: every batch
+ * compiles at its own swept assignment on top of the fixed values.
+ */
+const sweptCompilerFor = (
+  prepared: ReturnType<typeof prepareScenarioCompiler>,
+  fixed: Readonly<Record<string, number>>,
+): SweptScenarioCompiler => ({
+  compileForValues: (swept) => {
+    const compiled = prepared.compile({ ...fixed, ...swept });
+    if (!compiled.ok) {
+      throw new Error(formatCompileErrors(compiled.errors));
+    }
+    return compiled;
+  },
+  compileRunNumbers: (swept) => {
+    const compiled = prepared.compileParameterNumbers({ ...fixed, ...swept });
+    if (!compiled.ok) {
+      throw new Error(formatCompileErrors(compiled.errors));
+    }
+    return { parameters: compiled.parameters };
+  },
+});
+
+/**
  * Compiles the experiment's scenario — the selected one, an ad-hoc one, or
- * none — into the request's parameter values and initial marking.
+ * none — into the request's parameter values and initial marking, plus the
+ * axes of its sweep. A selected scenario's axes come from the ranged
+ * inputs; an ad-hoc definition's from its Sweep selections, each resolved by
+ * synthesis to a generated scenario parameter with a numeric domain.
  */
 export const compileExperimentScenario = async ({
   input,
@@ -190,7 +227,8 @@ export const compileExperimentScenario = async ({
   input: CreateExperimentInput;
   scenario: Scenario | null;
   fixedValues: Record<string, string>;
-  axes: readonly ExperimentParameterAxis[];
+  /** The selected scenario's swept parameters, from `buildSweepAxes`. */
+  axes: ExperimentParameterAxis[];
   /** The net as the experiment runs it (parameters stripped when disabled). */
   sdcpn: SDCPN;
   requestScenarioHir: LanguageClientContextValue["requestScenarioHir"];
@@ -214,34 +252,51 @@ export const compileExperimentScenario = async ({
       sdcpn.places,
       sdcpn.types,
     );
-    const sweptCompiler: SweptScenarioCompiler = {
-      compileForValues: (swept) => {
-        const compiled = prepared.compile({ ...fixed, ...swept });
-        if (!compiled.ok) {
-          throw new Error(formatCompileErrors(compiled.errors));
-        }
-        return compiled;
-      },
-      compileRunNumbers: (swept) => {
-        const compiled = prepared.compileParameterNumbers({
-          ...fixed,
-          ...swept,
-        });
-        if (!compiled.ok) {
-          throw new Error(formatCompileErrors(compiled.errors));
-        }
-        return { parameters: compiled.parameters };
-      },
-    };
+    const sweptCompiler = sweptCompilerFor(prepared, fixed);
     const compiled = sweptCompiler.compileForValues({});
     return {
       parameterValues: compiled.result.parameterValues,
       initialMarking: compiled.result.initialState,
       sweptCompiler,
+      axes,
     };
   }
 
   if (input.adHocScenario) {
+    if (input.adHocSweeps) {
+      const synthesized = synthesizeAdHocOptimization(
+        input.adHocScenario,
+        context,
+      );
+      if (!synthesized.ok) {
+        throw new Error(formatCompileErrors(synthesized.errors));
+      }
+      const adHocAxes = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+      if (!adHocAxes.ok) {
+        throw new Error(adHocAxes.error);
+      }
+      if (adHocAxes.axes.length > 0) {
+        // Every generated parameter is swept, so nothing is fixed; a batch's
+        // compile supplies each one's value.
+        const generated = synthesized.output.scenario;
+        const scenarioHir = await requestScenarioHir(generated);
+        const prepared = prepareScenarioCompiler(
+          generated,
+          scenarioHir,
+          sdcpn.parameters,
+          sdcpn.places,
+          sdcpn.types,
+        );
+        const sweptCompiler = sweptCompilerFor(prepared, {});
+        const compiled = sweptCompiler.compileForValues({});
+        return {
+          parameterValues: compiled.result.parameterValues,
+          initialMarking: compiled.result.initialState,
+          sweptCompiler,
+          axes: adHocAxes.axes,
+        };
+      }
+    }
     const synthesized = synthesizeAdHocScenario(input.adHocScenario, context);
     if (!synthesized.ok) {
       throw new Error(formatCompileErrors(synthesized.errors));
@@ -261,10 +316,16 @@ export const compileExperimentScenario = async ({
       parameterValues: compiled.result.parameterValues,
       initialMarking: compiled.result.initialState,
       sweptCompiler: null,
+      axes: [],
     };
   }
 
-  return { parameterValues: {}, initialMarking: {}, sweptCompiler: null };
+  return {
+    parameterValues: {},
+    initialMarking: {},
+    sweptCompiler: null,
+    axes: [],
+  };
 };
 
 export const newExperimentRecord = ({

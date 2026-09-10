@@ -1,3 +1,8 @@
+import type { ConstraintSpace } from "../../constraint/constraint";
+import type {
+  ConstraintSource,
+  LowerConstraintContext,
+} from "../../constraint/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -68,6 +73,23 @@ export type MetricSessionParams = {
   sessionId: string;
   /** Metric function body (must `return` a finite number). */
   code: string;
+};
+
+/**
+ * Data describing a constraint editing session for the language server: one
+ * constraint expression, checked in the space it ranges over.
+ */
+export type ConstraintSessionParams = {
+  sessionId: string;
+  space: ConstraintSpace;
+  /** The constraint's source text; empty means nothing to lint. */
+  code: string;
+  /**
+   * The study's scenario parameters, ambient as `scenario.*` in the
+   * parameters space. The client sends them because the study's scenario may
+   * be ad-hoc and absent from the SDCPN.
+   */
+  scenarioParameters: ScenarioParameter[];
 };
 
 /** Position in a text document (LSP standard: line/character based). */
@@ -144,6 +166,21 @@ type ClientNotification =
       jsonrpc: "2.0";
       method: "temp/metric/kill";
       params: { sessionId: string };
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/initialize";
+      params: ConstraintSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/didChange";
+      params: ConstraintSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/kill";
+      params: { sessionId: string };
     };
 
 /** Requests (expect a response with matching `id`). */
@@ -193,6 +230,15 @@ type ClientRequest =
       params: {
         /** A single scenario-expression to re-print canonically. */
         code: string;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/lowerConstraint";
+      params: {
+        source: ConstraintSource;
+        context: LowerConstraintContext;
       };
     };
 

@@ -1990,6 +1990,202 @@ describe("OpenAIRealtimeSession", () => {
     ]);
   });
 
+  test("ignores a duplicate speech start after the input item completes", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "completed-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "completed-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "completed-item",
+      transcript: "Completed answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    harness.events.length = 0;
+    channel.send.mockClear();
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "completed-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_start_ms: 220,
+      item_id: "next-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 320,
+      item_id: "next-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("follow-up", "Continue with the next question."),
+    ]);
+
+    expect(
+      harness.events.filter(({ type }) => type === "input-speech-started"),
+    ).toEqual([
+      {
+        connectionEpoch: 1,
+        interruptionBySpeaking: true,
+        itemId: "next-item",
+        type: "input-speech-started",
+      },
+    ]);
+    expect(sentEvents(channel)).toEqual([
+      expect.objectContaining({ type: "response.create" }),
+    ]);
+  });
+
+  test("preserves stopped half-duplex input when playback starts before transcription completes", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "stopped-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "stopped-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("follow-up", "Continue with the next question."),
+    ]);
+    channel.receive({
+      content_index: 0,
+      item_id: "stopped-item",
+      transcript: "Keep this completed answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(
+      harness.events.filter(({ type }) => type === "completed"),
+    ).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "stopped-item",
+      },
+      text: "Keep this completed answer.",
+      type: "completed",
+    });
+  });
+
+  test.each([
+    ["   ", 0],
+    ["Submit this first answer.", 1],
+  ])(
+    "keeps follow-up speech tracked when the previous transcript settles as %j",
+    async (firstTranscript, expectedSubmissions) => {
+      const harness = createHarness();
+      const submitInterviewAnswer = vi.fn<
+        ConstructorParameters<
+          typeof RealtimeBrunchBridge
+        >[0]["submitInterviewAnswer"]
+      >(async (input) => ({ kind: "message", messageId: input.id }));
+      const bridge = new RealtimeBrunchBridge({
+        session: harness.session,
+        submitInterviewAnswer,
+      });
+      const controller = new VoiceTurnController({
+        bridge,
+        session: harness.session,
+        submitText: vi.fn(async () => undefined),
+      });
+      controller.setInterruptionBySpeaking(true);
+      controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [],
+        status: "ready",
+      });
+      await controller.start();
+      const channel = harness.channels[0]!;
+
+      channel.receive({
+        audio_start_ms: 100,
+        item_id: "first-item",
+        type: "input_audio_buffer.speech_started",
+      });
+      channel.receive({
+        audio_end_ms: 200,
+        item_id: "first-item",
+        type: "input_audio_buffer.speech_stopped",
+      });
+      channel.receive({
+        audio_start_ms: 220,
+        item_id: "follow-up-item",
+        type: "input_audio_buffer.speech_started",
+      });
+      channel.receive({
+        content_index: 0,
+        item_id: "first-item",
+        transcript: firstTranscript,
+        type: "conversation.item.input_audio_transcription.completed",
+      });
+      channel.receive({
+        content_index: 0,
+        delta: "Follow-up answer",
+        item_id: "follow-up-item",
+        type: "conversation.item.input_audio_transcription.delta",
+      });
+
+      expect(submitInterviewAnswer).toHaveBeenCalledTimes(expectedSubmissions);
+      expect(harness.localTracks[0]!.enabled).toBe(true);
+      expect(controller.getSnapshot()).toMatchObject({
+        inputNotice: "none",
+        partialText: "Follow-up answer",
+      });
+      await controller.end();
+    },
+  );
+
+  test("queues canonical playback until in-progress speech stops", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "in-progress-answer",
+      type: "input_audio_buffer.speech_started",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("follow-up", "This must wait for the user to finish."),
+    ]);
+
+    expect(sentEvents(channel)).toEqual([]);
+
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "in-progress-answer",
+      type: "input_audio_buffer.speech_stopped",
+    });
+
+    expect(sentEvents(channel)).toEqual([
+      expect.objectContaining({ type: "response.create" }),
+    ]);
+  });
+
   test("exposes only the first concurrently speaking provider input item", async () => {
     const harness = createHarness();
     await harness.session.connect();

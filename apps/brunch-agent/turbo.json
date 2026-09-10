@@ -38,15 +38,14 @@
         "codegen",
         "^build",
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-dafny#build",
-        "@hashintel/brunch-agent-plugin-gherkin#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build"
       ],
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
-        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/docs/**",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/evaluations/**",
+        "$TURBO_ROOT$/libs/@hashintel/petrinaut/docs/**"
       ]
     }
   }

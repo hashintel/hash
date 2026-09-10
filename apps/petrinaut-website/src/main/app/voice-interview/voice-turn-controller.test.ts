@@ -8,8 +8,23 @@ import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { VoiceLatencyEvent } from "./voice-turn-controller";
 
+type TestBridgeEvent =
+  | Exclude<
+      RealtimeBrunchBridgeEvent,
+      { type: "submission-started" | "transcript-rejected" }
+    >
+  | (Omit<
+      Extract<RealtimeBrunchBridgeEvent, { type: "submission-started" }>,
+      "itemId"
+    > & { readonly itemId?: string })
+  | (Omit<
+      Extract<RealtimeBrunchBridgeEvent, { type: "transcript-rejected" }>,
+      "itemId"
+    > & { readonly itemId?: string });
+
 const createHarness = () => {
   let epoch = 0;
+  let latestInputItemId: string | null = null;
   let now = 0;
   let sessionListener:
     | ((event: OpenAIRealtimeSessionEvent) => void)
@@ -60,9 +75,25 @@ const createHarness = () => {
     },
     bridge,
     controller,
-    emitBridge: (event: RealtimeBrunchBridgeEvent) => bridgeListener?.(event),
-    emitSession: (event: OpenAIRealtimeSessionEvent) =>
-      sessionListener?.(event),
+    emitBridge: (event: TestBridgeEvent) => {
+      if (
+        event.type === "submission-started" ||
+        event.type === "transcript-rejected"
+      ) {
+        bridgeListener?.({
+          ...event,
+          itemId: event.itemId ?? latestInputItemId ?? "test-input",
+        });
+      } else {
+        bridgeListener?.(event);
+      }
+    },
+    emitSession: (event: OpenAIRealtimeSessionEvent) => {
+      if (event.type === "input-speech-started") {
+        latestInputItemId = event.itemId;
+      }
+      sessionListener?.(event);
+    },
     latencyEvents,
     session,
     submitText,

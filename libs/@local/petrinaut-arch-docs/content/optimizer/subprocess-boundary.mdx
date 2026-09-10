@@ -45,3 +45,19 @@ break; that is the seam working as intended.
 Nothing else crosses: the optimizer's HTTP surface, Optuna, and telemetry
 never reach the CLI, and the CLI never learns it is being driven by a
 service rather than a script.
+
+## One study, two drivers
+
+The study itself — parsing the description, seeding the sampler, suggesting
+values, the ask/tell loop and the best-so-far — lives in
+[optimizer-core](layer:optimizer-core), a pure-Python package with no threads,
+I/O or process control. The service imports it and drives it from a worker
+thread across the boundary above. The
+[browser runtime](layer:core.optimization.browser) loads the same modules into
+Pyodide inside a Web Worker and drives them through a host channel that
+evaluates each trial as a batch of seeded runs on the experiments backend;
+[the browser runtime](doc:optimizer/browser-runtime) walks through that flow.
+Optuna never learns which driver it is under. The runtime lock the browser
+installs from is asserted against the Optuna version the core package's own
+lockfile installs; the service resolves the same version range in its own
+lockfile.

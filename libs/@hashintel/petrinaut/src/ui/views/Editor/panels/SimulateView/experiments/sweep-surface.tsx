@@ -17,6 +17,7 @@ import { Select } from "@hashintel/ds-components";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import {
+  axisDisplayName,
   axisStep,
   axisValueAt,
 } from "../../../../../../react/experiments/parameter-grid";
@@ -179,7 +180,7 @@ export const SweepSurface = ({
 
   /** The axis readout a plot fraction lands on. */
   const readoutAt = (axis: ExperimentParameterAxis, fraction: number): string =>
-    `${axis.identifier} = ${formatAxisValue(
+    `${axisDisplayName(axis)} = ${formatAxisValue(
       axisValueAt(axis, Math.round(fraction * axis.stepCount)),
       axisStep(axis),
     )}`;

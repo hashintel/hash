@@ -274,11 +274,11 @@ jobs:
           # Optimistically compile background tasks.
           turbo run compile:release --env-mode=loose
           mkdir -p logs
-          turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
+          turbo run start --filter @apps/hash-graph --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
-          turbo run start:healthcheck --env-mode=loose
+          turbo run start:healthcheck --filter @apps/hash-graph --env-mode=loose
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -366,11 +366,11 @@ jobs:
           # Optimistically compile background tasks.
           turbo run compile:release --env-mode=loose
           mkdir -p logs
-          turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
+          turbo run start --filter @apps/hash-graph --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
-          turbo run start:healthcheck --env-mode=loose
+          turbo run start:healthcheck --filter @apps/hash-graph --env-mode=loose
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"

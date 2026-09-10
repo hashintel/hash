@@ -26,7 +26,6 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocRowKindOf,
-  resolveAdHocPlaceTotal,
   type AdHocColouredPlace,
   type AdHocRow,
   type AdHocRowKind,
@@ -159,14 +158,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
 }) => {
-  const {
-    mode,
-    formState,
-    synthesisContext,
-    selection,
-    setFocusedValue,
-    dispatch,
-  } = use(AdHocFormContext);
+  const { mode, placeTotal, selection, setFocusedValue, dispatch } =
+    use(AdHocFormContext);
   // Run mode: cells and gutters stay focusable and walkable, but nothing
   // edits and no rows are added or removed.
   const readOnly = mode === "run";
@@ -205,7 +198,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const sharedColumnIndexes = elements.flatMap((element, columnIndex) =>
     state.sharedColumns[element.name] ? [columnIndex] : [],
   );
-  const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
+  const total = placeTotal(place.id);
 
   // Every keyboard-reachable line of the table, top to bottom, declared as
   // worksheet stops: the column headers, the shared values (a sparse line),
@@ -385,7 +378,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       rowIndex + 1
                     } — one token. Enter chooses the row's kind, Delete removes it.`
                   : `Row ${rowIndex + 1} — dynamic${
-                      kind === "optimized" ? ", count optimized" : ""
+                      kind === "optimized"
+                        ? selection === "sweep"
+                          ? ", count swept"
+                          : ", count optimized"
+                        : ""
                     }. Enter chooses the row's kind, Delete removes it.`
               }
               label={`Row ${rowIndex + 1} kind`}
@@ -401,11 +398,14 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label: "Dynamic count",
                   checked: kind === "dynamic",
                 },
-                ...(selection === "optimize"
+                ...(selection === "optimize" || selection === "sweep"
                   ? [
                       {
                         id: "optimized",
-                        label: "Optimized count",
+                        label:
+                          selection === "sweep"
+                            ? "Swept count"
+                            : "Optimized count",
                         checked: kind === "optimized",
                       },
                     ]

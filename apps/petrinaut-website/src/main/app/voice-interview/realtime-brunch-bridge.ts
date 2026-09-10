@@ -86,6 +86,22 @@ interface CompletedResponseMessage extends FlueChatResponseMessageCompletedEvent
   consumed: boolean;
 }
 
+type TerminalTranscriptEvent =
+  | {
+      readonly key: OpenAIRealtimeTranscriptKey;
+      readonly text: string;
+      readonly type: "completed";
+    }
+  | {
+      readonly key: OpenAIRealtimeTranscriptKey;
+      readonly type: "transcription-failed";
+    };
+
+interface PendingInputItem {
+  readonly ordinaryAcceptedWhileReady: boolean;
+  stopped: boolean;
+}
+
 interface ActiveSubmission {
   readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
@@ -128,6 +144,7 @@ export type RealtimeBrunchBridgeEvent =
   | {
       readonly answer: string;
       readonly deliveryId: string;
+      readonly itemId: string;
       readonly type: "submission-started";
     }
   | {
@@ -163,6 +180,7 @@ export type RealtimeBrunchBridgeEvent =
       readonly type: "submission-stopped";
     }
   | {
+      readonly itemId: string;
       readonly reason: RealtimeTranscriptRejectionReason;
       readonly type: "transcript-rejected";
     }
@@ -222,7 +240,10 @@ const admissionErrorCode = (
 export class RealtimeBrunchBridge {
   readonly #acceptedInputItemIds = new Set<string>();
   readonly #activePlaybackText = new Map<string, readonly string[]>();
+  readonly #completedInputEvents = new Map<string, TerminalTranscriptEvent>();
+  readonly #inputItemOrder: string[] = [];
   readonly #listeners = new Set<BridgeListener>();
+  readonly #pendingInputItems = new Map<string, PendingInputItem>();
   readonly #pendingSpeechRequestIds = new Set<string>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
@@ -237,7 +258,11 @@ export class RealtimeBrunchBridge {
     string,
     readonly string[] | null
   >();
-  #pendingInterruption: { answer: string; deliveryId: string } | null = null;
+  #pendingInterruption: {
+    answer: string;
+    deliveryId: string;
+    itemId: string;
+  } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -332,7 +357,10 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
+    this.#completedInputEvents.clear();
+    this.#inputItemOrder.length = 0;
     this.#interruptionPlaybackText.clear();
+    this.#pendingInputItems.clear();
     this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
@@ -351,7 +379,10 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
+    this.#completedInputEvents.clear();
+    this.#inputItemOrder.length = 0;
     this.#interruptionPlaybackText.clear();
+    this.#pendingInputItems.clear();
     this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
@@ -412,8 +443,11 @@ export class RealtimeBrunchBridge {
     }
   }
 
-  #rejectTranscript(reason: RealtimeTranscriptRejectionReason): void {
-    this.#emit({ reason, type: "transcript-rejected" });
+  #rejectTranscript(
+    itemId: string,
+    reason: RealtimeTranscriptRejectionReason,
+  ): void {
+    this.#emit({ itemId, reason, type: "transcript-rejected" });
   }
 
   #fail(
@@ -471,28 +505,33 @@ export class RealtimeBrunchBridge {
         this.#playbackOverlappingInputItemIds.add(event.itemId);
       } else {
         this.#acceptedInputItemIds.add(event.itemId);
+        if (!this.#pendingInputItems.has(event.itemId)) {
+          this.#pendingInputItems.set(event.itemId, {
+            ordinaryAcceptedWhileReady:
+              !event.interruptionBySpeaking && this.#canSubmitAnswerNow(),
+            stopped: false,
+          });
+          this.#inputItemOrder.push(event.itemId);
+        }
+      }
+      return;
+    }
+    if (event.type === "input-speech-stopped") {
+      const pendingInput = this.#pendingInputItems.get(event.itemId);
+      if (this.#acceptedInputItemIds.has(event.itemId) && pendingInput) {
+        pendingInput.stopped = true;
       }
       return;
     }
     if (event.type === "canonical-speech-requested") {
       this.#pendingSpeechRequestIds.add(event.speechRequestId);
-      for (const itemId of this.#acceptedInputItemIds) {
-        if (!this.#interruptionPlaybackText.has(itemId)) {
-          this.#playbackOverlappingInputItemIds.add(itemId);
-          this.#acceptedInputItemIds.delete(itemId);
-        }
-      }
+      this.#markPlaybackOverlappingInputItems();
       return;
     }
     if (event.type === "output-started") {
       this.#pendingSpeechRequestIds.delete(event.speechRequestId);
       this.#activePlaybackText.set(event.responseId, event.canonicalText ?? []);
-      for (const itemId of this.#acceptedInputItemIds) {
-        if (!this.#interruptionPlaybackText.has(itemId)) {
-          this.#playbackOverlappingInputItemIds.add(itemId);
-          this.#acceptedInputItemIds.delete(itemId);
-        }
-      }
+      this.#markPlaybackOverlappingInputItems();
       return;
     }
     if (
@@ -523,43 +562,81 @@ export class RealtimeBrunchBridge {
     if (event.key.connectionEpoch !== this.#activeEpoch) {
       return;
     }
+    const terminalEvent: TerminalTranscriptEvent =
+      event.type === "transcription-failed"
+        ? { key: event.key, type: "transcription-failed" }
+        : { key: event.key, text: event.text, type: "completed" };
 
     const keyId = transcriptKeyId(event.key);
     if (this.#processedTranscripts.has(keyId)) {
-      this.#rejectTranscript("duplicate");
+      this.#rejectTranscript(event.key.itemId, "duplicate");
       return;
     }
     this.#processedTranscripts.add(keyId);
+    if (this.#pendingInputItems.has(event.key.itemId)) {
+      this.#completedInputEvents.set(event.key.itemId, terminalEvent);
+      this.#drainCompletedInputEvents();
+      return;
+    }
+    this.#processCompletedInputEvent(terminalEvent);
+  }
+
+  #drainCompletedInputEvents(): void {
+    let itemId = this.#inputItemOrder.at(0);
+    let event =
+      itemId === undefined ? undefined : this.#completedInputEvents.get(itemId);
+    while (itemId !== undefined && event !== undefined) {
+      this.#inputItemOrder.shift();
+      this.#completedInputEvents.delete(itemId);
+      this.#processCompletedInputEvent(event);
+      itemId = this.#inputItemOrder.at(0);
+      event =
+        itemId === undefined
+          ? undefined
+          : this.#completedInputEvents.get(itemId);
+    }
+  }
+
+  #processCompletedInputEvent(event: TerminalTranscriptEvent): void {
     this.#acceptedInputItemIds.delete(event.key.itemId);
+    const stoppedWhileReady = this.#ordinaryInputFinishedWhileReady(
+      event.key.itemId,
+    );
+    this.#pendingInputItems.delete(event.key.itemId);
     const interruptionPlaybackText = this.#interruptionPlaybackText.get(
       event.key.itemId,
     );
     this.#interruptionPlaybackText.delete(event.key.itemId);
 
     if (this.#playbackOverlappingInputItemIds.has(event.key.itemId)) {
-      this.#rejectTranscript("unavailable");
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
     if (event.type === "transcription-failed") {
-      this.#rejectTranscript("failed");
+      this.#rejectTranscript(event.key.itemId, "failed");
       return;
     }
 
-    // An interrupting utterance is retained rather than refused when Brunch is
-    // still busy, so only ordinary capture answers a closed submission window.
-    if (interruptionPlaybackText === undefined && !this.#canSubmitAnswerNow()) {
-      this.#rejectTranscript("unavailable");
+    // An interruption, or ordinary speech that finished while admission was
+    // open, waits for an earlier spoken answer rather than losing speech-order
+    // authority to asynchronous transcription completion.
+    if (
+      interruptionPlaybackText === undefined &&
+      !stoppedWhileReady &&
+      !this.#canSubmitAnswerNow()
+    ) {
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
     const answer = normalizeTranscript(event.text);
     if (answer.length === 0) {
-      this.#rejectTranscript("empty");
+      this.#rejectTranscript(event.key.itemId, "empty");
       return;
     }
     if (Array.from(answer).length > ANSWER_LIMIT) {
-      this.#rejectTranscript("over-limit");
+      this.#rejectTranscript(event.key.itemId, "over-limit");
       return;
     }
 
@@ -581,22 +658,55 @@ export class RealtimeBrunchBridge {
           requestId: createVoiceRequestId(),
           stage: "browser",
         });
-        this.#rejectTranscript(rejectionReason);
+        this.#rejectTranscript(event.key.itemId, rejectionReason);
         return;
       }
     }
 
     const deliveryId = createRealtimeSubmissionId(event.key);
     if (this.#pendingInterruption) {
-      this.#rejectTranscript("pending");
+      this.#rejectTranscript(event.key.itemId, "pending");
       return;
     }
     if (!this.#canSubmitAnswerNow()) {
-      this.#pendingInterruption = { answer, deliveryId };
+      this.#pendingInterruption = {
+        answer,
+        deliveryId,
+        itemId: event.key.itemId,
+      };
       this.#emit({ answer, type: "transcript-retained" });
       return;
     }
-    this.#submitAnswer(answer, deliveryId);
+    this.#submitAnswer(answer, deliveryId, event.key.itemId);
+  }
+
+  #ordinaryInputFinishedWhileReady(itemId: string): boolean {
+    const pendingInput = this.#pendingInputItems.get(itemId);
+    return Boolean(
+      pendingInput?.ordinaryAcceptedWhileReady && pendingInput.stopped,
+    );
+  }
+
+  #markPlaybackOverlappingInputItems(): void {
+    for (const itemId of this.#acceptedInputItemIds) {
+      if (
+        this.#interruptionPlaybackText.has(itemId) ||
+        this.#ordinaryInputFinishedWhileReady(itemId)
+      ) {
+        continue;
+      }
+      this.#playbackOverlappingInputItemIds.add(itemId);
+      this.#acceptedInputItemIds.delete(itemId);
+      this.#pendingInputItems.delete(itemId);
+      const orderIndex = this.#inputItemOrder.indexOf(itemId);
+      if (orderIndex >= 0) {
+        this.#inputItemOrder.splice(orderIndex, 1);
+      }
+      if (this.#completedInputEvents.delete(itemId)) {
+        this.#rejectTranscript(itemId, "unavailable");
+      }
+    }
+    this.#drainCompletedInputEvents();
   }
 
   #canSubmitAnswerNow(): boolean {
@@ -618,11 +728,11 @@ export class RealtimeBrunchBridge {
       return true;
     }
     this.#pendingInterruption = null;
-    this.#submitAnswer(pending.answer, pending.deliveryId);
+    this.#submitAnswer(pending.answer, pending.deliveryId, pending.itemId);
     return true;
   }
 
-  #submitAnswer(answer: string, deliveryId: string): void {
+  #submitAnswer(answer: string, deliveryId: string, itemId: string): void {
     const generation = this.#generation;
     this.#activeSubmission = {
       abortController: new AbortController(),
@@ -637,7 +747,7 @@ export class RealtimeBrunchBridge {
       speechCancelled: false,
       submissionId: null,
     };
-    this.#emit({ answer, deliveryId, type: "submission-started" });
+    this.#emit({ answer, deliveryId, itemId, type: "submission-started" });
     void this.#submit(answer, deliveryId, generation);
   }
 

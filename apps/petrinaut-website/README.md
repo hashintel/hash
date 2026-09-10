@@ -49,25 +49,34 @@ cannot include the current example URL. `FullExamplePage` adds the standard
 Consumers that do not execute JavaScript must call `/api/oembed` directly or
 use provider-pattern discovery instead.
 
-### Optimization demo with Petrinaut Opt
+### Optimization demo
 
-From the repository root, run:
+The main demo at [http://localhost:5173](http://localhost:5173) runs the
+optimizer in the browser: the Optuna study runs in a Pyodide web worker and
+each optimization step runs on Petrinaut's own experiments backend, so no
+Python service is involved. The **Optimizations** tab appears once the
+experimental **In-browser optimization** setting is on, under **Viewport
+controls > Settings > Simulation**. The first optimization in a browser
+downloads the Python runtime from jsDelivr and Optuna from PyPI; later runs use
+the browser cache.
+
+The `/optimization` route is the Python-service variant. It returns the
+website's not-found page unless `VITE_PETRINAUT_OPT_PROVIDER=service` is set.
+To run it, from the repository root:
 
 ```sh
 turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
 ```
 
 The flag builds and starts the local Petrinaut Opt Docker image, waits for its
-health endpoint, and starts the website with the real optimization provider.
-Open [http://localhost:5173/optimization](http://localhost:5173/optimization).
+health endpoint, and starts the website with
+`VITE_PETRINAUT_OPT_PROVIDER=service`. Open
+[http://localhost:5173/optimization](http://localhost:5173/optimization).
 Stopping the command also stops and removes its optimizer container.
 
 The development server proxies `/api/petrinaut-opt/*` to the optimizer on
 `127.0.0.1:4004`, avoiding development-only CORS changes to the Python service.
-Regular `yarn dev` does not enable optimization; use the dedicated command to
-connect the website to the real optimizer service. The `/optimization` route
-returns the website's not-found page when the provider is disabled. Storybook
-provides a fake optimizer for isolated UI development.
+Storybook provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
@@ -75,21 +84,29 @@ provides a fake optimizer for isolated UI development.
 | -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
 | `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
 | `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.    |
 | `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
 | `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
 | `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the `/optimization` route.      |
 | `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
-### Brunch Voice mode preview
+### Brunch Voice mode
 
-Voice mode is disabled by default and always unavailable when `VERCEL_ENV` is
-`production`. To exercise the preview locally or in a Vercel preview, set a
-real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
-dedicated `OPENAI_VOICE_API_KEY`.
+Voice mode is disabled by default. To enable it, configure a real
+`VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
+provide a dedicated `OPENAI_VOICE_API_KEY`.
+
+Production Voice is temporarily unauthenticated. The same-origin check rejects
+ordinary cross-site browser requests, but a non-browser caller can spoof its
+`Origin` header and create billable Realtime sessions. Use a dedicated OpenAI
+project with low usage thresholds and alerts, monitor it while Voice is
+enabled, and set `PETRINAUT_OPENAI_VOICE_ENABLED=false` immediately if usage is
+unexpected. Revoke or rotate the dedicated `OPENAI_VOICE_API_KEY` in OpenAI,
+then update the deployment secret before re-enabling Voice. FE-1622 tracks
+adding caller authentication.
 
 Text and Voice mode use one assistant transcript and composer. When Voice mode
 is available, the empty first-run prompt and empty composer show a waveform
@@ -190,9 +207,9 @@ correlation. Browser and server diagnostics report only operation, stage,
 outcome, duration, request ID, and—where applicable—status, rejection reason, or a sanitized error
 code. Voice responses also expose privacy-safe `Server-Timing` metrics. These
 diagnostics never record audio, SDP, transcript or prompt contents, canonical
-speech text, credentials, or provider response bodies. This controlled-preview
-evidence does not enable production: production remains unconditionally
-disabled by the server policy.
+speech text, credentials, or provider response bodies. Production Voice remains
+behind the explicit server configuration, which is an operational switch rather
+than caller authentication.
 
 ## Testing the API against the built output
 

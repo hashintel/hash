@@ -258,6 +258,18 @@ that are not fixed:
 A logarithmic integer domain requires `step: 1`. `default` is the scenario's
 default value; the optimizer picks each trial's value.
 
+### Constraints
+
+A manifest may carry `constraints`: a list of boolean conditions, each
+`{ "space", "id", "name"?, "code", "hir" }`. `space` is `"parameters"` for a
+condition over the scenario and net parameters (checkable before a run) or
+`"state"` for a condition over the simulation state (observed while a run
+goes); `code` is the authored TypeScript and `hir` its lowered form, validated
+against the HIR grammar. The describe response returns the list verbatim, so a
+client evaluates them itself: the Python binding reads each one as a callable
+with a boolean, a signed margin, and a pydantic validator. The CLI does not
+enforce constraints yet.
+
 ### Evaluate a trial
 
 Send every — and only — described parameter:

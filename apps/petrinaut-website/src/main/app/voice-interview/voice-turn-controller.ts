@@ -596,25 +596,32 @@ export class VoiceTurnController {
     if (event.type === "submission-started") {
       this.#beginSubmissionSettlement(event.deliveryId);
       const paused = this.#snapshot.input === "paused";
+      const preservePendingInput =
+        this.#transcriptItemId !== null &&
+        this.#transcriptItemId !== event.itemId;
       if (paused) {
         this.#inputStateOnResume = "submitting";
       }
-      this.#inputTurnPending = false;
+      if (!preservePendingInput) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+      }
       this.#answerFinalizedAt = this.#now();
       this.#latencyCorrelationId = event.deliveryId;
       this.#recordedLatencyEvents.clear();
       this.#submittingQuestionId = this.#currentQuestionId;
-      this.#transcriptItemId = null;
-      this.#transcriptKey = null;
       this.#ttsSpeechRequestId = null;
-      this.#session.setMicrophoneEnabled(false);
+      if (!preservePendingInput) {
+        this.#session.setMicrophoneEnabled(false);
+      }
       this.#update({
         input: paused ? "paused" : "submitting",
-        inputNotice: "none",
+        inputNotice: preservePendingInput ? this.#snapshot.inputNotice : "none",
         lastAnswerDelivery: "pending",
         lastCommittedText: event.answer,
         output: "waiting-for-tool",
-        partialText: "",
+        partialText: preservePendingInput ? this.#snapshot.partialText : "",
       });
       return;
     }
@@ -626,6 +633,9 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "transcript-rejected") {
+      if (event.itemId !== this.#transcriptItemId) {
+        return;
+      }
       if (event.reason === "duplicate" || event.reason === "unavailable") {
         return;
       }

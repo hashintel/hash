@@ -46,8 +46,9 @@ finished ◀──────────── finished                       
 
 `queued` waits for the worker to take the segment, `running` has it posted,
 `finished-resumable` ended a segment with the study kept in the worker, and
-`finished` has no study to return to. Runs execute one at a time on a shared
-worker.
+`finished` has no study to return to; the terminal event's `resumable` field
+tells the host which of the two it reached. Runs execute one at a time on a
+shared worker.
 
 ## Who owns what
 

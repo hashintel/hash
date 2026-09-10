@@ -138,6 +138,9 @@ export const describeOptimization = (
       ({ parameter, domain }) =>
         describeOptimizationParameter(parameter, domain),
     ),
+    // Verbatim pass-through: protocol clients (the Python binding) evaluate
+    // the embedded constraint HIR themselves.
+    ...(manifest.constraints ? { constraints: manifest.constraints } : {}),
   };
 };
 
