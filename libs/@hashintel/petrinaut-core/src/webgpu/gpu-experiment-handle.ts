@@ -343,7 +343,11 @@ export async function createGpuMonteCarloExperiment(
   // derived probe slab is not a ceiling: its counts calibrate empirically.
   const windowInputs: MetricWindowInput[] = gpuMetrics.metrics.map((metric) => {
     const place =
-      backend.profile.places[placeIndexById.get(metric.sample.placeId) ?? -1];
+      metric.sample.kind === "placeCount"
+        ? backend.profile.places[
+            placeIndexById.get(metric.sample.placeId) ?? -1
+          ]
+        : undefined;
     return {
       integer: metric.integer,
       ceiling:

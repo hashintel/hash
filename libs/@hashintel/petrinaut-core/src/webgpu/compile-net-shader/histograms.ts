@@ -9,8 +9,11 @@
  */
 import { placeCountCeiling } from "../eligibility";
 import { WgslBailError } from "../emit-wgsl";
+import { emitMetricSample } from "./metric-sample";
 
+import type { HirFunction } from "../../hir/hir";
 import type { GpuNetProfile } from "../eligibility";
+import type { WgslParameterValue, WgslValue } from "../emit-wgsl";
 
 /** Most bins any shader allocates, however generous the budget. */
 export const GPU_HISTOGRAM_MAX_BINS = 1024;
@@ -30,26 +33,27 @@ export type GpuMetricSpec = {
   id: string;
   /** Every sample is a whole number, so bins keep exact integer labels. */
   integer: boolean;
-  sample: {
+  sample:
     /** A place's token count, read from `counts[]`. */
-    kind: "placeCount";
-    placeId: string;
-  };
+    | { kind: "placeCount"; placeId: string }
+    /** A metric body over `state.places`, emitted per run per frame. */
+    | { kind: "expression"; hir: HirFunction };
 };
 
 /**
  * Histogram bins per metric per frame, for one compiled shader.
  *
- * One bin per integer token count, so the bin count is the largest count the
- * charts can distinguish plus one saturating top bin. Two inputs size it:
+ * Bins are the values the charts can distinguish plus one saturating top bin;
+ * an integer window spends one bin per whole number. Two inputs size it:
  *
  * - The workgroup-storage budget: `local_hist` holds `bins × metricCount`
  *   u32 atomics, so more metrics mean fewer bins. Up to four metrics get the
  *   full `GPU_HISTOGRAM_MAX_BINS`; a fixed 256 both wasted the budget below
  *   five metrics and exceeded it (failing pipeline creation) above sixteen.
- * - The sampled places' count ceiling, when every sampled place has one:
- *   counts past the ceiling cannot occur, so bins past it would only slow
- *   the per-frame zero/merge loops.
+ * - The sampled places' count ceiling, when every metric is a place count
+ *   with one: counts past the ceiling cannot occur, so bins past it would
+ *   only slow the per-frame zero/merge loops. An expression metric has no
+ *   ceiling and takes the full budget.
  */
 export function histogramBinCount(
   metricCount: number,
@@ -70,7 +74,7 @@ export function histogramBinCount(
 
 /**
  * The largest count any sampled place can reach, or null when one is
- * unbounded.
+ * unbounded or any metric is an expression.
  */
 export const sampledCountCeiling = (
   metrics: readonly GpuMetricSpec[],
@@ -79,6 +83,9 @@ export const sampledCountCeiling = (
 ): number | null => {
   let ceiling = 0;
   for (const metric of metrics) {
+    if (metric.sample.kind === "expression") {
+      return null;
+    }
     const place =
       profile.places[placeIndexById.get(metric.sample.placeId) ?? -1];
     const placeCeiling = place === undefined ? null : placeCountCeiling(place);
@@ -172,11 +179,13 @@ export const workgroupHistogramLines = (
  * last row was never written when sampling followed the step (every run still
  * running takes `status = 2u` at the frame limit).
  *
- * One path for every metric: the sample is an f32, its observed range travels
- * as order-preserving u32 keys through the existing min/max atomics, and
- * `window_bin` settles the bin against the window's exact edges. A non-finite
- * sample halts the run with `status = 4u + metric`, so the host can fail the
- * experiment naming the metric, as the CPU evaluator does when it throws.
+ * One path for every metric: the sample is an f32 — a place count cast from
+ * its register, or a metric body emitted over `metricState` — its observed
+ * range travels as order-preserving u32 keys through the existing min/max
+ * atomics, and `window_bin` settles the bin against the window's exact edges.
+ * A non-finite sample halts the run with `status = 4u + metric`, so the host
+ * can fail the experiment naming the metric, as the CPU evaluator does when
+ * it throws.
  */
 export const emitFrameHistograms = (
   push: (line: string) => void,
@@ -185,9 +194,19 @@ export const emitFrameHistograms = (
     placeIndexById: ReadonlyMap<string, number>;
     bins: number;
     workgroupSize: number;
+    /** `state` for expression metrics, bound to the real layout. */
+    metricState: WgslValue;
+    parameterValues: Readonly<Record<string, WgslParameterValue>>;
   },
 ): void => {
-  const { metrics, placeIndexById, bins, workgroupSize } = options;
+  const {
+    metrics,
+    placeIndexById,
+    bins,
+    workgroupSize,
+    metricState,
+    parameterValues,
+  } = options;
   if (metrics.length === 0) {
     return;
   }
@@ -215,12 +234,6 @@ export const emitFrameHistograms = (
   push(`    }`);
   push(`    workgroupBarrier();`);
   for (const [metricIndex, metric] of metrics.entries()) {
-    const placeIndex = placeIndexById.get(metric.sample.placeId);
-    if (placeIndex === undefined) {
-      throw new WgslBailError(
-        `metric \`${metric.id}\` references unknown place ${metric.sample.placeId}`,
-      );
-    }
     const value = `v${metricIndex}`;
     const key = `k${metricIndex}`;
     const bin = `b${metricIndex}`;
@@ -231,7 +244,27 @@ export const emitFrameHistograms = (
     // triggers a recalibrated re-run — the clamped picture is only ever an
     // intermediate.
     push(`    if (in_range && status == 0u) {`);
-    push(`      let ${value}: f32 = f32(counts[${placeIndex}u]);`);
+    if (metric.sample.kind === "placeCount") {
+      const placeIndex = placeIndexById.get(metric.sample.placeId);
+      if (placeIndex === undefined) {
+        throw new WgslBailError(
+          `metric \`${metric.id}\` references unknown place ${metric.sample.placeId}`,
+        );
+      }
+      push(`      let ${value}: f32 = f32(counts[${placeIndex}u]);`);
+    } else {
+      // Each metric's temporaries carry their own scope, so two metrics
+      // binding the same `const` name declare distinct identifiers.
+      const sample = emitMetricSample(metric.sample.hir, {
+        state: metricState,
+        parameterValues,
+        identifierScope: `m${metricIndex}_`,
+      });
+      for (const statement of sample.statements) {
+        push(`      ${statement}`);
+      }
+      push(`      let ${value}: f32 = ${sample.code};`);
+    }
     push(`      if ((bitcast<u32>(${value}) & 0x7f800000u) == 0x7f800000u) {`);
     push(
       `        // NaN or an infinity: the CPU evaluator throws here, so the run halts`,
