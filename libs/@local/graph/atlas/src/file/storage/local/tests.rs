@@ -42,10 +42,10 @@ impl AsyncRead for PausedReader {
     ) -> Poll<io::Result<()>> {
         let this = self.get_mut();
 
-        if let Some(entered) = this.entered.take() {
-            if entered.send(()).is_err() {
-                return Poll::Ready(Err(io::Error::other("entry observer dropped")));
-            }
+        if let Some(entered) = this.entered.take()
+            && entered.send(()).is_err()
+        {
+            return Poll::Ready(Err(io::Error::other("entry observer dropped")));
         }
 
         match Pin::new(&mut this.release).poll(cx) {

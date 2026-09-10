@@ -67,10 +67,6 @@ impl<'path> LocalFile<'path> {
     ///
     /// Returns [`StorageError`] if preparation, the precondition or publication fails. An error
     /// after rename can leave the new contents visible.
-    #[expect(
-        clippy::create_dir,
-        reason = "a staging directory must have a fresh name"
-    )]
     pub(crate) async fn write(
         &self,
         source: impl AsyncRead,
@@ -122,7 +118,7 @@ impl<'path> LocalFile<'path> {
             .await?;
 
         // tokio does not expose file locking yet. we asyncify the blocking lock ourselves.
-        // https://github.com/tokio-rs/tokio/issues/7523
+        // see: https://github.com/tokio-rs/tokio/issues/7523
         let lock = lock.into_std().await;
         let lock = tokio::task::spawn_blocking(move || lock.lock().map(|()| lock)).await??;
 
