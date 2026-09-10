@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand, ValueHint};
 
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
-use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
+use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs, S3Args};
 #[cfg(feature = "cli")]
 use crate::file::storage::{Storage, error::StorageError};
 use crate::integrity::SecretString;
@@ -31,6 +31,9 @@ enum Command {
 
         #[command(flatten)]
         store: PostgresArgs,
+
+        #[command(flatten)]
+        s3: S3Args,
 
         // The fit flags dwarf the other variants, so the box keeps the enum small.
         #[command(flatten)]
@@ -283,8 +286,18 @@ pub async fn main() -> std::process::ExitCode {
             openai_api_key,
             offline,
             tui: true,
+            s3,
         } => {
-            let storage = Storage::in_temp_dir();
+            let mut storage = Storage::in_temp_dir();
+            match s3.client().await {
+                Ok(Some(client)) => {
+                    storage.set_s3(client);
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    return render_failure(err);
+                }
+            }
 
             match fit_on_dashboard(
                 root,
@@ -305,12 +318,22 @@ pub async fn main() -> std::process::ExitCode {
         Command::Fit {
             root,
             store,
+            s3,
             args,
             openai_api_key,
             offline,
             tui: false,
         } => {
-            let storage = Storage::in_temp_dir();
+            let mut storage = Storage::in_temp_dir();
+            match s3.client().await {
+                Ok(Some(client)) => {
+                    storage.set_s3(client);
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    return render_failure(err);
+                }
+            }
 
             let command = match super::FitCommand::new(root, *args, &storage).await {
                 Ok(command) => command,

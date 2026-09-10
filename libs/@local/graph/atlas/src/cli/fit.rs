@@ -379,7 +379,6 @@ where
 }
 
 impl FitCommand<NoProgress> {
-    /// Resolves the parsed flags into one silent fit invocation over the root.
     #[must_use]
     pub async fn new(
         root: super::RootArgs,

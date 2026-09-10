@@ -29,6 +29,15 @@ fn read_original_encoding() {
     assert_eq!(document.repository(), &repository);
     assert_eq!(generation.id(), id);
     assert_eq!(generation.repository(), &repository);
+
+    let allocation = document.bytes().as_ptr();
+    let transferred = generation.into_document().into_bytes();
+    assert_eq!(transferred.as_ref(), bytes);
+    assert_eq!(
+        transferred.as_ptr(),
+        allocation,
+        "should reuse the original JSON allocation"
+    );
 }
 
 #[test]
