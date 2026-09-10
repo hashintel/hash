@@ -138,7 +138,7 @@ describe("OpenAI Realtime call handler", () => {
           transcription: { model: "gpt-4o-transcribe", language: "en" },
           turn_detection: {
             type: "semantic_vad",
-            eagerness: "low",
+            eagerness: "medium",
             create_response: false,
             interrupt_response: false,
           },

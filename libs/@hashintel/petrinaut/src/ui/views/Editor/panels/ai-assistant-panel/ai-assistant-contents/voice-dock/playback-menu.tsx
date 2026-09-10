@@ -8,10 +8,12 @@ export const VoicePlaybackMenu = ({
   actions,
   canReadFullResponse,
   canRepeatQuestion,
+  interruptionBySpeaking,
 }: {
   actions: VoiceSessionActions;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
+  interruptionBySpeaking: boolean;
 }) => {
   const items: MenuItem[] = [
     {
@@ -27,6 +29,18 @@ export const VoicePlaybackMenu = ({
       text: voiceSessionActionLabels.readFullResponse,
     },
   ];
+
+  if (actions.setInterruptionBySpeaking) {
+    items.push({
+      id: "interruption-by-speaking",
+      keepOpenOnSelect: true,
+      onClick: () =>
+        actions.setInterruptionBySpeaking?.(!interruptionBySpeaking),
+      selected: interruptionBySpeaking,
+      selectedStyle: "checkbox",
+      text: voiceSessionActionLabels.interruptionBySpeaking,
+    });
+  }
 
   return (
     <Menu
