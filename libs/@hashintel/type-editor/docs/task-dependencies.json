@@ -8,23 +8,32 @@
     "@local/hash-isomorphic-utils"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build",
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build",
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build",
-      "@local/hash-isomorphic-utils#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build",
+        "@local/hash-isomorphic-utils#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build",
+        "@local/hash-isomorphic-utils#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build",
+        "@local/hash-isomorphic-utils#build"
+      ]
+    }
   }
 }

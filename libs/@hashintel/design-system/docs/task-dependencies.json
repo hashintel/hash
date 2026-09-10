@@ -6,17 +6,26 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ]
+    }
   }
 }

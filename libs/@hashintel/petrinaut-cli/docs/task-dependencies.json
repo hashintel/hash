@@ -4,30 +4,49 @@
     "@hashintel/petrinaut-core"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/petrinaut-core#build"
-    ],
-    "codegen": [
-      "@hashintel/petrinaut-core#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "lint:eslint": [
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "lint:tsc": [
-      "@hashintel/petrinaut-core#build",
-      "codegen"
-    ],
-    "test:unit": [
-      "@hashintel/petrinaut-core#build",
-      "build",
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build"
+      ],
+      "cache": false
+    },
+    "codegen": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "build",
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

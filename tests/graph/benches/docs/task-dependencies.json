@@ -15,13 +15,28 @@
     "@rust/hash-telemetry"
   ],
   "tasks": {
-    "bench:integration": [
-      "@apps/hash-graph#start:healthcheck"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck"
-    ]
+    "bench:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:healthcheck"
+      ],
+      "cache": false
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

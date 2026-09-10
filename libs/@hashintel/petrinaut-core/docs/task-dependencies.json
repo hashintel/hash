@@ -4,14 +4,31 @@
     "@local/petrinaut-optimizer-core"
   ],
   "tasks": {
-    "build": [],
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [],
-    "test:unit": []
+    "build": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }
