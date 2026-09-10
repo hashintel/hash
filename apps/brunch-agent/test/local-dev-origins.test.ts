@@ -82,6 +82,21 @@ test("forwards the deployment CORS allowlist to local development", () => {
   );
 });
 
+test("forwards the port variables to both dev tasks through Turbo", () => {
+  const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
+    tasks: {
+      dev: { passThroughEnv: string[] };
+      "petrinaut:dev": { passThroughEnv: string[] };
+    };
+  };
+
+  expect(turboConfig.tasks.dev.passThroughEnv).toContain("BRUNCH_CHAT_PORT");
+  // The panel derives its proxy target from the chat port, so it needs both.
+  expect(turboConfig.tasks["petrinaut:dev"].passThroughEnv).toEqual(
+    expect.arrayContaining(["BRUNCH_CHAT_PORT", "BRUNCH_PANEL_PORT"]),
+  );
+});
+
 test("an explicit port moves the listener and everything derived from it", async () => {
   const moved = await importWithPorts("4331", "4925");
 
