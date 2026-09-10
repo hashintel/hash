@@ -66,12 +66,12 @@ The persistent Chrome profile lives outside the checkout to avoid source-watcher
 
 `test/persona-browser.integration.ts` uses the launcher's actual browser initialization, then the registered persona extension against the built ChatAgent and real Chrome with a synthetic provider. It verifies shared identity, live messages, two source-linked workpiece revisions displayed without post-settlement queries, mismatch refusal, and an unanswered persona browser read retained across ordinary UI continuation. After reload the UI queries current workpiece state, obtains a fresh browser observation and performs a parameter mutation without completing the old read. It establishes plumbing, not real-persona fidelity or usefulness. Actual persona sessions need separate human assessment.
 
-From the HASH root, the macOS loopback-only synthetic proof uses the Brunch endpoint build and Node's TypeScript transform mode:
+From the HASH root, the synthetic proof uses the Brunch endpoint build and Node's TypeScript transform mode:
 
 ```sh
 VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter @apps/brunch-agent --filter @apps/petrinaut-website
 cd apps/brunch-agent
-sandbox-exec -f ../../libs/@hashintel/brunch-agent/evaluations/protocols/network-guard/loopback-only.sb env -u BRUNCH_STEP_A_ACCOUNTING -u HASH_OTLP_ENDPOINT node --experimental-transform-types test/persona-browser.integration.ts
+env -u BRUNCH_STEP_A_ACCOUNTING -u HASH_OTLP_ENDPOINT node --experimental-transform-types test/persona-browser.integration.ts
 ```
 
 The launcher composes the existing [Pi extension](../brunch-persona-testing.ts), [browser attachment validator](../../../src/evaluations/persona/browser-session.ts), [turn bridge](../../../src/evaluations/persona/brunch-turn.ts) and [evidence writer](../../../src/evaluations/persona/proof-artifacts.ts). It adds no conversation store or alternate elicitor. The extension's mock and real-headless hosts remain supported test mechanisms in `client-tool-hosts.ts`; they are not alternate ways to run this browser-visible procedure. Historical accounting instrumentation remains opt-in code for its named diagnostic instruments, not a launch prerequisite.

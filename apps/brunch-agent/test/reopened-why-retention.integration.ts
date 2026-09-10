@@ -460,7 +460,6 @@ try {
       const read = output(history, readId) as {
         currentWorkpiece: WorkpieceRevision;
         sources: { id: string }[];
-        earlierSourcesOmitted: number;
         locatorLookup: {
           subject: { revisionId: string };
           sha256: string;
@@ -532,10 +531,9 @@ try {
         );
       }
       if (folded) {
-        assert(read.earlierSourcesOmitted > 0);
         assert(
-          !read.sources.some((source) => source.id === seed.sourceId),
-          "Latest-20 discovery window limitation is explicit, not canonical loss",
+          read.sources.some((source) => source.id === seed.sourceId),
+          "Authorized history still discovers the original source ID after fold",
         );
         const request = actual[0];
         assert(request);
@@ -585,14 +583,12 @@ try {
         refusedObservationWhy: refused,
         beforeRequestContextIndex: beforeContext,
         priorQueryIds,
-        sourceWindowLimited: folded,
         currentRevisionRemainsInContext: true,
       });
       return history;
     };
     if (phase === "fold") {
       await query("process-restarted-before-fold", false);
-      // Make the existing latest-20 source-window limitation visible separately from compaction.
       for (let index = 0; index < 22; index++) {
         responses.push(
           fauxAssistantMessage(

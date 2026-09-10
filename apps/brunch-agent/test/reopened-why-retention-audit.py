@@ -84,7 +84,7 @@ def audit(data):
         require(query["oldObservationWhy"]["reconciliation"]["observationScope"] == "as-of", "old ID cannot earn freshness")
         require(query["refusedObservationWhy"]["disposition"] == "refused", "unknown observation refuses")
         if name != "process-restarted-before-fold":
-            require(query["read"]["earlierSourcesOmitted"] > 0 and all(item["id"] != seed["sourceId"] for item in query["read"]["sources"]), "source window limit explicit")
+            require(any(item["id"] == seed["sourceId"] for item in query["read"]["sources"]), "seed source remains discoverable")
             phase = "fold" if name.startswith("fold") else "reopen"
             request = data[f"{phase}-contexts"][query["beforeRequestContextIndex"]]
             require(request["purpose"] == "agent", "actual query request context")

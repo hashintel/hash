@@ -9,6 +9,7 @@ import {
   updateWorkpieceOutputSchema,
   useBrunchAgent,
   createUpdateWorkpieceTool,
+  createWorkpieceReadTool,
   elicitationSkill,
   workpieceMarkdownByteCeiling,
 } from "../src/flue";
@@ -340,4 +341,59 @@ test("an acquisition refusal or cancellation cannot settle even an evidence-abse
     refused.run({ ...context, signal: new AbortController().signal }),
   ).rejects.toThrow("Current state missing");
   expect(current).toBeNull();
+});
+
+test("discovers every authorized true-user source ID and truncates long excerpts", async () => {
+  const long = "x".repeat(8193);
+  const sources = [
+    ...Array.from({ length: 21 }, (_, index) => ({
+      id: `user-${index}`,
+      role: "user" as const,
+      purpose: "user" as const,
+      text: index === 0 ? long : `turn ${index}`,
+    })),
+    {
+      id: "assistant-1",
+      role: "assistant" as const,
+      purpose: "assistant" as const,
+      text: "not a source",
+    },
+  ];
+  const markdown = "# Account";
+  const reader = createWorkpieceReadTool({
+    currentRevision: {
+      revisionId: "rev-1",
+      sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+      ordinal: 1,
+      markdown,
+    },
+    readSources: async () => sources,
+  });
+  const result = await reader.run({
+    data: {},
+    toolCallId: "read-1",
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+    step: {
+      do: () => {
+        throw new Error("Read must not write state");
+      },
+    },
+  });
+  expect(result).toMatchObject({
+    terminate: false,
+    output: {
+      state: "current",
+      sources: sources
+        .filter((source) => source.role === "user")
+        .map((source, index) => ({
+          id: source.id,
+          role: "user",
+          purpose: "user",
+          text: index === 0 ? "x".repeat(8192) : source.text,
+          textTruncated: index === 0,
+          untrusted: true,
+        })),
+    },
+  });
+  expect(result.output).not.toHaveProperty("earlierSourcesOmitted");
 });
