@@ -9,13 +9,24 @@ import {
   type ExperimentRecord,
   ExperimentsContext,
 } from "../../../../../../react/experiments/context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import {
+  fakeStudyInput,
+  makeOptimizationRecord,
+  makeOptimizationsContextValue,
+} from "../optimizations/optimizations-story-fixtures";
+import { WithUserSettings } from "../simulate-view-story-harness";
 import {
   FakeExperimentsProvider,
   makeExperiment,
   makeParameterSweepExperiment,
+  sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -99,4 +110,62 @@ export const Complete: Story = {
       <DrawerFromContext />
     </FakeExperimentsProvider>
   ),
+};
+
+/** A connected optimizer the fake optimizations context never connects. */
+const storyOptimizer: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => {
+    throw new Error("The story's optimizer is never connected");
+  },
+};
+
+/**
+ * The sweep drawer with the in-browser optimizer available: the Parameters
+ * card offers Optimize, and with a study driving the sweep it turns purple,
+ * its sliders follow the steps and Stop replaces the button.
+ */
+const OptimizableSweep = ({ driving }: { driving: boolean }) => {
+  const sweep = makeParameterSweepExperiment();
+  const study = {
+    ...makeOptimizationRecord({
+      input: fakeStudyInput,
+      status: driving ? "running" : "cancelled",
+    }),
+    origin: { kind: "sweep" as const, experimentId: sweep.id },
+    completedTrials: 3,
+    prunedTrials: 1,
+  };
+  return (
+    <WithUserSettings overrides={{ enableInBrowserOptimization: true }}>
+      <PetrinautOptimizationContext value={storyOptimizer}>
+        <SDCPNContext value={sirSdcpnContextValue}>
+          <OptimizationsContext
+            value={makeOptimizationsContextValue(study, {
+              optimizations: [study],
+              selectedOptimization: null,
+              selectedOptimizationId: null,
+            })}
+          >
+            <FakeExperimentsProvider
+              initialExperiments={[sweep]}
+              restreamOnSelectionChange
+            >
+              <DrawerFromContext />
+            </FakeExperimentsProvider>
+          </OptimizationsContext>
+        </SDCPNContext>
+      </PetrinautOptimizationContext>
+    </WithUserSettings>
+  );
+};
+
+export const Optimizable: Story = {
+  name: "Sweep, optimizer available",
+  render: () => <OptimizableSweep driving={false} />,
+};
+
+export const Optimizing: Story = {
+  name: "Sweep, optimizer driving",
+  render: () => <OptimizableSweep driving />,
 };

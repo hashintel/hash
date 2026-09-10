@@ -68,6 +68,7 @@ const axes: ExperimentParameterAxis[] = [
 
 const idleStatus: SweepNavigatorStatus = {
   computing: false,
+  following: null,
   runsCompleted: 25,
   runsSampled: 25,
   runTarget: null,
@@ -138,12 +139,38 @@ export const SamplingRanges: Story = {
       initialSelection={fullSweepSelection(axes)}
       status={{
         computing: true,
+        following: null,
         runsCompleted: 25,
         runsSampled: 61,
         runTarget: 100,
         runCount: 100,
       }}
     />
+  ),
+};
+
+/** An optimizer drives the sweep: the controls show its point and take no input. */
+export const FollowingOptimizer: Story = {
+  name: "Following the optimizer",
+  render: () => (
+    <div style={{ width: 640 }}>
+      <SweepNavigator
+        axes={axes}
+        selection={{
+          transmission_rate: { from: 31, to: 31 },
+          recovery_days: { from: 9, to: 9 },
+        }}
+        status={{
+          computing: true,
+          following: { step: 4, total: 30 },
+          runsCompleted: 0,
+          runsSampled: 5,
+          runTarget: 8,
+          runCount: 100,
+        }}
+        onSelectionChange={() => {}}
+      />
+    </div>
   ),
 };
 
@@ -157,6 +184,7 @@ export const RefiningPoint: Story = {
       }}
       status={{
         computing: true,
+        following: null,
         runsCompleted: 8,
         runsSampled: 19,
         runTarget: 25,
@@ -254,6 +282,7 @@ const NavigatorWithStreamingMetrics = () => {
   const streaming = frames.length < STREAM_FRAME_COUNT;
   const status: SweepNavigatorStatus = {
     computing: streaming,
+    following: null,
     runsCompleted: streaming ? 0 : 25,
     runsSampled: Math.round((25 * frames.length) / STREAM_FRAME_COUNT),
     runTarget: streaming ? 25 : null,
@@ -314,6 +343,7 @@ export const FullySampled: Story = {
       }}
       status={{
         computing: false,
+        following: null,
         runsCompleted: 100,
         runsSampled: 100,
         runTarget: null,
@@ -467,6 +497,7 @@ const RealSweepSession = ({
         selection={experiment.sweep.selection}
         status={{
           computing: experiment.sweep.computing,
+          following: null,
           runsCompleted: experiment.sweep.runsCompleted,
           runsSampled: experiment.sweep.runsSampled,
           runTarget: experiment.sweep.runTarget,

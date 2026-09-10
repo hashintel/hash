@@ -53,7 +53,7 @@ import { buildOptimizationSurfaceAxes } from "./surface-grid";
 import {
   createSweepTrialEvaluator,
   type SweepTrialEvaluator,
-} from "./sweep-trial-evaluator";
+} from "./sweep-evaluator/create-sweep-trial-evaluator";
 import { useOptimizationSource } from "./use-optimization-source";
 
 import type { PropsWithChildren } from "react";

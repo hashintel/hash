@@ -12,6 +12,15 @@ import {
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 
+const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
+  available: false,
+  study: null,
+  driving: false,
+  start: () => Promise.resolve(),
+  stop: () => {},
+  discard: () => {},
+};
+
 const dependencies: ExperimentResultsDependencies = {
   now: Date.now(),
   actions: {
@@ -19,11 +28,14 @@ const dependencies: ExperimentResultsDependencies = {
     removeExperiment: vi.fn(),
     setSweepSelection: vi.fn(),
   },
+  optimizer: idleOptimizer,
   onClose: () => {},
 };
 
-const model = (experiment: ExperimentRecord) =>
-  experimentResultsModel(experiment, dependencies);
+const model = (
+  experiment: ExperimentRecord,
+  overrides: Partial<ExperimentResultsDependencies> = {},
+) => experimentResultsModel(experiment, { ...dependencies, ...overrides });
 
 const statTexts = (experiment: ExperimentRecord) =>
   Object.fromEntries(
@@ -101,6 +113,7 @@ describe("experimentResultsModel for a running sweep", () => {
       subtitle: `${sweep.parameterAxes.length} swept`,
       trailing: null,
       more: null,
+      tone: "default",
     });
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({
@@ -171,5 +184,35 @@ describe("experimentResultsModel for a plain experiment", () => {
 
   it("has no metrics grid without configured metrics", () => {
     expect(model(makeExperiment(1)).metrics).toBeNull();
+  });
+});
+
+describe("experimentResultsModel with the optimizer", () => {
+  const study = {
+    id: "study",
+    status: "running",
+    requestedTrials: 30,
+    completedTrials: 3,
+    prunedTrials: 1,
+    failedTrials: 0,
+  } as NonNullable<ExperimentResultsDependencies["optimizer"]["study"]>;
+
+  it("offers the Optimize control on the Parameters card when the optimizer is available", () => {
+    const result = model(sweep, {
+      optimizer: { ...idleOptimizer, available: true },
+    });
+    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
+    expect(result.bands[0]!.tone).toBe("default");
+  });
+
+  it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
+    const result = model(sweep, {
+      optimizer: { ...idleOptimizer, available: true, study, driving: true },
+    });
+    expect(result.bands[0]!.tone).toBe("optimizing");
+    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
+    expect(
+      (result.surface as { props: { following: boolean; tone: string } }).props,
+    ).toMatchObject({ following: true, tone: "optimizing" });
   });
 });

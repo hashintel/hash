@@ -11,18 +11,18 @@
  * Once the study settles the evaluator parks the sweep on the best point and
  * lifts the run cap, so that point refines to the experiment's run count.
  */
-import { axisPositionFor } from "../experiments/parameter-grid";
-import { prunedTrialOutcome } from "./channel/create-optimization-channel/trial-outcome";
+import { axisPositionFor } from "../../experiments/parameter-grid";
+import { prunedTrialOutcome } from "../channel/create-optimization-channel/trial-outcome";
 
 import type {
   ExperimentsActionsValue,
   SweepVisitedCell,
-} from "../experiments/context";
+} from "../../experiments/context";
 import type {
   ExperimentParameterAxis,
   SweepSelection,
-} from "../experiments/parameter-grid";
-import type { OptimizationBest } from "./context";
+} from "../../experiments/parameter-grid";
+import type { OptimizationBest } from "../context";
 import type {
   PetrinautOptimizationChannel,
   PetrinautOptimizationTrialRequest,
