@@ -16,7 +16,9 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  batchedConstructionMode,
   conversationConstructionMode,
+  mutatePetrinetToolName,
   observedConstructionBrowserToolNames,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -25,6 +27,7 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
+  getLatestNetDefinitionToolName,
   readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
@@ -74,6 +77,7 @@ import {
   isRootArcTracerSelected,
   isConstructionSelected,
 } from "./local-storage-demo-search";
+import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
 import {
   crewReservationDocumentId,
   preparedCrewReservationNet,
@@ -126,6 +130,14 @@ const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
 const constructionClientToolNames: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
   ...observedConstructionBrowserToolNames,
+]);
+const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
+  readPetrinautDocToolName,
+  getLatestNetDefinitionToolName,
+  mutatePetrinetToolName,
+]);
+const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([
+  mutatePetrinetToolName,
 ]);
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
@@ -718,11 +730,14 @@ export const LocalStorageDemoApp = ({
     flueClientPromise,
     conversationId ?? "",
     constructionSelected
-      ? constructionClientToolNames
+      ? rootCreationSelected
+        ? batchedConstructionClientToolNames
+        : constructionClientToolNames
       : fixtureConfiguration?.clientToolNames,
     transitionRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
     transitionRecorder?.validatedClientToolNames,
+    rootCreationSelected ? batchedConstructionDynamicToolNames : undefined,
   );
   const brunchVoiceMode = useMemo(
     () =>
@@ -761,16 +776,25 @@ export const LocalStorageDemoApp = ({
           ...(constructionSelected && rootArcBrowser
             ? {
                 initialData: {
-                  mode: conversationConstructionMode,
+                  mode: rootCreationSelected
+                    ? batchedConstructionMode
+                    : conversationConstructionMode,
                   construction: { binding: rootArcBrowser.binding },
                 },
+              }
+            : {}),
+          ...(rootCreationSelected
+            ? {
+                dynamicClientToolNames: batchedConstructionDynamicToolNames,
               }
             : {}),
           ...(fixtureConfiguration === undefined
             ? {}
             : {
                 clientToolNames: constructionSelected
-                  ? constructionClientToolNames
+                  ? rootCreationSelected
+                    ? batchedConstructionClientToolNames
+                    : constructionClientToolNames
                   : fixtureConfiguration.clientToolNames,
                 mapClientToolInput:
                   transitionRecorder?.mapClientToolInput ??
@@ -792,6 +816,7 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     constructionSelected,
+    rootCreationSelected,
     rootArcBrowser,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
@@ -818,6 +843,10 @@ export const LocalStorageDemoApp = ({
           : undefined,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
+      automaticTools:
+        rootCreationSelected && rootArcBrowser
+          ? [createMutatePetrinetAutomaticTool(rootArcBrowser.binding)]
+          : [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
       ...(transitionRecorder === undefined
@@ -874,6 +903,7 @@ export const LocalStorageDemoApp = ({
       constructionSelected,
       observedLiveHash,
       rootArcBrowser,
+      rootCreationSelected,
       tracerIsCurrent,
       conversationTracker,
       conversationId,

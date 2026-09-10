@@ -88,6 +88,10 @@ const toolPartFrom = (
 ): UiMessagePart => {
   const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
+  const toolIdentity =
+    options.dynamicClientToolNames?.has(part.toolName) === true
+      ? ({ type: "dynamic-tool", toolName: part.toolName } as const)
+      : ({ type: `tool-${part.toolName}` } as const);
   const input =
     isClientTool &&
     (!options.validatedClientToolNames?.has(part.toolName) ||
@@ -101,7 +105,7 @@ const toolPartFrom = (
       : part.input;
   if (clientResults.get(part.toolCallId)?.conflict) {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "output-error",
       input,
@@ -111,7 +115,7 @@ const toolPartFrom = (
   }
   if (part.state === "output-error") {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "output-error",
       input,
@@ -126,7 +130,7 @@ const toolPartFrom = (
     options.validatedClientToolNames?.has(part.toolName)
   ) {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "input-streaming",
       input,
@@ -134,7 +138,7 @@ const toolPartFrom = (
   }
   if (isClientTool && !hasClientOutput) {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "input-available",
       input,
@@ -147,7 +151,7 @@ const toolPartFrom = (
       : undefined;
   if (output !== undefined || hasClientOutput) {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "output-available",
       input,
@@ -156,7 +160,7 @@ const toolPartFrom = (
     };
   }
   return {
-    type: `tool-${part.toolName}`,
+    ...toolIdentity,
     toolCallId: part.toolCallId,
     state: "input-available",
     input,

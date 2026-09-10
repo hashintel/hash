@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  batchedConstructionMode,
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
   validatedFixtureMutationMode,
@@ -37,6 +38,24 @@ describe("Petrinaut construction tools", () => {
         mode: validatedFixtureMutationMode,
       }),
     ).toEqual({ mode: validatedFixtureMutationMode });
+    const construction = {
+      binding: {
+        conversationId: "conversation",
+        documentId: "document",
+        incarnationId: "incarnation",
+      },
+    };
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: batchedConstructionMode,
+        construction,
+      }),
+    ).toEqual({ mode: batchedConstructionMode, construction });
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: batchedConstructionMode,
+      }),
+    ).toThrow(/distinct immutable binding/u);
     expect(() =>
       v.parse(sdcpnInitialDataSchema, {
         mode: "unrestricted-construction",

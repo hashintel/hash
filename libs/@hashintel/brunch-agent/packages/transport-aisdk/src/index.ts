@@ -344,6 +344,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        dynamicClientToolNames: options.dynamicClientToolNames,
         validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
         hiddenToolNames: options.hiddenToolNames,
