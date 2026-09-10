@@ -12,6 +12,7 @@
       "passThroughEnv": [
         "ANTHROPIC_API_KEY",
         "BRUNCH_CHAT_MODEL",
+        "BRUNCH_CHAT_PORT",
         "BRUNCH_CORS_ALLOWED_ORIGINS",
         "BRUNCH_DEV_DB_PATH",
         "BRUNCH_TRANSPORT_AISDK_INSPECT",
@@ -24,7 +25,12 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["BRUNCH_CHAT_ORIGIN", "PETRINAUT_WEBSITE_ROOT"]
+      "passThroughEnv": [
+        "BRUNCH_CHAT_ORIGIN",
+        "BRUNCH_CHAT_PORT",
+        "BRUNCH_PANEL_PORT",
+        "PETRINAUT_WEBSITE_ROOT"
+      ]
     },
     "start": {
       "dependsOn": ["build"]
