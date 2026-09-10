@@ -131,17 +131,19 @@ describe("DrawerFrame", () => {
       ),
     ).toEqual(["Status", "Runs", "Compute"]);
     expect(compact.hasAttribute("inert")).toBe(true);
+    expect(compact.getAttribute("aria-hidden")).toBe("true");
+    // The folded strip stays the one copy a reader or the keyboard reaches.
     const strip = frameStats();
-    expect(strip.getAttribute("aria-hidden")).toBe("true");
-    expect(strip.hasAttribute("inert")).toBe(true);
+    expect(strip.getAttribute("aria-hidden")).toBeNull();
+    expect(strip.hasAttribute("inert")).toBe(false);
     const headline = document.querySelector("[data-frame-headline]")!;
     expect(headline.getAttribute("aria-hidden")).toBe("true");
     expect(headline.hasAttribute("inert")).toBe(true);
 
     fireEvent.pointerEnter(header());
     expect(header().dataset.condensed).toBe("false");
-    // Both copies stay mounted so the flip can crossfade: the strip is live
-    // again, the compact echo stays inert and the headline reads.
+    // Both copies stay mounted so the flip can crossfade: the strip is
+    // still live, the compact echo stays inert and the headline reads.
     expect(strip.getAttribute("aria-hidden")).toBeNull();
     expect(strip.hasAttribute("inert")).toBe(false);
     expect(compact.isConnected).toBe(true);
@@ -173,6 +175,23 @@ describe("DrawerFrame", () => {
 
     scrollBodyTo(0, { overflow: 12 });
     expect(header().dataset.condensed).toBe("false");
+  });
+
+  it("grows back when the keyboard reaches a control in the folded strip, and condenses again when it leaves", () => {
+    render(frame({ stats: computingChip(true) }));
+    const chip = screen.getByRole("button", { name: "1 computing" });
+
+    scrollBodyTo(48);
+    expect(header().dataset.condensed).toBe("true");
+    // Folded, not inert: a Tab still lands on the chip.
+    expect(frameStats().hasAttribute("inert")).toBe(false);
+
+    act(() => chip.focus());
+    expect(header().dataset.condensed).toBe("false");
+    expect(document.activeElement).toBe(chip);
+
+    act(() => chip.blur());
+    expect(header().dataset.condensed).toBe("true");
   });
 
   it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {

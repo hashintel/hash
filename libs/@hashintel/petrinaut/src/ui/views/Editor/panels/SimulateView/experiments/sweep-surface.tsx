@@ -54,13 +54,17 @@ import type { ChartCardTone } from "../shared/chart-card";
 export const SweepSurface = ({
   experiment,
   following,
+  disabled = false,
   tone,
 }: {
   experiment: ExperimentRecord;
   /** An optimizer moves the selection: the plot displays and never picks. */
   following: boolean;
+  /** The plot only displays: the sweep was cancelled and nothing computes for a pick. */
+  disabled?: boolean;
   tone?: ChartCardTone;
 }) => {
+  const readOnly = following || disabled;
   const { setSweepSelection } = use(ExperimentsActionsContext);
   const axes = experiment.parameterAxes;
   const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
@@ -190,8 +194,8 @@ export const SweepSurface = ({
               kind: "navigation",
             },
           ]}
-          onPickFraction={following ? undefined : handlePickFraction}
-          onPreviewFraction={following ? undefined : setPreview}
+          onPickFraction={readOnly ? undefined : handlePickFraction}
+          onPreviewFraction={readOnly ? undefined : setPreview}
           aria-label="Sweep surface"
         />
       ) : null}

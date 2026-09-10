@@ -76,6 +76,12 @@ const navigatorOf = (result: ReturnType<typeof model>) =>
     disabled: boolean;
   }>(result.bands[0]!.content);
 
+/** The surface's props. */
+const surfaceOf = (result: ReturnType<typeof model>) =>
+  propsOf<{ following: boolean; disabled: boolean; tone: string }>(
+    result.surface,
+  );
+
 /** The footer's buttons: Cancel or null, then Close. */
 const footerButtonsOf = (result: ReturnType<typeof model>) =>
   propsOf<{ children: ReactNode[] }>(result.footer).children;
@@ -213,10 +219,23 @@ describe("experimentResultsModel for an idle sweep", () => {
     expect(model(fresh).header.progress).toBe(0);
   });
 
-  it("locks the sliders once the sweep is over", () => {
+  it("locks the sliders and the surface once the sweep is cancelled, not after a failed selection", () => {
     const cancelled = model({ ...idleSweep, status: "cancelled" });
     expect(navigatorOf(cancelled).disabled).toBe(true);
+    expect(surfaceOf(cancelled)).toMatchObject({
+      following: false,
+      disabled: true,
+    });
+    // A failure belongs to the selection that failed: the next move computes.
+    const failed = model({
+      ...idleSweep,
+      status: "error",
+      error: "device lost",
+    });
+    expect(navigatorOf(failed).disabled).toBe(false);
+    expect(surfaceOf(failed).disabled).toBe(false);
     expect(navigatorOf(result).disabled).toBe(false);
+    expect(surfaceOf(result).disabled).toBe(false);
   });
 
   it("puts the error in the note row when the sweep failed", () => {
@@ -326,9 +345,11 @@ describe("experimentResultsModel with the optimizer", () => {
     });
     expect(result.bands[0]!.tone).toBe("optimizing");
     expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
-    expect(
-      (result.surface as { props: { following: boolean; tone: string } }).props,
-    ).toMatchObject({ following: true, tone: "optimizing" });
+    expect(surfaceOf(result)).toMatchObject({
+      following: true,
+      disabled: true,
+      tone: "optimizing",
+    });
   });
 
   it("reads Optimizing from the study across the gap between steps, with Cancel offered", () => {

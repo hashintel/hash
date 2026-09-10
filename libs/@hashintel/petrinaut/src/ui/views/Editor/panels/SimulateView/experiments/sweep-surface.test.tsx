@@ -110,12 +110,19 @@ const WithActions = ({
   );
 };
 
-const renderSurface = (experiment: ExperimentRecord, following = false) => {
+const renderSurface = (
+  experiment: ExperimentRecord,
+  { following = false, disabled = false } = {},
+) => {
   const setSweepSelection =
     vi.fn<ExperimentsActionsValue["setSweepSelection"]>();
   render(
     <WithActions setSweepSelection={setSweepSelection}>
-      <SweepSurface experiment={experiment} following={following} />
+      <SweepSurface
+        experiment={experiment}
+        following={following}
+        disabled={disabled}
+      />
     </WithActions>,
   );
   return setSweepSelection;
@@ -137,7 +144,16 @@ describe("SweepSurface picks", () => {
   });
 
   it("only displays while an optimizer drives the sweep", () => {
-    const setSweepSelection = renderSurface(twoAxes, true);
+    const setSweepSelection = renderSurface(twoAxes, { following: true });
+    const plot = screen.getByRole("button", { name: "Sweep surface" });
+
+    expect(plot.dataset.interactive).toBeUndefined();
+    fireEvent.click(plot);
+    expect(setSweepSelection).not.toHaveBeenCalled();
+  });
+
+  it("only displays once the sweep is cancelled", () => {
+    const setSweepSelection = renderSurface(twoAxes, { disabled: true });
     const plot = screen.getByRole("button", { name: "Sweep surface" });
 
     expect(plot.dataset.interactive).toBeUndefined();

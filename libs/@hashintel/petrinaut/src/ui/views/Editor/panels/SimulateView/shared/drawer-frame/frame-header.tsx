@@ -9,8 +9,10 @@
  * scrolled the header condenses: the strip folds away, its columns reappear
  * as chips on the title line where the headline was, crossfading with it,
  * and the header grows back while the pointer or focus is on it. The chips
- * are a visual echo of the strip, inert: any pointer or focus on them grows
- * the header back and the strip's own controls take over.
+ * are a visual echo of the strip, inert and hidden from assistive
+ * technology; the folded strip stays the one copy a reader or the keyboard
+ * reaches, so a Tab onto one of its controls grows the header back around
+ * it, and a pointer on the chips does the same.
  *
  * Every column is exactly as wide as its widest value: the value cell lays
  * an invisible copy of that widest text under the live one, so a number
@@ -426,8 +428,9 @@ const BadgeColumn = ({ badge }: { badge: ReactNode }) => (
 
 /**
  * The chips beside the title while the header is condensed: the strip's
- * columns again at compact density, inert, since any pointer or focus on
- * them grows the header back to the strip.
+ * columns again at compact density, inert and hidden from assistive
+ * technology, since the folded strip keeps the reader's and the keyboard's
+ * copy and any pointer on the chips grows the header back to it.
  */
 const CompactStats = ({
   stats,
@@ -489,7 +492,8 @@ export const FrameHeader = ({
           <CompactStats stats={stats} badge={badge} />
         </div>
       </div>
-      <Fold open={!condensed} data-frame-stats>
+      {/* The strip stays reachable while folded: focus into it grows the header. */}
+      <Fold open={!condensed} keepAccessible data-frame-stats>
         <div
           ref={setStripElement}
           className={cx(scrollingLineStyle, statsRowStyle)}

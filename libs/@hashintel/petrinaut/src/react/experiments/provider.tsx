@@ -389,6 +389,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             : update.computing
               ? "running"
               : "idle",
+          // A failure belongs to the selection that failed: the next
+          // selection's publish clears it from the record.
+          ...(update.failed ? {} : { error: null }),
           metricFrames: update.metricFrames,
           latestMetricFramesById: latestFramesById(update.metricFrames),
           progress: update.progress,
