@@ -96,6 +96,7 @@ export const ResultsView = ({
           help={band.help}
           trailing={band.trailing ?? undefined}
           more={band.more}
+          tone={band.tone}
         >
           {band.content}
         </FrameCard>

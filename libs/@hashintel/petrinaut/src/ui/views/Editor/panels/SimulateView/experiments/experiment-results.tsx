@@ -69,17 +69,12 @@ export const describeExperiment = (
 ): string =>
   `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs`;
 
-/**
- * "selection" is the navigator's own ladder, the priority work; "surface"
- * is a contour chunk; "refine" is a single cell brought up to depth.
- */
+/** A sweep's only batches are the rungs of the selection's ladder. */
 const BATCH_KIND_META: Record<
   SweepBatchStatus["kind"],
   Pick<ComputeBatch, "label" | "tone">
 > = {
   selection: { label: "Selection", tone: "priority" },
-  surface: { label: "Surface", tone: "background" },
-  refine: { label: "Refine", tone: "background" },
 };
 
 /** The sweep's batches as the computing list shows them. */
@@ -254,6 +249,7 @@ export const experimentResultsModel = (
               />
             ),
             more: null,
+            tone: "default",
           },
         ]
       : [],

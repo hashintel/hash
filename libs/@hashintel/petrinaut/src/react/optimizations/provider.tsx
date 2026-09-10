@@ -51,6 +51,10 @@ import {
   createConnectedStudy,
 } from "./provider/connected-study";
 import { buildOptimizationSurfaceAxes } from "./surface-grid";
+import {
+  createSweepTrialEvaluator,
+  type SweepTrialEvaluator,
+} from "./sweep-trial-evaluator";
 import { useOptimizationSource } from "./use-optimization-source";
 
 import type { PropsWithChildren } from "react";
@@ -291,6 +295,7 @@ const createOptimizationRecord = (
   id,
   input,
   createdAt: Date.now(),
+  origin: null,
   status: "initializing",
   error: null,
   errorCategory: null,
@@ -337,6 +342,7 @@ const connectOptimizationSource = (
   source: PetrinautConnectedOptimization,
   experimentsActions: React.RefObject<ExperimentsActionsValue>,
   resolveStudy: (runId: string) => OptimizationChannelStudy | null,
+  resolveSweepEvaluator: (runId: string) => SweepTrialEvaluator | null,
 ): OptimizationConnection => {
   const channel = createOptimizationChannel({
     runDetachedObjective: (request) =>
@@ -345,7 +351,13 @@ const connectOptimizationSource = (
       experimentsActions.current.resolveDetachedObjectiveParameters(request),
     resolveStudy,
   });
-  const capability = source.connect(channel);
+  // A study started from a sweep evaluates through the sweep; every other
+  // run takes the channel's detached objective runs.
+  const capability = source.connect({
+    evaluateTrial: (request) =>
+      resolveSweepEvaluator(request.runId)?.evaluateTrial(request) ??
+      channel.evaluateTrial(request),
+  });
   return {
     source,
     capability,
@@ -366,6 +378,8 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   const runIdsRef = useRef(new Map<string, string>());
   /** The local machinery behind each connected study, keyed by record id. */
   const studiesRef = useRef(new Map<string, ConnectedStudy>());
+  /** The sweep behind each study started from an experiment, keyed by record id. */
+  const sweepEvaluatorsRef = useRef(new Map<string, SweepTrialEvaluator>());
   const [optimizations, setOptimizations] = useState<OptimizationRecord[]>([]);
   const selectedOptimizationId =
     navigation.state.simulateResource?.type === "optimization"
@@ -457,11 +471,13 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     best?: OptimizationBest | null,
   ) => {
     studiesRef.current.get(optimizationId)?.settle(outcome, best);
+    sweepEvaluatorsRef.current.get(optimizationId)?.settle(best);
   };
 
   const disposeStudy = (optimizationId: string) => {
     studiesRef.current.get(optimizationId)?.dispose();
     studiesRef.current.delete(optimizationId);
+    sweepEvaluatorsRef.current.delete(optimizationId);
   };
 
   const markOptimizationCancelled = useCallback(
@@ -918,6 +934,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     };
   };
 
+  /** The sweep evaluator behind an optimizer run id, or null for a study of its own. */
+  const resolveSweepEvaluator = (runId: string): SweepTrialEvaluator | null => {
+    const entry = [...runIdsRef.current].find(
+      ([, knownRunId]) => knownRunId === runId,
+    );
+    return entry ? (sweepEvaluatorsRef.current.get(entry[0]) ?? null) : null;
+  };
+
   /**
    * The capability behind the source: the remote one as given, or a connected
    * one wired to the experiments backend on first use and kept while the
@@ -939,6 +963,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       source,
       experimentsActionsRef,
       resolveChannelStudy,
+      resolveSweepEvaluator,
     );
     connectionRef.current = connection;
     return connection.capability;
@@ -959,25 +984,51 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           ? connectionRef.current
           : null;
       const connected = connection !== null;
+      const sweep = options?.sweep;
+      if (sweep && !connected) {
+        throw new Error("A sweep can only be optimized in the browser");
+      }
       const computeBackend = connected
         ? (options?.computeBackend ?? "cpu")
         : "cpu";
-      const parallelism = connected ? (options?.parallelism ?? 1) : 1;
-      const study = connected
-        ? createConnectedStudy({
-            optimizationId,
-            input,
-            axes: buildOptimizationSurfaceAxes(input),
-            computeBackend,
-            runDetachedObjective: (request) =>
-              experimentsActionsRef.current.runDetachedObjective(request),
-            onUpdate: (update) => {
-              patchOptimization(optimizationId, (current) =>
-                withConnected(current, () => update),
-              );
-            },
-          })
-        : null;
+      // A sweep computes one point at a time.
+      const parallelism = sweep
+        ? 1
+        : connected
+          ? (options?.parallelism ?? 1)
+          : 1;
+      if (sweep) {
+        sweepEvaluatorsRef.current.set(
+          optimizationId,
+          createSweepTrialEvaluator({
+            experimentId: sweep.experimentId,
+            axes: sweep.axes,
+            metricId: sweep.metricId,
+            navigateSweep: (experimentId, selection, navigateOptions) =>
+              experimentsActionsRef.current.navigateSweep(
+                experimentId,
+                selection,
+                navigateOptions,
+              ),
+          }),
+        );
+      }
+      const study =
+        connected && !sweep
+          ? createConnectedStudy({
+              optimizationId,
+              input,
+              axes: buildOptimizationSurfaceAxes(input),
+              computeBackend,
+              runDetachedObjective: (request) =>
+                experimentsActionsRef.current.runDetachedObjective(request),
+              onUpdate: (update) => {
+                patchOptimization(optimizationId, (current) =>
+                  withConnected(current, () => update),
+                );
+              },
+            })
+          : null;
       if (study) {
         studiesRef.current.set(optimizationId, study);
       }
@@ -986,6 +1037,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       setOptimizations((current) => [
         createOptimizationRecord(optimizationId, input, {
           computeBackend,
+          origin: sweep
+            ? { kind: "sweep", experimentId: sweep.experimentId }
+            : null,
           connected: study
             ? {
                 navigation: study.initialNavigation,
@@ -1000,7 +1054,10 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         }),
         ...current,
       ]);
-      setSelectedOptimizationId(optimizationId);
+      // A study started from a sweep stays in the experiment's drawer.
+      if (!sweep) {
+        setSelectedOptimizationId(optimizationId);
+      }
 
       const consumeRun = async () => {
         let runId: string;

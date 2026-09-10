@@ -398,6 +398,7 @@ const parametersBand = (
             hide: "Hide fixed parameters",
             content: <ParameterValues values={fixed} />,
           },
+    tone: "default",
   };
 };
 
@@ -484,6 +485,7 @@ export const studyResultsModel = (
                 <ParameterValues values={optimization.best.parameters} />
               ),
               more: null,
+              tone: "default",
             },
           ]
         : [],
