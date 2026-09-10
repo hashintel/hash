@@ -12,6 +12,7 @@ hashql-core = { workspace = true, features = ["rayon", "zerocopy"], public = tru
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+aws-sdk-s3     = { workspace = true, public = true, features = ["default-https-client", "rt-tokio", "rustls"] }
 axum           = { workspace = true, public = true }
 camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
@@ -34,7 +35,6 @@ hash-middleware                = { workspace = true, public = true }
 # Private third-party dependencies
 aide                      = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
 arc-swap                  = { workspace = true }
-aws-sdk-s3                = { workspace = true, features = ["default-https-client", "rt-tokio", "rustls"] }
 burn                      = { workspace = true, features = ["autodiff", "cubecl", "cuda", "dispatch", "metal", "ndarray"] }
 bytecheck                 = { workspace = true, public = true }
 bytes.workspace           = true

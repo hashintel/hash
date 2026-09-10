@@ -2,15 +2,12 @@ use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use tokio::{
-    fs::{self, OpenOptions},
-    io::AsyncBufRead,
-};
+use tokio::io::AsyncBufRead;
 use tokio_util::either::Either;
-use uuid::Uuid;
 
 use self::error::FilePathError;
 use super::{Storage, error::StorageError, s3::path::S3Path};
+use crate::file::generation::scratch::ScratchFile;
 
 pub(crate) mod error;
 #[cfg(test)]
@@ -76,23 +73,11 @@ impl FilePath {
         };
 
         let backend = storage.s3()?;
-        let destination = storage.scratch.join(format!("input-{}", Uuid::now_v7()));
 
-        let mut output = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&destination)
-            .await?;
+        let mut output = ScratchFile::new(&storage.scratch).await?;
+        let result = backend.download(path, &mut output.file).await;
 
-        let result = backend.download(path, &mut output).await;
-        drop(output);
-
-        if let Err(error) = result {
-            drop(fs::remove_file(&destination).await);
-            return Err(error);
-        }
-
-        Ok(Cow::Owned(destination))
+        output.finish(result).await.map(Cow::Owned)
     }
 
     /// Resolves an owned input using the scratch-file lifecycle of [`Self::sync_to_local`].

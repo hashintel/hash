@@ -62,6 +62,30 @@ fn parse_literal_key() {
 }
 
 #[test]
+fn copy_source_literal_key() {
+    let path: Box<S3Path> = "s3://bucket/a b%2fc.txt?mark#tag/../~_-"
+        .parse()
+        .expect("should parse a literal object key");
+    assert_eq!(
+        path.copy_source().to_string(),
+        "bucket/a%20b%252fc.txt%3Fmark%23tag/../~_-",
+        "should encode reserved bytes and preserve literal path components"
+    );
+}
+
+#[test]
+fn copy_source_utf8() {
+    let path: Box<S3Path> = "s3://bucket/\u{e4}/\u{1f388}"
+        .parse()
+        .expect("should parse a UTF-8 object key");
+    assert_eq!(
+        path.copy_source().to_string(),
+        "bucket/%C3%A4/%F0%9F%8E%88",
+        "should percent-encode every byte of a multibyte character"
+    );
+}
+
+#[test]
 fn display_scheme() {
     let path: Box<S3Path> = "s3://bucket/key".parse().expect("should parse an S3 path");
     assert_eq!(path.to_string(), "s3://bucket/key");
