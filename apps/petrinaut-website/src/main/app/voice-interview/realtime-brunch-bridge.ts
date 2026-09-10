@@ -294,6 +294,7 @@ export class RealtimeBrunchBridge {
   }: CancelPendingSpeechOptions = {}): void {
     this.#outputCancellationPending = true;
     this.#interruptionPlaybackText.clear();
+    this.#retirePendingInputItems();
     for (const responseId of this.#activePlaybackText.keys()) {
       this.#activePlaybackText.set(responseId, []);
     }
@@ -599,8 +600,8 @@ export class RealtimeBrunchBridge {
 
   #processCompletedInputEvent(event: TerminalTranscriptEvent): void {
     this.#acceptedInputItemIds.delete(event.key.itemId);
-    const stoppedWhileReady = this.#ordinaryInputFinishedWhileReady(
-      event.key.itemId,
+    const ordinaryInputWasAcceptedWhileReady = Boolean(
+      this.#pendingInputItems.get(event.key.itemId)?.ordinaryAcceptedWhileReady,
     );
     this.#pendingInputItems.delete(event.key.itemId);
     const interruptionPlaybackText = this.#interruptionPlaybackText.get(
@@ -623,7 +624,7 @@ export class RealtimeBrunchBridge {
     // authority to asynchronous transcription completion.
     if (
       interruptionPlaybackText === undefined &&
-      !stoppedWhileReady &&
+      !ordinaryInputWasAcceptedWhileReady &&
       !this.#canSubmitAnswerNow()
     ) {
       this.#rejectTranscript(event.key.itemId, "unavailable");
@@ -683,8 +684,22 @@ export class RealtimeBrunchBridge {
   #ordinaryInputFinishedWhileReady(itemId: string): boolean {
     const pendingInput = this.#pendingInputItems.get(itemId);
     return Boolean(
-      pendingInput?.ordinaryAcceptedWhileReady && pendingInput.stopped,
+      pendingInput?.ordinaryAcceptedWhileReady &&
+      (pendingInput.stopped || this.#completedInputEvents.has(itemId)),
     );
+  }
+
+  #retirePendingInputItems(): void {
+    for (const itemId of this.#pendingInputItems.keys()) {
+      this.#acceptedInputItemIds.delete(itemId);
+      this.#playbackOverlappingInputItemIds.add(itemId);
+      if (this.#completedInputEvents.has(itemId)) {
+        this.#rejectTranscript(itemId, "unavailable");
+      }
+    }
+    this.#completedInputEvents.clear();
+    this.#inputItemOrder.length = 0;
+    this.#pendingInputItems.clear();
   }
 
   #markPlaybackOverlappingInputItems(): void {
