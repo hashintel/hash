@@ -332,9 +332,7 @@ try {
         recordProviderToolNames(context);
         const modelRequest = JSON.stringify(context);
         if (
-          context.tools?.some(
-            ({ name }) => name === "getLatestNetDefinition",
-          )
+          context.tools?.some(({ name }) => name === "getLatestNetDefinition")
         ) {
           return fauxAssistantMessage(
             [

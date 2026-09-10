@@ -80,9 +80,7 @@ provider.setResponses([
   (context) =>
     fauxAssistantMessage(
       [
-        context.tools?.some(
-          ({ name }) => name === "getLatestNetDefinition",
-        )
+        context.tools?.some(({ name }) => name === "getLatestNetDefinition")
           ? fauxToolCall(
               "getLatestNetDefinition",
               {},
