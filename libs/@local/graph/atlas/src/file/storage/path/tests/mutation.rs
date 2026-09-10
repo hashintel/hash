@@ -6,7 +6,11 @@ use tokio::io::AsyncReadExt as _;
 
 use crate::file::{
     generation::scratch::tests::{entry_count, root, scratch},
-    storage::{Storage, WriteCondition, error::StorageError, path::FilePath},
+    storage::{
+        Storage, WriteCondition,
+        error::StorageError,
+        path::{FilePath, FilePathVariant},
+    },
 };
 
 #[test]
@@ -16,7 +20,7 @@ fn join_local_nested() {
         .join("generations/current")
         .expect("should join the suffix");
     assert_eq!(joined.to_string(), "output/generations/current");
-    assert_matches!(joined.as_s3(), None);
+    assert_matches!(&joined.variant, FilePathVariant::Local(_));
 }
 
 #[test]
@@ -26,7 +30,9 @@ fn join_s3_literal() {
         let joined = path
             .join("nested/%2F space")
             .expect("should join the literal suffix");
-        let remote = joined.as_s3().expect("should preserve the S3 backend");
+        let FilePathVariant::Bucket(remote) = &joined.variant else {
+            panic!("should preserve the S3 backend");
+        };
         assert_eq!(
             (remote.bucket(), remote.key()),
             ("bucket", "prefix/nested/%2F space")
@@ -44,10 +50,11 @@ async fn get_replaced_contents() {
     path.put(&storage, Bytes::from_static(b"old"), WriteCondition::Absent)
         .await
         .expect("should create the initial contents");
-    let (revision, reader) = path
+    let (reader, revision) = path
         .get(&storage)
         .await
-        .expect("should open the initial contents");
+        .expect("should open the initial contents")
+        .into_parts();
     path.put(
         &storage,
         Bytes::from_static(b"new"),
@@ -99,7 +106,11 @@ async fn put_match_missing() {
     let file = root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     fs::write(&file, b"old").expect("should seed the destination");
-    let (revision, _) = path.get(&storage).await.expect("should capture a revision");
+    let (_, revision) = path
+        .get(&storage)
+        .await
+        .expect("should capture a revision")
+        .into_parts();
     fs::remove_file(&file).expect("should remove the destination");
     let error = path
         .put(
@@ -173,14 +184,16 @@ async fn put_match_competing() {
     let file = root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     fs::write(&file, b"initial").expect("should seed the destination");
-    let (first_revision, _) = path
+    let (_, first_revision) = path
         .get(&storage)
         .await
-        .expect("should capture the first revision");
-    let (second_revision, _) = path
+        .expect("should capture the first revision")
+        .into_parts();
+    let (_, second_revision) = path
         .get(&storage)
         .await
-        .expect("should capture the second revision");
+        .expect("should capture the second revision")
+        .into_parts();
     let (first, second) = tokio::join!(
         path.put(
             &storage,
