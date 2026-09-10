@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** optimisation is after the currently agreed September endpoint in [Mission 7b](7b-september-demo.md). The desired elicitation/construction video is not a simulation or optimisation claim. Consumer discovery may inform later choices, but this draft's handoff package, quantitative modelling strategy and six consumer decisions are not prerequisites to the live open/explain/correct/update flow. A changed demo endpoint requires a new owner decision.
+
 ## Cold-start reads
 
 - [FE-1503](https://linear.app/hash/issue/FE-1503/hand-one-accepted-sdcpn-to-an-optimisation-experiment) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.

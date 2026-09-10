@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** [Mission 7b](7b-september-demo.md) brings forward only the change/repetition behaviour required by the selected live correction and rehearsal. This draft retains broader repeat, retirement, concurrency, schema and scenario evaluation after the demo. Its whole-stratum predecessor gates do not block that narrow 7b slice; re-evaluate them against the actual shipped seam before cutting this broader mission.
+
 Recut on 2026-09-04. The construction half of the former Mission 9 (schema-carrier repair, the first real nested mutation, one meaningful region built by the model, stable ids, and the positive why over a generated element) moved into the consolidated [Mission 7](7-explainable-construction.md), because the owner chose fully connected parts over thin tracers and because the provenance design showed that lineage only exists when the model actually constructs. This draft keeps what "repeatable" first makes load-bearing: unchanged repeat, changed input, deletion and retirement, concurrent user change, cross-conversation document access, broader schema classes, and the per-action versus batch decision if Mission 7 has not settled it. The reasoning is recorded in the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) entries F12 and G16 and the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md) items 16 and 18.
 
 ## Cold-start reads

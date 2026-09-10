@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** [Mission 7b](7b-september-demo.md) brings forward one ordinary correction → saved workpiece → bounded net update → updated explanation. This draft retains the broader reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not require that entire semantic programme, or implement a generic semantic gate, to demonstrate the 7b mechanical flow. Re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
+
 ## Cold-start reads
 
 - [FE-1394](https://linear.app/hash/issue/FE-1394/revise-one-traceable-net-region-through-targeted-reviewer-elicitation) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
