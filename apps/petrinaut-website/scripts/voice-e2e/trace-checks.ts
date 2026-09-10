@@ -13,6 +13,8 @@ export interface DiagnosticLine {
   readonly speechKind?: string;
   readonly requestId: string;
   readonly stage: string;
+  readonly errorCode?: string;
+  readonly status?: number;
 }
 
 export interface InputCommit {
@@ -106,6 +108,19 @@ export const checkTrace = (scenario: Scenario, trace: Trace): CheckResult[] => {
 
   if (!rejected) {
     const problems: string[] = [];
+    for (const mark of trace.latency) {
+      if (
+        (mark.name === "first-tts-request" ||
+          mark.name === "first-tts-audio") &&
+        !admissions.some(
+          (admission) => admission.correlationId === mark.correlationId,
+        )
+      ) {
+        problems.push(
+          `${mark.correlationId}: TTS without a matching admission`,
+        );
+      }
+    }
     if (admissions.length !== expectedTurns)
       problems.push(
         `expected ${expectedTurns} admissions, got ${admissions.length}`,
@@ -241,7 +256,7 @@ export const checkTrace = (scenario: Scenario, trace: Trace): CheckResult[] => {
   check(
     "diagnostics",
     trace.diagnostics.every((line) => line.outcome !== "failure"),
-    "No failed Voice operations",
+    `${trace.diagnostics.filter((line) => line.outcome === "failure").length} failed Voice operations`,
   );
   check(
     "canonical-bubbles",
@@ -316,8 +331,11 @@ export const checkTrace = (scenario: Scenario, trace: Trace): CheckResult[] => {
         second !== undefined &&
         queued !== undefined &&
         settled !== undefined &&
-        first.observedAtMs < queued.observedAtMs &&
-        queued.observedAtMs < settled.observedAtMs &&
+        trace.latency.indexOf(first) < trace.latency.indexOf(queued) &&
+        trace.latency.indexOf(queued) < trace.latency.indexOf(settled) &&
+        trace.latency.indexOf(settled) < trace.latency.indexOf(second) &&
+        first.observedAtMs <= queued.observedAtMs &&
+        queued.observedAtMs <= settled.observedAtMs &&
         settled.observedAtMs <= second.observedAtMs,
       "Two capture-ordered admissions; follow-up queued while first turn was admitted but unsettled",
     );

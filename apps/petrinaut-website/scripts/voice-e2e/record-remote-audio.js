@@ -24,7 +24,7 @@
   const observedChannels = new WeakSet();
 
   const originalMeasure = Performance.prototype.measure;
-  Performance.prototype.measure = function (...args) {
+  Performance.prototype.measure = function observeMeasure(...args) {
     const measure = originalMeasure.apply(this, args);
     if (measure.name.startsWith("voice-interview:")) {
       const detail = /** @type {unknown} */ (measure.detail);
@@ -46,7 +46,7 @@
   };
 
   const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
-  navigator.mediaDevices.getUserMedia = function (...args) {
+  navigator.mediaDevices.getUserMedia = function observeMicrophone(...args) {
     microphoneRequestedAt ??= performance.now();
     return originalGetUserMedia.apply(this, args);
   };
@@ -86,7 +86,7 @@
         Reflect.construct(target, args, newTarget)
       );
       const createDataChannel = peer.createDataChannel;
-      peer.createDataChannel = function (...parameters) {
+      peer.createDataChannel = function observeDataChannel(...parameters) {
         const channel = createDataChannel.apply(this, parameters);
         observeChannel(channel);
         return channel;

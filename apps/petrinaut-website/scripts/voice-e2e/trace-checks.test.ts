@@ -99,6 +99,21 @@ describe("checkTrace", () => {
     ).toBe("fail");
   });
 
+  test("an extra unadmitted TTS turn cannot hide behind a complete good turn", () => {
+    const latency = [
+      ...goodTrace.latency,
+      {
+        name: "first-tts-request",
+        correlationId: "voice-realtime:1:orphan:0",
+        elapsedMs: 10_000,
+        observedAtMs: 10_100,
+      },
+    ];
+    expect(
+      level("short-clarification", { ...goodTrace, latency }, "sequence"),
+    ).toBe("fail");
+  });
+
   test.each([8_999, Number.NaN])(
     "rejects premature or invalid TTS time %s",
     (elapsedMs) => {
@@ -286,6 +301,55 @@ describe("checkTrace", () => {
       },
     ].sort((left, right) => left.observedAtMs - right.observedAtMs),
   };
+
+  test("queue ordering survives equal clock values but not reversed event order", () => {
+    const trace: Trace = {
+      ...queuedTrace,
+      latency: queuedTrace.latency.map((mark) => ({
+        ...mark,
+        observedAtMs: 100,
+      })),
+    };
+    expect(level("follow-up-while-working", trace, "queued-order")).toBe(
+      "pass",
+    );
+    expect(
+      level(
+        "follow-up-while-working",
+        { ...trace, latency: [...trace.latency].reverse() },
+        "queued-order",
+      ),
+    ).toBe("fail");
+  });
+
+  test("a superseded first turn may omit speech, but may never speak before settlement", () => {
+    const trace: Trace = {
+      ...queuedTrace,
+      latency: queuedTrace.latency.filter(
+        (mark) =>
+          !(
+            mark.correlationId.endsWith(":item1:0") &&
+            mark.name.startsWith("first-tts")
+          ),
+      ),
+    };
+    expect(level("follow-up-while-working", trace, "sequence")).toBe("pass");
+    expect(
+      level(
+        "follow-up-while-working",
+        {
+          ...queuedTrace,
+          latency: queuedTrace.latency.map((mark) =>
+            mark.correlationId.endsWith(":item1:0") &&
+            mark.name === "first-tts-request"
+              ? { ...mark, elapsedMs: 8_999 }
+              : mark,
+          ),
+        },
+        "sequence",
+      ),
+    ).toBe("fail");
+  });
 
   test("follow-up requires both admissions in capture order and a queue mark while the first turn works", () => {
     expect(
