@@ -28,6 +28,20 @@ Print a human-readable transcript of one conversation from that same Flue histor
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
 
+## Browser tracer scripts
+
+`test:browser-tracer` and `test:reopened-why` (`test/mutation-records.integration.ts`) drive an actual local Chrome against the **built** Brunch server (`dist/`) and the **built** Petrinaut website (`../petrinaut-website/dist`, or `M7_WEBSITE_DIST`). They use synthetic native SDK responses and a loopback-only listener; no provider key or external request is involved.
+
+The website build must be told where Brunch is mounted, or the prepared-fixture routes (`?brunch-fixture=…&brunchTracer=…`) never activate and the tracer times out waiting for "Bound conversation ready" with no browser or HTTP error:
+
+```sh
+turbo run build --filter '@apps/brunch-agent'
+VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/petrinaut-website build
+yarn workspace @apps/brunch-agent test:browser-tracer
+```
+
+`VITE_BRUNCH_CHAT_ENDPOINT` is a build-time Vite variable; a website built without it (for example by a plain `turbo run build`) has Brunch disabled and must be rebuilt. `M7_CHROME_PATH` selects the Chrome executable and `M7_BROWSER_OUTPUT` a fresh evidence directory (the script prints its output path). `M7_A5=1` additionally runs the reopened-why witness.
+
 ## Local Postgres for fixture-producing development
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
