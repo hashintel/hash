@@ -70,7 +70,8 @@ export type OpenAIRealtimeSessionEvent =
   | {
       readonly connectionEpoch: number;
       readonly playbackExpected: boolean;
-      readonly responseId: string;
+      /** Absent when a cancelled response.create was rejected before creation. */
+      readonly responseId?: string;
       readonly speechRequestId?: string;
       readonly status: "cancelled" | "completed" | "failed" | "incomplete";
       readonly type: "response-terminal";
@@ -651,7 +652,7 @@ export class OpenAIRealtimeSession {
       this.#activeResponseIds.size > 0 ||
       this.#responseCreateEventId !== null ||
       this.#waitingForResponseTerminal ||
-      (this.#interruptionBySpeaking && this.#speakingInputItemId !== null)
+      this.#speakingInputItemId !== null
     ) {
       return;
     }
@@ -903,10 +904,18 @@ export class OpenAIRealtimeSession {
           pendingEvent.request.speechRequestId,
         )
       ) {
-        this.#cancelOutputAwaitingRequestIds.delete(
-          pendingEvent.request.speechRequestId,
-        );
-        this.#cancelPendingSpeechRequest(pendingEvent.request.speechRequestId);
+        const speechRequestId = pendingEvent.request.speechRequestId;
+        this.#cancelOutputAwaitingRequestIds.delete(speechRequestId);
+        this.#cancelPendingSpeechRequest(speechRequestId);
+        if (this.#activeEpoch !== null) {
+          this.#emit({
+            connectionEpoch: this.#activeEpoch,
+            playbackExpected: false,
+            speechRequestId,
+            status: "cancelled",
+            type: "response-terminal",
+          });
+        }
         this.#finishOutputCancellation();
         return;
       }

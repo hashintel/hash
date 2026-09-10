@@ -1340,6 +1340,31 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("returns to idle when canonical creation is cancelled before a response exists", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-cancelled",
+      type: "canonical-speech-requested",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      speechRequestId: "speech-cancelled",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+      output: "idle",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
   test("keeps capture closed when more canonical speech starts at settlement", async () => {
     const harness = createHarness();
     const finalSegment = markedQuestion("ask-final", "Who acts next?");

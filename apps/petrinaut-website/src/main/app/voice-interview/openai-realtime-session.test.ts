@@ -666,7 +666,7 @@ describe("OpenAIRealtimeSession", () => {
     );
   });
 
-  test("rejects an accepted input item whose transcript completes after output starts", async () => {
+  test("preserves a stopped input item whose transcript completes after output starts", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
@@ -692,6 +692,11 @@ describe("OpenAIRealtimeSession", () => {
       text: "This started before output",
       type: "partial",
     });
+    channel.receive({
+      audio_end_ms: 160,
+      item_id: "item-before-output",
+      type: "input_audio_buffer.speech_stopped",
+    });
 
     harness.session.speakCanonical([
       canonicalSegment("ask-1", "What happens next?"),
@@ -708,17 +713,19 @@ describe("OpenAIRealtimeSession", () => {
       type: "conversation.item.input_audio_transcription.completed",
     });
 
-    expect(
-      harness.events.some(
-        (event) =>
-          event.type === "completed" &&
-          event.key.itemId === "item-before-output",
-      ),
-    ).toBe(false);
+    expect(harness.events).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-output",
+      },
+      text: "This completed too late.",
+      type: "completed",
+    });
     expect(harness.localTracks[0]!.enabled).toBe(false);
   });
 
-  test("invalidates accepted input before requesting canonical speech output", async () => {
+  test("waits for accepted input before requesting canonical speech output", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
@@ -746,11 +753,11 @@ describe("OpenAIRealtimeSession", () => {
     harness.session.speakCanonical([
       canonicalSegment("ask-request", "What happens next?"),
     ]);
-    expect(harness.events).toContainEqual(
+    expect(harness.events).not.toContainEqual(
       expect.objectContaining({ type: "canonical-speech-requested" }),
     );
-    expect(microphoneEnabledWhenResponseRequested).toBe(false);
-    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(microphoneEnabledWhenResponseRequested).toBeUndefined();
+    expect(harness.localTracks[0]!.enabled).toBe(true);
 
     channel.receive({
       content_index: 0,
@@ -758,13 +765,20 @@ describe("OpenAIRealtimeSession", () => {
       transcript: "This completed before output started.",
       type: "conversation.item.input_audio_transcription.completed",
     });
-    expect(
-      harness.events.some(
-        (event) =>
-          event.type === "completed" &&
-          event.key.itemId === "item-before-request",
-      ),
-    ).toBe(false);
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({ type: "canonical-speech-requested" }),
+    );
+    expect(microphoneEnabledWhenResponseRequested).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(harness.events).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-request",
+      },
+      text: "This completed before output started.",
+      type: "completed",
+    });
 
     const handoff = harness.session.cancelOutput();
     let handoffSettled = false;
@@ -814,6 +828,15 @@ describe("OpenAIRealtimeSession", () => {
     expect(
       harness.events.filter((event) => event.type === "completed"),
     ).toEqual([
+      {
+        key: {
+          connectionEpoch: 1,
+          contentIndex: 0,
+          itemId: "item-before-request",
+        },
+        text: "This completed before output started.",
+        type: "completed",
+      },
       {
         key: {
           connectionEpoch: 1,
@@ -881,6 +904,11 @@ describe("OpenAIRealtimeSession", () => {
       audio_start_ms: 40,
       item_id: "item-before-handoff",
       type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 80,
+      item_id: "item-before-handoff",
+      type: "input_audio_buffer.speech_stopped",
     });
     harness.session.speakCanonical([
       canonicalSegment("ask-handoff", "What happens next?"),
@@ -1548,6 +1576,41 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("terminalizes cancelled canonical creation rejected behind an active response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "interrupting-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      error: {
+        code: "conversation_already_has_active_response",
+        event_id: responseCreate.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      speechRequestId: "canonical-1-1",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+  });
+
   test("retries a correlated canonical response after the active response ends", async () => {
     const harness = createHarness();
     await harness.session.connect();
@@ -2085,6 +2148,65 @@ describe("OpenAIRealtimeSession", () => {
         itemId: "stopped-item",
       },
       text: "Keep this completed answer.",
+      type: "completed",
+    });
+  });
+
+  test("waits for active half-duplex follow-up speech before starting playback", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "first-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "first-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    channel.receive({
+      audio_start_ms: 220,
+      item_id: "follow-up-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "first-item",
+      transcript: "First answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("follow-up", "Continue with the next question."),
+    ]);
+
+    expect(sentEvents(channel)).toEqual([]);
+
+    channel.receive({
+      audio_end_ms: 320,
+      item_id: "follow-up-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    expect(sentEvents(channel)).toEqual([
+      expect.objectContaining({ type: "response.create" }),
+    ]);
+
+    channel.receive({
+      content_index: 0,
+      item_id: "follow-up-item",
+      transcript: "Follow-up answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    expect(harness.events).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "follow-up-item",
+      },
+      text: "Follow-up answer.",
       type: "completed",
     });
   });
