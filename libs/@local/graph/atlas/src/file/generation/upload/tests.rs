@@ -799,6 +799,110 @@ async fn promote_active_copy_failure() {
 }
 
 #[tokio::test]
+async fn promote_active_metadata_failure() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let current = current_path(&fixture.root);
+    let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
+    seed(&current, old_id.to_string());
+
+    let upload = Upload::prepare(&fixture, root, fixture.destination())
+        .await
+        .expect("should capture the existing current pointer");
+    upload.upload(id).await.expect("should complete the upload");
+    fixture.fault(&active_metadata_path(&fixture.root, id), Fault::Generic);
+
+    let before = fixture.events().len();
+    let error = upload
+        .promote(id)
+        .await
+        .expect_err("should prevent selection after a failed active metadata write");
+
+    assert_matches!(error, UploadError::Storage(StorageError::Io(_)));
+    assert_eq!(
+        fs::read(&current).expect("should retain the current pointer"),
+        old_id.to_string().as_bytes(),
+        "should preserve current after a failed active metadata write"
+    );
+    assert!(
+        fs::metadata(active_metadata_path(&fixture.root, id)).is_err(),
+        "should leave the active prefix incomplete"
+    );
+    assert!(
+        fixture.events()[before..]
+            .iter()
+            .all(|event| !event.touches("current") && !event.touches("previous")),
+        "should make no pointer write after a failed active metadata write"
+    );
+}
+
+#[tokio::test]
+async fn promote_active_metadata_mismatch() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+
+    let upload = Upload::prepare(&fixture, root, fixture.destination())
+        .await
+        .expect("should prepare against an absent current pointer");
+    upload.upload(id).await.expect("should complete the upload");
+    seed(&active_metadata_path(&fixture.root, id), b"wrong metadata");
+
+    let error = upload
+        .promote(id)
+        .await
+        .expect_err("should prevent selection for mismatching active metadata");
+
+    assert_matches!(
+        error,
+        UploadError::Checksum { expected, actual, .. }
+            if expected == id.digest() && actual == Sha256Digest::of(b"wrong metadata")
+    );
+    assert!(
+        fs::metadata(current_path(&fixture.root)).is_err(),
+        "should leave current absent after an active metadata mismatch"
+    );
+}
+
+#[tokio::test]
+async fn promote_repository_metadata_mismatch() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+
+    let upload = Upload::prepare(&fixture, root, fixture.destination())
+        .await
+        .expect("should prepare against an absent current pointer");
+    upload.upload(id).await.expect("should complete the upload");
+    let metadata = repository_metadata_path(&fixture.root, id);
+    seed(&metadata, b"foreign metadata");
+
+    let before = fixture.events().len();
+    let error = upload
+        .promote(id)
+        .await
+        .expect_err("should prevent copying from a mismatching repository marker");
+
+    assert_matches!(
+        error,
+        UploadError::Checksum { expected, actual, .. }
+            if expected == id.digest() && actual == Sha256Digest::of(b"foreign metadata")
+    );
+    assert_eq!(
+        &fixture.events()[before..],
+        &[Event::Read {
+            path: metadata.to_string(),
+        }],
+        "should stop before copying or selecting an invalid repository prefix"
+    );
+    assert!(
+        fs::metadata(current_path(&fixture.root)).is_err(),
+        "should leave current absent after a repository metadata mismatch"
+    );
+}
+
+#[tokio::test]
 async fn promote_current_conflict_present() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
