@@ -17,7 +17,7 @@ export const createMutatePetrinetTool = (
   defineTool({
     name: mutatePetrinetToolName,
     description:
-      "Apply one ordered batch of addPlace, addTransition, addArc, removePlace, removeTransition, and removeArc operations. removePlace also removes arcs connected to that place. Each operation is a flat {operationId, basisId, type, input} object. Every operation must cite one deduplicated declared basis via basisId and the exact preceding browser observation/base. Operations commit in order; failure stops and leaves later operations unattempted.",
+      "Apply one ordered batch of addPlace, addTransition, addArc, removePlace, removeTransition, removeArc, addType, addParameter, and addDifferentialEquation operations. removePlace also removes arcs connected to that place. Each operation is a flat {operationId, basisId, type, input} object. Every operation must cite one deduplicated declared basis via basisId and the exact preceding browser observation/base. Operations commit in order; failure stops and leaves later operations unattempted.",
     input: mutatePetrinetInputSchema,
     output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
     async run({ data }) {
