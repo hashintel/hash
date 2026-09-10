@@ -922,6 +922,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       type: "response-terminal",
       connectionEpoch: 1,
+      playbackExpected: true,
       speechRequestId: "bridge-1",
       responseId: "offer-1",
       status: "completed",
