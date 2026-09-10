@@ -66,6 +66,7 @@ export const filterRecipe = sva({
       "--filter-remove-divider": "var(--colors-neutral-s40)",
       "--filter-hover-border": "var(--colors-neutral-s80)",
       "--filter-pressed-border": "var(--colors-neutral-s70)",
+      "--filter-pressed-shadow": "inset 0 1px 2px rgba(0,0,0,0.03)",
       "--filter-input-hover-bg": "var(--colors-neutral-s10)",
       "--filter-ring": "var(--colors-neutral-a80)",
       "--filter-property-padding-x": "var(--filter-padding-x)",
@@ -148,7 +149,7 @@ export const filterRecipe = sva({
         background: "neutral.s25",
       },
       "&[data-state=open], &[data-state=open]:hover": {
-        boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
+        boxShadow: "[var(--filter-pressed-shadow)]",
       },
       "&[data-state=open]": {
         background: "neutral.s20",
@@ -275,6 +276,23 @@ export const filterRecipe = sva({
         borderRadius: "[3px]",
         boxShadow: "[0 0 0 2px var(--filter-ring)]",
         pointerEvents: "none",
+      },
+      // Same pressed treatment as the operator trigger while the embedded
+      // select's dropdown is open
+      "&:has([data-part=trigger][data-state=open])": {
+        background: "neutral.s20",
+        boxShadow: "[var(--filter-pressed-shadow)]",
+      },
+      "&:has([data-part=trigger][data-state=open]):hover": {
+        background: "neutral.s25",
+      },
+      "&:has([data-part=trigger][data-state=open]):not(:hover)": {
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-outer-border": "var(--filter-pressed-border)",
+      },
+      "&:has([data-part=trigger][data-state=open]):not(:hover) + *": {
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-remove-divider": "var(--filter-pressed-border)",
       },
       "& [data-part=trigger]": {
         paddingInline: "[var(--filter-input-padding-x)]",
