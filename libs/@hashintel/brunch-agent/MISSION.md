@@ -58,7 +58,9 @@ independent questions, conclusions, or summaries. Typed effective instructions r
 The owner approved a bounded app-only wording experiment after live diagnosis found speech
 authoring omitted despite the overlay and tool being present: explicitly order evidence gathering
 → speech authoring → optional question marking → visible delivery, including clarification-only
-replies. This experiment authorizes no mechanism change or additional provider calls.
+replies. The owner-reported retry after backend restart still produced no speech-tool call or
+speech data; the wording experiment has not resolved fallback. Further mechanism changes or
+additional provider calls require a new bounded decision; do not stack speculative prompt edits.
 
 Existing structured data writers/transport are a candidate, not a preselected schema. First pin
 live completion, persisted history, response identity, continuation folding, and replay. Use the

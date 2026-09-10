@@ -102,14 +102,132 @@ confirmation. Its detail is visible without expansion. After reload and reopenin
 DOM checks found both speech and report and exactly one user message. This seeded browser
 check is not the prepared real-provider demonstration or remote Flue deployment evidence.
 
+## Local live fallback diagnosis
+
+On 2026-09-09, the owner reported fallback playback and no speech card despite a browser
+Voice delivery. The initial context/response tests passed after `yarn install --immutable`,
+but live fallback persisted. The backend on port 4321 started at 17:56:11 Europe/Tirane,
+after the installed patched runtime files were updated at 17:54:41. Read-only inspection
+of its open SQLite store confirmed that the 17:57:10 submission retained Voice context and
+registered the speech tool, but wrote no speech data.
+
+The owner then manually initiated one coordinated Voice request in the existing conversation.
+A temporary development-only `observe()` subscriber inspected `turn_request`, logging only
+presence flags, timestamps, and correlation IDs; no credentials, prompts, arguments, or
+tool-result content were logged. The owner supplied the live output in the
+[local diagnosis thread](https://ampcode.com/threads/T-01a086e5-f3c7-717e-b27f-f2574eca4053).
+For submission `sub_ik_4cc5adbc94e5b1b4ffc62800f4cde6d0`:
+
+- Both model requests, `turn_01M23ERQ1DMXVJTRY8W31BW89F` and
+  `turn_01M23ERVN4DSSVDCQAA16KQ6YH`, contained the Voice instruction marker and
+  `brunch_set_voice_response` tool (`voiceInstructions: true`, `speechTool: true`).
+- Read-only canonical stream inspection found exactly one tool call:
+  `brunch_mark_question`, which succeeded. The only data write was `brunch-question`.
+  There was no speech-tool call and no `brunch-voice-response` data write.
+- The second model turn stopped normally; the submission completed at
+  `2026-09-09T16:07:18.753Z`. Duplicate observer lines had identical turn IDs; canonical
+  records contain two model turns, not four.
+
+This locates the observed failure at speech authoring: the model did not call the available
+speech tool despite receiving the Voice overlay. There was no authored speech for transport
+or UI selection to recover. It does not establish why the model omitted the tool, general
+adherence rates, audible quality, or that all UI selection paths are correct. The fixed
+reading-notice branch remains the intended response to missing speech, not successful
+substantive delivery. Concurrent OpenTelemetry export errors targeted the unavailable local
+collector at `::1:4317`; the recorded model work nevertheless completed.
+
+The temporary probe was removed after diagnosis. Context and response tests passed locally
+(two files, two tests); probe typechecking, changed-file lint, formatting, and diff checks
+passed. No automated provider request, storage reset, prompt change, completion-gate change,
+Realtime change, or architecture change was made. Further paid execution and any material
+reorientation remain owner-held; this diagnostic is not experiment acceptance.
+
+### Instruction-adherence follow-up
+
+Read-only inspection identified the live provider/model as
+`anthropic/claude-haiku-4-5`. The observed conversation contains fixture initialization and
+two Voice submissions, with no skill activations or browser-tool continuations. In the
+instrumented submission, 22 words of visible prose preceded the question-marker call;
+the next model turn emitted only the exact marked question (16 words), then stopped.
+This is a question-delivery sequence with speech omitted, not a failed speech-tool execution.
+
+Inspection of the core, SDCPN, prepared-fixture, and Voice instructions found no explicit
+prohibition on the speech call. Core's question marker says to call it immediately before
+presenting the question; the Voice overlay separately requires speech authoring before final
+visible delivery. These obligations can coexist, but their combined order is not spelled out.
+At diagnosis, the response test scripted question marker → speech authoring → prose, so its
+success proved routing for that sequence, not that the live model would choose it.
+
+Flue 2.0.3 [prompt composition](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/hooks/render.ts#L215-L225)
+joins the returned core prompt and `useInstruction` contributions in call order. Its
+[provider boundary](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/session.ts#L823-L836)
+passes the observed context directly to `pi-ai`; this excludes post-observation filtering
+inside Flue, not uninspected provider-adapter normalization. No active skill in this
+conversation supplies a competing instruction.
+
+The next bounded hypothesis is that explicitly composing the delivery order in the app-owned
+Voice overlay—finish domain/tool work, author speech, mark any direct question, deliver visible
+prose—improves adherence, including clarification-only replies. This was proposed as a wording
+experiment, not an established cause or fix. No further provider request or prompt edit was
+made during the read-only follow-up.
+
+### Approved wording experiment, fallback persists after restart
+
+The owner approved the narrow experiment in the local diagnosis thread. The app-owned Voice
+overlay now explicitly orders evidence gathering → speech authoring → optional question marking
+→ complete visible delivery, and states that clarification-only replies also require speech.
+No core/SDCPN prompt, tool implementation, typed instruction, Realtime policy, conversation
+storage, or completion gate changed.
+
+The effective-prompt test first failed on the missing instruction, then passed after the edit.
+It checks the ordered instruction and retains typed/Voice/continuation isolation checks;
+boolean assertions avoid logging the effective prompt on failure. The runtime/transport test
+now scripts speech authoring before question marking and verifies exact speech, question, and
+full report persistence across restart. Existing UI tests confirm that a later question marker
+does not invalidate authored speech and that playback still requires correlated completion.
+
+Verification: app build passed; all 28 app test files / 206 tests passed; canonical-speech and
+realtime-brunch-bridge tests passed (two files / 52 tests); app typecheck, changed-TypeScript
+lint, and Oxfmt checks passed. The first full app test run had three failures from a stale
+emitted server bundle (old store, CORS, and fixture schema); rebuilding the app resolved them
+without source changes. The agent sent no provider request. These checks establish prompt
+placement and routing, not improved model adherence or audible delivery.
+
+A final read-only store check found another Voice submission,
+`sub_ik_c7d46e277bf1cebd80139d99f3ff4648`, admitted at 18:15:01 Europe/Tirane during
+verification. It completed with one Haiku turn and no tool calls or data writes. Its origin
+has not been confirmed with the owner, and no live request probe captured the revised overlay
+for it; do not count it as a verified trial of the wording experiment yet.
+
+The owner subsequently followed the restart/retest instructions and reported no card and the
+same reading notice. The backend listening on port 4321 started at 18:21:37 Europe/Tirane,
+after the overlay edit at 18:14:38. The latest Voice submission,
+`sub_ik_2f131d148d5a75fc433972e63d67b0e5`, was admitted at 18:22:33.982 and retained
+Voice context. Its resource snapshot registered the speech tool. Haiku completed one turn
+normally at 18:22:41.269 with zero tool calls and zero data writes. The observer was no longer
+installed, so this retry does not provide a direct capture of the revised model request.
+
+The reported fallback persists after the wording experiment and restart; there is still no
+speech for transport or UI selection to recover. Do not infer general model adherence rates
+or add another speculative prompt edit. A bounded app-level missing-speech check with a
+Brunch-authored repair is a candidate for investigation, not an approved mechanism: provider
+cost, continuation/cancellation behavior, and Flue support must be settled before implementation.
+No repair call or additional provider request was initiated by the agent.
+
+Flue 2.0.3 exposes a supported `useAgentFinish` hook with successful/failed tool-call history
+and `append()` for a correction signal within the same response/submission. Its built-in limit
+is 32 finish continuations, which is not an acceptable implicit retry budget here. Any proposal
+must establish an application-level one-repair bound and preserve cancellation and continuation
+correlation before implementation; no runtime patch or forced provider tool choice is selected.
+
 ## Outstanding acceptance gates
 
-Local verification involved no paid provider activity, campaign, deployment, external write,
-push, or PR creation. The owner subsequently authorized committing and publishing a draft
-stacked PR; that authorization does not authorize a paid trial or accept the experiment.
-The audible real-provider/browser demonstration awaits bounded paid-run authorization;
-human review remains outstanding. Repeat the two historical inputs on `crew-reservation-v1`
-once that run is authorized:
+Initial deterministic/seeded verification involved no paid provider activity, campaign,
+deployment, external write, push, or PR creation. The owner subsequently authorized committing
+and publishing a draft stacked PR; that authorization does not authorize a paid trial or
+accept the experiment. Beyond the manually initiated diagnostics above, the full audible
+comparison demonstration awaits bounded paid-run authorization; human review remains
+outstanding. Repeat the two historical inputs on `crew-reservation-v1` once that run is authorized:
 
 1. “What does reserving a dispatch crew mean here?”
 2. “Give me a detailed analysis of this model, including assumptions, possible bottlenecks,
