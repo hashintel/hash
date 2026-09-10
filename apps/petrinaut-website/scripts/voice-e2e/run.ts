@@ -11,7 +11,20 @@ import {
   synthesizeUtterance,
 } from "./synthesize-utterance.ts";
 
-import type { Scenario } from "./trace-checks.ts";
+import type { InputCommit, LatencyMark, Scenario } from "./trace-checks.ts";
+
+declare global {
+  interface Window {
+    __voiceE2E: {
+      readonly commits: InputCommit[];
+      readonly latency: LatencyMark[];
+      readonly error?: string;
+      readonly microphoneRequestedAt?: number;
+      readonly recordedMs: number;
+      stopRecording: () => Promise<string>;
+    };
+  }
+}
 
 const scenarioSchema = z
   .object({
@@ -105,6 +118,7 @@ const prepareAudio = async (
 const runScenario = async (
   scenario: Scenario,
   utterancePath: string,
+  runDir: string,
 ): Promise<void> => {
   const browser = await chromium.launch({
     headless: true,
@@ -121,6 +135,9 @@ const runScenario = async (
       deviceScaleFactor: 2,
     });
     page.setDefaultTimeout(30_000);
+    await page.addInitScript({
+      path: fileURLToPath(new URL("./record-remote-audio.js", import.meta.url)),
+    });
     await page.goto(
       new URL("/?brunch-fixture=crew-reservation-v1", websiteUrl).href,
     );
@@ -146,6 +163,8 @@ const runScenario = async (
       { timeout: 30_000 },
     );
     process.stdout.write(`${scenario.id}: reached listening\n`);
+    const base64 = await page.evaluate(() => window.__voiceE2E.stopRecording());
+    await writeFile(join(runDir, "output.webm"), Buffer.from(base64, "base64"));
   } finally {
     await browser.close();
   }
@@ -210,7 +229,8 @@ const main = async (): Promise<void> => {
       path: await prepareAudio(scenario, runDir),
     });
   }
-  for (const run of prepared) await runScenario(run.scenario, run.path);
+  for (const run of prepared)
+    await runScenario(run.scenario, run.path, run.runDir);
 };
 
 await main().catch((error: unknown) => {
