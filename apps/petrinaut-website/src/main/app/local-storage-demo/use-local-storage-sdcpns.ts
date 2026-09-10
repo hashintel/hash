@@ -5,7 +5,7 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
-  /** Assigned when the opt-in tracer document is created, never on rerender. */
+  /** Assigned when a construction-bound document is created or first opened. */
   incarnationId?: string;
   /** Immutable request base for the single prepared root-arc tracer. */
   rootArcRequestedBaseHash?: string;
@@ -57,6 +57,7 @@ export const createLocalStorageNetRecord = (params: {
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
+    incarnationId: crypto.randomUUID(),
   };
 };
 
