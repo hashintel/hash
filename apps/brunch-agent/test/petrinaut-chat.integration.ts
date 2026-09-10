@@ -117,6 +117,14 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
 });
+const providerToolNames = new Set<string>();
+const recordProviderToolNames = (context: {
+  readonly tools?: readonly { readonly name: string }[];
+}): void => {
+  for (const tool of context.tools ?? []) {
+    providerToolNames.add(tool.name);
+  }
+};
 setProvider(faux.provider);
 const application = await loadBuiltBrunchApplication();
 
@@ -217,8 +225,9 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
-      (context) =>
-        fauxAssistantMessage(
+      (context) => {
+        recordProviderToolNames(context);
+        return fauxAssistantMessage(
           [
             fauxThinking("Read the SDCPN-specific elicitation profile."),
             fauxToolCall(
@@ -233,8 +242,10 @@ try {
             ),
           ],
           { stopReason: "toolUse" },
-        ),
+        );
+      },
       (context) => {
+        recordProviderToolNames(context);
         const modelRequest = JSON.stringify(context);
         for (const requiredPromptText of [
           "Before answering a user request about this model or the current, open, visible, or existing net",
@@ -285,6 +296,7 @@ try {
         { stopReason: "toolUse" },
       ),
       (context) => {
+        recordProviderToolNames(context);
         const modelRequest = JSON.stringify(context);
         if (!modelRequest.includes(firstCurrentNetSnapshot.title)) {
           throw new Error(
@@ -298,6 +310,7 @@ try {
         ]);
       },
       (context) => {
+        recordProviderToolNames(context);
         const modelRequest = JSON.stringify(context);
         if (modelRequest.includes("Review the current SIR net again.")) {
           return fauxAssistantMessage(
@@ -316,7 +329,24 @@ try {
         ]);
       },
       (context) => {
+        recordProviderToolNames(context);
         const modelRequest = JSON.stringify(context);
+        if (
+          context.tools?.some(
+            ({ name }) => name === "getLatestNetDefinition",
+          )
+        ) {
+          return fauxAssistantMessage(
+            [
+              fauxToolCall(
+                "getLatestNetDefinition",
+                {},
+                { id: "tool-current-net-duplicate" },
+              ),
+            ],
+            { stopReason: "toolUse" },
+          );
+        }
         if (modelRequest.includes("Review the current SIR net again.")) {
           if (!modelRequest.includes(secondCurrentNetSnapshot.title)) {
             throw new Error(
@@ -587,15 +617,7 @@ try {
       userEntryIds,
       appTransport,
     );
-    const interviewerToolNames = [
-      ...new Set(
-        snapshot.messages.flatMap((message) =>
-          message.parts
-            .filter((part) => part.type === "dynamic-tool")
-            .map((part) => part.toolName),
-        ),
-      ),
-    ];
+    const interviewerToolNames = [...providerToolNames];
     let unauthenticatedHistoryStatus = 0;
     try {
       await createFlueClient({

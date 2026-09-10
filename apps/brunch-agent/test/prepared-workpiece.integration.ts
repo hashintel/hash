@@ -77,21 +77,30 @@ provider.setResponses([
     ],
     { stopReason: "toolUse" },
   ),
-  fauxAssistantMessage(
-    [
-      fauxToolCall(
-        "addArc",
-        {
-          transitionId: startFinalInspectionTransitionId,
-          arcDirection: "input",
-          placeId: dispatchCrewPlaceId,
-          weight: 1,
-        },
-        { id: "fixture-add-reservation-arc" },
-      ),
-    ],
-    { stopReason: "toolUse" },
-  ),
+  (context) =>
+    fauxAssistantMessage(
+      [
+        context.tools?.some(
+          ({ name }) => name === "getLatestNetDefinition",
+        )
+          ? fauxToolCall(
+              "getLatestNetDefinition",
+              {},
+              { id: "fixture-read-duplicate" },
+            )
+          : fauxToolCall(
+              "addArc",
+              {
+                transitionId: startFinalInspectionTransitionId,
+                arcDirection: "input",
+                placeId: dispatchCrewPlaceId,
+                weight: 1,
+              },
+              { id: "fixture-add-reservation-arc" },
+            ),
+      ],
+      { stopReason: "toolUse" },
+    ),
   fauxAssistantMessage([
     fauxText(
       [

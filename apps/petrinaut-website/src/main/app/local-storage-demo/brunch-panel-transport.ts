@@ -310,7 +310,7 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
-    /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
+    /** Fixture-scoped client tools; defaults to the docs and current-net readers. */
     readonly clientToolNames?: ReadonlySet<string>;
     readonly mapClientToolInput?: (input: {
       readonly input: unknown;

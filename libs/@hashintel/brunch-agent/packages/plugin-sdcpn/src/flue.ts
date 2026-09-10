@@ -80,10 +80,11 @@ This is a visibly labelled prepared-fixture conversation. Treat its tagged prepa
   for (const constructionTool of petrinautConstructionTools) {
     const isCurrentNetRead =
       constructionTool.name === getLatestNetDefinitionToolName;
-    const isFixtureMutation = fixtureToolNameSet.has(constructionTool.name);
+    const isFixtureMutation =
+      !isCurrentNetRead && fixtureToolNameSet.has(constructionTool.name);
     if (
-      isCurrentNetRead ||
       isValidatedConstruction ||
+      (isCurrentNetRead && delivery.kind === "user") ||
       (isPreparedFixture &&
         !isPreparedFixtureInitialization &&
         isFixtureMutation)
