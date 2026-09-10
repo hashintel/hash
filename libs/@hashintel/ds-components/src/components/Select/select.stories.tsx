@@ -541,6 +541,13 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
   const [valueD, setValueD] = useState<ColorValue | null>("orange");
   const [valueE, setValueE] = useState<ColorValue | null>("red");
   const [valueF, setValueF] = useState<ColorValue | null>("green");
+  const [nakedPlain, setNakedPlain] = useState<string | null | undefined>(
+    "apple",
+  );
+  const [nakedStyled, setNakedStyled] = useState<string | null | undefined>(
+    "banana",
+  );
+  const [nakedValues, setNakedValues] = useState<string[]>(["apple", "cherry"]);
   const spreadArgs = args as Omit<
     SingleSelectProps,
     "items" | "value" | "onChange" | "required"
@@ -641,6 +648,56 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
           renderSelectedItem={renderColorSelected}
           readonly
         />
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          variant="naked" — no input chrome; the host supplies any hover/focus
+          affordance
+        </span>
+        <Select
+          variant="naked"
+          width="fitContent"
+          items={sampleItems}
+          value={nakedPlain}
+          onChange={setNakedPlain}
+          aria-label="Fruit (naked)"
+        />
+        <span style={subheadingStyle}>
+          variant="naked" inherits the surrounding text styles regardless of
+          `size`, which still sizes the dropdown list
+        </span>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            fontStyle: "italic",
+            color: "#3b4a6b",
+          }}
+        >
+          I would like{" "}
+          <Select
+            variant="naked"
+            width="fitContent"
+            size="md"
+            items={sampleItems}
+            value={nakedStyled}
+            onChange={setNakedStyled}
+            aria-label="Fruit"
+          />
+        </span>
+        <span style={{ fontSize: 11, color: "#667788" }}>
+          size=lg inside 11px text still inherits:{" "}
+          <Select
+            variant="naked"
+            width="fitContent"
+            size="lg"
+            multiple
+            items={sampleItems}
+            value={nakedValues}
+            onChange={setNakedValues}
+            aria-label="Fruits"
+          />
+        </span>
       </div>
       <div style={{ display: "none" }}>
         <Select

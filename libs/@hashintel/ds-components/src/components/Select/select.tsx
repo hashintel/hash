@@ -68,8 +68,8 @@ type SelectBaseProps<TValue extends string> = {
   readonly?: boolean;
   /** Whether the input is in a loading state */
   loading?: boolean;
-  /** subtle inputs have no border and display similarly to inline text */
-  variant?: "default" | "subtle";
+  /** subtle inputs have no border and display similarly to inline text; naked inputs strip all input chrome — no border, padding, hover or focus styles — and inherit the surrounding text styles regardless of `size` (which still sizes the dropdown list). The host is responsible for any focus affordance around a naked select. */
+  variant?: "default" | "subtle" | "naked";
   /** set the alignment of the text in the input */
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */

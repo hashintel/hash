@@ -262,6 +262,28 @@ export const selectRecipe = sva({
           paddingLeft: "2",
         },
       },
+      // No input chrome at all: the trigger renders as bare inline text that
+      // inherits the surrounding font (the size variant still styles the
+      // dropdown list). The host provides any hover/focus affordance.
+      naked: {
+        wrapper: {
+          fontSize: "[inherit]",
+          lineHeight: "[inherit]",
+          fontWeight: "[inherit]",
+          letterSpacing: "[inherit]",
+        },
+        select: {
+          borderStyle: "none",
+          "--base-input-background-color": "transparent",
+          "--base-input-padding-x": "spacing.2",
+          "&::after": {
+            marginRight: "[calc(var(--base-input-padding-x) / 2)]",
+          },
+        },
+        trigger: {
+          paddingY: "0",
+        },
+      },
       subtle: {
         select: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",

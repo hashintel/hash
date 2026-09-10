@@ -161,7 +161,7 @@ const FilterSelectInput = ({
 
   const resolvedItems = isAsync ? (loadedItems ?? []) : items;
   const shared = {
-    variant: "subtle" as const,
+    variant: "naked" as const,
     width: "fitContent" as const,
     size,
     disabled,
@@ -186,6 +186,7 @@ const FilterSelectInput = ({
         renderSelectedItem={config.renderSelectedItem}
         value={Array.isArray(slot) ? slot : []}
         onChange={(next) => onSlotChange(next)}
+        hideArrow
       />
     );
   }
@@ -198,6 +199,7 @@ const FilterSelectInput = ({
       renderSelectedItem={config.renderSelectedItem}
       value={typeof slot === "string" ? slot : null}
       onChange={(next) => onSlotChange(next ?? null)}
+      hideArrow
     />
   );
 };
