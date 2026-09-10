@@ -114,6 +114,26 @@ export const classifyError = (
   };
 };
 
+/**
+ * The text a failed tool returned to the model. Flue's `errorInfo` for an
+ * argument-validation failure carries only `type: "_OTHER"`, so in development
+ * this is the only place the reason survives. Successful results are never read.
+ */
+const failedToolText = (result: unknown): string | undefined => {
+  if (typeof result === "string") return result;
+  if (!isRecord(result) || !Array.isArray(result.content)) return undefined;
+  const text = result.content
+    .filter(
+      (block): block is { type: "text"; text: string } =>
+        isRecord(block) &&
+        block.type === "text" &&
+        typeof block.text === "string",
+    )
+    .map((block) => block.text)
+    .join("\n");
+  return text.length > 0 ? text : undefined;
+};
+
 const correlation = (observation: FlueObservation): DiagnosticFields => ({
   event: observation.type,
   instanceId: observation.instanceId,
@@ -133,6 +153,7 @@ const correlation = (observation: FlueObservation): DiagnosticFields => ({
  */
 const observedFailure = (
   observation: FlueObservation,
+  verbose: boolean,
 ):
   | { stage: DiagnosticStage; error: unknown; fields: DiagnosticFields }
   | undefined => {
@@ -149,6 +170,9 @@ const observedFailure = (
               toolName: observation.toolName,
               origin: observation.origin,
               durationMs: observation.durationMs,
+              ...(verbose
+                ? { errorText: failedToolText(observation.result) }
+                : {}),
             },
           }
         : undefined;
@@ -280,7 +304,7 @@ export const createRuntimeDiagnostics = (
     report,
     note,
     observe: (observation) => {
-      const failure = observedFailure(observation);
+      const failure = observedFailure(observation, verbose);
       if (!failure) return;
       if (failure.error === undefined && failure.stage === "flue.log") {
         note(failure.stage, failure.fields);

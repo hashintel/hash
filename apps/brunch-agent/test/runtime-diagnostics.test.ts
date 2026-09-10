@@ -25,7 +25,12 @@ const createSink = () => {
   return { error, warn };
 };
 
-const toolObservation = (isError: boolean): FlueObservation => ({
+const toolObservation = (
+  isError: boolean,
+  overrides: Partial<Pick<FlueObservation, "errorInfo">> & {
+    result?: unknown;
+  } = {},
+): FlueObservation => ({
   ...envelope,
   type: "tool",
   toolName: "brunch_why",
@@ -41,6 +46,7 @@ const toolObservation = (isError: boolean): FlueObservation => ({
     message: `failed with ${SENTINEL}`,
     stack: `Error: failed with ${SENTINEL}\n    at run (why.ts:1:1)`,
   },
+  ...overrides,
 });
 
 describe("classifyError", () => {
@@ -100,6 +106,36 @@ describe("runtime diagnostics observer", () => {
     // Arguments and results are content, never logged in any environment.
     expect(JSON.stringify(meta)).not.toContain("secret");
     expect(JSON.stringify(meta).split(SENTINEL).length - 1).toBe(2);
+  });
+
+  test("development surfaces a failed tool's returned error text when errorInfo is bare", () => {
+    const sink = createSink();
+    const validationFailure = toolObservation(true, {
+      errorInfo: { type: "_OTHER" },
+      result: {
+        content: [
+          {
+            type: "text",
+            text: 'Arguments for tool "mutate_petrinet" do not match the required schema',
+          },
+        ],
+      },
+    });
+    void createRuntimeDiagnostics(sink, "development").observe(
+      validationFailure,
+      undefined as never,
+    );
+    expect(sink.error.mock.calls[0]![1]).toMatchObject({
+      error: { type: "_OTHER" },
+      errorText:
+        'Arguments for tool "mutate_petrinet" do not match the required schema',
+    });
+    const production = createSink();
+    void createRuntimeDiagnostics(production, "production").observe(
+      validationFailure,
+      undefined as never,
+    );
+    expect(production.error.mock.calls[0]![1]).not.toHaveProperty("errorText");
   });
 
   test("production keeps type and correlation only", () => {
