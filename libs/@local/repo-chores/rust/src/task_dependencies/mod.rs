@@ -7,9 +7,9 @@
 //! task of another package by its id.
 //!
 //! A task also lists the packages whose changes select it without being among the package's
-//! transitive dependencies: the packages its task edges reach, the packages its inputs reach
-//! into, and the packages nested in any of those directories, whose files turbo counts as the
-//! surrounding package's own.
+//! transitive dependencies: the packages of the tasks before it, the packages their inputs and
+//! its own reach into, and the packages nested in any of those directories, whose files turbo
+//! counts as the surrounding package's own.
 //!
 //! Only tasks turbo reports a command for are recorded: a task without a command never
 //! executes — turbo folds its hash into its dependents and skips it. An edge to such a task
@@ -381,12 +381,14 @@ fn executed_dependencies<'graph>(
     Ok(executed)
 }
 
-/// The packages of every task reachable from `dependencies`, skipped tasks included.
-fn reached_packages<'graph>(
-    dependencies: &'graph [String],
+/// The packages whose files turbo hashes into `task` or into any task before it, skipped
+/// tasks included: the packages those tasks belong to and the ones sharing files with them.
+fn affecting_packages<'graph>(
+    task: &'graph DryRunTask,
     tasks: &BTreeMap<&'graph str, &'graph DryRunTask>,
+    paths: &'graph BTreeMap<String, String>,
 ) -> Result<BTreeSet<&'graph str>, Report<TaskDependenciesError>> {
-    let mut pending: Vec<&str> = dependencies.iter().map(String::as_str).collect();
+    let mut pending: Vec<&str> = vec![task.task_id.as_str()];
     let mut seen: BTreeSet<&str> = pending.iter().copied().collect();
     let mut packages = BTreeSet::new();
 
@@ -400,6 +402,7 @@ fn reached_packages<'graph>(
         };
 
         packages.insert(task.package.as_str());
+        packages.extend(sharing_files(task, paths));
         pending.extend(
             task.dependencies
                 .iter()
@@ -469,7 +472,8 @@ fn shares_files(package: &str, path: &str) -> bool {
 
 /// The packages whose files turbo hashes into `task` besides its own package's: the ones
 /// under the inputs reaching out of the package, and the ones nested in the package's
-/// directory.
+/// directory. Applies to any task of the graph, skipped ones included, since their hashes
+/// carry the same inputs.
 fn sharing_files<'graph>(
     task: &'graph DryRunTask,
     paths: &'graph BTreeMap<String, String>,
@@ -566,10 +570,7 @@ fn documents(
             .expect("every task should belong to a listed package");
         // A file of a nested package is also a file of the package around it, so a package
         // brings the packages nested in its directory along.
-        let reached: BTreeSet<&str> = reached_packages(&task.dependencies, &by_id)?
-            .into_iter()
-            .chain(sharing_files(task, &paths))
-            .collect();
+        let reached = affecting_packages(task, &by_id, &paths)?;
         let affected_by = reached
             .iter()
             .copied()
