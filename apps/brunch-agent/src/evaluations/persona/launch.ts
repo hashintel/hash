@@ -71,7 +71,7 @@ export const personaArguments = (run: string, model: string) => [
   join(run, "evidence"),
   "--session-dir",
   join(run, "pi/sessions"),
-  "--no-approve",
+  "--approve",
   "--",
   `@${join(run, "persona-input.md")}`,
 ];

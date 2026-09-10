@@ -48,7 +48,10 @@ test("launches a fresh restricted persona using input files, not prior session o
   expect(args).toContain("--no-context-files");
   expect(args).toContain("--no-builtin-tools");
   expect(args).toContain("--no-extensions");
-  expect(args).toContain("--no-approve");
+  expect(args).toContain("--no-skills");
+  expect(args).toContain("--no-prompt-templates");
+  expect(args).toContain("--approve");
+  expect(args).not.toContain("--no-approve");
   expect(args).toContain("/tmp/TEST-persona/session.json");
   expect(args.at(-1)).toBe("@/tmp/TEST-persona/persona-input.md");
   expect(args).not.toContain("--session");

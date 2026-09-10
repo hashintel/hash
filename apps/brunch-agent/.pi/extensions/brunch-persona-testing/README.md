@@ -20,6 +20,8 @@ The maintained [launcher](../../../src/evaluations/persona/launch.ts):
 4. Opens an isolated Pi persona in a sibling Herdr pane, with the private pack and actual reply. Only `brunch_turn` is available; the persona cannot read repository files or answer keys.
 5. Keeps the browser open to follow the same conversation and workpiece. After the persona stops, the ordinary browser composer can continue that conversation.
 
+The persona invocation uses Pi's `--approve` for run-local project trust, so it neither asks for trust nor prints the untrusted-project warning. This does not save a persistent trust decision. The explicit persona extension/tool allowlist and `--no-context-files`, `--no-skills`, `--no-prompt-templates` and `--no-extensions` flags remain in place; project trust is not a grant of additional persona tools.
+
 Keep the launcher running while using the session. Ctrl-C or closing its browser stops the resources the launcher created, including its persona pane; reused services are left alone. Run data and browser profiles are retained. Do not submit browser turns concurrently with the persona.
 
 ## What is shared
