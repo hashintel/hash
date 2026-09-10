@@ -35,17 +35,16 @@ import {
   normalizeSweepSelection,
   selectionMidpoint,
 } from "./parameter-grid";
-import { type BatchStatus, createBatchRegistry } from "./shared/batch-registry";
 import { createThrottle } from "./shared/throttle";
 import { sweepCellObjective } from "./sweep-cell-objective";
 import {
   sweepBatchSeed,
-  sweepCellKey,
   sweepRangeDraws,
   sweepSelectionKey,
 } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
+import type { BatchStatus } from "./shared/batch-registry";
 import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   MonteCarloExperiment,
@@ -54,16 +53,17 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export type { SweepSelection } from "./parameter-grid";
-export { sweepBatchSeed } from "./sweep-session/selection-draws";
+export {
+  sweepBatchSeed,
+  sweepSelectionKey,
+} from "./sweep-session/selection-draws";
 export type { SweepRunDraws } from "./sweep-session/selection-draws";
 
-/** The only kind of batch a sweep runs: a rung of the selection's ladder. */
-export type SweepBatchKind = "selection";
-
-const SWEEP_BATCH_KIND_ORDER: readonly SweepBatchKind[] = ["selection"];
-
-/** One batch currently computing, for the host's activity display. */
-export type SweepBatchStatus = BatchStatus<{ kind: SweepBatchKind }>;
+/**
+ * One rung of the selection's ladder currently computing, for the host's
+ * activity display. A sweep runs no other kind of batch.
+ */
+export type SweepBatchStatus = BatchStatus<{ kind: "selection" }>;
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
@@ -85,6 +85,8 @@ export type SweepVisitedCell = {
 /** What the session streams to its owner on every meaningful change. */
 export type SweepSessionUpdate = {
   selection: SweepSelection;
+  /** The selection's cache key: one string per distinct selection. */
+  selectionKey: string;
   /** Cached batches of the selection plus the in-flight batches, merged. */
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   /** Runs contributing to `metricFrames`, including in-flight batches. */
@@ -96,13 +98,18 @@ export type SweepSessionUpdate = {
   /** Live progress of the oldest in-flight batch; null when idle. */
   progress: MonteCarloWorkerProgress | null;
   computing: boolean;
-  /** A batch failed; the session computes nothing more for this selection. */
+  /**
+   * A batch of this selection failed; the session computes nothing more for
+   * it until the selection moves.
+   */
   failed: boolean;
   /**
    * Every point computed so far, in the order first visited. A new array
    * only when a batch folds, so a consumer can key on its identity.
    */
   visited: readonly SweepVisitedCell[];
+  /** The ladder rungs computing right now, oldest first; empty when idle. */
+  batches: readonly SweepBatchStatus[];
 };
 
 export type InstantiateSweepBatch = (options: {
@@ -141,19 +148,13 @@ export type CreateSweepSessionOptions = {
   instantiateBatch: InstantiateSweepBatch;
   onUpdate: (update: SweepSessionUpdate) => void;
   /**
-   * Every batch currently computing, whenever the list or a batch's
-   * progress changes. Separate from `onUpdate` so progress alone does not
-   * republish the selection's frames. Dispose publishes the empty list.
-   */
-  onBatches?: (batches: readonly SweepBatchStatus[]) => void;
-  /**
    * Coalesces in-flight publishes: after a leading publish, further store
    * ticks inside this window fold into one trailing publish. 0 (the
    * default) publishes on every tick. Terminal publishes (batch end,
    * saturation, errors) are never delayed.
    */
   publishThrottleMs?: number;
-  /** A failed batch stops the session; the owner decides how to surface it. */
+  /** A failed batch stops its selection's compute; the owner decides how to surface it. */
   onError: (message: string) => void;
 };
 
@@ -171,17 +172,14 @@ export type SweepSession = {
   /**
    * Moves the selection and resolves once it has the runs asked for: the
    * cap, or the run count without one. Resolves with the finished runs'
-   * values, or null when another navigation superseded this one, a batch
-   * failed, or the session was disposed.
+   * values, or null when another navigation superseded this one or the
+   * session was disposed; rejects with the batch's reason when a batch of
+   * the selection fails.
    */
   navigateTo: (
     selection: SweepSelection,
     options?: SweepNavigateOptions,
   ) => Promise<SweepVisitedCell | null>;
-  /** Reads a point's finished-batch snapshot, by quantized position. */
-  getCell: (
-    position: Readonly<Record<string, number>>,
-  ) => SweepCellSnapshot | undefined;
   dispose: () => void;
 };
 
@@ -220,7 +218,24 @@ type NavigationWaiter = {
   /** Finished runs the waiter needs; the ladder's top when it cannot reach them. */
   minRuns: number;
   resolve: (cell: SweepVisitedCell | null) => void;
+  reject: (error: Error) => void;
 };
+
+/** A selection nothing has folded for yet; one instance, so live merges over it hit their cache. */
+const EMPTY_SNAPSHOT: SweepCellSnapshot = {
+  runsCompleted: 0,
+  metricFrames: [],
+};
+
+/** What a selection's finished runs measured, as the visited cell at `position`. */
+const cellFor = (
+  position: Readonly<Record<string, number>>,
+  snapshot: SweepCellSnapshot,
+): SweepVisitedCell => ({
+  position,
+  runsCompleted: snapshot.runsCompleted,
+  means: snapshotMeans(snapshot.metricFrames),
+});
 
 export function createSweepSession(
   options: CreateSweepSessionOptions,
@@ -236,7 +251,12 @@ export function createSweepSession(
   /** Where the ladder stops for the current selection; null is the run count. */
   let runCap: number | null = null;
   let disposed = false;
-  let failed = false;
+  /**
+   * The generation whose batch failed, with the batch's reason. A later
+   * selection is a new generation, so it computes afresh; a stale rung's
+   * late error cannot poison it either.
+   */
+  let failure: { generation: number; message: string } | null = null;
   /** Increments per selection change; a stale loop sees it and stops. */
   let generation = 0;
   let abortCurrent: (() => void) | null = null;
@@ -246,16 +266,7 @@ export function createSweepSession(
   /** Points computed so far, first visit first; replaced, never mutated. */
   let visited: readonly SweepVisitedCell[] = [];
   const visitedIndex = new Map<string, number>();
-  const recordVisit = (
-    key: string,
-    position: Readonly<Record<string, number>>,
-    snapshot: SweepCellSnapshot,
-  ) => {
-    const cell: SweepVisitedCell = {
-      position,
-      runsCompleted: snapshot.runsCompleted,
-      means: snapshotMeans(snapshot.metricFrames),
-    };
+  const recordVisit = (key: string, cell: SweepVisitedCell) => {
     const index = visitedIndex.get(key);
     const next = [...visited];
     if (index === undefined) {
@@ -268,137 +279,84 @@ export function createSweepSession(
   };
 
   let waiters: NavigationWaiter[] = [];
-  /** Resolves the waiters of `loopGeneration` that `snapshot` satisfies; all of them when the ladder is done. */
+  /** Removes and returns the waiters of `waiterGeneration` that `matches`. */
+  const takeWaiters = (
+    waiterGeneration: number,
+    matches: (waiter: NavigationWaiter) => boolean,
+  ): NavigationWaiter[] => {
+    const taken: NavigationWaiter[] = [];
+    waiters = waiters.filter((waiter) => {
+      if (waiter.generation === waiterGeneration && matches(waiter)) {
+        taken.push(waiter);
+        return false;
+      }
+      return true;
+    });
+    return taken;
+  };
+  /**
+   * Resolves the waiters of `loopGeneration` that `cell` satisfies — all of
+   * them when the ladder is done — with the cell, or null before any run
+   * finished.
+   */
   const settleWaiters = (
     loopGeneration: number,
-    snapshot: SweepCellSnapshot | null,
+    cell: SweepVisitedCell,
     ladderDone: boolean,
   ) => {
-    const position =
-      selectionPoint(axes, selection) ??
-      Object.fromEntries(
-        axes.map((axis) => [
-          axis.identifier,
-          Math.round(selectionMidpoint(selection, axis)),
-        ]),
-      );
-    const remaining: NavigationWaiter[] = [];
-    for (const waiter of waiters) {
-      if (waiter.generation !== loopGeneration) {
-        remaining.push(waiter);
-        continue;
-      }
-      if (
-        snapshot === null ||
-        snapshot.runsCompleted >= waiter.minRuns ||
-        ladderDone
-      ) {
-        waiter.resolve(
-          snapshot === null || snapshot.runsCompleted === 0
-            ? null
-            : {
-                position,
-                runsCompleted: snapshot.runsCompleted,
-                means: snapshotMeans(snapshot.metricFrames),
-              },
-        );
-      } else {
-        remaining.push(waiter);
-      }
+    const settled = takeWaiters(
+      loopGeneration,
+      (waiter) => ladderDone || cell.runsCompleted >= waiter.minRuns,
+    );
+    for (const waiter of settled) {
+      waiter.resolve(cell.runsCompleted === 0 ? null : cell);
     }
-    waiters = remaining;
+  };
+  /** Rejects every waiter of a generation whose batch failed with the reason. */
+  const rejectWaiters = (loopGeneration: number, error: Error) => {
+    for (const waiter of takeWaiters(loopGeneration, () => true)) {
+      waiter.reject(error);
+    }
   };
   /** Resolves every waiter of a generation that will never compute again with null. */
   const abandonWaiters = (staleGeneration: number) => {
-    const remaining: NavigationWaiter[] = [];
-    for (const waiter of waiters) {
-      if (waiter.generation === staleGeneration) {
-        waiter.resolve(null);
-      } else {
-        remaining.push(waiter);
-      }
+    for (const waiter of takeWaiters(staleGeneration, () => true)) {
+      waiter.resolve(null);
     }
-    waiters = remaining;
   };
 
-  const registry = createBatchRegistry<
-    SweepBatchKind,
-    { kind: SweepBatchKind }
-  >({
-    kindOrder: SWEEP_BATCH_KIND_ORDER,
-    onPublish: options.onBatches ?? (() => {}),
-  });
-
   const snapshotFor = (key: string): SweepCellSnapshot =>
-    cache.get(key) ?? { runsCompleted: 0, metricFrames: [] };
+    cache.get(key) ?? EMPTY_SNAPSHOT;
 
   /**
-   * The last live merge, keyed by both inputs' identities: progress ticks
+   * The last live merge, keyed by every input's identity: progress ticks
    * re-publish the same frame arrays, and re-merging every cached frame
    * against every in-flight frame per tick was the hottest main-thread cost.
+   * One three-way merge over the cache and each live rung's frames.
    */
   let mergeCache: {
     cached: readonly MonteCarloUserDefinedMetricFrame[];
-    inFlight: readonly MonteCarloUserDefinedMetricFrame[];
+    frameSets: readonly (readonly MonteCarloUserDefinedMetricFrame[])[];
     result: readonly MonteCarloUserDefinedMetricFrame[];
   } | null = null;
   const mergeLive = (
     cached: readonly MonteCarloUserDefinedMetricFrame[],
-    inFlight: readonly MonteCarloUserDefinedMetricFrame[],
+    frameSets: readonly (readonly MonteCarloUserDefinedMetricFrame[])[],
   ): readonly MonteCarloUserDefinedMetricFrame[] => {
     if (
       mergeCache === null ||
       mergeCache.cached !== cached ||
-      mergeCache.inFlight !== inFlight
+      mergeCache.frameSets.length !== frameSets.length ||
+      mergeCache.frameSets.some((frames, i) => frames !== frameSets[i])
     ) {
       mergeCache = {
         cached,
-        inFlight,
-        result: mergeMetricFramesAcrossCells([cached, inFlight]),
+        frameSets,
+        result: mergeMetricFramesAcrossCells([cached, ...frameSets]),
       };
     }
     return mergeCache.result;
   };
-
-  const publish = (update: {
-    inFlightFrames?: readonly MonteCarloUserDefinedMetricFrame[];
-    inFlightRuns?: number;
-    runTarget: number | null;
-    progress?: MonteCarloWorkerProgress | null;
-    computing: boolean;
-  }) => {
-    if (disposed) {
-      return;
-    }
-    const snapshot = snapshotFor(sweepSelectionKey(axes, selection));
-    const inFlight = update.inFlightFrames ?? [];
-    onUpdate({
-      selection,
-      metricFrames:
-        inFlight.length > 0
-          ? mergeLive(snapshot.metricFrames, inFlight)
-          : snapshot.metricFrames,
-      runsSampled: snapshot.runsCompleted + (update.inFlightRuns ?? 0),
-      runsCompleted: snapshot.runsCompleted,
-      runTarget: update.runTarget,
-      progress: update.progress ?? null,
-      computing: update.computing,
-      failed,
-      visited,
-    });
-  };
-
-  // Reads go through a function so the narrowing-based lint cannot claim the
-  // flag is constant: it flips inside closures the checker treats as opaque.
-  const isFailed = (): boolean => failed;
-
-  /** Whether `loopGeneration` still owns the session's compute slot. */
-  const isStale = (loopGeneration: number): boolean =>
-    disposed || loopGeneration !== generation;
-
-  /** The top of the ladder for the current selection. */
-  const ladderTop = (): number =>
-    runCap === null ? runCount : Math.min(runCount, runCap);
 
   /**
    * One in-flight ladder batch. Rungs cover disjoint run ranges with
@@ -406,6 +364,9 @@ export function createSweepSession(
    * predecessor is still running; only the FOLD into the cache is ordered.
    */
   type LadderRung = {
+    /** Unique within the session, in start order. */
+    id: number;
+    from: number;
     target: number;
     handle: MonteCarloExperiment;
     /** Resolves with how the batch ended (external abort included). */
@@ -416,11 +377,74 @@ export function createSweepSession(
     /** Unsubscribes the rung's handle listeners. */
     detach: () => void;
   };
+  let rungSequence = 0;
+  /** The current refine loop's in-flight rungs, oldest first; empty between loops. */
+  let liveRungs: readonly LadderRung[] = [];
+
+  const publish = (update: {
+    inFlightFrameSets?: readonly (readonly MonteCarloUserDefinedMetricFrame[])[];
+    inFlightRuns?: number;
+    runTarget: number | null;
+    progress?: MonteCarloWorkerProgress | null;
+    computing: boolean;
+  }) => {
+    if (disposed) {
+      return;
+    }
+    const selectionKey = sweepSelectionKey(axes, selection);
+    const snapshot = snapshotFor(selectionKey);
+    const frameSets = update.inFlightFrameSets ?? [];
+    onUpdate({
+      selection,
+      selectionKey,
+      metricFrames:
+        frameSets.length > 0
+          ? mergeLive(snapshot.metricFrames, frameSets)
+          : snapshot.metricFrames,
+      runsSampled: snapshot.runsCompleted + (update.inFlightRuns ?? 0),
+      runsCompleted: snapshot.runsCompleted,
+      runTarget: update.runTarget,
+      progress: update.progress ?? null,
+      computing: update.computing,
+      failed: failure?.generation === generation,
+      visited,
+      // A session that stopped computing has no live rung, whatever a loop
+      // still has to drain.
+      batches: update.computing
+        ? liveRungs.map((rung) => ({
+            kind: "selection" as const,
+            id: rung.id,
+            runCount: rung.target - rung.from,
+            completedRuns: rung.handle.progress.get()?.completedRuns ?? 0,
+          }))
+        : [],
+    });
+  };
+
+  // Reads go through a function so the narrowing-based lint cannot claim the
+  // state is constant: it changes inside closures the checker treats as opaque.
+  const isFailed = (loopGeneration: number): boolean =>
+    failure?.generation === loopGeneration;
+
+  /** A batch of `loopGeneration` failed: the loop stops and the owner hears why. */
+  const fail = (loopGeneration: number, message: string) => {
+    failure = { generation: loopGeneration, message };
+    onError(message);
+  };
+
+  /** Whether `loopGeneration` still owns the session's compute slot. */
+  const isStale = (loopGeneration: number): boolean =>
+    disposed || loopGeneration !== generation;
+
+  /** The top of the ladder for the current selection. */
+  const ladderTop = (): number =>
+    runCap === null ? runCount : Math.min(runCount, runCap);
 
   /**
    * Starts one ladder batch for runs `[from, target)` of the current
    * selection. Returns null when the batch was superseded (abort, stale
-   * generation) or failed — failure marks the session failed and publishes.
+   * generation) or failed — failure marks the generation failed and
+   * publishes.
    */
   const startRung = async (
     loopGeneration: number,
@@ -457,8 +481,8 @@ export function createSweepSession(
       if (isStale(loopGeneration) || isAbortError(error)) {
         return null;
       }
-      failed = true;
-      onError(
+      fail(
+        loopGeneration,
         error instanceof Error ? error.message : "Failed to draw a batch",
       );
       publish({ runTarget: target, computing: false });
@@ -498,8 +522,8 @@ export function createSweepSession(
       if (isStale(loopGeneration) || isAbortError(error)) {
         return null;
       }
-      failed = true;
-      onError(
+      fail(
+        loopGeneration,
         error instanceof Error ? error.message : "Failed to start a batch",
       );
       publish({ runTarget: target, computing: false });
@@ -534,21 +558,14 @@ export function createSweepSession(
       } else if (event.type === "cancelled") {
         resolveDone("stopped");
       } else {
-        failed = true;
-        onError(event.message);
+        fail(loopGeneration, event.message);
         resolveDone("stopped");
       }
     });
-    const unregister = registry.register(
-      { kind: "selection" },
-      target - from,
-      handle.progress,
-    );
     const detach = () => {
       unsubscribeMetrics();
       unsubscribeProgress();
       unsubscribeEvents();
-      unregister();
       abortSet.delete(abortEntry);
     };
     // Aborting a started handle's signal would tear its transports down
@@ -560,7 +577,10 @@ export function createSweepSession(
     };
 
     handle.start();
+    rungSequence += 1;
     return {
+      id: rungSequence,
+      from,
       target,
       handle,
       done,
@@ -586,7 +606,17 @@ export function createSweepSession(
     };
     const key = sweepSelectionKey(axes, selection);
     const point = selectionPoint(axes, selection);
+    /** Where the selection's cell sits: the point, or the midpoint of the ranges. */
+    const position =
+      point ??
+      Object.fromEntries(
+        axes.map((axis) => [
+          axis.identifier,
+          Math.round(selectionMidpoint(selection, axis)),
+        ]),
+      );
     const live: LadderRung[] = [];
+    liveRungs = live;
     const abortSet = new Set<() => void>();
     abortCurrent = () => {
       for (const abort of abortSet) {
@@ -599,14 +629,10 @@ export function createSweepSession(
         return;
       }
       const first = live[0]!;
-      const frameSets = live
-        .map((rung) => rung.handle.metrics.get().frames)
-        .filter((frames) => frames.length > 0);
       publish({
-        inFlightFrames:
-          frameSets.length > 1
-            ? mergeMetricFramesAcrossCells(frameSets)
-            : frameSets[0],
+        inFlightFrameSets: live
+          .map((rung) => rung.handle.metrics.get().frames)
+          .filter((frames) => frames.length > 0),
         inFlightRuns: live.reduce(
           (total, rung) =>
             total + (rung.handle.progress.get()?.completedRuns ?? 0),
@@ -649,6 +675,8 @@ export function createSweepSession(
       }
       nextFrom = target;
       live.push(rung);
+      // The rung joins the batches list at once rather than on its first tick.
+      livePublish.call();
       return true;
     };
 
@@ -659,16 +687,35 @@ export function createSweepSession(
         rung.handle.dispose();
       }
     };
+    /** The loop is over: a later loop's rungs are the live ones now. */
+    const releaseLive = () => {
+      if (liveRungs === live) {
+        liveRungs = [];
+      }
+    };
+    /**
+     * The ladder stopped for this loop's waiters: rejected with the failure
+     * that stopped it, else resolved with what the selection has.
+     */
+    const concludeWaiters = () => {
+      if (failure?.generation === loopGeneration) {
+        rejectWaiters(loopGeneration, new Error(failure.message));
+      } else {
+        settleWaiters(loopGeneration, cellFor(position, chainSnapshot), true);
+      }
+    };
 
     const started = await startNext();
     if (!started) {
       releaseCompute();
-      if (!isStale(loopGeneration) && !disposed && !failed) {
-        publish({ runTarget: null, computing: false });
-        settleWaiters(loopGeneration, chainSnapshot, true);
-      } else if (!disposed) {
-        settleWaiters(loopGeneration, null, true);
+      releaseLive();
+      if (isStale(loopGeneration)) {
+        return;
       }
+      if (!isFailed(loopGeneration)) {
+        publish({ runTarget: null, computing: false });
+      }
+      concludeWaiters();
       return;
     }
 
@@ -676,12 +723,16 @@ export function createSweepSession(
       const current = live[0]!;
 
       // Pipeline: once the current rung streams, start its successor.
-      if (live.length === 1 && !failed) {
+      if (live.length === 1 && !isFailed(loopGeneration)) {
         const first = await Promise.race([
           current.streamed.then(() => "streamed" as const),
           current.done.then(() => "done" as const),
         ]);
-        if (first === "streamed" && !isStale(loopGeneration) && !isFailed()) {
+        if (
+          first === "streamed" &&
+          !isStale(loopGeneration) &&
+          !isFailed(loopGeneration)
+        ) {
           await startNext();
         }
       }
@@ -709,17 +760,18 @@ export function createSweepSession(
         ]),
       };
       cache.set(key, chainSnapshot);
+      const cell = cellFor(position, chainSnapshot);
       if (point !== null) {
-        recordVisit(key, point, chainSnapshot);
+        recordVisit(key, cell);
       }
       // Reflect the fold (runsCompleted advanced) without waiting for the
       // successor's next tick; with no successor the exit publish covers it.
       livePublish.call();
       if (!isStale(loopGeneration)) {
-        settleWaiters(loopGeneration, chainSnapshot, false);
+        settleWaiters(loopGeneration, cell, false);
       }
 
-      if (disposed || isStale(loopGeneration) || failed) {
+      if (isStale(loopGeneration) || isFailed(loopGeneration)) {
         drainLive();
         break;
       }
@@ -730,11 +782,12 @@ export function createSweepSession(
 
     livePublish.cancel();
     releaseCompute();
-    if (!isStale(loopGeneration) && !disposed) {
+    releaseLive();
+    if (!isStale(loopGeneration)) {
       // The session idles — after finishing the ladder or after a failure;
       // either way leave the last good frames up rather than a spinner.
       publish({ runTarget: null, computing: false });
-      settleWaiters(loopGeneration, failed ? null : chainSnapshot, true);
+      concludeWaiters();
     }
   };
 
@@ -759,6 +812,19 @@ export function createSweepSession(
     return changed;
   };
 
+  /**
+   * Adopts `next` as the selection with `cap` as its ladder's stop (null is
+   * the run count), and restarts compute when either changed or nothing runs.
+   */
+  const move = (next: SweepSelection, cap: number | null) => {
+    const changed = adopt(next);
+    const capChanged = cap !== runCap;
+    runCap = cap;
+    if (changed || capChanged || activeLoop === null) {
+      restart();
+    }
+  };
+
   if (options.startComputing ?? true) {
     restart();
   } else {
@@ -770,36 +836,23 @@ export function createSweepSession(
       if (disposed) {
         return;
       }
-      const changed = adopt(next);
-      const capLifted = runCap !== null;
-      runCap = null;
-      if (changed || capLifted || activeLoop === null) {
-        restart();
-      }
+      move(next, null);
     },
     navigateTo(next, navigateOptions = {}) {
       if (disposed) {
         return Promise.resolve(null);
       }
-      const changed = adopt(next);
-      const cap = navigateOptions.runCap ?? null;
-      const capChanged = cap !== runCap;
-      runCap = cap;
-      if (changed || capChanged || activeLoop === null) {
-        restart();
-      }
-      return new Promise<SweepVisitedCell | null>((resolve) => {
-        waiters.push({ generation, minRuns: ladderTop(), resolve });
+      move(next, navigateOptions.runCap ?? null);
+      return new Promise<SweepVisitedCell | null>((resolve, reject) => {
+        waiters.push({ generation, minRuns: ladderTop(), resolve, reject });
       });
     },
-    getCell(position) {
-      return cache.get(sweepCellKey(axes, position));
-    },
     dispose() {
+      // The owner's last frame reads idle: nothing computes once disposed.
+      publish({ runTarget: null, computing: false });
       disposed = true;
       const stale = generation;
       generation += 1;
-      registry.clear();
       abortCurrent?.();
       abortCurrent = null;
       abandonWaiters(stale);

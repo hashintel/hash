@@ -12,6 +12,7 @@ import {
   petrinautOptimizationInputSchema,
 } from "@hashintel/petrinaut-core/optimization";
 
+import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -200,8 +201,12 @@ export type SweepOptimizer = {
   discard: () => void;
 };
 
-/** Runs each step's point computes before the optimizer reads its value. */
-const SWEEP_OPTIMIZATION_RUNS_PER_STEP = 8;
+/**
+ * Runs each step's point computes before the optimizer reads its value: the
+ * ladder's first rung, so a step's batch boundary — and with it the seeds —
+ * matches a point the user climbs to.
+ */
+const SWEEP_OPTIMIZATION_RUNS_PER_STEP = EXPERIMENT_RUN_LADDER[0];
 
 export const useSweepOptimizer = (
   experiment: ExperimentRecord,

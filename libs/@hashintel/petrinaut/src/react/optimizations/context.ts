@@ -236,6 +236,26 @@ export function isOptimizationActive(
   );
 }
 
+/** Trials the study is done with, whatever their outcome. */
+export const finishedTrialCount = (
+  optimization: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials"
+  >,
+): number =>
+  optimization.completedTrials +
+  optimization.prunedTrials +
+  optimization.failedTrials;
+
+/** The 1-based number of the trial the study is on, never past the last one requested. */
+export const currentTrialNumber = (
+  optimization: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials" | "requestedTrials"
+  >,
+): number =>
+  Math.min(optimization.requestedTrials, finishedTrialCount(optimization) + 1);
+
 /**
  * Whether a paused connected study is still computing: its record reads
  * `paused` from the moment Pause is asked, while the steps in flight finish

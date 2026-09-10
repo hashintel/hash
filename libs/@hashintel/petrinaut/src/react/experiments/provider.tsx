@@ -394,16 +394,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           progress: update.progress,
           sweep: {
             selection: update.selection,
+            selectionKey: update.selectionKey,
             runsCompleted: update.runsCompleted,
             runsSampled: update.runsSampled,
             runTarget: update.runTarget,
             computing: update.computing,
             visited: update.visited,
           },
+          sweepBatches: update.batches,
         });
-      },
-      onBatches: (sweepBatches) => {
-        patchExperiment(experimentId, { sweepBatches });
       },
       onError: (message) => {
         patchExperiment(experimentId, {
@@ -635,7 +634,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   ) =>
     sweepSessionsRef.current
       .get(experimentId)
-      ?.navigateTo(selection, options) ?? Promise.resolve(null);
+      ?.navigateTo(selection, options) ??
+    Promise.reject(new Error("The sweep is no longer running"));
 
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
