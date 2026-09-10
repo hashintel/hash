@@ -511,6 +511,126 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
   });
 
+  test("submits sequential utterances in speech order when transcription completes out of order", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    for (const itemId of ["first-item", "second-item"]) {
+      harness.emit({
+        connectionEpoch: 3,
+        interruptionBySpeaking: true,
+        itemId,
+        type: "input-speech-started",
+      });
+      harness.emit({
+        connectionEpoch: 3,
+        itemId,
+        type: "input-speech-stopped",
+      });
+    }
+
+    harness.emit(completedTranscript(3, "Second answer.", "second-item"));
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+
+    harness.emit(completedTranscript(3, "First answer.", "first-item"));
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({
+          answer: "First answer.",
+          type: "submission-accepted",
+        }),
+      ),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ text: "First answer." }),
+    );
+    expect(harness.events).toContainEqual({
+      answer: "Second answer.",
+      type: "transcript-retained",
+    });
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        segment("first-reply", "Who acts next?", "submission-voice-1"),
+      ],
+      status: "ready",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ text: "Second answer." }),
+    );
+  });
+
+  test("retains a half-duplex follow-up accepted before the first submission starts", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    for (const itemId of ["first-item", "second-item"]) {
+      harness.emit({
+        connectionEpoch: 3,
+        itemId,
+        type: "input-speech-started",
+      });
+      harness.emit({
+        connectionEpoch: 3,
+        itemId,
+        type: "input-speech-stopped",
+      });
+    }
+
+    harness.emit(completedTranscript(3, "First answer.", "first-item"));
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({
+          answer: "First answer.",
+          type: "submission-accepted",
+        }),
+      ),
+    );
+    harness.emit(completedTranscript(3, "Second answer.", "second-item"));
+
+    expect(harness.events).toContainEqual({
+      answer: "Second answer.",
+      type: "transcript-retained",
+    });
+    expect(harness.events).not.toContainEqual({
+      itemId: "second-item",
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        segment("first-reply", "Who acts next?", "submission-voice-1"),
+      ],
+      status: "ready",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ text: "Second answer." }),
+    );
+  });
+
   test.each(["stop", "reconnect"] as const)(
     "clears a retained interruption on %s",
     (action) => {
