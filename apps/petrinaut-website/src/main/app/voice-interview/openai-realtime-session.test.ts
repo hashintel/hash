@@ -1902,7 +1902,95 @@ describe("OpenAIRealtimeSession", () => {
     ]);
   });
 
-  test("exposes only the first unresolved provider input item", async () => {
+  test("accepts a new provider input item after the previous item stops", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "first-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "first-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    channel.receive({
+      audio_start_ms: 220,
+      item_id: "second-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "first-item",
+      transcript: "Submit this first answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({
+      audio_end_ms: 320,
+      item_id: "second-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "second-item",
+      transcript: "Submit this second answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(
+      harness.events.filter(
+        ({ type }) =>
+          type === "input-speech-started" ||
+          type === "input-speech-stopped" ||
+          type === "completed",
+      ),
+    ).toEqual([
+      {
+        connectionEpoch: 1,
+        itemId: "first-item",
+        type: "input-speech-started",
+      },
+      {
+        connectionEpoch: 1,
+        itemId: "first-item",
+        type: "input-speech-stopped",
+      },
+      {
+        connectionEpoch: 1,
+        itemId: "second-item",
+        type: "input-speech-started",
+      },
+      {
+        key: {
+          connectionEpoch: 1,
+          contentIndex: 0,
+          itemId: "first-item",
+        },
+        text: "Submit this first answer.",
+        type: "completed",
+      },
+      {
+        connectionEpoch: 1,
+        itemId: "second-item",
+        type: "input-speech-stopped",
+      },
+      {
+        key: {
+          connectionEpoch: 1,
+          contentIndex: 0,
+          itemId: "second-item",
+        },
+        text: "Submit this second answer.",
+        type: "completed",
+      },
+    ]);
+  });
+
+  test("exposes only the first concurrently speaking provider input item", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
