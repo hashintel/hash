@@ -1562,6 +1562,49 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
+  test("drains a retained interruption when the completed submission has no canonical response", async () => {
+    const harness = createHarness();
+    startReady(harness, 7);
+    harness.emit(completedTranscript(7, "The silent answer."));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "submitted",
+    });
+    harness.emit({
+      connectionEpoch: 7,
+      interruptionBySpeaking: true,
+      itemId: "retained-item",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(7, "The retained answer.", "retained-item"),
+    );
+    expect(harness.events).toContainEqual({
+      answer: "The retained answer.",
+      type: "transcript-retained",
+    });
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      settlements: [
+        { outcome: "completed", submissionId: "submission-voice-1" },
+      ],
+      status: "ready",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: "The retained answer." }),
+    );
+  });
+
   test("speaks a completed canonical segment while chat remains streaming and settles separately", async () => {
     const harness = createHarness();
     startReady(harness, 7);
