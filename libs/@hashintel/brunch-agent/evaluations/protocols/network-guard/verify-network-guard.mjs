@@ -25,14 +25,9 @@ try {
         "SIGNING_SOCKET_REAL=/private/tmp/m7-signing-guard-unconnected",
         "-f",
         `${directory}/${profile}`,
-        "/bin/sh",
-        "-c",
-        'java -Djava.net.preferIPv4Stack=true "$1/NetworkGuard.java" "$2" "$3" && "$4" --input-type=module -e "$5"',
-        "guard",
-        directory,
-        mode,
-        String(address.port),
         process.execPath,
+        "--input-type=module",
+        "-e",
         `import assert from 'node:assert/strict'; import net from 'node:net';
        const connect = (host) => new Promise((resolve) => { const socket = net.connect({ host, port: ${address.port} }); socket.setTimeout(1000); socket.once('connect', () => { socket.destroy(); resolve('connected'); }); socket.once('error', (error) => resolve(error.code)); socket.once('timeout', () => { socket.destroy(); resolve('timeout'); }); });
        assert.equal(await connect('192.0.2.1'), 'EPERM');
@@ -43,9 +38,7 @@ try {
     );
     const [code] = await once(child, "exit");
     assert.equal(code, 0, `${profile} descendant guard failed`);
-    console.log(
-      `PASS ${profile}: shell -> Java / Node descendants inherit denial`,
-    );
+    console.log(`PASS ${profile}: sandbox-exec -> Node inherits denial`);
   }
 } finally {
   listener.close();

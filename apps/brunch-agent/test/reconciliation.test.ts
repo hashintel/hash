@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
 
 import { expect, test } from "vitest";
 
@@ -434,11 +433,10 @@ test.each(["no-op", "failed", "stale", "unknown"] as const)(
 );
 
 const a5Snapshot = JSON.parse(
-  gunzipSync(
-    readFileSync(
-      new URL("./fixtures/reconciliation/a5-history.json.gz", import.meta.url),
-    ),
-  ).toString("utf8"),
+  readFileSync(
+    new URL("./fixtures/reconciliation/a5-history.json", import.meta.url),
+    "utf8",
+  ),
 ) as FlueConversationSnapshot;
 const a5Result = clientToolHistoryFrom(a5Snapshot.messages).results.find(
   (result) => result.toolCallId === "a5-declared-arc",

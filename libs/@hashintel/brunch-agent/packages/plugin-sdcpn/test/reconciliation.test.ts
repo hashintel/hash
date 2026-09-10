@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
 
 import { expect, test } from "vitest";
 
@@ -12,11 +11,10 @@ import {
 
 const load = (name: string): unknown =>
   JSON.parse(
-    gunzipSync(
-      readFileSync(
-        new URL(`./fixtures/reconciliation/${name}.json.gz`, import.meta.url),
-      ),
-    ).toString("utf8"),
+    readFileSync(
+      new URL(`./fixtures/reconciliation/${name}.json`, import.meta.url),
+      "utf8",
+    ),
   );
 const result = load("record") as {
   metadata: { transitionRecord: { attempts: ArcTransitionAttempt[] } };

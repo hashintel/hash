@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
 
 import { expect, test } from "vitest";
 
@@ -19,14 +18,13 @@ import type { FlueConversationSnapshot } from "@flue/sdk";
 
 // Untouched actual browser capture; never imported into a product store.
 const snapshot = JSON.parse(
-  gunzipSync(
-    readFileSync(
-      new URL(
-        "./fixtures/aggregate-why/typed-state/history.json.gz",
-        import.meta.url,
-      ),
+  readFileSync(
+    new URL(
+      "./fixtures/aggregate-why/typed-state/history.json",
+      import.meta.url,
     ),
-  ).toString("utf8"),
+    "utf8",
+  ),
 ) as FlueConversationSnapshot;
 const current = retainedSettledRevision(snapshot, "typed-revision-two");
 if (!current) throw new Error("Missing actual settled revision");
@@ -136,14 +134,10 @@ test("existing transition arc aggregates cannot inherit their empty creation bas
     import.meta.url,
   );
   const rootSnapshot = JSON.parse(
-    gunzipSync(readFileSync(new URL("history.json.gz", directory))).toString(
-      "utf8",
-    ),
+    readFileSync(new URL("history.json", directory), "utf8"),
   ) as FlueConversationSnapshot;
   const [prior] = JSON.parse(
-    gunzipSync(readFileSync(new URL("why.json.gz", directory))).toString(
-      "utf8",
-    ),
+    readFileSync(new URL("why.json", directory), "utf8"),
   ) as RootArcExplanation[];
   if (!prior) throw new Error("Missing actual root explanation fixture");
   const explainField = (field: string) =>

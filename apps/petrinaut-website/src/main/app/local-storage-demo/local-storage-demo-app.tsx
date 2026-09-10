@@ -711,10 +711,7 @@ export const LocalStorageDemoApp = ({
     flueClientPromise,
     rootArcBrowser !== undefined && !constructionSelected,
     rootArcBrowser && "requestedBaseHash" in rootArcBrowser
-      ? {
-          binding: rootArcBrowser.binding,
-          requestedBaseHash: rootArcBrowser.requestedBaseHash,
-        }
+      ? rootArcBrowser
       : undefined,
   );
   const flueHistory = useFlueChatHistory(

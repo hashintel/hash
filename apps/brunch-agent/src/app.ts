@@ -53,6 +53,9 @@ if (accounting) {
     dispose() {},
   });
 }
+// Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
+// tool parameters to `{ type, properties, required }` unless we override
+// `convertTools`. See apps/brunch-agent/AGENTS.md.
 const nativeProvider = anthropicProvider();
 setProvider(
   withBufferedToolAdmission(
