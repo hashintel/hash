@@ -4,17 +4,17 @@ direction: down
 ui: "drawer" {
   direction: right
   navigator: "navigator / surface drag\n(selection change)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
-  surface: "surface walk\n(quad-tree chunks, lanes)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  optimizer: "optimizer trial\n(sweep trial evaluator)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
   charts: "metric charts\n(rAF latest-wins, crossfade)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
   activity: "activity list + top bar\n(batches, progress)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 }
 
 react: "experiments provider + sweep session" {
   direction: right
-  actions: "actions context\nsetSweepSelection · sampleSurfaceCells" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  session: "sweep session\nselection cache · refine ladder (2 live rungs)\nstreamed gate · batch registry · 100 ms publish" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  lanes: "instantiateBatch\n(backend lanes: chosen / narrow / wide)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  record: "experiment record\n(metricFrames, sweep, sweepBatches)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  actions: "actions context\nsetSweepSelection · navigateSweep" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  session: "sweep session\nselection cache · refine ladder (2 live rungs, run cap)\nvisited cells · batch registry · 100 ms publish" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  lanes: "instantiateBatch\n(the chosen backend)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  record: "experiment record\n(metricFrames, sweep.visited, sweepBatches)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
 }
 
 core: "petrinaut-core" {
@@ -34,7 +34,7 @@ react.lanes -> core.gpu
 core.stores -> react.session: "frames, progress (subscribe)"
 react.session -> react.record: "publish (leading edge, 100 ms)"
 react.record -> ui.charts: "context re-render"
-ui.surface -> react.actions: "sampleSurfaceCells(cells, 8 runs, onPartial)"
-react.session -> ui.surface: "cell means per shard" {style.stroke-dash: 4}
+ui.optimizer -> react.actions: "navigateSweep(point, run cap)"
+react.session -> ui.optimizer: "the point's means once folded" {style.stroke-dash: 4}
 react.session -> react.record: "batches"
 react.record -> ui.activity

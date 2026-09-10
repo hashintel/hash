@@ -71,7 +71,7 @@ defaults. `prepareScenarioCompiler` (`compile-scenario.ts`, core) runs that
 half once, and each `compile(values)` call only merges the assignment,
 interprets the override expressions, and coerces the results. The provider
 prepares one compiler per experiment and every consumer — batch midpoints,
-per-run translation, surface sampling — compiles through it.
+per-run translation — compiles through it.
 
 Per-run translation compiles less still: `compileParameterNumbers` runs the
 parameter steps and skips both the initial state, which per-run translation
