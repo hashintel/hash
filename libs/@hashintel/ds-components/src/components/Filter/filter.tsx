@@ -141,10 +141,7 @@ export const Filter = <
   testId?: string;
   /** The size (height) of the element */
   size?: FormInputSize;
-  removeable?: {
-    removeable: boolean;
-    onRemove: () => void;
-  };
+  removeable?: false | { onRemove: () => void };
 }) => {
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
@@ -513,7 +510,7 @@ export const Filter = <
       })}
       {/* Deliberately never disabled: `disabled` freezes the operator and
           inputs, but the filter can still be removed. */}
-      {removeable?.removeable && (
+      {removeable && (
         <button
           type="button"
           data-part="remove"

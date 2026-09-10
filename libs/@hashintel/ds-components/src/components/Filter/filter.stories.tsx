@@ -172,7 +172,6 @@ const Demo = <ValueMap extends Record<string, unknown>>({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
         removeable={{
-          removeable: true,
           onRemove: () => {
             setValue(null);
             setChanges((previous) => [...previous.slice(-4), "onRemove()"]);
@@ -209,7 +208,7 @@ const KitchenSinkState = ({
       propertyLabel="Value"
       operators={KitchenSinkOperators}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
       {...filterProps}
     />
   </>
@@ -250,7 +249,7 @@ export const Default: Story = () => (
       operators={SingleOperatorOperators}
       value={null}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>single operator, with value</span>
     <Filter<SingleOperatorValues>
@@ -259,7 +258,7 @@ export const Default: Story = () => (
       operators={SingleOperatorOperators}
       value={{ key: "contains", value: "hello" }}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>no operators</span>
     <Filter<Record<string, never>>
@@ -267,7 +266,7 @@ export const Default: Story = () => (
       propertyLabel="Archived"
       operators={[]}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>
       responsive, long content in a max-width container
@@ -285,13 +284,13 @@ export const Default: Story = () => (
           ],
         }}
         onChange={noop}
-        removeable={{ removeable: true, onRemove: noop }}
+        removeable={{ onRemove: noop }}
       />
     </div>
     <KitchenSinkState
       label="not removeable"
       value={{ key: "equals", value: "fixed filter" }}
-      removeable={{ removeable: false, onRemove: noop }}
+      removeable={false}
     />
     <KitchenSinkState
       label="disabled"
@@ -383,7 +382,6 @@ const GroupDemo = () => {
               );
             }}
             removeable={{
-              removeable: true,
               onRemove: () =>
                 setFilters((previous) =>
                   previous.filter((entry) => entry.id !== filter.id),
@@ -425,7 +423,7 @@ export const Sizes: Story = () => (
           value={{ key: "between", value: [10, 50, 90] }}
           onChange={noop}
           size={size}
-          removeable={{ removeable: true, onRemove: noop }}
+          removeable={{ onRemove: noop }}
         />
       </div>
     ))}

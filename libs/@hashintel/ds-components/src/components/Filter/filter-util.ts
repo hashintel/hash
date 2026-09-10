@@ -1,6 +1,11 @@
 import { type ItemOrGroup } from "../../util/SelectableList/selectable-list";
 
 import type { IconName } from "../Icon/icon";
+import type {
+  MultiSelectItem,
+  SelectItem,
+  SelectProps,
+} from "../Select/select";
 
 export type InputSeparator = string | { iconName: IconName };
 
@@ -18,6 +23,45 @@ type NumberInput = {
   min?: number;
   max?: number;
   step?: number;
+};
+
+/** Items may be provided upfront, or lazily via an async loader. */
+type SelectInputItems<Item> =
+  | ReadonlyArray<ItemOrGroup<Item>>
+  | (() => Promise<ReadonlyArray<ItemOrGroup<Item>>>);
+
+export type SingleSelectInput<TValue extends string = string> = {
+  type: "select";
+  items: SelectInputItems<SelectItem<TValue>>;
+  renderItem?: (value: TValue) => React.ReactNode;
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
+  emptyState?: React.ReactNode;
+  placeholder?: string;
+  multiple?: false;
+  searchable?:
+    | boolean
+    | {
+        onSearch?: (search: string) => void;
+      };
+};
+
+export type MultiSelectInput<TValue extends string = string> = {
+  type: "select";
+  items: SelectInputItems<MultiSelectItem<TValue>>;
+  renderItem?: (value: TValue) => React.ReactNode;
+  renderSelectedItem?: (values: TValue[]) => React.ReactNode;
+  emptyState?: React.ReactNode;
+  placeholder?: string;
+  multiple: true;
+  maxItems?: number;
+  overflow?: Extract<SelectProps, { multiple: true }>["overflow"];
+  searchable?:
+    | boolean
+    | {
+        onSearch?: (search: string) => void;
+        hideCount?: boolean;
+        hideSelectAllToggle?: boolean;
+      };
 };
 
 export type Input = TextInput | NumberInput;

@@ -82,11 +82,8 @@ type SelectBaseProps<TValue extends string> = {
   connectToLeftInput?: boolean;
   /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
   connectToRightInput?: boolean;
-  /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
-  clearable?: {
-    clearable: boolean;
-    onClear: () => void;
-  };
+  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `null` (or `[]` for a multi select); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  clearable?: boolean | { onClear: () => void };
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
@@ -106,8 +103,7 @@ type SelectBaseProps<TValue extends string> = {
  * onSearch is called as the search value changes, including with "" when the
  * dropdown closes and the search resets. */
 type SelectSearchable = {
-  searchable: boolean;
-  onSearch: (search: string) => void;
+  onSearch?: (search: string) => void;
 };
 
 type SelectSingleProps<TValue extends string> = {
@@ -116,10 +112,12 @@ type SelectSingleProps<TValue extends string> = {
   maxItems?: never;
   overflow?: never;
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
-  searchable?: SelectSearchable & {
-    hideCount?: never;
-    hideSelectAllToggle?: never;
-  };
+  searchable?:
+    | boolean
+    | (SelectSearchable & {
+        hideCount?: never;
+        hideSelectAllToggle?: never;
+      });
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
@@ -144,15 +142,18 @@ type SelectMultipleProps<TValue extends string> = {
   /** How the selected values render in the trigger when no `renderSelectedItem` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
-  searchable?: SelectSearchable & {
-    /** Hide the "x of y" selected count in the selection summary. It is also
-     * hidden while `loading`, when the option count is not yet known. */
-    hideCount?: boolean;
-    /** Hide the "Select all" / "Clear all" toggle in the selection summary.
-     * It is also hidden when `maxItems` puts selecting every option out of
-     * reach. */
-    hideSelectAllToggle?: boolean;
-  };
+  searchable?:
+    | boolean
+    | (SelectSearchable & {
+        /** Hide the "x of y" selected count in the selection summary. It is
+         * also hidden while `loading`, when the option count is not yet
+         * known. */
+        hideCount?: boolean;
+        /** Hide the "Select all" / "Clear all" toggle in the selection
+         * summary. It is also hidden when `maxItems` puts selecting every
+         * option out of reach. */
+        hideSelectAllToggle?: boolean;
+      });
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
   /** Custom renderer for the selected values in the trigger. Defaults to rendering each selected value with `renderItem` (or the item's `text`), comma-separated. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (values: TValue[]) => React.ReactNode;
@@ -398,7 +399,7 @@ export const Select = <TValue extends string>({
   // with any consumer-supplied item value.
   const noneValue = useId();
 
-  const showClear = !!(clearable && !disabled);
+  const showClear = clearable !== undefined && !disabled;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
@@ -429,8 +430,9 @@ export const Select = <TValue extends string>({
   }, [items, orphans, loading]);
 
   const [search, setSearch] = useState("");
-  const showSearch = !!searchable?.searchable;
-  const onSearch = searchable?.onSearch;
+  const showSearch = !!searchable;
+  const onSearch =
+    typeof searchable === "object" ? searchable.onSearch : undefined;
   const handleSearchChange = useCallback(
     (next: string) => {
       setSearch(next);
@@ -580,11 +582,24 @@ export const Select = <TValue extends string>({
   const clearAll = useCallback(() => {
     (onChange as (value: TValue[]) => void)([]);
   }, [onChange]);
+  // Backs the clear button: a custom onClear when given, otherwise clears
+  // the selection directly through onChange.
+  const clearSelection = () => {
+    if (typeof clearable === "object") {
+      clearable.onClear();
+    } else if (multiple) {
+      (onChange as (value: TValue[]) => void)([]);
+    } else {
+      (onChange as (value: null) => void)(null);
+    }
+  };
   // Hide the count while options are still loading (the total is not yet
   // known), and the toggle when maxItems makes selecting all impossible.
-  const hideSummaryCount = !!searchable?.hideCount || !!loading;
+  const searchableOptions =
+    typeof searchable === "object" ? searchable : undefined;
+  const hideSummaryCount = !!searchableOptions?.hideCount || !!loading;
   const hideSummaryToggle =
-    !!searchable?.hideSelectAllToggle ||
+    !!searchableOptions?.hideSelectAllToggle ||
     (maxItems !== undefined && maxItems < optionValues.length);
   // Omitted entirely (rather than rendering an empty component) when both
   // parts are hidden, so no empty footer band appears around it.
@@ -690,7 +705,7 @@ export const Select = <TValue extends string>({
     clampTriggerHeight:
       (!!renderItem || !!renderSelectedItem || overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
-    willClear: showClear && clearable.clearable && !hasSelection,
+    willClear: showClear && !!clearable && !hasSelection,
   });
 
   if (readonly) {
@@ -814,12 +829,12 @@ export const Select = <TValue extends string>({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                clearable.onClear();
+                clearSelection();
                 internalRef.current?.focus();
               }}
               className={cx(
                 classes.clear,
-                (!clearable.clearable || !hasSelection) && classes.hideClear,
+                (!clearable || !hasSelection) && classes.hideClear,
               )}
               aria-label="Clear input"
             >

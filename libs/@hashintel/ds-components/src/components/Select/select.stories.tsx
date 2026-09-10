@@ -136,7 +136,7 @@ const ClearableSelect = (
       items={props.items ?? sampleItems}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={{ clearable: true, onClear: () => setValue(null) }}
+      clearable
     />
   );
 };
@@ -243,7 +243,7 @@ const stateRows: Array<{
   {
     key: "searchable",
     label: "Searchable",
-    extraProps: { searchable: { searchable: true, onSearch: noop } },
+    extraProps: { searchable: true },
   },
   {
     key: "hide-arrow",

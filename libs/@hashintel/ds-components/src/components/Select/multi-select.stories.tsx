@@ -370,7 +370,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
           {...spreadArgs}
           multiple
           maxItems={2}
-          searchable={{ searchable: true, onSearch: noop }}
+          searchable
           items={sampleItems}
           value={capped}
           onChange={setCapped}
@@ -428,7 +428,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
         <Select
           {...spreadArgs}
           multiple
-          searchable={{ searchable: true, onSearch: setLastSearch }}
+          searchable={{ onSearch: setLastSearch }}
           items={sampleItems}
           value={searchableValues}
           onChange={setSearchableValues}
@@ -442,7 +442,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
           items={sampleItems}
           value={clearableValues}
           onChange={setClearableValues}
-          clearable={{ clearable: true, onClear: () => setClearableValues([]) }}
+          clearable
         />
       </div>
       <div className={groupStyle}>
