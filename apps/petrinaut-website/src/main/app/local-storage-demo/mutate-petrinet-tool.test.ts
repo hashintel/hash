@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   createJsonDocHandle,
@@ -8,6 +8,7 @@ import {
 
 import {
   createMutatePetrinetAutomaticTool,
+  type MutatePetrinetOperationFailure,
   mutatePetrinetOutputSchema,
 } from "./mutate-petrinet-tool";
 import { observeBrowserDefinition } from "./transition-record";
@@ -164,6 +165,43 @@ describe("mutate_petrinet automatic host tool", () => {
       operationId: "wire-missing",
       preHash: output.postHash,
       postHash: output.postHash,
+    });
+    instance.dispose();
+  });
+
+  test("hands the host the thrown value behind a failed operation without changing the outcome", async () => {
+    const instance = createInstance();
+    const onOperationFailure =
+      vi.fn<(failure: MutatePetrinetOperationFailure) => void>();
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      onOperationFailure,
+    });
+    const invalidArc = {
+      ...arc,
+      operationId: "wire-missing",
+      input: { ...arc.input, placeId: "missing" },
+    };
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await tool.execute({
+        input: inputFor(instance, [place, transition, invalidArc]),
+        instance,
+        toolCallId: "batch-report",
+      }),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "applied",
+      "failed",
+    ]);
+    expect(onOperationFailure).toHaveBeenCalledOnce();
+    expect(onOperationFailure).toHaveBeenCalledWith({
+      toolCallId: "batch-report",
+      operationId: "wire-missing",
+      operationType: "addArc",
+      status: "failed",
+      error: expect.any(Error) as unknown,
     });
     instance.dispose();
   });

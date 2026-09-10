@@ -25,17 +25,44 @@ export const isClientToolResult = (value: unknown): value is ClientToolResult =>
   "output" in value &&
   (value.source === undefined || value.source === "voice");
 
+/**
+ * Why a delivered body lost members. Classification and counts only: the
+ * body itself is caller content and never travels with the issue.
+ */
+export type ClientToolResultParseIssue =
+  | { readonly kind: "invalid-json" }
+  | { readonly kind: "not-array" }
+  | {
+      readonly kind: "dropped-members";
+      readonly dropped: number;
+      readonly total: number;
+    };
+
 /** Parse a delivered signal body; malformed bodies and members are dropped, never repaired. */
 export const parseClientToolResults = (
   body: string,
+  onIssue?: (issue: ClientToolResultParseIssue) => void,
 ): readonly ClientToolResult[] => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
   } catch {
+    onIssue?.({ kind: "invalid-json" });
     return [];
   }
-  return Array.isArray(parsed) ? parsed.filter(isClientToolResult) : [];
+  if (!Array.isArray(parsed)) {
+    onIssue?.({ kind: "not-array" });
+    return [];
+  }
+  const results = parsed.filter(isClientToolResult);
+  if (results.length !== parsed.length) {
+    onIssue?.({
+      kind: "dropped-members",
+      dropped: parsed.length - results.length,
+      total: parsed.length,
+    });
+  }
+  return results;
 };
 
 /** Require the protocol's machine identity and its model-visible rendering tag. */

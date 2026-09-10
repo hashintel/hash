@@ -10,7 +10,10 @@
  * @role The host-facing entry point: the contexts and types an embedder wires up
  */
 
-export type { ErrorTracker } from "./react/error-tracker-context";
+export type {
+  ErrorTracker,
+  ErrorTrackerCaptureContext,
+} from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 export type {
   PetrinautConnectedOptimization,

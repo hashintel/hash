@@ -29,6 +29,7 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
@@ -552,6 +553,24 @@ const ConversationAiAssistantPanel = ({
 
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
+  const errorTracker = use(ErrorTrackerContext);
+  const errorTrackerRef = useLatest(errorTracker);
+  // Operational failures — the stream, tool execution, continuation, Stop —
+  // reach the host's tracker at their source. Expected refusals (empty text,
+  // busy composer, ambiguous tool match) stay UI state only.
+  const reportOperationalFailure = useCallback(
+    (
+      error: unknown,
+      source: string,
+      tags?: Readonly<Record<string, string | number | boolean>>,
+    ) => {
+      errorTrackerRef.current.captureException(error, {
+        source: `ai-assistant.${source}`,
+        ...(tags === undefined ? {} : { tags }),
+      });
+    },
+    [errorTrackerRef],
+  );
 
   const [input, setInput] = useState("");
   const [voiceActive, setVoiceActiveState] = useState(false);
@@ -1105,6 +1124,7 @@ const ConversationAiAssistantPanel = ({
     onError: (chatError) => {
       const submissionError =
         chatError instanceof Error ? chatError : new Error(String(chatError));
+      reportOperationalFailure(submissionError, "stream");
       setStreamError(submissionError);
       const recoverPendingSubmission = pendingSubmissionRecoveryRef.current;
       pendingSubmissionRecoveryRef.current = null;
@@ -1224,12 +1244,15 @@ const ConversationAiAssistantPanel = ({
       const sendContinuation = sendAutomaticToolContinuationRef.current;
       if (sendContinuation === null) {
         setContinuationPending(false);
-        setStreamError(new Error("The AI assistant tool host is not ready."));
+        const hostError = new Error("The AI assistant tool host is not ready.");
+        reportOperationalFailure(hostError, "continuation");
+        setStreamError(hostError);
         return;
       }
       void sendContinuation().catch((caught: unknown) => {
         if (generation !== submissionGenerationRef.current) return;
         setContinuationPending(false);
+        reportOperationalFailure(caught, "continuation");
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );
@@ -1241,6 +1264,7 @@ const ConversationAiAssistantPanel = ({
     continuationPending,
     conversationId,
     messages,
+    reportOperationalFailure,
   ]);
   useEffect(
     () => () => {
@@ -1406,6 +1430,10 @@ const ConversationAiAssistantPanel = ({
                 kind: "failed",
               };
               setContinuationPending(false);
+              reportOperationalFailure(caught, "automatic-tool", {
+                toolName: toolCall.toolName,
+                toolCallId: toolCall.toolCallId,
+              });
               setStreamError(
                 caught instanceof Error
                   ? caught
@@ -1426,7 +1454,14 @@ const ConversationAiAssistantPanel = ({
                       })
                     : undefined;
                 })
-                .catch(() => {})
+                .catch((outputError: unknown) => {
+                  // The failed call's error part could not be recorded; the
+                  // toast already shows the original failure.
+                  reportOperationalFailure(outputError, "tool-output", {
+                    toolName: toolCall.toolName,
+                    toolCallId: toolCall.toolCallId,
+                  });
+                })
                 .then(() => {
                   suppressedAutomaticSendsRef.current -= 1;
                 });
@@ -1443,6 +1478,7 @@ const ConversationAiAssistantPanel = ({
     conversationId,
     executeToolCallRef,
     messages,
+    reportOperationalFailure,
     toolHostIdentityRef,
   ]);
 
@@ -1577,6 +1613,11 @@ const ConversationAiAssistantPanel = ({
             text: submissionText,
           });
         } catch (caught) {
+          // A host `fromComposerText` threw: a host defect, not a refusal.
+          reportOperationalFailure(caught, "composer-mapping", {
+            toolName: mappedToolCall.toolName,
+            toolCallId: mappedToolCall.toolCallId,
+          });
           const submissionError =
             caught instanceof Error ? caught : new Error(String(caught));
           setStreamError(submissionError);
@@ -1605,6 +1646,10 @@ const ConversationAiAssistantPanel = ({
           });
         } catch (caught) {
           composerToolSubmissionsRef.current.delete(mappedToolCall.toolCallId);
+          reportOperationalFailure(caught, "tool-output", {
+            toolName: mappedToolCall.toolName,
+            toolCallId: mappedToolCall.toolCallId,
+          });
           const submissionError =
             caught instanceof Error ? caught : new Error(String(caught));
           setStreamError(submissionError);
@@ -1633,7 +1678,7 @@ const ConversationAiAssistantPanel = ({
       });
       return { kind: "message", messageId };
     },
-    [composerSubmissionStateRef],
+    [composerSubmissionStateRef, reportOperationalFailure],
   );
 
   const stopStateRef = useLatest({
@@ -1759,6 +1804,7 @@ const ConversationAiAssistantPanel = ({
         stopRequestedRef.current = false;
         setContinuationPending(false);
         setStopped(false);
+        reportOperationalFailure(caught, "stop");
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );
@@ -1766,7 +1812,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     await stopCurrentResponse();
-  }, [stopStateRef]);
+  }, [reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
     (text: string, target: "auto" | "message" = "auto") => {

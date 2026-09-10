@@ -12,6 +12,7 @@ import {
   POSTGRES_QUERY_TIMEOUT_MS,
   probeRdsIam,
 } from "../src/postgres.ts";
+import { diagnostics } from "../src/runtime-diagnostics.ts";
 
 interface TestQueryResult {
   readonly rows: Record<string, unknown>[];
@@ -120,9 +121,9 @@ describe("Postgres connection configuration", () => {
     await pool.end();
   });
 
-  test("logs idle pool errors by code when nothing else observes them", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
+  test("reports idle pool errors to the diagnostic sink when nothing else observes them", async () => {
+    const report = vi
+      .spyOn(diagnostics, "report")
       .mockImplementation(() => undefined);
     try {
       const pool = createPostgresPool(
@@ -139,13 +140,10 @@ describe("Postgres connection configuration", () => {
       expect(() =>
         pool.emit("error", failure, undefined as never),
       ).not.toThrow();
-      expect(consoleError).toHaveBeenCalledWith(
-        "[brunch] postgres pool error:",
-        "ECONNRESET",
-      );
+      expect(report).toHaveBeenCalledWith("database_operation", failure);
       await pool.end();
     } finally {
-      consoleError.mockRestore();
+      report.mockRestore();
     }
   });
 });

@@ -454,3 +454,117 @@ test("bounds cyclic failed-submission objects", () => {
   expect(failure?.errorText).toContain('"self":"[Circular]"');
   expect(failure?.errorText.length).toBeLessThanOrEqual(10_000);
 });
+
+test("reports server tool failures to the diagnostic callback, hidden tools included, before projection drops them", () => {
+  const written: UIMessageChunk[] = [];
+  const reported: Parameters<
+    NonNullable<Parameters<typeof createFlueUiStream>[0]["onToolOutputError"]>
+  >[0][] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["readPetrinautDoc"]),
+    hiddenToolNames: new Set(["brunch_question"]),
+    onToolOutputError: (event) => reported.push(event),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "visible-1",
+    toolName: "brunch_why",
+    input: {},
+    position: position(1),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "hidden-1",
+    toolName: "brunch_question",
+    input: {},
+    position: position(2),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "visible-1",
+    errorText: "Unknown governing revision",
+    position: position(3),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "hidden-1",
+    errorText: "Question marker rejected",
+    position: position(4),
+  });
+
+  expect(reported).toEqual([
+    {
+      submissionId: "submission-1",
+      toolCallId: "visible-1",
+      toolName: "brunch_why",
+      errorText: "Unknown governing revision",
+      hidden: false,
+    },
+    {
+      submissionId: "submission-1",
+      toolCallId: "hidden-1",
+      toolName: "brunch_question",
+      errorText: "Question marker rejected",
+      hidden: true,
+    },
+  ]);
+  // The UI projection is unchanged: the hidden tool still never reaches it.
+  const errorChunks = written.filter(
+    (chunk) => chunk.type === "tool-output-error",
+  );
+  expect(errorChunks).toEqual([
+    {
+      type: "tool-output-error",
+      toolCallId: "visible-1",
+      errorText: "Unknown governing revision",
+      providerExecuted: true,
+    },
+  ]);
+  expect(
+    written.some(
+      (chunk) => "toolCallId" in chunk && chunk.toolCallId === "hidden-1",
+    ),
+  ).toBe(false);
+});
+
+test("does not report tool failures from another submission", () => {
+  const reported: unknown[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    onToolOutputError: (event) => reported.push(event),
+    write: () => {},
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-9",
+    submissionId: "submission-other",
+    turnId: "turn-9",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "other-1",
+    errorText: "not ours",
+    position: position(1),
+  });
+  expect(reported).toEqual([]);
+});

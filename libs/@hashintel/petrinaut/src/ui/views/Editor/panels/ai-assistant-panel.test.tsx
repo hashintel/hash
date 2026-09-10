@@ -21,6 +21,10 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  type ErrorTracker,
+  ErrorTrackerContext,
+} from "../../../../react/error-tracker-context";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
 import { notificationsToaster } from "../../../../react/notifications/toaster";
@@ -218,6 +222,7 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
+  errorTracker = { captureException: () => {} },
   initialInteractionMode,
   initialMessage,
   onInitialInteractionModeConsumed,
@@ -226,6 +231,7 @@ const renderTestPanel = ({
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
+  errorTracker?: ErrorTracker;
   initialInteractionMode?: PetrinautAiInputMode;
   initialMessage?: string;
   onInitialInteractionModeConsumed?: () => void;
@@ -258,20 +264,22 @@ const renderTestPanel = ({
     nextInitialMessage = initialMessage,
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
-      <NotificationsProvider>
-        <EditorContext.Provider value={nextEditorContext}>
-          <SDCPNContext.Provider value={sdcpnContext}>
-            <AiAssistantPanel
-              aiAssistant={nextAiAssistant}
-              initialInteractionMode={nextInitialInteractionMode}
-              initialMessage={nextInitialMessage}
-              onInitialInteractionModeConsumed={
-                onInitialInteractionModeConsumed
-              }
-            />
-          </SDCPNContext.Provider>
-        </EditorContext.Provider>
-      </NotificationsProvider>
+      <ErrorTrackerContext.Provider value={errorTracker}>
+        <NotificationsProvider>
+          <EditorContext.Provider value={nextEditorContext}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={nextAiAssistant}
+                initialInteractionMode={nextInitialInteractionMode}
+                initialMessage={nextInitialMessage}
+                onInitialInteractionModeConsumed={
+                  onInitialInteractionModeConsumed
+                }
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </NotificationsProvider>
+      </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
   const rendered = render(
@@ -349,6 +357,60 @@ describe("AiAssistantPanel composer submissions", () => {
       screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
     ).toBe("true");
     expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("reports a failed submission stream to the host error tracker at its source", async () => {
+    const captureException = vi.fn<ErrorTracker["captureException"]>();
+    const failure = new Error("Brunch rejected the message before admission.");
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () => {
+            throw failure;
+          },
+        },
+      },
+      errorTracker: { captureException },
+    });
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText("Brunch rejected the message before admission."),
+    ).not.toBeNull();
+    await waitFor(() => expect(captureException).toHaveBeenCalledOnce());
+    expect(captureException).toHaveBeenCalledWith(failure, {
+      source: "ai-assistant.stream",
+    });
+  });
+
+  test("keeps an expected composer refusal as UI state without capturing it", async () => {
+    const captureException = vi.fn<ErrorTracker["captureException"]>();
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    let latest: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+      errorTracker: { captureException },
+    });
+
+    await expect(
+      act(async () => {
+        await latest?.submitText({ text: "   " });
+      }),
+    ).rejects.toThrow("AI assistant text must not be empty.");
+
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   test("runs the host mutation boundary once before matching output insertion and continuation in StrictMode", async () => {

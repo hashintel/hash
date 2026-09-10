@@ -33,6 +33,7 @@ import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { settleWorkpieceEvidence } from "@hashintel/brunch-agent/flue";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
+import { diagnostics } from "../runtime-diagnostics.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import {
   retainedSettledRevision,
@@ -662,6 +663,13 @@ export const explainRootArc = async (input: {
       "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.";
     return answer;
   } catch (error) {
+    // The refusal is the product outcome; the exception behind it is not
+    // otherwise recorded anywhere, so report it beside the refusal.
+    diagnostics.report("why.explain", error, {
+      construction: browser.construction === true,
+      observationToolCallId: query.observationToolCallId,
+      currentRevisionId: current.revisionId,
+    });
     answer.disposition = "refused";
     answer.reason = error instanceof Error ? error.message : String(error);
     return answer;

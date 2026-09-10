@@ -9,6 +9,7 @@ import { serializeErrorText } from "./error-text";
 import {
   createFlueUiStream,
   type ClientToolProjectionOptions,
+  type FlueUiStreamOptions,
 } from "./ui-stream";
 
 import type {
@@ -35,6 +36,7 @@ export {
   isClientToolResultDelivery,
   parseClientToolResults,
   type ClientToolResult,
+  type ClientToolResultParseIssue,
 } from "./client-tool-result";
 export {
   agentOwnershipHeaders,
@@ -52,6 +54,7 @@ export {
   createFlueUiStream,
   type ClientToolProjectionOptions,
   type FlueUiStreamOptions,
+  type FlueUiToolOutputError,
 } from "./ui-stream";
 
 export interface FlueChatResponseMessageEvent {
@@ -91,6 +94,12 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly onResponseMessageCompleted?: (
     event: FlueChatResponseMessageCompletedEvent,
   ) => void;
+  /**
+   * Server tool failures never reach `useChat.onError`; this is the only seam
+   * that sees them, hidden tools included. Admission, stream and settlement
+   * failures stay with `onError` so nothing is reported twice.
+   */
+  readonly onToolOutputError?: FlueUiStreamOptions["onToolOutputError"];
 }
 
 export type FlueChatAdmissionFailure =
@@ -348,6 +357,7 @@ const streamSubmission = (
         validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
         hiddenToolNames: options.hiddenToolNames,
+        onToolOutputError: options.onToolOutputError,
         write,
       });
 

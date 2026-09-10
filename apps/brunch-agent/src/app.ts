@@ -24,7 +24,17 @@ import { agentOwnershipGuard } from "./http/ownership.ts";
 import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
 
+// Failed runtime events (tools, turns, tasks, compaction, operations,
+// settlement, recovery) reach the server log with their runtime IDs; the
+// OpenTelemetry instrument stays content-free and this one adds no spans.
+instrument({
+  key: Symbol.for("brunch.runtime-diagnostics"),
+  observe: diagnostics.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose() {},
+});
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is an async execution flag, never a proposal/state ledger.
 const admissionScope = new AsyncLocalStorage<boolean>();
