@@ -46,10 +46,7 @@ import {
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
-import {
-  REVIEW_CHIPS,
-  STARTER_CHIPS,
-} from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
+import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
@@ -515,6 +512,7 @@ interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
+  offerStartPosture?: boolean;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
@@ -523,6 +521,7 @@ const ConversationAiAssistantPanel = ({
   aiAssistant,
   initialInteractionMode,
   initialMessage,
+  offerStartPosture = false,
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
@@ -1981,11 +1980,11 @@ const ConversationAiAssistantPanel = ({
     petriNetDefinition.places.length === 0 &&
     petriNetDefinition.transitions.length === 0;
 
-  const promptChips = isNetEmpty
-    ? hasConversation
-      ? []
-      : STARTER_CHIPS
-    : REVIEW_CHIPS;
+  const promptChips = selectPromptChips({
+    hasConversation,
+    isNetEmpty,
+    offerStartPosture,
+  });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
