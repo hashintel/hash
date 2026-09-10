@@ -3,7 +3,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      // `browser-optimization` inlines the optimizer's Python sources and its
+      // runtime lock through `?raw` imports. That package has no `build` task,
+      // so `^build` never brings those files into the hash.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/libs/@local/petrinaut-optimizer-core/src/petrinaut_optimizer_core/**",
+        "$TURBO_ROOT$/libs/@local/petrinaut-optimizer-core/runtime-lock.json"
+      ]
     }
   }
 }
