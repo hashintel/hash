@@ -263,6 +263,11 @@ export const expectedNodeDefinition = (
         mutationActionInputSchemas.addParameter.parse(request.input),
       );
       break;
+    case "addDifferentialEquation":
+      actions.addDifferentialEquation(
+        mutationActionInputSchemas.addDifferentialEquation.parse(request.input),
+      );
+      break;
     case "addPlace":
       actions.addPlace(
         mutationActionInputSchemas.addPlace.parse(request.input),

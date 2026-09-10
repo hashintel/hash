@@ -31,6 +31,19 @@ const type = {
   displayColor: "#0088ff",
   elements: [{ elementId: "test-value", name: "value", type: "string" }],
 } satisfies SDCPN["types"][number];
+const continuousType = {
+  id: "test-continuous-values",
+  name: "TestContinuousValues",
+  iconSlug: "circle",
+  displayColor: "#0088ff",
+  elements: [
+    {
+      elementId: "test-continuous-value",
+      name: "continuousValue",
+      type: "real",
+    },
+  ],
+} satisfies SDCPN["types"][number];
 const place = {
   id: "test-place",
   name: "TestPlace",
@@ -147,6 +160,95 @@ describe("native typed state construction", () => {
       name: parameter.id,
       field: "entity",
     });
+  });
+  test("admits one root differential equation with native coloured-type reference semantics", () => {
+    const equation = {
+      id: "test-continuous-value",
+      name: "Test continuous value",
+      colorId: continuousType.id,
+      code: "return tokens.map(() => ({ continuousValue: 0 }));",
+    } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
+    const raw = {
+      ...equation,
+      brunch: {
+        basis: { kind: "absent" as const, reason: "TEST" },
+        observationToolCallId: "test-read",
+        requestedBaseHash: "a".repeat(64),
+      },
+    };
+    expect(
+      observedStateInputSchema("addDifferentialEquation").parse(raw),
+    ).toMatchObject(equation);
+    expect(
+      petrinautAiTools.addDifferentialEquation.inputSchema.safeParse({
+        ...equation,
+        targetSubnetId: "nested-net",
+      }).success,
+    ).toBe(true);
+    expect(() =>
+      observedStateInputSchema("addDifferentialEquation").parse({
+        ...raw,
+        targetSubnetId: "nested-net",
+      }),
+    ).toThrow("Nested differential-equation construction is unavailable.");
+    const req = request("addDifferentialEquation", equation);
+    expect(() => assertStateIdentity(req, empty(), [])).toThrow(
+      "Differential equations require a unique existing root type ID.",
+    );
+    const before = empty();
+    before.types.push(continuousType);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.differentialEquations).toEqual([equation]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
+    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
+    const target = locateRootState(after, {
+      kind: "differential-equation",
+      name: equation.id,
+      field: "code",
+    });
+    expect(target).toMatchObject({
+      id: equation.id,
+      nodePath: "/differentialEquations/0",
+      path: "/differentialEquations/0/code",
+      value: equation.code,
+    });
+    expect(target.formalism).toContain("real-valued token derivatives");
+    expect(
+      parseConstructionWhyInput({
+        kind: "differential-equation",
+        name: equation.id,
+      }),
+    ).toEqual({
+      kind: "differential-equation",
+      name: equation.id,
+      field: "entity",
+    });
+    const effects = deriveArcEffects(req, before, after);
+    expect(effects.derived).toEqual([]);
+    expect(effects.created).toContainEqual({
+      kind: "created",
+      path: "/differentialEquations/0/colorId",
+      after: continuousType.id,
+    });
+    expect(effects.created).toContainEqual({
+      kind: "created",
+      path: "/differentialEquations/0/code",
+      after: equation.code,
+    });
+  });
+  test("preserves the native nullable differential-equation type reference", () => {
+    const equation = {
+      id: "test-untyped-continuous-value",
+      name: "Test untyped continuous value",
+      colorId: null,
+      code: "return tokens.map(() => ({}));",
+    } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
+    const before = empty();
+    const req = request("addDifferentialEquation", equation);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.differentialEquations).toEqual([equation]);
+    expect(outcome(req, before, after)).toBe("applied");
   });
   test.each([
     ["real", "0"],

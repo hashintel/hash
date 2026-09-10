@@ -10,6 +10,7 @@ import type { z } from "zod";
 
 export const observedStateMutationNames = [
   "addParameter",
+  "addDifferentialEquation",
   "addType",
   "updateType",
   "addTypeElement",
@@ -30,6 +31,13 @@ const schemas = {
     .safeExtend({ brunch: observedArcEnvelopeSchema })
     .refine(rootOnly, "Nested parameter construction is unavailable.")
     .meta(petrinautAiTools.addParameter.inputSchema.meta() ?? {}),
+  addDifferentialEquation: petrinautAiTools.addDifferentialEquation.inputSchema
+    .safeExtend({ brunch: observedArcEnvelopeSchema })
+    .refine(
+      rootOnly,
+      "Nested differential-equation construction is unavailable.",
+    )
+    .meta(petrinautAiTools.addDifferentialEquation.inputSchema.meta() ?? {}),
   addType: petrinautAiTools.addType.inputSchema
     .safeExtend({ brunch: observedArcEnvelopeSchema })
     .refine(rootOnly)
@@ -66,7 +74,13 @@ export const parseObservedStateInput = (
 };
 
 export const rootStateWhyInputSchema = v.strictObject({
-  kind: v.picklist(["parameter", "type", "type-element", "scenario"]),
+  kind: v.picklist([
+    "parameter",
+    "differential-equation",
+    "type",
+    "type-element",
+    "scenario",
+  ]),
   name: v.string(),
   type: v.optional(v.string()),
   field: v.optional(v.string(), "entity"),
@@ -96,7 +110,9 @@ export const locateRootState = (
         ? definition.types
         : query.kind === "parameter"
           ? definition.parameters
-          : (definition.scenarios ?? []);
+          : query.kind === "differential-equation"
+            ? definition.differentialEquations
+            : (definition.scenarios ?? []);
   const matches = entries.filter(
     (entry) =>
       ("elementId" in entry ? entry.elementId : entry.id) === query.name ||
@@ -109,7 +125,7 @@ export const locateRootState = (
   const nodePath =
     query.kind === "type-element"
       ? `/types/${definition.types.indexOf(parent!)}/elements/${index}`
-      : `/${query.kind === "type" ? "types" : query.kind === "parameter" ? "parameters" : "scenarios"}/${index}`;
+      : `/${query.kind === "type" ? "types" : query.kind === "parameter" ? "parameters" : query.kind === "differential-equation" ? "differentialEquations" : "scenarios"}/${index}`;
   const fields =
     query.field === "entity"
       ? []
@@ -142,7 +158,9 @@ export const locateRootState = (
     formalism:
       query.kind === "parameter"
         ? "A net parameter has a concrete declared default. This record describes that definition, not an unobserved scenario or run override. The default alone establishes neither an operational quantity nor whether runtime input was provided. Compilation is not simulation."
-        : "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
+        : query.kind === "differential-equation"
+          ? "A differential equation defines real-valued token derivatives. Token evolution requires a matching typed place with that equation assigned, place dynamics enabled, and dynamics enabled for the run. This record describes the equation definition, not executed evolution or an established time policy. Compilation is not simulation."
+          : "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
   };
 };
 
@@ -191,6 +209,14 @@ export const assertStateIdentity = (
   };
   if ("id" in input) {
     newIdentity(input.id, identities(current), earlier.flatMap(identities));
+    if (
+      "colorId" in input &&
+      input.colorId !== null &&
+      current.types.filter((entry) => entry.id === input.colorId).length !== 1
+    )
+      throw new Error(
+        "Differential equations require a unique existing root type ID.",
+      );
     if ("elements" in input) {
       const ids = input.elements.map((element) => element.elementId);
       if (new Set(ids).size !== ids.length)
@@ -284,11 +310,13 @@ export const stateMutationTarget = (
   const kind =
     request.toolName === "addParameter"
       ? "parameter"
-      : request.toolName.includes("Scenario")
-        ? "scenario"
-        : request.toolName.includes("Element")
-          ? "type-element"
-          : "type";
+      : request.toolName === "addDifferentialEquation"
+        ? "differential-equation"
+        : request.toolName.includes("Scenario")
+          ? "scenario"
+          : request.toolName.includes("Element")
+            ? "type-element"
+            : "type";
   const parent =
     "typeId" in input
       ? definition.types.find((entry) => entry.id === input.typeId)
@@ -298,9 +326,11 @@ export const stateMutationTarget = (
       ? (definition.scenarios ?? [])
       : kind === "parameter"
         ? definition.parameters
-        : kind === "type-element"
-          ? (parent?.elements ?? [])
-          : definition.types;
+        : kind === "differential-equation"
+          ? definition.differentialEquations
+          : kind === "type-element"
+            ? (parent?.elements ?? [])
+            : definition.types;
   const exists = entries.some(
     (entry) => ("elementId" in entry ? entry.elementId : entry.id) === id,
   );
@@ -310,7 +340,7 @@ export const stateMutationTarget = (
           nodePath:
             kind === "type-element"
               ? `/types/${definition.types.findIndex((entry) => entry === parent)}/elements/${entries.length}`
-              : `/${kind === "type" ? "types" : kind === "parameter" ? "parameters" : "scenarios"}/${entries.length}`,
+              : `/${kind === "type" ? "types" : kind === "parameter" ? "parameters" : kind === "differential-equation" ? "differentialEquations" : "scenarios"}/${entries.length}`,
           value: undefined,
         }
       : locateRootState(definition, {

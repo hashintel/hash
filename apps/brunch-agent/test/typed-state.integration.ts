@@ -303,6 +303,19 @@ const unique = <Entity extends { id: string; name: string }>(
   assert(entry);
   return entry;
 };
+const continuousType = {
+  id: "test-continuous-values",
+  name: "TestContinuousValues",
+  iconSlug: "circle",
+  displayColor: "#0088ff",
+  elements: [
+    {
+      elementId: "test-continuous-value",
+      name: "continuousValue",
+      type: "real",
+    },
+  ],
+};
 const testType = {
   id: "test-attributes",
   name: "TestAttributes",
@@ -321,7 +334,7 @@ const place = (id: string, name: string, colorId: string, x: number) => ({
   y: 0,
 });
 const initial =
-  "# GENERIC TEST workpiece\n\nTestQueue holds typed tokens with a text value. TestResult initially retains the same attributes. The labelled TestInitial scenario starts TestQueue with exactly two synthetic rows, text values 2 and bad. These are test conditions, not observed inventory. Test rate input has a real default of zero and Test inputs ready has a boolean default of false; these are test configuration, not operational values or evidence that inputs were supplied. No actual timing, rate or plant claim is supplied.";
+  "# GENERIC TEST workpiece\n\nTestQueue holds typed tokens with a text value. TestResult initially retains the same attributes. The labelled TestInitial scenario starts TestQueue with exactly two synthetic rows, text values 2 and bad. These are test conditions, not observed inventory. Test rate input has a real default of zero and Test inputs ready has a boolean default of false; these are test configuration, not operational values or evidence that inputs were supplied. Test continuous values has one synthetic real-valued field and Test continuous value is a synthetic differential equation returning its zero derivative. Neither establishes a clock, timing policy or plant claim.";
 const correction =
   "# GENERIC TEST corrected workpiece\n\nTestQueue holds typed tokens. Add an active boolean attribute, whose migration default false is a canonical default, not testimony. Correct value from text to integer: canonical migration may coerce 2 to 2 and invalid text to zero; this is not evidence of intended initial values. Explicitly correct TestInitial to rows [2,true] and [3,false] as synthetic initial conditions. Test transfer is predicate-enabled for this test only and moves one token to TestResult. Then correct TestResult to an uncoloured count: attributes are intentionally discarded there. Timing, actual inventory and operational rates remain unknown. Compilation is not simulation or behavioral validation.";
 const answers: Record<string, unknown>[] = [];
@@ -414,11 +427,35 @@ try {
         "false",
       ),
     ),
+    mutate("addType", "typed-continuous-type", () => continuousType),
+    after("addType", "typed-read-continuous-type"),
+    mutate(
+      "addDifferentialEquation",
+      "typed-continuous-equation",
+      (definition) => ({
+        id: "test-continuous-value",
+        name: "Test continuous value",
+        colorId: unique(definition.types, "TestContinuousValues").id,
+        code: "return tokens.map(() => ({ continuousValue: 0 }));",
+      }),
+    ),
+    after(
+      "addDifferentialEquation",
+      "typed-read-continuous-equation",
+      (record) =>
+        assert.equal(
+          unique(
+            record.attempts[0]!.post!.definition.differentialEquations,
+            "Test continuous value",
+          ).colorId,
+          continuousType.id,
+        ),
+    ),
     mutate("addType", "typed-type", (definition) => {
       assert.equal(
         definition.types.length,
-        process.env.M7_FALSIFY_TYPED_ASSERTION === "1" ? 1 : 0,
-        "First actual typed read is empty",
+        process.env.M7_FALSIFY_TYPED_ASSERTION === "1" ? 2 : 1,
+        "Only the continuous probe type exists before the original typed construction",
       );
       return testType;
     }),
@@ -467,7 +504,7 @@ try {
     "GENERIC TEST account: two test items wait with text values 2 and bad. Initially preserve their attributes at the result. This is a synthetic setup, not plant inventory; timing is unknown.",
     "GENERIC TEST typed initial state created.",
   );
-  assert.equal(completed, 15);
+  assert.equal(completed, 19);
   faux.setResponses([
     ...settle(correction, "typed-revision-two"),
     mutate("addTypeElement", "typed-active", (definition) => ({
@@ -610,7 +647,7 @@ try {
     "GENERIC TEST correction: add an active flag; value is an integer, not text. Explicit initial values are 2/true and 3/false, not whatever migration defaults produce. Transfer is test-enabled and ultimately discards attributes at the result. Check the correction without claiming behavior or actual inventory.",
     "GENERIC TEST correction checked; compilation is not simulation.",
   );
-  assert.equal(completed, 35);
+  assert.equal(completed, 39);
   const stored = await page.evaluate(() => {
     const document = (
       JSON.parse(localStorage.getItem("petrinaut-sdcpn") ?? "{}") as Record<
@@ -662,6 +699,14 @@ try {
       expectedDefault: "false",
       change: "typed-parameter-ready",
       origin: "typed-parameter-ready",
+    },
+    {
+      kind: "differential-equation",
+      name: "Test continuous value",
+      field: "code",
+      expected: "partially-supported",
+      change: "typed-continuous-equation",
+      origin: "typed-continuous-equation",
     },
     {
       kind: "type-element",
@@ -830,7 +875,7 @@ try {
   );
   faux.setResponses(responses);
   await send(
-    "GENERIC TEST ask why by ordinary type, element and scenario names after reopening. Distinguish explicit corrections from migrated/default/generated cells.",
+    "GENERIC TEST ask why by ordinary parameter, differential-equation, type, element and scenario names after reopening. Distinguish explicit corrections from migrated/default/generated cells.",
     "Reopened typed and initial-state explanations remain scoped.",
   );
   await page.screenshot({
@@ -857,7 +902,7 @@ try {
         ?.transitionRecord,
   );
   save("records", records);
-  assert.equal(records.length, 12);
+  assert.equal(records.length, 14);
   for (const result of records) {
     const record = (
       result.metadata as { transitionRecord: ConstructionTransitionRecord }
@@ -911,7 +956,7 @@ try {
         observedStateInputSchema(name).toJSONSchema({ io: "input" }),
       );
   }
-  assert.equal(completed, 63);
+  assert.equal(completed, 69);
   // Controls use the actual retained raw definition, not known factory IDs as evidence.
   const selectedType = unique(
     reopened.definition.types,
@@ -1190,8 +1235,8 @@ try {
   );
   assert.equal(
     controlRecords.length,
-    14,
-    "Twelve applied, one no-op, one stale; pre-execution refusals have no browser record",
+    16,
+    "Fourteen applied, one no-op, one stale; pre-execution refusals have no browser record",
   );
   for (const entry of controlRecords)
     for (const attempt of (
@@ -1240,7 +1285,7 @@ try {
   }
   assert.equal(
     completed,
-    72,
+    78,
     "Every planned callback assertion completes outside the faux boundary",
   );
   assert.deepEqual(callbackErrors, []);
