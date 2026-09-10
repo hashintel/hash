@@ -38,7 +38,9 @@ export type OverflowRowProps = {
   /** Rendered between items: `summary` joins the names with it, while
    * `truncate` and `scroll` place it between item cells (and before the "+X"
    * badge). Defaults to " " — which the rows, being gap-spaced already, skip
-   * rendering as an element. */
+   * rendering as an element. A separator that is undefined or collapsible
+   * whitespace only leaves the cells spaced by the row gap; anything else
+   * supplies the spacing itself and the gap is dropped. */
   separator?: React.ReactNode;
 } & (
   | {
@@ -57,6 +59,9 @@ export type OverflowRowProps = {
   | { overflow: "scroll"; renderCountLabel?: never; total?: never }
 );
 
+// Whitespace HTML collapses (NBSP, which it doesn't, is deliberately absent).
+const collapsibleWhitespace = /^[\t\n\f\r ]*$/;
+
 export const OverflowRow = ({
   className,
   items,
@@ -65,7 +70,10 @@ export const OverflowRow = ({
   total,
   renderCountLabel,
 }: OverflowRowProps) => {
-  const classes = styles({ overflow });
+  const gapless =
+    separator !== undefined &&
+    (typeof separator !== "string" || !collapsibleWhitespace.test(separator));
+  const classes = styles({ overflow, gapless });
   const count = items.length;
   const hasSeparator = separator !== undefined;
 

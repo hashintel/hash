@@ -207,6 +207,19 @@ const suffixItems: Array<MultiSelectItem> = [
   { value: "date", text: "Date", suffix: "282 kcal" },
 ];
 
+const overflowModes = ["scroll", "truncate", "summary"] as const;
+
+const overflowItems: Array<MultiSelectItem> = [
+  { value: "apple", text: "Apple" },
+  { value: "banana", text: "Banana" },
+  { value: "cherry", text: "Cherry" },
+  { value: "date", text: "Date" },
+  { value: "elderberry", text: "Elderberry" },
+  { value: "fig", text: "Fig" },
+  { value: "grape", text: "Grape" },
+  { value: "honeydew", text: "Honeydew" },
+];
+
 export const Multiple: Story<MultiSelectProps> = (args) => {
   const spreadArgs = args as Omit<
     MultiSelectProps,
@@ -235,6 +248,13 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
     "banana",
   ]);
   const [colors, setColors] = useState<ColorValue[]>(["red", "blue"]);
+  const [overflowByMode, setOverflowByMode] = useState<
+    Record<string, string[]>
+  >({
+    scroll: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+    truncate: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+    summary: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+  });
   const [clearableValues, setClearableValues] = useState<string[]>(["cherry"]);
   const [searchableValues, setSearchableValues] = useState<string[]>(["apple"]);
   const [lastSearch, setLastSearch] = useState("");
@@ -380,6 +400,26 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
             </span>
           )}
         />
+      </div>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        {overflowModes.map((mode) => (
+          <div key={mode} className={groupStyle}>
+            <span style={subheadingStyle}>overflow="{mode}"</span>
+            <div style={{ width: 220 }}>
+              <Select
+                {...spreadArgs}
+                multiple
+                overflow={mode}
+                items={overflowItems}
+                value={overflowByMode[mode] ?? []}
+                onChange={(next) =>
+                  setOverflowByMode((current) => ({ ...current, [mode]: next }))
+                }
+                placeholder="Select fruits..."
+              />
+            </div>
+          </div>
+        ))}
       </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>

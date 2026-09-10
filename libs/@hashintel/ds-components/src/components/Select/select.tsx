@@ -2,7 +2,6 @@ import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect, useSelectContext } from "@ark-ui/react/select";
 import {
-  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -14,6 +13,7 @@ import {
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { OverflowRow } from "../../util/OverflowRow/overflow-row";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
@@ -114,6 +114,7 @@ type SelectSingleProps<TValue extends string> = {
   /** Set to allow selecting multiple values */
   multiple?: false;
   maxItems?: never;
+  overflow?: never;
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
   searchable?: SelectSearchable & {
     hideCount?: never;
@@ -140,6 +141,8 @@ type SelectMultipleProps<TValue extends string> = {
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
+  /** How the selected values render in the trigger when no `renderSelectedItem` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
+  overflow?: "scroll" | "truncate" | "summary";
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
   searchable?: SelectSearchable & {
     /** Hide the "x of y" selected count in the selection summary. It is also
@@ -364,6 +367,7 @@ export const Select = <TValue extends string>({
   items,
   multiple,
   maxItems,
+  overflow,
   renderItem,
   renderSelectedItem,
   className,
@@ -469,6 +473,28 @@ export const Select = <TValue extends string>({
     [renderItem, effectiveItems],
   );
 
+  // Every option's value, disabled options included — the total behind the
+  // selection summary and the `summary` overflow row, and the value set that
+  // "Select all" selects.
+  const optionValues = useMemo<TValue[]>(() => {
+    const values: TValue[] = [];
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        for (const it of entry.items) {
+          values.push(it.value);
+        }
+      } else {
+        values.push(entry.value);
+      }
+    }
+    return values;
+  }, [effectiveItems]);
+
+  // Multi selects without a custom renderSelectedItem render their selected
+  // values through an OverflowRow, scrolling by default.
+  const overflowMode =
+    multiple && !renderSelectedItem ? (overflow ?? "scroll") : undefined;
+
   const renderSelectedContent = (): React.ReactNode => {
     if (multiple) {
       if (renderSelectedItem) {
@@ -476,12 +502,21 @@ export const Select = <TValue extends string>({
           selectedValues,
         );
       }
-      return selectedValues.map((val, index) => (
-        <Fragment key={val}>
-          {index > 0 && ", "}
-          {resolvedRenderItem(val)}
-        </Fragment>
-      ));
+      const mode = overflow ?? "scroll";
+      const rowItems = selectedValues.map((val) => ({
+        name: findSelectItem(effectiveItems, val)?.text ?? val,
+        children: resolvedRenderItem(val),
+      }));
+      return mode === "summary" ? (
+        <OverflowRow
+          items={rowItems}
+          separator=", "
+          overflow="summary"
+          total={optionValues.length}
+        />
+      ) : (
+        <OverflowRow items={rowItems} separator=", " overflow={mode} />
+      );
     }
     const selectedValue = selectedValues[0];
     if (selectedValue === undefined) {
@@ -537,19 +572,6 @@ export const Select = <TValue extends string>({
   // The selection summary of a searchable multi select. Its counts and its
   // "Select all" span the whole option set — disabled options included, so
   // "Select all" always reaches "X of X" — not the current search filter.
-  const optionValues = useMemo<TValue[]>(() => {
-    const values: TValue[] = [];
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          values.push(it.value);
-        }
-      } else {
-        values.push(entry.value);
-      }
-    }
-    return values;
-  }, [effectiveItems]);
   const selectAll = useCallback(() => {
     (onChange as (value: TValue[]) => void)([
       ...new Set([...selectedValues, ...optionValues]),
@@ -662,9 +684,12 @@ export const Select = <TValue extends string>({
     hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
-    customRender: !!renderItem || !!renderSelectedItem,
+    customRender:
+      !!renderItem || !!renderSelectedItem || overflowMode !== undefined,
+    overflowRow: overflowMode !== undefined,
     clampTriggerHeight:
-      (!!renderItem || !!renderSelectedItem) && (connectsLeft || connectsRight),
+      (!!renderItem || !!renderSelectedItem || overflowMode !== undefined) &&
+      (connectsLeft || connectsRight),
     willClear: showClear && clearable.clearable && !hasSelection,
   });
 
@@ -768,7 +793,10 @@ export const Select = <TValue extends string>({
           >
             {hasSelection ? (
               <>
-                {(renderItem || renderSelectedItem) && "\u200B"}
+                {(renderItem ||
+                  renderSelectedItem ||
+                  overflowMode !== undefined) &&
+                  "\u200B"}
                 {renderSelectedContent()}
               </>
             ) : (

@@ -89,5 +89,14 @@ export const styles = sva({
         },
       },
     },
+    // A visible separator supplies the spacing itself (e.g. ", " reads as
+    // prose); the row gap would double it. The measure layer's gap must
+    // always match the root's — the fit math reads it.
+    gapless: {
+      true: {
+        root: { gap: "0" },
+        measure: { gap: "0" },
+      },
+    },
   },
 });

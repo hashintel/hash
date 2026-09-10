@@ -439,6 +439,14 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
+    // An OverflowRow rendering the selected values must be constrained by the
+    // input's width — the base min-content floor would instead let the row's
+    // content push the input wider than its imposed width.
+    overflowRow: {
+      true: {
+        select: { minWidth: "0" },
+      },
+    },
     // Multi-select items need the same inter-item gap as Menu lists so that
     // adjacent highlight-style selections read as separate rows
     multiple: {
