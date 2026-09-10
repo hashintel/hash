@@ -4,7 +4,7 @@
 
 The A-list and B1–B5 guidance changes are implemented. B1 landed in `a9b8b8c`; source-neutral teaching, B2–B5, Gherkin realignment and B1 review follow-ups landed in `223d7218b0`. `6e635e9` separately records Lu's authorization of the review agent's prose-only claims probe and the unchanged evidence-schema boundary. This record does not claim behavioral success or side-quest closure: P7 remains open pending an owner-accepted continuation amendment and actual use.
 
-The [B1 checkpoint](core-plugin-ownership-b1-2026-09-09.md) preserves the observed failure, disclosure evidence, protected protocol and independent review. Lu accepted the standing plugin-freshness rule and passed the full normative-source read at `223d7218b0` during this session. No provider run, app restart, persona submission or new source tool was performed for this implementation audit.
+The B1 implementation (`a9b8b8c163`, review follow-ups `223d7218b0`) and its observed failure, disclosure evidence and protected protocol are recorded in those commits and in `SIDE_QUEST.md`. Lu accepted the standing plugin-freshness rule and passed the full normative-source read at `223d7218b0` during this session. No provider run, app restart, persona submission or new source tool was performed for this implementation audit.
 
 ## Ownership test and disposition
 

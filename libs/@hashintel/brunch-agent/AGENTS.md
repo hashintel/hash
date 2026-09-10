@@ -93,10 +93,10 @@ These rules exist because Mission 4 lost its design between the owner conversati
 4. **Oracle non-authority.** An oracle may falsify an implementation or a claim; it may not redefine policy, architecture, or interaction semantics. An operationalization stricter than the accepted wording is an owner decision, and prompts are never rewritten to mirror a checker.
 5. **Scoped experimental verdicts.** Every experiment adjudication states which decisions its evidence may update and which remain owner-held. Failure of one implementation mechanism does not select another architecture.
 6. **Rationale before disposal.** Before a workbench or draft holding the only explanation of a surviving decision is deleted, move that still-binding reason into `MISSION.md` or an ADR. Otherwise intentionally discard the workbench. Do not copy stale workbenches forward or pin complete run directories in the repository.
-7. **Status is present tense.** `MISSION.md` Status carries only the current state and pointers. Commits, tests, and the PR close report are the normal implementation record. Campaign chronology does not live in repository evidence.
+7. **`MISSION.md` is present tense throughout.** Status carries only the current state and pointers; the six sections carry the resulting contract. A dated "reached X boundary" or run-narrative block is chronology: record what is now admitted or true in the relevant section, name the commit, and delete the narrative. Still-binding owner decisions live in one dated **Owner decisions** list; a consumed one-shot authorization collapses to one line naming the consuming commit and any continuing restriction. An observation whose only record is a local, ignored store is labelled **local-only / not portable** with the native record named as its oracle — it is verified, not an `ORACLE GAP`, and export is not a precondition for believing it. Commits, tests, native run records and the PR close report are the implementation record; campaign chronology lives in none of the repository's documents.
 8. **Close by external acceptance.** Where closure, witness acceptance, handoff selection, or a paid ceiling is owner-reserved, an agent prepares the packet and stops. It records acceptance only after the owner has performed that gate.
 
-A delegated task returns its result in the PR or chat. It does not create a file under `docs/`. Do not add packets under `docs/evidence/implementations/`. Per-implementation proof is the code, test, commit, and PR.
+A delegated task returns its result in the PR or chat. It does not create a file under `docs/`, and it does not add a review or handoff generation to a run directory beyond the [one current handoff](#run-directories). Do not add packets under `docs/evidence/implementations/`. Per-implementation proof is the code, test, commit, and PR.
 
 ## Correctives
 
@@ -122,6 +122,15 @@ A delegated task returns its result in the PR or chat. It does not create a file
 Ordinary dependency installation, builds and documentation research may use the network with repository tooling and pinned dependencies; a missing cache is not by itself an AFK blocker. This permits neither unrelated upgrades nor sending private material to external services. Synthetic tests must remain synthetic and must not fall through to live providers.
 
 Before hermetic proofs, provider authentication checks or paid evaluations, read [evaluation execution safety](evaluations/README.md#execution-safety). Isolation follows the proof claim, not all development. Missions specify exceptions and concrete run limits; they need not reauthorize this default, and these standing rules grant no paid allocation or waiver of an existing stop.
+
+### Run directories
+
+Ignored run output (for example `apps/brunch-agent/.data-wipe-me/persona-runs/<run>/`) follows the same anti-accretion rule as tracked documentation; moving the packet habit off Git does not retire it.
+
+- A run directory retains **native records**: canonical history, workpiece records, snapshots, stop state, observations the product or launcher wrote, and logs. These are the oracle for what the run did.
+- It holds **one current handoff** (`handoff.md`, or the run's `gate-packet.md`), overwritten in place. No `review-*`, `final`, `wrap` or `linked` generations, and no second copy of a handoff.
+- Write an **observation summary** only when a concrete decision depends on it; that decision then goes to the `MISSION.md` Owner decisions list, and the summary is not kept as a sibling packet. A subagent otherwise returns its result in chat or the PR.
+- Superseded generations are deleted by the operator when the run is wrapped; they are not archived beside the retained records.
 
 ## Retained facts
 

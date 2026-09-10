@@ -64,6 +64,8 @@ Read the current trusted builder profile rather than hard-coding a provider/thin
 
 The brief names the current question, owned change/probe and shared seams, required actual boundary/discriminator, permitted network mode, paid prohibition or exact allocation, and return/stop condition. Include only relevant current source/evidence pointers; do not make every historical packet a cold-start requirement.
 
+The brief also names where the child's output goes: results return in chat or the PR; a run directory keeps its native records and one current handoff under the [run-directory rule](../../AGENTS.md#run-directories). A child does not open a new `review-*` or summary folder for its pass; it overwrites the current handoff or reports back.
+
 Apply [standing evaluation execution safety](../../evaluations/README.md#execution-safety) when dispatching a proof or provider-dependent task. Include the mission's concrete exceptions/allocation in its brief; do not copy an old lane's blanket network prohibition or paid permission into the next one.
 
 ## Supervise and resume
@@ -76,7 +78,7 @@ Apply [standing evaluation execution safety](../../evaluations/README.md#executi
 
 ## Close and preserve
 
-Before closing an agent pane, save canonical status, outstanding-question disposition, final result, exact refs/commits and transcript/session path outside the worktree being removed. Capture nested helpers too. Verify there is no active task or unresolved question; if interruption is intended, record it as interruption rather than completion.
+Before closing an agent pane, save canonical status, outstanding-question disposition, final result, exact refs/commits and transcript/session path outside the worktree being removed. Capture nested helpers too. When wrapping a run, designate its one current handoff and delete superseded review generations; retained native records are the oracle, not the summaries written about them. Verify there is no active task or unresolved question; if interruption is intended, record it as interruption rather than completion.
 
 Close resolved session-owned panes promptly; leave unrelated/user-owned occupants alone unless explicitly authorized. Pane/workspace closure and worktree removal are different operations. Stop owned servers and account for their cleanup as well.
 
