@@ -38,7 +38,7 @@ impl<B: Backend> Multipart<B> {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError`] if the object cannot be partitioned.
+    /// Returns [`StorageError`] if the object exceeds multipart bounds.
     pub(crate) fn new(backend: B, length: u64) -> Result<Self, StorageError> {
         let parts = Parts::new(length)?;
         Ok(Self { backend, parts })
