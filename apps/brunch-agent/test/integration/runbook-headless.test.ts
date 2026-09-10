@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "./run-node-script";
+import { runNodeScript } from "../run-node-script";
 
 const testDirectory = import.meta.dirname;
 
@@ -13,7 +13,7 @@ test("the built ChatAgent reports only the construct-only evidence it reaches", 
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
       join(testDirectory, "runbook-headless.integration.ts"),
-      join(testDirectory, "../../.."),
+      join(testDirectory, "../../../.."),
       { BRUNCH_CHAT_DB_PATH: join(dbDirectory, "conversations.db") },
     );
     expect(exitCode, stderr || stdout).toBe(0);

@@ -561,7 +561,15 @@
       ]
     },
     "test:integration": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build",
+        "build"
+      ],
       "env": [
         "TEST_COVERAGE"
       ],
