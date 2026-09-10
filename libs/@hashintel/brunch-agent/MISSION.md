@@ -70,7 +70,7 @@ history, and test files.
 
 Automatic construction and provenance remain future work. Paid-provider output, browser behavior,
 and audible Voice behavior remain skipped witness boundaries; this mission does not claim them.
- 
+
 
 ## FE-1653 Verification Close
 
@@ -103,6 +103,21 @@ with type-aware proof fixes in `6f1713f28c`.
 - `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, `yarn lint:format`, and
   `git diff --check` — **PASS**. The Task 2 fixer’s focused Brunch test, typecheck, lint,
   and diff check — **PASS**.
+
+### PR review hardening
+
+**Executable head verified:** `a44b393cdd` (`Gate current-net reads by delivery kind`).
+Any following verification-close commit changes evidence only.
+
+- Strengthened ordinary and prepared-fixture faux-provider checks deliberately request a duplicate
+  current-net read whenever a continuation still advertises it. Both focused Brunch integration
+  tests — **PASS**; each user turn keeps one initial read and zero resumed reads.
+- `yarn workspace @apps/brunch-agent test:unit` after direct server and client production builds —
+  **PASS**: 25 files, 200 tests.
+- `yarn workspace @hashintel/brunch-agent-plugin-sdcpn test:unit` — **PASS**: 2 files, 12 tests.
+- Focused Petrinaut website transport/history tests — **PASS**: 2 files, 26 tests.
+- Brunch and SDCPN plugin TypeScript checks — **PASS**.
+- Brunch ESLint — **PASS** with 14 pre-existing warnings and 0 errors.
 
 ### Browser witness and proof boundary
 
