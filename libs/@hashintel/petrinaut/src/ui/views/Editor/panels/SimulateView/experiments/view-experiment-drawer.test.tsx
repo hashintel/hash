@@ -10,11 +10,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
+  frameLayoutSignature,
   scrollFrameBody,
-} from "../shared/drawer-frame/frame-test-helpers";
+} from "../shared/drawer-frame-test-helpers";
 import { describeExperiment } from "./experiment-results";
 import {
   makeExperiment,

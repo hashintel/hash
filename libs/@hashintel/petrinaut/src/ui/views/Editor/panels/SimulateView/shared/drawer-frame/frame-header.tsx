@@ -31,14 +31,6 @@ import type { FrameHeaderEngagement } from "./use-header-engaged";
 export const FRAME_HEADER_HEIGHT = 74;
 /** The header's height in pixels once the body has scrolled: the title line and the padding. */
 export const FRAME_HEADER_CONDENSED_HEIGHT = 36;
-/**
- * The header content width, in pixels, under which the columns drop their
- * labels and read as chips. Mirrored by the container queries below, which
- * Panda extracts statically.
- */
-export const FRAME_HEADER_CHIPS_MAX_WIDTH = 859;
-/** The header content width, in pixels, under which a value with a short form shows it. */
-export const FRAME_HEADER_SHORT_MAX_WIDTH = 719;
 
 /** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
 export type FrameStatsDensity = "full" | "compact";
@@ -412,11 +404,11 @@ export type FrameHeaderProps = {
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */
-  headline?: ReactNode;
+  headline?: ReactNode | null;
   /** The strip: `FrameStat` columns. Echoed as inert compact chips on the title line while condensed. */
   stats: ReactNode;
   /** The strip's last column, pinned right: the compute badge. */
-  badge?: ReactNode;
+  badge?: ReactNode | null;
   /** The bar along the bottom edge, 0 to 100. Always drawn. */
   progress: number;
   condensed: boolean;
@@ -449,7 +441,7 @@ const CompactStats = ({
       aria-hidden
     >
       {stats}
-      {badge === undefined ? null : <BadgeColumn badge={badge} />}
+      {badge == null ? null : <BadgeColumn badge={badge} />}
     </div>
   </FrameStatsDensityContext>
 );
@@ -484,7 +476,7 @@ export const FrameHeader = ({
           {title}
         </span>
         <div className={titleLineEndStyle}>
-          {headline === undefined ? null : (
+          {headline == null ? null : (
             <div
               className={headlineStyle}
               data-frame-headline
@@ -506,7 +498,7 @@ export const FrameHeader = ({
           aria-label="Header statistics"
         >
           {stats}
-          {badge === undefined ? null : <BadgeColumn badge={badge} />}
+          {badge == null ? null : <BadgeColumn badge={badge} />}
         </div>
       </Fold>
       <div className={progressTrackStyle} data-frame-progress>

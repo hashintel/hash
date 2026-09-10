@@ -46,7 +46,7 @@ export const FrameCard = ({
   subtitle,
   help,
   trailing,
-  more = null,
+  more,
   tone,
   children,
 }: {
@@ -55,9 +55,9 @@ export const FrameCard = ({
   subtitle?: string;
   help?: string;
   /** The header's right side: a state line, a switch. */
-  trailing?: ReactNode;
-  /** A part folded away by default and opened from the footer; it stays mounted. */
-  more?: FrameCardMore | null;
+  trailing?: ReactNode | null;
+  /** A part folded away by default and opened from the footer; it stays mounted. Null gives the card no footer. */
+  more: FrameCardMore | null;
   /** The card's look: `optimizing` while an optimizer drives its controls. */
   tone?: ChartCardTone;
   children: ReactNode;

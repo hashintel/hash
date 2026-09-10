@@ -30,9 +30,9 @@ reads **Reconnecting** while a remote stream reconnects (`describeStudyStatus`).
 ## One study: drawer and full view
 
 Both surfaces render the [shared results view](layer:ui.views.editor.results)
-(`SimulateView/shared/results.tsx`): `ResultsView` draws a `ResultsModel`
-inside the [frame](layer:ui.views.editor.drawer-frame) and reads no record of
-its own. The experiment drawer renders the same view from
+(`SimulateView/shared/results/results-view.tsx`): `ResultsView` draws a
+`ResultsModel` inside the [frame](layer:ui.views.editor.drawer-frame) and reads
+no record of its own. The experiment drawer renders the same view from
 `experimentResultsModel`; what differs between an experiment and a study is
 data and a few slots, not layout. `study-results.tsx` is the study's adapter:
 the pure `studyResultsModel(record, dependencies)` maps an

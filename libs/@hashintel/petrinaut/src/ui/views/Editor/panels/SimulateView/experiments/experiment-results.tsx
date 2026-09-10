@@ -37,7 +37,7 @@ import type {
   ResultsModel,
   ResultsStat,
   ResultsStatus,
-} from "../shared/results";
+} from "../shared/results/results-model";
 
 const STATUS_DISPLAY: Record<
   ExperimentRecord["status"],

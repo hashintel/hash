@@ -2,8 +2,8 @@
  * The frame on its own, with placeholder cards: at rest, the header shows
  * the title line, the strip of stat columns and the bar; once the body has
  * scrolled it condenses to one line of compact chips and grows back under the
- * pointer. The Parameters band spans the body and collapses; the surface and
- * the cards share the columns beneath it.
+ * pointer. The Parameters card spans the body and folds its fixed part behind
+ * a footer button; the surface and the cards share the columns beneath it.
  */
 import { useEffect } from "react";
 
