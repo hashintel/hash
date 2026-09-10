@@ -2035,7 +2035,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Answer now" }));
     await waitFor(() =>
-      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+      expect(latestVoiceContext?.queuedVoiceInputs).toHaveLength(1),
     );
     expect(requests).toHaveLength(1);
 
@@ -2067,7 +2067,7 @@ describe("AiAssistantPanel composer submissions", () => {
       text: "Next voice input",
     });
     await waitFor(() =>
-      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+      expect(latestVoiceContext?.queuedVoiceInputs).toHaveLength(1),
     );
     expect(requests).toHaveLength(2);
 
@@ -2080,6 +2080,223 @@ describe("AiAssistantPanel composer submissions", () => {
       parts: [{ type: "text", text: "Next voice input" }],
     });
   });
+
+  test("queues same-tick voice turns FIFO until the whole browser continuation completes", async () => {
+    const requests: PetrinautAiMessage[][] = [];
+    const events: string[] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requests.push(structuredClone(messages));
+        const request = requests.length;
+        if (request === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "voice-net-read",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks(`answer-${request}`, `Answer ${request}`)),
+        );
+      },
+    );
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return null;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    act(() => {
+      for (const [id, text] of [
+        ["voice-a", "Same words"],
+        ["voice-b", "Same words"],
+        ["voice-c", "Third turn"],
+      ] as const) {
+        void latestVoiceContext?.submitVoiceInput({
+          id,
+          text,
+          onQueued: () => events.push(`queued:${id}`),
+          onTurnComplete: ({ messages, outcome }) => {
+            events.push(`complete:${id}:${outcome}:${requests.length}`);
+            expect(Object.isFrozen(messages)).toBe(true);
+          },
+        });
+      }
+    });
+
+    await waitFor(() => expect(requests).toHaveLength(4));
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("ready"));
+    expect(events).toEqual([
+      "queued:voice-b",
+      "queued:voice-c",
+      "complete:voice-a:completed:2",
+      "complete:voice-b:completed:3",
+      "complete:voice-c:completed:4",
+    ]);
+    expect(requests.slice(2).map((messages) => messages.at(-1)?.id)).toEqual([
+      "voice-b",
+      "voice-c",
+    ]);
+  });
+
+  test.each(["error", "abort"] as const)(
+    "holds queued input after a stream %s and resumes only on request",
+    async (failure) => {
+      let stream: ReadableStreamDefaultController<UIMessageChunk> | undefined;
+      const outcomes: string[] = [];
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
+        if (sendMessages.mock.calls.length > 1)
+          return Promise.resolve(
+            streamChunks(textChunks("recovered", "Recovered answer")),
+          );
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              stream = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "failing" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "failing",
+                delta: "Before failure",
+              });
+            },
+          }),
+        );
+      });
+      let context: PetrinautAiVoiceModeContext | undefined;
+      renderTestPanel({
+        aiAssistant: {
+          transport: {
+            reconnectToStream: () => Promise.resolve(null),
+            sendMessages,
+          },
+          renderVoiceMode: (current) => {
+            context = current;
+            return null;
+          },
+        },
+      });
+      act(() => {
+        void context
+          ?.submitVoiceInput({
+            id: "first",
+            text: "First",
+            onTurnComplete: ({ outcome }) => outcomes.push(outcome),
+          })
+          .catch(() => undefined);
+        void context?.submitVoiceInput({ id: "second", text: "Second" });
+      });
+      await screen.findByText("Before failure");
+      await act(async () => {
+        stream?.error(
+          failure === "error"
+            ? new Error("Connection lost")
+            : new DOMException("Disconnected", "AbortError"),
+        );
+      });
+      await waitFor(() =>
+        expect(outcomes).toEqual([failure === "error" ? "failed" : "aborted"]),
+      );
+      expect(sendMessages).toHaveBeenCalledOnce();
+      expect(context?.queuedVoiceInputsPaused).toBe(true);
+      expect(context?.queuedVoiceInputs).toEqual([
+        { id: "second", text: "Second" },
+      ]);
+      fireEvent.click(screen.getByRole("button", { name: "Resume queue" }));
+      await screen.findByText("Recovered answer");
+      expect(sendMessages).toHaveBeenCalledTimes(2);
+      expect(context?.queuedVoiceInputs).toEqual([]);
+    },
+  );
+
+  test.each([false, true])(
+    "Stop aborts the active voice turn and withdraws the retained FIFO (pending durable stop: %s)",
+    async (pendingDurableStop) => {
+      const outcomes: string[] = [];
+      const transport: PetrinautAiTransport = {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(() =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "active" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "active",
+                  delta: "Working",
+                });
+              },
+            }),
+          ),
+        ),
+      };
+      let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+      renderTestPanel({
+        aiAssistant: {
+          requestStop: pendingDurableStop
+            ? () => new Promise(() => {})
+            : undefined,
+          renderVoiceMode: (context) => {
+            latestVoiceContext = context;
+            return null;
+          },
+          transport,
+        },
+      });
+
+      const active = latestVoiceContext!.submitVoiceInput({
+        id: "active",
+        text: "Active",
+        onTurnComplete: ({ outcome }) => outcomes.push(outcome),
+      });
+      const queuedB = latestVoiceContext!.submitVoiceInput({
+        id: "queued-b",
+        text: "Queued B",
+      });
+      const queuedC = latestVoiceContext!.submitVoiceInput({
+        id: "queued-c",
+        text: "Queued C",
+      });
+      void active.catch(() => undefined);
+      const queuedBRejection = expect(queuedB).rejects.toMatchObject({
+        name: "AbortError",
+      });
+      const queuedCRejection = expect(queuedC).rejects.toMatchObject({
+        name: "AbortError",
+      });
+      await screen.findByText("Working");
+
+      act(() => {
+        void latestVoiceContext?.stop();
+      });
+
+      await queuedBRejection;
+      await queuedCRejection;
+      await waitFor(() => expect(outcomes).toEqual(["aborted"]));
+      expect(latestVoiceContext?.queuedVoiceInputs).toEqual([]);
+      expect(transport.sendMessages).toHaveBeenCalledOnce();
+    },
+  );
 
   test("reopens the voice input buffer when the conversation changes", async () => {
     let streamController:
@@ -2131,7 +2348,7 @@ describe("AiAssistantPanel composer submissions", () => {
       "The voice conversation changed.",
     );
     await waitFor(() =>
-      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+      expect(latestVoiceContext?.queuedVoiceInputs).toHaveLength(1),
     );
 
     rendered.rerenderPanel(createAiAssistant("conversation-2"));
@@ -3060,7 +3277,7 @@ describe("AiAssistantPanel composer submissions", () => {
       text: "Stale voice input",
     });
     await waitFor(() =>
-      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+      expect(latestVoiceContext?.queuedVoiceInputs).toHaveLength(1),
     );
 
     withdrawal.abort();

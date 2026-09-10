@@ -33,8 +33,10 @@ const createHarness = () => {
   const bridge = {
     cancelPendingSpeech: vi.fn(),
     completeTurnHandoff: vi.fn(),
+    resume: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
+    suspend: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
       bridgeListener = listener;
       return () => {
@@ -89,6 +91,72 @@ const markedQuestion = (
 });
 
 describe("VoiceTurnController", () => {
+  test("separates speech end from delayed transcription and acknowledgement", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      type: "input-speech-stopped",
+      connectionEpoch: 1,
+      itemId: "utterance",
+    });
+    harness.advanceTime(180);
+    const deliveryId = "voice-realtime:1:utterance:0";
+    harness.emitBridge({
+      type: "submission-started",
+      deliveryId,
+      answer: "Private words",
+    });
+    harness.emitSession({
+      type: "canonical-speech-requested",
+      connectionEpoch: 1,
+      deliveryId,
+      speechRequestId: "request",
+      speechKind: "acknowledgement",
+    });
+    harness.advanceTime(75);
+    harness.emitSession({
+      type: "output-started",
+      connectionEpoch: 1,
+      deliveryId,
+      responseId: "ack",
+      speechRequestId: "request",
+      speechKind: "acknowledgement",
+    });
+    expect(harness.latencyEvents).toEqual([
+      {
+        name: "user-speech-ended",
+        correlationId: deliveryId,
+        elapsedMs: 0,
+        timestampMs: 0,
+      },
+      {
+        name: "transcription-completed",
+        correlationId: deliveryId,
+        elapsedMs: 180,
+        timestampMs: 180,
+      },
+      {
+        name: "first-acknowledgement-audio",
+        correlationId: deliveryId,
+        elapsedMs: 255,
+        timestampMs: 255,
+      },
+    ]);
+    harness.advanceTime(600);
+    harness.emitSession({
+      type: "paraphrase-speech-requested",
+      connectionEpoch: 1,
+      deliveryId,
+      speechRequestId: "answer-request",
+    });
+    expect(harness.latencyEvents.at(-1)).toEqual({
+      name: "first-tts-request",
+      correlationId: deliveryId,
+      elapsedMs: 855,
+      timestampMs: 855,
+    });
+  });
+
   test("records the content-free Voice lifecycle once in causal order", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -148,28 +216,39 @@ describe("VoiceTurnController", () => {
     expect(harness.latencyEvents).toEqual([
       {
         correlationId: "call-opaque",
+        elapsedMs: 0,
+        name: "transcription-completed",
+        timestampMs: 0,
+      },
+      {
+        correlationId: "call-opaque",
         elapsedMs: 10,
         name: "submission-admitted",
+        timestampMs: 10,
       },
       {
         correlationId: "call-opaque",
         elapsedMs: 20,
         name: "first-canonical-text",
+        timestampMs: 20,
       },
       {
         correlationId: "call-opaque",
         elapsedMs: 30,
         name: "submission-settled",
+        timestampMs: 30,
       },
       {
         correlationId: "call-opaque",
         elapsedMs: 40,
         name: "first-tts-request",
+        timestampMs: 40,
       },
       {
         correlationId: "call-opaque",
         elapsedMs: 50,
         name: "first-tts-audio",
+        timestampMs: 50,
       },
     ]);
     expect(JSON.stringify(harness.latencyEvents)).not.toContain(
@@ -182,7 +261,7 @@ describe("VoiceTurnController", () => {
       type: "submission-settled",
     });
     harness.emitSession(outputStarted);
-    expect(harness.latencyEvents).toHaveLength(5);
+    expect(harness.latencyEvents).toHaveLength(6);
   });
 
   test("opens a continuous microphone before starting canonical question speech", async () => {
@@ -211,7 +290,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("tracks assistant playback without admitting automatic barge-in", async () => {
+  test("tracks assistant playback and cancels output-only on barge-in", async () => {
     const harness = createHarness();
     await harness.controller.start();
 
@@ -236,7 +315,8 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "speaking",
     });
-    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(harness.bridge.cancelPendingSpeech).not.toHaveBeenCalled();
   });
 
   test("clears pre-output capture and only commits fresh post-handoff input", async () => {
@@ -284,7 +364,7 @@ describe("VoiceTurnController", () => {
 
     expect(harness.controller.getSnapshot()).toMatchObject({
       lastCommittedText: "",
-      partialText: "",
+      partialText: "This completed too late.",
     });
 
     await harness.controller.takeTurn();
@@ -350,13 +430,11 @@ describe("VoiceTurnController", () => {
       type: "canonical-speech-requested",
     });
 
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
-      false,
-    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.controller.getSnapshot()).toMatchObject({
       canTakeTurn: true,
       lastCommittedText: "",
-      partialText: "",
+      partialText: "Provisional pre-request words",
     });
     harness.emitSession({
       key: {
@@ -369,7 +447,7 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
       lastCommittedText: "",
-      partialText: "",
+      partialText: "This completed before output started.",
     });
     expect(harness.submitText).not.toHaveBeenCalled();
 
@@ -509,9 +587,7 @@ describe("VoiceTurnController", () => {
     expect(repeatedHandoff).toBe(handoff);
     expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
     expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
-      false,
-    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.controller.getSnapshot()).toMatchObject({
       canTakeTurn: false,
       output: "cancelling",
@@ -520,7 +596,14 @@ describe("VoiceTurnController", () => {
     harness.session.setMicrophoneEnabled.mockClear();
     harness.controller.setMicrophoneMuted(true);
     harness.controller.setMicrophoneMuted(false);
-    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenNthCalledWith(
+      1,
+      false,
+    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenNthCalledWith(
+      2,
+      true,
+    );
     expect(harness.controller.getSnapshot().microphoneEnabled).toBe(true);
 
     harness.emitSession({
@@ -539,8 +622,14 @@ describe("VoiceTurnController", () => {
     finishCancellation?.();
     await handoff;
 
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenNthCalledWith(
+      1,
+      false,
+    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenNthCalledWith(
+      2,
+      true,
+    );
     expect(harness.controller.getSnapshot()).toMatchObject({
       canTakeTurn: false,
       microphoneEnabled: true,
@@ -586,21 +675,17 @@ describe("VoiceTurnController", () => {
     void handoff.then(() => {
       handoffFinished = true;
     });
-    await Promise.resolve();
+    await handoff;
 
-    expect(handoffFinished).toBe(false);
-    expect(harness.bridge.completeTurnHandoff).not.toHaveBeenCalled();
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
+    expect(handoffFinished).toBe(true);
+    expect(harness.bridge.completeTurnHandoff).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
 
     harness.emitBridge({
       deliveryId: "voice-request",
       type: "submission-settled",
     });
-    await handoff;
-
     expect(harness.bridge.completeTurnHandoff).toHaveBeenCalledOnce();
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
   test("cancels queued and later speech when the host stops a response", async () => {
@@ -746,9 +831,7 @@ describe("VoiceTurnController", () => {
       segments: [report],
     });
     expect(harness.controller.getSnapshot().canReadFullResponse).toBe(false);
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
-      false,
-    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     harness.emitSession({
       type: "output-started",
       connectionEpoch: 1,
@@ -1009,7 +1092,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("keeps capture closed from submission until canonical output settles", async () => {
+  test("keeps capture active from submission through canonical output", async () => {
     const harness = createHarness();
     await harness.controller.start();
     harness.session.setMicrophoneEnabled.mockClear();
@@ -1026,7 +1109,7 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "waiting-for-tool",
     });
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(
       false,
     );
     harness.emitBridge({
@@ -1109,6 +1192,7 @@ describe("VoiceTurnController", () => {
       correlationId: "voice-1",
       elapsedMs: 40,
       name: "submission-settled",
+      timestampMs: 40,
     });
   });
 
@@ -1821,6 +1905,154 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("keeps capture active while submitting and speaking", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitBridge({
+      answer: "A retained answer",
+      deliveryId: "delivery-a",
+      type: "submission-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      deliveryId: "delivery-a",
+      speechRequestId: "speech-a",
+      type: "paraphrase-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      deliveryId: "delivery-a",
+      responseId: "response-a",
+      speechKind: "paraphrase",
+      speechRequestId: "speech-a",
+      type: "output-started",
+    });
+
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      microphoneEnabled: true,
+      output: "speaking",
+    });
+  });
+
+  test("barge-in cancels only output immediately and retains its transcript", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      deliveryId: "delivery-a",
+      responseId: "response-a",
+      speechKind: "paraphrase",
+      speechRequestId: "speech-a",
+      type: "output-started",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-b",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-b" },
+      text: "Actually, keep this thought",
+      type: "partial",
+    });
+
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(harness.bridge.cancelPendingSpeech).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot().partialText).toBe(
+      "Actually, keep this thought",
+    );
+  });
+
+  test("mutes the actual capture track even while output is active", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      speechRequestId: "speech-a",
+      type: "output-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.controller.setMicrophoneMuted(true);
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
+  });
+
+  test("suspends recoverable work on error and resumes it on a new epoch", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "Unsent retained answer",
+      deliveryId: "delivery-a",
+      type: "submission-started",
+    });
+
+    harness.emitBridge({
+      code: "interview-submission",
+      message: "Temporary failure.",
+      type: "error",
+    });
+    expect(harness.bridge.suspend).toHaveBeenCalledOnce();
+    expect(harness.bridge.stop).not.toHaveBeenCalled();
+
+    await harness.controller.reconnect();
+    expect(harness.bridge.resume).toHaveBeenCalledWith(2);
+    expect(harness.bridge.stop).not.toHaveBeenCalled();
+  });
+
+  test("correlates overlapping response latency with each delivery origin", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "A",
+      deliveryId: "a",
+      type: "submission-started",
+    });
+    harness.advanceTime(100);
+    harness.emitBridge({
+      answer: "B",
+      deliveryId: "b",
+      type: "submission-started",
+    });
+    harness.advanceTime(25);
+    harness.emitSession({
+      connectionEpoch: 1,
+      deliveryId: "a",
+      speechRequestId: "speech-a",
+      type: "paraphrase-speech-requested",
+    });
+    harness.advanceTime(5);
+    harness.emitSession({
+      connectionEpoch: 1,
+      deliveryId: "a",
+      responseId: "response-a",
+      speechKind: "paraphrase",
+      speechRequestId: "speech-a",
+      type: "output-started",
+    });
+
+    expect(harness.latencyEvents).toContainEqual({
+      correlationId: "a",
+      elapsedMs: 125,
+      name: "first-tts-request",
+      timestampMs: 125,
+    });
+    expect(harness.latencyEvents).toContainEqual({
+      correlationId: "a",
+      elapsedMs: 130,
+      name: "first-tts-audio",
+      timestampMs: 130,
+    });
+  });
+
   test("ends all media and rejects events from the previous epoch", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -1896,7 +2128,7 @@ describe("VoiceTurnController", () => {
     await harness.controller.reconnect();
 
     expect(harness.session.connect).toHaveBeenCalledTimes(2);
-    expect(harness.bridge.start).toHaveBeenLastCalledWith(2);
+    expect(harness.bridge.resume).toHaveBeenLastCalledWith(2);
     expect(harness.controller.getSnapshot().connection).toBe("connected");
   });
 

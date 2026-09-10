@@ -13,6 +13,12 @@ export const voiceErrorCodes = [
 
 export type VoiceErrorCode = (typeof voiceErrorCodes)[number];
 export type VoiceOperation = "connection" | "transcription" | "speech";
+export type VoiceSpeechKind =
+  | "acknowledgement"
+  | "bridging"
+  | "exact-read"
+  | "paraphrase"
+  | "progress";
 
 export interface VoiceDiagnosticEvent {
   readonly durationMs: number;
@@ -23,7 +29,7 @@ export interface VoiceDiagnosticEvent {
   readonly stage: "browser" | "playback" | "server";
   readonly status?: number;
   /** Marks application-authored delivery notices, never canonical Brunch text. */
-  readonly speechKind?: "bridging";
+  readonly speechKind?: VoiceSpeechKind;
 }
 
 export type VoiceDiagnosticReporter = (event: VoiceDiagnosticEvent) => void;

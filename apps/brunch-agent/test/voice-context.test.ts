@@ -63,9 +63,17 @@ test("ChatAgent scopes its fixed Voice instructions to the current delivery", as
       .then((receipt) => handle.read(receipt));
     expect(prompts).toHaveLength(5);
     expect(prompts[0]).not.toContain("Voice response style");
-    expect(prompts[1]).toContain("Voice response style");
-    expect(prompts[1]).toContain("consequential qualifications");
-    expect(prompts[1]).toContain("visible canonical response");
+    expect(prompts[1]).toContain("Voice response presentation");
+    expect(prompts[1]).toContain(
+      "complete canonical on-screen response normally",
+    );
+    expect(prompts[1]).toContain("marked question in its exact wording");
+    expect(prompts[1]).toContain(
+      "Realtime rephrases the completed response later",
+    );
+    expect(prompts[1]).not.toContain("Respond conversationally and concisely");
+    expect(prompts[1]).not.toContain("one or two spoken sentences");
+    expect(prompts[1]).not.toContain("offers to read long responses");
     expect(prompts[2]).toBe(prompts[1]);
     expect(prompts[3]).toBe(prompts[0]);
     expect(prompts[4]).toBe(prompts[0]);

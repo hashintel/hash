@@ -162,6 +162,69 @@ test("matches client-tool admissions once and supports unsubscribe", () => {
   expect(unsubscribedListener).not.toHaveBeenCalled();
 });
 
+test("publishes every admission globally and records continuation membership immediately", () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const listener = vi.fn();
+  tracker.subscribeToAdmissionEvents(listener);
+  const userEvent = {
+    admission: {
+      streamUrl: "http://brunch.test/user",
+      offset: "offset-user",
+      submissionId: "submission-user",
+      uid: "uid-user",
+    },
+    kind: "user" as const,
+    messageId: "user-1",
+  };
+  const continuationEvent = {
+    admission: {
+      streamUrl: "http://brunch.test/continuation",
+      offset: "offset-continuation",
+      submissionId: "submission-continuation",
+      uid: "uid-continuation",
+    },
+    kind: "client-tool-result" as const,
+    messageId: "assistant-1",
+  };
+
+  tracker.recordAdmission(userEvent);
+  tracker.recordAdmission(continuationEvent);
+  tracker.recordAdmission(continuationEvent);
+
+  expect(listener.mock.calls).toEqual([
+    [userEvent],
+    [continuationEvent],
+    [continuationEvent],
+  ]);
+  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+    "submission-continuation",
+  ]);
+});
+
+test("publishes repeated explicit submission settlements and supports unsubscribe", () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const listener = vi.fn();
+  const unsubscribedListener = vi.fn();
+  tracker.subscribeToSubmissionSettled(listener);
+  const unsubscribe =
+    tracker.subscribeToSubmissionSettled(unsubscribedListener);
+  unsubscribe();
+  const event = {
+    type: "submission-settled" as const,
+    conversationId: "conversation-1",
+    submissionId: "submission-1",
+    outcome: "failed" as const,
+    position: { batch: 1, index: 0 },
+  };
+
+  tracker.recordSubmissionSettled(event);
+  tracker.recordSubmissionSettled(event);
+
+  expect(listener).toHaveBeenCalledTimes(2);
+  expect(listener).toHaveBeenNthCalledWith(1, event);
+  expect(unsubscribedListener).not.toHaveBeenCalled();
+});
+
 test("records every submission that wrote a resumed assistant message", () => {
   const tracker = new BrunchPanelConversationTracker();
   const responseStartedListener = vi.fn();

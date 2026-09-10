@@ -19,6 +19,7 @@ import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
+  FlueChatSubmissionSettledEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
@@ -41,6 +42,9 @@ export class BrunchPanelConversationTracker {
     readonly listener: (admission: BrunchPanelAdmission) => void;
     readonly target: BrunchPanelAdmissionTarget;
   }>();
+  readonly #admissionEventListeners = new Set<
+    (admission: BrunchPanelAdmission) => void
+  >();
   readonly #inFlightSubmissions = new Set<Promise<unknown>>();
   readonly #inputSubmissions = new Map<
     string,
@@ -56,6 +60,9 @@ export class BrunchPanelConversationTracker {
   readonly #responseMessageCompletedListeners = new Set<
     (event: FlueChatResponseMessageCompletedEvent) => void
   >();
+  readonly #submissionSettledListeners = new Set<
+    (event: FlueChatSubmissionSettledEvent) => void
+  >();
   readonly #stopRequestedListeners = new Set<() => void>();
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
@@ -64,6 +71,14 @@ export class BrunchPanelConversationTracker {
         admission.messageId,
         admission.admission.submissionId,
       );
+    } else {
+      this.#recordResponseSubmission(
+        admission.messageId,
+        admission.admission.submissionId,
+      );
+    }
+    for (const listener of this.#admissionEventListeners) {
+      listener(admission);
     }
     for (const subscription of this.#admissionSubscriptions) {
       if (
@@ -83,14 +98,21 @@ export class BrunchPanelConversationTracker {
    * continuation.
    */
   public recordResponse(event: FlueChatResponseMessageStartedEvent): void {
-    const recorded = this.#responseSubmissions.get(event.messageId);
-    if (recorded === undefined) {
-      this.#responseSubmissions.set(event.messageId, [event.submissionId]);
-    } else if (!recorded.includes(event.submissionId)) {
-      recorded.push(event.submissionId);
-    }
+    this.#recordResponseSubmission(event.messageId, event.submissionId);
     for (const listener of this.#responseMessageStartedListeners) {
       listener(event);
+    }
+  }
+
+  #recordResponseSubmission(
+    messageId: string,
+    submissionId: AgentSendResult["submissionId"],
+  ): void {
+    const recorded = this.#responseSubmissions.get(messageId);
+    if (recorded === undefined) {
+      this.#responseSubmissions.set(messageId, [submissionId]);
+    } else if (!recorded.includes(submissionId)) {
+      recorded.push(submissionId);
     }
   }
 
@@ -98,6 +120,12 @@ export class BrunchPanelConversationTracker {
     event: FlueChatResponseMessageCompletedEvent,
   ): void {
     for (const listener of this.#responseMessageCompletedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordSubmissionSettled(event: FlueChatSubmissionSettledEvent): void {
+    for (const listener of this.#submissionSettledListeners) {
       listener(event);
     }
   }
@@ -162,6 +190,13 @@ export class BrunchPanelConversationTracker {
     return () => this.#admissionSubscriptions.delete(subscription);
   }
 
+  public subscribeToAdmissionEvents(
+    listener: (admission: BrunchPanelAdmission) => void,
+  ): () => void {
+    this.#admissionEventListeners.add(listener);
+    return () => this.#admissionEventListeners.delete(listener);
+  }
+
   public subscribeToAdmissionFailure(
     target: BrunchPanelAdmissionTarget,
     listener: (error: FlueChatAdmissionError) => void,
@@ -188,6 +223,13 @@ export class BrunchPanelConversationTracker {
   public subscribeToStopRequested(listener: () => void): () => void {
     this.#stopRequestedListeners.add(listener);
     return () => this.#stopRequestedListeners.delete(listener);
+  }
+
+  public subscribeToSubmissionSettled(
+    listener: (event: FlueChatSubmissionSettledEvent) => void,
+  ): () => void {
+    this.#submissionSettledListeners.add(listener);
+    return () => this.#submissionSettledListeners.delete(listener);
   }
 }
 
@@ -319,6 +361,9 @@ export const createBrunchPanelTransport = (
       readonly toolName: string;
     }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
+    readonly onSubmissionSettled?: (
+      event: FlueChatSubmissionSettledEvent,
+    ) => void;
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
@@ -340,6 +385,10 @@ export const createBrunchPanelTransport = (
           onResponseMessage: (event) => tracker.recordResponse(event),
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
+          onSubmissionSettled: (event) => {
+            tracker.recordSubmissionSettled(event);
+            options?.onSubmissionSettled?.(event);
+          },
         });
         try {
           return decorateBrunchStream(

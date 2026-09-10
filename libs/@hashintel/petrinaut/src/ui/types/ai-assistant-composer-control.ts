@@ -26,6 +26,11 @@ export type PetrinautAiComposerSubmitTextResult =
   | { kind: "message"; messageId: string }
   | { kind: "interactive-tool"; toolCallId: string };
 
+export type PetrinautAiVoiceTurnCompleteEvent = {
+  readonly messages: PetrinautAiMessage[];
+  readonly outcome: "completed" | "failed" | "aborted";
+};
+
 export type PetrinautAiComposerSubmitText = (params: {
   id?: string;
   /** Persist this finalized text as voice-origin input. */
@@ -83,10 +88,21 @@ export type PetrinautAiVoiceModeControls = {
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
 export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
-  /** True when Petrinaut can retain one next voice turn while chat settles. */
+  /** True when Petrinaut can retain another voice turn while chat settles. */
   canAcceptVoiceInput: boolean;
   inputMode: PetrinautAiInputMode;
   isAiAssistantOpen: boolean;
+  /** Voice turns retained locally and not yet admitted to the composer. */
+  queuedVoiceInputs?: readonly {
+    readonly id?: string;
+    readonly text: string;
+  }[];
+  /** True when a failed or ambiguous admission requires explicit recovery. */
+  queuedVoiceInputsPaused?: boolean;
+  /** Discards every retained, unadmitted voice turn. */
+  discardQueuedVoiceInputs?: () => void;
+  /** Clears the current queue error and resumes FIFO admission. */
+  resumeQueuedVoiceInputs?: () => void;
   /**
    * Registers the controls Petrinaut uses to coordinate panel closure and
    * typed-message handoff with the host-owned Voice lifecycle.
@@ -118,6 +134,12 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
        * handed to the composer is not cancelled.
        */
       readonly signal?: AbortSignal;
+      /** Called synchronously only when this input is retained for later admission. */
+      readonly onQueued?: () => void;
+      /** Called once after the input's complete logical browser turn settles. */
+      readonly onTurnComplete?: (
+        event: PetrinautAiVoiceTurnCompleteEvent,
+      ) => void;
     },
   ) => Promise<PetrinautAiComposerSubmitTextResult>;
 };

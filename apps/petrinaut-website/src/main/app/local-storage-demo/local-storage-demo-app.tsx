@@ -130,6 +130,10 @@ export const getBrunchVoiceMode = (
           );
   const subscribeToAdmissionFailure =
     tracker?.subscribeToAdmissionFailure.bind(tracker);
+  const subscribeToAdmissionEvents =
+    tracker?.subscribeToAdmissionEvents.bind(tracker);
+  const subscribeToSubmissionSettled =
+    tracker?.subscribeToSubmissionSettled.bind(tracker);
 
   return (context: PetrinautAiVoiceModeContext) => (
     <VoiceInterviewControl
@@ -143,6 +147,8 @@ export const getBrunchVoiceMode = (
       subscribeToStopRequested={subscribeToStopRequested}
       subscribeToAdmission={subscribeToAdmission}
       subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+      subscribeToAdmissionEvents={subscribeToAdmissionEvents}
+      subscribeToSubmissionSettled={subscribeToSubmissionSettled}
     />
   );
 };

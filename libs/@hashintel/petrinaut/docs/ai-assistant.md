@@ -20,7 +20,7 @@ While a response is streaming you can:
 - Type your next message in the composer -- it is queued for after the current response ends.
 
 The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
-If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
+If the host offers voice input, only finalized transcripts are submitted. Voice can keep capturing while an existing response finishes and retains additional turns locally until Brunch is ready for them.
 
 If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
@@ -72,23 +72,27 @@ transcription and Realtime audio are ephemeral. Finalized spoken user messages c
 carries the same chip, so Voice provenance remains visible without duplicating an answer while the
 session is mounted.
 
-Voice is half-duplex. The microphone is closed while the interviewer speaks or the assistant is
-working, which prevents playback from becoming a false answer. Select **Your turn** to interrupt:
-the dock shows the handoff as thinking while it clears pending audio and waits for the provider to
-finish cancellation, then opens a fresh input turn. Audio captured before that completed handoff is
-discarded. Semantic voice detection finishes your answer automatically after a natural pause, so
-there is no required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are
-not submitted; the dock asks you to try again. An overlong answer instead asks for a shorter response.
-Provisional words remain display-only until the provider completes their transcript.
+The microphone remains available while Brunch works and while Voice plays audio. Semantic voice
+detection finalizes each answer after a natural pause, so there is no required done-speaking action.
+Finalized input that arrives while Brunch is busy is retained in first-in, first-out order. A compact
+**Follow-up queued** indicator shows how many inputs are waiting without displaying their text;
+the text appears in the conversation when sent. **Discard queue** removes waiting inputs.
+Speaking over Voice interrupts only the audio: it does not cancel Brunch's work or discard the new input. Duplicate, empty, failed, or
+unavailable transcripts are not submitted; provisional words remain display-only until the provider
+completes their transcript.
+
+Voice may say a brief receipt after it actually receives input, identify input as queued only after
+the local queue retains it, and report continuation only when Brunch really begins one. These notices
+do not predict progress or use elapsed time. The queue is local to the current mounted session and is
+not durable.
 
 Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and
 **Voice playback options** on the left, and the available handoff, microphone, recovery, and end
 actions on the right.
-**Read full response** becomes available after the matching response and speech have both finished
-and replays every exact retained canonical segment in order. **Repeat question** uses the same
-availability gates and replays only exact question text explicitly marked by Brunch. It stays
-disabled when that marker is missing or does not match finalized assistant text rather than
-guessing that the final segment is a question.
+**Read full response** optionally plays every exact retained canonical segment in order. **Repeat
+question** optionally replays only exact question text explicitly marked by Brunch. It stays disabled
+when that marker is missing or does not match finalized assistant text rather than guessing that the
+final segment is a question.
 Playback stays unavailable during active capture, submission, cancellation, pause, and errors. **Mute microphone** becomes
 **Unmute microphone** once muted, and your latest choice applies when a handoff settles. **Resume voice mode**
 replaces the microphone action while a session is paused, and **Reconnect voice mode** replaces it
@@ -96,19 +100,29 @@ after a failure. Nothing is added to the canvas toolbar. Sending non-empty typed
 composer or first-run prompt ends Voice mode before it sends the message once through the same
 conversation; repeated send actions are ignored while that short handoff completes.
 
-The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
+Brunch chooses every question, claim, and interview decision. Its complete response streams to the
+screen without waiting for Voice. Only after the response and all automatic tool continuations
+finish successfully does OpenAI speak a shorter conversational paraphrase. Partial, failed, or
+stopped work produces no final paraphrase. The full on-screen response remains authoritative;
+the paraphrase must preserve consequential qualifications, uncertainty, and corrections, but
+generated speech can make mistakes. Marked questions are delivered exactly rather than paraphrased.
+Interrupting audio does not undo the visible response, cancel Brunch's work, or change saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
-reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
-ready. **Clear AI chat** is unavailable while a Voice
-session is active.
+reopen the panel. Work already admitted to Brunch continues while disconnected, but reopening never
+autoplays a response completed in the meantime or other historical audio. The same mounted session
+stays paused; choose **Resume voice mode** when you are ready. **Stop AI response** cancels the active
+work and discards every input still waiting in the local queue. Already-applied changes are not
+rolled back. **Clear AI chat** is unavailable while a Voice session is active.
 
 If voice cannot continue, the status reads **Voice interrupted** and the actionable error arrives as
 a persistent toast that names the microphone, connection, or Voice failure in one sentence, followed
 by any diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
 the session recovers. For microphone permission or device errors, allow access or connect/select a
 microphone before reconnecting. For an interrupted request, network error, or timeout, check the
-connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid
+connection and reconnect. Unsent local input remains queued after a failure and is not submitted
+again until you explicitly resume; discard it instead if it is no longer wanted. If the preview is
+unavailable, continue with the text composer. An invalid
 service response includes a diagnostic reference you can give to an operator. That reference and its
 diagnostic record do not contain your transcript or the response being spoken. Interview-state
 failures use a content-free `interview-correlation`, `interview-response`, or `interview-submission`

@@ -824,6 +824,72 @@ test("reports one admission and its correlated response message completion", asy
   });
 });
 
+test.each(["failed", "aborted"] as const)(
+  "reports a textless %s settlement before projecting its terminal chunk",
+  async (outcome) => {
+    const settledEvent: ConversationStreamChunk = {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: admission.submissionId,
+      outcome,
+      position: position(0),
+    };
+    const order: string[] = [];
+    const { client } = clientWith([settledEvent]);
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set(),
+      onSubmissionSettled: (event) => {
+        order.push(`settled:${event.outcome}`);
+      },
+    });
+
+    const chunks = await readChunks(
+      await transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-1",
+            role: "user",
+            parts: [{ type: "text", text: "Settle without a response." }],
+          },
+        ]),
+      ),
+    );
+    for (const chunk of chunks) order.push(chunk.type);
+
+    expect(order[0]).toBe(`settled:${outcome}`);
+    expect(chunks.at(-1)?.type).toBe(outcome === "aborted" ? "abort" : "error");
+  },
+);
+
+test("does not fabricate a completed settlement when the stream closes without one", async () => {
+  const { client } = clientWith([]);
+  const onSubmissionSettled =
+    vi.fn<NonNullable<FlueChatTransportOptions["onSubmissionSettled"]>>();
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    onSubmissionSettled,
+  });
+
+  const chunks = await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Require explicit settlement." }],
+        },
+      ]),
+    ),
+  );
+
+  expect(onSubmissionSettled).not.toHaveBeenCalled();
+  expect(chunks).not.toContainEqual(
+    expect.objectContaining({ type: "finish" }),
+  );
+});
+
 test("stays silent after the consumer cancels the per-turn stream", async () => {
   let waitSignal: AbortSignal | undefined;
   const send = vi.fn<FlueClient["send"]>(async () => admission);

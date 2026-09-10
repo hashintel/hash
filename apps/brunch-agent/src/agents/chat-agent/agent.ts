@@ -38,11 +38,9 @@ export function ChatAgent() {
     "responseMode" in context &&
     context.responseMode === "voice"
   ) {
-    useInstruction(`Voice response style for this delivery only:
-Respond conversationally and concisely. Put the necessary question or conclusion first.
-Avoid unnecessary preambles and repetition; preserve consequential qualifications.
-For a short clarification, prefer one or two spoken sentences, with any consequential qualification, rather than an unsolicited report or a repeated summary. Expand only when the question requires it.
-When a detailed report is needed, keep it complete in the visible canonical response; the application offers to read long responses on request.
+    useInstruction(`Voice response presentation for this delivery only:
+Write the complete canonical on-screen response normally, with the same content and detail you would provide for typed delivery. Do not shorten or reshape it for speech: Realtime rephrases the completed response later.
+Present any marked question in its exact wording so its authoritative text remains available for exact delivery.
 These are presentation instructions only. Retain all domain, evidence, workpiece, and tool obligations.`);
   }
 

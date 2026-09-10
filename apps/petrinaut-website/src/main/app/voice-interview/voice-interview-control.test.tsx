@@ -9,12 +9,13 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { StrictMode, useState } from "react";
+import { StrictMode, useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
+import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
@@ -36,7 +37,14 @@ const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
 let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
 
-const VoiceInterviewHarness = () => {
+type VoiceInterviewHarnessProps = Pick<
+  ComponentProps<typeof VoiceInterviewControl>,
+  "subscribeToAdmissionEvents" | "subscribeToSubmissionSettled"
+>;
+
+const VoiceInterviewHarness = (
+  subscriptions: VoiceInterviewHarnessProps = {},
+) => {
   "use no memo";
 
   const [active, setActive] = useState(false);
@@ -110,7 +118,7 @@ const VoiceInterviewHarness = () => {
       <output>{active ? "Voice active" : "Voice inactive"}</output>
       <output>{inputMode === "voice" ? "Voice mode" : "Text mode"}</output>
       <output>{isAiAssistantOpen ? "Panel open" : "Panel closed"}</output>
-      <VoiceInterviewControl {...context} config={config} />
+      <VoiceInterviewControl {...context} {...subscriptions} config={config} />
     </>
   );
 };
@@ -184,6 +192,84 @@ afterEach(() => {
 });
 
 describe("voice interview control", () => {
+  test("forwards queued-turn callbacks and the message target to Petrinaut", async () => {
+    const onQueued = vi.fn();
+    const onTurnComplete = vi.fn();
+    const submitVoiceInput = vi.fn<
+      PetrinautAiVoiceModeContext["submitVoiceInput"]
+    >(async () => ({ kind: "message", messageId: "voice-turn-1" }));
+
+    await submitVoiceInputWithAdmission({
+      input: {
+        admissionTarget: { kind: "user", messageId: "voice-turn-1" },
+        id: "voice-turn-1",
+        onAdmission: vi.fn(),
+        onQueued,
+        onTurnComplete,
+        signal: new AbortController().signal,
+        target: "message",
+        text: "First answer",
+      },
+      submitVoiceInput,
+    });
+
+    expect(submitVoiceInput).toHaveBeenCalledWith(
+      expect.objectContaining({ onQueued, onTurnComplete, target: "message" }),
+    );
+  });
+
+  test("forwards settlement and admission event subscriptions to the bridge", () => {
+    let notifyAdmission: Parameters<
+      NonNullable<VoiceInterviewHarnessProps["subscribeToAdmissionEvents"]>
+    >[0] = vi.fn();
+    let notifySettlement: Parameters<
+      NonNullable<VoiceInterviewHarnessProps["subscribeToSubmissionSettled"]>
+    >[0] = vi.fn();
+    const admission = {
+      kind: "user" as const,
+      messageId: "voice-turn-1",
+      admission: {
+        offset: "offset-1",
+        streamUrl: "http://brunch.test/stream",
+        submissionId: "submission-1",
+        uid: "uid-1",
+      },
+    };
+    const settlement = {
+      conversationId: "conversation-1",
+      outcome: "completed" as const,
+      position: { batch: 1, index: 0 },
+      submissionId: "submission-1",
+      type: "submission-settled" as const,
+    };
+    const bridgeAdmission = vi.spyOn(
+      RealtimeBrunchBridge.prototype,
+      "notifyAdmission",
+    );
+    const bridgeSettlement = vi.spyOn(
+      RealtimeBrunchBridge.prototype,
+      "notifySubmissionSettled",
+    );
+
+    render(
+      <VoiceInterviewHarness
+        subscribeToAdmissionEvents={(listener) => {
+          notifyAdmission = listener;
+          return () => undefined;
+        }}
+        subscribeToSubmissionSettled={(listener) => {
+          notifySettlement = listener;
+          return () => undefined;
+        }}
+      />,
+    );
+    notifyAdmission(admission);
+    notifySettlement(settlement);
+
+    expect(bridgeAdmission).toHaveBeenCalledWith(admission);
+    expect(bridgeSettlement).toHaveBeenCalledWith(settlement);
+  });
+
   test("keeps an interactive-tool submission pending until Flue admits its continuation", async () => {
     const events: string[] = [];
     let notifyAdmission:
@@ -220,6 +306,7 @@ describe("voice interview control", () => {
         id: "voice-realtime:1:call-1",
         onAdmission: () => events.push("admitted"),
         signal: new AbortController().signal,
+        target: "message",
         text: "Approved",
       },
       submitVoiceInput,
@@ -256,6 +343,7 @@ describe("voice interview control", () => {
         id: "voice-realtime:1:call-1",
         onAdmission: vi.fn(),
         signal: abortController.signal,
+        target: "message",
         text: "Approved",
       },
       submitVoiceInput: async () => ({
@@ -285,6 +373,7 @@ describe("voice interview control", () => {
         id: "voice-turn-1",
         onAdmission: vi.fn(),
         signal: new AbortController().signal,
+        target: "message",
         text: "One Voice turn.",
       },
       submitVoiceInput: async () => ({

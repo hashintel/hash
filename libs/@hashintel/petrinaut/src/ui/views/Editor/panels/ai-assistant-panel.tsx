@@ -122,6 +122,27 @@ type QueuedVoiceInput = {
   readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
 };
 
+type ActiveVoiceInput = {
+  readonly onTurnComplete?: Parameters<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >[0]["onTurnComplete"];
+};
+
+const immutableMessageSnapshot = (
+  messages: PetrinautAiMessage[],
+): PetrinautAiMessage[] => {
+  const snapshot = structuredClone(messages);
+  const freeze = (value: unknown): void => {
+    if (typeof value !== "object" || value === null || Object.isFrozen(value)) {
+      return;
+    }
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  };
+  freeze(snapshot);
+  return snapshot;
+};
+
 type PetrinautAiMessagePart = PetrinautAiMessage["parts"][number];
 type RunnableStaticToolPart = Extract<
   PetrinautAiMessagePart,
@@ -447,7 +468,11 @@ const ConversationAiAssistantPanel = ({
   const [voiceActive, setVoiceActiveState] = useState(false);
   const voiceActiveRef = useRef(false);
   const [voiceHandoffPending, setVoiceHandoffPending] = useState(false);
-  const [voiceInputQueued, setVoiceInputQueued] = useState(false);
+  const [queuedVoiceInputs, setQueuedVoiceInputs] = useState<
+    readonly { readonly id?: string; readonly text: string }[]
+  >([]);
+  const [voiceQueuePaused, setVoiceQueuePaused] = useState(false);
+  const voiceQueuePausedRef = useRef(false);
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
@@ -478,7 +503,16 @@ const ConversationAiAssistantPanel = ({
   const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
     null,
   );
-  const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
+  const queuedVoiceInputRef = useRef<QueuedVoiceInput[]>([]);
+  const activeVoiceInputRef = useRef<ActiveVoiceInput | null>(null);
+  const publishQueuedVoiceInputs = () => {
+    setQueuedVoiceInputs(
+      queuedVoiceInputRef.current.map(({ input: queued }) => ({
+        ...(queued.id === undefined ? {} : { id: queued.id }),
+        text: queued.text,
+      })),
+    );
+  };
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
     null,
   );
@@ -660,6 +694,7 @@ const ConversationAiAssistantPanel = ({
   const automaticToolContinuationTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
+  const latestFinishedMessagesRef = useRef<PetrinautAiMessage[]>([]);
   const suppressedAutomaticSendsRef = useRef(0);
   const addToolOutputRef = useRef<
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"] | null
@@ -667,6 +702,26 @@ const ConversationAiAssistantPanel = ({
   const sendAutomaticToolContinuationRef = useRef<(() => Promise<void>) | null>(
     null,
   );
+  const finishActiveVoiceTurn = (
+    finishedMessages: PetrinautAiMessage[],
+    outcome: "completed" | "failed" | "aborted",
+  ) => {
+    const activeVoiceInput = activeVoiceInputRef.current;
+    if (activeVoiceInput === null) return;
+    activeVoiceInputRef.current = null;
+    if (
+      outcome === "failed" ||
+      (outcome === "aborted" && queuedVoiceInputRef.current.length > 0)
+    ) {
+      voiceQueuePausedRef.current = true;
+      setVoiceQueuePaused(true);
+    }
+    activeVoiceInput.onTurnComplete?.({
+      messages: immutableMessageSnapshot(finishedMessages),
+      outcome,
+    });
+    publishQueuedVoiceInputs();
+  };
   // Stop was pressed during the step that just ended in client tool calls.
   // Flue had nothing left to abort once that step settled, so withholding the
   // follow-up is what makes the Stop real.
@@ -675,6 +730,7 @@ const ConversationAiAssistantPanel = ({
     setContinuationPending(false);
     setStreamError(null);
     setStopped(true);
+    finishActiveVoiceTurn(latestFinishedMessagesRef.current, "aborted");
   };
   const automaticToolTurnIsTerminated = (generation: number): boolean => {
     const termination = automaticToolTerminationRef.current;
@@ -917,6 +973,7 @@ const ConversationAiAssistantPanel = ({
   };
 
   const {
+    clearError,
     error,
     id: conversationId,
     messages,
@@ -965,6 +1022,7 @@ const ConversationAiAssistantPanel = ({
       recoverPendingSubmission?.();
     },
     onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
+      latestFinishedMessagesRef.current = finishedMessages;
       pendingSubmissionRecoveryRef.current = null;
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
@@ -984,6 +1042,7 @@ const ConversationAiAssistantPanel = ({
         // guarantees the stream has fully unwound, so no late chunk can revert
         // the parts we settle back to `"streaming"`.
         if (!stopRequestedRef.current) {
+          finishActiveVoiceTurn(finishedMessages, "aborted");
           return;
         }
         stopRequestedRef.current = false;
@@ -997,6 +1056,7 @@ const ConversationAiAssistantPanel = ({
         setStreamError(null);
         aiAssistant.onMessages?.(finalized);
         setStopped(true);
+        finishActiveVoiceTurn(finalized, "aborted");
         return;
       }
 
@@ -1006,6 +1066,8 @@ const ConversationAiAssistantPanel = ({
         // able to withhold the follow-up, so its intent survives this step.
         return;
       }
+
+      finishActiveVoiceTurn(finishedMessages, isError ? "failed" : "completed");
 
       // A response that runs to completion clears any pending Stop intent so a
       // later incidental abort can't replay the deliberate-stop path, and
@@ -1056,6 +1118,7 @@ const ConversationAiAssistantPanel = ({
       if (sendContinuation === null) {
         setContinuationPending(false);
         setStreamError(new Error("The AI assistant tool host is not ready."));
+        finishActiveVoiceTurn(latestFinishedMessagesRef.current, "failed");
         return;
       }
       void sendContinuation().catch((caught: unknown) => {
@@ -1064,6 +1127,7 @@ const ConversationAiAssistantPanel = ({
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );
+        finishActiveVoiceTurn(latestFinishedMessagesRef.current, "failed");
       });
     }, 0);
   }, [
@@ -1099,6 +1163,8 @@ const ConversationAiAssistantPanel = ({
     submissionConversationIdRef.current = conversationId;
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
+    voiceQueuePausedRef.current = false;
+    setVoiceQueuePaused(false);
     setContinuationPending(false);
     setStreamError(null);
     setStopped(false);
@@ -1202,6 +1268,7 @@ const ConversationAiAssistantPanel = ({
                   ? caught
                   : new Error(browserToolErrorText(caught)),
               );
+              finishActiveVoiceTurn(messages, "failed");
               // A static failure belongs to this call, not just the toast. Do
               // not let recording its error trigger an implicit continuation.
               suppressedAutomaticSendsRef.current += 1;
@@ -1426,88 +1493,120 @@ const ConversationAiAssistantPanel = ({
     PetrinautAiVoiceModeContext["submitVoiceInput"]
   >(
     (voiceInput) => {
-      if (queuedVoiceInputRef.current) {
-        return Promise.reject(
-          new Error("The previous voice input is still being submitted."),
-        );
-      }
       const currentStatus = composerSubmissionStateRef.current.status;
-      if (currentStatus === "error") {
-        return Promise.reject(
-          new Error("Voice mode is not ready to accept input."),
-        );
-      }
-      if (currentStatus === "ready") {
-        return submitText({ ...voiceInput, source: "voice" });
-      }
-
       const { signal } = voiceInput;
       if (signal?.aborted) {
         return Promise.reject(voiceInputWithdrawn(signal));
       }
 
-      setVoiceInputQueued(true);
+      if (
+        currentStatus === "ready" &&
+        activeVoiceInputRef.current === null &&
+        queuedVoiceInputRef.current.length === 0 &&
+        !voiceQueuePausedRef.current
+      ) {
+        const {
+          onQueued: _onQueued,
+          onTurnComplete,
+          signal: _signal,
+          ...voiceSubmission
+        } = voiceInput;
+        activeVoiceInputRef.current = { onTurnComplete };
+        return submitText({ ...voiceSubmission, source: "voice" }).catch(
+          (caught: unknown) => {
+            finishActiveVoiceTurn(latestFinishedMessagesRef.current, "failed");
+            throw caught;
+          },
+        );
+      }
+
       return new Promise((resolve, reject) => {
         const withdraw = (): void => {
-          // Only the entry still holding this input may be withdrawn; a
-          // dequeued input has already been handed to the composer.
-          if (queuedVoiceInputRef.current?.input !== voiceInput) {
-            return;
-          }
-          queuedVoiceInputRef.current = null;
-          setVoiceInputQueued(false);
+          const index = queuedVoiceInputRef.current.findIndex(
+            (queued) => queued.input === voiceInput,
+          );
+          if (index === -1) return;
+          queuedVoiceInputRef.current.splice(index, 1);
+          publishQueuedVoiceInputs();
           reject(voiceInputWithdrawn(signal));
         };
         signal?.addEventListener("abort", withdraw, { once: true });
-        queuedVoiceInputRef.current = {
+        queuedVoiceInputRef.current.push({
           input: voiceInput,
           reject,
           release: () => signal?.removeEventListener("abort", withdraw),
           resolve,
-        };
+        });
+        publishQueuedVoiceInputs();
+        voiceInput.onQueued?.();
       });
     },
     [composerSubmissionStateRef, submitText],
   );
 
   useEffect(() => {
-    const queued = queuedVoiceInputRef.current;
-    if (!queued) {
-      return;
-    }
     if (status === "error") {
-      queuedVoiceInputRef.current = null;
-      setVoiceInputQueued(false);
-      queued.release();
-      queued.reject(new Error("Voice mode could not accept that input."));
-      return;
+      voiceQueuePausedRef.current = true;
+      setVoiceQueuePaused(true);
     }
-    if (status !== "ready") {
+    if (
+      status !== "ready" ||
+      voiceQueuePaused ||
+      activeVoiceInputRef.current !== null
+    ) {
       return;
     }
 
-    queuedVoiceInputRef.current = null;
-    setVoiceInputQueued(false);
+    const queued = queuedVoiceInputRef.current.shift();
+    if (!queued) return;
+    publishQueuedVoiceInputs();
     queued.release();
-    void submitText({ ...queued.input, source: "voice" }).then(
+    const {
+      onQueued: _onQueued,
+      onTurnComplete,
+      signal: _signal,
+      ...voiceSubmission
+    } = queued.input;
+    activeVoiceInputRef.current = { onTurnComplete };
+    void submitText({ ...voiceSubmission, source: "voice" }).then(
       (result) => queued.resolve(result),
-      (caught: unknown) => queued.reject(caught),
+      (caught: unknown) => {
+        finishActiveVoiceTurn(latestFinishedMessagesRef.current, "failed");
+        queued.reject(caught);
+      },
     );
-  }, [status, submitText]);
+  }, [queuedVoiceInputs, status, submitText, voiceQueuePaused]);
+
+  const discardQueuedVoiceInputs = useCallback(() => {
+    const queuedInputs = queuedVoiceInputRef.current.splice(0);
+    for (const queued of queuedInputs) {
+      queued.release();
+      queued.reject(voiceInputWithdrawn(undefined));
+    }
+    publishQueuedVoiceInputs();
+  }, []);
+
+  const resumeQueuedVoiceInputs = useCallback(() => {
+    clearError();
+    setStreamError(null);
+    voiceQueuePausedRef.current = false;
+    setVoiceQueuePaused(false);
+  }, [clearError]);
 
   useEffect(
     () => () => {
-      const queued = queuedVoiceInputRef.current;
-      queued?.release();
-      queued?.reject(new Error("The voice conversation changed."));
-      queuedVoiceInputRef.current = null;
-      setVoiceInputQueued(false);
+      for (const queued of queuedVoiceInputRef.current.splice(0)) {
+        queued.release();
+        queued.reject(new Error("The voice conversation changed."));
+      }
+      finishActiveVoiceTurn(latestFinishedMessagesRef.current, "aborted");
     },
     [conversationId],
   );
 
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
+    discardQueuedVoiceInputs();
     const {
       requestStop,
       status: currentStatus,
@@ -1520,6 +1619,12 @@ const ConversationAiAssistantPanel = ({
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
     stopRequestedRef.current = true;
+    // Revoke Voice completion before awaiting the durable stop: the stream
+    // can finish naturally while that request is in flight.
+    finishActiveVoiceTurn(
+      composerSubmissionStateRef.current.messages,
+      "aborted",
+    );
     if (requestStop !== undefined) {
       try {
         const result = await requestStop();
@@ -1543,7 +1648,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     await stopCurrentResponse();
-  }, [stopStateRef]);
+  }, [composerSubmissionStateRef, discardQueuedVoiceInputs, stopStateRef]);
 
   const submitUserText = useCallback(
     (text: string, target: "auto" | "message" = "auto") => {
@@ -1734,11 +1839,15 @@ const ConversationAiAssistantPanel = ({
   );
   const voiceMode = aiAssistant.renderVoiceMode?.({
     ...composerControlContext,
-    canAcceptVoiceInput: !voiceInputQueued,
+    canAcceptVoiceInput: true,
+    discardQueuedVoiceInputs,
     inputMode: interactionMode,
     isAiAssistantOpen,
+    queuedVoiceInputs,
+    queuedVoiceInputsPaused: voiceQueuePaused,
     registerVoiceModeControls,
     reportVoiceSessionState,
+    resumeQueuedVoiceInputs,
     setInputMode: requestInputMode,
     setVoiceActive,
     submitVoiceInput,
@@ -1758,6 +1867,10 @@ const ConversationAiAssistantPanel = ({
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
       messages={messages}
+      queuedVoiceInputs={queuedVoiceInputs}
+      queuedVoiceInputsPaused={voiceQueuePaused}
+      onResumeQueuedVoiceInputs={resumeQueuedVoiceInputs}
+      onDiscardQueuedVoiceInputs={discardQueuedVoiceInputs}
       onClearMessages={() => {
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
