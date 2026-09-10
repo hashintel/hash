@@ -4,7 +4,7 @@ use core::{net::SocketAddr, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
-use hash_graph_atlas::cli::{self, PasswordString};
+use hash_graph_atlas::cli::{self, PasswordString, Storage};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -103,6 +103,9 @@ pub struct AtlasFitArgs {
     pub root: cli::RootArgs,
 
     #[clap(flatten)]
+    pub s3: cli::S3Args,
+
+    #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
     #[clap(flatten)]
@@ -140,9 +143,6 @@ async fn run_atlas(
     // Before running anything, make sure that the configuration is valid.
     let session_auth = args.session_auth.into_provider_config()?;
 
-    // The same filter-protection configuration the server subcommand parses, so the embedding
-    // exclusions the staging arm's ensures carry stay equal to the exclusions the store's own
-    // workflow starts carry.
     let filter_protection = if args.skip_filter_protection {
         PropertyProtectionFilterConfig::new()
     } else {
@@ -152,9 +152,6 @@ async fn run_atlas(
 
     let service_secret = cli::SecretString::from(args.service_secret);
 
-    // A single pool serves the whole process, so the detail trailers, the permission
-    // resolution, and the credential chain's actor lookups behind every request read through
-    // shared connections and none waits on a connection another holds.
     let pool = Arc::new(
         PostgresStorePool::new(
             &args.db_info,
@@ -178,10 +175,6 @@ async fn run_atlas(
                 exclusions,
             });
 
-    // The chain the REST router authenticates with, so a credential means the same thing on
-    // every route of the deployment: a Kratos session, or the service secret with the actor it
-    // delegates. Cloudflare Access fronts the admin server's operator routes, so no JWT
-    // verifier enters this chain.
     let provider = Arc::new(build_authentication_provider(
         session_auth,
         None,
@@ -190,7 +183,6 @@ async fn run_atlas(
         &telemetry.meter,
     ));
 
-    // Every request answers under the scope of the actor it names.
     let serving = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
@@ -254,11 +246,18 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     let serve_args = match args.command {
         AtlasCommand::Fit(fit_args) => {
+            let mut storage = Storage::in_temp_dir();
+            if let Some(s3) = fit_args.s3.client().await.change_context(GraphError)? {
+                storage.set_s3(s3);
+            }
+
             let mut client = cli::connect(&fit_args.db_info.url())
                 .await
                 .map_err(Report::new)
                 .change_context(GraphError)?;
-            let verdict = cli::FitCommand::new(fit_args.root, fit_args.fit)
+            let verdict = cli::FitCommand::new(fit_args.root, fit_args.fit, &storage)
+                .await
+                .change_context(GraphError)?
                 .run(&mut client, fit_args.credential)
                 .await
                 .map_err(Report::new)

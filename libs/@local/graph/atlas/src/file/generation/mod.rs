@@ -28,6 +28,7 @@ pub(crate) mod scratch;
 mod staging;
 #[cfg(test)]
 mod tests;
+pub(crate) mod upload;
 
 pub(crate) use self::{
     document::GenerationDocument,

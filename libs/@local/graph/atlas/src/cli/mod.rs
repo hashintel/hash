@@ -16,8 +16,9 @@
 //! the graph binary.
 //!
 //! The store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment
-//! configuration drives every entry point. The instruments belong to the standalone binary alone.
-//! Nothing outside this crate names them.
+//! configuration drives every entry point. [`S3Args`] attaches the optional S3 backend the same
+//! way, over the SDK's own `AWS_*` environment plus `HASH_GRAPH_ATLAS_S3_*` overrides. The
+//! instruments belong to the standalone binary alone. Nothing outside this crate names them.
 //!
 //! A command produces its verdict rather than printing one ([`FitVerdict`]). Its host renders it:
 //! the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the shell
@@ -41,29 +42,33 @@ use clap::ValueHint;
 pub(crate) use self::report::ReportCommand;
 #[cfg(feature = "cli")]
 pub use self::shell::main;
-pub use self::{
-    dump::{DumpArgs, DumpCommand, DumpError, DumpVerdict},
-    embedder::{EmbedderArgs, EmbedderError},
-    fit::{FitArgs, FitCommand, FitError, FitVerdict},
-    postgres::{ConnectError, PostgresArgs, connect},
-    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions, Serving},
-};
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
-pub use crate::{
-    integrity::{EmptyPasswordError, PasswordString, SecretString},
-    salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
-};
 
 mod dump;
 mod embedder;
 mod fit;
 mod postgres;
 mod report;
+mod s3;
 mod serve;
 mod shell;
 #[cfg(feature = "cli")]
 mod tui;
+
+pub use self::{
+    dump::{DumpArgs, DumpCommand, DumpError, DumpVerdict},
+    embedder::{EmbedderArgs, EmbedderError},
+    fit::{FitArgs, FitCommand, FitError, FitVerdict},
+    postgres::{ConnectError, PostgresArgs, connect},
+    s3::{S3Args, S3ArgsError},
+    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions, Serving},
+};
+pub use crate::{
+    file::storage::Storage,
+    integrity::{EmptyPasswordError, PasswordString, SecretString},
+    salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
+    serve::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
+};
 
 /// The generation-root flag, shared by every command that opens one.
 ///
