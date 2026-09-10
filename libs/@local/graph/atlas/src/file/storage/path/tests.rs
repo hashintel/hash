@@ -65,6 +65,7 @@ async fn read_local() {
         .await
         .expect("should read the local file");
     assert_eq!(bytes, b"local contents");
+    drop(directory);
 }
 
 #[tokio::test]
@@ -79,6 +80,7 @@ async fn read_local_missing() {
         .err()
         .expect("should report the missing file");
     assert_matches!(error, StorageError::Io(error) if error.kind() == io::ErrorKind::NotFound);
+    drop(directory);
 }
 
 #[tokio::test]
@@ -92,6 +94,7 @@ async fn read_s3_unconfigured() {
         .err()
         .expect("should require an S3 backend");
     assert_matches!(error, StorageError::S3Unavailable);
+    drop(directory);
 }
 
 #[tokio::test]
@@ -107,6 +110,7 @@ async fn sync_local() {
         .expect("should resolve the local path without S3");
     assert_matches!(resolved, Cow::Borrowed(value) if value == file);
     assert_eq!(entry_count(destination.path()), 0);
+    drop(source);
 }
 
 #[tokio::test]

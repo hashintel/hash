@@ -39,7 +39,7 @@ impl Part {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError`] if the response omitted its ETag or checksum.
+    /// Returns [`StorageError`] if the response omitted its `ETag` or checksum.
     pub(crate) fn complete(
         self,
         etag: Option<String>,
