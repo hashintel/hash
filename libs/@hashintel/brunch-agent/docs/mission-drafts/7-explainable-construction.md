@@ -1,6 +1,6 @@
 # Draft — After-demo construction and explanation evaluation
 
-> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Part A is an engineering PR; the focused September flow belongs to [Mission 7b](7b-september-demo.md). Do not require this entire evaluation programme before either that PR or the demo.
+> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Part A remains an engineering PR; the substantial worked-scenario product advance belongs to live [Mission 7b](../../MISSION.md). This broader cross-scenario evaluation programme is not a prerequisite to Part A or a substitute for the live mission's flagship readiness obligations.
 
 ## Purpose and boundaries
 

@@ -1,113 +1,240 @@
-# Mission 7a — Workpiece, construction and explanation groundwork
+# Mission 7b — Substantial worked-scenario demo
 
 ## Status
 
-**Part A closeout in progress; tabbed workpiece implemented, pending Lu's UI review and FE-1645 integration before merge. Not a demo or semantic-quality acceptance.** Lu has directed a split: this branch and [PR #9562](https://github.com/hashintel/hash/pull/9562) carry the mechanical groundwork; Mission 7b continues under the same FE-1573 issue on a child branch. The former full-region/100%-useful-explanation campaign is not a prerequisite to this engineering split, but the split does not authorize a narrow scripted demo: 7b requires a substantial worked scenario with broad explanation coverage across every consequential visible flagship element and human utility review across representative classes. The broader cross-scenario, passage/lifecycle and adversarial evaluation portfolio remains in the [after-demo evaluation draft](docs/mission-drafts/7-explainable-construction.md); the substantial product successor is the [Mission 7b draft](docs/mission-drafts/7b-september-demo.md).
+**Live on `ln/fe-1573-mission-7b`, cut from Mission 7a tip `2408b90bac` under Lu's explicit FE-1573 two-PR exception.** Mission 7a remains in [draft PR #9562](https://github.com/hashintel/hash/pull/9562); its pending CI/review/merge do not become acceptance through this cut. The archived Part A contract is [Mission 7a — workpiece, construction and explanation groundwork](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md).
 
-The current implementation saves and displays evolving workpieces, observes a bounded set of native Petrinaut mutations, and resolves their recorded basis through chat. Controlled browser tests exercise the broader surface. The retained persona session contains one parameter, one type and one equation, not a connected process model. Its lineage queries and original-store reopening were observed; semantic correspondence, automatic citation coverage, a complete construction flow, portability and demo readiness are not established. No persona, browser or paid run is active.
+This mission replaces the former narrow interpretation of one scripted why/correction path. It requires substantial PM-explorable scenarios and evidence that Brunch produced the flagship through the real product. The current implementation supplies bounded workpiece, mutation and why groundwork; ordinary Brunch still gates useful workpiece/construction behaviour behind fixture/tracer modes, the retained persona run is not a connected model, and no production scenario catalogue or persona-driven browser construction exists.
 
-**Local-only / not portable:** the actual-session oracle is `apps/brunch-agent/.data-wipe-me/persona-runs/run-7ceo9j/` and the original `apps/brunch-agent/.data-wipe-me/conversations.db`. Inspect the native history, saved revisions and observed definitions, not an invented reconstruction. These local records establish observed behaviour without claiming repository-reproducible fixtures or teammate access. Commits, tests and the PR are the engineering record.
+**Current throughline:** run the bounded `mutate_petrinet` feasibility probe before selecting its production contract. No paid/provider run, production batch implementation, scenario seeding, remote write, release or Linear write is authorized merely by this authority cut.
 
 ## Imperative
 
-Deliver the working integration from conversation to saved workpiece, browser-applied net edits and record-backed explanation, with a usable workpiece surface rather than an intrusive debug overlay. Make that bounded result reviewable and landable independently of the complete September demo and evaluation of the prompt/skill architecture's modelling effectiveness.
+Deliver a product manager–usable Brunch experience around substantial worked process models rather than diagnostic fixtures: begin from scratch or open an independently owned seeded scenario containing its real conversation, evolving workpiece, evidence and connected Petrinaut model; explore why consequential model content exists; correct the account in ordinary language; observe bounded workpiece/net change and updated explanation; and reopen/continue. Retain a recording proving that Brunch carried a realistic isolated persona from elicitation through visible native construction of the flagship.
 
-The harness is structurally checked, not a semantic acceptance engine. A valid reference, applied edit or successful lookup is a mechanical result; a good model or persuasive rationale is a different judgment. Preserve that distinction without making the latter a universal execution gate.
+Match the Inventory purchasing baseline's subsystem and decision complexity without treating its exact node topology or counts as an answer key. Keep the chat as the interaction basis until the simultaneous chat/workpiece presentation is solved; do not expand into a generic question-card framework. Establish the fundamental conversation → workpiece → substantial model → provenance → correction path before the lower-priority constraint/experiment slice.
 
 ## Throughline
 
 ```text
-Petrinaut Brunch chat / attached persona
-→ mounted Flue ChatAgent
-→ core workpiece revision + optional passage/source relations
-→ plugin mutation request + declared workpiece basis
-→ browser executes canonical Petrinaut operation and returns observed effects
-→ chat why resolves element/field → edit → revision/passage → linked source messages
-→ reopen the original session and continue querying
+Petrinaut create-new → Build with Brunch → careful elicitation or assumption-marked quick preview
+or stable ?scenario=... → independently owned seeded working copy
+→ realistic conversation in the existing chat basis
+→ recurring settled workpiece revisions
+→ bounded coherent native mutation chunks with complete indexed effects and declared basis
+→ substantial connected model with scenario-appropriate dynamics
+→ broad why/source exploration across consequential visible elements
+→ ordinary correction → workpiece revision → bounded net update
+→ updated why and, after the fundamental path, named constraints + executed experiment
+→ close/reopen and continue
 ```
 
-### Delivered construction boundary
+### Product entrypoints
 
-In conversation-bound construction mode, the observed mutation catalog is:
+- The live presentation opens a seeded worked scenario; the companion recording shows complete elicitation and construction.
+- Petrinaut's create-new flow offers **Build with Brunch** or **Start blank**. Build with Brunch then offers careful elicitation or a provisional quick preview.
+- Brunch is the default assistant. The existing user-controlled Petrinaut feature-toggle/Command-K affordance swaps to the legacy AI Assistant for team comparison; change that affordance minimally and do not invent another picker.
+- The URL selects a scenario, not an arbitrary identity. Local development may use the existing generated principal. Hosted use requires actual authentication or an explicitly configured server-side demo principal; a caller-controlled `?user=` value is not authorization.
+- Current `/agents/chat/:instanceId` routing remains through the demo. Future aliases/routes are deferred on any risk or doubt.
 
-| Object | Operations |
-| --- | --- |
-| Root place / transition | `addPlace`, `updatePlace`, `addTransition`, `updateTransition` |
-| Root place–transition arc | `addArc`, `updateArcWeight` |
-| Type / ordered attribute | `addType`, `updateType`, `addTypeElement`, `updateTypeElement` |
-| Scenario | `addScenario`, `updateScenario` |
-| Root parameter / differential equation | `addParameter`, `addDifferentialEquation` |
+### Scenario catalogue and working copies
 
-These fourteen operations are not stock-tool parity or fourteen genuine-persona demonstrations. Deletion, parameter/equation update, nested nets/components and component-port arcs are outside this observed surface. Typed-state operations also reject documents containing subnets/components. Canonical input/refinement rules still apply. Necessary native reads and compilation checks accompany this surface; compilation does not prove simulation.
+The PM-facing database-backed catalogue uses stable URLs such as:
 
-### UI closeout before merge
+```text
+?scenario=inventory-purchasing
+?scenario=<second-substantial-scenario>
+```
 
-[FE-1645 / PR #9634](https://github.com/hashintel/hash/pull/9634) gates the existing prepared-fixture selector behind an opt-in Brunch demo setting and moves it below the top bar. That selector is distinct from this branch's fixed `BrunchWorkpiecePane`. Preserve the colleague's selector/provider behaviour when integrating; do not restore default fixture chrome or copy a competing settings mechanism.
+The baseline set contains two substantial bundles. Inventory purchasing is the flagship and common capability baseline. Choose the contrasting second scenario only after the Inventory path reveals whether the dominant strain is replenishment/safety, continuous dynamics, or quality/recovery.
 
-The workpiece now uses AI / Workpiece tabs in the existing assistant panel, selected by Lu in place of the separate dock. Reuse Petrinaut's tab patterns and the assistant's existing resize/collapse behaviour. Keep chat mounted across tab switches so drafts, requests and Voice lifecycle survive; maintain reachable active controls. The additional-tab extension point is generic, while workpiece/provenance semantics stay in the website host. The surface remains readable as it evolves and does not obstruct the canvas, top bar, assistant opener or composer. Keep engineering IDs, hashes and raw why payloads out of the primary reading surface while preserving inspectable provenance and honest freshness/unknown-state reporting. Hiding the useful workpiece together with fixture controls is not the fix. Inspect integration against #9634 without rewriting the colleague's branch; no full editor redesign or construction-tool rewrite belongs in this closeout.
+A scenario template is a coherent bundle, not only a Petrinaut document:
 
-### What is linked
+```text
+scenario template
+├── retained Brunch conversation
+├── saved workpiece revisions
+├── source/evidence relationships
+├── construction and explanation history
+├── Petrinaut document, scenarios and metrics
+├── document/incarnation binding
+└── stable scenario identity and content revision
+```
 
-Petrinaut references connect net objects; they do not propagate provenance. Separately, workpiece evidence relations link revision-local text spans to authorized conversation message IDs. A construction request cites a saved revision/hash, passage locators and an operation-level rationale, or an explicit absent-basis reason. The matching browser result records actual changes. Why traverses those records; it does not infer source links from adjacency, graph connectivity or plausible prose. Brunch metadata remains outside canonical Petrinaut documents.
+After migrations and before readiness, startup idempotently updates approved templates in Postgres under stable IDs. New definitions affect new opens without duplicating visible catalogue entries or changing existing sessions. Opening a scenario creates or resumes an independently owned working copy; template and other copies remain unchanged. Preserve coherent conversation, workpiece, evidence, transition and document identities through an inspected native contract—not blind string replacement, diagnostic-export import or model replay. Provide reliable resume and a safe clean-copy/rehearsal route; decide the smallest UX after inspecting native copy identity.
 
-The implemented positive declared-basis path reports `partially-supported`: operation-level links are not independently established field-level intention mappings or semantic grades. Queries can identify an object/field by unique name or ID; canvas-selection-to-source-navigation UX is not claimed by this part.
+The existing `brunchDemoMode` toggle and `?brunch-fixture=crew-reservation-v1` route remain developer/test mechanisms. The crew-reservation fixture and retained inert Vestera probe are not demo content.
+
+### Workpiece and projection cadence
+
+- Chat remains the primary interaction basis for this mission. The current AI / Workpiece tabs are Part A's departure surface; solve simultaneous workpiece/chat usability before designing sub-issues such as general question cards.
+- Save the workpiece after meaningful new substance, correction or phase completion—not every acknowledgement and not only at the end.
+- Begin net construction when a settled revision carries enough coherent material, then update incrementally from later settled revisions.
+- Before consequential projection, Brunch may tell the user what it is about to update. Do not require users to request every projection manually.
+- “Graph” in this mission means the Petrinaut model, not a new HASH requirements graph. A user-visible semantic model-diff surface is deferred; retain structural effects and provenance without inventing a graph-diff UI.
+
+### Quick preview
+
+When time is tight or a user wants a preview, Brunch offers to fill gaps and proceeds only after assent. It may update the working workpiece and net immediately, but every model-supplied assumption remains visibly provisional, editable and attributed to the model rather than the interviewee. It may propose candidate safety thresholds, objectives and consequential policy choices, but those remain unresolved until the user adopts them. Preview usefulness depends on the same construction/provenance path working quickly and honestly; it is not a bypass around broken construction.
+
+### Current throughline — bounded mutation probe
+
+The proposed `mutate_petrinet` client tool carries bounded coherent chunks of approximately 20–30 operations or 64 KiB, subject to measurement. Inventory-scale construction suggests roughly 12–18 initial chunks rather than hundreds of provider/browser settlement cycles. This is an estimate to test, not a performance claim.
+
+Accepted candidate semantics for the probe:
+
+- Petrinaut Core derives and owns the canonical mutation discriminated union, parser/schema, ordered executor and complete structural effect vocabulary. Brunch does not copy the mutation ledger or schemas.
+- Brunch owns workpiece-basis declarations, conversation/browser binding, model-facing policy and chunk limits. The browser owns bound execution and independent observations.
+- Operations execute sequentially. Each canonical mutation is individually committed; the chunk is not a transaction.
+- A successful prefix remains committed. The first failed or unknown operation stops execution; every later operation is retained and explicitly `unattempted`.
+- Unattempted work can re-enter a corrected continuation after a fresh verified net read. Preserve one logical operation identity and distinct execution-attempt identities.
+- Automatic retry is limited to a transient failure proven to occur before mutation, or a known non-applied attempt with a verified unchanged hash and stable idempotency identity. Bound it to three attempts with backoff. Schema/semantic refusal, no-op, changed state, compilation failure, partial effect or unknown outcome never retries automatically.
+- Several operations may cite a de-duplicated basis declaration, but every operation carries an explicit `basisId`.
+- Code-bearing operations use explicit compilation barriers after coherent related groups. A failed checkpoint leaves the truthful committed prefix and later operations unattempted.
+- Preserve individual mutation implementations/tests during rollout; expose only one mutation interface to the model in a given mode.
+- Return compact indexed outcomes, pre/post hashes, canonical effects and a durable ledger receipt. Retain exact requests, attempts, observations, bases and complete effects durably; load details by targeted/paginated read rather than returning repeated full documents.
+- Core structurally derives the full 35-operation registry; production admission begins with the proven operation classes needed by the two scenarios. Registry presence is not a parity claim.
+
+The throwaway probe must measure a representative chunk and generated provider schema, exercise intra-chunk references, invalid/no-op/readonly/disabled-extension/partial cases, compare final state with the same individual callbacks, prove one outer browser call remains admissible, and measure end-to-end latency. A provisional 5× improvement is a strain detector, not a sacred benchmark. The probe cannot establish production transition-ledger correctness, whole-batch atomicity or provider reliability by construction.
 
 ## Proof
 
-Review the existing code/tests and actual-session records under their respective claim scopes. No new model-quality campaign is required to submit Part A.
+### Visible completion
 
-| Claim | Oracle and limit |
+A representative live exploration adds approximately **5–10 ordinary chat turns**; the presenter may rehearse one route, but those turns sample a broadly usable artifact rather than define its only supported path.
+
+A PM who did not watch development can:
+
+1. Open either stable scenario URL and obtain an owned working copy with retained conversation, revisions, current workpiece and connected model.
+2. Explore the Inventory flagship without developer vocabulary; ordinary rephrasing, follow-up and selection beyond one rehearsed element remain on the supported path.
+3. Ask why about different consequential element classes and follow model → change → workpiece → source, or see an honest absent/incomplete basis.
+4. Supply an ordinary correction, answer a clarification if material ambiguity remains, and observe a new workpiece revision plus the bounded relevant model update with unrelated identities/content preserved.
+5. Ask why again and distinguish original support from the correction.
+6. Close/reopen and continue the same copy; obtain a safe fresh copy without modifying the template or another copy.
+7. Start a new net with Brunch and choose careful elicitation or quick preview.
+8. After the fundamental path is dependable and Chris supplies the necessary procedure/API, define reusable named constraints, create an experiment, execute it and report whether constraints held. If this slice cannot be completed without displacing the fundamentals, retain it as the next required 7b slice rather than representing prose-only constraints as completion.
+9. Watch a retained recording whose persona conversation, recurring workpiece revisions and substantial visible construction reconcile with native product records.
+
+### Shape and quality heuristics
+
+The ranges below expose undersized work; counts alone cannot pass, and a smaller artifact may pass only when it preserves comparable subsystem and decision complexity.
+
+- Approximately **15–25 substantive interview exchanges** or **30–50 visible user/assistant messages**, excluding tool noise.
+- Roughly **4–8 meaningful settled workpiece revisions** whose later versions deepen, qualify or correct prior material.
+- Ordinarily **2,000–4,000 words** of handoff-quality current workpiece covering objective/boundary; actors/resources/systems; main stages and conditions; decisions/branches; contention; timing/schedules/quantities/rates; exceptions/recovery/escalation; evidence versus inference/assumption; unresolved questions; correspondence; and sources.
+- Inventory purchasing establishes the capability scale: **38 places, 45 transitions, 189 arcs, 9 types, 9 differential equations, 58 parameters, 45 metrics and 10 scenarios**, with procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production, customer demand, continuous stochastic demand/prices, policy controls and safety/performance requirements. Brunch need not reproduce its topology byte-for-byte, but must not erase these consequential subsystem interactions to appear smaller or complete.
+- The flagship is connected, legible, operationally meaningful and scenario-appropriate. Use subnets/components when meaning or screen legibility requires them rather than flattening around missing support.
+
+### Explanation readiness
+
+Every consequential visible flagship element has an inspectable recorded basis or explicitly reports absent/incomplete basis:
+
+```text
+visible model element
+→ construction/change record
+→ declared workpiece basis
+→ workpiece passage
+→ linked source messages where supplied
+```
+
+Inventory the consequential visible elements and mechanically traverse each path. Human usefulness review samples main flow, resource constraint, branch/decision, timing/dynamics, exception, assumption/unsupported default, and the corrected element before/after correction. Answers must be understandable and credible, not merely return records. Broader cross-scenario reliability and the former passage/lifecycle/adversarial campaign remain deferred; that deferral cannot excuse a thin flagship.
+
+### Oracle table
+
+| Result | Oracle before claiming it |
 | --- | --- |
-| Saved workpiece is visible and remains queryable | `packages/core/test/update-workpiece.test.ts`, `apps/brunch-agent/test/workpiece-revisions.test.ts`, website `brunch-workpiece-pane.test.tsx`, and actual persona history/display observations. Pointer-only historical results remain readable but do not invent Markdown. |
-| Native mutations carry shape, binding and complete effects | Plugin `test/root-node.test.ts`, `test/root-state.test.ts`, `test/declared-basis.test.ts`; app `test/root-creation.integration.ts` and `test/typed-state.integration.ts`. Broader controlled-browser evidence, not a claim of a complete persona-built model. |
-| Why resolves recorded changes and citations honestly | App `test/reconciliation.test.ts`, `test/reopened-why.integration.ts` and the retained ordinary persona-session why results. Source linkage may be absent; prose quality is not guaranteed by the structured result. |
-| All authorized source IDs remain discoverable | Core `test/update-workpiece.test.ts` and app `test/reopened-why-retention.integration.ts`, implemented in `367d4994fa`. Source text may be clipped; IDs are not windowed. |
-| Original-store stop/reopen preserves the actual conversation | Native session history and browser observations under the run above. This is verified local-only evidence, not a fresh-store import, clone or remote durability claim. |
-| Persona launching and shutdown use the maintained entrypoint | `src/evaluations/persona/launch.test.ts`, `test/persona-browser.integration.ts`, actual launcher cleanup observations. Run-local Pi trust does not add persona tools or persistent trust. |
-| Workpiece UI is usable and compatible with FE-1645 | A real-browser witness at the integrated revision: ordinary mode has no unsolicited fixture chrome; demo mode retains the selector; a long evolving workpiece remains readable with canvas/chat controls reachable; saved-query/freshness behaviour survives. Use the website workpiece and host tests for regression, then Lu reviews the placement before merge. No provider run is required solely to test layout. |
-| The PR accurately states the bounded result | Review #9562's purpose, tests, known issues and six-section mission summary against this contract; retain existing package checks and changed-package publication obligations. Review/merge acceptance remains external. |
-
-Before the branch transition, retain unresolved obligations in the future record, remove the consumed ownership side quest after recording its outcome, and archive this contract with the engineering-split status explicit. Do not mark the former full Step A acceptance programme passed.
+| Batch premise is worth implementing | Throwaway probe satisfies the accepted carrier, ordering, partial-outcome, schema-size, equivalence and latency discriminators. Failure returns to individual/alternative construction design without production batch code. |
+| Substantial flagship exists | Lu reviews retained conversation, current workpiece and visible connected model against operational coherence and the Inventory capability baseline; native history/definitions establish identities/effects. |
+| Persona carried elicitation into construction | Recording plus native history and delivered browser results show recurring revisions and complete visible construction; no private pack, expected model or hidden tool coaching reached Brunch. |
+| Consequential elements are broadly explainable | Complete flagship inventory mechanically resolves record/basis/passage/source or honest absence; human review covers every named explanation class. |
+| Correction is a product operation | Freeze one ordinary correction family before rehearsal; compare revisions, actual native effects and untouched identities/content; updated why distinguishes original support and correction. |
+| Scenario URLs deliver independent sessions | Open one stable template as two owners/copies, continue independently, leave source/other copy unchanged, reopen/resume, then update the template and prove old sessions retain origin/content. |
+| Start from scratch works | Through Petrinaut's actual create-new flow choose Build with Brunch, choose careful or preview posture, save a workpiece and construct visible native content without fixture query parameters. |
+| Constraints/experiments work, when reached | Create named reusable constraints and an experiment through accepted Petrinaut APIs, execute it, inspect results and report constraint status; workpiece prose alone cannot pass. |
+| Demo tolerates exploration | Lu varies wording, asks why beyond the rehearsed element, follows another source, corrects, closes/reopens and continues without IDs/tool vocabulary or developer repair. |
+| Recording matches product state | Reconcile the played sequence and disclosed editing/time compression with retained conversation, workpiece revisions and model effects. |
 
 ## Constraints
 
+### Scope posture: primary obligations and strains
+
+The mission is bounded by visible product utility, not by pretending the route is equally secure everywhere. “Primary” means required for the product claim; “strain” names a current weak premise or expensive join whose next discriminator is explicit.
+
+| Area | Posture now | Strain / next discriminator |
+| --- | --- | --- |
+| Conversation → workpiece → model → why | Primary; consumes Part A's bounded contracts | Ordinary Brunch still exposes docs-only browser behaviour and gates the useful surface behind tracer mode; first ordinary create/open path must cross it. |
+| Inventory-comparable flagship | Primary; subsystem/decision complexity, not exact counts | Current genuine run is inert and current persona cases are bounded incidents. A realistic trajectory must produce a connected model without operator construction. |
+| Two seeded substantial scenarios | Primary | No production seeder/catalogue/copy contract exists; second scenario waits on Inventory's dominant observed strain. |
+| Independent working copies | Primary | Native selective clone/import is absent; preserve identities through an inspected contract rather than private-format optimism. |
+| Broad flagship why coverage | Primary | Supplied links are optional and no automatic completeness exists; inventory every consequential element and review representative usefulness. |
+| One ordinary correction/reopen | Primary | General repeat/change/retirement/concurrency remains later; the selected correction must still avoid unrelated rebuilding. |
+| Start from scratch | Primary; recorded path even though live demo starts seeded | FE-1331's older topology is stale and no product create-new Brunch choice exists. |
+| Mutation batching | Candidate enabler for primary construction speed | Provider union/array reliability, aggregate transition ledger, full effect vocabulary, compilation checkpoints and partial-state UX are unproved; run the probe first. |
+| Quick preview | Primary interaction posture after assent | Depends on fast reliable construction and honest model-proposed assumptions; cannot bypass a failing fundamental path. |
+| Chat/workpiece UI | Chat remains the basis | Simultaneous visibility is unresolved. Defer generic question cards and other chat sub-issues until that parent layout problem is observed and selected. |
+| Constraints + executed experiments | Ordered lower-priority 7b requirement | Canonical constraints exist only in optimization manifests, are not reusable with scenarios/experiments and are not enforced; await Chris's proposed API/procedure before designing past this boundary. |
+| Dynamics/simulation | Required where the flagship account/executable claim needs it | Part A's clock is not a strategy; derive a scenario-specific policy from the selected model and actual Petrinaut contracts. |
+| Model diff | Deferred | Current effects are structural records, not a semantic/user-visible model diff. Do not build a graph-diff UI in this mission. |
+| Assistant replacement | Brunch default; legacy user-swappable through existing feature-toggle/Command-K affordance | Current environment switch is not the agreed product flag. Modify existing settings minimally; keep histories separate and the document shared. |
+| API route naming | Deferred until after demo | Alias only after a future bounded probe proves no ownership/client/store/deployment risk. |
+| OpenAI migration | Deferred until after 7b; not a blocker | Move Brunch first; persona may remain Anthropic to preserve evaluation diversity. |
+| Optimisation / Chris-Yannis handoff | Deferred unless Lu explicitly recuts the endpoint | Optimization-run API exists, but no accepted consumer contract; constraint/experiment work does not imply handoff acceptance. |
+
 ### Earned data and execution contracts
 
-- Core owns `brunch_mark_question`, durable nonterminating `update_workpiece` and current-workpiece query semantics. Keep one current revision: native tool-call ID, Markdown/hash and display ordinal. A saved version is not an owner-approved meaning.
-- Preserve settled revision/basis/locators/rationale/scope or an explicit absent reason in canonical history. Source relations resolve to authorized true-user messages in the same conversation; assistant, signal, prepared and foreign material is not elicited testimony. `brunch_workpiece` returns every authorized source ID; per-source text may be truncated. Unique unchanged same-span carry is bounded; candidate locator queries create no revision, authority or semantic-continuity claim.
-- Preserve the current complete-proposal checks, single-browser-call continuation and refusal of mixed browser/server proposals. A future tool-surface redesign must explicitly revisit those contracts where necessary; this split does not weaken or canonize them as the only future design.
-- Browser edits use the bound document/incarnation and a prior verified full read. Account independently for all direct and derived effects. Defaults, coercions, generated values and migrations do not inherit testimony or declared intent automatically. Duplicate/retired IDs and conflicting/unknown outcomes remain explicit; failed, no-op, stale and unknown attempts are not causes or permission to replay.
-- Keep origin, current changes and attempts distinct. Why uses a verified observation or an explicit as-of scope; a historical call ID alone is not live evidence. Object-key-order equivalence does not relax arrays, field presence, values or mutation base hashes. Outside edits are not attributed to Brunch.
-- Petrinaut owns canonical schemas, native input semantics/refinements, mutations, compilation and simulation. Preserve the maintained Flue/Pi carriage/recovery patches, stock-assistant isolation, capacity absence/null/zero/positive semantics, visible Not applied outcomes and publication obligations. No copied schema catalog, second provenance store, graph, observer, runner or generic projection engine.
-- Preserve Mission 6b's causal Voice/tool results and active Stop. Direct spoken-user attribution after hydration, durable withholding after settled steps and comparative latency remain unproved. Workpiece/basis/tool payloads are not spoken assistant prose.
-- Keep `useBrunchAgent()` plus `useSdcpnPlugin()`, inward dependencies and dedicated `./flue` resources. Prepared fixtures stay test-authored; diagnostic exports are not restoration APIs. No content-bearing telemetry, hidden persona-pack leakage or guessed operational facts labelled as testimony.
+- Flue history remains canonical conversation history; the workpiece owns semantic synthesis; Petrinaut owns canonical model schemas, actions, compilation and simulation. No second transcript/provenance store or copied model catalog.
+- Preserve one current revision with native tool-call ID, Markdown/hash and ordinal. A saved revision is not owner-approved meaning or automatically current model state.
+- Preserve every authorized true-user source ID after folding; source text may be clipped but IDs are not windowed. Prepared, assistant, signal and foreign material is not elicited testimony.
+- Keep workpiece evidence, declared operation basis, actual effects and model references distinct. Net connectivity does not transmit provenance; defaults and derived effects do not inherit intent automatically.
+- Browser edits bind conversation/document/incarnation and a verified prior full read. Stale, duplicate, retired, no-op, failed, unknown and refused outcomes remain explicit; never replay an unknown admitted mutation.
+- Outside edits are not attributed to Brunch. Why uses verified live observation or explicit as-of scope, never a historical call ID alone.
+- Preserve canonical complete direct/derived effect accounting, stock-assistant isolation, active Stop, Voice results and existing package/publication obligations.
+- The persona's pack grounds a realistic role and stays private. Persona and operator submissions remain serial. Natural improvisation, uncertainty and correction are allowed; the expected net and construction instructions never reach Brunch.
 
-### Continuing operating limits
+### Ownership
 
-The persona's pack grounds a realistic role, not a closed factual whitelist. Natural improvisation, uncertainty and correction are allowed. Only the actor receives private background; it supplies interview utterances, not construction instructions. Keep persona and operator submissions serial, distinguish operator technical choices from testimony, and never replay old unanswered browser requests.
-
-The maintained launcher uses Pi's run-local `--approve` with its explicit tool/extension allowlist and disabled context/skill/template discovery. Both persona and ChatAgent use `anthropic/claude-sonnet-4-6` with `BRUNCH_STEP_A_ACCOUNTING` unset. Do not revive retired per-request holds, response deadlines, call-count gates or ledger writes; the historical ledger retains its unresolved row and released hold. Existing owner spending/escalation policy remains; this documentation split starts no provider run. Remote writes, release and Linear writes remain separately authorized.
+- Core owns source-independent revision/source resolution, workpiece tools and generic scenario-template identity contracts.
+- Petrinaut Core owns canonical mutation schemas/actions and any generic ordered batch executor/effect vocabulary.
+- The SDCPN plugin owns formalism-specific operation selection, target lookup, effect interpretation, construction guidance and why semantics.
+- The app supplies authorized history, current browser state, catalogue/store startup and composition.
+- The Petrinaut website owns editor/workpiece/source/scenario integration. Reusable Petrinaut stays free of Brunch provenance semantics.
+- Use Postgres for the production catalogue/working-session path and SQLite for lightweight tests. Do not add a general migration framework, universal claim ontology, parallel editor or second state graph.
 
 ### Owner decisions
 
-- **2026-09-10 — Part A/7b split.** Lu directs this engineering groundwork to its own PR and a substantial worked-scenario Mission 7b child branch under the same FE-1573 issue. This is the specific exception to one-issue/one-PR bookkeeping; one live mission per branch remains. It supersedes treating the former semantic-quality/full-region programme as the condition for landing Part A, not the validity of its historical findings.
-- **2026-09-10 — UI before Part A merge.** Lu requires UI remediation before merging 7a, coordinated with FE-1645/#9634. This moves the workpiece-placement fix from the proposed 7b scope into Part A closeout. Lu initially selected a separate dock, then replaced it with AI / Workpiece tabs in the existing assistant panel to conserve visual space and limit implementation. The tab choice is current.
-- **2026-09-10 — Demo priority, strengthened after scope reconciliation.** Mission 7b is not one narrow prepared interaction. A PM must open and explore a database-seeded substantial scenario bundle containing a retained realistic conversation, multiple workpiece revisions, a handoff-quality current workpiece, a connected operational Petri net and broad element-level explanation coverage; then ask ordinary why questions, correct the account, observe bounded workpiece/net change, inspect updated why and reopen/continue. A companion recording must show persona-driven elicitation through visible native construction. Scenario URLs, independently owned working copies, the selected model's required operation classes and scenario-specific dynamics/simulation where claimed are pre-demo concerns. The crew-reservation tracer is not demo content. Optimisation and Chris/Yannis handoff require separate explicit admission. The tool approach remains a required discussion; neither allowlist expansion nor a replacement construction tool is selected here. The [7b draft](docs/mission-drafts/7b-september-demo.md) owns the ranges, oracles and unresolved choices.
+- **2026-09-10 — Substantial demo correction.** The 7a/7b split does not demote the product to one scripted explanation. The flagship must be PM-explorable, Inventory-comparable in subsystem/decision complexity and broadly explainable.
+- **2026-09-10 — Baseline catalogue.** Seed two substantial scenarios. Inventory purchasing is the common flagship/capability baseline; select the contrasting second scenario after the first path exposes its dominant strain.
+- **2026-09-10 — Entry and UI.** Live demo starts seeded; start-from-scratch remains required through Build with Brunch → careful/preview. Chat remains the interaction basis. Solve simultaneous chat/workpiece display before question-card subdesign.
+- **2026-09-10 — Preview and cadence.** Brunch offers an assumption-marked preview after assent and does not silently adopt safety/objective/policy choices. Save workpiece at meaningful boundaries and project incrementally from settled revisions.
+- **2026-09-10 — Assistant and model.** Brunch is default; the team can swap to legacy through Petrinaut's existing user-controlled toggle/Command-K affordance. OpenAI migration follows 7b and is not its blocker.
+- **2026-09-10 — Lower-priority joins.** Constraints plus executed experiments follow the fundamental path and await Chris's proposed API/procedure. Semantic model diff and route aliases are deferred; any doubt keeps route work after demo.
+- **2026-09-10 — Ordered mutation probe.** Proceed with the bounded Core-owned ordered-stop batch hypothesis and accepted retry, continuation, identity, basis, compilation, history, result, effect, rollout and probe semantics above. Re-grill after the probe before production implementation if its evidence changes the route.
 
 ## Fog-line
 
-- **Construction surface:** individual instrumented operations work; a smooth complete conversation-driven construction sequence remains unproved. Mission 7b must settle the tool approach before broadening or redesigning it.
-- **Link coverage:** optional relations preserve supplied links, not automatic completeness. The demo needs ordinary interaction that creates and retrieves the links it shows, without operator citation-offset instructions.
-- **UI:** the tabbed surface is implemented and browser-tested; Lu's placement review and combined verification with #9634 remain pre-merge. Source-navigation polish and the complete correction interaction remain successor work. Confirm #9634 integration/landing order rather than copying its selector/settings changes.
-- **Delivery:** original-store recovery is observed. Actual demo host, independent-copy requirements, source selection and current deployed frontend/backend revisions remain to be inspected/decided.
-- **Modelling:** the inert clock is an exercised native operation, not an adopted stochastic/dynamics strategy. Modelling effectiveness and broader semantic acceptance remain separate evaluation work.
+- **Batch carrier and value:** generated union/schema size, chosen-provider array reliability, real latency reduction and aggregate effect/transition recording are unproved. The bounded probe is the next observation; do not design production batching past its result.
+- **Flagship construction:** no evidence yet shows Brunch can produce Inventory-comparable complexity or a complete substantial model from a realistic persona. The first successful carrier does not establish semantic/model quality.
+- **Second scenario:** select after Inventory reveals whether the important contrast is replenishment/safety, continuous dynamics, or quality/recovery.
+- **Template materialization:** native identity/copy support, hosted ownership, resume/fresh UX and catalogue update safety require inspection at the actual store/browser boundary.
+- **Simultaneous chat/workpiece presentation:** Part A tabs conserve space but do not settle side-by-side use. Observe PM work before selecting layout or card sub-issues.
+- **Constraints/experiments:** Chris's API/procedure and the reusable placement/enforcement contract do not yet exist. Do not invent them from current optimization-manifest placement.
+- **Dynamics/execution:** the exact flagship model determines required stochastic/dynamics policy, simulation claim and compilation barriers.
+- **Delivery:** actual hosted frontend/backend/store revisions, authentication, attendee posture and recording duration/editing expectations remain to inspect or decide.
 
 ## Stop or reorient
 
-Stop Part A expansion if a task is building the full demo rather than fixing the explicitly admitted UI blocker or a defect in the PR's stated mechanical claim. Preserve and report source/identity corruption, false effect attribution and unavailable native state; a fluently explained result must not conceal them. Do not gate this engineering split on full model fidelity, a new persona campaign, an optimiser, a new tool design or every historical proof-matrix row. Do not claim the deferred evaluation or demo passed.
+- Stop the batch path if the provider cannot reliably produce representative bounded arrays, canonical schemas require copying, partial outcomes cannot be independently reconciled, effect accounting is incomplete for selected operations, or latency improvement is marginal. Return to the construction design discussion rather than fortifying the hypothesis.
+- Stop a mutation chunk on the first failed/unknown operation or failed compilation barrier; retain the prefix and every unattempted intent. Never retry unknown or partially applied work automatically.
+- Stop scenario promotion if conversation, workpiece, provenance and model identities cannot be copied coherently or one working copy changes the template/another copy.
+- Stop flagship acceptance for an inert/diagnostic/flattened net, operator-authored construction, hidden expected-model/tool coaching, prose-only lineage, one-off scripted why, or counts without operational correspondence.
+- Stop quick preview when assumptions cannot be distinguished from testimony or consequential safety/objective/policy choices become silently adopted.
+- Stop lower-priority constraint/experiment, UI-card, route, model-provider or optimization work when it displaces the fundamental substantial-scenario path or lacks its named prerequisite.
+- Preserve and report source/identity corruption, false attribution, unavailable canonical state and unknown outcomes; fluency never overrides them.
 
 ## Deferred
 
-- [Mission 7b](docs/mission-drafts/7b-september-demo.md): substantial database-seeded worked scenarios, PM exploration/correction, broad flagship explanation coverage, persona-driven construction recording, selected-model tool/dynamics/simulation needs and necessary delivery joins.
-- [After-demo construction/explanation evaluation](docs/mission-drafts/7-explainable-construction.md): full-region semantic/behavioural and useful-explanation evaluation, broad passage/adversarial and lifecycle matrices. These remain evaluation questions, not automatic runtime semantic gates.
-- [Future spine](MISSION.next.md): broader cross-scenario evaluation; Missions 9/10 general repeat/change/retirement/concurrency/reviewer classes beyond the flagship; Mission 11 consumer-defined optimisation; assumption-preview and other plugin/source work. The scenario catalogue and coherent template-to-working-copy path are now 7b obligations, not conditional future polish.
+- [Mission 9](docs/mission-drafts/9-traceable-projection.md): general unchanged-repeat, changed-input, retirement, concurrency and broader schema/scenario breadth beyond the two selected 7b artifacts.
+- [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md): general reviewer authority, qualification, coexistence, conflict, refusal and impact widening beyond the chosen ordinary correction.
+- [Mission 11](docs/mission-drafts/11-optimisation-handoff.md): general optimisation and accepted Chris/Yannis consumer handoff; enter only by explicit owner recut.
+- [After-demo evaluation](docs/mission-drafts/7-explainable-construction.md): cross-scenario semantic/behavioural reliability, expanded passage/adversarial/lifecycle matrices and population claims. It cannot be cited to weaken flagship readiness.
+- [Future spine](MISSION.next.md): user-visible semantic model diff, route migration/aliases, OpenAI migration, generic question-card/dashboard work, broader sources/plugins, surprising-scenario generation, create-new breadth beyond the selected flow and remaining backlog.
