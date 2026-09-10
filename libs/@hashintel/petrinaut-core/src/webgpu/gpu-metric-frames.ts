@@ -46,7 +46,11 @@ export function toGpuMetricSpecs(
         reason: `The GPU backend does not aggregate metrics over time yet; metric "${spec.label}" uses a time aggregation.`,
       };
     }
-    metrics.push({ id: spec.id, placeId: spec.placeId });
+    metrics.push({
+      id: spec.id,
+      integer: true,
+      sample: { kind: "placeCount", placeId: spec.placeId },
+    });
   }
 
   return { ok: true, metrics };
@@ -55,9 +59,9 @@ export function toGpuMetricSpecs(
 /**
  * Rebuilds one metric frame from a GPU histogram.
  *
- * Distribution metrics use the bins directly. Scalar metrics reduce from the
- * histogram, which is exact for mean/sum/min/max because a histogram of integer
- * counts loses nothing the run-axis aggregation would have used.
+ * Distribution metrics use the bins directly. Scalar metrics reduce
+ * mean/sum/min/max from the bin labels, which is exact for integer metrics at
+ * stride 1 and otherwise quantised to the labels.
  */
 function toMetricFrame(
   histogram: GpuHistogramFrame,

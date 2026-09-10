@@ -291,9 +291,12 @@ export class WgslEmitter {
           case "E":
             return { kind: "f32", code: emitF32Literal(Math.E) };
           case "Infinity":
-            return { kind: "f32", code: "(1.0 / 0.0)" };
+            return {
+              kind: "f32",
+              code: emitF32Literal(Number.POSITIVE_INFINITY),
+            };
           case "NaN":
-            return { kind: "f32", code: "(0.0 / 0.0)" };
+            return { kind: "f32", code: emitF32Literal(Number.NaN) };
         }
         break;
 
@@ -633,7 +636,11 @@ export class WgslEmitter {
           // Math.min() is Infinity, Math.max() is -Infinity.
           return {
             kind: "f32",
-            code: expr.fn === "min" ? "(1.0 / 0.0)" : "(-1.0 / 0.0)",
+            code: emitF32Literal(
+              expr.fn === "min"
+                ? Number.POSITIVE_INFINITY
+                : Number.NEGATIVE_INFINITY,
+            ),
           };
         }
         return {

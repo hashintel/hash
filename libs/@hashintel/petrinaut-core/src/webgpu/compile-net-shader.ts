@@ -22,6 +22,7 @@ import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
   histogramBinCount,
+  histogramHelperLines,
   histogramWindowUniformLines,
   observedRangeBindingLines,
   sampledCountCeiling,
@@ -244,6 +245,9 @@ export function compileNetShader(
     push("");
     push(wgslPrelude());
     push("");
+    for (const line of histogramHelperLines(metrics.length)) {
+      push(line);
+    }
     for (const line of workgroupHistogramLines(metrics.length, histogramBins)) {
       push(line);
     }
