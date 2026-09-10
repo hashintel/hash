@@ -14,13 +14,13 @@ import { selectCanonicalSpeech } from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 
-import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
+  document.queryCommandSupported = () => false;
   window.matchMedia = (media) => ({
     media,
     matches: false,
@@ -81,8 +81,8 @@ test.each([
     let finishContinuation: (() => void) | undefined;
     let finishStoppedStep: (() => void) | undefined;
     const events: RealtimeBrunchBridgeEvent[] = [];
-    const speakCanonical =
-      vi.fn<(segments: CanonicalSpeechSegment[]) => void>();
+    const speakParaphrase = vi.fn();
+    const speakNotice = vi.fn();
     const send = vi.fn<FlueClient["send"]>(
       async (): Promise<AgentSendResult> => ({
         submissionId: `submission-${send.mock.calls.length}`,
@@ -93,8 +93,9 @@ test.each([
     );
     const wait = vi.fn<FlueClient["wait"]>(async (admission, options) => {
       const submissionId = (admission as AgentSendResult).submissionId;
-      const continuation = submissionId === "submission-2";
-      if (continuation)
+      const continuation =
+        Number(submissionId.replace("submission-", "")) % 2 === 0;
+      if (submissionId === "submission-2")
         await new Promise<void>((resolve) => {
           finishContinuation = resolve;
         });
@@ -102,10 +103,13 @@ test.each([
         await new Promise<void>((resolve) => {
           finishStoppedStep = resolve;
         });
-      const messageId = continuation ? "continuation" : "assistant";
+      const messageId = continuation
+        ? `continuation-${submissionId}`
+        : `assistant-${submissionId}`;
+      const batch = Number(submissionId.replace("submission-", ""));
       let ordinal = 0;
       const position = () => ({
-        batch: continuation ? 2 : 1,
+        batch,
         index: ordinal++,
       });
       await options?.onEvent?.({
@@ -132,7 +136,7 @@ test.each([
           type: "tool-input",
           conversationId: "test",
           messageId,
-          toolCallId: "read-guide",
+          toolCallId: `read-guide-${submissionId}`,
           toolName: "readPetrinautDoc",
           input: {
             doc: outcome === "invalid-input" ? "missing-page" : "ai-assistant",
@@ -159,8 +163,8 @@ test.each([
     > as FlueClient;
     const bridge = new RealtimeBrunchBridge({
       session: {
-        offerFullResponse: vi.fn(),
-        speakCanonical,
+        speakNotice,
+        speakParaphrase,
         subscribe: (listener) => {
           emitInput = listener;
           return () => {};
@@ -184,6 +188,12 @@ test.each([
     });
     hosts.push(() => bridge.stop());
     bridge.subscribe((event) => events.push(event));
+    tracker.subscribeToAdmissionEvents((event) =>
+      bridge.notifyAdmission(event),
+    );
+    tracker.subscribeToSubmissionSettled((event) =>
+      bridge.notifySubmissionSettled(event),
+    );
     tracker.subscribeToResponseMessageCompleted((event) =>
       bridge.notifyResponseMessageCompleted(event),
     );
@@ -249,10 +259,13 @@ test.each([
     if (outcome === "invalid-input") {
       await waitFor(() => expect(context?.status).toBe("error"));
       expect(events).toContainEqual(
-        expect.objectContaining({ type: "error", code: "interview-response" }),
+        expect.objectContaining({
+          type: "submission-stopped",
+          outcome: "failed",
+        }),
       );
       expect(send).toHaveBeenCalledOnce();
-      expect(speakCanonical).not.toHaveBeenCalled();
+      expect(speakParaphrase).not.toHaveBeenCalled();
       return;
     }
     if (outcome === "withheld") {
@@ -264,14 +277,14 @@ test.each([
         expect(events).toContainEqual(
           expect.objectContaining({
             type: "submission-stopped",
-            outcome: "withheld",
+            outcome: "aborted",
           }),
         ),
       );
       // A later render must not resurrect prose committed after cancellation.
       if (context) updateVoice(context);
       expect(send).toHaveBeenCalledOnce();
-      expect(speakCanonical).not.toHaveBeenCalled();
+      expect(speakParaphrase).not.toHaveBeenCalled();
       return;
     }
     await waitFor(() => expect(finishContinuation).toBeDefined());
@@ -283,8 +296,32 @@ test.each([
     expect(send.mock.calls[1]?.[0].message).toMatchObject({
       kind: "signal",
       context: { responseMode: "voice" },
-      attributes: { toolCallIds: "read-guide" },
+      attributes: { toolCallIds: "read-guide-submission-1" },
     });
+    const exercisesQueuedDrain = !preamble;
+    if (exercisesQueuedDrain) {
+      await act(async () => {
+        emitInput?.({
+          type: "completed",
+          key: { connectionEpoch: 1, contentIndex: 0, itemId: "second" },
+          text: "Second answer.",
+        });
+        emitInput?.({
+          type: "completed",
+          key: { connectionEpoch: 1, contentIndex: 0, itemId: "third" },
+          text: "Third answer.",
+        });
+      });
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(speakNotice).toHaveBeenCalledWith(
+        "queued",
+        "voice-realtime:1:second:0",
+      );
+      expect(speakNotice).toHaveBeenCalledWith(
+        "queued",
+        "voice-realtime:1:third:0",
+      );
+    }
     await act(async () => {
       finishContinuation?.();
     });
@@ -293,15 +330,27 @@ test.each([
         expect.objectContaining({ type: "canonical-response-ready" }),
       ),
     );
-    expect(context?.status).toBe("ready");
-    expect(
-      speakCanonical.mock.calls
-        .flatMap(([segments]) => segments)
-        .map((segment) => segment.text),
-    ).toEqual(
-      preamble
-        ? ["Checking the guide.", "The guide is available."]
-        : ["The guide is available."],
-    );
+    if (exercisesQueuedDrain) {
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(6));
+      await waitFor(() => expect(speakParaphrase).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(context?.status).toBe("ready"));
+      expect(speakParaphrase.mock.invocationCallOrder[0]).toBeLessThan(
+        send.mock.invocationCallOrder[2]!,
+      );
+      expect(
+        speakParaphrase.mock.calls.map(([, options]) => options.deliveryId),
+      ).toEqual([
+        "voice-realtime:1:spoken-input:0",
+        "voice-realtime:1:second:0",
+        "voice-realtime:1:third:0",
+      ]);
+    } else {
+      expect(context?.status).toBe("ready");
+      expect(
+        speakParaphrase.mock.calls
+          .flatMap(([segments]) => segments)
+          .map((segment) => segment.text),
+      ).toEqual(["Checking the guide.", "The guide is available."]);
+    }
   },
 );

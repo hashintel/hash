@@ -2,13 +2,15 @@
 
 ## Status
 
-**Live; design and local implementation authorized.** Sole execution authority on
-`voice/realtime-rephrasing`, a sibling of #9622 based on #9585 at
+**Live; local implementation verified; provider/human evaluation outstanding.** Sole execution authority on
+`ka/realtime-voice-rephrasing`, a sibling of #9622 based on #9585 at
 [0902dddb](https://github.com/hashintel/hash/commit/0902dddbbfd53ac98499c44a7302339bca135563).
 The owner approved Approach A and its queue, interruption and Stop semantics in
 [this conversation](https://ampcode.com/threads/T-01a0872b-b4a7-7656-b707-800e3ad62816).
-Paid calls, external writes, pushing, PR/issue creation, deployment and mission acceptance
-are not authorized. The inherited CORS mission is preserved without acceptance in
+The owner authorized committing, pushing, and opening this sibling experiment as a draft PR,
+with Amp thread identifiers removed from its commit messages. Paid calls, issue creation,
+unrelated external writes, manual deployment and mission acceptance remain unauthorized.
+The inherited CORS mission is preserved without acceptance in
 [its historical record](docs/mission-archive/sre-1042-browser-origin-policy.md).
 
 ## Imperative
@@ -51,7 +53,9 @@ snapshot → application-requested Realtime rephrasing → audio. No new endpoin
 - Extend the panel's existing one-entry queue to FIFO. Input ordering follows capture/commit
   identity, not asynchronous transcription completion. Deduplicate identities, not equal text.
   Freeze reply A before admitting B. Drain after Brunch completion without waiting for audio;
-  audio is serialized separately and correlated per turn. Show queued text as unsent.
+  audio is serialized separately and correlated per turn. Show a compact “Follow-up queued”
+  indicator (counted for multiple inputs), not queued transcript text. The owner selected this
+  lower-clutter presentation instead of the initial list; discard and failure recovery remain.
 - Keep microphone capture available while working and speaking. User speech cancels Voice output
   only, preserving input/transcription and Brunch work. Explicit Stop cancels active work and
   withdraws unadmitted queued inputs. Failure/ambiguous admission pauses draining and retains
@@ -113,6 +117,42 @@ scalar metadata, never source/transcript/audio. Consent-controlled artifacts may
 Pin model/config differences; #9622 changes Brunch generation too, so not every difference is
 caused by Realtime. No invented latency acceptance threshold or statistical claim from a few runs.
 
+### Local verification — 2026-09-09
+
+- Website: `yarn workspace @apps/petrinaut-website test:unit` — 377 tests pass.
+- Petrinaut: `vitest run` in `libs/@hashintel/petrinaut` — 807 tests pass.
+- Transport: `vitest run` in `packages/transport-aisdk` — 52 tests pass.
+- Brunch: `vitest run test/voice-context.test.ts` in `apps/brunch-agent` — one test passes.
+- Website (including API), Petrinaut and transport typechecks pass. Website and Petrinaut builds
+  pass. Changed-file lint has no errors; inherited effect/loop warnings and build compiler/chunk
+  warnings remain. `git diff --check` passes.
+- The real panel/transport browser-tool integration freezes and paraphrases A before admitting
+  queued B, then C, with all continuation settlements required. Scripted Realtime events prove
+  isolated complete-source requests, audio-only interruption, and exact optional question replay.
+  Tests also cover textless failed continuations, failed/aborted queue recovery, pending durable
+  Stop, reversed transcription completion, and muted commits that must not block later input.
+- Chrome rendered the existing Storybook panel in `VoiceQueuedTurns`, `VoiceQueueRecovery`, and
+  `VoiceSessionListening`; captured screenshots were inspected. Resume/discard DOM checks pass,
+  FIFO text is readable, and the queue list has bounded scrolling without hiding controls.
+
+These are local, mocked-provider results, not a deployed throughline or a favorable experiment
+verdict. No paid calls were made. Latency events distinguish speech-end from transcription
+completion and acknowledgement from substantive audio; audio-buffer timestamps remain proxies.
+All seven requested measurements still need the consented synchronized recording and human
+comparison described above. No fidelity score, fabricated-claim rate, silence duration, audible
+latency, echo result, or naturalness score is asserted from these tests. At this checkpoint,
+product changes remained local; there was no PR, push or mission acceptance.
+
+### Compact queue presentation — 2026-09-10
+
+The owner replaced the transcript list with a compact queued follow-up count. FIFO, Stop,
+discard and failure recovery semantics are unchanged. Petrinaut's 808 tests and the website's
+377 tests pass; both packages' build, typecheck and lint tasks pass through Turborepo.
+Chrome-rendered `VoiceQueuedTurns`, `VoiceQueueRecovery` and `VoiceSessionListening` captures
+were inspected: no queued transcript list, readable count and recovery actions, and no empty
+indicator. Browser DOM checks exercise Resume and Discard. Local evidence does not establish
+provider fidelity or an audible latency result.
+
 ## Constraints
 
 No Brunch-as-tool, delegation, independent Realtime domain reasoning, additional backend route,
@@ -131,8 +171,10 @@ speaker/headset witnesses remain necessary. Provider token budgets include audio
 headroom. The inherited stopped-after-settled browser-work durability limitation remains, but this
 session must never autoplay stopped work. Live Notion was inaccessible; the human-pasted transcript
 was read and supports bridging, not this newly approved rephrasing/queue design. Existing preview
-configuration and backend deployment remain unverified. Linear identity needs approval before
-external submission. `gh stack` is unavailable; the local sibling uses ordinary Git ancestry.
+configuration and backend deployment remain unverified. No separate Linear issue is linked;
+issue creation still requires approval. Draft publication follows the root repository's
+descriptive-title contribution workflow; the Linear-title CI check may remain blocked.
+`gh stack` is unavailable; the sibling uses ordinary Git ancestry.
 
 ## Stop or reorient
 

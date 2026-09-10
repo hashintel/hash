@@ -49,6 +49,10 @@ import type { PetrinautAiMessage } from "./types";
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
+const EMPTY_QUEUED_VOICE_INPUTS: readonly {
+  id?: string;
+  text: string;
+}[] = [];
 
 const errorNotification = (
   message: string,
@@ -68,15 +72,19 @@ export type AiAssistantContentsProps = {
   onClearMessages?: () => void;
   onClose: () => void;
   onCollapsedVoiceEnd?: () => void;
+  onDiscardQueuedVoiceInputs?: () => void;
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  onResumeQueuedVoiceInputs?: () => void;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
   onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
   promptChips?: PromptChip[];
+  queuedVoiceInputs?: readonly { id?: string; text: string }[];
+  queuedVoiceInputsPaused?: boolean;
   rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
@@ -300,6 +308,29 @@ const stoppedNoteStyle = css({
   fontWeight: "medium",
 });
 
+const queuedVoiceInputsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: "2",
+  marginX: "2",
+  marginTop: "2",
+  paddingX: "2",
+  paddingY: "1",
+  color: "neutral.s90",
+  fontSize: "xs",
+  flexShrink: 0,
+});
+
+const queuedVoiceInputsRecoveryStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "1",
+  color: "neutral.s90",
+});
+
 const composerWrapStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -514,15 +545,19 @@ export const AiAssistantContents = ({
   onClearMessages,
   onClose,
   onCollapsedVoiceEnd,
+  onDiscardQueuedVoiceInputs,
   onInputModeChange,
   onInputChange,
   onInteractiveToolSubmit,
+  onResumeQueuedVoiceInputs,
   onSelectToolTarget,
   onSendPrompt,
   onStop,
   onSubmit,
   onVoiceDockCollapsedChange,
   promptChips,
+  queuedVoiceInputs = EMPTY_QUEUED_VOICE_INPUTS,
+  queuedVoiceInputsPaused = false,
   rightOffset = 0,
   status,
   stopped = false,
@@ -827,6 +862,44 @@ export const AiAssistantContents = ({
           >
             {voiceMode}
           </div>
+        )}
+
+        {queuedVoiceInputs.length > 0 && (
+          <section
+            aria-label="Queued follow-ups"
+            className={`${queuedVoiceInputsStyle} ${panelContentStyle({
+              visible: isOpen && !isVoiceDockCollapsed,
+            })}`}
+          >
+            <span role="status">
+              {queuedVoiceInputs.length === 1
+                ? "Follow-up queued"
+                : `${queuedVoiceInputs.length} follow-ups queued`}
+            </span>
+            <div className={queuedVoiceInputsRecoveryStyle}>
+              {queuedVoiceInputsPaused && (
+                <>
+                  <span>Queue held after failure</span>
+                  <Button
+                    onClick={onResumeQueuedVoiceInputs}
+                    size="xs"
+                    type="button"
+                    variant="subtle"
+                  >
+                    Resume queue
+                  </Button>
+                </>
+              )}
+              <Button
+                onClick={onDiscardQueuedVoiceInputs}
+                size="xs"
+                type="button"
+                variant="ghost"
+              >
+                Discard queue
+              </Button>
+            </div>
+          </section>
         )}
 
         {isVoiceSessionLive ? (

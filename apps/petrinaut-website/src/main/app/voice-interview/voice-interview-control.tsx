@@ -10,6 +10,8 @@ import {
   FlueChatAdmissionError,
   type FlueChatResponseMessageCompletedEvent,
   type FlueChatResponseMessageStartedEvent,
+  type FlueChatSubmissionSettledEvent,
+  type FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -47,6 +49,12 @@ type SubscribeToAdmissionFailure = (
   target: RealtimeBrunchAdmissionTarget,
   listener: (error: FlueChatAdmissionError) => void,
 ) => () => void;
+type FlueChatAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+type SubscribeToAdmissionEvents = (
+  listener: (event: FlueChatAdmission) => void,
+) => () => void;
 type SubscribeToResponseMessageCompleted = (
   listener: (event: FlueChatResponseMessageCompletedEvent) => void,
 ) => () => void;
@@ -54,6 +62,9 @@ type SubscribeToResponseMessageStarted = (
   listener: (event: FlueChatResponseMessageStartedEvent) => void,
 ) => () => void;
 type SubscribeToStopRequested = (listener: () => void) => () => void;
+type SubscribeToSubmissionSettled = (
+  listener: (event: FlueChatSubmissionSettledEvent) => void,
+) => () => void;
 type SubmitInterviewAnswer = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
@@ -430,9 +441,11 @@ const AvailableVoiceInterviewControl = ({
   settlements,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
+  subscribeToAdmissionEvents,
   subscribeToResponseMessageCompleted,
   subscribeToResponseMessageStarted,
   subscribeToStopRequested,
+  subscribeToSubmissionSettled,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
@@ -441,9 +454,11 @@ const AvailableVoiceInterviewControl = ({
   settlements?: readonly VoiceSubmissionSettlement[];
   subscribeToAdmission?: SubscribeToAdmission;
   subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  subscribeToAdmissionEvents?: SubscribeToAdmissionEvents;
   subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
   subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
   subscribeToStopRequested?: SubscribeToStopRequested;
+  subscribeToSubmissionSettled?: SubscribeToSubmissionSettled;
 }) => {
   "use no memo";
 
@@ -526,6 +541,20 @@ const AvailableVoiceInterviewControl = ({
     setVoiceActive,
   } = context;
 
+  useEffect(
+    () =>
+      subscribeToAdmissionEvents?.((event) =>
+        store.bridge.notifyAdmission(event),
+      ),
+    [store, subscribeToAdmissionEvents],
+  );
+  useEffect(
+    () =>
+      subscribeToSubmissionSettled?.((event) =>
+        store.bridge.notifySubmissionSettled(event),
+      ),
+    [store, subscribeToSubmissionSettled],
+  );
   useEffect(
     () =>
       subscribeToResponseMessageCompleted?.((event) =>
@@ -722,9 +751,11 @@ export const VoiceInterviewControl = ({
   settlements,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
+  subscribeToAdmissionEvents,
   subscribeToResponseMessageCompleted,
   subscribeToResponseMessageStarted,
   subscribeToStopRequested,
+  subscribeToSubmissionSettled,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
@@ -733,9 +764,11 @@ export const VoiceInterviewControl = ({
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly subscribeToAdmission?: SubscribeToAdmission;
   readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  readonly subscribeToAdmissionEvents?: SubscribeToAdmissionEvents;
   readonly subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
   readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
+  readonly subscribeToSubmissionSettled?: SubscribeToSubmissionSettled;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
@@ -746,8 +779,10 @@ export const VoiceInterviewControl = ({
     settlements={settlements}
     subscribeToAdmission={subscribeToAdmission}
     subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+    subscribeToAdmissionEvents={subscribeToAdmissionEvents}
     subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
     subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
     subscribeToStopRequested={subscribeToStopRequested}
+    subscribeToSubmissionSettled={subscribeToSubmissionSettled}
   />
 );

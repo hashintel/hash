@@ -50,12 +50,19 @@ export interface VoiceTurnSnapshot {
 export interface VoiceLatencyEvent {
   readonly correlationId: string;
   readonly elapsedMs: number;
+  readonly timestampMs?: number;
   readonly name:
     | "submission-admitted"
+    | "queued"
+    | "continuation-admitted"
     | "submission-settled"
     | "first-canonical-text"
     | "first-tts-request"
     | "first-tts-audio"
+    | "first-acknowledgement-audio"
+    | "speech-ended"
+    | "user-speech-ended"
+    | "transcription-completed"
     | "question-visible"
     | "question-spoken-started"
     | "question-spoken"
@@ -71,12 +78,16 @@ interface RealtimeSession {
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
+type ControllerBridgeEvent = RealtimeBrunchBridgeEvent;
+
 interface RealtimeBridge {
   cancelPendingSpeech(): void;
   completeTurnHandoff(): void;
+  resume?(connectionEpoch: number): void;
   start(connectionEpoch: number): void;
   stop(): void;
-  subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
+  suspend?(): void;
+  subscribe(listener: (event: ControllerBridgeEvent) => void): () => void;
   updateChat(update: ChatUpdate): void;
 }
 
@@ -145,6 +156,7 @@ export class VoiceTurnController {
   #activeSpeechResponseId: string | null = null;
   #activeSpeechResponseTerminal = false;
   #answerFinalizedAt: number | null = null;
+  readonly #answerFinalizedAtByDelivery = new Map<string, number>();
   #answeredQuestionId: string | null = null;
   #bridgeStarted = false;
   #currentQuestionId: string | null = null;
@@ -157,6 +169,8 @@ export class VoiceTurnController {
   #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
   readonly #pendingSpeechRequestIds = new Set<string>();
+  readonly #speechDeliveryByRequestId = new Map<string, string>();
+  readonly #speechDeliveryByResponseId = new Map<string, string>();
   #pendingSubmissionSettlement: PendingSubmissionSettlement | null = null;
   readonly #recordedLatencyEvents = new Set<string>();
   #snapshot = initialSnapshot;
@@ -316,12 +330,44 @@ export class VoiceTurnController {
             text: this.#snapshot.currentQuestion,
           }
         : null;
-    await this.end();
-    if (pendingQuestion) {
-      this.#currentQuestionId = pendingQuestion.id;
-      this.#update({ currentQuestion: pendingQuestion.text });
+    const generation = ++this.#generation;
+    this.#activeEpoch = null;
+    this.#session.setMicrophoneEnabled(false);
+    await this.#session.disconnect();
+    if (generation !== this.#generation) return;
+    this.#update({
+      connection: "connecting",
+      errorCode: null,
+      errorMessage: "",
+    });
+    try {
+      const connectionEpoch = await this.#session.connect();
+      if (generation !== this.#generation) return;
+      this.#activeEpoch = connectionEpoch;
+      if (this.#bridge.resume) {
+        this.#bridge.resume(connectionEpoch);
+      } else {
+        this.#bridge.start(connectionEpoch);
+      }
+      this.#bridgeStarted = true;
+      this.#session.setMicrophoneEnabled(true);
+      this.#update({
+        connection: "connected",
+        input: "listening",
+        microphoneEnabled: true,
+        output: "idle",
+      });
+      if (pendingQuestion) {
+        this.#currentQuestionId = pendingQuestion.id;
+        this.#update({ currentQuestion: pendingQuestion.text });
+      }
+    } catch (error) {
+      const voiceError =
+        error instanceof VoiceError
+          ? error
+          : new VoiceError("connection", "invalid-response", "");
+      this.#setError(voiceError.message, voiceError.code, voiceError.requestId);
     }
-    await this.start();
   }
 
   public pause(): void {
@@ -361,15 +407,7 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    if (
-      this.#takingTurnPromise === null &&
-      this.#outputCancellationPromise === null &&
-      this.#activeSpeechResponseId === null &&
-      (this.#snapshot.output === "idle" ||
-        this.#snapshot.output === "interrupted")
-    ) {
-      this.#session.setMicrophoneEnabled(!muted);
-    }
+    this.#session.setMicrophoneEnabled(!muted);
     this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
   }
 
@@ -490,18 +528,11 @@ export class VoiceTurnController {
 
     const generation = this.#generation;
     this.#bridge.cancelPendingSpeech();
-    this.#session.setMicrophoneEnabled(false);
     this.#inputTurnPending = false;
-    this.#transcriptItemId = null;
-    this.#transcriptKey = null;
-    this.#update({ output: "cancelling", partialText: "" });
+    this.#update({ output: "cancelling" });
 
-    const submissionSettlement =
-      this.#pendingSubmissionSettlement?.promise ?? Promise.resolve();
-    const takingTurnPromise = Promise.all([
-      this.#session.cancelOutput(),
-      submissionSettlement,
-    ])
+    const takingTurnPromise = this.#session
+      .cancelOutput()
       .then(() => {
         if (
           generation !== this.#generation ||
@@ -516,7 +547,6 @@ export class VoiceTurnController {
         this.#pendingSpeechRequestIds.clear();
         this.#terminalSpeechRequestIds.clear();
         this.#bridge.completeTurnHandoff();
-        this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
         this.#update({ output: "interrupted" });
       })
       .catch((error: unknown) => {
@@ -559,7 +589,7 @@ export class VoiceTurnController {
     }
   }
 
-  #handleBridgeEvent(event: RealtimeBrunchBridgeEvent): void {
+  #handleBridgeEvent(event: ControllerBridgeEvent): void {
     if (this.#snapshot.connection !== "connected") return;
     if (event.type === "error") {
       this.#completeSubmissionSettlement();
@@ -573,14 +603,18 @@ export class VoiceTurnController {
         this.#inputStateOnResume = "submitting";
       }
       this.#inputTurnPending = false;
-      this.#answerFinalizedAt = this.#now();
+      this.#answerFinalizedAt =
+        this.#answerFinalizedAtByDelivery.get(event.deliveryId) ?? this.#now();
+      this.#answerFinalizedAtByDelivery.set(
+        event.deliveryId,
+        this.#answerFinalizedAt,
+      );
       this.#latencyCorrelationId = event.deliveryId;
-      this.#recordedLatencyEvents.clear();
+      this.#recordLatency("transcription-completed", event.deliveryId);
       this.#submittingQuestionId = this.#currentQuestionId;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
       this.#ttsSpeechRequestId = null;
-      this.#session.setMicrophoneEnabled(false);
       this.#update({
         input: paused ? "paused" : "submitting",
         inputNotice: "none",
@@ -589,6 +623,14 @@ export class VoiceTurnController {
         output: "waiting-for-tool",
         partialText: "",
       });
+      return;
+    }
+    if (event.type === "submission-queued") {
+      this.#recordLatency("queued", event.deliveryId);
+      return;
+    }
+    if (event.type === "continuation-admitted") {
+      this.#recordLatency("continuation-admitted", event.deliveryId);
       return;
     }
     if (event.type === "transcript-rejected") {
@@ -695,21 +737,37 @@ export class VoiceTurnController {
     }
     if (
       event.type === "canonical-speech-requested" ||
+      event.type === "paraphrase-speech-requested" ||
       event.type === "bridging-speech-requested"
     ) {
       this.#pendingSpeechRequestIds.add(event.speechRequestId);
-      this.#session.setMicrophoneEnabled(false);
-      this.#inputTurnPending = false;
-      this.#transcriptItemId = null;
-      this.#transcriptKey = null;
-      this.#update({ output: "waiting-for-tool", partialText: "" });
-      if (
+      if ("deliveryId" in event && event.deliveryId) {
+        this.#speechDeliveryByRequestId.set(
+          event.speechRequestId,
+          event.deliveryId,
+        );
+      } else if (
         event.type === "canonical-speech-requested" &&
-        this.#latencyCorrelationId !== null &&
-        this.#ttsSpeechRequestId === null
+        this.#latencyCorrelationId
+      ) {
+        // Legacy exact-read requests did not carry deliveryId.
+        this.#speechDeliveryByRequestId.set(
+          event.speechRequestId,
+          this.#latencyCorrelationId,
+        );
+      }
+      this.#update({ output: "waiting-for-tool" });
+      const requestSpeechKind =
+        "speechKind" in event ? event.speechKind : undefined;
+      if (
+        event.type !== "bridging-speech-requested" &&
+        requestSpeechKind !== "bridging" &&
+        requestSpeechKind !== "progress"
       ) {
         this.#ttsSpeechRequestId = event.speechRequestId;
-        this.#recordLatency("first-tts-request", this.#latencyCorrelationId);
+        const deliveryId =
+          "deliveryId" in event ? event.deliveryId : this.#latencyCorrelationId;
+        if (deliveryId) this.#recordLatency("first-tts-request", deliveryId);
       }
       return;
     }
@@ -719,20 +777,30 @@ export class VoiceTurnController {
       this.#activeSpeechResponseId = event.responseId;
       this.#activeSpeechResponseTerminal =
         this.#terminalSpeechRequestIds.delete(event.speechRequestId);
-      this.#inputTurnPending = false;
-      this.#transcriptItemId = null;
-      this.#transcriptKey = null;
       if (this.#snapshot.input === "paused") {
-        void this.#cancelOutput();
-        this.#update({ output: "interrupted", partialText: "" });
+        void this.#cancelOutput(false);
+        this.#update({ output: "interrupted" });
         return;
       }
-      this.#update({ output: "speaking", partialText: "" });
-      if (
-        this.#latencyCorrelationId !== null &&
-        event.speechRequestId === this.#ttsSpeechRequestId
-      ) {
-        this.#recordLatency("first-tts-audio", this.#latencyCorrelationId);
+      this.#update({ output: "speaking" });
+      const deliveryId =
+        event.deliveryId ??
+        this.#speechDeliveryByRequestId.get(event.speechRequestId) ??
+        (event.speechRequestId === this.#ttsSpeechRequestId
+          ? this.#latencyCorrelationId
+          : null);
+      if (deliveryId) {
+        this.#speechDeliveryByResponseId.set(event.responseId, deliveryId);
+        if (event.speechKind === "acknowledgement") {
+          // Provider buffer receipt is a timing proxy, not an audible guarantee.
+          this.#recordLatency("first-acknowledgement-audio", deliveryId);
+        } else if (
+          event.speechKind !== "bridging" &&
+          event.speechKind !== "progress"
+        ) {
+          // Provider buffer receipt is a timing proxy, not an audible guarantee.
+          this.#recordLatency("first-tts-audio", deliveryId);
+        }
       }
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken-started", this.#currentQuestionId);
@@ -749,6 +817,8 @@ export class VoiceTurnController {
         output: this.#outputAfterPlaybackEnds("idle"),
       });
       this.#restoreMicrophoneIfCaptureAvailable();
+      const deliveryId = this.#speechDeliveryByResponseId.get(event.responseId);
+      if (deliveryId) this.#recordLatency("speech-ended", deliveryId);
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken", this.#currentQuestionId);
       }
@@ -767,17 +837,19 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "input-speech-started") {
+      if (this.#snapshot.input === "paused") return;
       if (
-        this.#takingTurnPromise ||
+        this.#pendingSpeechRequestIds.size > 0 ||
+        this.#activeSpeechResponseId !== null ||
         this.#snapshot.output === "speaking" ||
-        this.#snapshot.output === "cancelling"
+        this.#snapshot.output === "waiting-for-tool"
       ) {
-        return;
+        void this.#cancelOutput(false);
       }
       this.#inputTurnPending = true;
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
-      this.#update({ inputNotice: "none", partialText: "" });
+      this.#update({ inputNotice: "none" });
       return;
     }
     if (event.type === "response-terminal") {
@@ -803,6 +875,9 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "input-speech-stopped") {
+      const deliveryId = `voice-realtime:${event.connectionEpoch}:${encodeURIComponent(event.itemId)}:0`;
+      this.#answerFinalizedAtByDelivery.set(deliveryId, this.#now());
+      this.#recordLatency("user-speech-ended", deliveryId);
       return;
     }
 
@@ -855,7 +930,7 @@ export class VoiceTurnController {
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#ttsSpeechRequestId = null;
-    this.#bridge.stop();
+    this.#bridge.suspend?.();
     this.#session.setMicrophoneEnabled(false);
     void this.#session.disconnect();
     this.#update({
@@ -875,7 +950,7 @@ export class VoiceTurnController {
     });
   }
 
-  #cancelOutput(): Promise<void> {
+  #cancelOutput(completeHandoff = true): Promise<void> {
     if (this.#outputCancellationPromise) {
       return this.#outputCancellationPromise;
     }
@@ -889,7 +964,7 @@ export class VoiceTurnController {
           this.#pendingSpeechRequestIds.clear();
           this.#terminalSpeechRequestIds.clear();
           this.#clearSettledSpeech();
-          this.#bridge.completeTurnHandoff();
+          if (completeHandoff) this.#bridge.completeTurnHandoff();
           const output =
             this.#snapshot.output === "waiting-for-tool" ||
             this.#snapshot.output === "speaking"
@@ -969,14 +1044,19 @@ export class VoiceTurnController {
   }
 
   #recordLatency(name: VoiceLatencyEvent["name"], correlationId: string): void {
-    if (this.#answerFinalizedAt === null) return;
+    const answerFinalizedAt =
+      this.#answerFinalizedAtByDelivery.get(correlationId) ??
+      this.#answerFinalizedAt;
+    if (answerFinalizedAt === null) return;
     const eventKey = `${correlationId}:${name}`;
     if (this.#recordedLatencyEvents.has(eventKey)) return;
     this.#recordedLatencyEvents.add(eventKey);
+    const timestampMs = this.#now();
     this.#onLatencyEvent?.({
       correlationId,
-      elapsedMs: Math.max(0, this.#now() - this.#answerFinalizedAt),
+      elapsedMs: Math.max(0, timestampMs - answerFinalizedAt),
       name,
+      timestampMs,
     });
   }
 

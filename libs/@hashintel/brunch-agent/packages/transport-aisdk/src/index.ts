@@ -61,6 +61,11 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
+export type FlueChatSubmissionSettledEvent = Extract<
+  ConversationStreamChunk,
+  { type: "submission-settled" }
+>;
+
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
@@ -79,6 +84,9 @@ export interface FlueChatTransportOptions {
   ) => void;
   readonly onResponseMessageCompleted?: (
     event: FlueChatResponseMessageCompletedEvent,
+  ) => void;
+  readonly onSubmissionSettled?: (
+    event: FlueChatSubmissionSettledEvent,
   ) => void;
 }
 
@@ -350,6 +358,12 @@ const streamSubmission = (
         .wait(admission, {
           signal,
           onEvent: (event) => {
+            if (
+              event.type === "submission-settled" &&
+              event.submissionId === admission.submissionId
+            ) {
+              options.onSubmissionSettled?.(event);
+            }
             if (
               event.type === "message-started" &&
               event.submissionId === admission.submissionId

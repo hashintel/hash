@@ -114,9 +114,11 @@ describe("local storage demo Brunch voice integration", () => {
       throw new Error("Expected the configured composer control to render.");
     }
     const failureListener = vi.fn();
+    const admissionEventListener = vi.fn();
     const responseCompletedListener = vi.fn();
     const responseStartedListener = vi.fn();
     const stopListener = vi.fn();
+    const submissionSettledListener = vi.fn();
     const target = { kind: "user" as const, messageId: "voice-turn-1" };
     const controlProps = control.props as {
       config: typeof config;
@@ -132,6 +134,9 @@ describe("local storage demo Brunch voice integration", () => {
         admissionTarget: typeof target,
         listener: (error: FlueChatAdmissionError) => void,
       ) => () => void;
+      subscribeToAdmissionEvents: (
+        listener: typeof admissionEventListener,
+      ) => () => void;
       subscribeToResponseMessageCompleted: (
         listener: typeof responseCompletedListener,
       ) => () => void;
@@ -139,6 +144,9 @@ describe("local storage demo Brunch voice integration", () => {
         listener: typeof responseStartedListener,
       ) => () => void;
       subscribeToStopRequested: (listener: () => void) => () => void;
+      subscribeToSubmissionSettled: (
+        listener: typeof submissionSettledListener,
+      ) => () => void;
     };
     expect(control.type).toBe(VoiceInterviewControl);
     expect(controlProps.config).toBe(config);
@@ -162,6 +170,9 @@ describe("local storage demo Brunch voice integration", () => {
     expect(rerenderedControlProps.subscribeToAdmissionFailure).toBe(
       controlProps.subscribeToAdmissionFailure,
     );
+    expect(rerenderedControlProps.subscribeToAdmissionEvents).toBe(
+      controlProps.subscribeToAdmissionEvents,
+    );
     expect(rerenderedControlProps.subscribeToResponseMessageCompleted).toBe(
       controlProps.subscribeToResponseMessageCompleted,
     );
@@ -171,6 +182,9 @@ describe("local storage demo Brunch voice integration", () => {
     expect(rerenderedControlProps.subscribeToStopRequested).toBe(
       controlProps.subscribeToStopRequested,
     );
+    expect(rerenderedControlProps.subscribeToSubmissionSettled).toBe(
+      controlProps.subscribeToSubmissionSettled,
+    );
 
     const unsubscribe = controlProps.subscribeToAdmissionFailure(
       target,
@@ -178,6 +192,10 @@ describe("local storage demo Brunch voice integration", () => {
     );
     const unsubscribeFromStop =
       controlProps.subscribeToStopRequested(stopListener);
+    const unsubscribeFromAdmissionEvents =
+      controlProps.subscribeToAdmissionEvents(admissionEventListener);
+    const unsubscribeFromSubmissionSettled =
+      controlProps.subscribeToSubmissionSettled(submissionSettledListener);
     const unsubscribeFromResponseCompleted =
       controlProps.subscribeToResponseMessageCompleted(
         responseCompletedListener,
@@ -198,15 +216,38 @@ describe("local storage demo Brunch voice integration", () => {
       submissionId: "submission-1",
     });
     tracker.recordStopRequested();
+    const admissionEvent = {
+      admission: {
+        offset: "offset-1",
+        streamUrl: "http://brunch.test/stream",
+        submissionId: "submission-1",
+        uid: "uid-1",
+      },
+      kind: "user" as const,
+      messageId: "voice-turn-1",
+    };
+    tracker.recordAdmission(admissionEvent);
+    const settlementEvent = {
+      conversationId: "conversation-1",
+      outcome: "completed" as const,
+      position: { batch: 1, index: 0 },
+      submissionId: "submission-1",
+      type: "submission-settled" as const,
+    };
+    tracker.recordSubmissionSettled(settlementEvent);
 
     expect(failureListener).toHaveBeenCalledWith(admissionError);
     expect(responseStartedListener).toHaveBeenCalledOnce();
     expect(responseCompletedListener).toHaveBeenCalledOnce();
     expect(stopListener).toHaveBeenCalledOnce();
+    expect(admissionEventListener).toHaveBeenCalledWith(admissionEvent);
+    expect(submissionSettledListener).toHaveBeenCalledWith(settlementEvent);
     unsubscribe();
     unsubscribeFromResponseCompleted();
     unsubscribeFromResponseStarted();
     unsubscribeFromStop();
+    unsubscribeFromAdmissionEvents();
+    unsubscribeFromSubmissionSettled();
   });
 
   test("registers no brunch_ask tool in the production Brunch preview", async () => {

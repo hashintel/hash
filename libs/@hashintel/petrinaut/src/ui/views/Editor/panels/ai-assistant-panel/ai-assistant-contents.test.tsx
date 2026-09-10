@@ -76,6 +76,103 @@ afterEach(() => {
 });
 
 describe("AiAssistantContents", () => {
+  test.each([
+    {
+      inputs: [{ id: "first", text: "First queued request" }],
+      label: "Follow-up queued",
+    },
+    {
+      inputs: [
+        { id: "first", text: "First queued request" },
+        { id: "second", text: "Second queued request" },
+      ],
+      label: "2 follow-ups queued",
+    },
+  ])("shows only a compact indicator: $label", ({ inputs, label }) => {
+    const onDiscardQueuedVoiceInputs = vi.fn();
+    render(
+      <NotificationsProvider>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onDiscardQueuedVoiceInputs={onDiscardQueuedVoiceInputs}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          queuedVoiceInputs={inputs}
+          status="ready"
+        />
+      </NotificationsProvider>,
+    );
+
+    const queue = screen.getByRole("region", { name: "Queued follow-ups" });
+    expect(within(queue).getByRole("status").textContent).toBe(label);
+    expect(within(queue).queryByRole("list")).toBeNull();
+    expect(screen.queryByText("First queued request")).toBeNull();
+    expect(screen.queryByText("Second queued request")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resume queue" })).toBeNull();
+    fireEvent.click(
+      within(queue).getByRole("button", { name: "Discard queue" }),
+    );
+    expect(onDiscardQueuedVoiceInputs).toHaveBeenCalledOnce();
+  });
+
+  test("offers recovery actions when queued voice inputs are paused", () => {
+    const onDiscardQueuedVoiceInputs = vi.fn();
+    const onResumeQueuedVoiceInputs = vi.fn();
+
+    render(
+      <NotificationsProvider>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onDiscardQueuedVoiceInputs={onDiscardQueuedVoiceInputs}
+          onInputChange={noop}
+          onResumeQueuedVoiceInputs={onResumeQueuedVoiceInputs}
+          onStop={noop}
+          onSubmit={noop}
+          queuedVoiceInputs={[{ text: "Held request" }]}
+          queuedVoiceInputsPaused
+          status="ready"
+        />
+      </NotificationsProvider>,
+    );
+
+    const queue = screen.getByRole("region", { name: "Queued follow-ups" });
+    expect(within(queue).getByRole("status").textContent).toBe(
+      "Follow-up queued",
+    );
+    expect(screen.queryByText("Held request")).toBeNull();
+    expect(screen.getByText("Queue held after failure")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Resume queue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard queue" }));
+    expect(onResumeQueuedVoiceInputs).toHaveBeenCalledOnce();
+    expect(onDiscardQueuedVoiceInputs).toHaveBeenCalledOnce();
+  });
+
+  test("hides the queued voice input section when the queue is empty", () => {
+    render(
+      <NotificationsProvider>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          queuedVoiceInputs={[]}
+          status="ready"
+        />
+      </NotificationsProvider>,
+    );
+
+    expect(
+      screen.queryByRole("region", { name: "Queued follow-ups" }),
+    ).toBeNull();
+  });
+
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
       <NotificationsProvider>

@@ -132,8 +132,8 @@ const createAdmissionOutcomeHarness = (
     | undefined;
   const bridge = new RealtimeBrunchBridge({
     session: {
-      offerFullResponse: vi.fn(),
-      speakCanonical: vi.fn(),
+      speakNotice: vi.fn(),
+      speakParaphrase: vi.fn(),
       subscribe: (listener) => {
         realtimeListener = listener;
         return () => {
@@ -308,7 +308,35 @@ describe("controlled voice preview", () => {
       uid: "uid-voice-1",
     };
     const send = vi.fn<FlueClient["send"]>(async () => admission);
-    const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+    const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+      let index = 0;
+      for (const messageId of [
+        "canonical-response-message",
+        "next-question-message",
+      ]) {
+        await options?.onEvent?.({
+          type: "message-started",
+          conversationId: "conversation-1",
+          submissionId: admission.submissionId,
+          messageId,
+          turnId: "voice-turn-1",
+          position: { batch: 1, index: index++ },
+        });
+        await options?.onEvent?.({
+          type: "message-completed",
+          conversationId: "conversation-1",
+          messageId,
+          position: { batch: 1, index: index++ },
+        });
+      }
+      await options?.onEvent?.({
+        type: "submission-settled",
+        conversationId: "conversation-1",
+        submissionId: admission.submissionId,
+        outcome: "completed",
+        position: { batch: 1, index },
+      });
+    });
     const tracker = new BrunchPanelConversationTracker();
     const transport = createBrunchPanelTransport(
       Promise.resolve({ send, wait } as Pick<
@@ -325,7 +353,7 @@ describe("controlled voice preview", () => {
         input,
         resolveInputSubmission: (messageId) =>
           tracker.submissionForInput(messageId),
-        submitVoiceInput: async ({ id, text }) => {
+        submitVoiceInput: async ({ id, onTurnComplete, text }) => {
           if (id === undefined) {
             throw new Error("Voice message identity is required.");
           }
@@ -343,7 +371,11 @@ describe("controlled voice preview", () => {
             ],
             trigger: "submit-message",
           });
-          void stream.pipeTo(new WritableStream());
+          await stream.pipeTo(new WritableStream());
+          onTurnComplete?.({
+            messages: responseMessages,
+            outcome: "completed",
+          });
           return { kind: "message", messageId: id };
         },
         subscribeToAdmission: (target, listener) =>
@@ -358,26 +390,24 @@ describe("controlled voice preview", () => {
       session,
       submitInterviewAnswer,
     });
+    tracker.subscribeToAdmissionEvents((event) =>
+      bridge.notifyAdmission(event),
+    );
+    tracker.subscribeToResponseMessageStarted((event) =>
+      bridge.notifyResponseMessageStarted(event),
+    );
+    tracker.subscribeToResponseMessageCompleted((event) =>
+      bridge.notifyResponseMessageCompleted(event),
+    );
+    tracker.subscribeToSubmissionSettled((event) =>
+      bridge.notifySubmissionSettled(event),
+    );
     const controller = new VoiceTurnController({
       bridge,
       session,
       submitText: vi.fn(async () => ({ kind: "message" as const })),
     });
     await controller.start();
-    dataChannel.receive({
-      audio_start_ms: 200,
-      item_id: "pre-output-item",
-      type: "input_audio_buffer.speech_started",
-    });
-    dataChannel.receive({
-      content_index: 0,
-      delta: "Speech started before output",
-      item_id: "pre-output-item",
-      type: "conversation.item.input_audio_transcription.delta",
-    });
-    expect(controller.getSnapshot().partialText).toBe(
-      "Speech started before output",
-    );
     const initialSelection = selectCanonicalSpeech(initialMessages);
     const initialSegments = initialSelection.segments;
     controller.updateChat({
@@ -385,70 +415,6 @@ describe("controlled voice preview", () => {
       canonicalSegments: initialSegments,
       questionSegment: initialSelection.questionSegment,
       status: "ready",
-    });
-    dataChannel.receive({
-      content_index: 0,
-      item_id: "pre-output-item",
-      transcript: "This completed before output started.",
-      type: "conversation.item.input_audio_transcription.completed",
-    });
-    expect(controller.getSnapshot()).toMatchObject({
-      lastCommittedText: "",
-      microphoneEnabled: true,
-      partialText: "",
-    });
-    expect(track.enabled).toBe(false);
-    expect(submitInterviewAnswer).not.toHaveBeenCalled();
-    expect(send).not.toHaveBeenCalled();
-
-    dataChannel.receive({
-      content_index: 0,
-      item_id: "pre-output-item",
-      transcript: "The stale item cannot recover authority.",
-      type: "conversation.item.input_audio_transcription.completed",
-    });
-    expect(send).not.toHaveBeenCalled();
-
-    authorizeLatestSpeechResponse(dataChannel, "response-initial-question");
-    dataChannel.receive({
-      response_id: "response-initial-question",
-      type: "output_audio_buffer.started",
-    });
-    expect(controller.getSnapshot()).toMatchObject({
-      canTakeTurn: true,
-      output: "speaking",
-    });
-
-    const handoff = controller.takeTurn();
-    dataChannel.receive({
-      audio_start_ms: 300,
-      item_id: "playback-overlap",
-      type: "input_audio_buffer.speech_started",
-    });
-    dataChannel.receive({
-      content_index: 0,
-      item_id: "playback-overlap",
-      transcript: "Playback must not become input.",
-      type: "conversation.item.input_audio_transcription.completed",
-    });
-    dataChannel.receive({ type: "input_audio_buffer.cleared" });
-    dataChannel.receive({
-      response: {
-        id: "response-initial-question",
-        output: [],
-        status: "cancelled",
-      },
-      type: "response.done",
-    });
-    dataChannel.receive({
-      response_id: "response-initial-question",
-      type: "output_audio_buffer.cleared",
-    });
-    await handoff;
-    expect(controller.getSnapshot()).toMatchObject({
-      input: "listening",
-      microphoneEnabled: true,
-      output: "interrupted",
     });
 
     dataChannel.receive({
@@ -494,12 +460,29 @@ describe("controlled voice preview", () => {
     );
     await vi.waitFor(() =>
       expect(controller.getSnapshot()).toMatchObject({
-        input: "submitting",
+        input: "listening",
         lastAnswerDelivery: "delivered",
         microphoneEnabled: true,
         output: "waiting-for-tool",
       }),
     );
+    authorizeLatestSpeechResponse(dataChannel, "response-received-notice");
+    dataChannel.receive({
+      response_id: "response-received-notice",
+      type: "output_audio_buffer.started",
+    });
+    dataChannel.receive({
+      response_id: "response-received-notice",
+      type: "output_audio_buffer.stopped",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-received-notice",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
 
     controller.updateChat({
       canAcceptInterviewAnswer: false,
@@ -534,7 +517,8 @@ describe("controlled voice preview", () => {
             content: [
               {
                 text: JSON.stringify({
-                  response_text: [canonicalReply, canonicalQuestion],
+                  source_text: [canonicalReply, canonicalQuestion],
+                  question_text: canonicalQuestion,
                 }),
                 type: "input_text",
               },
@@ -560,7 +544,7 @@ describe("controlled voice preview", () => {
       microphoneEnabled: true,
       output: "speaking",
     });
-    expect(track.enabled).toBe(false);
+    expect(track.enabled).toBe(true);
 
     dataChannel.receive({
       response_id: "response-canonical-reply",
@@ -581,26 +565,23 @@ describe("controlled voice preview", () => {
     });
 
     controller.repeatQuestion();
-
-    const replayCreate = sentEvents(dataChannel).findLast(
-      ({ type }) => type === "response.create",
-    );
-    expect(replayCreate).toMatchObject({
+    expect(
+      sentEvents(dataChannel).findLast(
+        ({ type }) => type === "response.create",
+      ),
+    ).toMatchObject({
       response: {
         input: [
           {
             content: [
               {
-                text: JSON.stringify({ response_text: [canonicalQuestion] }),
                 type: "input_text",
+                text: JSON.stringify({ response_text: [canonicalQuestion] }),
               },
             ],
-            role: "system",
-            type: "message",
           },
         ],
       },
-      type: "response.create",
     });
 
     const remoteTrack = { kind: "audio", stop: vi.fn() };
@@ -706,8 +687,8 @@ describe("controlled voice preview", () => {
       | undefined;
     const bridge = new RealtimeBrunchBridge({
       session: {
-        offerFullResponse: vi.fn(),
-        speakCanonical: vi.fn(),
+        speakNotice: vi.fn(),
+        speakParaphrase: vi.fn(),
         subscribe: (listener) => {
           realtimeListener = listener;
           return () => {

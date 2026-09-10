@@ -248,6 +248,8 @@ const Frame = ({
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
+  queuedVoiceInputs = [],
+  queuedVoiceInputsPaused = false,
   status = "ready",
   stopped = false,
   voiceMode,
@@ -258,6 +260,8 @@ const Frame = ({
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
+  queuedVoiceInputs?: readonly { readonly id: string; readonly text: string }[];
+  queuedVoiceInputsPaused?: boolean;
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
   voiceMode?: ReactNode;
@@ -265,6 +269,8 @@ const Frame = ({
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
+  const [queuedInputs, setQueuedInputs] = useState(queuedVoiceInputs);
+  const [queuePaused, setQueuePaused] = useState(queuedVoiceInputsPaused);
   const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
     initialVoiceDockCollapsed,
   );
@@ -292,6 +298,10 @@ const Frame = ({
           input={input}
           inputMode={inputMode}
           messages={messages}
+          queuedVoiceInputs={queuedInputs}
+          queuedVoiceInputsPaused={queuePaused}
+          onDiscardQueuedVoiceInputs={() => setQueuedInputs([])}
+          onResumeQueuedVoiceInputs={() => setQueuePaused(false)}
           onClose={() => {}}
           onInputChange={setInput}
           onInputModeChange={() => {}}
@@ -402,6 +412,44 @@ export const VoiceSessionThinking: Story = {
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
+    />
+  ),
+};
+
+export const VoiceQueuedTurns: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking", microphoneLevel: 0.4 })}
+      queuedVoiceInputs={[
+        { id: "next-1", text: "Which assumptions still need validation?" },
+        {
+          id: "next-2",
+          text: "Then explain the crew limit, but do not change the model.",
+        },
+      ]}
+    />
+  ),
+};
+
+export const VoiceQueueRecovery: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "paused" })}
+      queuedVoiceInputsPaused
+      queuedVoiceInputs={[
+        { id: "next-1", text: "Which assumptions still need validation?" },
+        {
+          id: "next-2",
+          text: "Then explain the crew limit, but do not change the model.",
+        },
+      ]}
     />
   ),
 };

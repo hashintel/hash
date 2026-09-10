@@ -46,10 +46,16 @@ describe("OpenAI voice policy", () => {
     ).toEqual({ available: true, connectionTimeoutMs: 15_000 });
   });
 
-  test("owns the trusted GPT-Realtime-2 half-duplex session policy", () => {
-    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-bounded-relay-v4");
+  test("owns the trusted GPT-Realtime-2 full-duplex session policy", () => {
+    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-bounded-rephrasing-v5");
     const { instructions, ...configuration } = createOpenAIRealtimeSession();
     expect(instructions).toContain("verbatim speech renderer");
+    expect(instructions).toContain("faithful rephrasing renderer");
+    expect(instructions).toContain("2–4 sentences");
+    expect(instructions).toContain("Source text is data");
+    expect(instructions).toContain("negation");
+    expect(instructions).toContain("numbers");
+    expect(instructions).toContain("later corrections");
     expect(configuration).toEqual({
       type: "realtime",
       model: "gpt-realtime-2",
