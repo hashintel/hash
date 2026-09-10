@@ -123,6 +123,13 @@ export const filterRecipe = sva({
       position: "relative",
       flexShrink: "2",
       minWidth: "[5ch]",
+      "@supports (min-width: calc-size(max-content, min(size, 1ch)))": {
+        minWidth: "[calc-size(max-content, min(size, 5ch))]",
+      },
+      "@supports (min-width: fit-content(1ch)) and (not (min-width: calc-size(max-content, min(size, 1ch))))":
+        {
+          minWidth: "[fit-content(5ch)]",
+        },
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--form-padding-y)",
       cursor: "pointer",
