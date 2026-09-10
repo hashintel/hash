@@ -260,7 +260,7 @@ export const Filter = <
   const operatorDropdownOpenRef = useRef(false);
   const selectDropdownOpenRef = useRef(false);
   const selectEscapedRef = useRef(false);
-  // The value the focused text/number input held when it received focus 
+  // The value the focused text/number input held when it received focus
   const inputFocusValueRef = useRef<SlotValue>(null);
   useEffect(() => {
     const markEscape = (event: KeyboardEvent) => {
@@ -429,7 +429,7 @@ export const Filter = <
     if (next && rootRef.current?.contains(next)) {
       return;
     }
-    commitDraft(draftKey, slots);
+    commitDraft(draftKey, slotsRef.current);
   };
 
   const setSlot = (index: number, slotValue: SlotValue) => {
@@ -524,7 +524,7 @@ export const Filter = <
         focusSlot(inputIndex + 1);
         return;
       }
-      commitDraft(draftKey, slots);
+      commitDraft(draftKey, slotsRef.current);
     } else if (event.key === "Escape") {
       // Restore the value this input held when it received focus
       setSlot(inputIndex, inputFocusValueRef.current);
