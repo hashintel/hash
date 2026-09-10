@@ -354,6 +354,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
+      // Nothing computes until a control moves or an optimizer navigates.
+      startComputing: false,
       // Leading-edge, so the first frames publish instantly; while a
       // batch streams, ~10 re-renders a second read as live on a chart
       // and leave the rest of the UI most of each frame's budget.
@@ -363,8 +365,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         buildRequest,
         compiler,
         netParameterVariableNames,
-        createWorker: reusableWorkerFactory,
-        shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
         onBackendChosen: (selection) => {
           rememberBackend(experimentId, selection.backend);
           const [firstDeclined] = selection.declined;
@@ -382,15 +382,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         },
         onNote,
       }),
-      initialMarkingKey: (values) => {
-        try {
-          return JSON.stringify(
-            compiler.compileForValues(values).result.initialState,
-          );
-        } catch {
-          return null;
-        }
-      },
       onUpdate: (update) => {
         patchExperiment(experimentId, {
           status: update.failed
@@ -407,6 +398,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             runsSampled: update.runsSampled,
             runTarget: update.runTarget,
             computing: update.computing,
+            visited: update.visited,
           },
         });
       },
@@ -636,19 +628,14 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
-  const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
-    async (experimentId, positions, runsPerCell, onPartial) => {
-      const session = sweepSessionsRef.current.get(experimentId);
-      if (!session) {
-        return null;
-      }
-      // The navigator's selection always comes first: surface chunks wait
-      // until it has streamed its first frames (the gate re-arms on every
-      // selection change), so the metric charts fill before surface sampling
-      // competes for workers.
-      await session.whenSelectionStreamed();
-      return session.sampleCells(positions, runsPerCell, onPartial);
-    };
+  const navigateSweep: ExperimentsContextValue["navigateSweep"] = (
+    experimentId,
+    selection,
+    options,
+  ) =>
+    sweepSessionsRef.current
+      .get(experimentId)
+      ?.navigateTo(selection, options) ?? Promise.resolve(null);
 
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
@@ -661,7 +648,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const stableCancelExperiment = useStableCallback(cancelExperiment);
   const stableRemoveExperiment = useStableCallback(removeExperiment);
   const stableSetSweepSelection = useStableCallback(setSweepSelection);
-  const stableSampleSurfaceCells = useStableCallback(sampleSurfaceCells);
+  const stableNavigateSweep = useStableCallback(navigateSweep);
   // Built on first use: a session that never opens an optimization surface
   // or runs a study in the browser spawns no extra worker lane.
   const getDetachedObjectiveSampler = (): DetachedObjectiveSampler => {
@@ -690,7 +677,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     cancelExperiment: stableCancelExperiment,
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: stableSetSweepSelection,
-    sampleSurfaceCells: stableSampleSurfaceCells,
+    navigateSweep: stableNavigateSweep,
     sampleDetachedObjective: stableSampleDetachedObjective,
     runDetachedObjective: stableRunDetachedObjective,
   }));

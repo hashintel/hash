@@ -7,10 +7,16 @@ import type {
 import type {
   SweepBatchStatus,
   SweepCellSnapshot,
+  SweepNavigateOptions,
   SweepSelection,
+  SweepVisitedCell,
 } from "./sweep-session";
 
-export type { SweepBatchStatus } from "./sweep-session";
+export type {
+  SweepBatchStatus,
+  SweepNavigateOptions,
+  SweepVisitedCell,
+} from "./sweep-session";
 import type {
   AdHocScenarioState,
   HirMetricArtifact,
@@ -167,6 +173,11 @@ export type ExperimentSweepState = {
   /** Ladder target the in-flight batch climbs to; null when saturated. */
   runTarget: number | null;
   computing: boolean;
+  /**
+   * Every point computed so far, first visit first, with its per-metric
+   * values: what the Surface draws. A new array only when a batch folds.
+   */
+  visited: readonly SweepVisitedCell[];
 };
 
 /** Whether a status is one an experiment can never leave. */
@@ -209,23 +220,20 @@ export type ExperimentsContextValue = {
   createExperiment: (input: CreateExperimentInput) => Promise<string>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
-  /** Moves a sweep's navigator; compute follows the selection. */
+  /** Moves a sweep's navigator; compute follows the selection up to the run count. */
   setSweepSelection: (experimentId: string, selection: SweepSelection) => void;
   /**
-   * Samples sweep-surface cells to `runsPerCell` runs each and returns each
-   * cell's per-metric mean, index-aligned with `positions` (null entries for
-   * cells with no finished runs). Waits for the navigator's own selection to
-   * stream first. One batch when the cells share an initial marking; the
-   * per-cell path otherwise. Resolves null with no session.
+   * Moves a sweep's navigator and resolves once the selection has the runs
+   * asked for (the cap, or the run count without one) with the finished
+   * runs' per-metric values: the optimizer's way to evaluate a point.
+   * Resolves null when another move superseded it, a batch failed, or the
+   * sweep is gone.
    */
-  sampleSurfaceCells: (
+  navigateSweep: (
     experimentId: string,
-    positions: readonly Readonly<Record<string, number>>[],
-    runsPerCell: number,
-    onPartial?: (
-      cells: readonly (Readonly<Record<string, number>> | null)[],
-    ) => void,
-  ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
+    selection: SweepSelection,
+    options?: SweepNavigateOptions,
+  ) => Promise<SweepVisitedCell | null>;
   /**
    * Computes one metric sample against an arbitrary net snapshot, on the
    * background single-worker lane — the optimization surface's local compute
@@ -347,7 +355,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
-  sampleSurfaceCells: () => Promise.resolve(null),
+  navigateSweep: () => Promise.resolve(null),
   sampleDetachedObjective: () => Promise.resolve(null),
   runDetachedObjective: () => ({
     frames: constantStore([]),
@@ -378,7 +386,7 @@ export type ExperimentsActionsValue = Pick<
   | "cancelExperiment"
   | "removeExperiment"
   | "setSweepSelection"
-  | "sampleSurfaceCells"
+  | "navigateSweep"
   | "sampleDetachedObjective"
   | "runDetachedObjective"
 >;

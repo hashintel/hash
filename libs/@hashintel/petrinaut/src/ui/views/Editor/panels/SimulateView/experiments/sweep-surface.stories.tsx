@@ -3,12 +3,11 @@ import { use } from "react";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import {
   FakeExperimentsProvider,
-  makeFakeSurfaceSampler,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
 import { SweepSurface } from "./sweep-surface";
 
-import type { ExperimentsContextValue } from "../../../../../../react/experiments/context";
+import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -20,53 +19,74 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const experiment = makeParameterSweepExperiment();
+const visited = makeParameterSweepExperiment();
+
+/** The same sweep before anything computed: no point yet, the full range selected. */
+const untouched: ExperimentRecord = {
+  ...visited,
+  status: "idle",
+  metricFrames: [],
+  latestMetricFramesById: {},
+  sweep: {
+    selection: {
+      transmission_rate: { from: 0, to: 50 },
+      recovery_days: { from: 0, to: 18 },
+    },
+    runsCompleted: 0,
+    runsSampled: 0,
+    runTarget: null,
+    computing: false,
+    visited: [],
+  },
+};
 
 /**
  * Reads the record back out of the provider, so a pick's selection change
  * reaches the surface the way it does in the drawer.
  */
-const LiveSweepSurface = () => {
+const LiveSweepSurface = ({ following }: { following?: boolean }) => {
   const { experiments } = use(ExperimentsContext);
   const record = experiments.find((candidate) => candidate.sweep !== null);
-  return record ? <SweepSurface experiment={record} /> : null;
+  return record ? (
+    <SweepSurface
+      experiment={record}
+      following={following}
+      tone={following ? "optimizing" : undefined}
+    />
+  ) : null;
 };
 
 const SweepSurfaceStory = ({
-  overrides,
+  experiment,
+  following,
 }: {
-  overrides?: Partial<Pick<ExperimentsContextValue, "sampleSurfaceCells">>;
+  experiment: ExperimentRecord;
+  following?: boolean;
 }) => (
   <FakeExperimentsProvider
     initialExperiments={[experiment]}
-    overrides={overrides}
+    restreamOnSelectionChange
   >
     <div style={{ width: 560 }}>
-      <LiveSweepSurface />
+      <LiveSweepSurface following={following} />
     </div>
   </FakeExperimentsProvider>
 );
 
-export const Streaming: Story = {
-  name: "Streaming",
-  render: () => <SweepSurfaceStory />,
+/** Five points visited, the selected one computing: click or drag to add one. */
+export const Visited: Story = {
+  name: "Visited points",
+  render: () => <SweepSurfaceStory experiment={visited} />,
 };
 
-/** Sampling slowed to 600 ms per chunk, to watch the quad-tree walk. */
-export const SlowSampling: Story = {
-  name: "Slow sampling",
-  render: () => (
-    <SweepSurfaceStory
-      overrides={{ sampleSurfaceCells: makeFakeSurfaceSampler(600) }}
-    />
-  ),
+/** A fresh sweep: nothing computed, the plot waits for a pick. */
+export const Empty: Story = {
+  name: "Empty",
+  render: () => <SweepSurfaceStory experiment={untouched} />,
 };
 
-export const NoData: Story = {
-  name: "No data",
-  render: () => (
-    <SweepSurfaceStory
-      overrides={{ sampleSurfaceCells: () => Promise.resolve(null) }}
-    />
-  ),
+/** An optimizer drives the selection: display only, in the optimizing tone. */
+export const Following: Story = {
+  name: "Following the optimizer",
+  render: () => <SweepSurfaceStory experiment={visited} following />,
 };

@@ -173,7 +173,7 @@ const TestProviders = ({
             cancelExperiment: () => {},
             removeExperiment: () => {},
             setSweepSelection: () => {},
-            sampleSurfaceCells: () => Promise.resolve(null),
+            navigateSweep: () => Promise.resolve(null),
             sampleDetachedObjective: () => Promise.resolve(null),
             runDetachedObjective: () => ({
               frames: { get: () => [], subscribe: () => () => {} },

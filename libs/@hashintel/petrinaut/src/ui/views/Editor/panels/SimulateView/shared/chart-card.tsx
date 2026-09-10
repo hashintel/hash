@@ -10,8 +10,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type { ComponentProps, ReactNode } from "react";
 
-/** How a card reads its state. `paused` is a frozen look, `muted` a below-floor look. */
-export type ChartCardTone = "default" | "paused" | "muted";
+/**
+ * How a card reads its state. `paused` is a frozen look, `muted` a
+ * below-floor look, `optimizing` the purple glow of controls an optimizer
+ * drives.
+ */
+export type ChartCardTone = "default" | "paused" | "muted" | "optimizing";
 
 /** The header's height in pixels: its padding, the title line, the subtitle line and its hairline. */
 export const CHART_CARD_HEADER_HEIGHT = 53;
@@ -50,7 +54,22 @@ const rootStyle = css({
   borderColor: "neutral.bd.subtle",
   borderRadius: "xl",
   backgroundColor: "neutral.s00",
+  transition:
+    "[border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease]",
   "&[data-tone=paused]": { borderColor: "neutral.s60" },
+  "&[data-tone=optimizing]": {
+    borderColor: "purple.s80",
+    backgroundColor: "purple.s10",
+    boxShadow:
+      "[0 0 0 1px var(--colors-purple-a30), 0 0 12px var(--colors-purple-a30)]",
+    animationName: "[petrinautOptimizingGlow]",
+    animationDuration: "[2.4s]",
+    animationTimingFunction: "ease-in-out",
+    animationIterationCount: "[infinite]",
+  },
+  "@media (prefers-reduced-motion: reduce)": {
+    "&[data-tone=optimizing]": { animationName: "[none]" },
+  },
 });
 
 const headerStyle = css({
@@ -64,6 +83,7 @@ const headerStyle = css({
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
+  "[data-tone=optimizing] > &": { borderBottomColor: "purple.s40" },
 });
 
 const headingStyle = css({
@@ -89,6 +109,7 @@ const titleStyle = css({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   "[data-tone=paused] &": { color: "neutral.s90" },
+  "[data-tone=optimizing] &": { color: "purple.s115" },
 });
 
 const subtitleStyle = css({
@@ -96,6 +117,7 @@ const subtitleStyle = css({
   lineHeight: "[16px]",
   height: "[16px]",
   color: "neutral.s80",
+  "[data-tone=optimizing] &": { color: "purple.s100" },
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",

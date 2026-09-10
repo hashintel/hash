@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type { ExperimentComputeBackend } from "../experiments/context";
+import type { ExperimentParameterAxis } from "../experiments/parameter-grid";
 import type { BatchStatus } from "../experiments/shared/batch-registry";
 import type { OptimizationSurfaceAxis } from "./surface-grid";
 import type {
@@ -158,10 +159,22 @@ export type ConnectedStudyState = {
   computeBackendFallbackReason: string | null;
 };
 
+/** Where a study was started from, when not the Optimizations tab. */
+export type OptimizationOrigin = {
+  kind: "sweep";
+  /** The parameter-sweep experiment whose compute evaluates the trials. */
+  experimentId: string;
+};
+
 export type OptimizationRecord = {
   id: string;
   input: PetrinautOptimizationInput;
   createdAt: number;
+  /**
+   * The experiment the study drives, for a study started from a sweep's
+   * Parameters card; null for one created in the Optimizations tab.
+   */
+  origin: OptimizationOrigin | null;
   status: OptimizationStatus;
   error: string | null;
   /** Set when a transport failure was classified; null otherwise. */
@@ -266,6 +279,19 @@ export type CreateOptimizationOptions = {
    * remote study ignores it. Defaults to 1.
    */
   parallelism?: number;
+  /**
+   * Evaluate the trials through a parameter sweep's compute instead of runs
+   * of the study's own: each trial moves the sweep to the suggested point.
+   * The study then has no local navigation, opens no drawer, and is not
+   * listed in the Optimizations tab; the experiment's drawer is its home.
+   */
+  sweep?: {
+    experimentId: string;
+    /** The sweep's axes, one per optimized parameter. */
+    axes: readonly ExperimentParameterAxis[];
+    /** The experiment metric the objective reads at each point. */
+    metricId: string;
+  };
 };
 
 export type OptimizationsContextValue = {

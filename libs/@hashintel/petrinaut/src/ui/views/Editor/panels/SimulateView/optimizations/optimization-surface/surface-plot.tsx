@@ -23,6 +23,11 @@ import {
 } from "../../../../../../components/contour-surface";
 import { formatAxisValue } from "../../shared/format-axis-value";
 import {
+  mergeSurfaceFields,
+  type SurfaceField,
+  surfaceGridCoordinate,
+} from "../../shared/surface-field";
+import {
   SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
   surfaceCaption,
@@ -48,11 +53,7 @@ import type { ChartCardTone } from "../../shared/chart-card";
 import type { OptimizationSurfaceView } from "./navigation-slice";
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
-/** Grid-index coordinate of an axis position, fractional between samples. */
-export const surfaceGridCoordinate = (
-  axis: OptimizationSurfaceAxis,
-  position: number,
-): number => (position / axis.stepCount) * (surfacePositions(axis).length - 1);
+export { mergeSurfaceFields, surfaceGridCoordinate };
 
 /** The sampled cell an axis position pair lands on, or null between cells. */
 export const surfaceCellKeyAt = (
@@ -72,10 +73,7 @@ export const surfaceCellKeyAt = (
 export type SurfaceSample = { x: number; y: number; value: number };
 
 /** A study's trials as a field: a sample per objective, a marker per trial. */
-export type TrialSurfaceField = {
-  values: ReadonlyMap<string, number>;
-  markers: readonly ContourSurfaceMarker[];
-};
+export type TrialSurfaceField = SurfaceField;
 
 /** How a trial with an objective is drawn. */
 export type TrialSurfaceMark = "ring" | "dot";
@@ -234,14 +232,6 @@ export const withNavigatedSample = (
         ...values,
         [contourSurfaceKey(sample.x, sample.y), sample.value],
       ]);
-
-/** Fields laid over one another; a later field's value wins at a shared point. */
-export const mergeSurfaceFields = (
-  ...fields: readonly TrialSurfaceField[]
-): TrialSurfaceField => ({
-  values: new Map(fields.flatMap((field) => [...field.values])),
-  markers: fields.flatMap((field) => field.markers),
-});
 
 /**
  * Whether the plot navigates. While the study runs and the navigation follows
