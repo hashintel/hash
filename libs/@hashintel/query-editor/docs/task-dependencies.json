@@ -7,20 +7,29 @@
     "@local/eslint"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ]
+    }
   }
 }

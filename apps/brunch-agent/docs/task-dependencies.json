@@ -9,77 +9,126 @@
     "@local/hash-backend-utils"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "build:docker": [],
-    "dev": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "lint:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "lint:tsc": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "petrinaut:dev": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/hash-backend-utils#build"
-    ],
-    "start": [
-      "build"
-    ],
-    "start:healthcheck": [],
-    "start:test": [
-      "build"
-    ],
-    "start:test:healthcheck": [],
-    "test:docker": [
-      "build:docker"
-    ],
-    "test:integration": [],
-    "test:unit": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-binding-flue#build",
-      "@hashintel/brunch-agent-plugin-sdcpn#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/hash-backend-utils#build",
-      "build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build"
+      ]
+    },
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build"
+      ]
+    },
+    "petrinaut:dev": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "start:test": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start:test:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "test:docker": {
+      "dependsOn": [
+        "build:docker"
+      ],
+      "cache": false
+    },
+    "test:integration": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-binding-flue#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-backend-utils#build",
+        "build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

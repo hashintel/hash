@@ -6,59 +6,101 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "build:buildinfo": [
-      "codegen"
-    ],
-    "build:ladle": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "build:lib": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "codegen": [],
-    "dev": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "dev:ladle": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "fix": [
-      "codegen"
-    ],
-    "fix:eslint": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "lint": [
-      "codegen"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "lint:tsc": [
-      "@local/eslint#build",
-      "codegen"
-    ],
-    "preview:ladle": [
-      "build:ladle"
-    ],
-    "test:snapshots": [
-      "build:ladle"
-    ],
-    "test:snapshots:update": [
-      "build:ladle"
-    ],
-    "test:unit": [
-      "build:buildinfo"
-    ]
+    "build": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "build:buildinfo": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "build:ladle": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "build:lib": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "dev": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "dev:ladle": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "fix": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
+    },
+    "preview:ladle": {
+      "dependsOn": [
+        "build:ladle"
+      ]
+    },
+    "test:snapshots": {
+      "dependsOn": [
+        "build:ladle"
+      ]
+    },
+    "test:snapshots:update": {
+      "dependsOn": [
+        "build:ladle"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "build:buildinfo"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

@@ -1,7 +1,9 @@
 //! Generation of the checked-in `task-dependencies.json` files.
 //!
 //! One document per package records the package's direct dependencies and, per task, the
-//! tasks turbo runs before it. A task of the package itself is listed by its bare name, a
+//! tasks turbo runs before it, whether turbo caches it, whether it keeps running, and the
+//! environment variables in its hash — the definition turbo arrives at after merging the root
+//! and the package `turbo.json`. A task of the package itself is listed by its bare name, a
 //! task of another package by its id.
 //!
 //! Only tasks turbo reports a command for are recorded: a task without a command never
@@ -92,6 +94,14 @@ struct QueryResponse<T> {
     errors: Vec<serde_json::Value>,
 }
 
+/// The task definition turbo arrives at after merging the root and the package `turbo.json`.
+#[derive(Debug, serde::Deserialize)]
+struct ResolvedTaskDefinition {
+    cache: bool,
+    persistent: bool,
+    env: Vec<String>,
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DryRunTask {
@@ -100,6 +110,7 @@ struct DryRunTask {
     package: String,
     command: String,
     dependencies: Vec<String>,
+    resolved_task_definition: ResolvedTaskDefinition,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -107,11 +118,40 @@ struct DryRun {
     tasks: Vec<DryRunTask>,
 }
 
+/// A task as turbo resolves it, with the fields at turbo's defaults left out.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Task {
+    depends_on: BTreeSet<String>,
+    #[serde(skip_serializing_if = "is_true")]
+    cache: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    persistent: bool,
+    #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+    env: BTreeSet<String>,
+}
+
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "`skip_serializing_if` passes the field by reference"
+)]
+const fn is_true(value: &bool) -> bool {
+    *value
+}
+
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "`skip_serializing_if` passes the field by reference"
+)]
+const fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 #[derive(Debug, serde::Serialize)]
 struct Document {
     package: String,
     dependencies: BTreeSet<String>,
-    tasks: BTreeMap<String, BTreeSet<String>>,
+    tasks: BTreeMap<String, Task>,
 }
 
 /// Runs `command`, attaching the error output of a failed invocation.
@@ -388,10 +428,15 @@ fn documents(
 
         document.tasks.insert(
             task.task.clone(),
-            executed_dependencies(&task.dependencies, &by_id)?
-                .into_iter()
-                .map(|id| local_name(&task.package, id))
-                .collect(),
+            Task {
+                depends_on: executed_dependencies(&task.dependencies, &by_id)?
+                    .into_iter()
+                    .map(|id| local_name(&task.package, id))
+                    .collect(),
+                cache: task.resolved_task_definition.cache,
+                persistent: task.resolved_task_definition.persistent,
+                env: task.resolved_task_definition.env.iter().cloned().collect(),
+            },
         );
     }
 

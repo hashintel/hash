@@ -13,60 +13,76 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "test:unit": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

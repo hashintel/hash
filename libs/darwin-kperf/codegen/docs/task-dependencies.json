@@ -2,6 +2,11 @@
   "package": "@rust/darwin-kperf-codegen",
   "dependencies": [],
   "tasks": {
-    "lint:clippy": []
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    }
   }
 }

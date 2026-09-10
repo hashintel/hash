@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import {
   defaultUserSettings,
+  defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
@@ -51,7 +52,7 @@ const loadSettings = (): UserSettings => {
   return defaultUserSettings;
 };
 
-export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const [state, setState] = useState<UserSettings>(loadSettings);
@@ -129,6 +130,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     },
     setEnableInBrowserOptimization: (value: boolean) =>
       setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
+    setBrunchDemoMode: (value: boolean) =>
+      setState((prev) => ({ ...prev, brunchDemoMode: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
@@ -155,5 +158,21 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
 
   return (
     <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+  );
+};
+
+/**
+ * Provides the persisted user settings. A host may mount it above
+ * `Petrinaut` to share the settings with its own components; the editor's
+ * own instance then reuses that ancestor, so one state owns the storage key.
+ */
+export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
+  const ancestor = use(UserSettingsContext);
+  return ancestor === defaultUserSettingsContextValue ? (
+    <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
+  ) : (
+    children
   );
 };
