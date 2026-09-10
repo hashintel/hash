@@ -51,16 +51,29 @@ export const observeBrowserDefinition = (
  * One handle incarnation and conversation. No persistence, transport, or basis join.
  * The synchronous executor must mutate this handle; asynchronous commands are excluded.
  */
+/**
+ * A failure the recorder contained while recording a failed mutation: the
+ * retained attempt already reflects it as an unknown outcome, so nothing
+ * else surfaces the thrown value.
+ */
+export interface TransitionRecordContainedFailure {
+  readonly toolCallId: string;
+  readonly kind: "post-observation" | "effect-derivation";
+  readonly error: unknown;
+}
+
 export const createBrowserTransitionRecorder = ({
   handle,
   binding: suppliedBinding,
   requestFor,
   deriveEffects = deriveArcEffects,
+  onContainedFailure,
 }: {
   handle: PetrinautDocHandle;
   binding: ConstructionMutationRequest["binding"];
   requestFor: (toolCallId: string) => ConstructionMutationRequest;
   deriveEffects?: typeof deriveArcEffects;
+  onContainedFailure?: (failure: TransitionRecordContainedFailure) => void;
 }) => {
   const binding = structuredClone(suppliedBinding);
   if (binding.documentId !== handle.id)
@@ -224,8 +237,13 @@ export const createBrowserTransitionRecorder = ({
       if (!attempt.post) {
         try {
           attempt.post = observeBrowserDefinition(handle);
-        } catch {
+        } catch (observationError) {
           // The post state is unavailable, not inferred equal to the pre state.
+          onContainedFailure?.({
+            toolCallId: call.toolCallId,
+            kind: "post-observation",
+            error: observationError,
+          });
         }
       }
       try {
@@ -235,6 +253,11 @@ export const createBrowserTransitionRecorder = ({
         attempt.outcome = observedArcOutcome(attempt);
         retain(attempt);
       } catch (derivationError) {
+        onContainedFailure?.({
+          toolCallId: call.toolCallId,
+          kind: "effect-derivation",
+          error: derivationError,
+        });
         attempt.error = `${attempt.error}; effect derivation failed: ${
           derivationError instanceof Error
             ? derivationError.message
@@ -279,6 +302,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
   binding: ConstructionMutationRequest["binding"];
   requestedBaseHash?: string;
   construction?: true;
+  onContainedFailure?: (failure: TransitionRecordContainedFailure) => void;
 }) => {
   if (!input.construction && !input.requestedBaseHash)
     throw new Error("Legacy recorder requires its immutable original base.");
@@ -293,6 +317,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
   const recorder = createBrowserTransitionRecorder({
     handle: input.handle,
     binding,
+    onContainedFailure: input.onContainedFailure,
     requestFor: (toolCallId) => {
       const request = issued.get(toolCallId);
       if (!request) throw new Error("Unknown issued root arc request.");

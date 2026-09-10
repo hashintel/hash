@@ -130,7 +130,26 @@ const structuralEffects = (effects: ArcEffects): SelectedMutationEffect[] => [
   })),
 ];
 
-export const createMutatePetrinetAutomaticTool = (binding: BrowserBinding) => ({
+/**
+ * One operation of a batch stopped execution. The outcome the model sees is
+ * unchanged; this is the host's chance to see the thrown value.
+ */
+export interface MutatePetrinetOperationFailure {
+  readonly toolCallId: string;
+  readonly operationId: string;
+  readonly operationType: SelectedMutationOperation["type"];
+  readonly status: "failed" | "unknown";
+  readonly error: unknown;
+}
+
+export const createMutatePetrinetAutomaticTool = (
+  binding: BrowserBinding,
+  options?: {
+    readonly onOperationFailure?: (
+      failure: MutatePetrinetOperationFailure,
+    ) => void;
+  },
+) => ({
   toolName: mutatePetrinetToolName,
   inputSchema: mutatePetrinetInputSchema,
   outputSchema: mutatePetrinetOutputSchema,
@@ -177,15 +196,26 @@ export const createMutatePetrinetAutomaticTool = (binding: BrowserBinding) => ({
             effects,
           } as const;
         } catch (error) {
+          const reportFailure = (status: "failed" | "unknown") =>
+            options?.onOperationFailure?.({
+              toolCallId,
+              operationId: operation.operationId,
+              operationType: operation.type,
+              status,
+              error,
+            });
           try {
             const post = observeBrowserDefinition(instance.handle);
+            const status = pre.sha256 === post.sha256 ? "failed" : "unknown";
+            reportFailure(status);
             return {
-              status: pre.sha256 === post.sha256 ? "failed" : "unknown",
+              status,
               preHash: pre.sha256,
               postHash: post.sha256,
               error: error instanceof Error ? error.message : String(error),
             } as const;
           } catch {
+            reportFailure("unknown");
             return {
               status: "unknown",
               preHash: pre.sha256,

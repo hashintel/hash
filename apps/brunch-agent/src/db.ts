@@ -3,6 +3,7 @@ import { postgres } from "@flue/postgres";
 import { loadDatabaseConfig } from "./database-config.ts";
 import { conversationDbPath } from "./db-path.ts";
 import { createPostgresRunner } from "./postgres.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
 import { shutdownBrunchTelemetry } from "./telemetry-bootstrap.ts";
 import { recordOperationalFailure } from "./telemetry.ts";
 
@@ -20,6 +21,7 @@ const openDatabase = async () => {
       ? postgres(createPostgresRunner(config, shutdownBrunchTelemetry))
       : (await import("@flue/runtime/node")).sqlite(conversationDbPath());
   } catch (error) {
+    diagnostics.report("database_configuration", error);
     // The process exits right after this, so flush the failure span first.
     await recordOperationalFailure("database_configuration", error);
     try {

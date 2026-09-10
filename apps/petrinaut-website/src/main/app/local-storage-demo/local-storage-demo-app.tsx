@@ -36,6 +36,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import {
   CommandRegistryProvider,
+  ErrorTrackerContext,
   useCommand,
   UserSettingsContext,
   UserSettingsProvider,
@@ -675,6 +676,22 @@ export const LocalStorageDemoApp = ({
     () => createConversationTrackerFor(conversationId),
     [conversationId],
   );
+  // Failures the host contains — a stopped batch operation, an unrecordable
+  // transition, a lost history observation, a failed server tool — resolve
+  // normally for the panel and the model; this is where they become visible.
+  const { captureException } = use(ErrorTrackerContext);
+  const reportBrunchFailure = useCallback(
+    (
+      source: string,
+      error: unknown,
+      tags?: Readonly<Record<string, string | number | boolean>>,
+    ) =>
+      captureException(error, {
+        source: `brunch.${source}`,
+        ...(tags === undefined ? {} : { tags }),
+      }),
+    [captureException],
+  );
   const rootArcBrowser = useMemo(() => {
     const net = activeHandle?.fallbackNet;
     if (
@@ -715,9 +732,14 @@ export const LocalStorageDemoApp = ({
         ? createJoinedBrowserTransitionRecorder({
             handle: activeHandle.handle,
             ...rootArcBrowser,
+            onContainedFailure: (failure) =>
+              reportBrunchFailure("transition-record", failure.error, {
+                kind: failure.kind,
+                toolCallId: failure.toolCallId,
+              }),
           })
         : undefined,
-    [rootArcBrowser, activeHandle],
+    [rootArcBrowser, activeHandle, reportBrunchFailure],
   );
   const tracerPreparation = usePrepareCrewReservationConversation(
     flueClientPromise,
@@ -739,6 +761,12 @@ export const LocalStorageDemoApp = ({
     transitionRecorder?.validatedClientToolNames,
     rootCreationSelected ? batchedConstructionDynamicToolNames : undefined,
   );
+  useEffect(() => {
+    if (flueHistory.error === undefined) return;
+    reportBrunchFailure("history", flueHistory.error, {
+      phase: flueHistory.phase ?? "unknown",
+    });
+  }, [flueHistory.error, flueHistory.phase, reportBrunchFailure]);
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
@@ -805,6 +833,13 @@ export const LocalStorageDemoApp = ({
                   transitionRecorder?.clientToolResultMetadata,
               }),
           onAdmission: flueHistory.refresh,
+          onToolOutputError: (event) =>
+            reportBrunchFailure("server-tool", new Error(event.errorText), {
+              submissionId: event.submissionId,
+              toolCallId: event.toolCallId,
+              toolName: event.toolName ?? "unknown",
+              hidden: event.hidden,
+            }),
         },
       );
     }
@@ -821,6 +856,7 @@ export const LocalStorageDemoApp = ({
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
     flueHistory.refresh,
+    reportBrunchFailure,
     transportClientPromise,
     transitionRecorder,
   ]);
@@ -845,7 +881,17 @@ export const LocalStorageDemoApp = ({
       canClearMessages: flueClientPromise === null,
       automaticTools:
         rootCreationSelected && rootArcBrowser
-          ? [createMutatePetrinetAutomaticTool(rootArcBrowser.binding)]
+          ? [
+              createMutatePetrinetAutomaticTool(rootArcBrowser.binding, {
+                onOperationFailure: (failure) =>
+                  reportBrunchFailure("mutate-petrinet", failure.error, {
+                    toolCallId: failure.toolCallId,
+                    operationId: failure.operationId,
+                    operationType: failure.operationType,
+                    status: failure.status,
+                  }),
+              }),
+            ]
           : [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
@@ -912,6 +958,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.messages,
       flueHistory.snapshot,
       petrinautAiChatTransport,
+      reportBrunchFailure,
       transitionRecorder,
       setAiMessagesByNetId,
     ],

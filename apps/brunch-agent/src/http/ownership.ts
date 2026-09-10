@@ -6,6 +6,7 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import { ownsFlueInstance } from "../conversation/identity.ts";
+import { diagnostics } from "../runtime-diagnostics.ts";
 
 import type { MiddlewareHandler } from "hono";
 
@@ -39,7 +40,15 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
       const body: unknown = await context.req.raw
         .clone()
         .json()
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          // The agent's schema still refuses the body; the parse failure
+          // itself would otherwise leave no trace. Classification only.
+          diagnostics.report("http.admission-body", error, {
+            instanceId,
+            contentType: context.req.header("content-type"),
+          });
+          return undefined;
+        });
       if (typeof body === "object" && body !== null && "initialData" in body) {
         const data = body.initialData;
         if (

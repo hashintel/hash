@@ -41,6 +41,7 @@ import {
   ACTIVATE_SKILL_TOOL_NAME,
   isClientToolResultDelivery,
 } from "../../conversation/client-tools.ts";
+import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
 import {
@@ -89,7 +90,14 @@ export function ChatAgent({ id }: AgentProps) {
   const suppliedObservationCallIds: string[] = [];
   const isClientResultDelivery = isClientToolResultDelivery(delivery);
   if (isClientResultDelivery) {
-    for (const result of parseClientToolResults(delivery.body)) {
+    // Dropped members stay dropped; the drop itself must not be silent.
+    const results = parseClientToolResults(delivery.body, (issue) =>
+      diagnostics.note("client-tool-result.parse", {
+        ...issue,
+        instanceId: id,
+      }),
+    );
+    for (const result of results) {
       if (result.toolName !== getLatestNetDefinitionToolName) continue;
       activeObservationCallIds.push(result.toolCallId);
       if (parseClientToolResultMetadata(result.metadata)?.observation)

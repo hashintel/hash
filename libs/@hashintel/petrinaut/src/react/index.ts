@@ -125,7 +125,10 @@ export { UserSettingsProvider } from "./state/user-settings-provider";
 
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";
-export type { ErrorTracker } from "./error-tracker-context";
+export type {
+  ErrorTracker,
+  ErrorTrackerCaptureContext,
+} from "./error-tracker-context";
 
 // --- Public hook surface ---
 export * from "./hooks";

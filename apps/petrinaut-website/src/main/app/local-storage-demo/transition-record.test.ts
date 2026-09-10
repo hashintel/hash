@@ -23,6 +23,7 @@ import {
   createBrowserTransitionRecorder,
   createJoinedBrowserTransitionRecorder,
   observeBrowserDefinition,
+  type TransitionRecordContainedFailure,
 } from "./transition-record";
 
 const setup = () => {
@@ -374,6 +375,8 @@ describe("browser transition adapter (canonical handle, not a real browser witne
   test("retains unknown when effect derivation fails after the mutation", () => {
     const fixture = setup();
     let derivations = 0;
+    const onContainedFailure =
+      vi.fn<(failure: TransitionRecordContainedFailure) => void>();
     const recorder = createBrowserTransitionRecorder({
       handle: fixture.handle,
       binding: fixture.request.binding,
@@ -383,6 +386,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
         if (derivations > 1) throw new Error("Synthetic derivation failure");
         return deriveArcEffects(...input);
       },
+      onContainedFailure,
     });
     expect(() =>
       recorder.executeMutation({
@@ -394,6 +398,15 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     expect(record?.outcome).toBe("unknown");
     expect(record?.attempts[0]?.outcome).toBe("unknown");
     expect(record?.attempts[0]?.error).toMatch(/effect derivation failed/iu);
+    // The contained second failure is reported to the host, once, with its kind.
+    expect(onContainedFailure).toHaveBeenCalledOnce();
+    expect(onContainedFailure).toHaveBeenCalledWith({
+      toolCallId: fixture.request.toolCallId,
+      kind: "effect-derivation",
+      error: expect.objectContaining({
+        message: "Synthetic derivation failure",
+      }) as unknown,
+    });
     fixture.instance.dispose();
   });
 

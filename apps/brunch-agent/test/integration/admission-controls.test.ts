@@ -10,13 +10,15 @@ import { runNodeScript } from "./run-node-script";
 import type { AdmissionControlsResult } from "./admission-controls.integration";
 
 let result: AdmissionControlsResult;
+let serverOutput: string;
 beforeAll(async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     join(import.meta.dirname, "admission-controls.integration.ts"),
     join(import.meta.dirname, "../../../.."),
-    {},
+    { NODE_ENV: "development" },
   );
   if (exitCode !== 0) throw new Error(stderr || stdout);
+  serverOutput = stdout;
   const line = stdout
     .split("\n")
     .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
@@ -75,6 +77,48 @@ test("production rejects every mixed proposal before publishing or partially exe
         outcome: "failed",
       }),
     );
+  }
+});
+
+test("every failed submission is attributable from the server output by stage, submission ID and original error", () => {
+  const diagnosticLines = serverOutput
+    .split("\n")
+    .filter((line) => line.includes("[brunch] flue."));
+  const failed = result.observations.filter(
+    ({ attempt }) => attempt.error !== null,
+  );
+  expect(failed.length).toBeGreaterThan(0);
+  for (const observation of failed) {
+    const { submissionId } = observation.attempt.receipt;
+    const settlementLine = diagnosticLines.find(
+      (line) =>
+        line.includes("[brunch] flue.submission failed") &&
+        line.includes(`"submissionId":"${submissionId}"`),
+    );
+    expect(
+      settlementLine,
+      `settlement diagnostic for ${submissionId}`,
+    ).toBeDefined();
+    // Development output carries the original failure so it can be read
+    // without any collector.
+    expect(settlementLine).toContain("Mixed browser/server proposal refused");
+    expect(settlementLine).toContain('"stage":"flue.submission"');
+    expect(settlementLine).toContain('"outcome":"failed"');
+    // The submission's own prompt operation is not reported a second time.
+    expect(
+      diagnosticLines.filter(
+        (line) =>
+          line.includes("[brunch] flue.operation failed") &&
+          line.includes(`"submissionId":"${submissionId}"`),
+      ),
+    ).toEqual([]);
+  }
+  // Prompt, tool arguments and results never appear in the diagnostic output.
+  const diagnosticOutput = diagnosticLines.join("\n");
+  expect(diagnosticOutput).not.toContain(result.question);
+  expect(diagnosticOutput).not.toContain('"args"');
+  for (const { privateMarkdown } of result.buffering) {
+    expect(diagnosticOutput).not.toContain(privateMarkdown);
   }
 });
 
