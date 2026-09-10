@@ -189,12 +189,8 @@ impl ServeCommand {
             visibility,
         )
         .route_layer(
+            // PrincipalLimitLayer requires the request extension written by AuthenticationLayer.
             ServiceBuilder::new()
-                .layer(IntoProblemLayer)
-                .layer(PrincipalLimitLayer {
-                    limiters: Arc::clone(&limiters),
-                    service_secret: Arc::clone(&service_secret),
-                })
                 .layer(IntoProblemLayer)
                 .layer(AuthenticationLayer::<_, ActorId> {
                     provider,
@@ -202,6 +198,11 @@ impl ServeCommand {
                     metrics: Arc::new(AuthenticationMetrics::new(&meter)),
                     bootstrap_route: |_path| false,
                     caller: core::marker::PhantomData,
+                })
+                .layer(IntoProblemLayer)
+                .layer(PrincipalLimitLayer {
+                    limiters: Arc::clone(&limiters),
+                    service_secret: Arc::clone(&service_secret),
                 }),
         )
         .layer(
