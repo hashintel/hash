@@ -84,7 +84,7 @@ Storybook provides a fake optimizer for isolated UI development.
 | -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
 | `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
 | `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.    |
 | `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
 | `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
 | `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
@@ -93,12 +93,20 @@ Storybook provides a fake optimizer for isolated UI development.
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
-### Brunch Voice mode preview
+### Brunch Voice mode
 
-Voice mode is disabled by default and always unavailable when `VERCEL_ENV` is
-`production`. To exercise the preview locally or in a Vercel preview, set a
-real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
-dedicated `OPENAI_VOICE_API_KEY`.
+Voice mode is disabled by default. To enable it, configure a real
+`VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
+provide a dedicated `OPENAI_VOICE_API_KEY`.
+
+Production Voice is temporarily unauthenticated. The same-origin check rejects
+ordinary cross-site browser requests, but a non-browser caller can spoof its
+`Origin` header and create billable Realtime sessions. Use a dedicated OpenAI
+project with low usage thresholds and alerts, monitor it while Voice is
+enabled, and set `PETRINAUT_OPENAI_VOICE_ENABLED=false` immediately if usage is
+unexpected. Revoke or rotate the dedicated `OPENAI_VOICE_API_KEY` in OpenAI,
+then update the deployment secret before re-enabling Voice. FE-1622 tracks
+adding caller authentication.
 
 Text and Voice mode use one assistant transcript and composer. When Voice mode
 is available, the empty first-run prompt and empty composer show a waveform
@@ -183,9 +191,9 @@ correlation. Browser and server diagnostics report only operation, stage,
 outcome, duration, request ID, and—where applicable—status or a sanitized error
 code. Voice responses also expose privacy-safe `Server-Timing` metrics. These
 diagnostics never record audio, SDP, transcript or prompt contents, canonical
-speech text, credentials, or provider response bodies. This controlled-preview
-evidence does not enable production: production remains unconditionally
-disabled by the server policy.
+speech text, credentials, or provider response bodies. Production Voice remains
+behind the explicit server configuration, which is an operational switch rather
+than caller authentication.
 
 ## Testing the API against the built output
 
