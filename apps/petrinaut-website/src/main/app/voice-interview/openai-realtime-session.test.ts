@@ -1611,6 +1611,99 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("terminalizes a collided canonical request cancelled after it is requeued", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+
+    channel.receive({
+      error: {
+        code: "conversation_already_has_active_response",
+        event_id: responseCreate.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "interrupting-item",
+      type: "input_audio_buffer.speech_started",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      speechRequestId: "canonical-1-1",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+    expect(
+      harness.events.filter(
+        (event) => event.type === "canonical-speech-requested",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("starts queued speech when a competing response terminates before the cancelled request collision", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("first", "First canonical response"),
+    ]);
+    const firstResponseCreate = sentEvents(channel)[0]!;
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "interrupting-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      audio_end_ms: 200,
+      item_id: "interrupting-item",
+      type: "input_audio_buffer.speech_stopped",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("second", "Second canonical response"),
+    ]);
+    channel.receive({
+      response: {
+        id: "response-competing",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    channel.receive({
+      error: {
+        code: "conversation_already_has_active_response",
+        event_id: firstResponseCreate.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    const responseCreates = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    );
+    expect(responseCreates).toHaveLength(2);
+    expect(responseCreates[1]).toMatchObject({
+      response: {
+        metadata: { petrinaut_request_id: "canonical-1-2" },
+      },
+    });
+  });
+
   test("retries a correlated canonical response after the active response ends", async () => {
     const harness = createHarness();
     await harness.session.connect();
