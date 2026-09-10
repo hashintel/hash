@@ -497,12 +497,38 @@ export const Select = <TValue extends string>({
     const index = tabbables.findIndex(
       (el) => el === activeElement || el.contains(activeElement),
     );
-    const next =
-      index === -1
-        ? direction === 1
-          ? tabbables[0]
-          : undefined
-        : tabbables[index + direction];
+    let next: HTMLElement | undefined;
+    if (index !== -1) {
+      next = tabbables[index + direction];
+    } else {
+      // Focus sits on a non-tabbable: the content itself, either mid-list
+      // (an option highlighted via activedescendant navigation) or fresh
+      // from opening. A highlighted option makes the items block a
+      // positional stop — partition the tabbables around it, so backward
+      // reaches the search field above the list and forward the footer
+      // below it. With nothing highlighted, forward enters the first
+      // tabbable and backward exits.
+      const highlightedId =
+        content?.getAttribute("aria-activedescendant") ??
+        activeElement?.getAttribute("aria-activedescendant");
+      const highlightedOption = highlightedId
+        ? doc.getElementById(highlightedId)
+        : null;
+      if (highlightedOption) {
+        const followsOption = (el: HTMLElement) =>
+          Boolean(
+            // eslint-disable-next-line no-bitwise -- the DOM API returns a bitmask
+            highlightedOption.compareDocumentPosition(el) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        next =
+          direction === 1
+            ? tabbables.find(followsOption)
+            : tabbables.filter((el) => !followsOption(el)).at(-1);
+      } else if (direction === 1) {
+        next = tabbables[0];
+      }
+    }
     if (next) {
       next.focus();
       return;
