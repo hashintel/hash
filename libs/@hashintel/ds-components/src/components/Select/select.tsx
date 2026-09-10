@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -139,7 +140,7 @@ type SelectSingleProps<TValue extends string> = {
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while selecting, and items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks or Space; Enter toggles the highlighted item and closes the dropdown. Items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
@@ -298,6 +299,23 @@ function mapToMenuItems<TValue extends string>(
 }
 
 /**
+ * Exposes the select machine's api to the component body — the context is
+ * only readable beneath the Root — backing the Enter-closes-a-multi-select
+ * keyboard handling on the Root element.
+ */
+const SelectApiBridge = ({
+  onApi,
+}: {
+  onApi: (api: ReturnType<typeof useSelectContext>) => void;
+}) => {
+  const select = useSelectContext();
+  useLayoutEffect(() => {
+    onApi(select);
+  });
+  return null;
+};
+
+/**
  * While a search filter is active, keeps the highlight on the first visible
  * item, so arrows/Enter from the search field always operate on the filtered
  * results — the previous highlight may have been filtered out of the
@@ -445,6 +463,25 @@ export const Select = <TValue extends string>({
   const isOpenRef = useRef(!!defaultOpen);
   const escapedRef = useRef(false);
   const valueAtOpenRef = useRef<TValue[]>(defaultOpen ? selectedValues : []);
+
+  // Enter in an open multi select toggles the highlighted item and then
+  // closes the dropdown (Space and clicks keep it open). The capture phase
+  // records whether it was open before ark processes the key — an Enter that
+  // opens the dropdown must not be immediately undone — and the bubble
+  // phase, running after ark has toggled the item, closes it.
+  const selectApiRef = useRef<ReturnType<typeof useSelectContext> | null>(null);
+  const enterWhileOpenRef = useRef(false);
+  const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter") {
+      enterWhileOpenRef.current = !!selectApiRef.current?.open;
+    }
+  };
+  const handleRootKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && enterWhileOpenRef.current) {
+      enterWhileOpenRef.current = false;
+      selectApiRef.current?.setOpen(false);
+    }
+  };
   useEffect(() => {
     if (!multiple) {
       return;
@@ -811,8 +848,17 @@ export const Select = <TValue extends string>({
       }}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
+      onKeyDownCapture={multiple ? handleRootKeyDownCapture : undefined}
+      onKeyDown={multiple ? handleRootKeyDown : undefined}
     >
       <ArkSelect.HiddenSelect ref={inputRef} />
+      {multiple && (
+        <SelectApiBridge
+          onApi={(api) => {
+            selectApiRef.current = api;
+          }}
+        />
+      )}
       {showSearch && (
         <SearchHighlightSync
           search={search}
