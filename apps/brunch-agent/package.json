@@ -26,6 +26,7 @@
     "test:construction-progression": "node --experimental-strip-types test/construction-progression.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:mutate-petrinet-retry": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/mutate-petrinet-retry.integration.ts",
     "test:native-schema": "node --experimental-strip-types test/integration/native-schema-carriage.integration.ts",
     "test:passage-policy": "node --experimental-strip-types test/passage-policy.integration.ts",
     "test:reopened-why": "M7_A5=1 node --experimental-strip-types test/mutation-records.integration.ts",
