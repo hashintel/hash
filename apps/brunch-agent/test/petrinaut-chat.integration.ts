@@ -449,6 +449,13 @@ try {
         abortSignal: undefined,
       }),
     );
+    const firstResumedCurrentNetCalls =
+      currentNetCallsFromChunks(resumedChunks);
+    if (firstResumedCurrentNetCalls.length !== 0) {
+      throw new Error(
+        "first continuation repeated getLatestNetDefinition after the initial read",
+      );
+    }
     const secondUserMessage = {
       id: "user-mission-2",
       role: "user",
@@ -508,6 +515,13 @@ try {
         abortSignal: undefined,
       }),
     );
+    const secondResumedCurrentNetCalls =
+      currentNetCallsFromChunks(secondResumedChunks);
+    if (secondResumedCurrentNetCalls.length !== 0) {
+      throw new Error(
+        "second continuation repeated getLatestNetDefinition after the initial read",
+      );
+    }
     const snapshot = await historyClient.history();
     const userEntryIds = snapshot.messages
       .filter(
