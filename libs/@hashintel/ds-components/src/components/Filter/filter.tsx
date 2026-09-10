@@ -131,29 +131,23 @@ const FilterSelectInput = ({
   const [loadedItems, setLoadedItems] = useState<ReadonlyArray<
     ItemOrGroup<MultiSelectItem>
   > | null>(null);
+  // An async `items` loader runs once per mount: loaders are usually inline,
+  // giving `items` a new identity every render, which must not refetch — the
+  // ref bails out of every effect run after the first. Switching operators
+  // remounts the segment and so loads afresh. A resolution after unmount is
+  // fine: setState is then a no-op.
+  const startedLoadRef = useRef(false);
   useEffect(() => {
-    if (typeof items !== "function") {
+    if (typeof items !== "function" || startedLoadRef.current) {
       return;
     }
-    let cancelled = false;
+    startedLoadRef.current = true;
     void items().then(
-      (result) => {
-        if (!cancelled) {
-          setLoadedItems(result);
-        }
-      },
+      (result) => setLoadedItems(result),
       // A failed load leaves no options, surfacing the select's emptyState
-      () => {
-        if (!cancelled) {
-          setLoadedItems([]);
-        }
-      },
+      () => setLoadedItems([]),
     );
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per mount, see docstring
-  }, []);
+  }, [items]);
 
   const resolvedItems = isAsync ? (loadedItems ?? []) : items;
   const shared = {
