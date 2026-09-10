@@ -6,6 +6,11 @@
 //! and the package `turbo.json`. A task of the package itself is listed by its bare name, a
 //! task of another package by its id.
 //!
+//! A task also lists the packages whose changes select it without being among the package's
+//! transitive dependencies: the packages its task edges reach, the packages its inputs reach
+//! into, and the packages nested in any of those directories, whose files turbo counts as the
+//! surrounding package's own.
+//!
 //! Only tasks turbo reports a command for are recorded: a task without a command never
 //! executes — turbo folds its hash into its dependents and skips it. An edge to such a task
 //! is replaced by the commanded tasks behind it, so a list stays what turbo runs first.
@@ -78,6 +83,7 @@ struct Package {
     name: String,
     path: String,
     direct_dependencies: Items<Named>,
+    all_dependencies: Items<Named>,
     tasks: Items<Named>,
 }
 
@@ -100,6 +106,7 @@ struct ResolvedTaskDefinition {
     cache: bool,
     persistent: bool,
     env: Vec<String>,
+    inputs: Vec<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -129,6 +136,9 @@ struct Task {
     persistent: bool,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
     env: BTreeSet<String>,
+    /// Packages outside the package's transitive dependencies whose changes select the task.
+    #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+    affected_by: BTreeSet<String>,
 }
 
 #[expect(
@@ -371,6 +381,121 @@ fn executed_dependencies<'graph>(
     Ok(executed)
 }
 
+/// The packages of every task reachable from `dependencies`, skipped tasks included.
+fn reached_packages<'graph>(
+    dependencies: &'graph [String],
+    tasks: &BTreeMap<&'graph str, &'graph DryRunTask>,
+) -> Result<BTreeSet<&'graph str>, Report<TaskDependenciesError>> {
+    let mut pending: Vec<&str> = dependencies.iter().map(String::as_str).collect();
+    let mut seen: BTreeSet<&str> = pending.iter().copied().collect();
+    let mut packages = BTreeSet::new();
+
+    while let Some(id) = pending.pop() {
+        let Some(task) = tasks.get(id) else {
+            return Err(
+                Report::new(TaskDependenciesError::TaskGraph).attach(format!(
+                    "dependency on a task the graph does not contain: {id}"
+                )),
+            );
+        };
+
+        packages.insert(task.package.as_str());
+        pending.extend(
+            task.dependencies
+                .iter()
+                .map(String::as_str)
+                .filter(|dependency| seen.insert(dependency)),
+        );
+    }
+
+    Ok(packages)
+}
+
+/// `relative` resolved against the repository-relative directory `base`.
+fn resolve(base: &str, relative: &str) -> String {
+    let mut parts: Vec<&str> = base.split('/').filter(|part| !part.is_empty()).collect();
+    for part in relative.split('/') {
+        match part {
+            ".." => {
+                parts.pop();
+            }
+            "" | "." => {}
+            part => parts.push(part),
+        }
+    }
+    parts.join("/")
+}
+
+/// The path a glob names before its first wildcard.
+fn glob_directory(pattern: &str) -> &str {
+    pattern
+        .split(['*', '?', '[', '{'])
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches('/')
+}
+
+/// Whether `inner` is `outer` or a directory below it.
+fn lies_within(inner: &str, outer: &str) -> bool {
+    inner == outer
+        || inner
+            .strip_prefix(outer)
+            .is_some_and(|rest| rest.starts_with('/'))
+}
+
+/// The packages whose directories lie below `directory`, whose files turbo also counts as
+/// the files of the package at `directory`.
+fn nested_packages<'graph>(
+    directory: &'graph str,
+    paths: &'graph BTreeMap<String, String>,
+) -> impl Iterator<Item = &'graph str> {
+    paths
+        .iter()
+        .filter(move |(_, path)| path.as_str() != directory && lies_within(path, directory))
+        .map(|(name, _)| name.as_str())
+}
+
+/// Whether a package at `package` owns files under `path`: the path lies in the package's
+/// directory, or the package lies in the path's.
+fn shares_files(package: &str, path: &str) -> bool {
+    package == path
+        || path
+            .strip_prefix(package)
+            .is_some_and(|rest| rest.starts_with('/'))
+        || package
+            .strip_prefix(path)
+            .is_some_and(|rest| rest.starts_with('/'))
+}
+
+/// The packages whose files turbo hashes into `task` besides its own package's: the ones
+/// under the inputs reaching out of the package, and the ones nested in the package's
+/// directory.
+fn sharing_files<'graph>(
+    task: &'graph DryRunTask,
+    paths: &'graph BTreeMap<String, String>,
+) -> impl Iterator<Item = &'graph str> {
+    let own_path = paths.get(&task.package).map_or("", String::as_str);
+
+    let directories: Vec<String> = Vec::from_iter(
+        task.resolved_task_definition
+            .inputs
+            .iter()
+            .filter(|input| input.starts_with("../"))
+            .map(|input| resolve(own_path, glob_directory(input))),
+    );
+
+    paths
+        .iter()
+        .filter(move |(_, path)| {
+            !path.is_empty()
+                && directories
+                    .iter()
+                    .any(|directory| shares_files(path, directory))
+        })
+        .map(|(name, _)| name.as_str())
+        .chain(nested_packages(own_path, paths))
+}
+
 /// A task of `package` by its bare name, any other task by its id.
 fn local_name(package: &str, id: String) -> String {
     if let Some(name) = id
@@ -392,10 +517,20 @@ fn documents(
         .collect();
 
     let mut paths: BTreeMap<String, String> = BTreeMap::new();
+    let mut all_dependencies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut documents: BTreeMap<String, Document> = packages
         .into_iter()
         .map(|package| {
             paths.insert(package.name.clone(), package.path);
+            all_dependencies.insert(
+                package.name.clone(),
+                package
+                    .all_dependencies
+                    .items
+                    .into_iter()
+                    .map(|dependency| dependency.name)
+                    .collect(),
+            );
             (
                 package.name.clone(),
                 Document {
@@ -426,6 +561,30 @@ fn documents(
             );
         };
 
+        let dependencies = all_dependencies
+            .get(&task.package)
+            .expect("every task should belong to a listed package");
+        // A file of a nested package is also a file of the package around it, so a package
+        // brings the packages nested in its directory along.
+        let reached: BTreeSet<&str> = reached_packages(&task.dependencies, &by_id)?
+            .into_iter()
+            .chain(sharing_files(task, &paths))
+            .collect();
+        let affected_by = reached
+            .iter()
+            .copied()
+            .chain(reached.iter().flat_map(|package| {
+                paths
+                    .get(*package)
+                    .into_iter()
+                    .flat_map(|directory| nested_packages(directory, &paths))
+            }))
+            .filter(|package| {
+                *package != task.package && *package != "//" && !dependencies.contains(*package)
+            })
+            .map(str::to_owned)
+            .collect();
+
         document.tasks.insert(
             task.task.clone(),
             Task {
@@ -436,6 +595,7 @@ fn documents(
                 cache: task.resolved_task_definition.cache,
                 persistent: task.resolved_task_definition.persistent,
                 env: task.resolved_task_definition.env.iter().cloned().collect(),
+                affected_by,
             },
         );
     }
@@ -493,8 +653,8 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
 
     let packages: PackagesData = query(
         &root,
-        "{ packages { items { name path directDependencies { items { name } } tasks { items { \
-         name } } } } }",
+        "{ packages { items { name path directDependencies { items { name } } allDependencies { \
+         items { name } } tasks { items { name } } } } }",
         TaskDependenciesError::PackageList,
     )
     .await?;

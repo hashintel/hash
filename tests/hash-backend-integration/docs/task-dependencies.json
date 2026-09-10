@@ -22,6 +22,9 @@
     "codegen": {
       "dependsOn": [
         "@local/hash-isomorphic-utils#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "fix:eslint": {
@@ -45,6 +48,9 @@
         "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:eslint": {
@@ -71,6 +77,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:tsc": {
@@ -94,6 +103,9 @@
         "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "test:integration": {
@@ -124,6 +136,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }
