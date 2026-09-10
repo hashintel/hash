@@ -9,7 +9,7 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 1. Switch to **Simulate** mode and open the **Experiments** tab.
 2. Click **Create**. The Create Experiment drawer opens.
 3. Fill in the configuration (see below).
-4. Click **Run**.
+4. Click **Run** -- **Create sweep** when a parameter is swept. The button reads **Starting** (or **Creating**) while the experiment starts.
 
 ### Configuration
 
@@ -35,14 +35,15 @@ The model used is a snapshot of the current net at the time you press **Run**. E
 
 Experiments progress through these status labels:
 
-| Status           | Meaning                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| **Initializing** | The experiment has been created and its workers are starting up.                                  |
-| **Running**      | Runs are in progress.                                                                             |
-| **Idle**         | A sweep whose selected region is fully sampled. Moving a parameter control resumes running.       |
-| **Complete**     | All runs finished without error.                                                                  |
-| **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. |
-| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                          |
+| Status           | Meaning                                                                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Initializing** | The experiment has been created and its workers are starting up.                                                                                                                                                       |
+| **Running**      | Runs are in progress.                                                                                                                                                                                                  |
+| **Idle**         | A sweep computing nothing: fresh, or its selected region fully sampled. Moving a parameter control resumes running. Grey in the list.                                                                                  |
+| **Optimizing**   | A sweep whose sliders a study drives (see [Optimizing a sweep](#optimizing-a-sweep)). The drawer's header reads it; the list keeps the sweep's own status, Running or Idle.                                            |
+| **Complete**     | All runs finished without error.                                                                                                                                                                                       |
+| **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. For a sweep the error belongs to the selection that failed: move a control and the next selection computes normally. |
+| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                                                                                                                                               |
 
 Experiments run in background Web Workers, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
 
@@ -63,7 +64,7 @@ Parameter sweeps are experimental and off by default. Turn on **Parameter sweeps
 
 Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so a selection has a stable identity and revisiting one restores its results. With [ad-hoc scenarios](ad-hoc-scenarios.md) enabled, the same toggle sits on every numeric value of the ad-hoc form -- a token count, a cell, a variable, a parameter override -- and each selection sweeps as a generated parameter named after the value, shown in the navigator under the value's path.
 
-A sweep computes **what you have selected**, and nothing until you select: a fresh sweep sits idle with every slider spanning its whole interval, its charts empty, until you move a control, click the surface, or hand the controls to the optimizer. The results drawer grows a **Parameters** card across the top of its body, with one slider per swept parameter and the swept count under its title. Each slider selects a range on its interval, and starts spanning the whole of it:
+A sweep computes **what you have selected**, and nothing until you select: a fresh sweep sits idle with every slider spanning its whole interval, its charts empty, and the line under the sliders says what to do -- collapse a control to a point or click the surface to compute a point, widen a range to sample across it -- until you move a control, click the surface, or hand the controls to the optimizer. The results drawer grows a **Parameters** card across the top of its body, with one slider per swept parameter and the swept count under its title. Each slider selects a range on its interval, and starts spanning the whole of it:
 
 - **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
 - **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
@@ -74,11 +75,11 @@ Every selection uses the same seed sequence (common random numbers), and a run's
 
 #### Optimizing a sweep
 
-With the [in-browser optimizer](optimization.md#running-in-the-browser) turned on, the **Parameters** card's header carries an **Optimize** button. It asks which metric to optimize, whether to **Maximize** or **Minimize** it, and how many steps to take, then hands the sliders to the optimizer: the card turns purple, the controls lock and move by themselves to each point the optimizer tries, the status line reads **Following step N of M**, and every point lands on the Surface as it computes. Each step computes eight runs at its point before the optimizer reads the metric's value there. **Stop** in the card's header ends the search where it stands and the point it was trying refines to your run budget; when the search finishes on its own the sliders settle on the best point found and that point refines the same way. The study also appears nowhere else: the sweep's drawer is its home, and removing the experiment removes it.
+With the [in-browser optimizer](optimization.md#running-in-the-browser) turned on, the **Parameters** card's header carries one purple **Optimize** button. It asks which metric to optimize, whether to **Maximize** or **Minimize** it, and how many steps to take, then hands the sliders to the optimizer: the card turns purple, the header's status reads **Optimizing** and its progress bar counts the steps, the controls lock and move by themselves to each point the optimizer tries, the line under the sliders reads **Following step N of M** with the point's runs as they stream (**— 5 of 8 runs**), and every point lands on the Surface as it computes. Each step computes eight runs at its point before the optimizer reads the metric's value there; the **N computing** chip lists that batch as **Step N**. While the study drives the sweep the same button reads **Stop**: it ends the search where it stands, and the point it was trying refines to your run budget; when the search finishes on its own the sliders settle on the best point found and that point refines the same way. Once the search settles, the line under the sliders keeps its outcome -- **Finished 30 steps · best step so far: step 12 (650.500)**, or **Stopped after 17 of 30 steps · …** -- with the parked point's sampling after it, until the next **Optimize** or the experiment's removal. **Cancel** in the drawer's footer stops the study as well as the sweep. A study that fails reports its message in the line under the header, where the experiment's own error would read. The study appears nowhere else: the sweep's drawer is its home, and removing the experiment removes it.
 
 #### The surface view
 
-A sweep with two or more swept parameters grows a **Surface** card under the **Parameters** card: a contour plot of one metric's final value over two parameters you pick, drawn from the points the sweep has computed. It starts empty. Every point you visit — by moving the sliders to a point, by clicking the plot, or through the optimizer — lands as a dot with its value, the field is interpolated between the dots once there are three, and the point being computed is a ring whose value enters the field as its runs complete. Points computed at other values of the parameters not shown are drawn too, projected onto the two you picked. The **X** and **Y** pickers sit in the row under the plot and the **Metric** picker in the row beneath them; every metric is measured at every point, so switching the shown metric repaints from what was already computed. The line under the card's title counts the points and what computes (or, mid-drag, the values under the pointer), and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then computes. A dark ring marks where the navigator sits. While the optimizer drives the sweep the plot only displays.
+A sweep with two or more swept parameters grows a **Surface** card under the **Parameters** card: a contour plot of one metric's final value over two parameters you pick, drawn from the points the sweep has computed. It starts empty. Every point you visit — by moving the sliders to a point, by clicking the plot, or through the optimizer — lands as a dot with its value, the field is interpolated between the dots once there are three, and the point being computed is a ring; its value joins the field once its batch completes. Points computed at other values of the parameters not shown are drawn too, projected onto the two you picked. The **X** and **Y** pickers sit in the row under the plot and the **Metric** picker in the row beneath them; every metric is measured at every point, so switching the shown metric repaints from what was already computed. The line under the card's title counts the points and what computes -- **computing the selected point** or **sampling across the selected ranges**, with the runs so far -- or, mid-drag, the values under the pointer. **The surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release every swept parameter collapses to a point -- the two shown at the place you released, the others at the middle of their current range -- which then computes. A dark ring marks where the navigator sits. While the optimizer drives the sweep the plot only displays, and between two steps the line says the optimizer is choosing the next point.
 
 The drawer arranges its parts by its width. The **Parameters** card spans the body under the header. Beneath it, at the drawer's full width and in the full-size presentation, the **Surface** sits on the left and the metric cards on the right, two to a row, so two swept parameters and up to four metrics fit without scrolling; in a narrower drawer the metric cards come first, then **Surface**, so the charts you watch are at the top either way. A sweep with one swept parameter has no surface, and its cards take the whole width. Every card keeps a fixed height, and only the body scrolls, under the header.
 
@@ -113,18 +114,18 @@ Two things to know before comparing results:
 
 Open an experiment's drawer and its header names the experiment in one line: the name, the scenario (or **Default scenario**) and the run count, for example **SIR transmission sweep · Seasonal Flu · 100 runs**. Beneath it, a strip of labelled columns divided by hairlines, always on one line: in a narrow drawer the labels become tooltips and the columns read as chips, **Runs** and **Selection** shorten to their counts, and whatever still does not fit scrolls sideways under a fade at the edge.
 
-| Column        | Meaning                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | One of the five statuses above, as a pill with a coloured dot.                                                                                                          |
-| **Runs**      | How many runs are in flight, and how many have finished.                                                                                                                |
-| **Errors**    | How many individual runs errored. An experiment can complete with some runs errored.                                                                                    |
-| **Time**      | Simulated time reached, against the configured maximum. This is model time, not clock time.                                                                             |
-| **Elapsed**   | Clock time the experiment has been simulating; it stops with the experiment and holds the total it took.                                                                |
-| **Selection** | For a sweep: the selected combination's runs sampled over the run budget.                                                                                               |
-| **Activity**  | The **N computing** chip: how many batches run right now, **0 computing** when nothing does. Click it while something runs to list them.                                |
-| **Compute**   | Whether the run uses the **CPU** or the **GPU**. Hover it for detail; on a CPU-backed experiment that asked for the GPU, it names the requirement the net did not meet. |
+| Column        | Meaning                                                                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | One of the statuses above, as a pill with a coloured dot.                                                                                                                    |
+| **Runs**      | Plain experiments: how many runs are in flight, and how many have finished. A sweep shows **Selection** in its place.                                                        |
+| **Selection** | Sweeps, in place of **Runs**: the selected combination's runs sampled over the run budget.                                                                                   |
+| **Errors**    | How many individual runs errored. An experiment can complete with some runs errored.                                                                                         |
+| **Time**      | Simulated time reached, against the configured maximum. This is model time, not clock time. A sweep that has computed nothing reads `0`.                                     |
+| **Elapsed**   | Plain experiments only: clock time the experiment has been simulating; it stops with the experiment and holds the total it took. A sweep never finishes, so it has no clock. |
+| **Activity**  | The **N computing** chip: how many batches run right now, **0 computing** when nothing does. Click it while something runs to list them.                                     |
+| **Compute**   | Whether the run uses the **CPU** or the **GPU**. Hover it for detail; on a CPU-backed experiment that asked for the GPU, it names the requirement the net did not meet.      |
 
-A progress bar runs along the header's bottom edge: the selected combination's runs for a sweep, simulated time otherwise. If the experiment failed, the error reads in the line under the header.
+A progress bar runs along the header's bottom edge: the selected combination's runs for a sweep (the study's steps while one drives it), simulated time otherwise. If the experiment failed, the error reads in the line under the header; so does the error of a study that failed while driving a sweep.
 
 Once the drawer's body has scrolled, the header condenses to one line, with the columns folded in as compact chips beside the title, the compute badge and the computing chip still among them; move the pointer over it and it grows back. Nothing in the header moves when a status changes, a count goes to zero or a number grows a digit: every column is as wide as its widest value, and every card in the body keeps its height.
 
@@ -145,8 +146,8 @@ Click (or drag across) a timeline chart to inspect single time steps — a popov
 
 In the experiment's view drawer (open it from the list, where the first click selects a row and a click on the selected row or Enter opens it, or via any experiment in the top-bar **Active experiments** popover):
 
-- **Cancel** -- stops the experiment. Only available while it is initializing or running.
-- **Remove** -- deletes the record and disposes the experiment's workers. Available after completion, cancellation, or error.
+- **Cancel** -- stops the experiment. Offered while it is initializing or running, and while a study drives a sweep, which it stops too.
+- **Remove** -- deletes the record and disposes the experiment's workers (and, for a sweep, its study). It sits at the left edge of the footer.
 - **Close** -- closes the drawer without affecting the experiment.
 
 There is no built-in restart action -- to re-run with the same configuration, **Create** a new experiment with the same settings.
@@ -161,7 +162,7 @@ A confirmation prompt blocks browser/tab close while any experiment is initializ
 
 ### Notifications
 
-The **N computing** chip in the header's **Activity** column counts the batches running right now — a sweep pipelines the selection's batches two deep — and clicking it opens a compact list with each batch's kind and progress; it reads **0 computing** while nothing runs.
+The **N computing** chip in the header's **Activity** column counts the batches running right now — a sweep pipelines the selection's batches two deep — and clicking it opens a compact list with each batch's label (**Selection**, or **Step N** while a study drives the sweep) and progress; it reads **0 computing** while nothing runs, and the list closes with its last batch.
 
 A small toast appears when an experiment **completes** or **errors**, even if its drawer isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
 
