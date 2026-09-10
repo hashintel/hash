@@ -13,7 +13,7 @@ test("the built ChatAgent preserves prepared and model workpiece provenance", as
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
       join(import.meta.dirname, "prepared-workpiece.integration.ts"),
-      join(import.meta.dirname, "../../.."),
+      join(import.meta.dirname, "../../../.."),
       {
         BRUNCH_CHAT_DB_PATH: join(databaseDirectory, "conversations.db"),
       },

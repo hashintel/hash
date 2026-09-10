@@ -20,7 +20,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),
-      join(testDirectory, "../../.."),
+      join(testDirectory, "../../../.."),
       { BRUNCH_CHAT_DB_PATH: dbPath },
     );
 
@@ -144,7 +144,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
 
     const resumed = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),
-      join(testDirectory, "../../.."),
+      join(testDirectory, "../../../.."),
       {
         BRUNCH_CHAT_DB_PATH: dbPath,
         BRUNCH_RESUME_PHASE: "1",

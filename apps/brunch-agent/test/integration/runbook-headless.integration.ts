@@ -17,22 +17,22 @@ import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcp
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "../src/conversation/client-tools.ts";
+} from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { deriveProofTrace } from "../src/evaluations/persona/proof-artifacts.ts";
+} from "../../src/conversation/identity.ts";
+import { deriveProofTrace } from "../../src/evaluations/persona/proof-artifacts.ts";
 import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
-} from "../src/evaluations/runbook/artifacts.ts";
+} from "../../src/evaluations/runbook/artifacts.ts";
 import {
   createHeadlessPetrinautClient,
   isPetrinautConstructionToolName,
-} from "../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
+} from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
@@ -48,7 +48,7 @@ process.env.BRUNCH_DEV_DB_PATH =
   join(tmpdir(), `brunch-runbook-${crypto.randomUUID()}.db`);
 
 const irPath = fileURLToPath(
-  new URL("./fixtures/candidate-process-model-workpiece.md", import.meta.url),
+  new URL("../fixtures/candidate-process-model-workpiece.md", import.meta.url),
 );
 const filledIr = await readFile(irPath, "utf8");
 

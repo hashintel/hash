@@ -16,10 +16,10 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { ChatAgent } from "../src/agents/chat-agent/agent";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application";
+import { ChatAgent } from "../../src/agents/chat-agent/agent";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application";
 
-const DEV_APP = fileURLToPath(new URL("..", import.meta.url)).replace(
+const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,
   "",
 );
