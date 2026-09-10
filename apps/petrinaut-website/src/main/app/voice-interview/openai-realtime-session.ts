@@ -116,6 +116,7 @@ interface SpeechTiming extends RequestTiming {
 }
 
 interface CanonicalSpeechRequest {
+  ownershipAnnounced: boolean;
   readonly response: Record<string, unknown>;
   readonly speechRequestId: string;
 }
@@ -434,7 +435,7 @@ export class OpenAIRealtimeSession {
   /** Cancel only assistant output; the utterance which caused this stays alive. */
   #interruptOutputBySpeaking(): void {
     for (const request of this.#canonicalSpeechQueue.splice(0)) {
-      this.#cancelPendingSpeechRequest(request.speechRequestId);
+      this.#settleCancelledSpeechRequest(request);
     }
     if (this.#responseCreateEventId !== null) {
       const pending = this.#pendingClientEvents.get(
@@ -498,7 +499,7 @@ export class OpenAIRealtimeSession {
       this.#send({ type: "input_audio_buffer.clear" });
 
       for (const request of this.#canonicalSpeechQueue.splice(0)) {
-        this.#cancelPendingSpeechRequest(request.speechRequestId);
+        this.#settleCancelledSpeechRequest(request);
       }
 
       if (this.#responseCreateEventId !== null) {
@@ -602,7 +603,11 @@ export class OpenAIRealtimeSession {
         petrinaut_request_id: speechRequestId,
       },
     };
-    const request = { response, speechRequestId };
+    const request = {
+      ownershipAnnounced: false,
+      response,
+      speechRequestId,
+    };
     this.#canonicalSpeechQueue.push(request);
     try {
       this.#sendNextCanonicalSpeech();
@@ -679,7 +684,8 @@ export class OpenAIRealtimeSession {
         response: request.response,
         type: "response.create",
       });
-      if (this.#activeEpoch !== null) {
+      if (this.#activeEpoch !== null && !request.ownershipAnnounced) {
+        request.ownershipAnnounced = true;
         this.#emit({
           connectionEpoch: this.#activeEpoch,
           speechRequestId: request.speechRequestId,
@@ -904,19 +910,11 @@ export class OpenAIRealtimeSession {
           pendingEvent.request.speechRequestId,
         )
       ) {
-        const speechRequestId = pendingEvent.request.speechRequestId;
+        const { speechRequestId } = pendingEvent.request;
         this.#cancelOutputAwaitingRequestIds.delete(speechRequestId);
-        this.#cancelPendingSpeechRequest(speechRequestId);
-        if (this.#activeEpoch !== null) {
-          this.#emit({
-            connectionEpoch: this.#activeEpoch,
-            playbackExpected: false,
-            speechRequestId,
-            status: "cancelled",
-            type: "response-terminal",
-          });
-        }
+        this.#settleCancelledSpeechRequest(pendingEvent.request);
         this.#finishOutputCancellation();
+        this.#resumeCanonicalSpeechQueue();
         return;
       }
       this.#canonicalSpeechQueue.unshift(pendingEvent.request);
@@ -1223,6 +1221,20 @@ export class OpenAIRealtimeSession {
       timing.startedAt,
       "request-aborted",
     );
+  }
+
+  #settleCancelledSpeechRequest(request: CanonicalSpeechRequest): void {
+    this.#cancelPendingSpeechRequest(request.speechRequestId);
+    if (!request.ownershipAnnounced || this.#activeEpoch === null) {
+      return;
+    }
+    this.#emit({
+      connectionEpoch: this.#activeEpoch,
+      playbackExpected: false,
+      speechRequestId: request.speechRequestId,
+      status: "cancelled",
+      type: "response-terminal",
+    });
   }
 
   #finishSpeech(responseId: string, errorCode?: VoiceErrorCode): void {
