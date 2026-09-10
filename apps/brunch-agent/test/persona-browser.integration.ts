@@ -16,6 +16,7 @@ import { createFlueClient } from "@flue/sdk";
 import { expect } from "@playwright/test";
 import { parse } from "valibot";
 
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   updateWorkpieceOutputSchema,
   workpieceReadOutputSchema,
@@ -32,6 +33,7 @@ import {
 import { openPersonaConversation } from "../src/evaluations/persona/launch.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
+import { browserResultFrom } from "./browser-result.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -89,6 +91,18 @@ try {
         .join(""),
     ) as Record<string, unknown>;
   };
+  const browserResult = (context: Context, name: string) =>
+    browserResultFrom(
+      context.messages.flatMap((message) =>
+        typeof message.content === "string"
+          ? [message.content]
+          : message.content.flatMap((part) =>
+              part.type === "text" ? [part.text] : [],
+            ),
+      ),
+      name,
+      "Missing causal browser result",
+    );
   let checked = 0;
   const evidence: {
     revisionId: string;
@@ -307,6 +321,19 @@ try {
     /not found|not_found/iu,
   );
   assert.equal((await client.history()).messages.length, beforeNegative);
+  // The persona has no browser host. Retain its unanswered read, then ensure a
+  // fresh ordinary UI read and mutation do not treat that request as an observation.
+  faux.setResponses([
+    call("getLatestNetDefinition", {}, "persona-unhosted-browser-read"),
+  ]);
+  await assert.rejects(
+    persona.execute(
+      "TEST-persona-unhosted-browser-read",
+      { message: "TEST inspect the browser." },
+      AbortSignal.timeout(30_000),
+    ),
+    /requested client tool getLatestNetDefinition/u,
+  );
   // Stop persona driving; reopen the same browser profile/document and continue
   // through the ordinary composer. No seeded workpiece, direct state write or new ID.
   // A long workpiece must not cover the assistant opener on a short desktop viewport.
@@ -320,7 +347,7 @@ try {
     { timeout: 30_000 },
   );
   const continuation =
-    "TEST UI continuation: timing remains unknown; keep that qualification.";
+    "TEST UI continuation: keep timing unknown and create one test configuration parameter, not an operational value.";
   faux.setResponses([
     call("brunch_workpiece", {}, "ui-continuation-read"),
     (context: Context) => {
@@ -330,26 +357,70 @@ try {
       ).currentWorkpiece;
       assert.deepEqual(queried, toolOutput(context, "update_workpiece"));
       checked++;
-      return text("TEST continued the same account; timing remains unknown.");
+      return call("getLatestNetDefinition", {}, "ui-fresh-browser-read");
+    },
+    (context: Context) => {
+      const observation = browserResult(context, "getLatestNetDefinition")
+        .metadata?.observation;
+      assert(observation, "Fresh UI read must have an independent observation");
+      checked++;
+      return call(
+        "addParameter",
+        {
+          id: "test_ui_parameter",
+          name: "Test UI parameter",
+          variableName: "test_ui_parameter",
+          type: "real",
+          defaultValue: "1",
+          brunch: {
+            basis: { kind: "absent", reason: "Synthetic browser handoff" },
+            observationToolCallId: observation.toolCallId,
+            requestedBaseHash: observation.observed.sha256,
+          },
+        },
+        "ui-fresh-parameter",
+      );
+    },
+    (context: Context) => {
+      const record = browserResult(context, "addParameter").metadata
+        ?.transitionRecord;
+      assert.equal(record?.outcome, "applied");
+      assert.equal(
+        record.attempts[0]?.post?.definition.parameters.find(
+          (parameter) => parameter.id === "test_ui_parameter",
+        )?.defaultValue,
+        "1",
+      );
+      checked++;
+      return text("TEST continued with a fresh UI browser mutation.");
     },
   ]);
   await uiSend(
     continuation,
-    "TEST continued the same account; timing remains unknown.",
+    "TEST continued with a fresh UI browser mutation.",
   );
   await expect(
     page.getByRole("region", { name: "Brunch workpiece and why" }),
   ).toContainText("State queried by ui-continuation-read", { timeout: 30_000 });
   assert.equal(
     checked,
-    5,
-    "Reopening must query the actual persisted revision",
+    7,
+    "Reopened workpiece query, fresh browser observation and mutation must all be checked",
   );
   const final = await client.history();
+  const clientResults = clientToolHistoryFrom(final.messages).results;
+  assert(
+    !clientResults.some(
+      (result) => result.toolCallId === "persona-unhosted-browser-read",
+    ),
+  );
+  assert(
+    clientResults.some((result) => result.toolCallId === "ui-fresh-parameter"),
+  );
   assert.equal(final.conversationId, initialHistory.conversationId);
   assert.equal(
     final.messages.filter((message) => message.purpose === "user").length,
-    4,
+    5,
   );
   const sends = deliveries
     .map(
@@ -361,7 +432,7 @@ try {
         },
     )
     .filter((body) => body.kind === "user");
-  assert(sends.length >= 4);
+  assert(sends.length >= 5);
   for (const send of sends.slice(1, 3)) {
     assert.equal(send.uid, config.uid);
     assert(!("initialData" in send));
@@ -375,11 +446,14 @@ try {
     checked,
     requests: contexts.length,
     revisions: 2,
-    canonicalUserMessages: 4,
+    canonicalUserMessages: 5,
     sameRuntimeUid: true,
     liveConversation: true,
     uiContinuation: true,
-    browserMutationHosting: "unproved",
+    unhostedPersonaReadRetained: true,
+    freshUiReadThenMutation: true,
+    browserMutationHosting:
+      "ordinary UI only; persona hosting remains unavailable",
     mismatchesRefused: ["identity", "document incarnation", "runtime UID"],
   });
   await page.screenshot({

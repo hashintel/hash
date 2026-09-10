@@ -4,11 +4,16 @@ import { gunzipSync } from "node:zlib";
 
 import { expect, test } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  clientToolHistoryFrom,
+  clientToolResultSignal,
+  type ClientToolResult,
+} from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
   retainedSettledRevision,
   assertArcNotRetired,
+  assertConstructionIdentity,
 } from "../src/conversation/root-arc.ts";
 import {
   explainRootArc,
@@ -17,7 +22,10 @@ import {
 import { workpieceEvidenceSources } from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { ArcTransitionAttempt } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type {
+  ArcTransitionAttempt,
+  DefinitionObservation,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 const snapshot = JSON.parse(
   readFileSync(
@@ -63,6 +71,88 @@ const query = {
   arcDirection: "input" as const,
   field: "entity" as const,
 };
+const identityParameter = {
+  id: "line_rate",
+  name: "Line rate",
+  variableName: "line_rate",
+  type: "real",
+  defaultValue: "1",
+} satisfies DefinitionObservation["definition"]["parameters"][number];
+const identityObservation = (
+  parameters: DefinitionObservation["definition"]["parameters"] = [],
+): DefinitionObservation => {
+  const definition: DefinitionObservation["definition"] = {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters,
+    differentialEquations: [],
+  };
+  return {
+    definition,
+    sha256: createHash("sha256")
+      .update(JSON.stringify(definition))
+      .digest("hex"),
+  };
+};
+const identityReadCall = (
+  toolCallId: string,
+): FlueConversationSnapshot["messages"][number] => ({
+  id: `identity-call-${toolCallId}`,
+  role: "assistant",
+  purpose: "assistant",
+  display: "visible",
+  parts: [
+    {
+      type: "dynamic-tool",
+      toolCallId,
+      toolName: "getLatestNetDefinition",
+      state: "output-available",
+      input: {},
+      output: { awaiting: "client" },
+    },
+  ],
+});
+const identityDelivery = (
+  toolCallId: string,
+  observation = identityObservation(),
+  overrides: Partial<ClientToolResult> = {},
+): FlueConversationSnapshot["messages"][number] => {
+  const signal = clientToolResultSignal([
+    {
+      toolCallId,
+      toolName: "getLatestNetDefinition",
+      output: { definition: observation.definition },
+      metadata: {
+        observation: {
+          toolCallId,
+          binding: browser.binding,
+          observed: observation,
+        },
+      },
+      ...overrides,
+    },
+  ]);
+  return {
+    id: `identity-result-${toolCallId}`,
+    role: "system",
+    purpose: "dispatch",
+    display: "hidden",
+    signal: { tagName: signal.tagName, attributes: signal.attributes },
+    parts: [{ type: "text", state: "done", text: signal.body }],
+  };
+};
+const identitySnapshot = (
+  ...snapshotMessages: FlueConversationSnapshot["messages"]
+): FlueConversationSnapshot => ({
+  ...snapshot,
+  settlements: [],
+  messages: snapshotMessages,
+});
+const identityMutation = {
+  toolName: "addParameter" as const,
+  input: identityParameter,
+};
 
 test("refuses recreation of a recorded arc identity after it disappears from a fresh observation", async () => {
   const result = clientToolHistoryFrom(snapshot.messages).results.find(
@@ -89,6 +179,150 @@ test("refuses recreation of a recorded arc identity after it disappears from a f
       actual.request.input,
     ),
   ).resolves.toBeUndefined();
+});
+
+test("retains an unanswered persona read without treating it as identity history", async () => {
+  const history = identitySnapshot(
+    identityReadCall("persona-unhosted"),
+    identityReadCall("ui-fresh"),
+    identityDelivery("ui-fresh"),
+  );
+  const read = async (id: string) => {
+    expect(id).toBe("ui-fresh");
+    return recordedBrowserObservation(history, browser, id);
+  };
+
+  await expect(
+    assertConstructionIdentity(
+      history,
+      identityObservation(),
+      identityMutation,
+      browser.binding,
+      read,
+    ),
+  ).resolves.toBeUndefined();
+});
+
+test("still refuses a known-retired identity from a completed historical read", async () => {
+  const history = identitySnapshot(
+    identityReadCall("completed-old"),
+    identityDelivery("completed-old", identityObservation([identityParameter])),
+  );
+
+  await expect(
+    assertConstructionIdentity(
+      history,
+      identityObservation(),
+      identityMutation,
+      browser.binding,
+      (id) => recordedBrowserObservation(history, browser, id),
+    ),
+  ).rejects.toThrow(/retired/u);
+});
+
+test("does not skip a wrong-name delivery sharing a read call identity", async () => {
+  const history = identitySnapshot(
+    identityReadCall("invalid-read"),
+    identityDelivery("invalid-read", identityObservation(), {
+      toolName: "addParameter",
+    }),
+  );
+
+  await expect(
+    assertConstructionIdentity(
+      history,
+      identityObservation(),
+      identityMutation,
+      browser.binding,
+      (id) =>
+        recordedBrowserObservation(
+          history,
+          { binding: browser.binding, construction: true },
+          id,
+        ),
+    ),
+  ).rejects.toThrow(/correlated browser observation/u);
+});
+
+test.each([
+  {
+    label: "member without tool name",
+    body: JSON.stringify([{ toolCallId: "malformed-read", output: {} }]),
+    error: /Malformed browser result identity/u,
+  },
+  {
+    label: "non-array body",
+    body: JSON.stringify({ toolCallId: "malformed-read", output: {} }),
+    error: /Malformed browser results/u,
+  },
+  {
+    label: "invalid JSON body",
+    body: '{"toolCallId":"malformed-read"',
+    error: /JSON/u,
+  },
+])(
+  "does not call a malformed delivered read unanswered: $label",
+  async ({ body, error }) => {
+    const history = identitySnapshot(identityReadCall("malformed-read"), {
+      ...identityDelivery("malformed-read"),
+      parts: [{ type: "text", state: "done", text: body }],
+    });
+    await expect(
+      assertConstructionIdentity(
+        history,
+        identityObservation(),
+        identityMutation,
+        browser.binding,
+        (id) => recordedBrowserObservation(history, browser, id),
+      ),
+    ).rejects.toThrow(error);
+  },
+);
+
+test("still refuses a delivered historical read without an observation sidecar", async () => {
+  const history = identitySnapshot(
+    identityReadCall("missing-sidecar"),
+    identityDelivery("missing-sidecar", identityObservation(), {
+      metadata: undefined,
+    }),
+  );
+  await expect(
+    assertConstructionIdentity(
+      history,
+      identityObservation(),
+      identityMutation,
+      browser.binding,
+      (id) => recordedBrowserObservation(history, browser, id),
+    ),
+  ).rejects.toThrow(/correlated browser observation/u);
+});
+
+test("still refuses duplicate delivered historical reads", async () => {
+  const delivery = identityDelivery("duplicated-read");
+  const history = identitySnapshot(
+    identityReadCall("duplicated-read"),
+    delivery,
+    { ...delivery, id: "duplicate-delivery" },
+  );
+  await expect(
+    assertConstructionIdentity(
+      history,
+      identityObservation(),
+      identityMutation,
+      browser.binding,
+      (id) => recordedBrowserObservation(history, browser, id),
+    ),
+  ).rejects.toThrow(/correlated browser observation/u);
+});
+
+test("requires a delivered observation for a currently cited unanswered read", async () => {
+  await expect(
+    recordedBrowserObservation(
+      identitySnapshot(identityReadCall("persona-unhosted")),
+      { binding: browser.binding, construction: true },
+      "persona-unhosted",
+    ),
+  ).rejects.toThrow(/Missing or conflicting correlated browser observation/u);
 });
 
 test("labels an answer as of the last reconciled state when the live hash is unavailable", async () => {

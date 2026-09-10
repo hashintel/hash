@@ -23,6 +23,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
+  CLIENT_TOOL_RESULT_SIGNAL,
   isClientToolResult,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
@@ -43,6 +44,16 @@ import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 const record = (input: unknown): input is Record<string, unknown> =>
   typeof input === "object" && input !== null && !Array.isArray(input);
+
+const parseBrowserResults = (body: string) => {
+  const deliveries: unknown = JSON.parse(body);
+  if (!Array.isArray(deliveries)) throw new Error("Malformed browser results.");
+  return deliveries.map((delivery: unknown) => {
+    if (!isClientToolResult(delivery))
+      throw new Error("Malformed browser result identity.");
+    return delivery;
+  });
+};
 
 /** Historical citations resolve only actual successful core tool calls, never fenced recovery. */
 export const retainedSettledRevision = (
@@ -164,6 +175,21 @@ export const assertConstructionIdentity = async (
   )
     return;
   const earlier: DefinitionObservation[] = [];
+  const deliveredResults = clientToolHistoryFrom(snapshot.messages).results;
+  // The display projection drops malformed results. Verify raw deliveries before
+  // treating their absence from that projection as an unanswered read.
+  for (const message of snapshot.messages) {
+    if (
+      message.role === "system" &&
+      message.purpose === "dispatch" &&
+      message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL
+    )
+      parseBrowserResults(
+        message.parts
+          .flatMap((part) => (part.type === "text" ? [part.text] : []))
+          .join(""),
+      );
+  }
   for (const message of snapshot.messages) {
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
@@ -174,12 +200,17 @@ export const assertConstructionIdentity = async (
         !isAwaitingClient(call.output)
       )
         continue;
-      if (call.toolName === getLatestNetDefinitionToolName)
+      // An unanswered client call remains canonical history but is not an
+      // observation. Correlate delivery by call ID: a same-ID wrong-name result
+      // must reach the verifier and refuse rather than being silently skipped.
+      if (
+        call.toolName === getLatestNetDefinitionToolName &&
+        deliveredResults.some((result) => result.toolCallId === call.toolCallId)
+      )
         earlier.push(await read(call.toolCallId));
     }
   }
-  const results = clientToolHistoryFrom(snapshot.messages).results;
-  for (const result of results) {
+  for (const result of deliveredResults) {
     if (
       !isObservedNodeMutation(result.toolName) &&
       !isObservedStateMutation(result.toolName) &&
@@ -232,13 +263,10 @@ export const verifyRootArcResults = async (input: {
     beforeCallId: string,
   ) => Promise<DefinitionObservation>;
 }): Promise<void> => {
-  const deliveries: unknown = JSON.parse(input.body);
-  if (!Array.isArray(deliveries)) throw new Error("Malformed browser results.");
+  const deliveries = parseBrowserResults(input.body);
   const history = clientToolHistoryFrom(input.snapshot.messages);
   await Promise.all(
-    deliveries.map(async (delivery: unknown) => {
-      if (!isClientToolResult(delivery))
-        throw new Error("Malformed browser result identity.");
+    deliveries.map(async (delivery) => {
       const call = input.snapshot.messages
         .flatMap((message) => message.parts)
         .find(
