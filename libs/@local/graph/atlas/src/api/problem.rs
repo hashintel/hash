@@ -22,7 +22,7 @@ use hash_middleware::{
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
 
-use crate::serve2::{document::VARIANTS, runtime::registry::ObserveError};
+use crate::serve::{document::VARIANTS, runtime::registry::ObserveError};
 
 /// The `type` member of one problem document: Surface v1's stable root-relative URIs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]

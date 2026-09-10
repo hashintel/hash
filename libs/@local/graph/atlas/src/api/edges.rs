@@ -21,7 +21,7 @@ use super::{
 };
 use crate::{
     morton::MortonTile,
-    serve2::document::{
+    serve::document::{
         Document as _, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError,
         EdgesDocumentOptions,
     },

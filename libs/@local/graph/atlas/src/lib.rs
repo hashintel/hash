@@ -148,4 +148,3 @@ pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
 pub(crate) mod serve;
-mod serve2;

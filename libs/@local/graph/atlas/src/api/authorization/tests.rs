@@ -43,7 +43,7 @@ use crate::{
     },
     math::nz,
     morton::Zoom,
-    serve2::{
+    serve::{
         authorization::authority::{Authority, Issue},
         delta::DeltaReference,
         document::DocumentLimits,

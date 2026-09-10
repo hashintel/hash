@@ -21,7 +21,7 @@ use super::{
 };
 use crate::{
     file::generation::GenerationId,
-    serve2::{
+    serve::{
         authorization::{
             scope::{ContinuityScope, CurrentScope},
             token::EncryptedToken,

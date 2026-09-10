@@ -30,7 +30,7 @@ use super::{
 };
 use crate::{
     morton::Zoom,
-    serve2::{
+    serve::{
         authorization::{authority::Issue, scope::ContinuityScope},
         density::{DensityBand, DensityPolicy, ViewOccupancy},
         document::{Document as _, ManifestDocument},
@@ -223,7 +223,7 @@ mod tests {
     use crate::{
         math::Log2,
         morton::{Depth, MortonCell, Zoom},
-        serve2::{
+        serve::{
             authorization::scope::ContinuityScope,
             density::{DensityBand, DensityPolicy, ViewOccupancy},
             visibility::cache::FilterDigest,

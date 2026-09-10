@@ -3,7 +3,7 @@
 //! [`Saltile`] is a documentation-only marker: its [`OperationOutput`] impl states the `SALTILE`
 //! family's media type and no-store posture for the tile, edges, and locate operations, and no
 //! value of it is ever constructed. [`DocumentResponse`] is what a route actually returns: bytes a
-//! [`serve2::document`](crate::serve2::document) `Document::encode` call produced, paired with the
+//! [`serve::document`](crate::serve::document) `Document::encode` call produced, paired with the
 //! `&'static str` media type its `Envelope` chose - `SALTILE` for the binary routes, `application/
 //! json` for translate. [`spawn`] runs the CPU-bound assembly off the async runtime.
 
@@ -72,7 +72,7 @@ impl OperationOutput for Saltile {
 /// One assembled document's bytes, under the media type its `Envelope` chose.
 ///
 /// Every data route builds its bytes off the async runtime, on [`spawn`], by constructing a
-/// [`serve2::document`](crate::serve2::document) type and calling its `Document::encode`. The
+/// [`serve::document`](crate::serve::document) type and calling its `Document::encode`. The
 /// returned `Envelope`'s `content_type` states the response's actual media type - the binary
 /// `SALTILE` family for tile, edges, and locate, `application/json` for translate. One type here
 /// serves every data route rather than one per media type. The posture is `no-store`

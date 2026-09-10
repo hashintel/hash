@@ -13,7 +13,7 @@ use super::{
     problem::{Problem, observe_problem},
     saltile::DocumentResponse,
 };
-use crate::serve2::document::{CurrentDocument, Document as _};
+use crate::serve::document::{CurrentDocument, Document as _};
 
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,

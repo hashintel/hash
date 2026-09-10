@@ -18,7 +18,7 @@ use super::{
 use crate::{
     morton::{Depth, MortonTile},
     postgres::id::ArchivedOntologyTypeUuid,
-    serve2::{
+    serve::{
         document::{
             Document as _, Mode, TileDocument, TileDocumentDetailLevel, TileDocumentError,
             TileDocumentOptions,

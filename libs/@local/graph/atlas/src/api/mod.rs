@@ -23,7 +23,7 @@ use hash_middleware::authentication::{
 use rand::rngs::SysRng;
 
 use self::openapi::OpenApiDocument;
-use crate::serve2::{
+use crate::serve::{
     authorization::authority::Authority,
     document::DocumentLimits,
     hydrate::{CachedTypeUrlResolver, GraphDatabaseClient},

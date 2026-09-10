@@ -36,7 +36,7 @@ use crate::{
     file::generation::{GenerationRoot, ScratchDirectory},
     integrity::SecretString,
     math::nz,
-    serve2::{
+    serve::{
         delta::DeltaTaskOptions, document::DocumentLimits, runtime::manager::ManagerOptions,
         visibility::cache::VisibilityLimits,
     },
@@ -224,7 +224,11 @@ async fn serving() -> (ScratchDirectory, Serving) {
             rate_limit_actor_burst: nz!(1),
         },
         pool: Arc::new(pool),
-        visibility: VisibilityLimits::default(),
+        visibility: VisibilityLimits {
+            bytes: 1 << 30,
+            soft: Duration::from_secs(8),
+            hard: Duration::from_secs(10),
+        },
         workflow: None,
     })
     .expect("serving should construct before a generation exists");

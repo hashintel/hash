@@ -25,7 +25,7 @@ use super::{
     saltile::{DocumentResponse, spawn},
     visibility::Visibility,
 };
-use crate::serve2::document::{Document as _, TranslateDocument, TranslateDocumentError};
+use crate::serve::document::{Document as _, TranslateDocument, TranslateDocumentError};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -139,7 +139,7 @@ fn too_many_entity_ids(count: usize, maximum: u32) -> Problem<'static> {
 ///
 /// A draft-suffixed id (`webId~entityUuid~draftId`) and anything else that is not exactly two
 /// `~`-delimited uuids read unresolved by contract - the corpus indexes live entities - matching
-/// [`TranslateDocument::new`](crate::serve2::document::TranslateDocument::new)'s own draft-id
+/// [`TranslateDocument::new`](crate::serve::document::TranslateDocument::new)'s own draft-id
 /// filter for any caller that reaches it another way.
 pub(super) fn parse_entity_id(id: &str) -> Option<EntityId> {
     let (web_id, entity_uuid) = id.split_once(ENTITY_ID_DELIMITER)?;

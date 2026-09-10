@@ -25,7 +25,7 @@ use crate::{
     device::PinnedDevice,
     file::generation::GenerationRoot,
     integrity::SecretString,
-    serve2::{
+    serve::{
         authorization::authority::Authority,
         delta::EmbeddingWorkflow,
         runtime::{

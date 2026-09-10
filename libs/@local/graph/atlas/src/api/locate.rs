@@ -24,7 +24,7 @@ use super::{
 use crate::{
     identity::NodeRowId,
     postgres::id::ArchivedOntologyTypeUuid,
-    serve2::{
+    serve::{
         codec::EncodedRowId,
         document::{
             Document as _, LocateDocument, LocateDocumentError, LocateDocumentOptions, LocateSource,

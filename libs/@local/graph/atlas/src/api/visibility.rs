@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
     morton::Zoom,
-    serve2::{
+    serve::{
         hydrate::visibility::VisibilityProofError,
         runtime::registry::Observation,
         scene::Scene,
@@ -139,7 +139,7 @@ mod tests {
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
 
     use super::proof_problem;
-    use crate::serve2::hydrate::visibility::VisibilityProofError;
+    use crate::serve::hydrate::visibility::VisibilityProofError;
 
     #[test]
     fn filter_invalid_body() {

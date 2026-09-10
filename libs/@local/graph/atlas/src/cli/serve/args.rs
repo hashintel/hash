@@ -2,7 +2,7 @@ use core::{num::NonZero, time::Duration};
 
 use crate::{
     integrity::SecretHexBytesValueParser,
-    serve2::{
+    serve::{
         delta::{DeltaFeedTaskOptions, DeltaPlacementTaskOptions, DeltaTaskOptions},
         document::{DocumentLimits, EdgesLimits, LocateLimits, TileLimits, TranslateLimits},
         runtime::manager::ManagerOptions,

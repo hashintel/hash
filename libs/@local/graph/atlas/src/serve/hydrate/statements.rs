@@ -1,23 +1,3 @@
-//! The hydration statements, built through the store's query compiler.
-//!
-//! Every read builds through the store's own [`SelectCompiler`], so a statement reads under
-//! the live temporal axes and the draft exclusion and masks properties per actor, by
-//! construction. Each column set adds its selections to a caller's
-//! compiler and decodes the rows the compiled statement answers, so a row position is known
-//! to exactly the type that assigned it.
-//!
-//! # The masking contract
-//!
-//! A statement reads property values only through the compiler's scalar-properties
-//! selection, which reads the properties column through the same column compilation every
-//! entity read uses, so a configured masking reaches the delivered map and the count for
-//! exactly the actor the caller names. The compiler's masking hook fires when a property
-//! selection compiles, so masking configures before any selection is added, which
-//! [`DetailColumns::select`] holds by taking the masking itself. Label attribution reads the
-//! cache's per-edition `label_properties` column and no property value, so no masking
-//! applies to it. The tests hold this module to zero hand-composed reads of the properties
-//! column.
-
 use hash_graph_postgres_store::store::postgres::query::SelectCompiler;
 use hash_graph_store::{
     entity::EntityQueryPath,
@@ -37,16 +17,9 @@ use type_system::{
     principal::actor_group::WebId,
 };
 
-use super::{
-    columns::ScalarValue,
-    select::{scalar_properties, select_properties},
-};
+use super::scalar::ScalarProperties;
 use crate::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId};
 
-/// Builds the filter naming exactly the requested identities, excluding archived editions.
-///
-/// Every identity is a non-draft entity id, so the membership set is a disjunction of the read
-/// path's own per-entity filters.
 pub(super) fn identity_filter<'params>(
     ids: impl IntoIterator<Item = EntityId>,
 ) -> Filter<'params, Entity> {
@@ -227,17 +200,19 @@ impl DetailColumns {
     pub(super) fn capped_properties(
         &self,
         row: &tokio_postgres::Row,
-        cap: usize,
-    ) -> (Vec<(BaseUrl, ScalarValue)>, bool) {
+        maximum: usize,
+    ) -> (ScalarProperties, bool) {
         let scalars: Option<serde_json::Value> = row.get(self.scalars);
         let total: i32 = row.get(self.total);
         let label: Option<BaseUrl> = row.get(self.label);
 
-        let entries = scalars.map_or_else(Vec::new, scalar_properties);
-        let total = usize::try_from(total).expect("the store counts properties non-negatively");
-        let complete = entries.len() == total && entries.len() <= cap;
+        let (properties, truncated) = scalars
+            .map_or((ScalarProperties::EMPTY, false), |properties| {
+                ScalarProperties::new(properties, label.as_ref(), maximum)
+            });
 
-        (select_properties(entries, label.as_ref(), cap), complete)
+        let complete = !truncated && properties.len() == usize::try_from(total).unwrap_or(0);
+        (properties, complete)
     }
 }
 
