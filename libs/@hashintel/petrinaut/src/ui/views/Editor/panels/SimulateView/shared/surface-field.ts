@@ -4,7 +4,6 @@
  * onto the contour's index space, fractional between the plot's sampled
  * columns, so any of an axis's positions lands exactly where it belongs.
  */
-import { contourSurfaceKey } from "../../../../../components/contour-surface";
 import { surfaceColumnCount } from "./surface-sampling";
 
 import type {
@@ -40,7 +39,3 @@ export const mergeSurfaceFields = (
   values: new Map(fields.flatMap((field) => [...field.values])),
   markers: fields.flatMap((field) => field.markers),
 });
-
-/** The values map key of a grid coordinate pair. */
-export const surfaceFieldKey = (x: number, y: number): string =>
-  contourSurfaceKey(x, y);

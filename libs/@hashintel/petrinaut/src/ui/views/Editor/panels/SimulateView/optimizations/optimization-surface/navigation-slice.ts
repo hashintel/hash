@@ -11,11 +11,11 @@ import {
   optimizationAxisPositionFor,
 } from "../../../../../../../react/optimizations/surface-grid";
 
-import type { OptimizationBest } from "../../../../../../../react/optimizations/context";
+import type {
+  OptimizationBest,
+  OptimizationSurfaceView,
+} from "../../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../../react/optimizations/surface-grid";
-
-/** The two axes a surface shows. */
-export type OptimizationSurfaceView = { xAxisId: string; yAxisId: string };
 
 /** A position per axis: explicit, else the best trial's value, else the midpoint. */
 export const resolveSurfacePositions = (

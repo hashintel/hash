@@ -21,18 +21,18 @@ import {
   ContourSurface,
   contourSurfaceKey,
 } from "../../../../../../components/contour-surface";
+import { ChartCard } from "../../shared/chart-card";
 import { formatAxisValue } from "../../shared/format-axis-value";
 import {
-  mergeSurfaceFields,
   surfaceAxisPosition,
   type SurfaceField,
   surfaceGridCoordinate,
 } from "../../shared/surface-field";
 import {
+  SURFACE_FOOTER_HEIGHT,
   SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
   surfaceCaption,
-  SurfaceFrame,
 } from "../../shared/surface-frame";
 import {
   surfaceColumnCount,
@@ -45,6 +45,7 @@ import type {
   OptimizationNavigation,
   OptimizationRecord,
   OptimizationSelectionStream,
+  OptimizationSurfaceView,
 } from "../../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../../react/optimizations/surface-grid";
 import type {
@@ -54,10 +55,7 @@ import type {
   ContourSurfaceValues,
 } from "../../../../../../components/contour-surface";
 import type { ChartCardTone } from "../../shared/chart-card";
-import type { OptimizationSurfaceView } from "./navigation-slice";
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
-
-export { mergeSurfaceFields, surfaceGridCoordinate };
 
 /** The sampled cell an axis position pair lands on, or null between cells. */
 export const surfaceCellKeyAt = (
@@ -75,9 +73,6 @@ export const surfaceCellKeyAt = (
 
 /** One point of the field, in grid-index space. */
 export type SurfaceSample = { x: number; y: number; value: number };
-
-/** A study's trials as a field: a sample per objective, a marker per trial. */
-export type TrialSurfaceField = SurfaceField;
 
 /** How a trial with an objective is drawn. */
 export type TrialSurfaceMark = "ring" | "dot";
@@ -102,7 +97,7 @@ export const trialSurfaceField = ({
   xAxis: OptimizationSurfaceAxis;
   yAxis: OptimizationSurfaceAxis;
   mark: TrialSurfaceMark;
-}): TrialSurfaceField => {
+}): SurfaceField => {
   const values = new Map<string, number>();
   const markers: ContourSurfaceMarker[] = [];
   for (const trial of trials) {
@@ -153,7 +148,7 @@ export const inFlightSurfaceField = ({
   inFlight: readonly OptimizationInFlightTrial[];
   xAxis: OptimizationSurfaceAxis;
   yAxis: OptimizationSurfaceAxis;
-}): TrialSurfaceField => {
+}): SurfaceField => {
   const values = new Map<string, number>();
   const markers: ContourSurfaceMarker[] = [];
   for (const trial of inFlight) {
@@ -300,7 +295,6 @@ export const OptimizationSurfacePlot = ({
   onPick,
   caption,
   actions,
-  fixedHeight = false,
   tone,
   children,
 }: {
@@ -324,14 +318,9 @@ export const OptimizationSurfacePlot = ({
   caption: string;
   /** The card header's right side, e.g. a help tooltip. */
   actions?: ReactNode;
-  /**
-   * Fix the body to the plot's height, for a card sharing a row with another
-   * of the same height. Off when `children` add rows of their own.
-   */
-  fixedHeight?: boolean;
   /** How the card reads: `paused` while the study is paused. */
   tone?: ChartCardTone;
-  /** Rows under the plot. */
+  /** Rows under the plot; with none, the body is fixed to the plot's height so the card shares a row. */
   children?: ReactNode;
 }) => {
   const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
@@ -354,9 +343,9 @@ export const OptimizationSurfacePlot = ({
     )}`;
 
   return (
-    <SurfaceFrame
+    <ChartCard
       title="Objective surface"
-      caption={surfaceCaption({
+      subtitle={surfaceCaption({
         preview:
           preview && xAxis && yAxis
             ? {
@@ -367,7 +356,8 @@ export const OptimizationSurfacePlot = ({
         text: caption,
       })}
       actions={actions}
-      bodyHeight={fixedHeight ? SURFACE_PLOT_HEIGHT : undefined}
+      bodyHeight={children ? undefined : SURFACE_PLOT_HEIGHT}
+      footerHeight={SURFACE_FOOTER_HEIGHT}
       tone={tone}
       footer={
         <SurfaceAxisControls
@@ -401,6 +391,6 @@ export const OptimizationSurfacePlot = ({
         />
       ) : null}
       {children}
-    </SurfaceFrame>
+    </ChartCard>
   );
 };

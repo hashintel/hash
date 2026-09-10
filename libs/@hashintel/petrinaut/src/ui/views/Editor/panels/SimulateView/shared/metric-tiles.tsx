@@ -45,7 +45,7 @@ export const MetricTiles = ({
   tiles,
   timeDomain,
   contentEpoch,
-  plotHeight = METRIC_PLOT_HEIGHT,
+  plotHeight,
   tone,
   children,
 }: {
@@ -58,8 +58,8 @@ export const MetricTiles = ({
    */
   contentEpoch: string;
   /** The plot's height inside every card; the grid's row height follows. */
-  plotHeight?: number;
-  tone?: ChartCardTone;
+  plotHeight: number;
+  tone: ChartCardTone;
   /** Cards after the timelines, in the same grid. */
   children?: ReactNode;
 }) => {

@@ -7,9 +7,9 @@
  */
 import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
 import { sweepCellObjective } from "../../../../../../../react/experiments/sweep-cell-objective";
+import { contourSurfaceKey } from "../../../../../../components/contour-surface";
 import {
   type SurfaceField,
-  surfaceFieldKey,
   surfaceGridCoordinate,
 } from "../../shared/surface-field";
 
@@ -67,7 +67,7 @@ export const visitedSurfaceField = ({
       markers.push({ x, y, kind: "muted" });
       continue;
     }
-    values.set(surfaceFieldKey(x, y), value);
+    values.set(contourSurfaceKey(x, y), value);
     markers.push({
       x,
       y,
@@ -117,7 +117,7 @@ export const computingSurfaceField = ({
     values:
       running === null
         ? new Map()
-        : new Map([[surfaceFieldKey(x, y), running]]),
+        : new Map([[contourSurfaceKey(x, y), running]]),
     markers: [{ x, y, kind: "point" }],
   };
 };

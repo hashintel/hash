@@ -257,6 +257,7 @@ export const createConnectedStudy = ({
       }),
     ),
     followTrials,
+    surfaceAxes: navigation.surfaceAxes,
   });
 
   const keyOf = (target: OptimizationNavigation): string =>
@@ -406,7 +407,13 @@ export const createConnectedStudy = ({
         booleans: { ...navigation.booleans, ...patch.booleans },
         followTrials:
           patch.followTrials ?? (moved ? false : navigation.followTrials),
+        surfaceAxes: patch.surfaceAxes ?? navigation.surfaceAxes,
       };
+      // Only the surface's axes changed: the point and its stream stay as they are.
+      if (!moved && patch.followTrials === undefined) {
+        publish();
+        return;
+      }
       if (terminal !== null || !navigation.followTrials) {
         stopFollowing();
         refineHere();

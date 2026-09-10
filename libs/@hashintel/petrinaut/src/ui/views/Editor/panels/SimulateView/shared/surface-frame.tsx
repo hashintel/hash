@@ -1,15 +1,14 @@
 /**
- * The card both surface views share: the plot in the body, the state line
- * (or the drag readout) in the subtitle, and the X/Y axis selects in the
- * footer, with whatever else the view controls on a second footer row. The
- * footer is a grid of label and select pairs: the selects share the row's
- * width, so the footer fits the card's narrowest column without overflowing,
- * and a view with further controls reserves its second row at all times.
+ * What both surface cards share: the plot and footer heights that keep them
+ * level with their neighbours, the X/Y axis selects for the footer, with
+ * whatever else a view controls on a second footer row, and the caption
+ * helpers. The footer is a grid of label and select pairs: the selects share
+ * the row's width, so the footer fits the card's narrowest column without
+ * overflowing, and a view with further controls reserves its second row at
+ * all times.
  */
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { ChartCard, type ChartCardTone } from "./chart-card";
 
 import type { ReactNode } from "react";
 
@@ -40,43 +39,6 @@ const controlLabelStyle = css({
   color: "neutral.s120",
   flexShrink: 0,
 });
-
-export const SurfaceFrame = ({
-  title,
-  caption,
-  actions,
-  bodyHeight,
-  footer,
-  footerHeight = SURFACE_FOOTER_HEIGHT,
-  tone,
-  children,
-}: {
-  title: string;
-  /** The state line, or the drag readout, under the title. */
-  caption: string;
-  /** The header's right side, e.g. a help tooltip. */
-  actions?: ReactNode;
-  /** Fixed when the card shares a row; omitted when its content sizes it. */
-  bodyHeight?: number;
-  /** The axis selects and whatever else the view controls. */
-  footer: ReactNode;
-  /** The footer's content height; two rows when the view adds controls to the axis selects. */
-  footerHeight?: number;
-  tone?: ChartCardTone;
-  children: ReactNode;
-}) => (
-  <ChartCard
-    title={title}
-    subtitle={caption}
-    actions={actions}
-    bodyHeight={bodyHeight}
-    footer={footer}
-    footerHeight={footerHeight}
-    tone={tone}
-  >
-    {children}
-  </ChartCard>
-);
 
 export const SurfaceControlLabel = ({ children }: { children: ReactNode }) => (
   <span className={controlLabelStyle}>{children}</span>

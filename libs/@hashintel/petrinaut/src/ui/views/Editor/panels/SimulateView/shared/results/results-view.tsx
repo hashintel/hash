@@ -71,7 +71,8 @@ export const ResultsView = ({
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
 }) => {
-  const { header, bands, surface, metrics, after, footer } = model;
+  const { header, bands, surface, metrics, after, footer, footerSecondary } =
+    model;
 
   return (
     <DrawerFrame
@@ -88,6 +89,7 @@ export const ResultsView = ({
       progress={header.progress}
       note={header.note}
       footer={footer}
+      footerSecondary={footerSecondary}
     >
       {bands.map((band) => (
         <FrameCard

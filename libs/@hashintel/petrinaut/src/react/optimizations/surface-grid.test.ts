@@ -6,6 +6,7 @@ import {
   optimizationAxisMidpoint,
   optimizationAxisPositionFor,
   optimizationAxisValueAt,
+  partitionParameterBindings,
 } from "./surface-grid";
 
 import type { OptimizationSurfaceAxis } from "./surface-grid";
@@ -133,5 +134,30 @@ describe("optimizationAxisPositionFor", () => {
     };
     expect(optimizationAxisMidpoint(axis)).toBe(4);
     expect(optimizationAxisValueAt(axis, 4)).toBe(30);
+  });
+});
+
+describe("partitionParameterBindings", () => {
+  it("splits the bindings by kind, each half in binding order", () => {
+    const { fixed, optimized } = partitionParameterBindings(
+      inputWith({
+        batch_size: { kind: "fixed", value: 220 },
+        rate: {
+          kind: "optimize",
+          domain: {
+            kind: "continuous",
+            minimum: 0,
+            maximum: 1,
+            scale: "linear",
+          },
+        },
+        express: { kind: "fixed", value: true },
+        enabled: { kind: "optimize", domain: { kind: "boolean" } },
+      }),
+    );
+
+    expect(fixed).toEqual({ batch_size: 220, express: true });
+    expect(Object.keys(optimized)).toEqual(["rate", "enabled"]);
+    expect(optimized.enabled?.domain.kind).toBe("boolean");
   });
 });

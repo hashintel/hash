@@ -9,7 +9,6 @@
 import { use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsActionsContext,
@@ -62,15 +61,8 @@ const WIDEST_DURATION = "59m 59s";
 const PARAMETERS_HELP =
   "Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept and drawn on the Surface. Optimize lets an optimizer pick the points, one metric in view.";
 
-// Keeps its footprint when a run can no longer be cancelled, so Remove and
-// Close do not slide when a run finishes.
-const cancelSlotStyle = css({
-  display: "inline-flex",
-  "&[data-hidden=true]": { visibility: "hidden" },
-});
-
 /** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
-export const describeExperiment = (
+const describeExperiment = (
   experiment: Pick<ExperimentRecord, "name" | "scenarioName" | "runCount">,
 ): string =>
   `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${formatCount(experiment.runCount)} runs`;
@@ -84,7 +76,7 @@ const BATCH_KIND_META: Record<
 };
 
 /** The sweep's batches as the computing list shows them. */
-export const experimentComputeBatches = (
+const experimentComputeBatches = (
   sweepBatches: readonly SweepBatchStatus[],
 ): ComputeBatch[] =>
   sweepBatches.map((batch) => ({
@@ -104,9 +96,7 @@ const settledTime = (experiment: ExperimentRecord): number =>
     : 0;
 
 /** The stat columns after the status pill, each sized for its widest value. */
-export const experimentStats = (
-  experiment: ExperimentRecord,
-): ResultsStat[] => {
+const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
   const { progress } = experiment;
   const runCount = formatCount(experiment.runCount);
   const maxTime = formatFixed(experiment.maxTime);
@@ -313,30 +303,12 @@ export const experimentResultsModel = (
     after: null,
     footer: (
       <>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="trash" size="sm" />}
-          onClick={() => {
-            optimizer.discard();
-            actions.removeExperiment(experiment.id);
-            onClose();
-          }}
-        >
-          Remove
-        </Button>
-        <span
-          className={cancelSlotStyle}
-          data-hidden={!canCancel}
-          aria-hidden={!canCancel}
-        >
+        {canCancel ? (
           <Button
             variant="subtle"
             tone="neutral"
             size="sm"
             prefix={<Icon name="stop" size="sm" />}
-            disabled={!canCancel}
             // A study driving the sweep stops first, or it would prune
             // every remaining step against a sweep that is gone.
             onClick={() => {
@@ -346,11 +318,28 @@ export const experimentResultsModel = (
           >
             Cancel
           </Button>
-        </span>
+        ) : null}
         <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
           Close
         </Button>
       </>
+    ),
+    // Remove holds the footer's left edge: Cancel comes and goes beside Close
+    // without moving it.
+    footerSecondary: (
+      <Button
+        variant="subtle"
+        tone="neutral"
+        size="sm"
+        prefix={<Icon name="trash" size="sm" />}
+        onClick={() => {
+          optimizer.discard();
+          actions.removeExperiment(experiment.id);
+          onClose();
+        }}
+      >
+        Remove
+      </Button>
     ),
   };
 };

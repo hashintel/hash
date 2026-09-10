@@ -16,6 +16,7 @@ import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/param
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { directionWord } from "../shared/study-labels";
 
 import type {
   ExperimentMetricSpecInput,
@@ -145,7 +146,7 @@ export const buildSweepOptimizationInput = ({
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
     version: 1,
-    name: `${experiment.name} · ${direction === "maximize" ? "Maximize" : "Minimize"} ${metric.name}`,
+    name: `${experiment.name} · ${directionWord(direction)} ${metric.name}`,
     model: {
       title,
       definition: { ...definition, scenarios: [scenario], metrics: [metric] },

@@ -12,7 +12,6 @@ import {
   formatImportance,
   importanceFloor,
   importanceRows,
-  optimizedParameterIdentifiers,
   pearsonCorrelations,
 } from "./importance-view";
 
@@ -37,27 +36,6 @@ describe("importanceFloor", () => {
     expect(importanceFloor(99)).toBe(50);
     expect(importanceFloor(100)).toBe(100);
     expect(importanceFloor(400)).toBe(100);
-  });
-});
-
-describe("optimizedParameterIdentifiers", () => {
-  it("lists numeric and boolean optimized parameters in binding order, never fixed ones", () => {
-    const input = {
-      scenario: {
-        id: "scenario",
-        parameterBindings: {
-          batch_size: { kind: "fixed", value: 220 },
-          ...optimizedBindingSets.base,
-          express_shipping: { kind: "optimize", domain: { kind: "boolean" } },
-        },
-      },
-    } satisfies Parameters<typeof optimizedParameterIdentifiers>[0];
-
-    expect(optimizedParameterIdentifiers(input)).toEqual([
-      "production_rate",
-      "selling_price",
-      "express_shipping",
-    ]);
   });
 });
 
@@ -107,7 +85,7 @@ describe("importanceRows", () => {
   const input = makeOptimizationInput(optimizedBindingSets.logScale);
   const { trials } = makeTrials(input, 30);
 
-  it("sorts by importance then identifier and scales the bars to the largest share above the floor", () => {
+  it("lists the rows in binding order and scales the bars to the largest share above the floor", () => {
     const view = importanceRows(
       makeOptimizationRecord({
         input: { ...input, study: { ...input.study, trials: 60 } },
@@ -153,7 +131,11 @@ describe("importanceRows", () => {
       }),
     );
 
-    expect(view.rows[0]?.identifier).toBe("selling_price");
+    expect(view.rows.map((row) => row.identifier)).toEqual([
+      "production_rate",
+      "selling_price",
+      "marketing_spend",
+    ]);
     expect(view).toMatchObject({
       effectiveCount: 27,
       floor: 50,
@@ -162,13 +144,13 @@ describe("importanceRows", () => {
     });
   });
 
-  it("counts the completed steps itself while no estimate arrived, keeping identifier order and the correlations", () => {
+  it("reads the record's completed count while no estimate arrived, keeping binding order and the correlations", () => {
     const view = importanceRows(makeOptimizationRecord({ input, trials }));
 
     expect(view.rows.map((row) => row.identifier)).toEqual([
-      "marketing_spend",
       "production_rate",
       "selling_price",
+      "marketing_spend",
     ]);
     expect(view.rows.every((row) => row.importance === null)).toBe(true);
     expect(view.rows.every((row) => row.correlation !== null)).toBe(true);
