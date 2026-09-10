@@ -353,18 +353,20 @@ export const probeDerivedCapacities = async (options: {
 };
 
 /**
- * Calibrates guessed windows from a preview-sized prefix of the runs before
- * the full attempt, when no capacity probe already did.
+ * Calibrates blind windows from a prefix of the runs before the full attempt,
+ * when no capacity probe already did.
  */
 export const probeWindows = async (options: {
   session: CalibrationSession;
   windows: readonly MetricWindow[];
   execute: ExecuteAttempt;
+  /** `probeRunCount(session.shader, runCount)`: never more runs than the experiment has. */
+  runCount: number;
 }): Promise<CalibratedRun> => {
-  const { session, windows, execute } = options;
+  const { session, windows, execute, runCount } = options;
   const attempt = await execute({
     shader: session.shader,
-    runCount: GPU_PREVIEW_RUNS,
+    runCount,
     windows,
     preview: false,
   });

@@ -196,6 +196,24 @@ describe("WgslEmitter", () => {
     expect(result.code).toBe("max(max(1.0, 2.0), 7.0)");
   });
 
+  it("refuses the non-finite constants rather than dividing by zero to build them", () => {
+    // `emitF32Literal` already refuses a non-finite number; the named
+    // constants and the empty `Math.min()`/`Math.max()` (Infinity and
+    // -Infinity in JavaScript) used to bypass it with `(1.0 / 0.0)` forms,
+    // which fail at `createShaderModule` instead of at the probe.
+    for (const body of [
+      "Infinity",
+      "NaN",
+      "-Infinity",
+      "Math.min()",
+      "Math.max()",
+    ]) {
+      expect(() =>
+        emit(`export default Lambda((tokens, parameters) => ${body});`),
+      ).toThrow(/no WGSL representation/);
+    }
+  });
+
   it("refuses string values, which need a 64-bit pool id", () => {
     expect(() =>
       emit(

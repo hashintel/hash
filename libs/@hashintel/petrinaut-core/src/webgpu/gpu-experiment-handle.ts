@@ -25,6 +25,7 @@ import { placeCountCeiling } from "./eligibility";
 import { gpuBackendSetupKey } from "./gpu-backend-cache";
 import {
   probeDerivedCapacities,
+  probeRunCount,
   probeWindows,
   rememberCalibration,
   RUN_POLICY,
@@ -60,7 +61,7 @@ import type {
   CalibrationSession,
   ExecuteAttempt,
 } from "./gpu-experiment-handle/calibration";
-import type { MetricWindow } from "./metric-windows";
+import type { MetricWindow, MetricWindowInput } from "./metric-windows";
 
 export type CreateGpuMonteCarloExperimentConfig = {
   sdcpn: SDCPN;
@@ -336,16 +337,16 @@ export async function createGpuMonteCarloExperiment(
   );
   const frameMerger = createFrameMerger();
 
-  // What window planning knows per metric: the sampled place's initial
-  // count, and its hard ceiling when it has one (a ceiling makes the window
-  // exact by construction — no calibration needed). A derived probe slab is
-  // not a ceiling: its counts calibrate empirically.
-  const windowInputs = gpuMetrics.metrics.map((metric) => {
-    const placeIndex = placeIndexById.get(metric.placeId) ?? -1;
-    const place = backend.profile.places[placeIndex];
+  // What window planning knows per metric: whether its samples are whole
+  // numbers, and a hard ceiling when a sampled place declares one (a ceiling
+  // makes the window exact by construction — no calibration needed). A
+  // derived probe slab is not a ceiling: its counts calibrate empirically.
+  const windowInputs: MetricWindowInput[] = gpuMetrics.metrics.map((metric) => {
+    const place =
+      backend.profile.places[placeIndexById.get(metric.sample.placeId) ?? -1];
     return {
-      initialCount: placeCounts[placeIndex] ?? 0,
-      countCeiling:
+      integer: metric.integer,
+      ceiling:
         place === undefined || place.capacitySource === "derived"
           ? null
           : placeCountCeiling(place),
@@ -484,19 +485,16 @@ export async function createGpuMonteCarloExperiment(
   }
 
   const run = async () => {
-    // Guessed windows (any sampled place without a ceiling) probe with a
-    // preview-sized prefix of the runs first, unless the capacity probe
-    // already calibrated them at creation.
+    // Blind windows (any metric without a ceiling) probe with a prefix of the
+    // runs first, unless the capacity probe already calibrated them at
+    // creation.
     let windows =
       calibratedWindows ??
       planInitialWindows(windowInputs, session.shader.histogramBins);
-    const guessedWindows = windowInputs.some(
-      (input) => input.countCeiling === null,
-    );
+    const blindWindows = windowInputs.some((input) => input.ceiling === null);
     if (
       calibratedWindows === null &&
-      guessedWindows &&
-      config.runCount > GPU_PREVIEW_RUNS &&
+      blindWindows &&
       metricIds.length > 0 &&
       !aborted
     ) {
@@ -504,6 +502,7 @@ export async function createGpuMonteCarloExperiment(
         session,
         windows,
         execute: executeAttempt,
+        runCount: probeRunCount(session.shader, config.runCount),
       });
       if (isDisposed()) {
         return;
@@ -540,6 +539,20 @@ export async function createGpuMonteCarloExperiment(
     if (result.overflowRuns > 0 && !result.cancelled) {
       fail(
         "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
+      );
+      return;
+    }
+    const erroredMetric = result.metricErrors.findIndex((runs) => runs > 0);
+    if (erroredMetric !== -1 && !result.cancelled) {
+      // The CPU evaluator throws on the first non-finite value and the
+      // experiment errors; the device halts the run instead, so the same
+      // failure is reported once the attempt returns.
+      const metricId = metricIds[erroredMetric];
+      const label =
+        config.metricSpecs.find((spec) => spec.id === metricId)?.label ??
+        metricId;
+      fail(
+        `Metric "${label}" returned a non-finite value in ${result.metricErrors[erroredMetric]} of ${config.runCount} runs, expected a finite number.`,
       );
       return;
     }

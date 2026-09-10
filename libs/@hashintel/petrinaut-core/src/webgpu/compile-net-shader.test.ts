@@ -14,19 +14,26 @@ import { assessGpuEligibility } from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 
 import type { SDCPN } from "../types/sdcpn";
-import type { GpuOdeMethod } from "./compile-net-shader";
+import type { GpuMetricSpec, GpuOdeMethod } from "./compile-net-shader";
+
+/** A metric sampling one place's token count. */
+const placeCount = (id: string, placeId: string): GpuMetricSpec => ({
+  id,
+  integer: true,
+  sample: { kind: "placeCount", placeId },
+});
 
 function compileFor(
   sdcpn: SDCPN,
   {
     odeMethod = "rk4",
-    metrics = [] as { id: string; placeId: string }[],
+    metrics = [] as GpuMetricSpec[],
     dt = 0.1,
     framesPerDispatch = 300,
     runParameters,
   }: {
     odeMethod?: GpuOdeMethod;
-    metrics?: { id: string; placeId: string }[];
+    metrics?: GpuMetricSpec[];
     dt?: number;
     framesPerDispatch?: number;
     runParameters?: readonly string[];
@@ -250,7 +257,7 @@ describe("compileNetShader", () => {
 
   it("reduces metrics in workgroup memory rather than global atomics", () => {
     const result = compileFor(sir, {
-      metrics: [{ id: "infected", placeId: "place__infected" }],
+      metrics: [placeCount("infected", "place__infected")],
     });
     if (!result.ok) throw new Error(result.reason);
     const wgsl = result.shader.wgsl;
@@ -265,7 +272,7 @@ describe("compileNetShader", () => {
 
   it("samples each frame before stepping it, so row 0 holds the initial marking", () => {
     const result = compileFor(sir, {
-      metrics: [{ id: "infected", placeId: "place__infected" }],
+      metrics: [placeCount("infected", "place__infected")],
     });
     if (!result.ok) throw new Error(result.reason);
     const wgsl = result.shader.wgsl;
@@ -288,7 +295,7 @@ describe("compileNetShader", () => {
     // sampled. Sampling first fills rows 0..frame_limit - 1 of the same
     // buffer, as long as that status flip still follows the sample.
     const result = compileFor(sir, {
-      metrics: [{ id: "infected", placeId: "place__infected" }],
+      metrics: [placeCount("infected", "place__infected")],
     });
     if (!result.ok) throw new Error(result.reason);
     const wgsl = result.shader.wgsl;
@@ -311,11 +318,13 @@ describe("compileNetShader", () => {
     if (!result.ok) throw new Error(result.reason);
 
     expect(result.shader.wgsl).not.toContain("local_hist");
+    expect(result.shader.wgsl).not.toContain("fn f32_order_key(");
+    expect(result.shader.wgsl).not.toContain("fn window_bin(");
   });
 
   it("reports a reason rather than throwing when a metric names an unknown place", () => {
     const result = compileFor(sir, {
-      metrics: [{ id: "m", placeId: "does-not-exist" }],
+      metrics: [placeCount("m", "does-not-exist")],
     });
 
     expect(result.ok).toBe(false);
@@ -371,7 +380,7 @@ describe("histogram sizing", () => {
 
   it("gives an unbounded sampled place the full budget in a compiled shader", () => {
     const result = compileFor(sir, {
-      metrics: [{ id: "infected", placeId: "place__infected" }],
+      metrics: [placeCount("infected", "place__infected")],
     });
     if (!result.ok) {
       throw new Error(result.reason);
@@ -384,7 +393,7 @@ describe("histogram sizing", () => {
 
   it("sizes a typed sampled place's bins from its capacity", () => {
     const result = compileFor(dronePatrol.petriNetDefinition, {
-      metrics: [{ id: "airborne", placeId: "place__airborne" }],
+      metrics: [placeCount("airborne", "place__airborne")],
     });
     if (!result.ok) {
       throw new Error(result.reason);
@@ -393,24 +402,143 @@ describe("histogram sizing", () => {
     expect(result.shader.histogramBins).toBe(17);
   });
 
-  it("bins through a per-metric window carried as uniforms", () => {
+  it("bins through a per-metric f32 window carried as uniforms", () => {
     const result = compileFor(sir, {
-      metrics: [{ id: "infected", placeId: "place__infected" }],
+      metrics: [placeCount("infected", "place__infected")],
     });
     if (!result.ok) {
       throw new Error(result.reason);
     }
-    // The window lives in the config, so recalibration needs no recompile.
-    expect(result.shader.wgsl).toContain("m0_lo: u32,");
-    expect(result.shader.wgsl).toContain("m0_stride: u32,");
-    expect(result.shader.wgsl).toContain(
-      "(c0 - config.m0_lo) / config.m0_stride",
+    const { wgsl } = result.shader;
+    // The window lives in the config, so recalibration needs no recompile;
+    // it is f32 for every metric, so one sampling path serves counts and
+    // real-valued expressions alike.
+    expect(wgsl).toContain("m0_lo: f32,");
+    expect(wgsl).toContain("m0_stride: f32,");
+    expect(wgsl).toContain("fn f32_order_key(");
+    expect(wgsl).toContain("fn window_bin(");
+    // A place count is sampled as the f32 of its u32, exact below 2^24.
+    expect(wgsl).toContain("let v0: f32 = f32(counts[1u]);");
+    // The observed range travels as order-preserving keys through the u32
+    // atomics; the bin is settled against the window's exact edges.
+    expect(wgsl).toContain("atomicMin(&local_min[0u], k0);");
+    expect(wgsl).toContain(
+      "let b0 = window_bin(v0, config.m0_lo, config.m0_stride);",
     );
+    // A non-finite sample halts the run for the host to report.
+    expect(wgsl).toContain("status = 4u;");
     // Observed range and escape counters, for the calibration loop.
-    expect(result.shader.wgsl).toContain(
+    expect(wgsl).toContain(
       "@group(0) @binding(5) var<storage, read_write> range: array<atomic<u32>>;",
     );
-    expect(result.shader.wgsl).toContain("atomicMin(&local_min[0u], c0);");
+  });
+
+  it("emits the sampling helpers once, after the prelude and before the entry point", () => {
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected")],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    const { wgsl } = result.shader;
+
+    expect(wgsl).toContain(
+      [
+        "fn f32_order_key(v: f32) -> u32 {",
+        "  let bits = bitcast<u32>(v);",
+        "  return select(~bits, bits | 0x80000000u, (bits & 0x80000000u) == 0u);",
+        "}",
+      ].join("\n"),
+    );
+    expect(wgsl).toContain(
+      [
+        "fn window_bin(v: f32, lo: f32, stride: f32) -> i32 {",
+        "  let t = (v - lo) / stride;",
+        "  if (t < -1.0) { return -1; }",
+        "  if (t >= f32(HIST_BINS) + 1.0) { return i32(HIST_BINS); }",
+        "  var bin = i32(floor(t));",
+        "  if (lo + f32(bin) * stride > v) {",
+        "    bin = bin - 1;",
+        "  } else if (lo + f32(bin + 1) * stride <= v) {",
+        "    bin = bin + 1;",
+        "  }",
+        "  return clamp(bin, -1, i32(HIST_BINS));",
+        "}",
+      ].join("\n"),
+    );
+    // `HIST_BINS` must already be declared where the helpers read it.
+    expect(wgsl.indexOf("const HIST_BINS: u32 =")).toBeLessThan(
+      wgsl.indexOf("fn window_bin("),
+    );
+    expect(wgsl.indexOf("fn window_bin(")).toBeLessThan(
+      wgsl.indexOf("fn step_runs("),
+    );
+    expect(wgsl.match(/fn window_bin\(/g)).toHaveLength(1);
+  });
+
+  it("samples a place count through the one f32 path, block for block", () => {
+    // SIR's Infected is profile index 1, and one metric gets the full 1024
+    // bins, so this is the whole per-metric block the design specifies.
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected")],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+
+    expect(result.shader.wgsl).toContain(
+      [
+        "    if (in_range && status == 0u) {",
+        "      let v0: f32 = f32(counts[1u]);",
+        "      if ((bitcast<u32>(v0) & 0x7f800000u) == 0x7f800000u) {",
+        "        // NaN or an infinity: the CPU evaluator throws here, so the run halts",
+        "        // and the host fails the experiment naming the metric.",
+        "        status = 4u;",
+        "      } else {",
+        "        let k0 = f32_order_key(v0);",
+        "        atomicMin(&local_min[0u], k0);",
+        "        atomicMax(&local_max[0u], k0);",
+        "        let b0 = window_bin(v0, config.m0_lo, config.m0_stride);",
+        "        if (b0 < 0) {",
+        "          atomicAdd(&range[2u], 1u);",
+        "          atomicAdd(&local_hist[0u], 1u);",
+        "        } else if (b0 >= i32(HIST_BINS)) {",
+        "          atomicAdd(&range[3u], 1u);",
+        "          atomicAdd(&local_hist[0u + HIST_BINS - 1u], 1u);",
+        "        } else {",
+        "          atomicAdd(&local_hist[0u + u32(b0)], 1u);",
+        "        }",
+        "      }",
+        "    }",
+      ].join("\n"),
+    );
+  });
+
+  it("gives the second metric its own status, range slots and histogram rows", () => {
+    const result = compileFor(sir, {
+      metrics: [
+        placeCount("susceptible", "place__susceptible"),
+        placeCount("infected", "place__infected"),
+      ],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    const { wgsl, histogramBins } = result.shader;
+
+    expect(wgsl).toContain("let v1: f32 = f32(counts[1u]);");
+    expect(wgsl).toContain("status = 5u;");
+    expect(wgsl).toContain("atomicMin(&local_min[1u], k1);");
+    expect(wgsl).toContain(
+      "let b1 = window_bin(v1, config.m1_lo, config.m1_stride);",
+    );
+    expect(wgsl).toContain("atomicAdd(&range[6u], 1u);");
+    expect(wgsl).toContain("atomicAdd(&range[7u], 1u);");
+    expect(wgsl).toContain(
+      `atomicAdd(&local_hist[${histogramBins}u + u32(b1)], 1u);`,
+    );
+    expect(wgsl).toContain("m1_lo: f32,");
+    expect(wgsl).toContain("m1_stride: f32,");
   });
 });
 
@@ -843,7 +971,7 @@ describe("generated WGSL validity", () => {
       }
       const compiled = compileFor(cappedSatellites(), {
         odeMethod,
-        metrics: [{ id: "in_orbit", placeId: space.id }],
+        metrics: [placeCount("in_orbit", space.id)],
       });
       if (!compiled.ok) {
         throw new Error(compiled.reason);
