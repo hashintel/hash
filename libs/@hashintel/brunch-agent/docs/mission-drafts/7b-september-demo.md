@@ -1,79 +1,203 @@
-# Draft Mission 7b — September demo flow
+# Draft Mission 7b — Substantial worked-scenario demo
 
-> Draft cluster only. Not execution authority. Convert into `MISSION.md` on the Mission 7b branch after Part A's UI closeout and branch boundary are settled. This is not wholesale promotion of the former Step B programme.
+> Draft cluster only. Not execution authority. Convert into `MISSION.md` on the Mission 7b branch after Part A's UI closeout and branch boundary are settled. This recut replaces the earlier narrow interpretation of one scripted why/correction path. It is not wholesale promotion of the former evaluation campaign.
 
 ## Visible product advance
 
-**Primary live demo:** open a retained traceable example in the Petrinaut Brunch UI, inspect the evolving workpiece, ask why a model part exists, supply a correction, and see the saved workpiece and relevant net part update. Ask again and inspect the updated explanation with the original source and correction distinguishable. The presenter supplies ordinary requests, not tool names, hashes, IDs or citation offsets.
+A product manager opens a substantial previously elicited scenario in Petrinaut Brunch and can explore its retained conversation, evolving workpiece and connected Petri net without developer protocol knowledge. They can inspect why consequential model content exists, follow its basis into the workpiece and source conversation, supply an ordinary correction, see the affected workpiece and net region change without unrelated rebuilding, inspect the updated explanation, and close/reopen the working session. If the demo claims an executable model, they can run a meaningful scenario whose behaviour reflects the account.
 
-**Desired additional output:** a prerecorded video showing an entire persona-driven elicitation and Petri-net construction through the actual UI. Target both outputs; do not silently trade away the live flow to produce the video. If time requires a trade-off, Lu chooses. A recording may be edited or accelerated for presentation only with that treatment disclosed; retain the actual conversation and construction records. An operator-assisted net-building script is not a recording of Brunch carrying the conversation through construction.
+A rehearsed live path may show only a few interactions for time, but it must sample a broadly usable worked scenario rather than constitute the only supported path. The old Mission 6 crew-reservation fixture is a narrow engineering tracer and is not candidate demo content.
 
-**Previously missing:** a complete construction-to-review/correction interaction that can be shown without a developer steering the tool protocol. This is functional flow, not a benchmark of how reliably the prompt/skill architecture independently discovers a high-quality operational model. Simulation and optimisation are not part of the agreed live endpoint.
+**Required companion recording:** retain a recording of Brunch carrying a realistic isolated persona from elicitation through visible workpiece evolution into actual native construction of a substantial connected model through the product UI. The recording may be edited or accelerated only with that treatment disclosed; its native conversation and construction records remain reconcilable. An operator-authored net, hidden tool coaching, or a hand-authored successful transcript does not satisfy this obligation.
 
-## Departure and boundaries
+**Previously missing:** a PM-usable scenario whose conversation, workpiece, model and explanations form one continuable product artifact, plus evidence that Brunch produced it. This is stronger than one prepared arc, one scripted explanation, or one mechanically successful correction. It does not by itself establish universal modelling quality, arbitrary Petrinaut parity, general multi-user revision or optimisation readiness.
 
-Consume Part A's actual saved-workpiece, canonical mutation/effect, declared-basis, source-ID discovery and original-store recovery contracts; see [current authority](../../MISSION.md). Part A must first resolve its workpiece UI blocker compatibly with [FE-1645/#9634](https://github.com/hashintel/hash/pull/9634). Do not turn that PR's opt-in prepared-fixture selector into the product's workpiece surface.
+## Demo shape heuristics
 
-The current fourteen-operation observed catalog is departure evidence, not a permanent design choice or a completion checklist. It is insufficient evidence of the complete construction sequence. Lu has ideas for a more effective construction tool; discuss those before choosing between expanding the current surface and changing its shape. No new tool, batching/transaction protocol, stock-tool parity, stochastic policy or dynamics strategy is selected by this draft.
+These ranges describe the intended substance and are review heuristics, not count-only acceptance gates. Falling below them requires evidence that the selected artifact still carries equivalent operational depth; meeting them does not compensate for incoherence or weak semantics.
 
-Prefer one production-created trajectory as the source for both recording and live review if it works. The retained Vestera session is a candidate, not a mandatory fixture or a completed net. Select the example and the correction for a legible demonstration, not to discharge the old complex-scenario evaluation rubric. Preserve actual source attribution and distinguish defaults, assumptions and modelling choices; do not fabricate a lineage to make an example look generated.
+### Retained conversation
 
-## Product path and decisions
+- Approximately **15–25 substantive interview exchanges**, or roughly **30–50 visible user/assistant messages** excluding internal tool noise.
+- The interview covers purpose and boundary, main flow, roles and resources, decisions and alternatives, quantities and timing, exceptions and recovery, uncertainty and unresolved material, and review of the account during construction.
+- The history contains roughly **4–8 meaningful settled workpiece revisions**, rather than one prepared version and one scripted correction.
+- Later turns deepen, qualify or correct earlier content. The retained history reads as a serious elicitation, not a single information dump or developer-steered tool protocol.
+
+### Current workpiece
+
+- Ordinarily around **2,000–4,000 words** of useful structured content for a scenario of the intended depth; word count is a warning signal, not an oracle.
+- Covers objective and operating boundary; actors, roles, resources and external systems; main stages; entry/completion conditions; branches and decision rules; resource contention; timing, schedules, quantities, capacities and rates; exceptions, recovery and escalation; confirmed evidence versus modeller inference/assumption; unresolved questions; current net correspondence; and sources for consequential claims.
+- Functions as a handoff-quality operational account rather than a transcript summary. It preserves uncertainty and does not claim that saved prose is automatically current net state.
+
+### Petri net
+
+For the flagship scenario, expect approximately **12–25 places, 10–20 transitions and 30–60 arcs**, with several meaningful types/state attributes and parameters, at least **2–3 scenarios or initial conditions**, resource contention, branching, an exception/delay/recovery path, and timing or stochastic behaviour where the account requires it. These are shape indicators, not quotas.
+
+The model must be connected, legible and operationally meaningful. It must visibly exceed the retained Vestera probe's inert parameter/type/equation and the crew-reservation arc tracer. Use subnets/components if the selected model needs them to preserve meaning or screen legibility; do not flatten the model merely to avoid missing construction support.
+
+For a Vestera-like production-scheduling flagship, likely content includes waiting work, line availability/state, cleardown and washdown, crew and shift constraints, material/stock readiness, qualification, staging, production start/completion, overtime-versus-delay decisions, unavailable-resource or late-start paths, and completion/release outcomes. The exact model follows elicited evidence rather than this illustrative inventory.
+
+### Live interaction
+
+A representative live exploration adds approximately **5–10 ordinary chat turns**:
+
+1. Open the scenario and inspect its retained conversation, current workpiece and complete model.
+2. Select or name a consequential model element and ask why it exists.
+3. Follow the explanation into the workpiece passage and linked source messages, or see an honest absent/incomplete basis.
+4. Ask about a different kind of element or assumption so the first answer is not a one-off.
+5. Supply a correction in ordinary language; Brunch asks a clarification if material ambiguity remains.
+6. Observe a new saved workpiece revision and bounded native model change with unrelated identities/content preserved.
+7. Ask why again and distinguish original support from the later correction.
+8. If executable behaviour is part of the agreed demo, run or compare a scenario affected by the account or correction.
+9. Close/reopen and continue the same owned working session.
+
+The presenter may rehearse one route, but ordinary rephrasing, follow-up, selection of another consequential element and inspection of another source must not immediately leave the supported product path. No IDs, hashes, citation offsets, tool names or hidden operator repair are required.
+
+## Explanation obligations
+
+For the selected flagship model, **every consequential visible element must have an inspectable recorded basis or explicitly report that its basis is absent or incomplete**. A few live examples are samples from a broadly explainable model, not the only elements for which why works.
+
+Mechanical coverage for each consequential element is:
 
 ```text
-Part A reviewed groundwork + usable workpiece UI
-→ agree construction-tool approach and example
-→ persona interview → visible saved workpiece → actual native net construction
-→ retain that trajectory and record the complete UI flow
-→ open a traceable example at the demo entrypoint
-→ ordinary why → correction → saved revision → bounded native edit → updated why
-→ reopen/continue and rehearse on the intended setup
+visible model element
+→ construction/change record
+→ declared workpiece basis
+→ workpiece passage
+→ linked source messages where supplied
 ```
 
-Preparation, UI work and mechanical checks can run before a new persona generation. Use the existing persona launcher and browser host, not a second application/runner or a hand-authored successful transcript. Keep persona and operator submissions serial. Technical probes remain labelled probes and do not substitute for the video.
+Petrinaut references do not propagate provenance. Defaults, derived effects, adjacency and plausible prose do not inherit testimony or intention. Missing links remain visible rather than reconstructed.
 
-### Ownership and file topology
+Human usefulness is reviewed across materially different classes: main-flow content, resource constraint, branch/decision, timing or dynamics choice, exception path, assumption or unsupported default, and the corrected element before and after correction. The answer must be understandable and credible, not merely return records. This targeted broad review restores utility as a demo-readiness obligation without requiring the entire former passage/lifecycle/adversarial campaign before the demo.
 
-- Core owns source-independent revision/source-link resolution and workpiece tool semantics. Put tool implementations under `packages/core/src/tools/`; retain `src/flue.ts` as the Flue mounting/composition surface and preserve public contracts.
-- The SDCPN plugin owns net-target lookup, native operation selection, effect interpretation and formalism-specific explanation. Do not move today's entire app `conversation/why.ts` unchanged into core: it mixes those concerns.
-- The app supplies authorized history, current state and browser context and composes the owned capabilities. Avoid app-owned reusable explanation policy.
-- The Petrinaut website remains the host for workpiece/editor integration. Part A owns the immediate overlay repair; 7b owns only additional interaction work the live/video flow exposes. Petrinaut's canonical library stays free of Brunch provenance semantics.
-- Keep topology work bounded to these observed ownership problems. It is not a package redesign, new ontology, second state store or generalized provenance engine.
+## Scenario catalogue and working copies
 
-## Candidate evidence and oracles
+The PM-facing entrypoint is a database-backed scenario catalogue addressable by stable URLs such as:
+
+```text
+?scenario=vestera-production-scheduling
+?scenario=data-centre-thermal-operations
+```
+
+The exact initial catalogue is an owner decision, but it is plural and includes at least one flagship artifact meeting the substantial worked-scenario bar. Diagnostic fixtures may remain available to tests or developers but are not presented as demo scenarios.
+
+A scenario template is a coherent bundle, not only a Petrinaut document:
+
+```text
+scenario template
+├── retained Brunch conversation
+├── saved workpiece revisions
+├── source/evidence relationships
+├── construction and explanation history
+├── Petrinaut document and scenarios
+├── document/incarnation binding
+└── stable scenario identity and content revision
+```
+
+After migrations and before readiness, startup idempotently updates approved templates in Postgres under stable scenario IDs. A new template definition replaces the catalogue entry for new opens without duplicating visible versions or modifying existing working sessions. Image build does not write a database.
+
+Opening a scenario creates or resumes an independently owned working session. The template and other users' copies remain unchanged. The copy records its template origin/content revision and preserves coherent conversation, workpiece, evidence, transition and document identities through an explicitly inspected native contract—not blind string replacement, diagnostic-export import or model replay. Missing dependencies or collisions refuse without exposing a partially usable scenario.
+
+The URL selects the scenario, not an arbitrary user identity. Local development may use the existing generated local principal. Hosted demo ownership uses the actual authenticated identity or an explicitly configured server-side demo principal; a caller-controlled `?user=` value is not authorization. Before implementation freezes, choose whether reopening `(owner, scenario)` resumes one stable working copy, creates a fresh copy, or exposes both **Resume** and **Start fresh**. PM experimentation requires at minimum a reliable resume path and a safe way to obtain a clean copy for rehearsal.
+
+The existing `brunchDemoMode` toggle and `?brunch-fixture=crew-reservation-v1` route remain developer/test-fixture mechanisms. They are not the PM scenario catalogue and must not be stretched into it.
+
+## Construction and persona throughline
+
+```text
+approved scenario/persona inputs
+→ realistic isolated persona interview in the real Petrinaut Brunch UI
+→ recurring visible saved workpiece revisions
+→ Brunch constructs the substantial native model through browser-executed canonical operations
+→ every consequential element records effects and declared basis
+→ retained trajectory becomes an approved versioned scenario template
+→ PM opens an independent working copy by stable scenario URL
+→ ordinary why/source exploration
+→ ordinary correction → workpiece revision → bounded net update
+→ updated why and, if agreed, meaningful simulation
+→ close/reopen and continue
+```
+
+The current persona launcher reliably drives elicitation and workpiece updates but explicitly refuses external browser construction while the persona is active. 7b must repair or replace that handoff within the maintained product path; ordinary operator-entered construction after the persona stops does not satisfy the required recording. Keep persona and operator submissions serial, preserve run-local isolation and never expose the private pack or expected model to Brunch.
+
+The existing fourteen-operation catalog is departure evidence, not the selected model's completion checklist. Before implementation, freeze the flagship model's required operation classes and compare them with the product surface. Add or reshape the exact operations needed for the real construction path. Full stock Petrinaut parity remains unnecessary unless the demo claim explicitly becomes arbitrary-model construction.
+
+## Scope allocation under demo pressure
+
+### In 7b
+
+- Database-backed plural scenario catalogue and stable `?scenario=...` entrypoints.
+- Complete conversation/workpiece/evidence/net bundles and independently owned resumable or fresh working sessions.
+- At least one flagship scenario meeting the substantial conversation, workpiece and model bar.
+- Persona-driven visible construction of a substantial connected native model.
+- Exact mutation/read/validation operations required by that model, including deletion or nested/component operations if the selected trajectory needs them.
+- Broad mechanical why coverage for every consequential visible flagship element, with honest missing basis.
+- Human usefulness review across the named explanation classes.
+- Ordinary PM exploration, source inspection, one correction family, bounded model update, updated why and reopen/rehearsal.
+- A scenario-specific timing/dynamics policy where the flagship account requires timing or uncertainty.
+- One meaningful simulation if the agreed product claim calls the flagship executable or behavioural.
+
+### Not automatically in 7b
+
+- Every Petrinaut operation or arbitrary-model construction parity.
+- General deletion, retirement or nested editing beyond the selected scenario's needs.
+- A universal stochastic/dynamics strategy for every process family.
+- Arbitrary unchanged-repeat/change/retirement semantics or multi-user concurrent editing.
+- Every reviewer role, authority hierarchy, contradiction and coexistence class.
+- The former full passage-edit/lifecycle/adversarial evaluation matrix or a population reliability claim.
+- General optimisation support or an accepted Chris/Yannis handoff.
+
+### Owner decisions before freezing the demo
+
+- Exact flagship and additional catalogue scenarios.
+- Required operation inventory and whether the model needs nested structure or deletion.
+- Whether the live claim includes executable simulation and whether the correction must alter simulation results.
+- Whether optimisation is shown at all.
+- Whether Chris/Yannis participate as accepted consumers; if so, obtain their concrete input/output/question/execution/credibility contract rather than equating a UI action with handoff acceptance.
+- Hosted versus local entrypoint, authenticated presenter/attendee posture, and Resume versus Start-fresh UX.
+- Recording duration, editing/time-compression treatment and acceptable rehearsal reset.
+
+If optimisation or accepted consumer handoff enters, explicitly recut the mission rather than letting it arrive as an implied consequence of constructing a model.
+
+## Ownership and topology
+
+- Core owns source-independent revision/source-link resolution, scenario-template identity contracts and workpiece tool semantics. Put tool implementations under `packages/core/src/tools/`; retain `src/flue.ts` as the mounting/composition surface.
+- The SDCPN plugin owns net-target lookup, native operation selection, effect interpretation, formalism-specific explanation and the selected scenario's construction guidance. Do not move today's entire app `conversation/why.ts` unchanged into core.
+- The app supplies authorized history, current state, browser context, catalogue/store startup and composition of owned capabilities. Avoid app-owned reusable explanation policy.
+- The Petrinaut website owns workpiece/editor/source interaction and scenario selection. Petrinaut's reusable library stays free of Brunch-specific provenance and scenario semantics.
+- Use Postgres for seeded catalogue/working-session delivery and SQLite for lightweight tests. Do not add a second conversation/provenance store, generic migration framework, universal claim ontology or parallel editor.
+
+## Evidence and oracles
 
 | Result | Oracle before claiming it |
 | --- | --- |
-| Persona carries elicitation into actual construction | Native user/assistant history and delivered browser results for one complete run; visible saved revisions and a connected net in the recording. No hidden case pack, expected net or operator tool coaching in the elicitor's input. |
-| Construction surface works in the real flow | After the design decision, name the exact required operations, exercise their canonical inputs/effects through the product, and retain existing source/binding/outcome checks. ORACLE GAP: final surface and operation-specific regressions depend on that decision. |
-| Why is inspectable without developer instructions | Lu identifies a model part in the agreed UI and asks why; the displayed answer exposes its recorded edit, declared workpiece passage and linked original messages, or states the missing link accurately. Inspect actual records, not a retrospective citation generated only in prose. ORACLE GAP: selection/source-navigation affordance is not yet chosen. |
-| A correction updates the workpiece and net | Freeze one ordinary correction's intended change before rehearsal; compare saved revisions, applied effects and untouched IDs. The next why must distinguish original support from correction. This does not establish the full reviewer-authority/conflict portfolio. |
-| The video shows the actual product | Play the saved recording and reconcile its elicitation/construction sequence with the retained native run. Show the evolving workpiece and net clearly; disclose edits/time compression. Lu accepts presentation suitability. |
-| The demo starts and resumes on its intended setup | Open, perform the agreed flow, close/reopen and continue using the actual frontend/backend versions and stores. ORACLE GAP: presenter-only versus independent attendee sessions, local versus hosted entrypoint and required copy route remain to be decided/inspected. |
-| Repetition is safe enough for rehearsal | A fresh rehearsal starts from the agreed source without silently damaging it or another working session. If copying is required, verify source/copy independence through the UI; a diagnostic export is not a clone API. |
+| Substantial worked artifact exists | Lu reviews retained conversation, current workpiece and visible connected model against the shape heuristics and operational coherence; native history/definitions establish identities and effects. Counts alone cannot pass. |
+| Persona carried elicitation into construction | Recording plus native user/assistant history and delivered browser results show recurring revisions and complete model construction through the visible product; no private pack, expected model or tool coaching reached Brunch. |
+| Consequential elements are broadly explainable | Inventory every consequential visible flagship element and mechanically traverse its record/basis/passage/source or honest absence. Human review samples every named explanation class, including before/after correction. |
+| Correction is a product operation | Freeze one ordinary correction family before rehearsal; compare workpiece revisions, actual native effects and untouched identities/content. Updated why distinguishes original support and correction. |
+| Scenario URLs deliver usable independent sessions | Open the same stable scenario as two owners or two explicit fresh copies; continue each independently, leave template/other copy unchanged, reopen/resume, then update the template and prove old sessions retain their origin/content. |
+| Model is executable, if claimed | Compile and run the selected scenario through native Petrinaut simulation; compare one qualitative result with a predeclared expectation and disclose unresolved assumptions. Parser success alone is insufficient. |
+| Demo tolerates ordinary exploration | Lu varies wording, asks why about more than the rehearsed element, follows another source, closes/reopens and continues without IDs/tool vocabulary or developer repair. |
+| Recording matches product state | Reconcile the played construction sequence and any disclosed edits/time compression with retained native conversation, workpiece revisions and model effects. |
 
-Reuse Part A's unit/browser suites for changed boundaries. Observe structural validity, actual mutation effects and honest failure. Do not add a semantic completion validator, per-statement ontology, forced-evidence taxonomy or broad model-quality campaign to make the demo possible. Missing references or runtime failures on the shown path remain defects; modelling effectiveness is evaluated separately.
-
-## Before demo / after demo allocation
-
-**Before:** complete construction flow for the recording target; ordinary why/source inspection; one correction and bounded update; the specified topology improvements; only the retention/copy/host work the demo setup needs; rehearsal and video presentation. This deliberately brings a narrow change/correction slice forward from Missions 9/10 without claiming their full breadth.
-
-**After:** general repeat/change/retirement and concurrency, expanded scenario/tool classes beyond the selected flow, reviewer authority/conflict/coexistence portfolios, broad lifecycle/migration matrices, semantic/behavioural and full useful-explanation evaluation, source/plugin experiments, automatic assumption-based preview, stochastic/dynamics strategy and consumer-defined optimisation. Detailed homes remain in the [future spine](../../MISSION.next.md), [evaluation draft](7-explainable-construction.md), and drafts [9](9-traceable-projection.md), [10](10-bounded-reviewer-revision.md), [11](11-optimisation-handoff.md).
-
-The [stable-template contract](../../MISSION.next.md#stable-template-delivery-after-valuable-elicitation) remains the accepted design if the demo needs independent copies/catalogue delivery; do not build the full catalogue solely because it was once scheduled. Inspect actual deployed revisions/ingress before claiming a remote result; the spine contains historical deployment assertions that are not a live environment check.
+Reuse Part A's source/binding/outcome, effect-accounting, correlation, Voice and no-replay contracts. Mechanical validity, semantic correspondence and explanation usefulness remain separate judgments. Do not add a runtime semantic completion engine or force every model generation through an evaluator taxonomy.
 
 ## Continuing constraints
 
-- Carry the exact earned data/execution/Voice contracts from Part A when cutting, including all authorized source IDs being discoverable, revision-local span limits, complete effect accounting, honest absent basis and historical/as-of scope.
-- Keep canonical schemas/actions/compiler ownership, stock-assistant isolation and original stores/history. Operation origin is not semantic evidence; net connectivity does not imply shared citations; derived effects do not inherit a request's rationale.
-- Keep the realistic isolated persona policy, Sonnet route and existing unmetered persona settings. No new run is started by this draft, no budget/deadline gate is resurrected, and no private pack or answer key reaches the elicitor.
-- No tool-surface implementation before the separately requested design discussion. Quantitative assumptions needed by a chosen example must be explicit; no unagreed stochastic/dynamics policy is inferred from Part A's inert clock probe.
-- No remote write/release, Linear write, new authentication assumption or multi-writer guarantee follows from a local demo requirement.
+- Carry Part A's all-authorized-source-ID discovery, revision-local passage limits, complete direct/derived effect accounting, honest absent basis, current/as-of distinction and outside-edit non-attribution.
+- Preserve canonical Petrinaut schemas/actions/compiler/simulation ownership and visible failed, stale, no-op, unknown and refused outcomes. No mutation is admitted from a guessed base or silently replayed.
+- Record inherited template evidence as inherited synthetic-persona, internal-human or customer-derived material, never testimony newly elicited from the current PM. Do not seed private packs, credentials, demo-owner secrets or unsupported attribution.
+- Keep the isolated persona's natural improvisation, uncertainty and correction. Both persona and Brunch use the owner-selected model with explicit paid-run authorization; this draft itself starts no provider run.
+- Construction-tool design remains a required discussion before implementation. Neither expanding the current allowlist nor introducing a batch/replacement tool is preselected.
+- Remote writes, deployment, release and Linear updates remain separately authorized. Inspect actual frontend/backend/store revisions and authentication before claiming hosted readiness.
 
 ## Fog-line and stop conditions
 
-Resolve the construction-tool design; workpiece/source interaction; example and correction; video duration/editing expectations; intended host and users; and whether independent copies are necessary. Stop only the affected path for missing authority, invalid source/effect attribution, canonical/runtime failure, or a necessary material design choice. Do not expand into every historical evaluation row, redesign prompts to satisfy a semantic checker, or substitute an operator-authored net for the recorded construction story.
+Resolve the flagship/additional scenarios, construction-tool shape, template materialization/identity contract, PM source-navigation interaction, simulation/optimisation tier, hosted identity/copy semantics and recording expectations before freezing implementation. Use the first genuine substantial trajectory to pressure-test the ranges and adjust them by owner decision without reducing the visible product obligation.
+
+Stop only the affected path for invalid source/effect attribution, canonical/runtime failure, incoherent template identity, unavailable required operation or a material unresolved owner decision. Do not substitute the crew-reservation tracer, an inert partial net, operator-authored construction or a one-off scripted explanation. Do not broaden from the selected substantial scenario into arbitrary parity, universal semantics or the entire after-demo evaluation portfolio without explicit scope authority.
 
 ## Cut and PR boundary
 
-Use FE-1573 for both PRs under Lu's explicit split decision; proposed branch `ln/fe-1573-mission-7b`, based on the inspected Part A tip. Keep Part A's UI fix before its merge. At the authorized branch transition, archive its contract with the bounded engineering status (not full semantic acceptance), convert this draft into the sole live `MISSION.md`, return any unselected item to the future record and remove this consumed draft. Do not rebase, force-push or rewrite another agent's history as incidental preparation.
+Use FE-1573 for both PRs under Lu's explicit split decision; proposed branch `ln/fe-1573-mission-7b`, based on the inspected Part A tip. Keep Part A's UI fix and FE-1645 integration before its merge. At the authorized branch transition, archive Part A with bounded engineering status, convert this draft into the sole live `MISSION.md`, return unselected items to the future spine and remove this consumed draft. Do not mark the former evaluation campaign passed, and do not preserve the superseded narrow scripted interpretation as competing authority.

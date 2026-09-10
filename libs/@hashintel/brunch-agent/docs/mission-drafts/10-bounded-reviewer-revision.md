@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7b](7b-september-demo.md) brings forward one ordinary correction → saved workpiece → bounded net update → updated explanation. This draft retains the broader reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not require that entire semantic programme, or implement a generic semantic gate, to demonstrate the 7b mechanical flow. Re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
+**Demo allocation:** [Mission 7b](7b-september-demo.md) requires ordinary PM exploration of a substantial broadly explainable flagship plus one correction family: saved workpiece revision → bounded net update without unrelated rebuilding → updated explanation distinguishing original support and correction. The live route is rehearsed but must tolerate ordinary rephrasing, follow-up and selection beyond one scripted element. This draft retains the general reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not implement a universal semantic gate to satisfy 7b; re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
 
 ## Cold-start reads
 

@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** optimisation is after the currently agreed September endpoint in [Mission 7b](7b-september-demo.md). The desired elicitation/construction video is not a simulation or optimisation claim. Consumer discovery may inform later choices, but this draft's handoff package, quantitative modelling strategy and six consumer decisions are not prerequisites to the live open/explain/correct/update flow. A changed demo endpoint requires a new owner decision.
+**Demo allocation:** [Mission 7b](7b-september-demo.md) requires database-seeded substantial worked scenarios, broad flagship explanation readiness, ordinary correction/reopen and a persona-driven construction recording. A scenario-specific dynamics policy and meaningful simulation enter when the agreed flagship claim is executable; neither alone is optimisation. This draft's general optimisation support, accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions remain after 7b unless Lu explicitly adds that tier to the demo.
 
 ## Cold-start reads
 
