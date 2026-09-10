@@ -2,14 +2,19 @@
 
 ## Status
 
-**Live; local implementation verified; provider/human evaluation outstanding.** Sole execution authority on
+**Live; one short live reply verified; original failure and broader evaluation unresolved.** Sole execution authority on
 `ka/realtime-voice-rephrasing`, a sibling of #9622 based on #9585 at
 [0902dddb](https://github.com/hashintel/hash/commit/0902dddbbfd53ac98499c44a7302339bca135563).
 The owner approved Approach A and its queue, interruption and Stop semantics in
 [this conversation](https://ampcode.com/threads/T-01a0872b-b4a7-7656-b707-800e3ad62816).
-The owner authorized committing, pushing, and opening this sibling experiment as a draft PR,
-with Amp thread identifiers removed from its commit messages. Paid calls, issue creation,
-unrelated external writes, manual deployment and mission acceptance remain unauthorized.
+Draft [#9638](https://github.com/hashintel/hash/pull/9638) and
+[FE-1654](https://linear.app/hash/issue/FE-1654/test-realtime-rephrasing-of-completed-brunch-responses)
+are published with owner approval; commit messages omit Amp thread identifiers. The owner
+requested fixing the missing answer and making delivery conversational. The current local
+follow-up does not yet establish the original failure's cause. The owner-approved short live
+Voice diagnostic ($2 aggregate provider budget) is complete; its evidence and setup limitation
+are recorded below. Additional paid trials, further issue writes, unrelated external writes,
+manual deployment and mission acceptance remain unauthorized.
 The inherited CORS mission is preserved without acceptance in
 [its historical record](docs/mission-archive/sre-1042-browser-origin-policy.md).
 
@@ -39,14 +44,16 @@ snapshot → application-requested Realtime rephrasing → audio. No new endpoin
   re-express supplied completed content; it must never originate domain claims/questions or
   invoke tools. A Brunch question is delivered in its exact marked wording.
 - VAD never automatically creates or interrupts a response. The application gates every request.
-  Fixed notices are tied to receipt (“Got that.”), actual queue retention (“I’ve queued that for
-  next.”), or admitted continuation (“Brunch is continuing the response.”). Deduplicate/coalesce
+  Fixed notices are tied to receipt (“Okay, I hear you.”), actual queue retention (“Okay, I’ll
+  come back to that next.”), or admitted continuation (“I’m picking up from those results.”). Deduplicate/coalesce
   notices and drop obsolete ones. No timer-generated or inferred progress.
 - Rephrasing receives the complete ordered canonical response and valid question marker only,
   with `conversation: "none"` and explicit input. No reasoning, partial output, raw tool results,
   history, or queued user words. Preserve negation, quantities, uncertainty, consequential
   qualifications, later corrections and proposed/attempted/completed/validated distinctions.
-  Prefer 2–4 sentences; fidelity wins over length. Source text is data, never instructions.
+  Prefer 2–4 sentences; fidelity wins over length. Lead with the substantive answer in plain
+  conversational language, using contractions without narrating the handoff. Source text is
+  data, never instructions.
 - Every root and causally linked continuation must settle successfully, and automatic browser
   work must be finished, before final speech. Track continuations at admission, including those
   with no message. UI `ready` and individual message completion are not success authorities.
@@ -153,6 +160,31 @@ were inspected: no queued transcript list, readable count and recovery actions, 
 indicator. Browser DOM checks exercise Resume and Discard. Local evidence does not establish
 provider fidelity or an audible latency result.
 
+### One short live Voice diagnostic — 2026-09-10
+
+- Fresh headless Chrome conversation at the local website, actual Realtime/WebRTC, actual
+  panel/Flue/Brunch path. Synthetic input: “In two sentences, what is a Petri net? Do not change
+  the model.” Brunch completed one submission; its two-sentence answer stayed visible while
+  Realtime delivered a complete three-sentence rephrasing after the receipt. No domain tools ran.
+- Returned audio was recorded and inspected, not inferred from events alone: acknowledgement
+  and substantive answer are audible, clear and untruncated. This sample added no claims or lost
+  qualifications relative to Brunch's source. Screenshot inspection found one canonical answer,
+  no duplicate Voice bubble, and Listening after playback. This is not human acceptance.
+- Provider-buffer timing proxies: acknowledgement 1,267 ms after speech-end, final audio 664 ms
+  after whole-reply readiness. Silence from acknowledgement-end to final audio: 2,453 ms,
+  including 1,789 ms before reply readiness. These are not measured first-audible timestamps.
+- Budget evidence: Brunch reports $0.004066; Realtime usage prices to $0.033936, plus input
+  transcription (85 input / 19 output tokens). No further scenario ran. A preliminary connection
+  saw speech-start but no commit/response: the synthetic stream needed continuous trailing
+  silence. That setup was repaired before the single query reached Brunch.
+- Test-specific Realtime ceiling: 2,048 output tokens for the paraphrase (540 used), at most
+  three response requests (two used). Production prompts and completion gates were unchanged.
+  Local artifacts: `/tmp/voice-diagnostic-trace.json`, `/tmp/voice-diagnostic-output.wav`,
+  `/tmp/voice-diagnostic-result.png`. Temporary browser instrumentation was removed afterward.
+- Current website checks: 378 tests, build, typecheck and lint pass. The earlier reported failure
+  did not reproduce; no root-cause fix is claimed. Long answers, continuations, queueing,
+  barge-in, echo and qualification-heavy content still lack a live witness on this variant.
+
 ## Constraints
 
 No Brunch-as-tool, delegation, independent Realtime domain reasoning, additional backend route,
@@ -171,9 +203,10 @@ speaker/headset witnesses remain necessary. Provider token budgets include audio
 headroom. The inherited stopped-after-settled browser-work durability limitation remains, but this
 session must never autoplay stopped work. Live Notion was inaccessible; the human-pasted transcript
 was read and supports bridging, not this newly approved rephrasing/queue design. Existing preview
-configuration and backend deployment remain unverified. No separate Linear issue is linked;
-issue creation still requires approval. Draft publication follows the root repository's
-descriptive-title contribution workflow; the Linear-title CI check may remain blocked.
+backend deployment remains unverified. The original acknowledgement-only run has no captured
+browser lifecycle trace. The short live diagnostic above passed, so the original cause remains
+unknown. A reproduction needs the failing scenario's `answer-ready`, `first-tts-request`,
+`first-tts-audio` and speech diagnostics. Acknowledgement requests do not count as substantive TTS.
 `gh stack` is unavailable; the sibling uses ordinary Git ancestry.
 
 ## Stop or reorient

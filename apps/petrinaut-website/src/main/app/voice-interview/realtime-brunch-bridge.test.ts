@@ -348,6 +348,30 @@ describe("RealtimeBrunchBridge completed-response experiment", () => {
       },
     ]);
     expect(harness.session.speakParaphrase).not.toHaveBeenCalled();
+    expect(harness.events).toContainEqual({
+      type: "error",
+      code: "interview-response",
+      message:
+        "Brunch finished, but Voice received unfinished text. Read the response on screen.",
+    });
+  });
+
+  test("reports a completed turn with no correlated speakable text instead of silently returning to listening", async () => {
+    const harness = createHarness();
+    const input = await harness.submit();
+    harness.admit(input);
+    harness.bridge.notifySubmissionSettled({
+      submissionId: "root",
+      outcome: "completed",
+    });
+    harness.finish(input, [response("unrelated", "Not this turn.")]);
+    expect(harness.session.speakParaphrase).not.toHaveBeenCalled();
+    expect(harness.events).toContainEqual({
+      type: "error",
+      code: "interview-response",
+      message:
+        "Brunch finished, but Voice could not find its response to speak. Read the conversation on screen.",
+    });
   });
 
   test("retains exact Brunch question marker in the completed response only", async () => {

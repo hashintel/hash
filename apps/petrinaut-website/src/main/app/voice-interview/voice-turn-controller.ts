@@ -762,6 +762,7 @@ export class VoiceTurnController {
       if (
         event.type !== "bridging-speech-requested" &&
         requestSpeechKind !== "bridging" &&
+        requestSpeechKind !== "acknowledgement" &&
         requestSpeechKind !== "progress"
       ) {
         this.#ttsSpeechRequestId = event.speechRequestId;

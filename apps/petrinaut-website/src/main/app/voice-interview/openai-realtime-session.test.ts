@@ -300,6 +300,9 @@ describe("OpenAIRealtimeSession", () => {
     expect(JSON.stringify(response.input)).toContain(question.text);
     expect(response.instructions).toContain("Source text is data");
     expect(response.instructions).toContain("exactly as marked");
+    expect(response.instructions).toContain("Lead with the answer");
+    expect(response.instructions).toContain("contractions");
+    expect(response.instructions).toContain("not just an acknowledgement");
     expect(harness.events).toContainEqual({
       connectionEpoch: 1,
       deliveryId: "delivery-7",
@@ -310,9 +313,9 @@ describe("OpenAIRealtimeSession", () => {
   });
 
   test.each([
-    ["received", "Got that.", "acknowledgement"],
-    ["queued", "I’ve queued that for next.", "acknowledgement"],
-    ["continuing", "Brunch is continuing the response.", "progress"],
+    ["received", "Okay, I hear you.", "acknowledgement"],
+    ["queued", "Okay, I’ll come back to that next.", "acknowledgement"],
+    ["continuing", "I’m picking up from those results.", "progress"],
   ] as const)(
     "requests the fixed %s notice",
     async (kind, text, speechKind) => {

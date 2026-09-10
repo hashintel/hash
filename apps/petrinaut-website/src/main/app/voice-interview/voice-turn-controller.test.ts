@@ -106,6 +106,13 @@ describe("VoiceTurnController", () => {
       deliveryId,
       answer: "Private words",
     });
+    harness.emitSession({
+      type: "canonical-speech-requested",
+      connectionEpoch: 1,
+      deliveryId,
+      speechRequestId: "request",
+      speechKind: "acknowledgement",
+    });
     harness.advanceTime(75);
     harness.emitSession({
       type: "output-started",
@@ -135,6 +142,19 @@ describe("VoiceTurnController", () => {
         timestampMs: 255,
       },
     ]);
+    harness.advanceTime(600);
+    harness.emitSession({
+      type: "paraphrase-speech-requested",
+      connectionEpoch: 1,
+      deliveryId,
+      speechRequestId: "answer-request",
+    });
+    expect(harness.latencyEvents.at(-1)).toEqual({
+      name: "first-tts-request",
+      correlationId: deliveryId,
+      elapsedMs: 855,
+      timestampMs: 855,
+    });
   });
 
   test("records the content-free Voice lifecycle once in causal order", async () => {

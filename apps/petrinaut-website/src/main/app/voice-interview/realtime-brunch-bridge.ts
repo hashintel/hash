@@ -457,6 +457,12 @@ export class RealtimeBrunchBridge {
             )
           ) {
             this.#stopDelivery(delivery, "withheld");
+            this.#emit({
+              type: "error",
+              code: "interview-response",
+              message:
+                "Brunch finished, but Voice received unfinished text. Read the response on screen.",
+            });
             return;
           }
           // Copy canonical strings now, before the panel admits the next turn.
@@ -526,6 +532,12 @@ export class RealtimeBrunchBridge {
     const { segments, questionSegment } = delivery.completedResponse;
     if (segments.length === 0) {
       this.#stopDelivery(delivery, "withheld");
+      this.#emit({
+        type: "error",
+        code: "interview-response",
+        message:
+          "Brunch finished, but Voice could not find its response to speak. Read the conversation on screen.",
+      });
       return;
     }
     this.#deliveries.delete(delivery.deliveryId);
