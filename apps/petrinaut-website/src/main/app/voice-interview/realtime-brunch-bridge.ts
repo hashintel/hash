@@ -968,6 +968,7 @@ export class RealtimeBrunchBridge {
           segments: [],
           type: "canonical-response-ready",
         });
+        this.#drainPendingInterruption();
       }
       return;
     }
