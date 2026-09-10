@@ -95,6 +95,8 @@ type SelectBaseProps<TValue extends string> = {
   emptyState?: React.ReactNode;
   /** Called when the dropdown opens or closes */
   onOpenChange?: (open: boolean) => void;
+  /** Mount with the dropdown already open. Read once on mount; it does not open or close the dropdown afterwards, and `onOpenChange` does not fire for this initial state. */
+  defaultOpen?: boolean;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
@@ -390,6 +392,7 @@ export const Select = <TValue extends string>({
   autoFocus,
   emptyState,
   onOpenChange,
+  defaultOpen,
   searchable,
   ...ariaProps
 }: SelectProps<TValue>) => {
@@ -437,9 +440,11 @@ export const Select = <TValue extends string>({
   // Ark dismisses on Escape from a native document-capture listener — before
   // any React handler — so the only spot that reliably precedes the close is
   // a window-capture listener; the close handler then consumes the flag.
-  const isOpenRef = useRef(false);
+  // A `defaultOpen` mount starts mid-"session": ark fires no onOpenChange
+  // for the initial state, so the refs seed as if it had just opened.
+  const isOpenRef = useRef(!!defaultOpen);
   const escapedRef = useRef(false);
-  const valueAtOpenRef = useRef<TValue[]>([]);
+  const valueAtOpenRef = useRef<TValue[]>(defaultOpen ? selectedValues : []);
   useEffect(() => {
     if (!multiple) {
       return;
@@ -752,6 +757,7 @@ export const Select = <TValue extends string>({
       collection={collection}
       value={selectedValues}
       multiple={multiple}
+      defaultOpen={defaultOpen}
       closeOnSelect={!multiple}
       onValueChange={({ value: nextValue }) => {
         if (multiple) {

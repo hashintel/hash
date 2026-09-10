@@ -115,6 +115,7 @@ const FilterSelectInput = ({
   size,
   disabled,
   invalid,
+  defaultOpen,
   ariaLabel,
   assignRef,
   onSlotChange,
@@ -125,6 +126,8 @@ const FilterSelectInput = ({
   size: FormInputSize;
   disabled?: boolean;
   invalid?: boolean;
+  /** Mount with the dropdown already open (a fresh operator's first input) */
+  defaultOpen?: boolean;
   ariaLabel: string;
   assignRef: (element: HTMLElement | null) => void;
   onSlotChange: (value: SlotValue) => void;
@@ -170,6 +173,7 @@ const FilterSelectInput = ({
     placeholder: config.placeholder,
     emptyState: config.emptyState,
     renderItem: config.renderItem,
+    defaultOpen,
     onOpenChange,
     ref: assignRef,
     "aria-label": ariaLabel,
@@ -256,7 +260,28 @@ export const Filter = <
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
-  const dropdownOpenRef = useRef(false);
+  // Open state per dropdown kind — both suppress blur-commits while open
+  // (focus may sit in the portaled list). They are separate refs because an
+  // auto-opened select segment is marked open while the operator dropdown's
+  // own close event is still to come, which must not clear that mark.
+  const operatorDropdownOpenRef = useRef(false);
+  const selectDropdownOpenRef = useRef(false);
+  // Closing a select's dropdown with Escape reverts the draft instead of
+  // committing. Ark dismisses on Escape from a native document-capture
+  // listener — before any React handler — so the only spot that reliably
+  // precedes the close is a window-capture listener.
+  const selectEscapedRef = useRef(false);
+  useEffect(() => {
+    const markEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && selectDropdownOpenRef.current) {
+        selectEscapedRef.current = true;
+      }
+    };
+    window.addEventListener("keydown", markEscape, true);
+    return () => {
+      window.removeEventListener("keydown", markEscape, true);
+    };
+  }, []);
 
   const flatOperators = useMemo(
     () => flattenOperators(looseOperators),
@@ -275,6 +300,10 @@ export const Filter = <
   const [draftKey, setDraftKey] = useState<string | null>(
     value?.key ?? defaultKey,
   );
+  // The operator whose first (select) input should mount with its dropdown
+  // already open — set when the user picks that operator, so the segment
+  // renders open in the same commit and never paints a closed frame.
+  const [autoOpenKey, setAutoOpenKey] = useState<string | null>(null);
   const [slots, setSlots] = useState<SlotValue[]>(() =>
     slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
   );
@@ -298,6 +327,9 @@ export const Filter = <
   if (!committedEqual(syncedValue, value)) {
     setSyncedValue(value);
     setDraftKey(value?.key ?? defaultKey);
+    // An externally adopted value must not resurrect a pending auto-open
+    // when its remounted segment happens to match the auto-open operator.
+    setAutoOpenKey(null);
     setSlots(
       slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
     );
@@ -309,6 +341,7 @@ export const Filter = <
     // `operators` changed while `value` stayed null: re-apply the
     // lone-operator default when the draft no longer names an operator.
     setDraftKey(defaultKey);
+    setAutoOpenKey(null);
     setSlots(slotsForValue(operatorByKey(defaultKey), null));
   }
 
@@ -374,24 +407,35 @@ export const Filter = <
     if (!operator) {
       return;
     }
+    const configs = inputConfigsOf(operator);
     const nextSlots =
       value && value.key === nextKey
         ? slotsForValue(operator, value.value)
         : slotsForValue(operator, null);
     setDraftKey(nextKey);
     applySlots(nextSlots);
-    if (inputConfigsOf(operator).length === 0) {
+    if (configs.length === 0) {
       // No input to fill in: choosing the operator is itself the submission.
       commitDraft(nextKey, nextSlots);
-    } else {
-      focusFirstInput();
+      setAutoOpenKey(null);
+      return;
     }
+    // A leading select input mounts with its dropdown already open (in the
+    // same commit — opening after the fact would paint a closed frame
+    // first). Ark fires no onOpenChange for that initial state, so the
+    // open-tracking ref is seeded here.
+    const autoOpen = configs[0]?.type === "select";
+    setAutoOpenKey(autoOpen ? nextKey : null);
+    if (autoOpen) {
+      selectDropdownOpenRef.current = true;
+    }
+    focusFirstInput();
   };
 
   const handleRootBlur = (event: React.FocusEvent<HTMLDivElement>) => {
-    // While the (portaled) dropdown is open focus legitimately sits outside
-    // the root, so only blur-commit when it is closed.
-    if (dropdownOpenRef.current) {
+    // While a (portaled) dropdown is open focus legitimately sits outside
+    // the root, so only blur-commit when every dropdown is closed.
+    if (operatorDropdownOpenRef.current || selectDropdownOpenRef.current) {
       return;
     }
     const next = event.relatedTarget as Node | null;
@@ -432,26 +476,6 @@ export const Filter = <
     applySlots(next);
   };
 
-  // A select segment's dropdown suppresses blur-commits while open (focus
-  // may sit in the portaled list) and ends the interaction when it closes:
-  // commit then, off the ref, as the change and close events of a single
-  // click land before the slot state re-renders. Closing with Escape reverts
-  // instead, matching Escape in a text input. Ark dismisses on Escape from a
-  // native document-capture listener — before any React handler — so the
-  // only spot that reliably precedes the close is a window-capture listener.
-  const selectDropdownOpenRef = useRef(false);
-  const selectEscapedRef = useRef(false);
-  useEffect(() => {
-    const markEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && selectDropdownOpenRef.current) {
-        selectEscapedRef.current = true;
-      }
-    };
-    window.addEventListener("keydown", markEscape, true);
-    return () => {
-      window.removeEventListener("keydown", markEscape, true);
-    };
-  }, []);
   // Escape while the dropdown is closed reverts too, as in a text input.
   // This handler runs after a dropdown Escape has already closed + reverted,
   // where the repeated revert is a no-op.
@@ -460,8 +484,11 @@ export const Filter = <
       revertDraft();
     }
   };
+  // A select segment's dropdown ends its interaction when it closes: commit
+  // then, off the ref, as the change and close events of a single click land
+  // before the slot state re-renders. An Escape-close reverts instead,
+  // matching Escape in a text input.
   const handleSelectOpenChange = (open: boolean) => {
-    dropdownOpenRef.current = open;
     selectDropdownOpenRef.current = open;
     if (open) {
       selectEscapedRef.current = false;
@@ -540,7 +567,7 @@ export const Filter = <
         handleOperatorSelect(nextValue[0])
       }
       onOpenChange={({ open }) => {
-        dropdownOpenRef.current = open;
+        operatorDropdownOpenRef.current = open;
       }}
       disabled={disabled}
       loopFocus={false}
@@ -627,6 +654,7 @@ export const Filter = <
                 size={size}
                 disabled={disabled}
                 invalid={invalid}
+                defaultOpen={inputIndex === 0 && draftKey === autoOpenKey}
                 ariaLabel={ariaLabel}
                 assignRef={assignInputRef}
                 onSlotChange={(next) => setSlot(inputIndex, next)}
