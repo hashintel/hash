@@ -250,7 +250,7 @@ try {
         for (const requiredPromptText of [
           "Before answering a user request about this model or the current, open, visible, or existing net",
           "getLatestNetDefinition",
-          "unless its client-tool result is already present in the current continuation",
+          "The tool is available at the start of each user turn and is withdrawn after you call it",
         ]) {
           if (!modelRequest.includes(requiredPromptText)) {
             throw new Error(`model request omitted: ${requiredPromptText}`);

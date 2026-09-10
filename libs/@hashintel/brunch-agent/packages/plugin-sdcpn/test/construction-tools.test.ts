@@ -1,26 +1,42 @@
 import * as v from "valibot";
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import type { DeliveredMessage } from "@flue/runtime";
+import type { DeliveredMessage, ToolDefinition } from "@flue/runtime";
 
 const pluginRender = vi.hoisted(() => ({
+  agentStartCallbacks: [] as (() => void)[],
+  currentNetReadState: "unavailable" as unknown,
   delivery: { kind: "user", body: "" } as unknown,
   initialData: undefined as unknown,
-  toolNames: [] as string[],
+  tools: new Map<string, ToolDefinition>(),
 }));
 
 vi.mock("@flue/runtime", async (importOriginal) => {
   const runtime = await importOriginal<typeof import("@flue/runtime")>();
   return {
     ...runtime,
+    useAgentStart: (callback: () => void) => {
+      pluginRender.agentStartCallbacks.push(callback);
+    },
     useDelivery: () => pluginRender.delivery,
     useInitialData: () => pluginRender.initialData,
     useInstruction: () => {},
+    usePersistentState: () => [
+      pluginRender.currentNetReadState,
+      (next: unknown) => {
+        pluginRender.currentNetReadState =
+          typeof next === "function"
+            ? (next as (previous: unknown) => unknown)(
+                pluginRender.currentNetReadState,
+              )
+            : next;
+      },
+    ],
     useSkill: () => {},
-    useTool: (tool: { readonly name: string }) => {
-      pluginRender.toolNames.push(tool.name);
+    useTool: (tool: ToolDefinition) => {
+      pluginRender.tools.set(tool.name, tool);
     },
   };
 });
@@ -48,13 +64,37 @@ const toolByName = (toolName: string) => {
   return constructionTool;
 };
 
-const mountedToolNamesFor = (delivery: DeliveredMessage): readonly string[] => {
+const mountedToolsFor = (
+  delivery: DeliveredMessage,
+): ReadonlyMap<string, ToolDefinition> => {
+  pluginRender.agentStartCallbacks = [];
   pluginRender.delivery = delivery;
   pluginRender.initialData = undefined;
-  pluginRender.toolNames = [];
+  pluginRender.tools = new Map();
   useSdcpnPlugin();
-  return pluginRender.toolNames;
+  const mountedTools = new Map(pluginRender.tools);
+  for (const callback of pluginRender.agentStartCallbacks) callback();
+  return mountedTools;
 };
+
+const mountedToolNamesFor = (delivery: DeliveredMessage): readonly string[] => [
+  ...mountedToolsFor(delivery).keys(),
+];
+
+const invokeTool = async (tool: ToolDefinition): Promise<void> => {
+  await tool.run({
+    toolCallId: "tool-current-net-1",
+    log: {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    },
+  } as never);
+};
+
+beforeEach(() => {
+  pluginRender.currentNetReadState = "unavailable";
+});
 
 describe("Petrinaut construction tools", () => {
   test("accepts only the ordinary headless and prepared-fixture modes", () => {
@@ -165,6 +205,8 @@ describe("Petrinaut construction tools", () => {
 
 describe("SDCPN plugin tool exposure", () => {
   test("keeps the current-net reader after a different client tool result", () => {
+    mountedToolNamesFor({ kind: "user", body: "Explain this net." });
+
     const mountedToolNames = mountedToolNamesFor({
       kind: "signal",
       type: "client-tool-result",
@@ -182,7 +224,15 @@ describe("SDCPN plugin tool exposure", () => {
     expect(mountedToolNames).not.toContain("addArc");
   });
 
-  test("unmounts the current-net reader after its result", () => {
+  test("unmounts the current-net reader after it is invoked", async () => {
+    const userTools = mountedToolsFor({
+      kind: "user",
+      body: "Explain this net.",
+    });
+    const currentNetReader = userTools.get("getLatestNetDefinition");
+    if (!currentNetReader) throw new Error("Missing current-net reader");
+    await invokeTool(currentNetReader);
+
     const mountedToolNames = mountedToolNamesFor({
       kind: "signal",
       type: "client-tool-result",
@@ -197,5 +247,60 @@ describe("SDCPN plugin tool exposure", () => {
     });
 
     expect(mountedToolNames).not.toContain("getLatestNetDefinition");
+  });
+
+  test("does not remount the current-net reader after a later tool result", async () => {
+    const userTools = mountedToolsFor({
+      kind: "user",
+      body: "Explain this net.",
+    });
+    const currentNetReader = userTools.get("getLatestNetDefinition");
+    if (!currentNetReader) throw new Error("Missing current-net reader");
+    await invokeTool(currentNetReader);
+
+    mountedToolNamesFor({
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-current-net-1",
+          toolName: "getLatestNetDefinition",
+          output: { title: "Current net" },
+        },
+      ]),
+    });
+
+    const mountedToolNames = mountedToolNamesFor({
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-doc-1",
+          toolName: "readPetrinautDoc",
+          output: "# AI Assistant",
+        },
+      ]),
+    });
+
+    expect(mountedToolNames).not.toContain("getLatestNetDefinition");
+  });
+
+  test("mounts the current-net reader again for the next user turn", async () => {
+    const userTools = mountedToolsFor({
+      kind: "user",
+      body: "Explain this net.",
+    });
+    const currentNetReader = userTools.get("getLatestNetDefinition");
+    if (!currentNetReader) throw new Error("Missing current-net reader");
+    await invokeTool(currentNetReader);
+
+    const mountedToolNames = mountedToolNamesFor({
+      kind: "user",
+      body: "Review the updated net.",
+    });
+
+    expect(mountedToolNames).toContain("getLatestNetDefinition");
   });
 });

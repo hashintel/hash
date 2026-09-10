@@ -2,6 +2,7 @@
 "@hashintel/petrinaut": patch
 ---
 
-Document that Brunch grounds current-net explain, review, and interview responses
-from an on-demand browser snapshot shared by typed and completed Voice input,
-without claiming automatic construction or provenance.
+Document that Brunch gives typed and completed Voice conversations the same
+on-demand current-net read capability and pre-answer instruction, without
+claiming that every response is mechanically guaranteed to use a fresh
+snapshot, automatic construction, or provenance.

@@ -1,8 +1,9 @@
 import {
-  type DeliveredMessage,
+  useAgentStart,
   useDelivery,
   useInitialData,
   useInstruction,
+  usePersistentState,
   useSkill,
   useTool,
 } from "@flue/runtime";
@@ -42,45 +43,26 @@ export const sdcpnInitialDataSchema = v.optional(
 
 export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 
-const clientToolResultSignalType = "client-tool-result";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const hasCurrentNetResult = (delivery: DeliveredMessage): boolean => {
-  if (
-    delivery.kind !== "signal" ||
-    delivery.type !== clientToolResultSignalType
-  ) {
-    return false;
-  }
-
-  let results: unknown;
-  try {
-    results = JSON.parse(delivery.body);
-  } catch {
-    return false;
-  }
-
-  return (
-    Array.isArray(results) &&
-    results.some(
-      (result) =>
-        isRecord(result) &&
-        result["toolName"] === getLatestNetDefinitionToolName,
-    )
-  );
-};
+type CurrentNetReadState = "unavailable" | "available" | "requested";
 
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(): void {
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
+  const [currentNetReadState, setCurrentNetReadState] =
+    usePersistentState<CurrentNetReadState>(
+      "sdcpn-current-net-read",
+      "unavailable",
+    );
+
+  useAgentStart(() => {
+    if (delivery.kind === "user") setCurrentNetReadState("available");
+  });
 
   useInstruction(sdcpnAppend.trim());
   useInstruction(
     `
-Before answering a user request about this model or the current, open, visible, or existing net—including explaining it, reviewing it, checking completeness, or beginning an interview—call \`${getLatestNetDefinitionToolName}\` once for that user turn unless its client-tool result is already present in the current continuation.
+Before answering a user request about this model or the current, open, visible, or existing net—including explaining it, reviewing it, checking completeness, or beginning an interview—call \`${getLatestNetDefinitionToolName}\` once for that user turn while it is available. The tool is available at the start of each user turn and is withdrawn after you call it.
 Use the returned live state as machine evidence. Do not say the canvas or net is unavailable while this tool is callable, and do not reuse a snapshot from an earlier user turn.
 `.trim(),
   );
@@ -92,10 +74,8 @@ Use the returned live state as machine evidence. Do not say the canvas or net is
   const isPreparedFixture = initialData?.mode === validatedFixtureMutationMode;
   const isPreparedFixtureInitialization =
     delivery.kind === "signal" && delivery.type === preparedWorkpieceSignalType;
-  const isClientToolContinuationWithoutCurrentNet =
-    delivery.kind === "signal" &&
-    delivery.type === clientToolResultSignalType &&
-    !hasCurrentNetResult(delivery);
+  const isCurrentNetReadAvailable =
+    delivery.kind === "user" || currentNetReadState === "available";
   const fixtureToolNameSet = new Set<string>(petrinautFixtureToolNames);
 
   if (isValidatedConstruction) {
@@ -119,14 +99,22 @@ This is a visibly labelled prepared-fixture conversation. Treat its tagged prepa
       !isCurrentNetRead && fixtureToolNameSet.has(constructionTool.name);
     if (
       isValidatedConstruction ||
-      (isCurrentNetRead &&
-        (delivery.kind === "user" ||
-          isClientToolContinuationWithoutCurrentNet)) ||
+      (isCurrentNetRead && isCurrentNetReadAvailable) ||
       (isPreparedFixture &&
         !isPreparedFixtureInitialization &&
         isFixtureMutation)
     ) {
-      useTool(constructionTool);
+      useTool(
+        isCurrentNetRead
+          ? {
+              ...constructionTool,
+              run(context) {
+                setCurrentNetReadState("requested");
+                return constructionTool.run(context);
+              },
+            }
+          : constructionTool,
+      );
     }
   }
 }
