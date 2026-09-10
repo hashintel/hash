@@ -1,188 +1,120 @@
-# Brunch remote browser-origin policy
+# Brunch architecture-check ownership
 
 ## Status
 
-**Live as of 2026-09-08** for
-[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
-on `t/sre-1042-allow-wildcard-origins-for-brunch-previews`, cut from `main` after
-[FE-1626](https://github.com/hashintel/hash/pull/9583) established the exact-origin allow-list for
-`/agents/*`. This file is the branch's sole execution authority.
-
-Exact origins alone do not fit the deployment: every Petrinaut preview has its own
-`https://petrinaut-git-<branch>.stage.hash.ai` origin, so the allow-list additionally accepts a
-wildcard for exactly one leading host label. CORS governs whether a conforming browser exposes a cross-origin response
-to client code; it does not authenticate or restrict non-browser callers, authorize a
-conversation, or make public exposure safe by itself.
-
-## Supplemental FE-1580 settlement follow-up
-
-**Live as of 2026-09-08** for
-[PR #9588](https://github.com/hashintel/hash/pull/9588) on
-`kostandin/fe-1580-port-voice-settlement-fixes`, based directly on current
-`main` after #9564 and #9537 merged. This supplement preserves the accepted
-Voice contract without changing the CORS authority in this file.
-
-- **Imperative:** semantically port the omitted #9531 commit `9415e1b007`;
-  release silent Voice ownership and settle completed submissions without
-  canonical prose. Preserve failed durable Stop errors and remove the stale
-  browser `brunch_ask` catalogue entry.
-- **Throughline:** OpenAI terminal output → session/bridge/controller ownership;
-  correlated Brunch settlement → next Voice turn; panel Stop rejection →
-  deferred browser-tool termination; shared browser catalogue →
-  transport/history.
-- **Proof:** donor session/bridge/controller and preview regressions; panel DOM
-  tests for persistent Stop failure and withheld continuation; catalogue and
-  fixture tests; focused unit, build, TypeScript, ESLint and formatting checks.
-  These tests establish local settlement behavior, not paid-provider behavior,
-  audible latency or a new microphone witness.
-- **Constraints:** preserve current `main`'s accepted Voice and CORS joins; no
-  #9538 grounding, #9550 VAD/interruption, snapshot-overlay or provenance
-  rollback work, generic interactive tools, obsolete shim, or `brunch_ask`
-  restoration.
-- **Stop or reorient:** stop if the port erases errors, releases unrelated
-  playback, revives withheld tools, weakens the CORS policy, or disturbs other
-  work.
+**Live as of 2026-09-09** for
+[SRE-1010](https://linear.app/hash/issue/SRE-1010/move-brunch-architecture-checks-out-of-core-unit-tests)
+on `ln/sre-1010-move-brunch-checks`. This file is the branch's sole execution authority.
 
 ## Imperative
 
-Let a deployed Petrinaut website use the Brunch `/agents/*` Flue routes from an explicitly trusted
-browser origin while causing browsers to withhold cross-origin access from unlisted origins. Do
-this now because the deployed website and Brunch service are separate origins and
-[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
-cannot point the browser at the deployed Brunch route until preflight and response headers work.
+Remove static-policy source walkers from Brunch unit tests and let each existing enforcement
+mechanism own the contract it can prove: Oxlint owns authored imports, Yarn owns manifests, and
+behavioral tests own emitted behavior. Do this now because the SRE-1007 hotfix modeled sibling
+packages and the app as inputs to core, creating a reverse `libs -> apps` edge and requiring
+downstream trees in a core prune.
 
 ## Throughline
 
 ```text
-Petrinaut browser at one configured exact origin
-→ OPTIONS /agents/<agent>/<instance> with requested method and headers
-→ route-scoped Hono CORS middleware before ownership middleware
-→ 204 preflight carrying the matching origin, GET/POST/OPTIONS, and Flue request headers
-→ browser FlueClient GET/POST with x-brunch-principal + x-brunch-conversation
-→ existing agentOwnershipGuard and createAgentRouter
-→ response exposes the Flue/Durable Streams headers the browser SDK reads
+authored dependency-boundary violation
+→ the owning workspace's package-local Oxlint configuration
+→ an AST-backed lint diagnostic in the existing package lint task
+
+forbidden manifest dependency
+→ the repository's Yarn constraints
+→ install and Global constraint lint fail
+
+change in apps/brunch-agent
+→ @apps/brunch-agent#test:unit
+→ the built artifact must contain every declared agent registration
+
+change in Brunch core
+→ @hashintel/brunch-agent#test:unit
+→ core-local tests and utilities, without context-root, app, or sibling-package inputs
 ```
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of HTTP(S)
-origins, each either exact or with a wildcard as the whole leading host label in front of a domain
-with at least two labels (`https://*.stage.hash.ai`). A wildcard matches exactly one label, like a
-wildcard TLS certificate. Parsing trims whitespace, normalizes an optional trailing slash through
-`URL.origin`, and deduplicates values. Credentials, non-root paths, queries, fragments, wildcards in
-any other position, opaque origins, and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
-empty allowlist: same-origin and non-browser callers continue through the existing route, but
-browser code at another origin receives no CORS grant. See the
-[Brunch application README](../../../apps/brunch-agent/README.md#production-container) for
-operator configuration details.
-
-The middleware applies only to `/agents/*` and runs before `agentOwnershipGuard`, so a valid
-preflight does not need conversation headers. It permits `GET`, `POST`, and `OPTIONS`; permits
-`Content-Type`, `x-brunch-principal`, and `x-brunch-conversation`; does not permit credentials; and
-uses a 600-second preflight cache. It exposes the non-safelisted response headers read by the
-installed Flue 2.0.3 and Durable Streams 0.2.6 clients:
-
-- `flue-error-ref`
-- `Stream-Next-Offset`
-- `Stream-Cursor`
-- `Stream-Up-To-Date`
-- `Stream-Closed`
-- `stream-sse-data-encoding`
-
-Hono's maintained CORS middleware owns header emission, `Vary` handling, and the `OPTIONS` response.
-Non-browser callers can still send requests and receive ordinary HTTP responses because CORS is
-enforced by browsers, not by the service as caller authentication. A response to an unlisted
-browser origin carries no `Access-Control-Allow-Origin`, so the browser withholds that response
-from client code.
+No replacement family scanner is introduced. Assertions that restate package manifests, filenames,
+source strings, review inventories, or tool configuration are deleted when the existing tool,
+compiler, build, or review is already authoritative.
 
 ## Proof
 
-This mission establishes the application-side CORS contract required by the deployed browser
-transport. It does **not** establish authentication, authorization, rate limiting, infrastructure
-configuration, a deployed endpoint, or end-to-end remote verification.
+This mission establishes native enforcement ownership and prune closure. It does **not** add a new
+policy surface merely to preserve every historical assertion.
 
-1. **Configuration is exact and fail-closed.** Missing and blank configuration produce no allowed
-   origins; whitespace, trailing slashes, duplicates, and multiple exact origins normalize
-   deterministically; malformed or broader-than-origin entries fail with the offending variable
-   named. Oracle: focused unit cases in `apps/brunch-agent/test/cors.test.ts`.
-2. **Allowed browser traffic receives the complete grant.** An allowed origin receives its exact
-   value on an `/agents/*` response. Its preflight receives 204 before ownership, the three allowed
-   methods, the three allowed request headers, the six exposed response headers, no credentials
-   grant, and the required `Vary` values. Oracle: in-process Hono requests in
-   `apps/brunch-agent/test/cors.test.ts`.
-3. **Rejected origins receive no grant.** An unlisted origin's preflight and ordinary response omit
-   `Access-Control-Allow-Origin`; an allowed origin does not make another origin pass. Oracle:
-   focused negative cases in `apps/brunch-agent/test/cors.test.ts`.
-4. **The policy cannot widen unrelated routes.** `/health`, `/`, and `/assets/*` carry no Brunch
-   CORS grant. Existing ownership checks still return 401/403 for actual agent requests with
-   missing or mismatched identity. Oracle: CORS route-scope tests plus the existing
-   `apps/brunch-agent/test/agent-ownership.test.ts`.
-5. **The shipped artifact and operator contract agree.** Brunch's README documents the variable,
-   exact-origin configuration, empty-list behavior, and the fact that CORS governs browser access
-   rather than authenticating or restricting non-browser callers. Oracle:
-   `yarn workspace @apps/brunch-agent test:unit`,
-   `yarn workspace @apps/brunch-agent lint:tsc`,
-   `yarn workspace @apps/brunch-agent lint:eslint`, and
-   `yarn workspace @apps/brunch-agent build`.
+1. **Import boundaries use existing lint infrastructure.** Each Brunch workspace's existing
+   `no-restricted-imports` policy catches forbidden authored imports using Oxlint's parser. Oracle:
+   representative negative lint probes in the owning packages.
+2. **Manifest boundaries use existing repository infrastructure.** The Brunch transport Yarn
+   constraint continues to reject forbidden runtime edges. Oracle: `yarn constraints` and a
+   representative negative manifest probe.
+3. **Agent registration is behavioral.** The app build-artifact test proves every declared agent
+   reaches the emitted registration bundle; source-walking directive and filename checks are
+   removed. Oracle: `yarn workspace @apps/brunch-agent test:unit`.
+4. **A core prune owns no downstream or context-root Brunch tree.** The core task has no app,
+   sibling-package, or context-root input glob, and requesting only core no longer adds them through
+   prune exceptions. The Linear graph utility and its tests are co-located in core. Oracle:
+   `.github/actions/prune-repository/prune_test.py` plus inspection of
+   `turbo run test:unit --filter @hashintel/brunch-agent --dry=json`.
+5. **No bespoke checker remains.** The temporary architecture workspace and repo-chores command,
+   task, scanner, CI step, and coverage constraint are absent. Oracle: repository search plus
+   relevant package lint, typecheck, tests, constraints, and formatting.
 
 ## Constraints
 
-- Use Hono's built-in CORS middleware; do not create a parallel HTTP server or hand-maintain generic
-  CORS response logic.
-- Keep one Flue product route and the existing ownership guard. CORS must not add, proxy, rename, or
-  reinterpret an agent route.
-- The origin list is explicit: exact origins or one-label wildcards, matched by scheme, host and
-  port. Do not hard-code Petrinaut domains, reflect arbitrary `Origin` values, or silently skip
-  malformed entries.
-- Keep credentials disabled. The current browser client uses explicit ownership headers, not
-  cookies, and those headers are not authentication.
-- Answer preflight before ownership while preserving ownership enforcement on every non-preflight
-  agent request.
-- Read configuration once at startup. Dynamic policy storage or hot reload is not earned by this
-  deployment.
-- Preserve local same-origin proxying when the variable is unset.
+- Keep Yarn constraints and package-local Oxlint rules with their current owning packages; do not
+  duplicate them in tests or repo-chores.
+- Preserve behavioral tests that can fail while source and manifests remain unchanged.
+- Delete static assertions whose only oracle is a hard-coded mirror of source, package metadata,
+  review inventory, or file layout.
+- Move the Linear graph utility into core so its real unit tests use static imports and never skip
+  based on checkout shape.
+- Never make a governed workspace depend on a checker or recreate a family-wide source walker.
 - No implementation begins until this authority cut is committed separately. Material changes to
   this contract require owner review and another focused authority commit.
 
 ### Expected touched paths
 
 ```text
-~ libs/@hashintel/brunch-agent/MISSION.md      branch authority
-~ apps/brunch-agent/src/http/cors.ts           exact and one-label wildcard origins, Hono middleware
-~ apps/brunch-agent/src/app.ts                 mount CORS before ownership on /agents/*
-+ apps/brunch-agent/test/cors.test.ts          parser, allowed, rejected, preflight, route-scope tests
-~ apps/brunch-agent/README.md                  deployment variable and security boundary
-~ apps/brunch-agent/turbo.json                 pass the variable into the local dev task
+~ libs/@hashintel/brunch-agent/MISSION.md
+~ apps/brunch-agent/test/build-artifact.test.ts
+- apps/brunch-agent/test/architecture/*
+> libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts
+  -> libs/@hashintel/brunch-agent/packages/core/src/linear-project-graph.ts
+~ libs/@hashintel/brunch-agent/packages/core/test/architecture/linear-project-graph.test.ts
+- libs/@hashintel/brunch-agent/packages/core/test/architecture/context-root.ts
+- libs/@hashintel/brunch-agent/packages/core/test/architecture/open-gaps*
+~ libs/@hashintel/brunch-agent/packages/core/package.json
+~ libs/@hashintel/brunch-agent/packages/core/turbo.json
+~ apps/brunch-agent/turbo.json
+~ .github/actions/prune-repository/prune.py
+~ .github/actions/prune-repository/prune_test.py
+~ yarn.lock
 ```
 
 ## Fog-line
 
-- Infrastructure repository access is unavailable in this worktree, so this branch can prove only
-  the application contract. Runtime deployment configuration must supply the chosen origins before
-  remote verification.
-- A one-label wildcard admits every host directly under the configured domain, not only Petrinaut
-  previews. Narrow the deployed pattern or return to exact origins if that breadth becomes a
-  problem in practice.
-- The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
-  Re-evaluate them from client source when either dependency changes.
+- If an import boundary lacks package-local lint coverage, extend the owning workspace's Oxlint
+  rule rather than introducing a cross-workspace scanner.
+- Some app unit tests independently read non-workspace Brunch evaluation and documentation assets.
+  This mission removes family architecture ownership from the app but does not remove inputs those
+  product tests still genuinely consume.
+- The non-blocking review identifies similar tautological tests outside this architecture cluster.
+  They are evidence of the same defect pattern, but broad product-test cleanup is deferred unless a
+  touched test blocks this ownership change.
 
 ## Stop or reorient
 
-Stop if the real browser client emits a request method or non-safelisted request header outside the
-pinned contract, reads another non-safelisted response header, or needs cookie credentials. Bring
-that evidence back to the contract before broadening the grant.
+Stop if deleting a source-walking assertion removes the only enforcement of a security boundary or
+observable runtime behavior. Preserve that contract in its native tool before deleting the mirror.
 
-Stop if middleware ordering bypasses ownership for a non-`OPTIONS` request, if an invalid
-configuration widens access or is ignored, if an unlisted origin receives
-`Access-Control-Allow-Origin`, or if `/health`, `/`, or `/assets/*` inherit the policy.
-
-Do not represent a green CORS test as permission for unauthenticated public exposure. Authentication,
-per-conversation authorization, rate/spend controls, and the infrastructure ingress boundary remain
-separate release gates.
+Stop if removing a prune exception makes a non-architecture core or app test lose a genuine
+fixture. Preserve that proven dependency narrowly and report it instead of deleting it to satisfy
+the desired graph shape.
 
 ## Deferred
 
-- SRE-1013 owns injection of the allowlist into the Brunch runtime deployment. SRE-1042 owns
-  `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
-  after this application contract lands.
-- FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
-- A same-origin Petrinaut proxy stays deferred; the one-label wildcard covers the preview
-  deployments the exact list could not.
+The canonical future planning record remains [`MISSION.next.md`](MISSION.next.md). SRE-1008 owns
+repository-wide detection of undeclared Turbo task inputs. The broader non-blocking cleanup of
+tautological core tests is deferred.
