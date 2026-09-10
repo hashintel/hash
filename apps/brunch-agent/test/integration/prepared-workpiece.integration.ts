@@ -19,15 +19,15 @@ import { createPreparedWorkpieceDelivery } from "@hashintel/brunch-agent/workpie
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "../src/conversation/client-tools.ts";
+} from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { recoverRunbookWorkpiece } from "../src/conversation/workpiece.ts";
-import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
+} from "../../src/conversation/identity.ts";
+import { recoverRunbookWorkpiece } from "../../src/conversation/workpiece.ts";
+import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
 const modelId = "claude-haiku-4-5";
 const dispatchCrewPlaceId = "dispatch_crew_available";

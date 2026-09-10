@@ -23,19 +23,19 @@ import {
   BRUNCH_QUESTION_TOOL_NAME,
 } from "@hashintel/brunch-agent/question-marker";
 
-import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
-import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
+import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
+import { applyCaptureSweep } from "../../src/capture/apply-sweep.ts";
 import {
   clientToolNames,
   CLIENT_TOOL_RESULT_SIGNAL,
-} from "../src/conversation/client-tools.ts";
+} from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { formatFlueTranscript } from "../src/conversation/transcript.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
+} from "../../src/conversation/identity.ts";
+import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
 import type {
   PetrinautChatResult,

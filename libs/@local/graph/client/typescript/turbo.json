@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@rust/hash-graph-api#manifest"]
+    },
     "build": {
       "dependsOn": ["codegen", "^manifest"],
       "outputs": ["./dist/**"]

@@ -5,9 +5,6 @@
       "outputs": ["./dist/**"],
       "dependsOn": ["^build"]
     },
-    "build:docker": {
-      "dependsOn": ["^manifest"]
-    },
     "dev": {
       "dependsOn": ["^build"]
     },

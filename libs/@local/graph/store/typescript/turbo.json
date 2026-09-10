@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@rust/hash-graph-store#manifest"]
+    },
     "codegen": {
       "dependsOn": ["@rust/hash-graph-store#build:types"],
       "inputs": [
