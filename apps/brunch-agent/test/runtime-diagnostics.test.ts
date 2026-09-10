@@ -77,6 +77,15 @@ describe("classifyError", () => {
         false,
       ),
     ).toEqual({ type: "submission_failed" });
+    expect(
+      classifyError(
+        { type: "submission_failed", message: "primary", details: "secondary" },
+        true,
+      ),
+    ).toMatchObject({ message: "primary" });
+    expect(
+      classifyError({ type: "submission_failed", details: "only" }, true),
+    ).toMatchObject({ message: "only" });
     expect(classifyError(SENTINEL, false)).toEqual({ type: "string" });
     expect(classifyError(undefined, true)).toEqual({ type: "undefined" });
   });

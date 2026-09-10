@@ -50,7 +50,7 @@ const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
 ) => new Signer(config);
 
 const reportDatabaseFailure = async (error: unknown): Promise<void> => {
-  diagnostics.report("database_operation", error);
+  diagnostics.report("database.operation", error);
   try {
     await recordOperationalFailure("database_operation", error);
   } catch {

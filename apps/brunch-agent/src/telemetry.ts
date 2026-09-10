@@ -1,3 +1,5 @@
+import { connect } from "node:net";
+
 import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
 import { instrument } from "@flue/runtime";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
@@ -8,6 +10,8 @@ import {
   type OpenTelemetrySetup,
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
+
+import { logger } from "./logger.ts";
 
 interface TelemetryDependencies {
   readonly createFlueInstrumentation?: typeof createOpenTelemetryInstrumentation;
@@ -59,8 +63,67 @@ export function createBrunchTelemetryInstrumentation(
   };
 }
 
-export const installBrunchTelemetry = (): (() => Promise<void>) =>
-  instrument(createBrunchTelemetryInstrumentation());
+const COLLECTOR_PROBE_TIMEOUT_MS = 750;
+
+/** One TCP connect to the collector, so a dead endpoint is known before exporters exist. */
+export const probeCollector = (
+  endpoint: string,
+  timeoutMs: number = COLLECTOR_PROBE_TIMEOUT_MS,
+): Promise<boolean> =>
+  new Promise((resolve) => {
+    let url: URL;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      resolve(false);
+      return;
+    }
+    const socket = connect({
+      host: url.hostname,
+      port: Number(url.port) || (url.protocol === "https:" ? 443 : 80),
+    });
+    const settle = (reachable: boolean) => {
+      socket.destroy();
+      resolve(reachable);
+    };
+    socket.setTimeout(timeoutMs, () => settle(false));
+    socket.once("connect", () => settle(true));
+    socket.once("error", () => settle(false));
+  });
+
+/**
+ * Outside production, a configured but unreachable collector is dropped
+ * before exporters are registered: otherwise every export interval prints a
+ * gRPC stack over the diagnostics a developer is actually reading. Production
+ * keeps its requirement and never probes.
+ */
+export const withReachableCollector = async (
+  environment: NodeJS.ProcessEnv = process.env,
+  probe: (endpoint: string) => Promise<boolean> = probeCollector,
+): Promise<NodeJS.ProcessEnv> => {
+  const endpoint = environment.HASH_OTLP_ENDPOINT?.trim();
+  if (environment.NODE_ENV === "production" || !endpoint) return environment;
+  if (await probe(endpoint)) return environment;
+  // Host and port only: a collector URL may carry credentials.
+  let target: string | undefined;
+  try {
+    const url = new URL(endpoint);
+    target = url.port ? `${url.hostname}:${url.port}` : url.hostname;
+  } catch {
+    target = undefined;
+  }
+  logger.warn(
+    "[brunch] HASH_OTLP_ENDPOINT is unreachable; running without exporters",
+    { stage: "telemetry.collector", target },
+  );
+  const { HASH_OTLP_ENDPOINT: _unreachable, ...rest } = environment;
+  return rest;
+};
+
+export const installBrunchTelemetry = async (): Promise<() => Promise<void>> =>
+  instrument(
+    createBrunchTelemetryInstrumentation(await withReachableCollector()),
+  );
 
 /** The machine-readable code Node, TLS, and `pg` attach to their errors, if any. */
 export const errorCode = (error: unknown): string | undefined =>
