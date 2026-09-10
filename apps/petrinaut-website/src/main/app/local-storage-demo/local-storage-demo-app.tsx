@@ -63,7 +63,10 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
+import {
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+} from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -77,6 +80,7 @@ import {
   isCrewReservationFixtureSelected,
   isRootArcTracerSelected,
   isConstructionSelected,
+  localStorageDemoRouteIdentity,
 } from "./local-storage-demo-search";
 import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
 import {
@@ -276,17 +280,21 @@ type ActiveHandle = {
 
 const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
   const handle = createHandle(net);
+  const fallbackNet: SDCPNInLocalStorage =
+    net.incarnationId === undefined
+      ? { ...net, incarnationId: crypto.randomUUID() }
+      : net;
   return {
     handle,
-    netId: net.id,
+    netId: fallbackNet.id,
     fallbackNet:
-      net.id === rootArcTracerDocumentId &&
-      net.rootArcRequestedBaseHash === undefined
+      fallbackNet.id === rootArcTracerDocumentId &&
+      fallbackNet.rootArcRequestedBaseHash === undefined
         ? {
-            ...net,
+            ...fallbackNet,
             rootArcRequestedBaseHash: observeBrowserDefinition(handle).sha256,
           }
-        : net,
+        : fallbackNet,
   };
 };
 
@@ -393,6 +401,11 @@ export const LocalStorageDemoApp = ({
     brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
   const rootCreationSelected =
     constructionSelected && search.brunchTracer === "root-creation";
+  const productConstructionSelected =
+    brunchPreviewConfig.isBrunchConfigured &&
+    localStorageDemoRouteIdentity(search) === "ordinary";
+  const batchedConstructionSelected =
+    rootCreationSelected || productConstructionSelected;
   const constructionDocumentId = rootCreationSelected
     ? "synthetic-root-creation-v1"
     : legacyConstructionDocumentId;
@@ -525,15 +538,26 @@ export const LocalStorageDemoApp = ({
     }
 
     const { fallbackNet, handle, netId } = activeHandle;
-    if (netId === rootArcTracerDocumentId || netId === constructionDocumentId) {
-      setStoredSDCPNs((previous) => ({
-        ...previous,
-        [netId]: {
-          ...(previous[netId] ?? fallbackNet),
-          incarnationId: fallbackNet.incarnationId,
-          rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
-        },
-      }));
+    const isTracerDocument =
+      netId === rootArcTracerDocumentId || netId === constructionDocumentId;
+    if (isTracerDocument || fallbackNet.incarnationId !== undefined) {
+      setStoredSDCPNs((previous) => {
+        const stored = previous[netId];
+        if (
+          !isTracerDocument &&
+          stored?.incarnationId === fallbackNet.incarnationId
+        ) {
+          return previous;
+        }
+        return {
+          ...previous,
+          [netId]: {
+            ...(stored ?? fallbackNet),
+            incarnationId: fallbackNet.incarnationId,
+            rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
+          },
+        };
+      });
     }
 
     return handle.subscribe((event) => {
@@ -660,10 +684,15 @@ export const LocalStorageDemoApp = ({
   const conversationId =
     currentNetId === null
       ? null
-      : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-        ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
-        : (fixtureConfiguration?.conversationId ??
-          getOrCreateBrunchConversationId(currentNetId));
+      : productConstructionSelected &&
+          activeHandle?.fallbackNet.incarnationId !== undefined
+        ? ordinaryConstructionConversationIdFrom(
+            activeHandle.fallbackNet.incarnationId,
+          )
+        : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
+          ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
+          : (fixtureConfiguration?.conversationId ??
+            getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
       brunchPreviewConfig.isBrunchConfigured && conversationId !== null
@@ -694,11 +723,20 @@ export const LocalStorageDemoApp = ({
   );
   const rootArcBrowser = useMemo(() => {
     const net = activeHandle?.fallbackNet;
+    if (!activeHandle || !conversationId || !net?.incarnationId)
+      return undefined;
+    if (productConstructionSelected) {
+      return {
+        binding: {
+          conversationId,
+          documentId: activeHandle.netId,
+          incarnationId: net.incarnationId,
+        },
+        construction: true as const,
+      };
+    }
     if (
       !tracerIsCurrent ||
-      !activeHandle ||
-      !conversationId ||
-      !net?.incarnationId ||
       (!constructionSelected && !net.rootArcRequestedBaseHash)
     )
       return undefined;
@@ -712,7 +750,13 @@ export const LocalStorageDemoApp = ({
         ? { construction: true as const }
         : { requestedBaseHash: net.rootArcRequestedBaseHash! }),
     };
-  }, [tracerIsCurrent, activeHandle, conversationId, constructionSelected]);
+  }, [
+    tracerIsCurrent,
+    activeHandle,
+    conversationId,
+    constructionSelected,
+    productConstructionSelected,
+  ]);
   // The handle mutates behind a stable identity. Subscribe to its real snapshot;
   // a render-time read alone can be memoized by React Compiler across hand edits.
   const observedLiveHash = useSyncExternalStore(
@@ -748,18 +792,21 @@ export const LocalStorageDemoApp = ({
       ? rootArcBrowser
       : undefined,
   );
+  const constructionClientTools = batchedConstructionSelected
+    ? batchedConstructionClientToolNames
+    : constructionSelected
+      ? constructionClientToolNames
+      : fixtureConfiguration?.clientToolNames;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionSelected
-      ? rootCreationSelected
-        ? batchedConstructionClientToolNames
-        : constructionClientToolNames
-      : fixtureConfiguration?.clientToolNames,
+    constructionClientTools,
     mutationRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
     mutationRecorder?.validatedClientToolNames,
-    rootCreationSelected ? batchedConstructionDynamicToolNames : undefined,
+    batchedConstructionSelected
+      ? batchedConstructionDynamicToolNames
+      : undefined,
   );
   useEffect(() => {
     if (flueHistory.error === undefined) return;
@@ -801,32 +848,29 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          ...(constructionSelected && rootArcBrowser
+          ...((constructionSelected || productConstructionSelected) &&
+          rootArcBrowser
             ? {
                 initialData: {
-                  mode: rootCreationSelected
+                  mode: batchedConstructionSelected
                     ? batchedConstructionMode
                     : conversationConstructionMode,
                   construction: { binding: rootArcBrowser.binding },
                 },
               }
             : {}),
-          ...(rootCreationSelected
+          ...(batchedConstructionSelected
             ? {
                 dynamicClientToolNames: batchedConstructionDynamicToolNames,
               }
             : {}),
-          ...(fixtureConfiguration === undefined
+          ...(constructionClientTools === undefined
             ? {}
             : {
-                clientToolNames: constructionSelected
-                  ? rootCreationSelected
-                    ? batchedConstructionClientToolNames
-                    : constructionClientToolNames
-                  : fixtureConfiguration.clientToolNames,
+                clientToolNames: constructionClientTools,
                 mapClientToolInput:
                   mutationRecorder?.mapClientToolInput ??
-                  fixtureConfiguration.mapClientToolInput,
+                  fixtureConfiguration?.mapClientToolInput,
                 validatedClientToolNames:
                   mutationRecorder?.validatedClientToolNames,
                 clientToolResultMetadata:
@@ -850,8 +894,10 @@ export const LocalStorageDemoApp = ({
       : stockChatTransport;
   }, [
     conversationTracker,
+    constructionClientTools,
     constructionSelected,
-    rootCreationSelected,
+    batchedConstructionSelected,
+    productConstructionSelected,
     rootArcBrowser,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
@@ -863,24 +909,25 @@ export const LocalStorageDemoApp = ({
 
   const aiAssistant = useMemo(
     () => ({
-      additionalTab:
-        tracerIsCurrent && rootArcBrowser
-          ? {
-              label: "Workpiece",
-              content: (
-                <BrunchWorkpiecePane
-                  messages={flueHistory.snapshot?.messages ?? []}
-                  construction={constructionSelected}
-                  binding={rootArcBrowser.binding}
-                  liveHash={observedLiveHash}
-                />
-              ),
-            }
-          : undefined,
+      additionalTab: rootArcBrowser
+        ? {
+            label: "Workpiece",
+            content: (
+              <BrunchWorkpiecePane
+                messages={flueHistory.snapshot?.messages ?? []}
+                construction={
+                  constructionSelected || productConstructionSelected
+                }
+                binding={rootArcBrowser.binding}
+                liveHash={observedLiveHash}
+              />
+            ),
+          }
+        : undefined,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
       automaticTools:
-        rootCreationSelected && rootArcBrowser
+        batchedConstructionSelected && rootArcBrowser
           ? [
               createMutatePetrinetAutomaticTool(rootArcBrowser.binding, {
                 onOperationFailure: (failure) =>
@@ -946,11 +993,11 @@ export const LocalStorageDemoApp = ({
     [
       aiMessagesByNetId,
       brunchVoiceMode,
+      batchedConstructionSelected,
       constructionSelected,
       observedLiveHash,
+      productConstructionSelected,
       rootArcBrowser,
-      rootCreationSelected,
-      tracerIsCurrent,
       conversationTracker,
       conversationId,
       currentNetId,

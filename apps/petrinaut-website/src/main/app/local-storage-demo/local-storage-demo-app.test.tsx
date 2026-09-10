@@ -12,12 +12,14 @@ import {
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 import { brunchClientToolNames } from "./brunch-client-tools";
+import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -37,6 +39,9 @@ import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 
 const defaultTransportOptions = vi.hoisted(() => ({
+  current: null as unknown,
+}));
+const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
@@ -69,6 +74,22 @@ vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 
+vi.mock("./brunch-panel-transport", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("./brunch-panel-transport")>();
+  return {
+    ...actual,
+    createBrunchPanelTransport: (
+      client: Parameters<typeof actual.createBrunchPanelTransport>[0],
+      tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
+      options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
+    ) => {
+      brunchPanelTransportOptions.current = options;
+      return actual.createBrunchPanelTransport(client, tracker, options);
+    },
+  };
+});
+
 vi.mock("@hashintel/petrinaut/ui", () => ({
   DefaultChatTransport: class {
     public constructor(options: unknown) {
@@ -83,6 +104,47 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
 }));
+
+/**
+ * Node supplies its own `localStorage` global that shadows the jsdom one and
+ * carries no `setItem`, so the demo's storage hooks cannot read a seed from
+ * it. An in-memory store gives them one.
+ */
+const stubStorage = () => {
+  const entries = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    get length() {
+      return entries.size;
+    },
+    clear: () => entries.clear(),
+    getItem: (key: string) => entries.get(key) ?? null,
+    key: (index: number) => [...entries.keys()][index] ?? null,
+    removeItem: (key: string) => entries.delete(key),
+    setItem: (key: string, value: string) => entries.set(key, value),
+  } satisfies Storage);
+};
+
+const seedStoredNet = (incarnationId?: string) => {
+  stubStorage();
+  localStorage.setItem(
+    "petrinaut-sdcpn",
+    JSON.stringify({
+      "net-1": {
+        id: "net-1",
+        title: "Seeded net",
+        lastUpdated: "2020-01-01T00:00:00.000Z",
+        ...(incarnationId === undefined ? {} : { incarnationId }),
+        sdcpn: {
+          places: [],
+          transitions: [],
+          types: [],
+          parameters: [],
+          differentialEquations: [],
+        },
+      },
+    }),
+  );
+};
 
 describe("local storage demo Brunch voice integration", () => {
   test("does not install voice on the generic local chat fallback", () => {
@@ -219,6 +281,7 @@ describe("local storage demo Brunch voice integration", () => {
 
   test("registers no brunch_ask tool in the production Brunch preview", async () => {
     renderedPetrinaut.aiAssistant = null;
+    stubStorage();
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -242,7 +305,7 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
-    expect(aiAssistant.executeMutation).toBeUndefined();
+    expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
       aiAssistant.interactiveTools?.some(
@@ -256,6 +319,7 @@ describe("local storage demo Brunch voice integration", () => {
 
   test("keeps durable Flue Stop distinct from local playback cancellation", async () => {
     renderedPetrinaut.aiAssistant = null;
+    stubStorage();
     let snapshot: AgentConversationObservationSnapshot = {
       conversation: {
         conversationId: "conversation-stop",
@@ -382,46 +446,6 @@ describe("local storage demo Brunch voice integration", () => {
     expect(abort).toHaveBeenCalledOnce();
   });
 });
-
-/**
- * Node supplies its own `localStorage` global that shadows the jsdom one and
- * carries no `setItem`, so the demo's storage hooks cannot read a seed from
- * it. An in-memory store gives them one.
- */
-const stubStorage = () => {
-  const entries = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    get length() {
-      return entries.size;
-    },
-    clear: () => entries.clear(),
-    getItem: (key: string) => entries.get(key) ?? null,
-    key: (index: number) => [...entries.keys()][index] ?? null,
-    removeItem: (key: string) => entries.delete(key),
-    setItem: (key: string, value: string) => entries.set(key, value),
-  } satisfies Storage);
-};
-
-const seedStoredNet = () => {
-  stubStorage();
-  localStorage.setItem(
-    "petrinaut-sdcpn",
-    JSON.stringify({
-      "net-1": {
-        id: "net-1",
-        title: "Seeded net",
-        lastUpdated: "2020-01-01T00:00:00.000Z",
-        sdcpn: {
-          places: [],
-          transitions: [],
-          types: [],
-          parameters: [],
-          differentialEquations: [],
-        },
-      },
-    }),
-  );
-};
 
 /**
  * `navigation` is an optional prop, so dropping it from the editor compiles
@@ -671,8 +695,68 @@ describe("local storage demo prepared fixture", () => {
       document.querySelector('[aria-label="Prepared fixture status"]'),
     ).toBeNull();
     const aiAssistant = editorProps.current?.aiAssistant as
-      | { conversationId?: string }
+      | { conversationId?: string; executeMutation?: unknown }
       | undefined;
     expect(aiAssistant?.conversationId).not.toBe(crewReservationConversationId);
+    expect(aiAssistant?.executeMutation).toBeUndefined();
+  });
+
+  test("mounts the batched construction catalogue on ordinary configured Brunch", async () => {
+    const incarnationId = "ordinary-incarnation";
+    seedStoredNet(incarnationId);
+    flueClientMock.current = {
+      history: async () => ({
+        conversation: {
+          conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+          settlements: [],
+          messages: [],
+        },
+        offset: "offset-0",
+      }),
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
+    const aiAssistant = editorProps.current
+      ?.aiAssistant as PetrinautAiAssistant;
+    const transportOptions = brunchPanelTransportOptions.current as {
+      readonly initialData?: {
+        readonly mode?: string;
+        readonly construction?: { readonly binding?: unknown };
+      };
+      readonly clientToolNames?: ReadonlySet<string>;
+      readonly dynamicClientToolNames?: ReadonlySet<string>;
+    };
+
+    expect(aiAssistant.conversationId).toBe(
+      ordinaryConstructionConversationIdFrom(incarnationId),
+    );
+    expect(aiAssistant.executeMutation).toBeTypeOf("function");
+    expect(
+      aiAssistant.automaticTools?.some(
+        ({ toolName }) => toolName === "mutate_petrinet",
+      ),
+    ).toBe(true);
+    expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
+    expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
+    expect(transportOptions.initialData?.construction?.binding).toEqual({
+      conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+      documentId: "net-1",
+      incarnationId,
+    });
+    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "getLatestNetDefinition",
+      "mutate_petrinet",
+      "readPetrinautDoc",
+    ]);
+    expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
+      "mutate_petrinet",
+    ]);
   });
 });
