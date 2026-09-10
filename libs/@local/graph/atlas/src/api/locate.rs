@@ -88,12 +88,12 @@ pub(super) struct LocateRequest {
     ///
     /// Exactly one of this and `row` names the source.
     #[serde(default)]
-    pub(super) entity_id: Option<String>,
+    pub entity_id: Option<String>,
     /// The source as a wire node row id - the value a tile's `ROW_IDS` column delivered.
     ///
     /// Exactly one of this and `entityId` names the source.
     #[serde(default)]
-    pub(super) row: Option<EncodedRowId<NodeRowId>>,
+    pub row: Option<EncodedRowId<NodeRowId>>,
     /// Versioned type URLs conditioning the `TYPE_MASK` column. Absent or empty omits it.
     ///
     /// Also the `typeIdsComplete` reference set: the flag reads `true` exactly when these ids
@@ -102,7 +102,7 @@ pub(super) struct LocateRequest {
     /// reads zero bits.
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
-    pub(super) colored_type_ids: Vec<VersionedUrl>,
+    pub colored_type_ids: Vec<VersionedUrl>,
 }
 
 /// `POST /v1/atlas/locate/{generation}/{variant}`.
@@ -112,15 +112,13 @@ pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
     Generation(VariantPath { variant, .. }): Generation<VariantPath>,
-    Body(request): Body<LocateRequest>,
-) -> Result<Response, Problem<'static>> {
-    reject_variant(&variant)?;
-
-    let LocateRequest {
+    Body(LocateRequest {
         entity_id,
         row,
         colored_type_ids,
-    } = request;
+    }): Body<LocateRequest>,
+) -> Result<Response, Problem<'static>> {
+    reject_variant(&variant)?;
 
     // Both/neither is the caller's own malformed request, `invalid-source`. A malformed
     // `entityId` string collapses into `unknown-entity` exactly as an unresolvable one does, since
@@ -197,7 +195,7 @@ fn unknown_entity() -> Problem<'static> {
     )
 }
 
-/// Maps one construction failure onto the problem it earns.
+/// `LocateDocumentError` <=> `Problem`
 ///
 /// [`LocateDocumentError::Types`] is the caller's own oversize request: `too-many-types`.
 /// [`LocateDocumentError::UnknownEntity`] is [`unknown_entity`]. [`LocateDocumentError::Node`],

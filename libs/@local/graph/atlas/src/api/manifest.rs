@@ -46,7 +46,7 @@ enum OffsetRule {
     Rebind(Zoom),
 }
 
-fn offset_rule(carried: Option<ContinuityScope>, wanted: Option<FilterDigest>) -> OffsetRule {
+const fn offset_rule(carried: Option<ContinuityScope>, wanted: Option<FilterDigest>) -> OffsetRule {
     match carried {
         Some(scope) if scope.filter == wanted => OffsetRule::Carry(scope.k),
         Some(scope) => OffsetRule::Rebind(scope.k),
