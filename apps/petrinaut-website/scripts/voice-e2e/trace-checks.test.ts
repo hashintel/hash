@@ -467,6 +467,29 @@ describe("checkTrace", () => {
     ).toBe("fail");
   });
 
+  test.each(["first-tts-request", "first-tts-audio", "speech-diagnostic"])(
+    "not-heard cannot excuse unadmitted speech: %s",
+    (signal) => {
+      const trace: Trace = {
+        ...goodTrace,
+        inputTranscripts: [],
+        canonicalBubbles: [],
+        notHeard: true,
+        latency:
+          signal === "speech-diagnostic"
+            ? []
+            : marks().filter((mark) => mark.name === signal),
+        diagnostics:
+          signal === "speech-diagnostic" ? goodTrace.diagnostics : [],
+      };
+      expect(
+        checkTrace(scenario("one-word-answer"), trace).filter(
+          (check) => check.level === "fail",
+        ),
+      ).not.toEqual([]);
+    },
+  );
+
   test("recording an operational failure cannot produce an all-green verdict", () => {
     expect(
       level(
