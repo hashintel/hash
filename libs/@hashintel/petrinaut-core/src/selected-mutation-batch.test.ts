@@ -26,12 +26,21 @@ describe("selected mutation batch", () => {
     expect(
       selectedMutationBatchSchema.parse([operation("op-1", "p1")]),
     ).toHaveLength(1);
-    expect(() =>
+    expect(
       selectedMutationBatchSchema.parse([
         {
           operationId: "remove",
           type: "removePlace",
           input: { placeId: "p1" },
+        },
+      ]),
+    ).toHaveLength(1);
+    expect(() =>
+      selectedMutationBatchSchema.parse([
+        {
+          operationId: "update",
+          type: "updatePlace",
+          input: { placeId: "p1", update: { name: "Renamed" } },
         },
       ]),
     ).toThrow();

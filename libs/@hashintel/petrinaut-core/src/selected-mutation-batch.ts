@@ -18,6 +18,21 @@ export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("addArc"),
     input: mutationActionInputSchemas.addArc,
   }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removePlace"),
+    input: mutationActionInputSchemas.removePlace,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeTransition"),
+    input: mutationActionInputSchemas.removeTransition,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeArc"),
+    input: mutationActionInputSchemas.removeArc,
+  }),
 ]);
 
 export const selectedMutationBatchSchema = z

@@ -147,6 +147,37 @@ describe("mutate_petrinet tool", () => {
         ],
       }),
     ).toThrow(/unrecognized|targetSubnetId/iu);
+    expect(
+      mutatePetrinetInputSchema
+        .parse({
+          ...input,
+          operations: [
+            {
+              operationId: "remove-queue",
+              basisId: "queue-basis",
+              type: "removePlace",
+              input: { placeId: "queue" },
+            },
+            {
+              operationId: "remove-start",
+              basisId: "queue-basis",
+              type: "removeTransition",
+              input: { transitionId: "start" },
+            },
+            {
+              operationId: "unwire-queue",
+              basisId: "queue-basis",
+              type: "removeArc",
+              input: {
+                transitionId: "start",
+                arcDirection: "input",
+                placeId: "queue",
+              },
+            },
+          ],
+        })
+        .operations.map(({ type }) => type),
+    ).toEqual(["removePlace", "removeTransition", "removeArc"]);
   });
 
   test("refuses the wrapped operation dialect and addArc endpoint shorthand", () => {
@@ -220,7 +251,7 @@ describe("mutate_petrinet tool", () => {
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(3);
+    expect(variants.length).toBe(6);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),
@@ -247,6 +278,17 @@ describe("mutate_petrinet tool", () => {
     expect(property(addArcInput, "placeId", root)?.description).toMatch(
       /root net/u,
     );
+    const removeArc = variants.find((variant) => {
+      const type = property(variant, "type", root);
+      return type?.const === "removeArc";
+    });
+    expect(removeArc).toBeDefined();
+    const removeArcInput = property(removeArc, "input", root);
+    expect(removeArcInput).toBeDefined();
+    if (!removeArcInput) throw new Error("Missing removeArc input schema");
+    expect(requiredOf(removeArcInput)).toContain("placeId");
+    expect(property(removeArcInput, "endpoint", root)).toBeUndefined();
+    expect(asRecord(removeArcInput.properties)?.endpoint).toBeUndefined();
   });
 
   test("validates the workpiece and exact prior observation before deferring", async () => {

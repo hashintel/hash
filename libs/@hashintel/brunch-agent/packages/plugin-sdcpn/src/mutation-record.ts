@@ -15,6 +15,7 @@ import {
 } from "./root-arc";
 import {
   assertNodeIdentity,
+  isBatchedNodeMutation,
   isObservedNodeMutation,
   type ObservedNodeMutationName,
 } from "./root-node";
@@ -198,7 +199,7 @@ export const deriveMutationEffects = (
   post: SDCPN,
 ): MutationEffects => {
   if (
-    isObservedNodeMutation(request.toolName) ||
+    isBatchedNodeMutation(request.toolName) ||
     isObservedStateMutation(request.toolName)
   )
     return deriveNodeEffects(request, pre, post);
@@ -214,7 +215,7 @@ export const deriveMutationEffects = (
   const transition = post.transitions[transitionIndex];
   const direction = input.arcDirection === "input" ? "inputArcs" : "outputArcs";
   const arcIndex =
-    transition?.id === input.transitionId
+    transition !== undefined && transition.id === input.transitionId
       ? transition[direction].findIndex(
           (arc) => "placeId" in arc && arc.placeId === input.placeId,
         )
@@ -347,9 +348,9 @@ const deriveNodeEffects = (
         request.toolName.startsWith("add") ? post : pre,
       )
     : undefined;
-  if (!state && !isObservedNodeMutation(request.toolName))
+  if (!state && !isBatchedNodeMutation(request.toolName))
     throw new Error("Not an entity mutation.");
-  const input = isObservedNodeMutation(request.toolName)
+  const input = isBatchedNodeMutation(request.toolName)
     ? mutationActionInputSchemas[request.toolName].parse(request.input)
     : undefined;
   if (input?.targetSubnetId) throw new Error("Only root nodes are observed.");

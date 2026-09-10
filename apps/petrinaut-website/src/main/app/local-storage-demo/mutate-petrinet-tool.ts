@@ -108,6 +108,19 @@ const executeCanonicalMutation = (
     case "addArc":
       instance.mutations.addArc(operation.input);
       break;
+    case "removePlace":
+      instance.mutations.removePlace(operation.input);
+      break;
+    case "removeTransition":
+      instance.mutations.removeTransition(operation.input);
+      break;
+    case "removeArc":
+      instance.mutations.removeArc(operation.input);
+      break;
+    default: {
+      const exhaustive: never = operation;
+      throw new Error(`Unsupported mutate_petrinet operation ${exhaustive}`);
+    }
   }
 };
 

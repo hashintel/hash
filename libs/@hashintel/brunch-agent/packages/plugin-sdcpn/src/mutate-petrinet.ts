@@ -53,6 +53,26 @@ const rootAddArcInputSchema = z
   })
   .meta({ description: "Add an input or output arc to a transition." });
 
+const rootRemovePlaceInputSchema = mutationActionInputSchemas.removePlace.omit({
+  targetSubnetId: true,
+});
+
+const rootRemoveTransitionInputSchema =
+  mutationActionInputSchemas.removeTransition.omit({
+    targetSubnetId: true,
+  });
+
+const removeArcShape = mutationActionInputSchemas.removeArc.shape;
+const rootRemoveArcInputSchema = z
+  .strictObject({
+    transitionId: removeArcShape.transitionId,
+    arcDirection: removeArcShape.arcDirection,
+    placeId: z.string().min(1).meta({
+      description: "ID of a place in the root net.",
+    }),
+  })
+  .meta({ description: "Remove an input or output arc from a transition." });
+
 const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
     operationId: operationIdSchema,
@@ -71,6 +91,24 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     basisId: basisIdSchema,
     type: z.literal("addArc"),
     input: rootAddArcInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removePlace"),
+    input: rootRemovePlaceInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeTransition"),
+    input: rootRemoveTransitionInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeArc"),
+    input: rootRemoveArcInputSchema,
   }),
 ]);
 
