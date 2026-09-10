@@ -28,10 +28,6 @@ impl ScratchDirectory {
         Self { path }
     }
 
-    pub(crate) fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
     /// Creates (or reuses) a named subdirectory and returns its path.
     ///
     /// # Errors

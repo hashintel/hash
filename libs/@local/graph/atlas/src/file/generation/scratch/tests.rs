@@ -18,6 +18,10 @@ pub(crate) fn scratch() -> ScratchDirectory {
     ScratchDirectory::new(path)
 }
 
+pub(crate) fn root(directory: &ScratchDirectory) -> &Utf8Path {
+    &directory.path
+}
+
 pub(crate) fn entry_count(path: &Utf8Path) -> usize {
     fs::read_dir(path)
         .expect("should read the fixture directory")
@@ -27,10 +31,10 @@ pub(crate) fn entry_count(path: &Utf8Path) -> usize {
 #[tokio::test]
 async fn finish_distinct_files() {
     let directory = scratch();
-    let mut first = ScratchFile::new(directory.path())
+    let mut first = ScratchFile::new(root(&directory))
         .await
         .expect("should create the first input");
-    let mut second = ScratchFile::new(directory.path())
+    let mut second = ScratchFile::new(root(&directory))
         .await
         .expect("should create the second input");
     first
@@ -67,12 +71,12 @@ async fn finish_distinct_files() {
     );
     assert_eq!(
         first.parent(),
-        Some(directory.path()),
+        Some(root(&directory)),
         "should use the supplied scratch directory"
     );
     assert_eq!(
         second.parent(),
-        Some(directory.path()),
+        Some(root(&directory)),
         "should use the supplied scratch directory"
     );
     assert_eq!(
@@ -84,7 +88,7 @@ async fn finish_distinct_files() {
         b"second body"
     );
     assert_eq!(
-        entry_count(directory.path()),
+        entry_count(root(&directory)),
         2,
         "should retain both completed inputs"
     );
@@ -93,9 +97,9 @@ async fn finish_distinct_files() {
 #[tokio::test]
 async fn finish_partial_failure() {
     let directory = scratch();
-    let sentinel = directory.path().join("retained.bin");
+    let sentinel = root(&directory).join("retained.bin");
     fs::write(&sentinel, b"retained").expect("should create an unrelated file");
-    let mut partial = ScratchFile::new(directory.path())
+    let mut partial = ScratchFile::new(root(&directory))
         .await
         .expect("should create the partial input");
     partial
@@ -121,7 +125,7 @@ async fn finish_partial_failure() {
         "should return the transfer's error"
     );
     assert_eq!(
-        entry_count(directory.path()),
+        entry_count(root(&directory)),
         1,
         "should remove only the partial input"
     );

@@ -1,7 +1,10 @@
 use std::fs;
 
 use super::Parts;
-use crate::file::{generation::scratch::tests::scratch, storage::error::StorageError};
+use crate::file::{
+    generation::scratch::tests::{root, scratch},
+    storage::error::StorageError,
+};
 
 #[test]
 fn parts_boundary() {
@@ -35,7 +38,7 @@ fn parts_boundary() {
 #[tokio::test]
 async fn read_file_intervals() {
     let directory = scratch();
-    let source = directory.path().join("parts.bin");
+    let source = root(&directory).join("parts.bin");
     let first_length =
         usize::try_from(Parts::MIN_PART_BYTES).expect("should fit a minimum part in memory");
     let mut bytes = vec![b'a'; first_length];
