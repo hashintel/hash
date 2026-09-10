@@ -33,13 +33,7 @@
       "dependsOn": ["build"]
     },
     "test:integration": {
-      "dependsOn": [
-        "build",
-        "codegen",
-        "^build",
-        "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build"
-      ],
+      "dependsOn": ["build", "codegen", "^build"],
       "env": ["TEST_COVERAGE"]
     },
     "test:unit": {
