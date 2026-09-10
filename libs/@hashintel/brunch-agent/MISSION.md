@@ -14,6 +14,13 @@ carry its unrelated Brunch stack. The open settlement port in
 [PR #9588](https://github.com/hashintel/hash/pull/9588) is a separate sibling and
 is not part of this branch.
 
+On 2026-09-10 the owner explicitly approved closing this interruption-only
+recut without the production Voice/Stop/second-tab continuity witness. The
+installed Flue 2.0.3 contract cannot durably project direct-user Voice origin,
+and FE-1604 does not recut that transport or history boundary. This is a scoped
+deferral, not continuity evidence: the post-FE-1604 re-entry gate remains in
+`MISSION.next.md`.
+
 ## Supplemental FE-1580 settlement follow-up
 
 **Live as of 2026-09-08** for
@@ -98,6 +105,8 @@ acknowledged **Your turn** handoff.
    component boundaries. It does not prove production Voice provenance
    creation, `requestFlueStop`/Flue abort persistence, a fresh Flue client or
    second browser tab, or direct-user Voice source reconstruction after reopen.
+   The owner-approved FE-1604 deferral above leaves those claims open rather
+   than treating this prepared fixture as a substitute.
 7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
    TypeScript checks, ESLint, the website and library builds, architecture-doc
    lint, repository formatting, and `git diff --check` distinguish a working

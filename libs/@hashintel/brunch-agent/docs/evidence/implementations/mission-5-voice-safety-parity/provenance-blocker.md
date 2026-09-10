@@ -42,5 +42,8 @@ test that reconstructs the Voice marker after a fresh process with no browser
 correlation state.
 
 The restacked branch still installs `@flue/sdk` 2.0.3 with this same public
-shape. No supported projection seam or owner-approved deferral has been
-recorded, so direct-user reopen attribution remains blocked.
+shape. On 2026-09-10 the owner approved a scoped deferral for FE-1604's
+interruption-only recut because it does not change this transport or history
+boundary. Direct-user reopen attribution remains blocked, and the real
+Voice/Stop/second-tab witness re-enters with the next post-FE-1604 mission that
+exercises Voice, exact conversation resume, or pre-release scenario breadth.
