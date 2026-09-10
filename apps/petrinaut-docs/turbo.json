@@ -13,7 +13,10 @@
     // shared `sync:bundle` rather than each running it keeps them from racing on
     // the same directories when Turborepo runs them concurrently.
     "build": {
-      "dependsOn": ["sync:bundle", "@local/petrinaut-arch-docs#doc:architecture"],
+      "dependsOn": [
+        "sync:bundle",
+        "@local/petrinaut-arch-docs#doc:architecture"
+      ],
       // `astro build` also writes the gitignored `.astro/` sync directory, which
       // `lint:tsc` (`astro check`) reads.
       "outputs": ["dist/**", ".astro/**"],
