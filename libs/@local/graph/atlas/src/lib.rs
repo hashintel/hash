@@ -128,6 +128,7 @@
     ptr_metadata,
     slice_shift,
     step_trait,
+    str_copy_from_str,
     sync_nonpoison,
     time_saturating_systemtime,
     unboxed_closures,
