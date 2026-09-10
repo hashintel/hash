@@ -16,6 +16,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   isWebGpuAvailable,
+  synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -23,6 +24,8 @@ import {
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
+  axisDisplayName,
+  buildAdHocSweepAxes,
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
@@ -945,20 +948,24 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
+
+  // The net the ad-hoc form resolves names and types against, shared by the
+  // form and by the sweep summary that reads its selections.
+  const adHocFormContext = {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+    places: petriNetDefinition.places,
+    types: extensions.colors ? petriNetDefinition.types : [],
+  };
+  const adHocSweeping =
+    enableAdHocScenarios &&
+    enableParameterSweeps &&
+    effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+
   /**
    * The sweep the current interval inputs define. `error` carries the first
    * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
    * single-combination experiment.
    */
-  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
-  // range and shows as blank there.
-  const fixedParamValues: Record<string, string> = {};
-  for (const [identifier, input] of Object.entries(paramInputs)) {
-    if (input.mode === "fixed") {
-      fixedParamValues[identifier] = input.value;
-    }
-  }
-
   const sweepSummary = ((): {
     text: string;
     tone: "neutral" | "warning" | "error";
@@ -976,16 +983,39 @@ export const CreateExperimentDrawer = ({
       }
       axes.push(outcome.axis);
     }
+    if (adHocSweeping && adHocState) {
+      // A definition that does not synthesize reports at its slots and
+      // refuses to run on submit; the summary only speaks for its sweeps.
+      const synthesized = synthesizeAdHocOptimization(
+        adHocState,
+        adHocFormContext,
+      );
+      if (synthesized.ok) {
+        const outcome = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+        if (!outcome.ok) {
+          return { text: outcome.error, tone: "error", error: true };
+        }
+        axes.push(...outcome.axes);
+      }
+    }
     if (axes.length === 0) {
       return null;
     }
-    const names = axes.map((axis) => axis.identifier).join(", ");
+    const names = axes.map(axisDisplayName).join(", ");
     return {
       text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
       tone: "neutral",
       error: false,
     };
   })();
+
+  // Shown under whichever scenario body is on screen: the classic rows, the
+  // ad-hoc form, or a saved scenario shown through it.
+  const sweepSummaryLine = sweepSummary ? (
+    <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
+      {sweepSummary.text}
+    </span>
+  ) : null;
 
   const footerError = error ?? metricFormError;
   const canRun =
@@ -1123,6 +1153,7 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? adHocState
             : null,
+        adHocSweeps: adHocSweeping,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1266,29 +1297,24 @@ export const CreateExperimentDrawer = ({
                 // mode: scenario parameters editable in worksheet style, and
                 // a collapsed "Computed state" preview of the exact values
                 // and tokens each run starts with.
-                <ExperimentScenarioRun
-                  scenario={selectedScenario}
-                  context={{
-                    netParameters: extensions.parameters
-                      ? petriNetDefinition.parameters
-                      : [],
-                    places: petriNetDefinition.places,
-                    types: extensions.colors ? petriNetDefinition.types : [],
-                  }}
-                  values={fixedParamValues}
-                  onValuesChange={(updates) =>
-                    setParamInputs((prev) => {
-                      const next = { ...prev };
-                      for (const update of updates) {
-                        next[update.identifier] = {
-                          mode: "fixed",
-                          value: update.value,
-                        };
-                      }
-                      return next;
-                    })
-                  }
-                />
+                <>
+                  <ExperimentScenarioRun
+                    scenario={selectedScenario}
+                    context={adHocFormContext}
+                    inputs={paramInputs}
+                    sweepable={enableParameterSweeps}
+                    onInputsChange={(updates) =>
+                      setParamInputs((prev) => {
+                        const next = { ...prev };
+                        for (const update of updates) {
+                          next[update.identifier] = update.input;
+                        }
+                        return next;
+                      })
+                    }
+                  />
+                  {sweepSummaryLine}
+                </>
               ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
@@ -1312,14 +1338,7 @@ export const CreateExperimentDrawer = ({
                       }
                     />
                   ))}
-                  {sweepSummary ? (
-                    <span
-                      className={sweepSummaryStyle}
-                      data-tone={sweepSummary.tone}
-                    >
-                      {sweepSummary.text}
-                    </span>
-                  ) : null}
+                  {sweepSummaryLine}
                 </>
               )
             ) : enableAdHocScenarios ? (
@@ -1329,18 +1348,15 @@ export const CreateExperimentDrawer = ({
               // experiment runs exactly as before. Behind the Ad-hoc
               // scenarios setting; off, no scenario means the model's own
               // initial marking, as before the feature.
-              <AdHocScenarioForm
-                state={adHocState ?? EMPTY_AD_HOC_STATE}
-                onChange={setAdHocState}
-                context={{
-                  netParameters: extensions.parameters
-                    ? petriNetDefinition.parameters
-                    : [],
-                  places: petriNetDefinition.places,
-                  types: extensions.colors ? petriNetDefinition.types : [],
-                }}
-                selection="none"
-              />
+              <>
+                <AdHocScenarioForm
+                  state={adHocState ?? EMPTY_AD_HOC_STATE}
+                  onChange={setAdHocState}
+                  context={adHocFormContext}
+                  selection={enableParameterSweeps ? "sweep" : "none"}
+                />
+                {sweepSummaryLine}
+              </>
             ) : null}
           </Section>
 

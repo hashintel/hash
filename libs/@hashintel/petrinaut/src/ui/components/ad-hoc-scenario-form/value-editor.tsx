@@ -34,13 +34,16 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocNeutralExpression,
   adHocSlotKey,
-  adHocTargetLabel,
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
-import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import {
+  AdHocFormContext,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
@@ -245,10 +248,11 @@ export interface ValueEditorProps {
    * The slot's value domain — one fact, everything else derives from it:
    * booleans optimize as a true/false choice with no bounds and step with
    * Up/Down; integers get a Step bound; counts are integers with an implied
-   * step of 1 (no Step field); strings and UUIDs don't arrow-step. The
-   * default placeholder is the domain's neutral value.
+   * step of 1 (no Step field); ratios step by 0.1 within 0 and 1; strings
+   * and UUIDs don't arrow-step. The default placeholder is the domain's
+   * neutral value.
    */
-  kind: ColorElementType | "count";
+  kind: ColorElementType | "count" | "ratio";
   /**
    * Rendered as derived: dimmed, chevron-prefixed, out of the tab order, and
    * editing is delegated to the shared column's own editor by the parent.
@@ -432,8 +436,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const {
     errorFor,
     uriFor,
-    formState,
-    synthesisContext,
+    labelFor,
     selection,
     highlight,
     setFocusedValue,
@@ -444,7 +447,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const booleanDomain = kind === "boolean";
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
-  const label = adHocTargetLabel(target, formState, synthesisContext);
+  const label = labelFor(target);
   const dependencyHighlighted = highlight.slotKeys.has(
     adHocSlotKey({ target, part: "expression" }),
   );
@@ -484,10 +487,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // so a reopened slab always presents a new button to select.
   const minSelectedElementRef = useRef<HTMLButtonElement | null>(null);
 
-  // Value slots carry Optimize toggles only in optimize mode; expose mode
-  // marks whole top-level Variables (in their own rows), never value slots.
-  const selectable = selection === "optimize";
+  // Value slots carry a toggle in optimize mode, and in sweep mode when the
+  // value is a number; expose mode marks whole top-level Variables (in their
+  // own rows), never value slots.
+  const selectable = adHocSelectionApplies(selection, kind);
   const optimized = selectable && value.optimize !== null;
+  // A sweep declares an interval and nothing else: no step, no scale.
+  const sweeping = selection === "sweep";
   // Closing the slab commits the expression, and a valid one is re-printed
   // canonically (worker-side, from the lowered tree) — normalized spacing,
   // minimal parentheses, literals preserved. The nonce discards a response
@@ -553,9 +559,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const stepMode =
     kind === "boolean"
       ? "boolean"
-      : kind === "string" || kind === "uuid"
-        ? "none"
-        : "number";
+      : kind === "ratio"
+        ? "ratio"
+        : kind === "string" || kind === "uuid"
+          ? "none"
+          : "number";
   const stepValueWithArrows = (event: React.KeyboardEvent) => {
     if (
       (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||
@@ -773,23 +781,27 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       : value.expression || triggerPlaceholder);
 
   const expressionSlot = { target, part: "expression" as const };
-  const error = optimized
+  const boundsError = optimized
     ? (errorFor({ target, part: "min" }) ??
       errorFor({ target, part: "max" }) ??
       errorFor({ target, part: "step" }))
-    : errorFor(expressionSlot);
+    : undefined;
+  // An optimized slot's kept value can fail too (a ratio outside 0..1
+  // behind valid bounds); the trigger carries that after any bound error.
+  const error = boundsError ?? errorFor(expressionSlot);
   const showTriggerError = error !== undefined && !open;
-
-  const boundsError = optimized ? error : undefined;
 
   const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
     { key: "min", fieldLabel: "Min" },
     { key: "max", fieldLabel: "Max" },
-    ...(kind === "integer"
+    ...(kind === "integer" && !sweeping
       ? [{ key: "step" as const, fieldLabel: "Step" }]
       : []),
   ];
-  const boundOrder = [...boundFields.map((field) => field.key), "scale"];
+  const boundOrder = [
+    ...boundFields.map((field) => field.key),
+    ...(sweeping ? [] : ["scale"]),
+  ];
   const navigateBound = (from: string, delta: -1 | 1) => {
     const next = boundOrder[boundOrder.indexOf(from) + delta];
     if (next) {
@@ -976,57 +988,61 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                         />
                       </div>
                     ))}
-                    <div
-                      ref={(element) => {
-                        const trigger =
-                          element?.querySelector<HTMLButtonElement>(
+                    {sweeping ? null : (
+                      <div
+                        ref={(element) => {
+                          const trigger =
+                            element?.querySelector<HTMLButtonElement>(
+                              "[data-part='trigger']",
+                            ) ?? null;
+                          if (trigger) {
+                            boundRefs.current.set("scale", trigger);
+                          } else {
+                            boundRefs.current.delete("scale");
+                          }
+                        }}
+                        className={cx(
+                          boundsColumnStyle,
+                          boundsScaleColumnStyle,
+                          cellSelectStyle,
+                        )}
+                        onKeyDownCapture={(event) => {
+                          const trigger = event.currentTarget.querySelector(
                             "[data-part='trigger']",
-                          ) ?? null;
-                        if (trigger) {
-                          boundRefs.current.set("scale", trigger);
-                        } else {
-                          boundRefs.current.delete("scale");
-                        }
-                      }}
-                      className={cx(
-                        boundsColumnStyle,
-                        boundsScaleColumnStyle,
-                        cellSelectStyle,
-                      )}
-                      onKeyDownCapture={(event) => {
-                        const trigger = event.currentTarget.querySelector(
-                          "[data-part='trigger']",
-                        );
-                        if (trigger?.getAttribute("aria-expanded") === "true") {
-                          return;
-                        }
-                        if (event.key === "ArrowLeft") {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          navigateBound("scale", -1);
-                        }
-                      }}
-                    >
-                      <div className={boundsLabelStyle}>Scale</div>
-                      <Select
-                        required
-                        size="sm"
-                        aria-label={`Scale of ${label}`}
-                        value={value.optimize!.scale}
-                        onChange={(scale) =>
-                          dispatch({
-                            type: "setDomainField",
-                            target,
-                            field: "scale",
-                            value: scale,
-                          })
-                        }
-                        items={[
-                          { value: "linear", text: "Linear" },
-                          { value: "log", text: "Log" },
-                        ]}
-                      />
-                    </div>
+                          );
+                          if (
+                            trigger?.getAttribute("aria-expanded") === "true"
+                          ) {
+                            return;
+                          }
+                          if (event.key === "ArrowLeft") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigateBound("scale", -1);
+                          }
+                        }}
+                      >
+                        <div className={boundsLabelStyle}>Scale</div>
+                        <Select
+                          required
+                          size="sm"
+                          aria-label={`Scale of ${label}`}
+                          value={value.optimize!.scale}
+                          onChange={(scale) =>
+                            dispatch({
+                              type: "setDomainField",
+                              target,
+                              field: "scale",
+                              value: scale,
+                            })
+                          }
+                          items={[
+                            { value: "linear", text: "Linear" },
+                            { value: "log", text: "Log" },
+                          ]}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className={expressionRowStyle}>

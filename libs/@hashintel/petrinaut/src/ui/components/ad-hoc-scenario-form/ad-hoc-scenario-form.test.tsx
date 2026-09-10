@@ -766,9 +766,11 @@ describe("AdHocScenarioForm", () => {
       "Type of altitude",
     );
 
-    // The native select mirrors the dropdown: three types, no empty item.
+    // The native select mirrors the dropdown: the four types, no empty item.
     const nativeSelect = document.querySelector("select");
-    expect(nativeSelect?.options.length).toBe(3);
+    expect(
+      [...(nativeSelect?.options ?? [])].map((option) => option.value),
+    ).toEqual(["real", "integer", "boolean", "ratio"]);
 
     // The trailing add-a-variable line is one cell, reachable with
     // ArrowDown from any column of the row above it.
@@ -1434,5 +1436,161 @@ describe("AdHocScenarioForm", () => {
     );
     expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "Expression" })).toBeNull();
+  });
+});
+
+describe("sweep selection", () => {
+  const SWEEP_STATE: AdHocScenarioState = {
+    variables: [
+      {
+        name: "altitude",
+        type: "real",
+        expression: "400",
+        optimize: null,
+        exposed: true,
+      },
+      {
+        name: "armed",
+        type: "boolean",
+        expression: "true",
+        optimize: null,
+        exposed: true,
+      },
+    ],
+    netParameters: [],
+    places: {},
+  };
+
+  it("run mode offers a Sweep toggle on numeric scenario parameters only", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="sweep"
+        mode="run"
+        initial={SWEEP_STATE}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: "Sweep altitude" }));
+    expect(latest?.variables[0]?.optimize).toEqual({
+      min: "0",
+      max: "1",
+      scale: "linear",
+    });
+  });
+
+  it("authoring offers Sweep on numeric values and Parameters, never on booleans", () => {
+    render(<Harness selection="sweep" initial={SWEEP_STATE} />);
+
+    expect(screen.getByRole("button", { name: "Sweep Rate" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sweep altitude" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+  });
+
+  it("run mode offers no Sweep on the computed net parameters", () => {
+    render(
+      <Harness
+        selection="sweep"
+        mode="run"
+        initial={{
+          ...SWEEP_STATE,
+          netParameters: [
+            { parameterId: "param-rate", expression: "2", optimize: null },
+          ],
+        }}
+        renderLayout={({ variables, parameters }) => (
+          <>
+            {variables}
+            {parameters}
+          </>
+        )}
+      />,
+    );
+
+    // The computed parameters are a preview the host derives; a toggle on
+    // them would revert on the next render.
+    expect(screen.getByRole("button", { name: "Sweep altitude" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sweep Rate" })).toBe(null);
+  });
+
+  it("turns a Sweep off with a type change to boolean, as one undo step", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="sweep"
+        initial={{
+          ...SWEEP_STATE,
+          variables: [
+            {
+              ...SWEEP_STATE.variables[0]!,
+              optimize: { min: "100", max: "800", scale: "linear" },
+            },
+            SWEEP_STATE.variables[1]!,
+          ],
+        }}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Sweep altitude" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByLabelText("Type of altitude"));
+    fireEvent.click(await screen.findByRole("option", { name: "Boolean" }));
+    await waitFor(() => expect(latest?.variables[0]?.type).toBe("boolean"));
+    expect(latest?.variables[0]?.optimize).toBe(null);
+    expect(screen.queryByRole("button", { name: "Sweep altitude" })).toBe(null);
+
+    // One step: undo restores the type and the Sweep together.
+    fireEvent.keyDown(
+      screen.getByRole("button", {
+        name: "Name of variable 1 (Top-level variables)",
+      }),
+      { key: "z", metaKey: true },
+    );
+    expect(latest?.variables[0]?.type).toBe("real");
+    expect(latest?.variables[0]?.optimize).toEqual({
+      min: "100",
+      max: "800",
+      scale: "linear",
+    });
+  });
+
+  it("keeps a Sweep that arrived on a boolean clearable", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="sweep"
+        initial={{
+          ...SWEEP_STATE,
+          variables: [
+            SWEEP_STATE.variables[0]!,
+            {
+              ...SWEEP_STATE.variables[1]!,
+              optimize: { min: "0", max: "1", scale: "linear" },
+            },
+          ],
+        }}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // Booleans offer no Sweep, but one already there shows its toggle so
+    // the definition can be brought back to something that runs.
+    const toggle = screen.getByRole("button", { name: "Sweep armed" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(latest?.variables[1]?.optimize).toBe(null);
+    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
   });
 });

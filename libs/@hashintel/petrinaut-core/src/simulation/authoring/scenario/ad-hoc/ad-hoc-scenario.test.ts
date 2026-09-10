@@ -12,6 +12,8 @@ import {
   adHocPlaceKey,
   adHocSlotKey,
   adHocTargetLabel,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   cycleAdHocRowKind,
   resolveAdHocPlaceTotal,
   shareAdHocColumn,
@@ -1085,6 +1087,33 @@ describe("resolveAdHocPlaceTotal", () => {
       total: 0,
     });
   });
+
+  it("resolves only the literals the expression language accepts", () => {
+    // The numeric fast path must agree with the evaluator: `00` is not a
+    // strict-mode literal, and a digit string past Number's range is
+    // Infinity, which no run could start from. Both stay unresolved.
+    const withCount = (expression: string) => {
+      const state = baseState();
+      state.places["place-queue"] = {
+        kind: "uncoloured",
+        count: { expression, optimize: null },
+      };
+      return state;
+    };
+    const huge = "9".repeat(400);
+    expect(
+      resolveAdHocPlaceTotal(withCount("00"), context, "place-queue"),
+    ).toEqual({ resolved: false, text: "00" });
+    expect(
+      resolveAdHocPlaceTotal(withCount(huge), context, "place-queue"),
+    ).toEqual({ resolved: false, text: huge });
+    expect(
+      resolveAdHocPlaceTotal(withCount("0"), context, "place-queue"),
+    ).toEqual({ resolved: true, total: 0 });
+    expect(
+      resolveAdHocPlaceTotal(withCount(" 0.5 "), context, "place-queue"),
+    ).toEqual({ resolved: true, total: 1 });
+  });
 });
 
 describe("slot keys and labels", () => {
@@ -1351,5 +1380,161 @@ describe("persisted ad-hoc scenarios", () => {
     }
     expect(result.errors[0]?.source).toBe("initialState");
     expect(result.errors[0]?.message).toContain("declared twice");
+  });
+});
+
+describe("createAdHocPlaceTotalResolver", () => {
+  it("totals every place of one state exactly as the per-place function", () => {
+    const state = baseState();
+    state.variables.push({
+      name: "n",
+      type: "integer",
+      expression: "3",
+      optimize: null,
+    });
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [
+        fixed("1", "false"),
+        template("scenario.n + 1", "i", "false"),
+        template("2", "i", "true"),
+      ],
+      sharedColumns: {},
+    };
+    const resolve = createAdHocPlaceTotalResolver(state, context);
+    for (const placeId of ["place-pumps", "place-queue", "place-unknown"]) {
+      expect(resolve(placeId)).toEqual(
+        resolveAdHocPlaceTotal(state, context, placeId),
+      );
+    }
+    expect(resolve("place-pumps")).toEqual({ resolved: true, total: 7 });
+  });
+
+  it("resolves literal counts like evaluated ones", () => {
+    const state = baseState();
+    const resolve = (expression: string) => {
+      state.places["place-queue"] = {
+        kind: "uncoloured",
+        count: cell(expression),
+      };
+      return createAdHocPlaceTotalResolver(state, context)("place-queue");
+    };
+    expect(resolve(" 3.6 ")).toEqual({ resolved: true, total: 4 });
+    expect(resolve("-2")).toEqual({ resolved: true, total: 0 });
+    expect(resolve("")).toEqual({ resolved: true, total: 0 });
+    expect(resolve("1 + 1")).toEqual({ resolved: true, total: 2 });
+  });
+});
+
+describe("createAdHocTargetLabeler", () => {
+  it("labels every kind of target exactly as adHocTargetLabel", () => {
+    const state = baseState();
+    const label = createAdHocTargetLabeler(state, context);
+    const targets = [
+      { kind: "variable" as const, placeId: null, index: 0 },
+      { kind: "variable" as const, placeId: "place-pumps", index: 0 },
+      { kind: "variable" as const, placeId: "place-queue", index: 3 },
+      { kind: "netParameter" as const, parameterId: "param-rate" },
+      { kind: "netParameter" as const, parameterId: "param-unknown" },
+      { kind: "cell" as const, placeId: "place-pumps", row: 1, column: 1 },
+      { kind: "cell" as const, placeId: "place-pumps", row: 0, column: 5 },
+      { kind: "column" as const, placeId: "place-pumps", column: 0 },
+      { kind: "count" as const, placeId: "place-queue", row: null },
+      { kind: "count" as const, placeId: "place-pumps", row: 2 },
+      { kind: "count" as const, placeId: "place-unknown", row: null },
+    ];
+    for (const target of targets) {
+      expect(label(target)).toBe(adHocTargetLabel(target, state, context));
+    }
+    expect(
+      label({ kind: "cell", placeId: "place-pumps", row: 1, column: 1 }),
+    ).toBe("Pumps › item 1 › worn");
+  });
+});
+
+describe("ratio Variables", () => {
+  const withFill = (
+    variable: Partial<AdHocScenarioState["variables"][number]>,
+  ): AdHocScenarioState => {
+    const state = baseState();
+    state.variables = [
+      {
+        name: "fill",
+        type: "ratio",
+        expression: "0.25",
+        optimize: null,
+        ...variable,
+      },
+    ];
+    return state;
+  };
+
+  it("exposes a ratio Variable as a ratio scenario parameter", () => {
+    const scenario = scenarioOf(
+      synthesizeAdHocScenario(withFill({ exposed: true }), context),
+    );
+    expect(scenario.scenarioParameters).toEqual([
+      { type: "ratio", identifier: "fill", default: 0.25 },
+    ]);
+  });
+
+  it("rejects an exposed ratio whose value leaves the range", () => {
+    const outcome = synthesizeAdHocScenario(
+      withFill({ exposed: true, expression: "1.5" }),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]!.slot.part).toBe("expression");
+    expect(outcome.errors[0]!.message).toMatch(/between 0 and 1/);
+  });
+
+  it("rejects an optimized ratio whose kept value leaves the range", () => {
+    // Valid bounds, but the value the generated parameter defaults to is
+    // 1.5: the manifest would refuse it at creation, so the form must.
+    const outcome = synthesizeAdHocOptimization(
+      withFill({
+        expression: "1.5",
+        optimize: { min: "0", max: "1", scale: "linear" },
+      }),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]!.slot.part).toBe("expression");
+    expect(outcome.errors[0]!.message).toMatch(/between 0 and 1 \(got 1\.5\)/);
+  });
+
+  it("keeps an optimized ratio's bounds within the range", () => {
+    const outOfRange = synthesizeAdHocOptimization(
+      withFill({ optimize: { min: "0", max: "2", scale: "linear" } }),
+      context,
+    );
+    expect(outOfRange.ok).toBe(false);
+    if (!outOfRange.ok) {
+      expect(outOfRange.errors[0]!.slot.part).toBe("max");
+      expect(outOfRange.errors[0]!.message).toMatch(/ratio/);
+    }
+
+    const inRange = synthesizeAdHocOptimization(
+      withFill({ optimize: { min: "0.1", max: "0.9", scale: "linear" } }),
+      context,
+    );
+    expect(inRange.ok).toBe(true);
+    if (inRange.ok) {
+      expect(inRange.output.optimizedFields[0]!.domain).toEqual({
+        kind: "continuous",
+        minimum: 0.1,
+        maximum: 0.9,
+        scale: "linear",
+      });
+    }
   });
 });

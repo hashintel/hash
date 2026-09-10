@@ -1061,7 +1061,11 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.13.4" }]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.13" },
+]
+provides-extras = ["sympy"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1069,6 +1073,7 @@ dev = [
     { name = "datamodel-code-generator", specifier = ">=0.74.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.16.4" },
+    { name = "sympy", specifier = ">=1.13" },
 ]
 
 [[package]]

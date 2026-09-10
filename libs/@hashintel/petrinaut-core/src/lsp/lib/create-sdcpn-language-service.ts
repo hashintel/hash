@@ -8,10 +8,12 @@ import {
 } from "./create-language-service-host";
 import {
   generateAdHocSessionFiles,
+  generateConstraintSessionFiles,
   generateMetricSessionFiles,
   generateScenarioSessionFiles,
   generateVirtualFiles,
   type AdHocSessionData,
+  type ConstraintSessionData,
   type MetricSessionData,
   type ScenarioSessionData,
 } from "./generate-virtual-files";
@@ -99,14 +101,13 @@ export class SDCPNLanguageServer {
   }
 
   /**
-   * Sync virtual files for a scenario editing session.
-   * Updates content from the session data (form state is the source of truth).
+   * Make the files under `sessionPrefix` match `newFiles`: files absent from
+   * the new set are removed, new ones added, changed ones updated.
    */
-  syncScenarioFiles(sdcpn: SDCPN, session: ScenarioSessionData): void {
-    const sessionPrefix = `/_temp/scenarios/${session.sessionId}/`;
-    const newFiles = generateScenarioSessionFiles(sdcpn, session);
-
-    // Remove scenario files that no longer exist for this session
+  private syncSessionFiles(
+    sessionPrefix: string,
+    newFiles: Map<string, VirtualFile>,
+  ): void {
     for (const existingName of this.controller.getFileNames()) {
       if (
         existingName.startsWith(sessionPrefix) &&
@@ -116,7 +117,6 @@ export class SDCPNLanguageServer {
       }
     }
 
-    // Add or update files
     for (const [name, newFile] of newFiles) {
       if (!this.controller.hasFile(name)) {
         this.controller.addFile(name, newFile);
@@ -129,9 +129,7 @@ export class SDCPNLanguageServer {
     }
   }
 
-  /** Remove all virtual files for a scenario session. */
-  removeScenarioSession(sessionId: string): void {
-    const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
+  private removeFilesUnder(sessionPrefix: string): void {
     for (const name of this.controller.getFileNames()) {
       if (name.startsWith(sessionPrefix)) {
         this.controller.removeFile(name);
@@ -139,12 +137,31 @@ export class SDCPNLanguageServer {
     }
   }
 
-  /** Get all file paths that belong to a scenario session. */
-  getScenarioFileNames(sessionId: string): string[] {
-    const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
+  private getFileNamesUnder(sessionPrefix: string): string[] {
     return this.controller
       .getFileNames()
       .filter((name) => name.startsWith(sessionPrefix));
+  }
+
+  /**
+   * Sync virtual files for a scenario editing session.
+   * Updates content from the session data (form state is the source of truth).
+   */
+  syncScenarioFiles(sdcpn: SDCPN, session: ScenarioSessionData): void {
+    this.syncSessionFiles(
+      `/_temp/scenarios/${session.sessionId}/`,
+      generateScenarioSessionFiles(sdcpn, session),
+    );
+  }
+
+  /** Remove all virtual files for a scenario session. */
+  removeScenarioSession(sessionId: string): void {
+    this.removeFilesUnder(`/_temp/scenarios/${sessionId}/`);
+  }
+
+  /** Get all file paths that belong to a scenario session. */
+  getScenarioFileNames(sessionId: string): string[] {
+    return this.getFileNamesUnder(`/_temp/scenarios/${sessionId}/`);
   }
 
   /**
@@ -152,50 +169,20 @@ export class SDCPNLanguageServer {
    * Updates content from the session data (form state is the source of truth).
    */
   syncAdHocFiles(sdcpn: SDCPN, session: AdHocSessionData): void {
-    const sessionPrefix = `/_temp/adhoc/${session.sessionId}/`;
-    const newFiles = generateAdHocSessionFiles(sdcpn, session);
-
-    for (const existingName of this.controller.getFileNames()) {
-      if (
-        existingName.startsWith(sessionPrefix) &&
-        !newFiles.has(existingName)
-      ) {
-        this.controller.removeFile(existingName);
-      }
-    }
-
-    for (const [name, newFile] of newFiles) {
-      if (!this.controller.hasFile(name)) {
-        this.controller.addFile(name, newFile);
-      } else {
-        const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix ||
-          existing.suffix !== newFile.suffix
-        ) {
-          this.controller.updateFile(name, newFile);
-        }
-      }
-    }
+    this.syncSessionFiles(
+      `/_temp/adhoc/${session.sessionId}/`,
+      generateAdHocSessionFiles(sdcpn, session),
+    );
   }
 
   /** Remove all virtual files for an ad-hoc scenario session. */
   removeAdHocSession(sessionId: string): void {
-    const sessionPrefix = `/_temp/adhoc/${sessionId}/`;
-    for (const name of this.controller.getFileNames()) {
-      if (name.startsWith(sessionPrefix)) {
-        this.controller.removeFile(name);
-      }
-    }
+    this.removeFilesUnder(`/_temp/adhoc/${sessionId}/`);
   }
 
   /** Get all file paths that belong to an ad-hoc scenario session. */
   getAdHocFileNames(sessionId: string): string[] {
-    const sessionPrefix = `/_temp/adhoc/${sessionId}/`;
-    return this.controller
-      .getFileNames()
-      .filter((name) => name.startsWith(sessionPrefix));
+    return this.getFileNamesUnder(`/_temp/adhoc/${sessionId}/`);
   }
 
   /**
@@ -203,48 +190,41 @@ export class SDCPNLanguageServer {
    * Updates content from the session data (form state is the source of truth).
    */
   syncMetricFiles(sdcpn: SDCPN, session: MetricSessionData): void {
-    const sessionPrefix = `/_temp/metrics/${session.sessionId}/`;
-    const newFiles = generateMetricSessionFiles(sdcpn, session);
-
-    // Remove metric files that no longer exist for this session
-    for (const existingName of this.controller.getFileNames()) {
-      if (
-        existingName.startsWith(sessionPrefix) &&
-        !newFiles.has(existingName)
-      ) {
-        this.controller.removeFile(existingName);
-      }
-    }
-
-    // Add or update files
-    for (const [name, newFile] of newFiles) {
-      if (!this.controller.hasFile(name)) {
-        this.controller.addFile(name, newFile);
-      } else {
-        const existing = this.controller.getFile(name)!;
-        if (!virtualFileEquals(existing, newFile)) {
-          this.controller.updateFile(name, newFile);
-        }
-      }
-    }
+    this.syncSessionFiles(
+      `/_temp/metrics/${session.sessionId}/`,
+      generateMetricSessionFiles(sdcpn, session),
+    );
   }
 
   /** Remove all virtual files for a metric session. */
   removeMetricSession(sessionId: string): void {
-    const sessionPrefix = `/_temp/metrics/${sessionId}/`;
-    for (const name of this.controller.getFileNames()) {
-      if (name.startsWith(sessionPrefix)) {
-        this.controller.removeFile(name);
-      }
-    }
+    this.removeFilesUnder(`/_temp/metrics/${sessionId}/`);
   }
 
   /** Get all file paths that belong to a metric session. */
   getMetricFileNames(sessionId: string): string[] {
-    const sessionPrefix = `/_temp/metrics/${sessionId}/`;
-    return this.controller
-      .getFileNames()
-      .filter((name) => name.startsWith(sessionPrefix));
+    return this.getFileNamesUnder(`/_temp/metrics/${sessionId}/`);
+  }
+
+  /**
+   * Sync virtual files for a constraint editing session.
+   * Updates content from the session data (form state is the source of truth).
+   */
+  syncConstraintFiles(sdcpn: SDCPN, session: ConstraintSessionData): void {
+    this.syncSessionFiles(
+      `/_temp/constraints/${session.sessionId}/`,
+      generateConstraintSessionFiles(sdcpn, session),
+    );
+  }
+
+  /** Remove all virtual files for a constraint session. */
+  removeConstraintSession(sessionId: string): void {
+    this.removeFilesUnder(`/_temp/constraints/${sessionId}/`);
+  }
+
+  /** Get all file paths that belong to a constraint session. */
+  getConstraintFileNames(sessionId: string): string[] {
+    return this.getFileNamesUnder(`/_temp/constraints/${sessionId}/`);
   }
 
   /** Update only the user content of a single file (e.g., when the user types in an editor). */

@@ -44,7 +44,7 @@ interface LinearRelation {
   readonly relatedIssue?: LinearIssueRef;
 }
 
-interface LinearIssueRecord extends LinearIssueRef {
+export interface LinearIssueRecord extends LinearIssueRef {
   readonly parent: { readonly identifier: string } | null;
   readonly relations: {
     readonly pageInfo: { readonly hasNextPage: boolean };
@@ -56,7 +56,7 @@ interface LinearIssueRecord extends LinearIssueRef {
   };
 }
 
-interface ProjectIssuePage {
+export interface ProjectIssuePage {
   readonly projectName: string;
   readonly viewer: { readonly id: string; readonly name: string };
   readonly issues: readonly LinearIssueRecord[];
@@ -569,20 +569,20 @@ if (isMain) {
   try {
     const options = parseArguments(process.argv.slice(2));
     if (options.help) {
-      console.log(usage);
+      process.stdout.write(`${usage}\n`);
     } else {
-      console.log(
-        renderProjectGraph(
+      process.stdout.write(
+        `${renderProjectGraph(
           fetchProjectGraph(options.projectName, options.includeClosed),
-        ),
+        )}\n`,
       );
     }
   } catch (error) {
-    console.error(
-      `linear:graph: ${error instanceof Error ? error.message : String(error)}`,
+    process.stderr.write(
+      `linear:graph: ${error instanceof Error ? error.message : String(error)}\n`,
     );
-    console.error(
-      "Run `turbo run linear:graph --filter '@hashintel/brunch-agent' -- --help` for usage.",
+    process.stderr.write(
+      "Run `turbo run linear:graph --filter '@hashintel/brunch-agent' -- --help` for usage.\n",
     );
     process.exitCode = 1;
   }

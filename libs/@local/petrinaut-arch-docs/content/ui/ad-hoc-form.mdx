@@ -432,7 +432,10 @@ parameter values.
 
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
-synthesis-only validation. State is plain data — hold it wherever the consumer
+synthesis-only validation. The create-optimization drawer's constraint rows
+follow the same pattern with `temp/constraint/*` sessions: one per row, keyed
+by the draft id, carrying the study's scenario parameters so `scenario.*`
+resolves even when the study's scenario is ad-hoc and absent from the SDCPN. State is plain data — hold it wherever the consumer
 already keeps its draft (component state in the drawers, `SimulationContext`
 for quick simulation) and hand `output.scenario` to `compileScenario` when
 the consumer needs it: the drawers compile at experiment/optimization start,

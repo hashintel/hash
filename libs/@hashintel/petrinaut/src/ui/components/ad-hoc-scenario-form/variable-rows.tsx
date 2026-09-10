@@ -20,7 +20,11 @@ import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { adHocVariableKey } from "./dependency-highlight";
-import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import {
+  AdHocFormContext,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellButtonStyle,
@@ -213,10 +217,13 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const { errorFor, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
   // The trailing toggle column: Optimize on every Variable in optimize
-  // mode; "Scenario Parameter" on top-level Variables only in expose mode
-  // (a per-place Variable is a per-row intermediate — nothing to expose).
+  // mode, Sweep on every numeric Variable in sweep mode; "Scenario
+  // Parameter" on top-level Variables only in expose mode (a per-place
+  // Variable is a per-row intermediate — nothing to expose).
   const toggleColumn =
-    selection === "optimize" || (selection === "expose" && placeId === null)
+    selection === "optimize" ||
+    selection === "sweep" ||
+    (selection === "expose" && placeId === null)
       ? selection
       : null;
   const { register, onKeyDown, attach } = useFocusGrid();
@@ -407,18 +414,34 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   size="sm"
                   aria-label={`Type of ${variable.name}`}
                   value={variable.type}
-                  onChange={(type) =>
-                    dispatch({
-                      type: "setVariableType",
+                  onChange={(type) => {
+                    const setType = {
+                      type: "setVariableType" as const,
                       placeId,
                       index,
                       variableType: type,
-                    })
-                  }
+                    };
+                    // A selection the new type cannot carry (a swept
+                    // Variable turned boolean) would linger with nothing to
+                    // clear it and refuse the run, so it turns off with the
+                    // type, as one undo step.
+                    dispatch(
+                      toggleColumn !== null &&
+                        toggleColumn !== "expose" &&
+                        variable.optimize !== null &&
+                        !adHocSelectionApplies(toggleColumn, type)
+                        ? [
+                            setType,
+                            { type: "toggleSelection", target, on: false },
+                          ]
+                        : setType,
+                    );
+                  }}
                   items={[
                     { value: "real", text: "Real" },
                     { value: "integer", text: "Integer" },
                     { value: "boolean", text: "Boolean" },
+                    { value: "ratio", text: "Ratio" },
                   ]}
                 />
               </td>
@@ -443,24 +466,34 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   onFocus={() => setFocusedValue(target)}
                   onBlur={() => setFocusedValue(null)}
                 >
-                  <OptimizeToggle
-                    text={adHocSelectionText(toggleColumn)}
-                    label={`${adHocSelectionText(toggleColumn)} ${variable.name}`}
-                    value={
-                      toggleColumn === "expose"
-                        ? (variable.exposed ?? false)
-                        : variable.optimize !== null
-                    }
-                    buttonRef={register(index, 4)}
-                    onKeyDown={onKeyDown(index, 4)}
-                    onChange={(on) =>
-                      dispatch(
+                  {/* A selection already on the Variable keeps its toggle
+                      whatever the type, so it can always be turned off. */}
+                  {toggleColumn === "expose" ||
+                  adHocSelectionApplies(toggleColumn, variable.type) ||
+                  variable.optimize !== null ? (
+                    <OptimizeToggle
+                      text={adHocSelectionText(toggleColumn)}
+                      label={`${adHocSelectionText(toggleColumn)} ${variable.name}`}
+                      value={
                         toggleColumn === "expose"
-                          ? { type: "setVariableExposed", index, exposed: on }
-                          : { type: "toggleSelection", target, on },
-                      )
-                    }
-                  />
+                          ? (variable.exposed ?? false)
+                          : variable.optimize !== null
+                      }
+                      buttonRef={register(index, 4)}
+                      onKeyDown={onKeyDown(index, 4)}
+                      onChange={(on) =>
+                        dispatch(
+                          toggleColumn === "expose"
+                            ? {
+                                type: "setVariableExposed",
+                                index,
+                                exposed: on,
+                              }
+                            : { type: "toggleSelection", target, on },
+                        )
+                      }
+                    />
+                  ) : null}
                 </td>
               ) : null}
             </tr>

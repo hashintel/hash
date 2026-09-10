@@ -958,3 +958,14 @@ describe("building a state entirely from actions", () => {
     expect(outcome.ok).toBe(true);
   });
 });
+
+describe("variable types", () => {
+  it("accepts ratio as a declared Variable type", () => {
+    const parsed = adHocActionInputSchemas.setVariableType.safeParse({
+      placeId: null,
+      index: 0,
+      variableType: "ratio",
+    });
+    expect(parsed.success).toBe(true);
+  });
+});

@@ -112,6 +112,7 @@ export const LanguageClientProvider: React.FC<{
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
+    requestConstraint: client.requestConstraint,
     initializeScenarioSession: client.initializeScenarioSession,
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,
@@ -121,6 +122,9 @@ export const LanguageClientProvider: React.FC<{
     killAdHocSession: client.killAdHocSession,
     updateMetricSession: client.updateMetricSession,
     killMetricSession: client.killMetricSession,
+    initializeConstraintSession: client.initializeConstraintSession,
+    updateConstraintSession: client.updateConstraintSession,
+    killConstraintSession: client.killConstraintSession,
   };
 
   return (
