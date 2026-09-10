@@ -10,7 +10,8 @@
  * only output is `onSelectionChange`. Slider moves commit live — positions
  * are quantized, so a drag emits one change per step crossed and compute
  * follows the thumb. While an optimizer drives the sweep the controls only
- * show where it went: they are disabled, and the status line names the step.
+ * show where it went: they are disabled, and the status line names the step;
+ * once the study settles the line keeps its outcome.
  */
 import {
   LoadingSpinner,
@@ -38,10 +39,14 @@ export type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
   /**
-   * The optimizer step the selection follows, when a study drives the
-   * sweep: the controls are disabled and show its point. Null otherwise.
+   * The study behind the selection: the step it follows while a study
+   * drives the sweep, or the settled study's outcome in one line. Null when
+   * no study was started.
    */
-  following: { step: number; total: number } | null;
+  following:
+    | { kind: "following"; step: number; total: number }
+    | { kind: "settled"; summary: string }
+    | null;
   /** Runs finished for the selection so far. */
   runsCompleted: number;
   /** Runs finished within the currently running batch's target. */
@@ -208,18 +213,29 @@ const SamplingStatus = ({
   const activity = isRange
     ? "sampling across the selected ranges"
     : "refining while you stay here";
+  const { following } = status;
+  const sampling = status.computing
+    ? ` — ${status.runsSampled} of ${status.runTarget ?? status.runCount} runs`
+    : "";
 
   return (
     <div className={statusStyle}>
-      <span className={spinnerSlotStyle} data-idle={!status.computing}>
+      {/* The spinner spans a driving study's gap between two steps as well. */}
+      <span
+        className={spinnerSlotStyle}
+        data-idle={!status.computing && following?.kind !== "following"}
+      >
         <LoadingSpinner size="xs" />
       </span>
-      {status.following ? (
+      {following?.kind === "following" ? (
         <span>
-          Following step {status.following.step} of {status.following.total}
-          {status.computing
-            ? ` — ${status.runsSampled} of ${status.runTarget ?? status.runCount} runs`
-            : ""}
+          Following step {following.step} of {following.total}
+          {sampling}
+        </span>
+      ) : following?.kind === "settled" ? (
+        <span>
+          {following.summary}
+          {sampling}
         </span>
       ) : status.computing ? (
         <span>
@@ -227,7 +243,10 @@ const SamplingStatus = ({
           {activity}
         </span>
       ) : status.runsCompleted === 0 ? (
-        <span>move a control or click the surface to compute a point</span>
+        <span>
+          collapse a control to a point or click the surface to compute a point;
+          widen a range to sample across it
+        </span>
       ) : (
         <span>
           {status.runsCompleted} of {status.runCount} runs
@@ -242,11 +261,14 @@ export const SweepNavigator = ({
   axes,
   selection,
   status,
+  disabled,
   onSelectionChange,
 }: {
   axes: readonly ExperimentParameterAxis[];
   selection: SweepSelection;
   status: SweepNavigatorStatus;
+  /** The controls only show the selection: a study drives it, or the experiment is over. */
+  disabled: boolean;
   onSelectionChange: (selection: SweepSelection) => void;
 }) => {
   return (
@@ -258,7 +280,7 @@ export const SweepNavigator = ({
           </span>
           <AxisControl
             axis={axis}
-            disabled={status.following !== null}
+            disabled={disabled}
             selected={
               selection[axis.identifier] ?? {
                 from: 0,

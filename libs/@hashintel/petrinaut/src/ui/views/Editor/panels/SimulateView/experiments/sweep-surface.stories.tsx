@@ -45,7 +45,7 @@ const untouched: ExperimentRecord = {
  * Reads the record back out of the provider, so a pick's selection change
  * reaches the surface the way it does in the drawer.
  */
-const LiveSweepSurface = ({ following }: { following?: boolean }) => {
+const LiveSweepSurface = ({ following }: { following: boolean }) => {
   const { experiments } = use(ExperimentsContext);
   const record = experiments.find((candidate) => candidate.sweep !== null);
   return record ? (
@@ -62,7 +62,7 @@ const SweepSurfaceStory = ({
   following,
 }: {
   experiment: ExperimentRecord;
-  following?: boolean;
+  following: boolean;
 }) => (
   <FakeExperimentsProvider
     initialExperiments={[experiment]}
@@ -77,13 +77,13 @@ const SweepSurfaceStory = ({
 /** Five points visited, the selected one computing: click or drag to add one. */
 export const Visited: Story = {
   name: "Visited points",
-  render: () => <SweepSurfaceStory experiment={visited} />,
+  render: () => <SweepSurfaceStory experiment={visited} following={false} />,
 };
 
 /** A fresh sweep: nothing computed, the plot waits for a pick. */
 export const Empty: Story = {
   name: "Empty",
-  render: () => <SweepSurfaceStory experiment={untouched} />,
+  render: () => <SweepSurfaceStory experiment={untouched} following={false} />,
 };
 
 /** An optimizer drives the selection: display only, in the optimizing tone. */

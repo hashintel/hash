@@ -30,18 +30,24 @@ its fractional grid coordinate (`surfaceGridCoordinate`, shared with the
 optimization surface through `shared/surface-field.ts`), a filled dot with the
 shown metric's value, the point matching the selection emphasized, a muted
 ring where the metric never reported. `computingSurfaceField` adds the point
-being computed as a ring whose running value (`sweepCellObjective` over the
-record's streaming frames) enters the field before the point folds. Points
-computed at other values of the hidden axes are drawn as well, projected, the
-way a study's trials are: the picture is everything computed so far, not a
-slice. Switching the shown metric re-reads the same visited cells.
+being computed as a ring and nothing more: its value joins the field from
+the visited list once the batch folds, so the contour never chases the
+metric's time course while a batch streams. Points computed at other values
+of the hidden axes are drawn as well, projected, the way a study's trials
+are: the picture is everything computed so far, not a slice. Switching the
+shown metric re-reads the same visited cells. The caption
+(`describeVisitedSurface`) words what computes as the navigator does — the
+selected point, or a sampling across the selected ranges — and names the
+step's point while an optimizer drives.
 
 The plot is a control in both directions: a dark ring marks the navigator's
 position, and a press-drag shows a CSS crosshair (positioned in percentages,
 so pointer moves never repaint the field raster) with a live value readout in
-the caption; releasing collapses both shown axes to a point there, exactly as
-a click does. While an optimizer drives the sweep the card takes the
-`optimizing` tone and the plot gets no pick handler, so it only displays.
+the caption; releasing collapses every axis to a point, exactly as a click
+does: the two shown axes at the pick, each hidden axis at the middle of its
+range, so a pick is always a point the surface can draw. While an optimizer
+drives the sweep the card takes the `optimizing` tone and the plot gets no
+pick handler, so it only displays.
 
 ## Rendering sparse data honestly
 

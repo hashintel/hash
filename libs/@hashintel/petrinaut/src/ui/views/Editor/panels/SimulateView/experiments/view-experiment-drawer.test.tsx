@@ -8,8 +8,18 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import {
+  fakeStudyInput,
+  makeOptimizationRecord,
+  makeOptimizationsContextValue,
+} from "../optimizations/optimizations-story-fixtures";
 import {
   frameHeader,
   frameLayoutSignature,
@@ -19,11 +29,13 @@ import { describeExperiment } from "./experiment-results";
 import {
   makeExperiment,
   makeParameterSweepExperiment,
+  sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { SweepOptimizer } from "./sweep-optimizer";
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ReactNode } from "react";
 
 /** The optimizer the drawer's Parameters card reads; idle unless a test sets it. */
@@ -34,19 +46,20 @@ const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
 const idleOptimizer: SweepOptimizer = {
   available: false,
   study: null,
-  driving: false,
+  driving: null,
   start: () => Promise.resolve(),
   stop: () => {},
   discard: () => {},
 };
 
-// The hook reads the host's optimizer through three contexts; the control's
-// own behaviour is what these tests exercise.
+// A test that exercises the control alone sets a fake; otherwise the real
+// hook reads the host's optimizer through its contexts.
 vi.mock("./sweep-optimizer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./sweep-optimizer")>();
   return {
     ...actual,
-    useSweepOptimizer: () => optimizer.current ?? idleOptimizer,
+    useSweepOptimizer: (experiment: ExperimentRecord) =>
+      optimizer.current ?? actual.useSweepOptimizer(experiment),
   };
 });
 
@@ -153,6 +166,58 @@ const renderDrawer = (experiment: ExperimentRecord) =>
 
 const sweep = makeParameterSweepExperiment();
 
+/** A connected optimizer the fake optimizations context never connects. */
+const connectedOptimizer: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => {
+    throw new Error("The test's optimizer is never connected");
+  },
+};
+
+const WithInBrowserOptimizer = ({ children }: { children: ReactNode }) => {
+  const value = use(UserSettingsContext);
+  return (
+    <UserSettingsContext
+      value={{ ...value, enableInBrowserOptimization: true }}
+    >
+      {children}
+    </UserSettingsContext>
+  );
+};
+
+/** The sweep's drawer with a study started from it, driving or settled. */
+const renderDrawerWithStudy = (
+  experiment: ExperimentRecord,
+  status: "running" | "cancelled",
+) => {
+  const study = {
+    ...makeOptimizationRecord({ input: fakeStudyInput, status }),
+    origin: { kind: "sweep" as const, experimentId: experiment.id },
+    completedTrials: 3,
+    prunedTrials: 1,
+  };
+  return render(
+    <WithInBrowserOptimizer>
+      <PetrinautOptimizationContext value={connectedOptimizer}>
+        <SDCPNContext value={sirSdcpnContextValue}>
+          <OptimizationsContext
+            value={makeOptimizationsContextValue(study, {
+              selectedOptimization: null,
+              selectedOptimizationId: null,
+            })}
+          >
+            <ViewExperimentDrawer
+              open
+              onClose={() => {}}
+              experiment={experiment}
+            />
+          </OptimizationsContext>
+        </SDCPNContext>
+      </PetrinautOptimizationContext>
+    </WithInBrowserOptimizer>,
+  );
+};
+
 /** The sweep in each state a drawer can show it. */
 const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
   ...sweep,
@@ -173,13 +238,15 @@ describe("ViewExperimentDrawer in the frame", () => {
       screen.getByText(/^SIR transmission sweep · Seasonal Flu · 100 runs$/u),
     ).toBeTruthy();
     expect(screen.getByText("Running")).toBeTruthy();
+    // A sweep's strip carries its selection's sampling, not a run budget.
+    expect(screen.queryByText("Runs")).toBeNull();
     expect(
       screen
-        .getByText("Runs")
+        .getByText("Selection")
         .nextElementSibling?.querySelector("[data-frame-stat-value]")
         ?.textContent,
-    ).toMatch(/^\d+ active, \d+ complete$/u);
-    expect(screen.getByText("Selection")).toBeTruthy();
+    ).toMatch(/^\d+ \/ 100 runs$/u);
+    expect(screen.queryByText("Elapsed")).toBeNull();
     expect(screen.getByText("CPU")).toBeTruthy();
   });
 
@@ -238,6 +305,29 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(frameLayoutSignature(view.container)).toEqual(before);
   });
 
+  it("reads Optimizing from the study driving the sweep, with Stop on the Parameters card and Cancel in the footer", () => {
+    renderDrawerWithStudy({ ...sweep, status: "idle" }, "running");
+
+    expect(screen.getByText("Optimizing")).toBeTruthy();
+    expect(screen.queryByText("Idle")).toBeNull();
+    // The ds Button seats a zero-width space before its icon's label.
+    expect(
+      screen.getByRole("button", { name: /Stop$/u }).dataset.sweepOptimizing,
+    ).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
+    expect(screen.getByRole("button", { name: /Cancel$/u })).toBeTruthy();
+    expect(screen.getByText(/^Following step 5 of 30/u)).toBeTruthy();
+  });
+
+  it("offers Optimize again once the study settles and keeps its outcome on the status line", () => {
+    renderDrawerWithStudy({ ...sweep, status: "idle" }, "cancelled");
+
+    expect(screen.getByText("Idle")).toBeTruthy();
+    expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
+    expect(screen.getByRole("button", { name: /Optimize$/u })).toBeTruthy();
+    expect(screen.getByText(/^Cancelled after 4 of 30 steps/u)).toBeTruthy();
+  });
+
   it("shows a plain experiment's metric cards alone, with no parameters and no surface", () => {
     renderDrawer(
       makeExperiment(1, {
@@ -249,6 +339,8 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.queryByText("Parameters")).toBeNull();
     expect(screen.queryByTestId("sweep-surface")).toBeNull();
     expect(screen.queryByText("Selection")).toBeNull();
+    expect(screen.getByText("Runs")).toBeTruthy();
+    expect(screen.getByText("Elapsed")).toBeTruthy();
     expect(screen.getAllByTestId("metric-timeline").length).toBe(
       sweep.metricSpecs.length,
     );
@@ -336,13 +428,13 @@ describe("the Optimize control", () => {
       ...idleOptimizer,
       available: true,
       study: drivingStudy,
-      driving: true,
+      driving: { step: 5, total: 30 },
       stop,
     };
     renderDrawer(sweep);
 
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Stop optimizing" }));
+    fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
 
     expect(stop).toHaveBeenCalledTimes(1);
   });
