@@ -6,7 +6,8 @@ use crate::file::storage::{
     error::StorageError,
     s3::{
         S3, WriteCondition,
-        path::{CopySource, S3Path},
+        metadata::ETag,
+        path::{BucketPath, CopySource},
     },
 };
 
@@ -14,13 +15,13 @@ pub(crate) enum Source<'source> {
     File(&'source Utf8Path),
     Copy {
         header: CopySource<'source>,
-        etag: String,
+        etag: ETag,
     },
 }
 
 pub(crate) struct Remote<'transfer> {
     pub backend: &'transfer S3,
-    pub destination: &'transfer S3Path,
+    pub destination: &'transfer BucketPath,
 
     pub source: Source<'transfer>,
     pub condition: WriteCondition<'transfer>,
@@ -78,7 +79,7 @@ impl Backend for Remote<'_> {
                     .upload_id(upload)
                     .part_number(part.number)
                     .copy_source(header.to_string())
-                    .copy_source_if_match(etag)
+                    .copy_source_if_match(etag.clone())
                     .copy_source_range(part.copy_range())
                     .send()
                     .await?;

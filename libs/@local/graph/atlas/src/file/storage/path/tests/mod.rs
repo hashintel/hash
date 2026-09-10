@@ -14,6 +14,8 @@ use crate::file::{
     },
 };
 
+mod mutation;
+
 #[test]
 fn parse_local() {
     let path: FilePath = "relative/file.bin"
