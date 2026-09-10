@@ -8,8 +8,9 @@
  * for the trial's runs, and reports the metric's value at that point. The
  * sweep's navigator therefore moves trial by trial, every trial is a visited
  * point on its Surface, and the runs use the sweep's common random numbers.
- * Once the study settles the evaluator parks the sweep on the best point and
- * lifts the run cap, so that point refines to the experiment's run count.
+ * Once the study settles the evaluator parks the sweep, uncapped, on the best
+ * point, or on the point it was trying when the study was stopped, so that
+ * point refines to the experiment's run count.
  */
 import { axisPositionFor } from "../../experiments/parameter-grid";
 import { prunedTrialOutcome } from "../channel/create-optimization-channel/trial-outcome";
@@ -32,7 +33,10 @@ import type {
 export const SWEEP_TRIAL_RUNS = 8;
 
 export type SweepTrialEvaluator = PetrinautOptimizationChannel & {
-  /** The study is over: the sweep settles on the best point, uncapped. */
+  /**
+   * The study is over: the sweep settles, uncapped, on the best point, or on
+   * the last point tried when the study has none.
+   */
   settle: (best: OptimizationBest | null | undefined) => void;
 };
 
@@ -70,6 +74,8 @@ export const createSweepTrialEvaluator = ({
   navigateSweep: ExperimentsActionsValue["navigateSweep"];
 }): SweepTrialEvaluator => {
   let settled = false;
+  /** The point the latest trial moved the sweep to. */
+  let lastPoint: SweepSelection | null = null;
 
   const evaluateTrial = async (request: PetrinautOptimizationTrialRequest) => {
     // Read through a call so the flag is re-checked after the await.
@@ -83,6 +89,7 @@ export const createSweepTrialEvaluator = ({
         "The suggestion misses a swept parameter or is not a number",
       );
     }
+    lastPoint = point;
     const cell: SweepVisitedCell | null = await navigateSweep(
       experimentId,
       point,
@@ -108,7 +115,7 @@ export const createSweepTrialEvaluator = ({
     evaluateTrial,
     settle: (best) => {
       settled = true;
-      const point = best ? sweepPointFor(axes, best.parameters) : null;
+      const point = best ? sweepPointFor(axes, best.parameters) : lastPoint;
       if (point !== null) {
         void navigateSweep(experimentId, point);
       }
