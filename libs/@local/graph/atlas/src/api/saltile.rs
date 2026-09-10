@@ -1,7 +1,11 @@
 //! Binary envelope responses and the worker that assembles them.
 //!
-//! [`Saltile`] wraps assembled envelope bytes with the family's media type and the no-store cache
-//! posture. [`spawn`] runs the CPU-bound assembly off the async runtime.
+//! [`Saltile`] is a documentation-only marker: its [`OperationOutput`] impl states the `SALTILE`
+//! family's media type and no-store posture for the tile, edges, and locate operations, and no
+//! value of it is ever constructed. [`DocumentResponse`] is what a route actually returns: bytes a
+//! [`serve2::document`](crate::serve2::document) `Document::encode` call produced, paired with the
+//! `&'static str` media type its `Envelope` chose - `SALTILE` for the binary routes, `application/
+//! json` for translate. [`spawn`] runs the CPU-bound assembly off the async runtime.
 
 use alloc::borrow::Cow;
 use core::panic::UnwindSafe;
@@ -18,30 +22,14 @@ use crate::offload::{self, OffloadError};
 /// The tile response media type, the `SALTILE` family at version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
 
-/// `SALTILE` envelope bytes as a response.
+/// The binary `SALTILE` response, as an OpenAPI documentation marker.
 ///
-/// The family's media type, no-store because the client's application-layer cache is the cache.
-pub(super) struct Saltile(Vec<u8>);
-
-impl Saltile {
-    /// Wraps assembled envelope bytes for delivery.
-    pub(super) const fn new(bytes: Vec<u8>) -> Self {
-        Self(bytes)
-    }
-}
-
-impl IntoResponse for Saltile {
-    fn into_response(self) -> Response {
-        (
-            [
-                (header::CONTENT_TYPE, SALTILE),
-                (header::CACHE_CONTROL, headers::NO_STORE),
-            ],
-            self.0,
-        )
-            .into_response()
-    }
-}
+/// No route constructs one: [`DocumentResponse`] carries the actual bytes a handler answers with,
+/// under whichever media type its `Envelope` chose. This type exists so `tile`, `edges`, and
+/// `locate`'s `document` functions can state the `SALTILE` shape through
+/// `response_with::<200, Saltile, _>` without repeating its media type and cache posture at each
+/// call site.
+pub(super) struct Saltile;
 
 impl OperationOutput for Saltile {
     type Inner = Vec<u8>;
@@ -78,6 +66,43 @@ impl OperationOutput for Saltile {
             .unwrap_or_else(|| unreachable!("`operation_response` answers every operation"));
 
         vec![(Some(openapi::StatusCode::Code(200)), response)]
+    }
+}
+
+/// One assembled document's bytes, under the media type its `Envelope` chose.
+///
+/// Every data route builds its bytes off the async runtime, on [`spawn`], by constructing a
+/// [`serve2::document`](crate::serve2::document) type and calling its `Document::encode`. The
+/// returned `Envelope`'s `content_type` states the response's actual media type - the binary
+/// `SALTILE` family for tile, edges, and locate, `application/json` for translate. One type here
+/// serves every data route rather than one per media type. The posture is `no-store`
+/// throughout: every response keys on (authorization context, generation, route, canonical body),
+/// which shared caches cannot see, and the client's application-layer cache is the cache.
+pub(super) struct DocumentResponse {
+    bytes: Vec<u8>,
+    content_type: &'static str,
+}
+
+impl DocumentResponse {
+    /// Wraps assembled bytes for delivery under `content_type`.
+    pub(super) const fn new(bytes: Vec<u8>, content_type: &'static str) -> Self {
+        Self {
+            bytes,
+            content_type,
+        }
+    }
+}
+
+impl IntoResponse for DocumentResponse {
+    fn into_response(self) -> Response {
+        (
+            [
+                (header::CONTENT_TYPE, self.content_type),
+                (header::CACHE_CONTROL, headers::NO_STORE),
+            ],
+            self.bytes,
+        )
+            .into_response()
     }
 }
 

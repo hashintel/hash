@@ -98,6 +98,7 @@ fn pump(
     ControlFlow::Continue(())
 }
 
+#[derive(Copy, Clone)]
 pub(crate) struct DeltaFeedTaskOptions {
     pub safety_lag: Duration,
     pub tick_rate: Duration,

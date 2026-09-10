@@ -6,7 +6,7 @@ use super::{Document, codec::Envelope};
 use crate::file::generation::GenerationId;
 
 /// The active generation captured for one request.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub(crate) struct CurrentDocument {
     generation: GenerationId,
 }

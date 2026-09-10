@@ -91,8 +91,8 @@ hashql_core::id::newtype_producer!(struct PublicationProducer(Publication));
 pub(crate) struct CacheEntry {
     pub mask: VisibilityMask,
     pub schedule: ViewSchedule,
-    filter: Option<Arc<RawValue>>,
-    occupancy: Option<ViewOccupancy>,
+    pub filter: Option<Arc<RawValue>>,
+    pub occupancy: Option<ViewOccupancy>,
     resolved_at: Instant,
     publication: Publication,
     refreshing: Atomic<bool>,
@@ -167,7 +167,7 @@ impl CacheKey {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct VisibilityLimits {
+pub struct VisibilityLimits {
     pub bytes: u64,
     pub soft: Duration,
     pub hard: Duration,
@@ -192,6 +192,10 @@ impl VisibilityCache {
             publications: Arc::new(PublicationProducer::new()),
             limits,
         }
+    }
+
+    pub(super) async fn filter_document(&self, key: &CacheKey) -> Option<Arc<RawValue>> {
+        self.entries.get(key).await?.filter.as_ref().map(Arc::clone)
     }
 
     async fn get_or_insert_with<R, E>(

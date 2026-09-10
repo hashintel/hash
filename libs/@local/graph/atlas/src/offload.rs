@@ -8,7 +8,9 @@
 //! rayon's response to a panic no join point observes.
 
 use alloc::borrow::Cow;
-use core::{any::Any, error::Error, fmt, panic::UnwindSafe};
+use core::{any::Any, error::Error, fmt, panic::UnwindSafe, pin, task, task::ready};
+
+use futures::FutureExt;
 
 /// An offloaded computation that produced no value.
 ///
@@ -37,6 +39,42 @@ impl fmt::Display for OffloadError {
 
 impl Error for OffloadError {}
 
+pub(crate) enum OffloadState<T> {
+    Finished(T),
+    Running,
+}
+
+pub(crate) struct OffloadHandle<T> {
+    receiver: tokio::sync::oneshot::Receiver<Result<T, Box<dyn Any + Send>>>,
+}
+
+impl<T> OffloadHandle<T> {
+    pub(crate) fn try_join(&mut self) -> Result<OffloadState<T>, OffloadError> {
+        match self.receiver.try_recv() {
+            Ok(Ok(value)) => Ok(OffloadState::Finished(value)),
+            Ok(Err(panic)) => Err(OffloadError::Panicked(panic_message(panic))),
+            Err(tokio::sync::oneshot::error::TryRecvError::Closed) => Err(OffloadError::Vanished),
+            Err(tokio::sync::oneshot::error::TryRecvError::Empty) => Ok(OffloadState::Running),
+        }
+    }
+}
+
+impl<T> Future for OffloadHandle<T> {
+    type Output = Result<T, OffloadError>;
+
+    fn poll(mut self: pin::Pin<&mut Self>, cx: &mut task::Context<'_>) -> task::Poll<Self::Output> {
+        let value = ready!(self.receiver.poll_unpin(cx));
+
+        let value = match value {
+            Ok(Ok(value)) => Ok(value),
+            Ok(Err(panic)) => Err(OffloadError::Panicked(panic_message(panic))),
+            Err(_closed) => Err(OffloadError::Vanished),
+        };
+
+        task::Poll::Ready(value)
+    }
+}
+
 /// Runs `work` on a rayon worker and returns its value, answering a panic as an error.
 ///
 /// The future resolves when the work completes. Dropping the future first - a cancelled request,
@@ -49,9 +87,9 @@ impl Error for OffloadError {}
 /// Returns [`OffloadError::Panicked`] when the work panics, with the payload's text when the
 /// payload was one, and [`OffloadError::Vanished`] when the pool drops the job without running
 /// it.
-pub(crate) async fn run<T: Send + 'static>(
+pub(crate) fn run<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + UnwindSafe + 'static,
-) -> Result<T, OffloadError> {
+) -> OffloadHandle<T> {
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
     rayon::spawn(move || {
@@ -69,11 +107,7 @@ pub(crate) async fn run<T: Send + 'static>(
         }));
     });
 
-    match receiver.await {
-        Ok(Ok(value)) => Ok(value),
-        Ok(Err(panic)) => Err(OffloadError::Panicked(panic_message(panic))),
-        Err(_closed) => Err(OffloadError::Vanished),
-    }
+    OffloadHandle { receiver }
 }
 
 /// Extracts a panic payload's text.

@@ -1,8 +1,8 @@
 mod actor;
-mod authority;
+pub(crate) mod authority;
 mod error;
-mod scope;
-mod token;
+pub(crate) mod scope;
+pub(crate) mod token;
 
 #[cfg(test)]
 mod tests;

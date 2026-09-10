@@ -294,6 +294,20 @@ impl<'de> serde::Deserialize<'de> for Zoom {
     }
 }
 
+impl schemars::JsonSchema for Zoom {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        "Zoom".into()
+    }
+
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "type": "integer",
+            "minimum": Self::MIN.get(),
+            "maximum": Self::MAX.get(),
+        })
+    }
+}
+
 /// A tile address, the route's `z/x/y` echoed as `HEAD` key 2.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 pub(crate) struct MortonTile {

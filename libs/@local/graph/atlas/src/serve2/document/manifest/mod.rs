@@ -11,7 +11,7 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp};
 use serde::{Serialize, Serializer};
 
 use super::{
-    Document, DocumentLimits,
+    Document, DocumentLimits, VARIANTS,
     codec::{Envelope, WIRE_VERSION},
 };
 use crate::{
@@ -21,6 +21,11 @@ use crate::{
     serve2::{scene::Scene, visibility::cache::VisibilityLimits},
 };
 
+#[cfg(test)]
+mod tests;
+
+#[derive(schemars::JsonSchema)]
+#[schemars(with = "String")]
 struct BucketCut(Log2);
 
 impl fmt::Display for BucketCut {
@@ -35,7 +40,7 @@ impl Serialize for BucketCut {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct BucketDescription {
     span: u64,
@@ -43,7 +48,7 @@ struct BucketDescription {
     max_zoom: Zoom,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct ScopeDescription {
     #[serde(rename = "k")]
@@ -52,7 +57,7 @@ struct ScopeDescription {
     max_zoom: Zoom,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct ManifestLimits<'limits> {
     #[serde(flatten)]
@@ -62,16 +67,17 @@ struct ManifestLimits<'limits> {
 }
 
 /// Generation metadata and the delivery cut resolved for one request.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ManifestDocument<'limits> {
     generation: GenerationId,
     wire_version: u16,
-    variants: [&'static str; 1],
+    variants: [&'static str; VARIANTS.len()],
     bucket_schedule: BucketDescription,
     scope_schedule: ScopeDescription,
     limits: ManifestLimits<'limits>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     created_at: Option<Timestamp<DecisionTime>>,
 }
 
@@ -89,7 +95,7 @@ impl<'limits> ManifestDocument<'limits> {
         Self {
             generation: world.generation().id(),
             wire_version: WIRE_VERSION,
-            variants: ["plain"],
+            variants: VARIANTS,
             bucket_schedule: BucketDescription {
                 span: 1_u64 << buckets.span().get(),
                 cut: BucketCut(buckets.span()),

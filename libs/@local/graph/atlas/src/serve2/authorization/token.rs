@@ -1,4 +1,4 @@
-use core::time::Duration;
+use core::{fmt, str::FromStr, time::Duration};
 use std::time::SystemTime;
 
 use zerocopy::{LE, U64};
@@ -7,6 +7,7 @@ use super::{
     authority::{NONCE_BYTES, TAG_BYTES},
     scope::Scope,
 };
+use crate::integrity::{HexBytes, ParseHexError};
 
 #[derive(
     Debug,
@@ -117,6 +118,10 @@ impl Token {
     pub(super) const BYTES: usize = size_of::<Self>();
 }
 
+/// An encrypted authority presentation with a lowercase hexadecimal text form.
+///
+/// Text parsing checks only the encoding.
+/// [`Authority::decrypt`](super::authority::Authority::decrypt) verifies the presented authority.
 #[derive(
     Debug,
     Copy,
@@ -130,10 +135,24 @@ impl Token {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub(crate) struct EncryptedToken([u8; Token::BYTES]);
+pub(crate) struct EncryptedToken(HexBytes<{ Token::BYTES }>);
 
 impl EncryptedToken {
     pub(super) const fn new_unchecked(bytes: [u8; Token::BYTES]) -> Self {
-        Self(bytes)
+        Self(HexBytes::new(bytes))
+    }
+}
+
+impl fmt::Display for EncryptedToken {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl FromStr for EncryptedToken {
+    type Err = ParseHexError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        value.parse::<HexBytes<{ Token::BYTES }>>().map(Self)
     }
 }

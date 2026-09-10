@@ -46,7 +46,7 @@ pub(crate) enum LocateSource {
     Row(EncodedRowId<NodeRowId>),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct LocateLimits {
     /// Most requested types, including duplicates. The default is 32.

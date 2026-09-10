@@ -30,7 +30,7 @@ hashql_core::id::newtype! {
     pub(crate) struct TileSlot(u32)
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TileLimits {
     /// Most requested types, including duplicates. The default is 32.

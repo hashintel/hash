@@ -1,7 +1,7 @@
 use super::{EdgesLimits, LocateLimits, TileLimits, TranslateLimits};
 
 /// Route limits shared by request assembly and bootstrap metadata.
-#[derive(serde::Serialize)]
+#[derive(Copy, Clone, serde::Serialize, schemars::JsonSchema)]
 pub(crate) struct DocumentLimits {
     pub tile: TileLimits = TileLimits { .. },
     pub edges: EdgesLimits = EdgesLimits { .. },

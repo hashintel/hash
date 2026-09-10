@@ -22,8 +22,7 @@ use hash_middleware::{
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
 
-use super::AppState;
-use crate::{file::generation::GenerationId, serve::VARIANTS};
+use crate::serve2::{document::VARIANTS, runtime::registry::ObserveError};
 
 /// The `type` member of one problem document: Surface v1's stable root-relative URIs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
@@ -326,24 +325,19 @@ where
     }
 }
 
-/// Rejects a route whose generation echo does not name the pinned generation.
-///
-/// A well-formed id names a resource, so an id this process does not serve is a 404, and the
-/// client's recovery is to re-read `current` and retry. A malformed id never reaches here - the
-/// path extractor answers `invalid-generation` (400) first.
-pub(super) fn reject_generation<R>(
-    state: &AppState<R>,
-    generation: GenerationId,
-) -> Result<(), Problem<'static>> {
-    if generation == state.atlas.generation() {
-        return Ok(());
+pub(super) fn observe_problem(error: ObserveError) -> Problem<'static> {
+    match error {
+        ObserveError::Unavailable(generation) => Problem::new(
+            StatusCode::NOT_FOUND,
+            ProblemType::UnknownGeneration,
+            format!("generation {generation} is not served; re-read /v1/atlas/current and retry"),
+        ),
+        ObserveError::Empty | ObserveError::Closed => Problem::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            ProblemType::VisibilityUnavailable,
+            "no generation is ready to serve requests",
+        ),
     }
-
-    Err(Problem::new(
-        StatusCode::NOT_FOUND,
-        ProblemType::UnknownGeneration,
-        format!("generation {generation} is not served; re-read /v1/atlas/current and retry"),
-    ))
 }
 
 /// Refuses a request that presents no acceptable authority token.

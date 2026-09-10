@@ -7,6 +7,7 @@ use alloc::sync::Arc;
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
+use futures::executor::block_on;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use rand::TryCryptoRng;
 use tokio::task::JoinHandle;
@@ -19,15 +20,17 @@ use super::{
 };
 use crate::{device::PhysicalDevice, file::generation::Generation};
 
+pub(crate) mod manager;
 pub(crate) mod registry;
 #[cfg(test)]
 mod tests;
 
 /// Execution settings for an enabled generation feed.
+#[derive(Clone)]
 pub(crate) struct FeedOptions {
     pub task: DeltaTaskOptions,
     pub device: PhysicalDevice,
-    pub workflow: Option<EmbeddingWorkflow>,
+    pub workflow: Option<Arc<EmbeddingWorkflow>>,
 }
 
 /// A failure opening or joining a generation's runtime.
@@ -157,6 +160,24 @@ impl Runtime {
         if let Some(feed) = &self.feed {
             feed.shutdown.cancel();
         }
+    }
+
+    fn try_join(&mut self) -> Option<Result<(), Report<RuntimeError>>> {
+        let feed = self.feed.as_mut()?;
+
+        if !feed.task.is_finished() {
+            return None;
+        }
+
+        // We have just confirmed the task is finished, so blocking is safe.
+        let result = block_on(&mut feed.task);
+
+        self.feed = None;
+        Some(
+            result
+                .change_context(RuntimeError::Join)
+                .and_then(|result| result.change_context(RuntimeError::Feed)),
+        )
     }
 
     /// Waits for the runner's result, or returns `None` without an unjoined runner.

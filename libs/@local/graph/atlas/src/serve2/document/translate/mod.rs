@@ -2,7 +2,7 @@
 //!
 //! Hidden, unknown and draft identities produce absent keys.
 
-use alloc::{alloc::Allocator, collections::BTreeMap};
+use alloc::{alloc::Allocator, borrow::Cow, collections::BTreeMap};
 use core::{error::Error, fmt};
 
 use error_stack::Report;
@@ -20,7 +20,7 @@ mod codec;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TranslateLimits {
     /// Most input identities, including duplicates. The default is 1024.
@@ -52,7 +52,7 @@ pub(crate) struct TranslatedNode {
     position: Vec2,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub(crate) struct TranslatedEdge {
     source: EncodedRowId<NodeRowId>,
     target: EncodedRowId<NodeRowId>,
@@ -143,6 +143,16 @@ impl TranslateDocument {
         }
 
         Ok(this)
+    }
+}
+
+impl schemars::JsonSchema for TranslateDocument {
+    fn schema_name() -> Cow<'static, str> {
+        "TranslateDocument".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        <self::codec::TranslateResponse<'_> as schemars::JsonSchema>::json_schema(generator)
     }
 }
 

@@ -70,7 +70,7 @@ pub(crate) enum EdgesDocumentDetailLevel {
     Auxiliary,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EdgesLimits {
     pub tiles: u32 = 256,

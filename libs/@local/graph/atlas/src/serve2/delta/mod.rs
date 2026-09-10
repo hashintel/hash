@@ -5,7 +5,7 @@ mod id;
 mod importance;
 pub(crate) mod layout;
 pub(crate) mod overlay;
-mod placement;
+pub(crate) mod placement;
 mod projector;
 mod task;
 pub(crate) mod topology;

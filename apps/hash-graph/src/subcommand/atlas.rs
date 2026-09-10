@@ -14,7 +14,6 @@ use opentelemetry::metrics::Meter;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
-use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -132,11 +131,11 @@ struct AtlasTelemetry {
     meter: Meter,
 }
 
-/// Runs the atlas server, shutting down when `shutdown` is cancelled.
+/// Runs HTTP and retains generation maintenance through listener and request failures.
 async fn run_atlas(
     args: AtlasServeArgs,
     telemetry: &AtlasTelemetry,
-    shutdown: CancellationToken,
+    lifecycle: ServerLifecycle,
 ) -> Result<(), Report<GraphError>> {
     // Before running anything, make sure that the configuration is valid.
     let session_auth = args.session_auth.into_provider_config()?;
@@ -192,7 +191,7 @@ async fn run_atlas(
     ));
 
     // Every request answers under the scope of the actor it names.
-    let router = cli::ServeCommand::new(args.root, args.serve)
+    let serving = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
             service_secret,
@@ -201,8 +200,14 @@ async fn run_atlas(
             visibility: cli::VisibilityLimits::default(),
             workflow,
         })
-        .map_err(Report::new)
         .change_context(GraphError)?;
+
+    let shutdown = lifecycle.shutdown.clone();
+    let (router, maintenance) = serving.into_parts(shutdown.clone().cancelled_owned());
+    lifecycle.spawn("Atlas generations", async move {
+        maintenance.await;
+        Ok(())
+    });
 
     let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
         .await
@@ -278,9 +283,9 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
     };
 
     let lifecycle = ServerLifecycle::new();
-    let shutdown = lifecycle.shutdown.clone();
+    let server_lifecycle = lifecycle.clone();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(*serve_args, &telemetry, shutdown).await
+        run_atlas(*serve_args, &telemetry, server_lifecycle).await
     });
 
     // Wait for shutdown signal or unexpected server exit
@@ -342,13 +347,12 @@ async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckErro
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use tokio::net::TcpListener;
+
+    use super::{AtlasAddress, HealthcheckArgs, healthcheck, wait_healthcheck};
 
     #[tokio::test]
-    async fn status_endpoint_reports_healthy() {
-        // The liveness route mirrors the one `cli::open_router` mounts
-        // beside the read API; the test exercises the healthcheck
-        // plumbing without standing up a generation.
+    async fn status_healthy() {
         let router = axum::Router::new().route(
             "/status",
             axum::routing::get(async || axum::http::StatusCode::OK),

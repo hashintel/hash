@@ -101,11 +101,15 @@ impl ScopeLease {
     }
 
     pub(crate) const fn continuity(self) -> ContinuityScope {
-        ContinuityScope { k: self.scope.k }
+        ContinuityScope {
+            filter: self.scope.filter.digest(),
+            k: self.scope.k,
+        }
     }
 }
 
 pub(crate) struct ContinuityScope {
+    pub filter: Option<FilterDigest>,
     pub k: Zoom,
 }
 
@@ -116,5 +120,33 @@ impl Deref for CurrentScope {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::time::Duration;
+    use std::time::SystemTime;
+
+    use zerocopy::TryFromBytes as _;
+
+    use super::{Scope, ScopeLease};
+    use crate::{morton::Zoom, serve2::visibility::cache::FilterDigest};
+
+    #[test]
+    fn continuity_filter_digest() {
+        let offset = Zoom::new(3).expect("should fit the zoom domain");
+        for filter in [None, Some(FilterDigest::of(b"filter bytes"))] {
+            let mut scope = Scope::try_read_from_bytes(&[0_u8; size_of::<Scope>()])
+                .expect("should decode a scope with zero fields");
+            scope.filter = filter.into();
+            scope.k = offset;
+
+            let continuity =
+                ScopeLease::new(scope, SystemTime::UNIX_EPOCH, Duration::ZERO).continuity();
+
+            assert_eq!(continuity.filter, filter);
+            assert_eq!(continuity.k, offset);
+        }
     }
 }

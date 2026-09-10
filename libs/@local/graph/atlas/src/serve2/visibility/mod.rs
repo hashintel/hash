@@ -12,6 +12,7 @@ use crate::{
 };
 
 pub(crate) mod cache;
+pub(crate) mod resolver;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Rows<T> {

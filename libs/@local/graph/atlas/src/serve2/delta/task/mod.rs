@@ -29,6 +29,7 @@ use crate::device::PhysicalDevice;
 mod tests;
 
 /// Polling and placement limits for one generation's feed.
+#[derive(Copy, Clone)]
 pub(crate) struct DeltaTaskOptions {
     pub feed: DeltaFeedTaskOptions,
     pub placement: DeltaPlacementTaskOptions,
@@ -120,7 +121,7 @@ impl DeltaTask {
         pool: Arc<PostgresStorePool>,
         options: DeltaTaskOptions,
         device: PhysicalDevice,
-        workflow: Option<EmbeddingWorkflow>,
+        workflow: Option<Arc<EmbeddingWorkflow>>,
     ) -> Result<(DeltaReader, Option<Self>), Report<DeltaTaskError>> {
         let generation = delta.world.generation();
         let Some(axes) = generation.repository().metadata.snapshot.axes else {
@@ -147,7 +148,7 @@ impl DeltaTask {
         pool: Arc<PostgresStorePool>,
         watermark: Timestamp<TransactionTime>,
         projector: Option<DeltaProjector>,
-        workflow: Option<EmbeddingWorkflow>,
+        workflow: Option<Arc<EmbeddingWorkflow>>,
         options: DeltaTaskOptions,
     ) -> Result<Self, Report<DeltaTaskError>> {
         let (placement, channels) = if let Some(projector) = projector {

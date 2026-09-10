@@ -10,15 +10,16 @@ use core::{
     error::Error, fmt, future::Future, num::NonZero, ops::ControlFlow, panic::AssertUnwindSafe,
     time::Duration,
 };
+use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{AsClient, PostgresStorePool};
-use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool as _};
+use hash_graph_store::pool::StorePool as _;
 use hash_temporal_client::TemporalClient;
 use hashql_core::{collections::FastHashMap, id::Id as _};
 use tokio::{sync::mpsc, time::Interval};
-use type_system::principal::actor::ActorId;
+use type_system::{ontology::id::BaseUrl, principal::actor::ActorId};
 
 use self::pending::{Pending, PollWorkflow, Project};
 use super::projector::DeltaProjector;
@@ -35,9 +36,9 @@ pub(crate) use self::pending::{Completed, Initial, PendingEntry};
 
 /// The workflow client and embedding exclusions for missing inputs.
 #[derive(Debug)]
-pub(crate) struct EmbeddingWorkflow {
+pub struct EmbeddingWorkflow {
     pub temporal: TemporalClient,
-    pub filter_protection: PropertyProtectionFilterConfig<'static>,
+    pub exclusions: HashMap<BaseUrl, Vec<BaseUrl>>,
 }
 
 /// A failed event placement.
@@ -92,6 +93,7 @@ impl fmt::Display for DeltaPlacementError {
 impl Error for DeltaPlacementError {}
 
 /// Polling cadence and bounds supplied by the placement task's owner.
+#[derive(Copy, Clone)]
 pub(crate) struct DeltaPlacementTaskOptions {
     pub tick_rate: Duration,
     pub tries_workflow: u16,
@@ -119,7 +121,7 @@ pub(crate) struct DeltaPlacementTask {
     actor: Option<ControlFlow<(), ActorId>>,
     pending: Pending,
     scratch: Scratch,
-    workflow: Option<EmbeddingWorkflow>,
+    workflow: Option<Arc<EmbeddingWorkflow>>,
     last_projection_at: Option<Tick>,
 }
 
@@ -132,7 +134,7 @@ impl DeltaPlacementTask {
     pub(crate) fn new(
         pool: Arc<PostgresStorePool>,
         options: DeltaPlacementTaskOptions,
-        workflow: Option<EmbeddingWorkflow>,
+        workflow: Option<Arc<EmbeddingWorkflow>>,
     ) -> Result<Self, Report<DeltaPlacementError>> {
         if options.tick_rate.is_zero() {
             return Err(Report::new(DeltaPlacementError::InvalidInterval));
@@ -337,7 +339,7 @@ impl DeltaPlacementTask {
                     workflow_id,
                     actor.into(),
                     entry.entity,
-                    workflow.filter_protection.embedding_exclusions(),
+                    &workflow.exclusions,
                 )
                 .await;
 

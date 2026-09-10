@@ -212,6 +212,16 @@ impl serde::Serialize for ArchivedEntityId {
     }
 }
 
+impl schemars::JsonSchema for ArchivedEntityId {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        "EntityId".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        String::json_schema(generator)
+    }
+}
+
 impl Key for ArchivedEntityId {
     type Payload = Legend;
 

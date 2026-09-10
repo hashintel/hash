@@ -2,24 +2,30 @@
 //!
 //! Upstream entity ids to atlas row ids, plus wire-frame positions for nodes.
 
-use alloc::sync::Arc;
-
-use aide::{axum::IntoApiResponse, transform::TransformOperation};
+use aide::transform::TransformOperation;
 use axum::{
     Json,
     extract::State,
-    http::{StatusCode, header},
+    http::StatusCode,
+    response::{IntoResponse as _, Response},
+};
+use type_system::{
+    knowledge::entity::{
+        EntityId,
+        id::{ENTITY_ID_DELIMITER, EntityUuid},
+    },
+    principal::actor_group::WebId,
 };
 
 use super::{
     AppState, clause,
     extract::{Body, Generation, VariantPath},
     headers,
-    problem::{Problem, ProblemType, reject_generation, reject_variant},
-    saltile::spawn,
+    problem::{Problem, ProblemType, reject_variant},
+    saltile::{DocumentResponse, spawn},
     visibility::Visibility,
 };
-use crate::serve::{TranslateError, TranslateRequest, TranslateResponse};
+use crate::serve2::document::{Document as _, TranslateDocument, TranslateDocumentError};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -38,52 +44,117 @@ Row ids are opaque per-generation values, sparse in the full 32-bit range: consi
      minted them, and the uniform token refusal that follows a restart is the signal to \
      re-bootstrap and re-translate.
 
-The response is two maps - `nodes` and `edges` - keyed by the requested id strings echoed \
-     verbatim, so which map answers carries the kind. An id that resolves to nothing is an absent \
-     key, never an error and never a null entry: nonexistent ids, draft ids, and entities the \
-     caller cannot see are indistinguishable.
+The response is two maps - `nodes` and `edges` - keyed by the resolved entity's canonical id \
+     (`webId~entityUuid`), not the requested string, so which map answers carries the kind and \
+     two request strings naming the same entity resolve to the one key. An id that resolves to \
+     nothing is an absent key, never an error and never a null entry: nonexistent ids, malformed \
+     ids, draft ids, and entities the caller cannot see are indistinguishable.
 
 The `edges` map answers a link id when the caller may see the link row and both of its endpoints; \
      otherwise the id is absent, indistinguishable from an id belonging to neither domain.
 
-The JSON body is required; the manifest's `limits.translateEntityIds` caps the id list. Duplicates \
-     are legal and collapse.";
+The JSON body is required; the manifest's `limits.translate.entityIds` caps the id list, read \
+     against the request's own count before any id is parsed or dropped. Duplicates are legal and \
+     collapse, aliases of the same entity included.";
+
+/// The POST body of one translate read.
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(super) struct TranslateRequest {
+    /// The upstream entity ids to translate, in the `webId~entityUuid` form.
+    ///
+    /// Duplicates are legal and collapse.
+    pub(super) entity_ids: Vec<String>,
+}
 
 /// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity ids to atlas identity.
 ///
-/// The id list is the request's subject, so this route requires a body.
+/// The required body lists the entity ids to resolve.
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath {
-        generation,
-        variant,
-    }): Generation<VariantPath>,
+    Generation(VariantPath { variant, .. }): Generation<VariantPath>,
     Body(request): Body<TranslateRequest>,
-) -> Result<impl IntoApiResponse, Problem<'static>> {
-    reject_generation(&state, generation)?;
+) -> Result<Response, Problem<'static>> {
     reject_variant(&variant)?;
 
-    let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.translate;
-    match spawn(move || {
-        atlas.translate(
-            request,
-            limits,
-            visibility.proof(),
-            visibility.delta(),
-            visibility.cohort(),
-        )
-    })
-    .await?
-    {
-        Ok(response) => Ok(([(header::CACHE_CONTROL, headers::NO_STORE)], Json(response))),
-        Err(error @ TranslateError::Ids { .. }) => Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::TooManyEntityIds,
-            error.to_string(),
-        )),
+    if request.entity_ids.len() > limits.entity_ids as usize {
+        return Err(too_many_entity_ids(
+            request.entity_ids.len(),
+            limits.entity_ids,
+        ));
     }
+
+    // Malformed and unresolvable ids are indistinguishable and both omitted. The count check
+    // above runs against the request's original list, before this filter drops anything. A
+    // request cannot use dropped ids to pad its way past the cap.
+    let ids: Vec<EntityId> = request
+        .entity_ids
+        .iter()
+        .filter_map(|id| parse_entity_id(id))
+        .collect();
+
+    // The whole pipeline is one synchronous call on a rayon worker, construction and encoding
+    // both. `TranslateDocument` borrows the scene `visibility.scene()` resolves. Neither can
+    // outlive this closure.
+    let (bytes, content_type) = spawn(
+        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+            let scene = visibility.scene()?;
+            let document =
+                TranslateDocument::new(scene, ids, limits).map_err(|report| {
+                    match report.current_context() {
+                        TranslateDocumentError::Ids { count, maximum } => {
+                            too_many_entity_ids(*count, *maximum)
+                        }
+                    }
+                })?;
+
+            let mut buffer = Vec::new();
+            let envelope = document.encode(&mut buffer).map_err(|report| {
+                Problem::internal(
+                    report.current_context(),
+                    "the translate response failed to encode",
+                )
+            })?;
+
+            Ok((buffer, envelope.content_type()))
+        },
+    )
+    .await??;
+
+    Ok(DocumentResponse::new(bytes, content_type).into_response())
+}
+
+/// The `too-many-entity-ids` problem for a request past the configured cap.
+fn too_many_entity_ids(count: usize, maximum: u32) -> Problem<'static> {
+    Problem::new(
+        StatusCode::BAD_REQUEST,
+        ProblemType::TooManyEntityIds,
+        format!("the request lists {count} entity ids, exceeding the limit of {maximum}"),
+    )
+}
+
+/// Parses one upstream entity id (`webId~entityUuid`) into its typed form.
+///
+/// A draft-suffixed id (`webId~entityUuid~draftId`) and anything else that is not exactly two
+/// `~`-delimited uuids read unresolved by contract - the corpus indexes live entities - matching
+/// [`TranslateDocument::new`](crate::serve2::document::TranslateDocument::new)'s own draft-id
+/// filter for any caller that reaches it another way.
+pub(super) fn parse_entity_id(id: &str) -> Option<EntityId> {
+    let (web_id, entity_uuid) = id.split_once(ENTITY_ID_DELIMITER)?;
+    if entity_uuid.contains(ENTITY_ID_DELIMITER) {
+        return None;
+    }
+
+    let web_id: uuid::Uuid = web_id.parse().ok()?;
+    let entity_uuid: uuid::Uuid = entity_uuid.parse().ok()?;
+
+    Some(EntityId {
+        web_id: WebId::new(web_id),
+        entity_uuid: EntityUuid::new(entity_uuid),
+        draft_id: None,
+    })
 }
 
 /// Documents the operation.
@@ -95,7 +166,7 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .with(clause::describe_body(
             "the translate request; the `entityIds` list is the request's subject",
         ))
-        .response_with::<200, Json<TranslateResponse>, _>(|mut response| {
+        .response_with::<200, Json<TranslateDocument>, _>(|mut response| {
             response.inner().headers.insert(
                 "Cache-Control".to_owned(),
                 headers::cache_control(
@@ -105,8 +176,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 ),
             );
             response.description(
-                "two maps keyed by the requested id echoed verbatim; unresolvable ids are absent \
-                 keys",
+                "two maps keyed by the resolved entity's canonical id; unresolvable and malformed \
+                 ids are absent keys",
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {

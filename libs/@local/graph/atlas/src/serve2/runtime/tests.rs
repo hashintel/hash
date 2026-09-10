@@ -102,27 +102,25 @@ fn controlled_stall() {
     });
 }
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "sealing consumes the staging guard"
-)]
 fn axes_fixture(name: &str) -> (TamperFixture, Generation) {
     let fixture = TamperFixture::publish(name);
     let generation = fixture.generation();
     let root = GenerationRoot::new(generation.path().parent().expect("the fixture has a root"))
         .expect("the fixture root should open");
-    let staging = root.stage().expect("the staging should open");
+    let published = {
+        let staging = root.stage().expect("the staging should open");
 
-    for file in generation.repository().files.files() {
-        std::fs::copy(generation.path_of(&file.name), staging.path_of(&file.name))
-            .expect("the fixture artifact should copy");
-    }
+        for file in generation.repository().files.files() {
+            std::fs::copy(generation.path_of(&file.name), staging.path_of(&file.name))
+                .expect("the fixture artifact should copy");
+        }
 
-    let mut repository = generation.repository().clone();
-    repository.metadata.snapshot.axes = Some(TemporalAxes::now());
-    let published = staging
-        .seal(&repository)
-        .expect("the generation should seal");
+        let mut repository = generation.repository().clone();
+        repository.metadata.snapshot.axes = Some(TemporalAxes::now());
+        staging
+            .seal(&repository)
+            .expect("the generation should seal")
+    };
     let generation = root
         .open(published.id())
         .expect("the generation should open");
@@ -142,6 +140,13 @@ fn controlled(name: &str, feed: Feed) -> (TamperFixture, Runtime) {
         feed: Some(feed),
     };
     (fixture, runtime)
+}
+
+async fn feed_finished(runtime: &Runtime) {
+    let feed = runtime.feed.as_ref().expect("should own a feed");
+    while !feed.task.is_finished() {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
 }
 
 struct UnavailableEntropy;
@@ -180,6 +185,7 @@ async fn open_disabled() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
+    assert!(runtime.try_join().is_none());
     assert!(runtime.join().await.is_none());
 }
 
@@ -198,6 +204,7 @@ async fn open_without_axes() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
+    assert!(runtime.try_join().is_none());
     assert!(runtime.join().await.is_none());
 }
 
@@ -386,6 +393,88 @@ fn join_panic() {
             .expect_err("the runner should report its panic");
         assert!(matches!(error.current_context(), RuntimeError::Join));
         assert!(runtime.join().await.is_none());
+    });
+}
+
+#[test]
+fn try_join_pending() {
+    run_controlled(async {
+        let (release, released) = oneshot::channel::<()>();
+        let task = tokio::spawn(async move {
+            released.await.expect("should release the worker");
+            Ok(())
+        });
+        let (_fixture, mut runtime) = controlled(
+            "runtime-try-join-pending",
+            Feed {
+                shutdown: CancellationToken::new(),
+                task,
+            },
+        );
+
+        assert!(runtime.try_join().is_none());
+        assert!(runtime.feed.is_some());
+        release.send(()).expect("should retain the waiting worker");
+        feed_finished(&runtime).await;
+
+        runtime
+            .try_join()
+            .expect("should return the finished runner's result")
+            .expect("should join the successful runner");
+        assert!(runtime.feed.is_none());
+        assert!(runtime.try_join().is_none());
+        assert!(runtime.join().await.is_none());
+        runtime.shutdown().await.expect("should remain joined");
+    });
+}
+
+#[test]
+fn try_join_feed_error() {
+    run_controlled(async {
+        let task = tokio::spawn(async { Err(Report::new(DeltaTaskError::Feed).expand()) });
+        let (_fixture, mut runtime) = controlled(
+            "runtime-try-join-feed-error",
+            Feed {
+                shutdown: CancellationToken::new(),
+                task,
+            },
+        );
+        feed_finished(&runtime).await;
+
+        let error = runtime
+            .try_join()
+            .expect("should return the finished runner's result")
+            .expect_err("should report the feed failure");
+        assert!(matches!(error.current_context(), RuntimeError::Feed));
+        assert!(runtime.feed.is_none());
+        assert!(runtime.try_join().is_none());
+        assert!(runtime.join().await.is_none());
+        runtime.shutdown().await.expect("should remain joined");
+    });
+}
+
+#[test]
+fn try_join_panic() {
+    run_controlled(async {
+        let task = tokio::spawn(async { panic!("controlled worker panic") });
+        let (_fixture, mut runtime) = controlled(
+            "runtime-try-join-panic",
+            Feed {
+                shutdown: CancellationToken::new(),
+                task,
+            },
+        );
+        feed_finished(&runtime).await;
+
+        let error = runtime
+            .try_join()
+            .expect("should return the finished runner's result")
+            .expect_err("should report the runner panic");
+        assert!(matches!(error.current_context(), RuntimeError::Join));
+        assert!(runtime.feed.is_none());
+        assert!(runtime.try_join().is_none());
+        assert!(runtime.join().await.is_none());
+        runtime.shutdown().await.expect("should remain joined");
     });
 }
 

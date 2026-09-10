@@ -32,6 +32,8 @@ pub(crate) use self::{
     },
 };
 
+pub(crate) const VARIANTS: [&str; 1] = ["plain"];
+
 pub(crate) trait Document {
     type Error;
 

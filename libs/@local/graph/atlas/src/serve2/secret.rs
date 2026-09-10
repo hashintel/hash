@@ -2,7 +2,7 @@ use core::ops::Deref;
 
 use crate::integrity::SecretHexBytes;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub(crate) struct ServeSecret(SecretHexBytes<32>);
 

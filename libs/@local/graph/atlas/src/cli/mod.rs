@@ -46,13 +46,13 @@ pub use self::{
     embedder::{EmbedderArgs, EmbedderError},
     fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
-    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions},
+    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions, Serving},
 };
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{
     integrity::{EmptyPasswordError, PasswordString, SecretString},
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{EmbeddingWorkflow, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
+    serve2::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
 };
 
 mod dump;
