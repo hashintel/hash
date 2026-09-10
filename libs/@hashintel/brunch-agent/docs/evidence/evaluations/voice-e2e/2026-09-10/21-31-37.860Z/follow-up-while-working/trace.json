@@ -1,0 +1,315 @@
+{
+  "scenario": {
+    "id": "follow-up-while-working",
+    "utterance": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+    "expectInputPhrases": [
+      "detailed analysis",
+      "do not change the model"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "action": "follow-up-while-working",
+    "followUp": {
+      "utterance": "What does reserving a dispatch crew mean here?",
+      "expectInputPhrases": [
+        "dispatch crew"
+      ],
+      "delaySeconds": 5
+    }
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n0s\nChecked latest net definition\nReasoning\n11s\nDetailed Model Analysis\n\nI'm analyzing the prepared inspection and dispatch net as currently defined, without changes.\n\nNet Structure\n\nPlaces:\n\nbatch-ready — incoming batches awaiting inspection\nunder-final-inspection — batches in inspection\nready-for-dispatch — batches passed and ready\ndispatch-crew-available — the dispatch crew resource\n\nTransitions:\n\nstart-final-inspection — moves batch from ready → under-inspection (1:1)\nsign-off — moves batch from under-inspection → ready-for-dispatch AND returns crew to available (1:1 on both output arcs)\nCritical Assumptions\n\nInitial Marking (Not Visible in Definition)\n\nThe fixture states \"exactly one dispatch crew is available\" but initial tokens are not declared in the net definition I retrieved. This must be set elsewhere or assumed. Where batches originate is also unspecified.\nEvidence: Fixture wording, not net inspection.\n\nCrew Reservation Policy (Unconfirmed)\n\nThe fixture explicitly documents that the input arc from dispatch-crew-available to start-final-inspection is absent.\nThis means starting inspection does not require the crew to be present or reserved.\nThe crew is only produced at sign-off, not consumed at start.\nOpen question from fixture: This is a documented unresolved hypothesis awaiting true-user confirmation.\n\nCrew as a Shared Resource\n\nThe single token in dispatch-crew-available is treated as a marker or token pool, not a constraint on inspection parallelism.\nMultiple batches can be under inspection simultaneously without crew contention.\n\nDeterministic Flow\n\nBoth transitions have lambdaType=\"predicate\" and empty lambdaCode, meaning no stochastic firing rates or conditional logic is defined.\nFiring is unconditional (always enabled if preconditions met) and instantaneous.\nBottlenecks\n\nCrew Underutilization\n\nThe crew is not reserved until after inspection completes (at sign-off). If crew is meant to perform or oversee inspection, this model does not enforce that constraint.\nCrew availability becomes a post-inspection release mechanism, not a resource gating inspection start.\n\nNo Downstream Dispatch Transition\n\nBatches accumulate in ready-for-dispatch with no explicit transition to consume them or trigger actual dispatch.\nready-for-dispatch has no output arcs, making it a sink.\nIf dispatch consumes crew, that resource demand is not modeled.\n\nNo Failure or Rejection Path\n\nSign-off either fires or doesn't; there is no alternative path for inspection rejection, retry, or rework.\nBatches cannot fail inspection or be held for corrective action.\n\nInspection Duration and Variability\n\nNo timing defined for how long a batch remains under inspection.\nNo stochasticity, distributions, or conditional passage through sign-off.\nMissing Constraints\n\nCrew Allocation to Dispatch\n\nIf the crew performs or accompanies actual dispatch, that transition and its crew input arc are missing.\nThe crew token disappears from the model after sign-off and never participates in the dispatch phase.\n\nBatch Rejection or Exception Handling\n\nNo inhibitor arc, alternative path, or roll-back for inspection failure.\nNo re-inspection or hold state for problematic batches.\n\nConcurrency and Parallelism Limits\n\nNo constraint on how many batches can be under inspection at once (implicit unlimited parallelism).\nCrew availability does not gate inspection start.\n\nInitial Marking Definition\n\nInitial tokens in each place are not declared in the net definition.\nBatch arrival rate or batch pool size is unspecified.\nWhat Still Needs Validation\n\nCrew Reservation Decision (Prepared Fixture Uncertainty)\n\nConfirmed operational fact required: Does starting final inspection actually reserve (consume) the dispatch crew?\nIf yes: add a standard input arc from dispatch-crew-available (weight 1) to start-final-inspection.\nIf no: clarify what the crew resource models and when it is actually needed.\n\nInspection Duration and Stochasticity\n\nHow long does inspection take? Is it deterministic, exponentially distributed, or data-driven?\nWhat is the firing rate or delay for start-final-inspection and sign-off?\n\nInspection Outcomes\n\nCan inspection fail? If yes, what happens to the batch and crew?\nAre there hold, rework, reject, or escalation paths?\n\nDispatch Phase\n\nWhat happens after ready-for-dispatch? Is there a dispatch transition?\nDoes dispatch require or consume the crew token?\nIs dispatch itself a bottleneck or time-consuming step?\n\nInitial Marking\n\nHow many batches start in batch-ready?\nIs there a continuous arrival process, a fixed pool, or batch injection?\nIs the initial crew token the only one, or are there multiple crews?\n\nBatch Identity and Attributes\n\nBatches are currently uncolored (colorId: null). Do different batches have priorities, types, or attributes affecting inspection time or crew assignment?\nSummary\n\nThe model currently captures a happy-path skeleton without failure modes, resource contention, or downstream dispatch. The most critical unresolved question is crew reservation: whether the crew is reserved at inspection start (absent arc, needs confirmation) or only released at sign-off (current model). Until that is confirmed, the operational intent of the crew resource remains ambiguous, and any analysis of bottleneck behavior or crew utilization is incomplete.",
+      "Reasoning\n7s\n\nReserving the dispatch crew means claiming and locking that resource exclusively for one batch during the entire inspection period.\n\nOperationally:\n\nIf reserved: Once a batch enters final inspection, the crew becomes unavailable for any other work—tied up, blocked, or committed to that batch—until inspection completes and sign-off fires. The crew cannot be sent to inspect or prepare another batch. It waits passively during the inspection.\n\nIf not reserved: The crew remains available and uncommitted during inspection. Inspection proceeds without holding up the crew. The crew is only needed later—presumably when the batch actually departs for dispatch, or when preparing the next dispatch.\n\nIn Petri net terms:\n\nReserved = the standard arc you described as absent: dispatch-crew-available → (input) start-final-inspection. Starting inspection consumes the crew token, locking it until sign-off releases it.\nNot reserved = no such arc. Inspection fires freely without claiming the crew. The crew token stays available (or is used elsewhere).\n\nThe operational difference matters because:\n\nResource contention: If you reserve, only one batch can be under inspection at a time (limited by the single crew token). If you don't reserve, multiple batches can inspect in parallel without waiting for crew availability.\n\nCrew utilization: If you reserve, the crew is idle during inspection (just held). If you don't reserve, the crew might be doing other work—preparing dispatch packages, briefing the next batch, etc.\n\nDispatch readiness: If you don't reserve, the crew is only needed when the batch is ready to depart. If you reserve, the crew is already assigned and waiting.\n\nThe fixture asks: Does your actual operation need the crew locked in during inspection, or is inspection independent of crew availability?"
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMgfDMne9IcYbCOxMQbud",
+        "observedAtMs": 34397.79999999888
+      },
+      {
+        "itemId": "item_EMgfSmWJO4E2DA7OLAomm",
+        "observedAtMs": 42208.90000000037
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 2972.7,
+        "requestId": "cb8c6717-eec1-48e8-9b8f-a918a5b4de0b",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 840.2,
+        "requestId": "f6120f0a-43b2-4697-b789-64cf49018d86",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2395.1,
+        "requestId": "67972ffc-f7e9-4cde-bc9f-4f566bb8f97b",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "aborted",
+        "durationMs": 1464.8,
+        "requestId": "21df9cf4-e5dc-4de2-9d6c-9c6e6e4b5136",
+        "stage": "browser",
+        "errorCode": "request-aborted",
+        "speechKind": "progress"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 516.5,
+        "requestId": "d29e3b07-d85c-401d-8295-3de99c7c805f",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2663.3,
+        "requestId": "41a3877f-4780-4d52-afe8-9f350f838e04",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 39877.4,
+        "requestId": "462a01a5-1a8b-4e86-8400-2006aaabf7dc",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 65277.2,
+        "requestId": "5099f41e-58bf-45e9-8967-727897b7d631",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+      "What does reserving a dispatch crew mean here?"
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0.09999999962747097,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 34396.79999999888
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 842.3999999985099,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 35238.90000000037
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 873.5999999996275,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 35270
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1534.7999999988824,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 35931.29999999888
+      },
+      {
+        "name": "continuation-admitted",
+        "elapsedMs": 3194.89999999851,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 37591.29999999888
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 3239,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 37635.5
+      },
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 42208.90000000037
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 516.9000000003725,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 42725.699999999255
+      },
+      {
+        "name": "queued",
+        "elapsedMs": 517.2000000011176,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 42725.90000000037
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1186.9000000003725,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 43395.699999999255
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 3180.800000000745,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 45389.699999999255
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 28909.5,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 63306.09999999963
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 28914.89999999851,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 63311.29999999888
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 21102.700000001118,
+        "correlationId": "canonical-speech:entry_01M26KRM6CKED0KQVS450QCT8X:text%3A5:fnv1a32:2d5c7455",
+        "observedAtMs": 63311.40000000037
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 28915.199999999255,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 63311.59999999963
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 21157,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 63365.90000000037
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 29956.199999999255,
+        "correlationId": "voice-realtime:1:item_EMgfDMne9IcYbCOxMQbud:0",
+        "observedAtMs": 64352.699999999255
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 33197.300000000745,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 75406.29999999888
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 33202,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 75410.90000000037
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 33202.20000000112,
+        "correlationId": "canonical-speech:entry_01M26KSFSQ0491XA6WCBJRPV25:text%3A2:fnv1a32:4ee21522",
+        "observedAtMs": 75411
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 60981,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 103190.5
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 61825.40000000037,
+        "correlationId": "voice-realtime:1:item_EMgfSmWJO4E2DA7OLAomm:0",
+        "observedAtMs": 104034.29999999888
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 123.08480000000074,
+    "outputAudioBytes": 1697505
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "2 distinct provider commits; expected 2"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model. | What does reserving a dispatch crew mean here?"
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1534.699999999255, 1186.9000000003725 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "warn",
+      "detail": "1041.300000000745, 28623.400000000373 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "2 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "123.08480000000074 s recorded, 1697505 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    },
+    {
+      "name": "queued-order",
+      "level": "pass",
+      "detail": "Two capture-ordered admissions; follow-up queued while first turn was admitted but unsettled"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

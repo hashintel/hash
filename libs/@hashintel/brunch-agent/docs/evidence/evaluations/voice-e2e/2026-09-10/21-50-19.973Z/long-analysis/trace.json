@@ -1,0 +1,107 @@
+{
+  "scenario": {
+    "id": "long-analysis",
+    "utterance": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+    "expectInputPhrases": [
+      "detailed analysis",
+      "do not change the model"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "expectUnchangedRevision": true
+  },
+  "trace": {
+    "canonicalBubbles": [],
+    "commits": [],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "failure",
+        "durationMs": 15007.5,
+        "requestId": "92ef1b93-a027-4cac-b613-e822b0a1868c",
+        "stage": "browser",
+        "errorCode": "timeout"
+      }
+    ],
+    "finalPhase": "error",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [],
+    "latency": [],
+    "notHeard": false,
+    "outputAudioSeconds": 12.492900000000372,
+    "outputAudioBytes": 3715,
+    "error": "Voice connection failed; inspect the operational diagnostics"
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "fail",
+      "detail": "Voice connection failed; inspect the operational diagnostics"
+    },
+    {
+      "name": "commits",
+      "level": "fail",
+      "detail": "0 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "fail",
+      "detail": "expected 1 admissions, got 0"
+    },
+    {
+      "name": "input-transcript",
+      "level": "fail",
+      "detail": "No Voice transcript"
+    },
+    {
+      "name": "latency-ack",
+      "level": "warn",
+      "detail": "unavailable ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "warn",
+      "detail": "unavailable ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "fail",
+      "detail": "1 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "fail",
+      "detail": "0 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "fail",
+      "detail": "error"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "12.492900000000372 s recorded, 3715 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "fail",
+      "detail": "Terminal paraphrase diagnostic"
+    },
+    {
+      "name": "fixture-revision",
+      "level": "pass",
+      "detail": "0 → 0"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

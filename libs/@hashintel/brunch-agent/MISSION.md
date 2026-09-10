@@ -103,10 +103,18 @@ snapshot → application-requested Realtime rephrasing → audio. No new endpoin
 - **Prompt and payload isolation:** `apps/brunch-agent/test/voice-context.test.ts`, session and
   policy tests assert unchanged typed behavior, no tools/autonomous response, completed-only
   source selection, exact replay and no cross-turn input in paraphrase context.
+  The owner-authorized Voice producer repair explicitly requires marking direct questions,
+  including source-attributed or repeated questions addressed to the person, while excluding
+  quoted discussion, rhetorical questions and headings. The real Flue/faux-provider test pins
+  these instructions across initial input, continuation and follow-up and their absence from
+  typed/unknown-mode deliveries. This is prompt-delivery proof, not live marker compliance;
+  core/SDCPN prompts, browser selection and speech policy remain unchanged.
 - **Product path:** actual local panel/browser-tool fixture with rendered-state inspection and
   DOM assertions; affected workspace unit/type/lint/build checks. Mocked provider checks establish
   wiring, not acoustic fidelity or naturalness. No deployment claim follows from local evidence.
-  Rerunnable local harness `yarn workspace @apps/petrinaut-website voice:e2e` drives the real Chrome → Realtime → Flue → Brunch path with synthetic speech and writes trace/audio/screenshot evidence with deterministic sequence, transcript, single-bubble and phase checks; it does not establish naturalness, first-audible latency or human acceptance, and its first paid sweep remains pending macOS-generated WAV fixtures.
+  Rerunnable local harness `yarn workspace @apps/petrinaut-website voice:e2e` drives the real Chrome → Realtime → Flue → Brunch path with synthetic speech and writes trace/audio/screenshot evidence with deterministic sequence, transcript, single-bubble and phase checks. Its [first approved six-scenario sweep](docs/evidence/evaluations/voice-e2e/2026-09-10/19-44-24.646Z/README.md) passed five scenarios and failed queued follow-up on a missing first-canonical-text mark, with a separate 26-second latency warning; it does not establish naturalness, fidelity, first-audible latency, actual spend, or human acceptance.
+  After the owner-authorized instrumentation repair, one approved [queued-follow-up verification](docs/evidence/evaluations/voice-e2e/2026-09-10/21-31-37.860Z/README.md) passed 12 checks with one latency warning and no retries. Both turns report canonical text before settlement; inspected audio contains both answers but omits the second answer's on-screen closing question. The 28.6-second follow-up audio proxy is mostly pre-request waiting while the first answer plays. Fidelity, latency policy, actual spend and human acceptance remain unresolved.
+  The subsequent owner-authorized [full suite without the prior cost ceiling](docs/evidence/evaluations/voice-e2e/2026-09-10/21-50-19.973Z/README.md) passes short clarification and hesitant speech, with four pre-admission setup failures. Both completed answers speak their closing questions, but only one marks the new question; producer prompt compliance is not established. Old fixture question-spoken marks can also be falsely triggered by acknowledgements. The linked report preserves the evidence and proposed measurement, reliability, marker, fidelity and queue experiments; those proposals are not execution authority.
 - **Provider and human experiment:** only after explicit paid budget approval, synchronized audio
   and screen recording with pinned models/prompts/fixture/branches. Compare #9585, #9622 and this
   variant, plus acknowledgement on/off on this variant to isolate bridging. Human inspection of

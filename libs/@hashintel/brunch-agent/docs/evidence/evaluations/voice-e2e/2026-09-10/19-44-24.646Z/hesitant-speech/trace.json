@@ -1,0 +1,211 @@
+{
+  "scenario": {
+    "id": "hesitant-speech",
+    "utterance": "What does [[slnc 800]] reserving a dispatch crew [[slnc 800]] mean here?",
+    "expectInputPhrases": [
+      "what does",
+      "dispatch crew",
+      "mean here"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    }
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n4s\n\nGood clarification question. Let me separate what the prepared workpiece currently suggests from what you actually mean operationally.\n\nWhat the workpiece currently implies:\n\nIn Petri net terms, \"reserving\" would mean: when a batch starts final inspection, a token moves from the Dispatch crew available place, and that crew becomes unavailable for anything else until it's returned at sign-off. That's what a standard input arc with weight 1 represents—the crew is consumed and held until the transition outputs it back.\n\nBut that's just one hypothesis. The prepared material marks it as unconfirmed.\n\nLet me ask what the operation actually needs:\n\nReasoning\n0s\n\nWhen a batch enters final inspection, must that dispatch crew be completely unavailable for other work until inspection completes and the crew is returned at sign-off?\n\nOr, phrased differently: can the same dispatch crew start inspecting a second batch while the first one is still being inspected—or is exactly one crew committed to each inspection from start to sign-off?"
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMf5H8UF9Try8nAJkSkSv",
+        "observedAtMs": 30675
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 4789,
+        "requestId": "e2c5595d-028d-47d5-a714-90c4a07735aa",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 364.5,
+        "requestId": "6be61c25-7f4e-4777-99b6-df2754f542cb",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2718.3,
+        "requestId": "4bbb0e63-658a-4aaf-81e6-b04f51a4e024",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 32105.5,
+        "requestId": "41c0da83-6897-4839-85ae-a8e79223a628",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "What does \"reserving a dispatch crew\" mean here?"
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0.10000000009313226,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 30672.80000000028
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 367.79999999981374,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 31040.399999999907
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 395.10000000009313,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 31067.80000000028
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1492.8999999999069,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 32165.600000000093
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 3087.899999999907,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 33760.60000000009
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 8972.200000000186,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 39645
+      },
+      {
+        "name": "question-visible",
+        "elapsedMs": 11265.399999999907,
+        "correlationId": "canonical-speech:entry_01M26DZ5FTX2KZMEVR84X78PDP:question%3Atoolu_01MneWTLiSrLPYt5B4PrgDkD:fnv1a32:94f7e6fc",
+        "observedAtMs": 41938.10000000009
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 11266,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 41938.60000000009
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 11266,
+        "correlationId": "canonical-speech:entry_01M26DZ5FTX2KZMEVR84X78PDP:text%3A6:fnv1a32:a6871bbe",
+        "observedAtMs": 41938.700000000186
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 11266.299999999814,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 41938.89999999991
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 12371,
+        "correlationId": "voice-realtime:1:item_EMf5H8UF9Try8nAJkSkSv:0",
+        "observedAtMs": 43043.700000000186
+      },
+      {
+        "name": "question-spoken-started",
+        "elapsedMs": 12371.100000000093,
+        "correlationId": "canonical-speech:entry_01M26DZ5FTX2KZMEVR84X78PDP:question%3Atoolu_01MneWTLiSrLPYt5B4PrgDkD:fnv1a32:94f7e6fc",
+        "observedAtMs": 43043.700000000186
+      },
+      {
+        "name": "question-spoken",
+        "elapsedMs": 43371.89999999991,
+        "correlationId": "canonical-speech:entry_01M26DZ5FTX2KZMEVR84X78PDP:question%3Atoolu_01MneWTLiSrLPYt5B4PrgDkD:fnv1a32:94f7e6fc",
+        "observedAtMs": 74044.70000000019
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 56.39280000000028,
+    "outputAudioBytes": 677639
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "1 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "What does \"reserving a dispatch crew\" mean here?"
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1492.7999999998137 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "pass",
+      "detail": "1105 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "1 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "56.39280000000028 s recorded, 677639 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

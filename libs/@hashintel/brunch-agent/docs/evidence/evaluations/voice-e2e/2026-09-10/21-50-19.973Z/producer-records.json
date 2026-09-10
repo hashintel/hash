@@ -1,0 +1,307 @@
+{
+  "databaseSha256": "17317b9485c7c8c30fc808fbf3de5a75fbed10d3a73de09c897b23eb01ae6a9c",
+  "recordCount": 2058,
+  "conversations": [
+    {
+      "conversationId": "conv_01M26MSYE1PY277RGTPHNBZK3Y",
+      "createdAt": "2026-09-10T21:50:27.265Z",
+      "users": [
+        [
+          {
+            "type": "text",
+            "text": "What does reserving a dispatch crew mean here?"
+          }
+        ]
+      ],
+      "toolCalls": [
+        {
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "When a batch enters final inspection, does the process require reserving (consuming) the dispatch crew, or does that crew remain available for other work until sign-off completes?"
+          },
+          "toolCallId": "toolu_01QZAGQS2u3dFGUMaZbMzuCZ",
+          "messageId": "entry_01M26MT0ZNHZ1TQNJSDFXM4TW0",
+          "submissionId": "sub_ik_2421b43d2db36bb7f8c558345c869c5a"
+        }
+      ],
+      "dataRecords": [
+        {
+          "v": 1,
+          "id": "record_01M26MT7MCH5MQ9G6BBPMJ7XQJ",
+          "type": "message_data_write",
+          "conversationId": "conv_01M26MSYE1PY277RGTPHNBZK3Y",
+          "harness": "default",
+          "session": "default",
+          "timestamp": "2026-09-10T21:50:36.684Z",
+          "submissionId": "sub_ik_2421b43d2db36bb7f8c558345c869c5a",
+          "attemptId": "attempt_01M26MSYE83TDVP556B3YKPCY5",
+          "operationId": "op_01M26MSYFQW74FSWH7V2PVSBDV",
+          "turnId": "turn_01M26MSYFXWCBZKYS388NEPJ5K",
+          "name": "brunch-question",
+          "data": {
+            "question": "When a batch enters final inspection, does the process require reserving (consuming) the dispatch crew, or does that crew remain available for other work until sign-off completes?",
+            "toolCallId": "toolu_01QZAGQS2u3dFGUMaZbMzuCZ"
+          }
+        }
+      ],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26MT0ZNHZ1TQNJSDFXM4TW0",
+          "submissionId": "sub_ik_2421b43d2db36bb7f8c558345c869c5a",
+          "stopReason": "toolUse",
+          "reportedCost": 0.005791
+        },
+        {
+          "messageId": "entry_01M26MT9V69Q3BRQ2DA2ASH73A",
+          "submissionId": "sub_ik_2421b43d2db36bb7f8c558345c869c5a",
+          "stopReason": "stop",
+          "reportedCost": 0.004111
+        },
+        {
+          "messageId": "entry_01M26MTSHCWQYA3NPG4QH8F208",
+          "submissionId": "sub_ik_da204f2e63d600b704a4e654d0ae289a",
+          "stopReason": "stop",
+          "reportedCost": 0.009322500000000001
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_2421b43d2db36bb7f8c558345c869c5a",
+          "outcome": "completed",
+          "error": null
+        },
+        {
+          "submissionId": "sub_ik_da204f2e63d600b704a4e654d0ae289a",
+          "outcome": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "conversationId": "conv_01M26MW33J74YFF1EV2DJNT4D3",
+      "createdAt": "2026-09-10T21:51:37.586Z",
+      "users": [],
+      "toolCalls": [],
+      "dataRecords": [],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26MW6JQARTW3DMFA8CGVVEW",
+          "submissionId": "sub_ik_53dd0b42ce32b2b475678fb11a2a7afa",
+          "stopReason": "stop",
+          "reportedCost": 0.005951
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_53dd0b42ce32b2b475678fb11a2a7afa",
+          "outcome": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "conversationId": "conv_01M26MWYMD2HPQY5CYX0NV3VG2",
+      "createdAt": "2026-09-10T21:52:05.773Z",
+      "users": [],
+      "toolCalls": [],
+      "dataRecords": [],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26MX8XZX7DRC42XMM9G4VMY",
+          "submissionId": "sub_ik_f374a3a63a6b7fca6a6f710aa4950a24",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MXMV7SX2QJ9ZZZN151AHT",
+          "submissionId": "sub_ik_f374a3a63a6b7fca6a6f710aa4950a24",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MY2HRGYASSSBV697HMWFW",
+          "submissionId": "sub_ik_f374a3a63a6b7fca6a6f710aa4950a24",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MYK57P9C6KW7XF9YA5NF0",
+          "submissionId": "sub_ik_f374a3a63a6b7fca6a6f710aa4950a24",
+          "stopReason": "error",
+          "reportedCost": 0
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_f374a3a63a6b7fca6a6f710aa4950a24",
+          "outcome": "failed",
+          "error": {
+            "name": "FlueError",
+            "message": "direct(sub_ik_f374a3a63a6b7fca6a6f710aa4950a24) failed: Request timed out.",
+            "type": "operation_failed",
+            "details": "",
+            "meta": {
+              "operation": "direct(sub_ik_f374a3a63a6b7fca6a6f710aa4950a24)",
+              "reason": "Request timed out."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "conversationId": "conv_01M26MXY1X89X1733RC0S7940N",
+      "createdAt": "2026-09-10T21:52:37.949Z",
+      "users": [],
+      "toolCalls": [
+        {
+          "name": "activate_skill",
+          "arguments": {
+            "name": "sdcpn-modelling"
+          },
+          "toolCallId": "toolu_01UwmB7vq4WAbnJbrVsEvzS5",
+          "messageId": "entry_01M26MZA012APR7FN3J9ECJJBQ",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36"
+        }
+      ],
+      "dataRecords": [],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26MY7XH4JWXF72C9N0AEVWW",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MYKMPNWTMEWRRVX9BSMQM",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MZ1M3580QVFGK43QCCVK5",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "stopReason": "error",
+          "reportedCost": 0
+        },
+        {
+          "messageId": "entry_01M26MZA012APR7FN3J9ECJJBQ",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "stopReason": "toolUse",
+          "reportedCost": 0.006386
+        },
+        {
+          "messageId": "entry_01M26MZK4JW1XZ9S08Y43M62K6",
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "stopReason": "stop",
+          "reportedCost": 0.0077782500000000004
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_4dc6f8d535801bf2aa8934b5d1a32f36",
+          "outcome": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "conversationId": "conv_01M26MYXEQDY11MBQQ46J491J0",
+      "createdAt": "2026-09-10T21:53:10.103Z",
+      "users": [
+        [
+          {
+            "type": "text",
+            "text": "What does \"reserving a dispatch crew\" mean here?"
+          }
+        ]
+      ],
+      "toolCalls": [
+        {
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "When a batch enters final inspection, must an available dispatch crew be claimed or assigned to that batch at that moment, making that crew unavailable for other work until sign-off returns them?"
+          },
+          "toolCallId": "toolu_014JBCExbYmKMkN8Usaw7xfP",
+          "messageId": "entry_01M26N011VC28DR39VMEH8YSP8",
+          "submissionId": "sub_ik_521c2a50e16cfe9b7e168cc4c0e836e2"
+        }
+      ],
+      "dataRecords": [
+        {
+          "v": 1,
+          "id": "record_01M26N06N11Q53NM3888E1XTSW",
+          "type": "message_data_write",
+          "conversationId": "conv_01M26MYXEQDY11MBQQ46J491J0",
+          "harness": "default",
+          "session": "default",
+          "timestamp": "2026-09-10T21:53:52.289Z",
+          "submissionId": "sub_ik_521c2a50e16cfe9b7e168cc4c0e836e2",
+          "attemptId": "attempt_01M26MZVFQ5JEZXG15VG7T1CWB",
+          "operationId": "op_01M26MZVFT4R260YBHBYNDT5JQ",
+          "turnId": "turn_01M26MZVG0HVQW6FQPA08MN5C1",
+          "name": "brunch-question",
+          "data": {
+            "question": "When a batch enters final inspection, must an available dispatch crew be claimed or assigned to that batch at that moment, making that crew unavailable for other work until sign-off returns them?",
+            "toolCallId": "toolu_014JBCExbYmKMkN8Usaw7xfP"
+          }
+        }
+      ],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26MZ2VKMANXJ44XFBG01068",
+          "submissionId": "sub_ik_0a602dc51e4e6840d04512d8dcd8ce76",
+          "stopReason": "stop",
+          "reportedCost": 0.0064010000000000004
+        },
+        {
+          "messageId": "entry_01M26N011VC28DR39VMEH8YSP8",
+          "submissionId": "sub_ik_521c2a50e16cfe9b7e168cc4c0e836e2",
+          "stopReason": "toolUse",
+          "reportedCost": 0.0090775
+        },
+        {
+          "messageId": "entry_01M26N087H0MF3QJ5BW39PPNVW",
+          "submissionId": "sub_ik_521c2a50e16cfe9b7e168cc4c0e836e2",
+          "stopReason": "stop",
+          "reportedCost": 0.00146935
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_0a602dc51e4e6840d04512d8dcd8ce76",
+          "outcome": "completed",
+          "error": null
+        },
+        {
+          "submissionId": "sub_ik_521c2a50e16cfe9b7e168cc4c0e836e2",
+          "outcome": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "conversationId": "conv_01M26N18BMWD0V2VN36B7H31WR",
+      "createdAt": "2026-09-10T21:54:26.804Z",
+      "users": [],
+      "toolCalls": [],
+      "dataRecords": [],
+      "completedMessages": [
+        {
+          "messageId": "entry_01M26N1A0XY7AJ59YZS250GMXN",
+          "submissionId": "sub_ik_f45c829f77d0491b2c457f62a121e2ec",
+          "stopReason": "stop",
+          "reportedCost": 0.006936
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_f45c829f77d0491b2c457f62a121e2ec",
+          "outcome": "completed",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "brunchReportedCost": 0.0632236,
+  "costScope": "Brunch-reported completed-message costs only, includes fixture preparation; excludes OpenAI Realtime, transcription, and any unreported failed attempts."
+}

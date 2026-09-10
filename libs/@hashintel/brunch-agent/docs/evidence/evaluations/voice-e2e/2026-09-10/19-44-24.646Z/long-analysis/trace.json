@@ -1,0 +1,212 @@
+{
+  "scenario": {
+    "id": "long-analysis",
+    "utterance": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+    "expectInputPhrases": [
+      "detailed analysis",
+      "do not change the model"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "expectUnchangedRevision": true
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n0s\nChecked latest net definition\nReasoning\n12s\n\nI've retrieved the live net definition. Here's a detailed analysis:\n\nCurrent Net Structure\n\nPlaces (4):\n\nBatch ready (input queue)\nUnder final inspection (batch in process)\nReady for dispatch (output state)\nDispatch crew available (resource)\n\nTransitions (2):\n\nStart final inspection: consumes from Batch ready → produces to Under final inspection\nSign-off: consumes from Under final inspection → produces to both Ready for dispatch and Dispatch crew available\nEmbedded Assumptions\n\nCrew as a consumable resource: The Dispatch crew available place holds tokens representing available crew capacity. (One token = one crew assumed.)\n\nCrew non-consumption at inspection start: The crew is never reserved or consumed when a batch enters final inspection. This is the critical assumption flagged in the prepared fixture as unconfirmed.\n\nCrew return only at sign-off: The crew token returns exclusively when Sign-off fires. It is never consumed earlier and cannot be released by rejection.\n\nSingle-path inspection: Batches follow a linear path (ready → inspecting → dispatch-ready). There is no branching, rejection, rework, or hold states.\n\nDeterministic or trivial stochasticity: Both transitions have lambdaType: \"predicate\" with empty lambdaCode. No firing delays, guards, or stochastic distributions are currently specified.\n\nUnbounded input: There is no limit on how many batches can queue at Batch ready or how many can be inspected simultaneously.\n\nCritical Logical Inconsistency & Bottleneck\n\nThe core problem: The prepared fixture states exactly one dispatch crew is available, but the net permits unbounded concurrent inspections because:\n\nStarting an inspection does not consume a crew token\nMultiple batches can simultaneously occupy Under final inspection\nAll use the same (single) crew resource without contention\n\nIn execution: If one crew is initially present (Dispatch crew available = 1), the net allows 10, 100, or any number of batches to enter inspection concurrently without waiting. This violates the operational constraint that one crew can inspect only one batch at a time.\n\nBottleneck consequence: Sign-off becomes the serialization point. If inspections queue faster than sign-off completes, Under final inspection accumulates backlog, but this is a symptom, not the root cause. The root cause is the missing crew reservation at inspection start.\n\nMissing Constraints & Controls\n\n| Category | Missing Element | Impact | |----------|-----------------|--------| | Resource guard | Input arc from Dispatch crew available to Start final inspection | Cannot enforce \"one crew per inspection\" | | Transition guards | lambdaCode predicates on either transition | Cannot enforce preconditions (e.g., crew availability check) | | Timing | Stochastic distributions, delays | Cannot model realistic inspection/sign-off duration variability | | Failure handling | No rejection/rework path from inspection | All batches succeed; no quality-fail scenario | | Capacity limit | No inhibitor arcs or guards on Batch ready | Unbounded queue growth possible | | Initial marking | Not visible in definition; assumed implicit | Cannot verify initial crew count matches assumption | | Inspection outcome | Sign-off unconditionally succeeds | No conditional dispatch readiness |\n\nWhat Requires Validation (before any model change)\n\nCrew reservation policy: Does starting final inspection consume the crew token, or does it only read (inspect without removing)? The prepared fixture flags this as the key unconfirmed hypothesis.\n\nCrew availability at initialization: Is there exactly one token in Dispatch crew available at model start? (Net definition does not include initial marking.)\n\nTiming distributions:\n\nHow long does inspection take? (constant, exponential, uniform?)\nHow long does sign-off take?\nAre these independent, correlated, or dependent on batch properties?\n\nInspection success rate: Do all batches pass, or can inspection reject a batch? If rejection occurs, does the batch re-enter Batch ready, move to a failure sink, or stay under inspection?\n\nConcurrency expectation: In the real operation, can one crew inspect only one batch at a time, or can a crew supervise multiple batches in parallel?\n\nDispatch readiness semantics: What does Ready for dispatch represent? A state awaiting crew assignment to transport, or full readiness independent of crew?\n\nSummary of Gaps\n\n| Gap | Severity | Blocks | |-----|----------|--------| | Crew reservation missing | Critical | Logical correctness | | No stochastic timing | High | Realistic simulation, bottleneck analysis | | No failure path | Medium | Realistic failure scenarios, rework modeling | | No initial marking specification | Medium | Verification that crew assumption holds at start | | No transition guards/predicates | Medium | Dynamic precondition enforcement | | Unbounded batch queue | Low | Queue saturation analysis |\n\nVerdict\n\nThe model captures the happy-path skeleton (batch entry → inspection → dispatch-ready) and crew return at sign-off, but it does not yet enforce the scarce-resource constraint that one crew should serialize inspections. Without the input arc from Dispatch crew available to Start final inspection, the net is operationally incorrect if the intent is single-crew serialization.\n\nThe prepared fixture's explicit acknowledgment of this gap—and the flag that crew reservation awaits true-user confirmation—indicates this is a known diagnostic gap, not an oversight.\n\nTo proceed with correction, you must confirm the crew reservation policy."
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMf0eNLHzKqaTP5VZxWt9",
+        "observedAtMs": 28417.899999999907
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 1424.1,
+        "requestId": "a0fd224f-2bc3-4069-acbd-279c208cea64",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 1126.7,
+        "requestId": "d3cf0af2-88d1-45cf-a07d-2d6960033320",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2353.6,
+        "requestId": "603aa285-ba76-45b1-a455-a7a28f00d99b",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 3010.5,
+        "requestId": "333bf433-9b4e-49b5-a128-1bf0fc4290af",
+        "stage": "browser",
+        "speechKind": "progress"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 39713.2,
+        "requestId": "a2ab20c1-752e-40a8-881f-fdf728a996b4",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model."
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0.20000000018626451,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 28417.200000000186
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 1128.8000000002794,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 29545.399999999907
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 1166,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 29582.600000000093
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1993,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 30409.600000000093
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 3483.899999999907,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 31900.399999999907
+      },
+      {
+        "name": "continuation-admitted",
+        "elapsedMs": 3663,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 32079.600000000093
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 29395.700000000186,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 57812.39999999991
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 29400.600000000093,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 57817.200000000186
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 29400.700000000186,
+        "correlationId": "canonical-speech:entry_01M26DPJ163WJ0FPB4AXB3J7VT:text%3A5:fnv1a32:80e87dd6",
+        "observedAtMs": 57817.30000000028
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 29401.100000000093,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 57817.89999999991
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 30663.200000000186,
+        "correlationId": "voice-realtime:1:item_EMf0eNLHzKqaTP5VZxWt9:0",
+        "observedAtMs": 59080
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 87.39630000000028,
+    "outputAudioBytes": 1090248
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "1 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model."
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1992.7999999998137 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "pass",
+      "detail": "1262.6000000000931 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "1 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "87.39630000000028 s recorded, 1090248 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    },
+    {
+      "name": "fixture-revision",
+      "level": "pass",
+      "detail": "0 → 0"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

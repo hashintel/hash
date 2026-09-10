@@ -1,0 +1,97 @@
+{
+  "scenario": {
+    "id": "barge-in",
+    "utterance": "What does reserving a dispatch crew mean here?",
+    "expectInputPhrases": [
+      "dispatch crew"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "action": "take-turn-during-paraphrase"
+  },
+  "trace": {
+    "canonicalBubbles": [],
+    "commits": [],
+    "diagnostics": [],
+    "finalPhase": "missing",
+    "fixtureRevisionBefore": null,
+    "fixtureRevisionAfter": null,
+    "inputTranscripts": [],
+    "latency": [],
+    "notHeard": false,
+    "outputAudioSeconds": 0,
+    "outputAudioBytes": 0,
+    "error": "Failed during load fixture; inspect diagnostics and screenshot"
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "fail",
+      "detail": "Failed during load fixture; inspect diagnostics and screenshot"
+    },
+    {
+      "name": "commits",
+      "level": "fail",
+      "detail": "0 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "fail",
+      "detail": "expected 1 admissions, got 0"
+    },
+    {
+      "name": "input-transcript",
+      "level": "fail",
+      "detail": "No Voice transcript"
+    },
+    {
+      "name": "latency-ack",
+      "level": "warn",
+      "detail": "unavailable ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "warn",
+      "detail": "unavailable ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "fail",
+      "detail": "0 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "fail",
+      "detail": "missing"
+    },
+    {
+      "name": "output-audio",
+      "level": "fail",
+      "detail": "0 s recorded, 0 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "fail",
+      "detail": "Terminal paraphrase diagnostic"
+    },
+    {
+      "name": "interrupted",
+      "level": "fail",
+      "detail": "Your turn clicked; paraphrase aborted; pre-interruption canonical text retained"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

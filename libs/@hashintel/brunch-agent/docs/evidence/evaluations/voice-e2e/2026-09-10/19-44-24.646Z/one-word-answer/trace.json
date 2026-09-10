@@ -1,0 +1,229 @@
+{
+  "scenario": {
+    "id": "one-word-answer",
+    "utterance": "Yes.",
+    "expectInputPhrases": [
+      "yes"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "allowNotHeard": true
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n9s\n\nI'll read the current Petrinaut net state, confirm the crew reservation, and test the change.\n\nChecked latest net definition\nReasoning\n9s\n\nI've read the live net. Before I proceed with construction, I need to clarify your confirmation.\n\nReasoning\n1s\n\nYour \"Yes\" response could mean either scenario. To confirm the operational fact that will change the net:\n\nDoes starting final inspection reserve the dispatch crew—that is, must the crew be available and claimed at the start of inspection, and is it released back only after sign-off?\n\nThe current live net returns the crew at sign-off without any input arc from dispatch-crew-available to start-final-inspection. If inspection reserves the crew, I'll add that input arc. If the crew stays in its available place throughout and only the batch moves through inspection, the current net is correct.\n\nWhich operational fact holds?"
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMf6Ncfjt1gotwbC0A8e5",
+        "observedAtMs": 19644.5
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 1389,
+        "requestId": "34b974b8-73b2-4bff-818e-5314c5f76966",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 392,
+        "requestId": "b466557a-0845-4c41-b65a-963d250bbf14",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2461.7,
+        "requestId": "9ada2721-cd96-4bfa-935b-c79a709a39e0",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 3269.8,
+        "requestId": "61c589b9-3528-4ff2-867e-945deb44e4f6",
+        "stage": "browser",
+        "speechKind": "progress"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 33428.6,
+        "requestId": "533c2c09-98ba-4274-b66f-b83777900fb4",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "Yes."
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0.10000000009313226,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 19644.5
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 392.90000000037253,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 20037.099999999627
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 433.40000000037253,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 20077.5
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1299.1000000000931,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 20943.299999999814
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 2856.4000000003725,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 22500.599999999627
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 12225.700000000186,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 31869.899999999907
+      },
+      {
+        "name": "continuation-admitted",
+        "elapsedMs": 12344.200000000186,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 31988.399999999907
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 27224.5,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 46868.69999999972
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 27224.600000000093,
+        "correlationId": "canonical-speech:entry_01M26E13P0WFAKMWQTQFX7ZG45:text%3A10:fnv1a32:68d0e784",
+        "observedAtMs": 46868.799999999814
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 27224.900000000373,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 46869.09999999963
+      },
+      {
+        "name": "question-visible",
+        "elapsedMs": 27239.900000000373,
+        "correlationId": "canonical-speech:entry_01M26E13P0WFAKMWQTQFX7ZG45:question%3Atoolu_015rMYg8HiwkhH8v1TBQFzLw:fnv1a32:a1669213",
+        "observedAtMs": 46884.19999999972
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 28296.200000000186,
+        "correlationId": "voice-realtime:1:item_EMf6Ncfjt1gotwbC0A8e5:0",
+        "observedAtMs": 47940.5
+      },
+      {
+        "name": "question-spoken-started",
+        "elapsedMs": 28296.400000000373,
+        "correlationId": "canonical-speech:entry_01M26E13P0WFAKMWQTQFX7ZG45:question%3Atoolu_015rMYg8HiwkhH8v1TBQFzLw:fnv1a32:a1669213",
+        "observedAtMs": 47940.5
+      },
+      {
+        "name": "question-spoken",
+        "elapsedMs": 60654.40000000037,
+        "correlationId": "canonical-speech:entry_01M26E13P0WFAKMWQTQFX7ZG45:question%3Atoolu_015rMYg8HiwkhH8v1TBQFzLw:fnv1a32:a1669213",
+        "observedAtMs": 80299.09999999963
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 69.63989999999991,
+    "outputAudioBytes": 961324
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "admission-or-not-heard",
+      "level": "pass",
+      "detail": "1 admissions; not-heard notice absent"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "1 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "Yes."
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1299 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "pass",
+      "detail": "1071.7000000001863 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "1 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "69.63989999999991 s recorded, 961324 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}
