@@ -106,6 +106,7 @@ snapshot → application-requested Realtime rephrasing → audio. No new endpoin
 - **Product path:** actual local panel/browser-tool fixture with rendered-state inspection and
   DOM assertions; affected workspace unit/type/lint/build checks. Mocked provider checks establish
   wiring, not acoustic fidelity or naturalness. No deployment claim follows from local evidence.
+  Rerunnable local harness `yarn workspace @apps/petrinaut-website voice:e2e` drives the real Chrome → Realtime → Flue → Brunch path with synthetic speech and writes trace/audio/screenshot evidence with deterministic sequence, transcript, single-bubble and phase checks; it does not establish naturalness, first-audible latency or human acceptance, and its first paid sweep remains pending macOS-generated WAV fixtures.
 - **Provider and human experiment:** only after explicit paid budget approval, synchronized audio
   and screen recording with pinned models/prompts/fixture/branches. Compare #9585, #9622 and this
   variant, plus acknowledgement on/off on this variant to isolate bridging. Human inspection of
