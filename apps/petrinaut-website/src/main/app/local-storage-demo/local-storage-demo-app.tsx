@@ -5,7 +5,7 @@
 
 import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
 import { castDraft, produce } from "immer";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -22,6 +22,8 @@ import {
 import {
   CommandRegistryProvider,
   useCommand,
+  UserSettingsContext,
+  UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
 import {
   DefaultChatTransport,
@@ -229,14 +231,16 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
 });
 
 /**
- * The demo's own palette command, registered beside Petrinaut's: picking it
- * in the palette starts a fresh net.
+ * The demo's own palette commands, registered beside Petrinaut's: one starts
+ * a fresh net, one toggles Brunch demo mode, the persisted user setting that
+ * shows the prepared-fixture selector.
  */
 const DemoCommands = ({
   createNewNet,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
 }) => {
+  const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
   useCommand({
     id: "demo.net.new",
     label: "Create a new empty net",
@@ -245,7 +249,26 @@ const DemoCommands = ({
     run: () =>
       createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
   });
+  useCommand(
+    {
+      id: "demo.brunch.toggle-demo-mode",
+      label: "Toggle Brunch demo mode",
+      category: "Demo",
+      keywords: ["fixture", "prepared", "crew reservation"],
+      run: () => setBrunchDemoMode(!brunchDemoMode),
+    },
+    { when: brunchPreviewConfig.isBrunchConfigured },
+  );
   return null;
+};
+
+/**
+ * The prepared-fixture selector, shown only while Brunch demo mode is on: a
+ * demo affordance, never part of the default shell.
+ */
+const DemoModeFixtureSelector = () => {
+  const { brunchDemoMode } = use(UserSettingsContext);
+  return brunchDemoMode ? <PreparedFixtureSelector /> : null;
 };
 
 /**
@@ -687,27 +710,31 @@ export const LocalStorageDemoApp = ({
           />,
           document.body,
         )}
-      {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent && (
-        <PreparedFixtureSelector />
-      )}
-      <CommandRegistryProvider>
-        <WalkthroughProvider steps={walkthroughSteps}>
-          <Petrinaut
-            aiAssistant={aiAssistant}
-            handle={activeHandle.handle}
-            existingNets={existingNets}
-            createNewNet={createNewNet}
-            loadPetriNet={loadPetriNet}
-            navigation={navigation}
-            readonly={false}
-            setTitle={setTitle}
-            title={currentNet.title}
-            viewportActions={[sentryFeedbackAction]}
-          />
-        </WalkthroughProvider>
-        <DemoCommands createNewNet={createNewNet} />
-        <CommandPalette />
-      </CommandRegistryProvider>
+      {/* The settings are mounted here, above the editor, so the demo's own
+          command and selector read the same persisted state the editor does. */}
+      <UserSettingsProvider>
+        {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent ? (
+          <DemoModeFixtureSelector />
+        ) : null}
+        <CommandRegistryProvider>
+          <WalkthroughProvider steps={walkthroughSteps}>
+            <Petrinaut
+              aiAssistant={aiAssistant}
+              handle={activeHandle.handle}
+              existingNets={existingNets}
+              createNewNet={createNewNet}
+              loadPetriNet={loadPetriNet}
+              navigation={navigation}
+              readonly={false}
+              setTitle={setTitle}
+              title={currentNet.title}
+              viewportActions={[sentryFeedbackAction]}
+            />
+          </WalkthroughProvider>
+          <DemoCommands createNewNet={createNewNet} />
+          <CommandPalette />
+        </CommandRegistryProvider>
+      </UserSettingsProvider>
     </div>
   );
 };

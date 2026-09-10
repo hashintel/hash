@@ -9,28 +9,28 @@ import {
 import type { CrewReservationSettledManifest } from "./crew-reservation-settled-manifest";
 import type { CrewReservationSettlementStatus } from "./use-crew-reservation-settled-manifest";
 
+// Centred below Petrinaut's 64px top bar, clear of the side panels, so the
+// panels never sit behind the bar.
 const fixturePanelStyle = {
   background: "rgba(255, 255, 255, 0.96)",
   border: "1px solid #c9d2df",
   borderRadius: 8,
   boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-  left: 16,
+  left: "50%",
   maxWidth: 520,
   padding: "10px 12px",
-  position: "absolute",
-  top: 16,
+  position: "fixed",
+  top: 80,
+  transform: "translateX(-50%)",
   zIndex: 20,
 } as const;
 
 const fixtureBannerStyle = {
   ...fixturePanelStyle,
-  left: "50%",
-  position: "fixed",
-  top: 80,
-  transform: "translateX(-50%)",
   width: "calc(100vw - 32px)",
 } as const;
 
+/** The demo-mode entry point to the prepared fixture. */
 export const PreparedFixtureSelector = () => (
   <aside aria-label="Prepared fixture selector" style={fixturePanelStyle}>
     <strong>Prepared Brunch fixtures</strong>
