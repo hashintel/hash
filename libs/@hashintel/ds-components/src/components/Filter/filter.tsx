@@ -77,6 +77,20 @@ const preventWheel = (event: WheelEvent) => {
 };
 
 /**
+ * Whether any select segment's dropdown is open, derived from the DOM (the
+ * segment's trigger carries zag's `data-state`) rather than tracked in a
+ * ref: an open select can unmount without ever firing `onOpenChange(false)`
+ * — an external value reset, a switch to another operator — which would
+ * strand any tracked state as permanently "open".
+ */
+const isSelectDropdownOpen = (segments: Array<HTMLElement | null>): boolean =>
+  segments.some(
+    (element) =>
+      element?.isConnected &&
+      element.querySelector("[data-part=trigger][data-state=open]") !== null,
+  );
+
+/**
  * Exposes a segment's full content as a `title` tooltip only while it is
  * actually truncated. Measured on every hover (native tooltips appear well
  * after mouseenter, so setting the attribute here is early enough), which
@@ -252,13 +266,12 @@ export const Filter = <
   const operatorTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
   const operatorDropdownOpenRef = useRef(false);
-  const selectDropdownOpenRef = useRef(false);
   const selectEscapedRef = useRef(false);
   // The value the focused text/number input held when it received focus
   const inputFocusValueRef = useRef<SlotValue>(null);
   useEffect(() => {
     const markEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && selectDropdownOpenRef.current) {
+      if (event.key === "Escape" && isSelectDropdownOpen(inputRefs.current)) {
         selectEscapedRef.current = true;
       }
     };
@@ -403,20 +416,19 @@ export const Filter = <
     }
     // A leading select input mounts with its dropdown already open (in the
     // same commit — opening after the fact would paint a closed frame
-    // first). Ark fires no onOpenChange for that initial state, so the
-    // open-tracking ref is seeded here.
-    const autoOpen = configs[0]?.type === "select";
-    setAutoOpenKey(autoOpen ? nextKey : null);
-    if (autoOpen) {
-      selectDropdownOpenRef.current = true;
-    }
+    // first). No open-state bookkeeping is needed: openness is derived from
+    // the DOM via isSelectDropdownOpen.
+    setAutoOpenKey(configs[0]?.type === "select" ? nextKey : null);
     focusFirstInput();
   };
 
   const handleRootBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     // While a (portaled) dropdown is open focus legitimately sits outside
     // the root, so only blur-commit when every dropdown is closed.
-    if (operatorDropdownOpenRef.current || selectDropdownOpenRef.current) {
+    if (
+      operatorDropdownOpenRef.current ||
+      isSelectDropdownOpen(inputRefs.current)
+    ) {
       return;
     }
     const next = event.relatedTarget as Node | null;
@@ -442,7 +454,10 @@ export const Filter = <
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
     }
-    if (operatorDropdownOpenRef.current || selectDropdownOpenRef.current) {
+    if (
+      operatorDropdownOpenRef.current ||
+      isSelectDropdownOpen(inputRefs.current)
+    ) {
       return;
     }
     const { target } = event;
@@ -526,7 +541,6 @@ export const Filter = <
   };
 
   const handleSelectOpenChange = (open: boolean) => {
-    selectDropdownOpenRef.current = open;
     if (open) {
       selectEscapedRef.current = false;
       return;
