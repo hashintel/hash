@@ -75,6 +75,7 @@ async fn read_file_intervals() {
         &bytes[..first_length],
         "should read the first interval independently of the final reader"
     );
+    drop(directory);
 }
 
 #[test]
