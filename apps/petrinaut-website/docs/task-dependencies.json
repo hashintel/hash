@@ -25,6 +25,7 @@
       ],
       "env": [
         "SENTRY_DSN",
+        "VITE_BRUNCH_CHAT_ENDPOINT",
         "VITE_PETRINAUT_OPT_PROVIDER",
         "VITE_VERCEL_ENV"
       ]
