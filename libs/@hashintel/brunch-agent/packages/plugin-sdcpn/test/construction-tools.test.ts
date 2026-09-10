@@ -1,10 +1,33 @@
 import * as v from "valibot";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import type { DeliveredMessage } from "@flue/runtime";
+
+const pluginRender = vi.hoisted(() => ({
+  delivery: { kind: "user", body: "" } as unknown,
+  initialData: undefined as unknown,
+  toolNames: [] as string[],
+}));
+
+vi.mock("@flue/runtime", async (importOriginal) => {
+  const runtime = await importOriginal<typeof import("@flue/runtime")>();
+  return {
+    ...runtime,
+    useDelivery: () => pluginRender.delivery,
+    useInitialData: () => pluginRender.initialData,
+    useInstruction: () => {},
+    useSkill: () => {},
+    useTool: (tool: { readonly name: string }) => {
+      pluginRender.toolNames.push(tool.name);
+    },
+  };
+});
+
 import {
   sdcpnInitialDataSchema,
+  useSdcpnPlugin,
   VALIDATED_CONSTRUCTION_MODE,
   validatedFixtureMutationMode,
   petrinautFixtureTools as publicPetrinautFixtureTools,
@@ -23,6 +46,14 @@ const toolByName = (toolName: string) => {
   if (!constructionTool)
     throw new Error(`Missing construction tool ${toolName}`);
   return constructionTool;
+};
+
+const mountedToolNamesFor = (delivery: DeliveredMessage): readonly string[] => {
+  pluginRender.delivery = delivery;
+  pluginRender.initialData = undefined;
+  pluginRender.toolNames = [];
+  useSdcpnPlugin();
+  return pluginRender.toolNames;
 };
 
 describe("Petrinaut construction tools", () => {
@@ -129,5 +160,42 @@ describe("Petrinaut construction tools", () => {
       { input: invalidType.elements, key: 0, value: invalidElement },
       { input: invalidElement, key: "type", value: "not-a-type" },
     ]);
+  });
+});
+
+describe("SDCPN plugin tool exposure", () => {
+  test("keeps the current-net reader after a different client tool result", () => {
+    const mountedToolNames = mountedToolNamesFor({
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-doc-1",
+          toolName: "readPetrinautDoc",
+          output: "# AI Assistant",
+        },
+      ]),
+    });
+
+    expect(mountedToolNames).toContain("getLatestNetDefinition");
+    expect(mountedToolNames).not.toContain("addArc");
+  });
+
+  test("unmounts the current-net reader after its result", () => {
+    const mountedToolNames = mountedToolNamesFor({
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-current-net-1",
+          toolName: "getLatestNetDefinition",
+          output: { title: "Current net" },
+        },
+      ]),
+    });
+
+    expect(mountedToolNames).not.toContain("getLatestNetDefinition");
   });
 });

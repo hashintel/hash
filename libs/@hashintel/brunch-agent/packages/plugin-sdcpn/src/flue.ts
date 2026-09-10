@@ -1,4 +1,5 @@
 import {
+  type DeliveredMessage,
   useDelivery,
   useInitialData,
   useInstruction,
@@ -41,6 +42,36 @@ export const sdcpnInitialDataSchema = v.optional(
 
 export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 
+const clientToolResultSignalType = "client-tool-result";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const hasCurrentNetResult = (delivery: DeliveredMessage): boolean => {
+  if (
+    delivery.kind !== "signal" ||
+    delivery.type !== clientToolResultSignalType
+  ) {
+    return false;
+  }
+
+  let results: unknown;
+  try {
+    results = JSON.parse(delivery.body);
+  } catch {
+    return false;
+  }
+
+  return (
+    Array.isArray(results) &&
+    results.some(
+      (result) =>
+        isRecord(result) &&
+        result["toolName"] === getLatestNetDefinitionToolName,
+    )
+  );
+};
+
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(): void {
   const initialData = useInitialData<SdcpnInitialData>();
@@ -61,6 +92,10 @@ Use the returned live state as machine evidence. Do not say the canvas or net is
   const isPreparedFixture = initialData?.mode === validatedFixtureMutationMode;
   const isPreparedFixtureInitialization =
     delivery.kind === "signal" && delivery.type === preparedWorkpieceSignalType;
+  const isClientToolContinuationWithoutCurrentNet =
+    delivery.kind === "signal" &&
+    delivery.type === clientToolResultSignalType &&
+    !hasCurrentNetResult(delivery);
   const fixtureToolNameSet = new Set<string>(petrinautFixtureToolNames);
 
   if (isValidatedConstruction) {
@@ -84,7 +119,9 @@ This is a visibly labelled prepared-fixture conversation. Treat its tagged prepa
       !isCurrentNetRead && fixtureToolNameSet.has(constructionTool.name);
     if (
       isValidatedConstruction ||
-      (isCurrentNetRead && delivery.kind === "user") ||
+      (isCurrentNetRead &&
+        (delivery.kind === "user" ||
+          isClientToolContinuationWithoutCurrentNet)) ||
       (isPreparedFixture &&
         !isPreparedFixtureInitialization &&
         isFixtureMutation)
