@@ -8,6 +8,13 @@ export type CrewReservationPreparationStatus =
   | { readonly state: "idle" | "preparing" | "ready" }
   | { readonly error: string; readonly state: "failed" };
 
+/** The joined prepared-fixture tracer only; ordinary batched construction must not inherit it. */
+export const shouldPrepareCrewReservationConversation = (
+  batchedConstruction: boolean,
+  browser: { readonly requestedBaseHash?: string } | undefined,
+): boolean =>
+  !batchedConstruction && typeof browser?.requestedBaseHash === "string";
+
 export const usePrepareCrewReservationConversation = (
   clientPromise: Promise<FlueClient> | null,
   enabled: boolean,
