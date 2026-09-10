@@ -786,6 +786,8 @@ export type PetrinautOptimizationParameterBinding = z.infer<
 export type PetrinautOptimizationObjective = z.infer<
   typeof petrinautOptimizationObjectiveSchema
 >;
+export type PetrinautOptimizationDirection =
+  PetrinautOptimizationObjective["direction"];
 export type PetrinautOptimizationExecution = z.infer<
   typeof petrinautOptimizationExecutionSchema
 >;

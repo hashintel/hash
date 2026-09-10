@@ -13,6 +13,10 @@ export const frameHeader = (): HTMLElement =>
 export const frameBody = (): HTMLElement =>
   document.querySelector<HTMLElement>("[data-frame-body]")!;
 
+/** The header's stat strip, the one copy of the stats a reader sees. */
+export const frameStats = (): HTMLElement =>
+  document.querySelector<HTMLElement>("[data-frame-stats]")!;
+
 /** The frame body's viewport height in the tests, in pixels. */
 const BODY_CLIENT_HEIGHT = 600;
 

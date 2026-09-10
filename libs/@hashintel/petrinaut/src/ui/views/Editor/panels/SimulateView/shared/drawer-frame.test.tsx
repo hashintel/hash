@@ -22,6 +22,7 @@ import {
 } from "./drawer-frame";
 import {
   frameHeader as header,
+  frameStats,
   scrollFrameBody as scrollBodyTo,
 } from "./drawer-frame-test-helpers";
 
@@ -90,9 +91,7 @@ describe("DrawerFrame", () => {
     ).toBeTruthy();
     expect(screen.getByText("Step 3 of 30")).toBeTruthy();
     // The strip holds the labelled columns; the compact echo repeats them.
-    const strip = within(
-      document.querySelector<HTMLElement>("[data-frame-stats]")!,
-    );
+    const strip = within(frameStats());
     const runs = strip.getByText("Runs").nextElementSibling!;
     expect(runs.querySelector("[data-frame-stat-value]")?.textContent).toBe(
       "100 complete",
@@ -132,7 +131,7 @@ describe("DrawerFrame", () => {
       ),
     ).toEqual(["Status", "Runs", "Compute"]);
     expect(compact.hasAttribute("inert")).toBe(true);
-    const strip = document.querySelector("[data-frame-stats]")!;
+    const strip = frameStats();
     expect(strip.getAttribute("aria-hidden")).toBe("true");
     expect(strip.hasAttribute("inert")).toBe(true);
     const headline = document.querySelector("[data-frame-headline]")!;

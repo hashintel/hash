@@ -1,4 +1,7 @@
-import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
+import type {
+  MonteCarloUserDefinedMetricFrame,
+  PetrinautOptimizationDirection,
+} from "@hashintel/petrinaut-core";
 
 /** The objective's mean over a point's runs and how sure that mean is. */
 export type ObjectiveEstimate = {
@@ -66,7 +69,7 @@ export const shouldStopRefining = ({
   mean,
   standardError,
 }: {
-  direction: "maximize" | "minimize";
+  direction: PetrinautOptimizationDirection;
   best: number | null;
   mean: number;
   standardError: number;

@@ -23,20 +23,22 @@ import {
   frameLayoutSignature,
   scrollFrameBody,
 } from "../shared/drawer-frame-test-helpers";
+import { formatNumber } from "../shared/format-value";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
   fakeLongStudyInput,
   fakeLongStudyTrials,
+  fakeShortStudyInput,
+  fakeShortStudyNavigation,
+  fakeShortStudyTrials,
   makeConnectedStudyState,
   makeImportance,
-  makeOptimizationInput,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   makeSelectionStream,
   makeTrials,
   navigationAtTrial,
-  optimizedBindingSets,
 } from "./optimizations-story-fixtures";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
@@ -231,12 +233,8 @@ const renderDrawer = (
   options: DrawerOptions = {},
 ) => render(drawerElement(optimization, options));
 
-const input = makeOptimizationInput(optimizedBindingSets.base);
-const { trials, best } = makeTrials(input, 5);
-
-/** The Best stat prints the objective as the table does. */
-const formatObjective = (value: number): string =>
-  Number.isInteger(value) ? String(value) : value.toPrecision(6);
+const input = fakeShortStudyInput;
+const { trials, best } = fakeShortStudyTrials;
 
 /** The Steps column's whole value; its short form beside it reads the same when the study runs one run per step. */
 const stepsValue = (): string | undefined =>
@@ -262,7 +260,7 @@ describe("ViewOptimizationDrawer for a remote study", () => {
         .getByText("Best step so far")
         .nextElementSibling?.querySelector("[data-frame-stat-value]")
         ?.textContent,
-    ).toBe(formatObjective(best!.objective));
+    ).toBe(formatNumber(best!.objective));
     expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.queryAllByRole("slider")).toHaveLength(0);
@@ -338,7 +336,7 @@ describe("ViewOptimizationDrawer for a remote study", () => {
 });
 
 describe("ViewOptimizationDrawer for a connected study", () => {
-  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const navigation = fakeShortStudyNavigation;
   const following = makeConnectedStudyState(input, {
     navigation,
     selection: makeSelectionStream({
@@ -418,7 +416,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
         .getByText("Best step so far")
         .nextElementSibling?.querySelector("[data-frame-stat-value]")
         ?.textContent,
-    ).toBe(formatObjective(trials[2]!.best!.objective));
+    ).toBe(formatNumber(trials[2]!.best!.objective));
     // The table lists the newest step first; the header row is row 1.
     const bestTrial = trials[2]!.best!.trial;
     const rows = trials.slice(0, 3).toReversed();
@@ -686,7 +684,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 });
 
 describe("ViewOptimizationDrawer for a paused connected study", () => {
-  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const navigation = fakeShortStudyNavigation;
   const running = makeOptimizationRecord({
     input,
     trials: trials.slice(0, 3),
@@ -1051,7 +1049,7 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
 });
 
 describe("ViewOptimizationDrawer holds every box still across states", () => {
-  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const navigation = fakeShortStudyNavigation;
   const base = {
     input,
     trials: trials.slice(0, 3),

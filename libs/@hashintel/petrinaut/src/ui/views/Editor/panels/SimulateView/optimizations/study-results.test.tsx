@@ -2,14 +2,16 @@ import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 
 import { partitionParameterBindings } from "../../../../../../react/optimizations/surface-grid";
+import { formatNumber } from "../shared/format-value";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
+  fakeShortStudyInput,
+  fakeShortStudyNavigation,
+  fakeShortStudyTrials,
   makeConnectedStudyState,
-  makeOptimizationInput,
   makeOptimizationRecord,
   makeSelectionStream,
-  makeTrials,
   navigationAtTrial,
   optimizedBindingSets,
 } from "./optimizations-story-fixtures";
@@ -23,9 +25,9 @@ import {
 
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 
-const input = makeOptimizationInput(optimizedBindingSets.base);
-const { trials, best } = makeTrials(input, 5);
-const navigation = navigationAtTrial(input, trials[2]!, true);
+const input = fakeShortStudyInput;
+const { trials, best } = fakeShortStudyTrials;
+const navigation = fakeShortStudyNavigation;
 
 const dependencies: StudyResultsDependencies = {
   presentation: "drawer",
@@ -119,7 +121,7 @@ describe("studyResultsModel for a running connected study", () => {
     });
     expect(statTexts(running)).toEqual({
       Steps: "3 / 30",
-      "Best step so far": trials[2]!.best!.objective.toPrecision(6),
+      "Best step so far": formatNumber(trials[2]!.best!.objective),
     });
     expect(
       result.header.stats.find((stat) => stat.id === "steps")?.short,
@@ -229,14 +231,14 @@ describe("studyResultsModel for a remote study", () => {
     expect(result.header.status.label).toBe("Complete");
     expect(statTexts(remote)).toEqual({
       Steps: "5 / 30",
-      "Best step so far": best!.objective.toPrecision(6),
+      "Best step so far": formatNumber(best!.objective),
     });
     expect(result.header.activity).toBeNull();
     expect(result.header.compute).toBeNull();
     expect(result.header.headline).not.toBeNull();
     expect(result.bands.map((band) => band.title)).toEqual(["Best parameters"]);
     expect(result.bands[0]).toMatchObject({
-      subtitle: `Step ${best!.trial + 1} · ${best!.objective.toPrecision(6)}`,
+      subtitle: `Step ${best!.trial + 1} · ${formatNumber(best!.objective)}`,
       trailing: null,
       more: null,
     });

@@ -28,7 +28,7 @@ export const stepsProgressPercent = (
     : 0;
 
 /** A batch as the computing list names it: "Step 4", or "Refining population=1850, infected_ratio=0.36". */
-export const describeBatch = (batch: OptimizationBatchStatus): string =>
+const describeBatch = (batch: OptimizationBatchStatus): string =>
   batch.kind === "trial"
     ? `Step ${batch.trial + 1}`
     : `Refining ${formatParameters(batch.values)}`;

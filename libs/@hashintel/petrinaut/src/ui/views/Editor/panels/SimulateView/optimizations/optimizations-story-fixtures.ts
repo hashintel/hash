@@ -543,6 +543,17 @@ export const fakeLongStudyInput = makeOptimizationInput(
 );
 export const fakeLongStudyTrials = makeTrials(fakeLongStudyInput, 60);
 
+/** The study the results model, drawer and full-view tests share: the base bindings, five steps landed, following the third. */
+export const fakeShortStudyInput = makeOptimizationInput(
+  optimizedBindingSets.base,
+);
+export const fakeShortStudyTrials = makeTrials(fakeShortStudyInput, 5);
+export const fakeShortStudyNavigation = navigationAtTrial(
+  fakeShortStudyInput,
+  fakeShortStudyTrials.trials[2]!,
+  true,
+);
+
 /**
  * How much of the synthetic objective's variance each parameter moves, by
  * hand: the bump over production rate and selling price dominates, marketing

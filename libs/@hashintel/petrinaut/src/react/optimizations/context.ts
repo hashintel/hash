@@ -6,6 +6,7 @@ import type { BatchStatus } from "../experiments/shared/batch-registry";
 import type { OptimizationSurfaceAxis } from "./surface-grid";
 import type {
   MonteCarloUserDefinedMetricFrame,
+  PetrinautOptimizationDirection,
   PetrinautOptimizationEvent,
   PetrinautOptimizationImportances,
   PetrinautOptimizationInput,
@@ -284,7 +285,7 @@ export function isOptimizationDraining(
  * keeps the best itself from every trial it applies.
  */
 export const foldBestTrial = (
-  direction: PetrinautOptimizationInput["objective"]["direction"],
+  direction: PetrinautOptimizationDirection,
   best: OptimizationBest | null,
   event: PetrinautOptimizationTrialEvent,
 ): OptimizationBest | null => {
