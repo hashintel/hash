@@ -1,4 +1,8 @@
-use core::{clone::CloneToUninit, fmt, str::FromStr};
+use core::{
+    clone::CloneToUninit,
+    fmt::{self, Write as _},
+    str::FromStr,
+};
 
 use zerocopy::{FromZeros as _, Unalign};
 
@@ -28,6 +32,10 @@ impl S3Path {
 
     pub(crate) fn key(&self) -> &str {
         &self.path[(self.separator.get() + 1)..]
+    }
+
+    pub(super) const fn copy_source(&self) -> CopySource<'_> {
+        CopySource(self)
     }
 }
 
@@ -113,5 +121,20 @@ unsafe impl CloneToUninit for S3Path {
 impl Clone for Box<S3Path> {
     fn clone(&self) -> Self {
         Self::clone_from_ref(&**self)
+    }
+}
+
+pub(crate) struct CopySource<'path>(&'path S3Path);
+
+impl fmt::Display for CopySource<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for byte in self.0.as_ref().bytes() {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~' | b'/') {
+                fmt.write_char(char::from(byte))?;
+            } else {
+                write!(fmt, "%{byte:02X}")?;
+            }
+        }
+        Ok(())
     }
 }

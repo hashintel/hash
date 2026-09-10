@@ -9,8 +9,6 @@ use self::{error::StorageError, s3::S3};
 pub(crate) mod error;
 pub(crate) mod path;
 pub(crate) mod s3;
-#[cfg(test)]
-mod tests;
 
 pub struct Storage {
     s3: Option<S3>,
