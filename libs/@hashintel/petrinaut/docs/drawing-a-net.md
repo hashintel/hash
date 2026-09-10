@@ -148,7 +148,7 @@ The left sidebar holds **Entities**, one tree of everything in the net, in these
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
-A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. Nets with subnets get a **Subnets** panel below the tree.
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with subnets gets a **Subnets** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
 
 Toggle the sidebar with the button in the top-left corner.
 
