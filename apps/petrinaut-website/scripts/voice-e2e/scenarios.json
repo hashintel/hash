@@ -1,0 +1,47 @@
+[
+  {
+    "id": "short-clarification",
+    "utterance": "What does reserving a dispatch crew mean here?",
+    "expectInputPhrases": ["dispatch crew"],
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  },
+  {
+    "id": "long-analysis",
+    "utterance": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+    "expectInputPhrases": ["detailed analysis", "do not change the model"],
+    "expectUnchangedRevision": true,
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  },
+  {
+    "id": "barge-in",
+    "utterance": "What does reserving a dispatch crew mean here?",
+    "expectInputPhrases": ["dispatch crew"],
+    "action": "take-turn-during-paraphrase",
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  },
+  {
+    "id": "follow-up-while-working",
+    "utterance": "Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.",
+    "expectInputPhrases": ["detailed analysis", "do not change the model"],
+    "action": "follow-up-while-working",
+    "followUp": {
+      "utterance": "What does reserving a dispatch crew mean here?",
+      "expectInputPhrases": ["dispatch crew"],
+      "delaySeconds": 5
+    },
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  },
+  {
+    "id": "hesitant-speech",
+    "utterance": "What does [[slnc 800]] reserving a dispatch crew [[slnc 800]] mean here?",
+    "expectInputPhrases": ["what does", "dispatch crew", "mean here"],
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  },
+  {
+    "id": "one-word-answer",
+    "utterance": "Yes.",
+    "expectInputPhrases": ["yes"],
+    "allowNotHeard": true,
+    "budgetsMs": { "speechEndToAckAudio": 2000, "readyToTtsAudio": 3000 }
+  }
+]
