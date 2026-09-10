@@ -11,7 +11,7 @@ use aws_sdk_s3::{
     operation::{get_object::GetObjectOutput, put_object::PutObjectOutput},
 };
 use bytes::Bytes;
-use tokio::io::{AsyncBufRead, AsyncWrite, AsyncWriteExt as _};
+use tokio::io::{AsyncBufRead, AsyncWrite};
 
 use self::path::S3Path;
 use super::error::StorageError;
@@ -121,7 +121,6 @@ impl S3 {
         let mut body = response.body.into_async_read();
 
         tokio::io::copy(&mut body, &mut output).await?;
-        output.flush().await?;
         Ok(())
     }
 }

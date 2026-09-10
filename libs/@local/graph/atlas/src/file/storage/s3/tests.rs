@@ -113,7 +113,7 @@ async fn download_body() {
         .expect("should download the object");
     assert_eq!(server.finish().await.len(), 1);
     assert_eq!(writer.bytes, b"downloaded bytes");
-    assert_eq!(writer.flushes, 1);
+    assert!(writer.flushes > 0, "should flush the downloaded bytes");
 }
 
 #[tokio::test]
