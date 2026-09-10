@@ -78,9 +78,36 @@ const arc = {
   },
 };
 
+const removePlace = {
+  operationId: "remove-queue",
+  type: "removePlace" as const,
+  input: { placeId: "queue" },
+};
+const removeTransition = {
+  operationId: "remove-start",
+  type: "removeTransition" as const,
+  input: { transitionId: "start" },
+};
+const removeArc = {
+  operationId: "unwire-queue",
+  type: "removeArc" as const,
+  input: {
+    transitionId: "start",
+    arcDirection: "input" as const,
+    placeId: "queue",
+  },
+};
+
 const inputFor = (
   instance: ReturnType<typeof createInstance>,
-  operations: readonly (typeof place | typeof transition | typeof arc)[],
+  operations: readonly (
+    | typeof place
+    | typeof transition
+    | typeof arc
+    | typeof removePlace
+    | typeof removeTransition
+    | typeof removeArc
+  )[],
 ) => {
   const observed = observeBrowserDefinition(instance.handle);
   return {
@@ -126,6 +153,59 @@ describe("mutate_petrinet automatic host tool", () => {
       transitions: [
         { id: "start", inputArcs: [{ placeId: "queue", weight: 1 }] },
       ],
+    });
+    instance.dispose();
+  });
+
+  test("removes a place, its connected arcs, and a transition", async () => {
+    const instance = createInstance();
+    const tool = createMutatePetrinetAutomaticTool(binding);
+    await tool.execute({
+      input: inputFor(instance, [place, transition, arc]),
+      instance,
+      toolCallId: "batch-setup-remove",
+    });
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await tool.execute({
+        input: inputFor(instance, [removePlace, removeTransition]),
+        instance,
+        toolCallId: "batch-remove",
+      }),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "applied",
+    ]);
+    expect(instance.definition.get()).toMatchObject({
+      places: [],
+      transitions: [],
+    });
+    instance.dispose();
+  });
+
+  test("removes one arc without deleting its endpoints", async () => {
+    const instance = createInstance();
+    const tool = createMutatePetrinetAutomaticTool(binding);
+    await tool.execute({
+      input: inputFor(instance, [place, transition, arc]),
+      instance,
+      toolCallId: "batch-setup-unwire",
+    });
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await tool.execute({
+        input: inputFor(instance, [removeArc]),
+        instance,
+        toolCallId: "batch-unwire",
+      }),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual(["applied"]);
+    expect(instance.definition.get()).toMatchObject({
+      places: [{ id: "queue" }],
+      transitions: [{ id: "start", inputArcs: [], outputArcs: [] }],
     });
     instance.dispose();
   });

@@ -66,6 +66,16 @@ export const isObservedNodeMutation = (
   name: string,
 ): name is ObservedNodeMutationName =>
   observedNodeMutationNames.some((entry) => entry === name);
+export const batchedNodeMutationNames = [
+  ...observedNodeMutationNames,
+  "removePlace",
+  "removeTransition",
+] as const;
+export type BatchedNodeMutationName = (typeof batchedNodeMutationNames)[number];
+export const isBatchedNodeMutation = (
+  name: string,
+): name is BatchedNodeMutationName =>
+  batchedNodeMutationNames.some((entry) => entry === name);
 const rootOnly = (input: { targetSubnetId?: string | null }) =>
   !input.targetSubnetId;
 
