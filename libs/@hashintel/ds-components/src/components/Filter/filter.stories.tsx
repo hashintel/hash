@@ -133,6 +133,7 @@ type Status = "todo" | "inProgress" | "done";
 type SelectValues = {
   is: Status;
   isAnyOf: string[];
+  hasAllOf: string[];
   assignedTo: string;
   became: [Status, number];
 };
@@ -178,6 +179,17 @@ const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
       items: tagItems,
       placeholder: "Tags…",
       searchable: true,
+    },
+  },
+  {
+    key: "hasAllOf",
+    label: "has all of",
+    input: {
+      type: "select",
+      multiple: true,
+      items: tagItems,
+      placeholder: "Tags…",
+      overflow: "summary",
     },
   },
   {
@@ -428,6 +440,27 @@ export const Selects: Story = () => (
       label="multi select with values"
       value={{ key: "isAnyOf", value: ["bug", "docs"] }}
     />
+    <SelectState
+      label='multi select, overflow="summary" — every option selected renders "any"'
+      value={{
+        key: "hasAllOf",
+        value: ["bug", "feature", "docs", "infra", "design"],
+      }}
+    />
+    <span style={stateLabelStyle}>
+      multi select, overflow=&quot;summary&quot; in a max-width container —
+      names fall back to &quot;x of y&quot; once they no longer fit
+    </span>
+    <div style={maxWidthContainerStyle}>
+      <Filter<SelectValues>
+        property="status"
+        propertyLabel="Status"
+        operators={SelectOperators}
+        value={{ key: "hasAllOf", value: ["bug", "feature", "docs", "infra"] }}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+      />
+    </div>
     <SelectState
       label="async items (1.5s), searchable — the committed value shows while options load"
       value={{ key: "assignedTo", value: "alex" }}
