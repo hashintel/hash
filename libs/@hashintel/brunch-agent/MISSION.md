@@ -75,43 +75,39 @@ tasks. This mission does not claim them.
 
 ## FE-1653 Verification Close
 
-**Implementation under verification:** `a0aa5bef4b` (`Capture current-net signal evidence`).
+**Implementation under verification:** `a0aa5bef4b` (`Capture current-net signal evidence`),
+with type-aware proof fixes in `6f1713f28c`.
 
 ### Deterministic verification
 
-- `yarn workspace @apps/brunch-agent test:unit` — **PASS after rerun with
-  `yarn workspace @apps/brunch-agent exec vitest run --config vitest.config.ts
-  --testTimeout 30000`**: 25 files, 200 tests. The exact command initially timed out one
-  5-second test; the longer timeout completed all tests without a failure.
+- `yarn install --immutable` — **PASS**; no lockfile change.
+- `yarn workspace @apps/brunch-agent test:unit` — **PASS** after the verified
+  `--testTimeout 30000` rerun: 25 files, 200 tests.
 - `NODE_OPTIONS=--no-experimental-webstorage yarn workspace @apps/petrinaut-website
-  test:unit` — **PASS after the Petrinaut package build**: 41 files, 372 tests. The
-  initial run was invalidated by stale/missing generated Petrinaut `dist` chunks and
-  timed out two catalog tests; the rerun passed.
+  test:unit` — **PASS**: 41 files, 372 tests.
 - `yarn workspace @hashintel/petrinaut test:unit` — **PASS**: 94 files, 802 tests.
-- `yarn workspace @apps/brunch-agent lint:tsc` — **PASS**.
-- `yarn workspace @apps/petrinaut-website lint:tsc` — **PASS**.
-- `yarn workspace @hashintel/petrinaut lint:tsc` — **PASS**.
-- `yarn workspace @apps/brunch-agent lint:eslint` — **FAIL** on 3 type-aware
-  errors and 14 warnings, including `no-unsafe-assignment` in the FE-1653 integration
-  assertions; no lint edits were authorized in this close task.
-- `yarn workspace @apps/petrinaut-website lint:eslint` — **PASS**.
-- `yarn workspace @hashintel/petrinaut lint:eslint` — **FAIL** on 4 existing errors in
-  `ai-assistant-panel.tsx` and its tests, outside `a0aa5bef4b`.
-- `turbo run build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter
-  @hashintel/petrinaut` — **SKIP/UNAVAILABLE**: `turbo` is not on PATH. Repository
-  substitution `yarn turbo run ...` also failed because no `turbo` script is installed.
-  Direct `yarn workspace ... build` succeeded for `@hashintel/petrinaut`, but Brunch and
-  website failed with `command not found: vite`; generated artifacts then allowed the
-  website unit rerun to pass.
-- `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` — **PASS**.
-- `yarn lint:format` — **PASS**.
-- `git diff --check` — **PASS**.
+- All three requested `lint:tsc` commands — **PASS**.
+- `yarn workspace @apps/brunch-agent lint:eslint` — **PASS**, with 14 pre-existing
+  warnings and 0 errors.
+- `yarn workspace @apps/petrinaut-website lint:eslint` — **PASS**, with 0 warnings/errors.
+- `yarn workspace @hashintel/petrinaut lint:eslint` — **PASS**, with 0 warnings/errors.
+- Requested Turbo build command is unavailable because `turbo` is not on PATH and no
+  `yarn turbo` script exists. The Yarn workspace Vite shim is also absent, so package
+  build scripts report `command not found: vite`; this is an environment/linker issue.
+- Equivalent direct production builds **PASS**:
+  `node ../../node_modules/vite/bin/vite.js build && node ../../node_modules/vite/bin/vite.js
+  build --config vite.client.config.ts` in `apps/brunch-agent`;
+  `node ../../node_modules/vite/bin/vite.js build` in `apps/petrinaut-website`; and the
+  direct `@hashintel/petrinaut` build.
+- `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, `yarn lint:format`, and
+  `git diff --check` — **PASS**. The Task 2 fixer’s focused Brunch test, typecheck, lint,
+  and diff check — **PASS**.
 
 ### Browser witness and proof boundary
 
-The local browser witness was **SKIPPED**. `yarn dev:brunch` requires the unavailable
-repository build runner/Vite binaries, and the only local `OPENAI_API_KEY` is the
-repository dummy value; no paid provider was called and no credentials were exposed.
-Deterministic tests establish current-net tool grounding, changed-net re-grounding, and
-client-tool-result persistence through the Brunch transport. They do not establish a
-paid-provider response, audible Voice behavior, or remote deployment behavior.
+The local browser witness remains **SKIPPED**: only the repository dummy
+`OPENAI_API_KEY` is available, so no paid provider was called and no credentials were
+exposed. Deterministic tests and direct builds establish current-net grounding,
+changed-net re-grounding, client-tool-result persistence, and production buildability.
+They do not establish paid-provider output, audible Voice behavior, or remote deployment
+behavior.
