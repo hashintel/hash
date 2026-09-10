@@ -1,4 +1,4 @@
-/** Reopen ONLY the disposable store freshly produced by transition-records.integration.ts.
+/** Reopen ONLY the disposable store freshly produced by mutation-records.integration.ts.
  * Saved history is an equality oracle, never input/import authority. Synthetic-model records, not testimony.
  */
 /* eslint-disable no-await-in-loop -- The original store has exactly one sequential owner and folding is observed between turns. */
@@ -219,7 +219,7 @@ try {
     (result) => result.toolCallId === "m7-browser-arc",
   );
   assert(arcResults.length >= 1);
-  const record = (await load("transition-records.json")) as {
+  const record = (await load("mutation-records.json")) as {
     attempts: { request: { input: { weight: number }; envelope: unknown } }[];
   };
   assert.equal(record.attempts[0]?.request.input.weight, 1);

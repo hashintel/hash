@@ -9,16 +9,16 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import {
-  assertArcEffects,
-  classifyTransitionOutcome,
-  deriveArcEffects,
-  observedArcOutcome,
-  reconcileArcTransitionAttempts,
-  verifyArcTransitionAttempt,
+  assertMutationEffects,
+  classifyMutationOutcome,
+  deriveMutationEffects,
+  observedMutationOutcome,
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
   type ArcMutationRequest,
-  type ArcTransitionAttempt,
-  type ConstructionTransitionAttempt,
-} from "../src/transition-record";
+  type ArcMutationAttempt,
+  type ConstructionMutationAttempt,
+} from "../src/mutation-record";
 
 const pre: SDCPN = {
   places: [
@@ -70,7 +70,7 @@ const request: ArcMutationRequest = {
     type: "standard",
   },
 };
-const applied = (): ArcTransitionAttempt => {
+const applied = (): ArcMutationAttempt => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       initial: pre,
@@ -86,20 +86,22 @@ const applied = (): ArcTransitionAttempt => {
     pre: observe(pre),
     post,
     outcome: "applied",
-    effects: deriveArcEffects(request, pre, post.definition),
+    effects: deriveMutationEffects(request, pre, post.definition),
   };
 };
 
 describe("root addArc transition semantics", () => {
   test("verifies actual canonical insertion and rejects missing or duplicated diff accounting", async () => {
     const attempt = applied();
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     const missing = structuredClone(attempt);
     missing.effects.created = [];
-    expect(() => assertArcEffects(missing)).toThrow(/complete canonical diff/u);
+    expect(() => assertMutationEffects(missing)).toThrow(
+      /complete canonical diff/u,
+    );
     const duplicated = structuredClone(attempt);
     duplicated.effects.derived = duplicated.effects.created;
-    expect(() => assertArcEffects(duplicated)).toThrow(
+    expect(() => assertMutationEffects(duplicated)).toThrow(
       /complete canonical diff/u,
     );
   });
@@ -111,7 +113,7 @@ describe("root addArc transition semantics", () => {
     after.transitions[0]!.inputArcs[0]!.weight = 2;
     delete after.transitions[0]!.description;
     after.transitions[0]!.lambdaCode = "return false;";
-    const effects = deriveArcEffects(request, before, after);
+    const effects = deriveMutationEffects(request, before, after);
     expect(effects.created).toEqual([]);
     expect(effects.updated).toEqual([
       {
@@ -141,24 +143,26 @@ describe("root addArc transition semantics", () => {
       post: observe(after),
       effects,
     };
-    expect(observedArcOutcome(attempt)).toBe("unknown");
-    assertArcEffects(attempt);
+    expect(observedMutationOutcome(attempt)).toBe("unknown");
+    assertMutationEffects(attempt);
   });
 
   test("does not accept a different weight as the requested insertion", async () => {
     const attempt = applied();
     attempt.post!.definition.transitions[0]!.inputArcs[0]!.weight = 2;
     attempt.post = observe(attempt.post!.definition);
-    attempt.effects = deriveArcEffects(request, pre, attempt.post.definition);
-    expect(observedArcOutcome(attempt)).toBe("unknown");
-    await expect(verifyArcTransitionAttempt(attempt)).rejects.toThrow(
-      /outcome/u,
+    attempt.effects = deriveMutationEffects(
+      request,
+      pre,
+      attempt.post.definition,
     );
+    expect(observedMutationOutcome(attempt)).toBe("unknown");
+    await expect(verifyMutationAttempt(attempt)).rejects.toThrow(/outcome/u);
   });
 
   test("explains an unknown node outcome when the expected definition cannot be derived", () => {
     const attempt = applied();
-    const nested: ConstructionTransitionAttempt = {
+    const nested: ConstructionMutationAttempt = {
       ...attempt,
       request: {
         ...attempt.request,
@@ -170,15 +174,15 @@ describe("root addArc transition semantics", () => {
         },
       },
     };
-    const classified = classifyTransitionOutcome(nested);
+    const classified = classifyMutationOutcome(nested);
     expect(classified.outcome).toBe("unknown");
     expect(classified.reason).toMatch(
       /^expected definition unavailable: Nested construction is unavailable/u,
     );
     // The projection is unchanged: callers that only want the outcome see `unknown`.
-    expect(observedArcOutcome(nested)).toBe("unknown");
+    expect(observedMutationOutcome(nested)).toBe("unknown");
     // A derivable node outcome carries no reason.
-    expect(classifyTransitionOutcome(attempt)).toEqual({ outcome: "applied" });
+    expect(classifyMutationOutcome(attempt)).toEqual({ outcome: "applied" });
   });
 
   test("does not attribute failed, no-op, stale or unknown attempts as applied changes", () => {
@@ -186,38 +190,40 @@ describe("root addArc transition semantics", () => {
     const unchanged = {
       ...attempt,
       post: attempt.pre,
-      effects: deriveArcEffects(request, pre, pre),
+      effects: deriveMutationEffects(request, pre, pre),
     };
-    expect(observedArcOutcome(unchanged)).toBe("no-op");
-    expect(observedArcOutcome({ ...unchanged, error: "Rejected" })).toBe(
+    expect(observedMutationOutcome(unchanged)).toBe("no-op");
+    expect(observedMutationOutcome({ ...unchanged, error: "Rejected" })).toBe(
       "failed",
     );
     expect(
-      observedArcOutcome({
+      observedMutationOutcome({
         ...unchanged,
         request: { ...request, requestedBaseHash: "0".repeat(64) },
       }),
     ).toBe("stale");
-    expect(observedArcOutcome({ ...attempt, error: "Partial failure" })).toBe(
+    expect(
+      observedMutationOutcome({ ...attempt, error: "Partial failure" }),
+    ).toBe("unknown");
+    expect(observedMutationOutcome({ ...attempt, post: undefined })).toBe(
       "unknown",
     );
-    expect(observedArcOutcome({ ...attempt, post: undefined })).toBe("unknown");
   });
 
   test("the first verified delivery stands unless a conflicting outcome makes it unknown", () => {
     const attempt = applied();
-    expect(reconcileArcTransitionAttempts([attempt, attempt]).outcome).toBe(
+    expect(reconcileMutationAttempts([attempt, attempt]).outcome).toBe(
       "applied",
     );
     const conflict = { ...attempt, outcome: "unknown" as const };
     expect(
-      reconcileArcTransitionAttempts([attempt, conflict, attempt]),
+      reconcileMutationAttempts([attempt, conflict, attempt]),
     ).toMatchObject({
       outcome: "unknown",
       attempts: [attempt, conflict, attempt],
     });
     expect(() =>
-      reconcileArcTransitionAttempts([
+      reconcileMutationAttempts([
         attempt,
         { ...attempt, request: { ...request, toolCallId: "another-call" } },
       ]),

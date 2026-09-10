@@ -30,9 +30,9 @@ import { createFlueClient, type DeliveredMessage } from "@flue/sdk";
 import { chromium, type Browser, type Page } from "@playwright/test";
 
 import {
-  verifyArcTransitionAttempt,
+  verifyMutationAttempt,
   joinedRootArcInputSchema,
-  type ArcTransitionRecord,
+  type ArcMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
@@ -534,11 +534,11 @@ try {
     (entry) => entry.toolCallId === "m7-browser-arc",
   );
   assert(result);
-  const record = (result.metadata as { transitionRecord: ArcTransitionRecord })
-    .transitionRecord;
+  const record = (result.metadata as { mutationRecord: ArcMutationRecord })
+    .mutationRecord;
   assert.equal(record.outcome, "applied");
   assert.equal(record.attempts.length, 1);
-  const attempt = await verifyArcTransitionAttempt(record.attempts[0]!);
+  const attempt = await verifyMutationAttempt(record.attempts[0]!);
   assert.equal(attempt.request.input.weight, 1);
   assert(
     !("brunch" in attempt.request.input),
@@ -554,7 +554,7 @@ try {
   const post = await page.evaluate(readBrowserDocument, document.id);
   assert.deepEqual(attempt.post?.definition, post);
   save("canonical-post.browser.json", post);
-  save("transition-records.json", record);
+  save("mutation-records.json", record);
   const resultRequest = deliveries.find(
     (entry) =>
       entry.body.includes("client-tool-result") &&
@@ -618,7 +618,7 @@ try {
   conflicting.outcome = "unknown";
   const conflictingResult = {
     ...result,
-    metadata: { transitionRecord: conflicting },
+    metadata: { mutationRecord: conflicting },
   };
   await assert.rejects(
     client.wait(
@@ -668,7 +668,7 @@ try {
     );
   save("observations.json", {
     oracle:
-      "correlates the real browser transition record and resumes without reapplying",
+      "correlates the real browser mutation record and resumes without reapplying",
     outcome: "pass",
     source: "real local Chrome; synthetic model; prepared fixture",
     syntheticModelRequests: contexts.length,

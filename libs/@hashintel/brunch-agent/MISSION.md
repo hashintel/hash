@@ -171,7 +171,7 @@ The mission is bounded by visible product utility, not by pretending the route i
 | Broad flagship why coverage | Primary | Supplied links are optional and no automatic completeness exists; inventory every consequential element and review representative usefulness. |
 | One ordinary correction/reopen | Primary | General repeat/change/retirement/concurrency remains later; the selected correction must still avoid unrelated rebuilding. |
 | Start from scratch | Primary; recorded path even though live demo starts seeded | FE-1331's older topology is stale and no product create-new Brunch choice exists. |
-| Mutation batching | Candidate enabler for primary construction speed; local ordered mechanics passed | Full-registry schema is 69,897 bytes and local batching adds 8.3% accounting overhead. Selected-schema provider reliability, real settlement speed, aggregate transition ledger, complete effects, compilation checkpoints and partial-state UX remain unproved; run one bounded real comparison. |
+| Mutation batching | Candidate enabler for primary construction speed; local ordered mechanics passed | Full-registry schema is 69,897 bytes and local batching adds 8.3% accounting overhead. Selected-schema provider reliability, real settlement speed, aggregate mutation ledger, complete effects, compilation checkpoints and partial-state UX remain unproved; run one bounded real comparison. |
 | Quick preview | Primary interaction posture after assent | Depends on fast reliable construction and honest model-proposed assumptions; cannot bypass a failing fundamental path. |
 | Chat/workpiece UI | Chat remains the basis | Simultaneous visibility is unresolved. Defer generic question cards and other chat sub-issues until that parent layout problem is observed and selected. |
 | Constraints + executed experiments | Ordered lower-priority 7b requirement | Canonical constraints exist only in optimization manifests, are not reusable with scenarios/experiments and are not enforced; await Chris's proposed API/procedure before designing past this boundary. |
@@ -214,7 +214,7 @@ The mission is bounded by visible product utility, not by pretending the route i
 
 ## Fog-line
 
-- **Batch carrier and value:** local canonical mechanics pass, the selected-schema Sonnet carrier passed once, but the full schema exceeds 64 KiB and local outcome accounting is slower. Real browser settlement latency, aggregate effect/transition recording and equivalent individual comparison remain unproved. The minimal product tracer is the immediate observation; do not deepen past its comparison result.
+- **Batch carrier and value:** local canonical mechanics pass, the selected-schema Sonnet carrier passed once, but the full schema exceeds 64 KiB and local outcome accounting is slower. Real browser settlement latency, aggregate effect/mutation recording and equivalent individual comparison remain unproved. The minimal product tracer is the immediate observation; do not deepen past its comparison result.
 - **Flagship construction:** no evidence yet shows Brunch can produce Inventory-comparable complexity or a complete substantial model from a realistic persona. The first successful carrier does not establish semantic/model quality.
 - **Second scenario:** select after Inventory reveals whether the important contrast is replenishment/safety, continuous dynamics, or quality/recovery.
 - **Template materialization:** native identity/copy support, hosted ownership, resume/fresh UX and catalogue update safety require inspection at the actual store/browser boundary.

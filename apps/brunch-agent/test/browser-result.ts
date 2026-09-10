@@ -2,11 +2,11 @@
  * The browser result as the fixture browser produced it and the model saw it.
  * The shape is the transport's result carrying the plugin's sidecar; the two
  * narrowings are test knowledge: the fixture browser observes a canonical
- * SDCPN and records fully typed transition attempts.
+ * SDCPN and records fully typed mutation attempts.
  */
 import type {
   ClientToolResultMetadata,
-  ConstructionTransitionRecord,
+  ConstructionMutationRecord,
   DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { ClientToolResult } from "@hashintel/brunch-agent-transport-aisdk";
@@ -19,7 +19,7 @@ export type BrowserObservation = Omit<
 export type BrowserResult = Omit<ClientToolResult, "metadata"> & {
   readonly metadata?: {
     readonly observation?: BrowserObservation;
-    readonly transitionRecord?: ConstructionTransitionRecord;
+    readonly mutationRecord?: ConstructionMutationRecord;
   };
 };
 

@@ -3,9 +3,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  assertArcEffects,
-  deriveArcEffects,
-  verifyArcTransitionAttempt,
+  assertMutationEffects,
+  deriveMutationEffects,
+  verifyMutationAttempt,
   type ArcMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -15,16 +15,16 @@ import {
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  createBrowserMutationRecorder,
+  createJoinedBrowserMutationRecorder,
+  observeBrowserDefinition,
+  type MutationRecordContainedFailure,
+} from "./mutation-record";
+import {
   preparedCrewReservationNet,
   dispatchCrewPlaceId,
   startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
-import {
-  createBrowserTransitionRecorder,
-  createJoinedBrowserTransitionRecorder,
-  observeBrowserDefinition,
-  type TransitionRecordContainedFailure,
-} from "./transition-record";
 
 const setup = () => {
   const handle = createJsonDocHandle({
@@ -51,7 +51,7 @@ const setup = () => {
       type: "standard",
     },
   };
-  const recorder = createBrowserTransitionRecorder({
+  const recorder = createBrowserMutationRecorder({
     handle,
     binding,
     requestFor: () => request,
@@ -67,7 +67,7 @@ const setup = () => {
 describe("browser transition adapter (canonical handle, not a real browser witness)", () => {
   test("advances only by an explicitly cited earlier read for a distinct native weight correction", () => {
     const fixture = setup();
-    const recorder = createJoinedBrowserTransitionRecorder({
+    const recorder = createJoinedBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.request.binding,
       construction: true,
@@ -163,7 +163,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
   });
   test("correlates a live read with an independently observed bound handle and refuses intervening edits", () => {
     const fixture = setup();
-    const joined = createJoinedBrowserTransitionRecorder({
+    const joined = createJoinedBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.request.binding,
       requestedBaseHash: fixture.request.requestedBaseHash,
@@ -197,7 +197,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
   });
   test("joins issued canonical arguments to record carriage and refuses replacement of the basis envelope", () => {
     const fixture = setup();
-    const joined = createJoinedBrowserTransitionRecorder({
+    const joined = createJoinedBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.request.binding,
       requestedBaseHash: fixture.request.requestedBaseHash,
@@ -234,7 +234,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       output,
     });
     expect(metadata).toMatchObject({
-      transitionRecord: {
+      mutationRecord: {
         outcome: "applied",
         attempts: [{ request: fixture.request }],
       },
@@ -251,7 +251,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     expect(attempt.pre.sha256).not.toBe(fixture.request.requestedBaseHash);
     expect(attempt.outcome).toBe("stale");
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     fixture.instance.dispose();
   });
 
@@ -292,7 +292,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       deleted: [],
       derived: [],
     });
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     fixture.run();
     expect(fixture.execute).toHaveBeenCalledTimes(1);
     expect(fixture.recorder.records()[0]?.attempts).toHaveLength(2);
@@ -304,7 +304,9 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     fixture.run();
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     attempt.effects.created = [];
-    expect(() => assertArcEffects(attempt)).toThrow(/complete canonical diff/u);
+    expect(() => assertMutationEffects(attempt)).toThrow(
+      /complete canonical diff/u,
+    );
     fixture.instance.dispose();
   });
 
@@ -336,7 +338,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     expect(fixture.run()).toMatchObject({ applied: false });
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     expect(attempt.outcome).toBe("no-op");
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     fixture.instance.dispose();
   });
 
@@ -349,7 +351,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     const record = fixture.recorder.records()[0]!;
     expect(record.outcome).toBe("failed");
     expect(record.attempts).toHaveLength(2);
-    await verifyArcTransitionAttempt(record.attempts[0]!);
+    await verifyMutationAttempt(record.attempts[0]!);
     fixture.instance.dispose();
   });
 
@@ -376,15 +378,15 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     const fixture = setup();
     let derivations = 0;
     const onContainedFailure =
-      vi.fn<(failure: TransitionRecordContainedFailure) => void>();
-    const recorder = createBrowserTransitionRecorder({
+      vi.fn<(failure: MutationRecordContainedFailure) => void>();
+    const recorder = createBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.request.binding,
       requestFor: () => fixture.request,
       deriveEffects: (...input) => {
         derivations += 1;
         if (derivations > 1) throw new Error("Synthetic derivation failure");
-        return deriveArcEffects(...input);
+        return deriveMutationEffects(...input);
       },
       onContainedFailure,
     });
@@ -425,7 +427,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     expect(attempt.outcome).toBe("unknown");
     expect(attempt.post).toBeUndefined();
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
     expect(() => fixture.run()).toThrow(/unknown/u);
     fixture.instance.dispose();
   });

@@ -468,7 +468,7 @@ try {
     },
     (context: Context) => {
       const record = browserResult(context, "addParameter").metadata
-        ?.transitionRecord;
+        ?.mutationRecord;
       assert.equal(record?.outcome, "applied");
       assert.equal(
         record.attempts[0]?.post?.definition.parameters.find(

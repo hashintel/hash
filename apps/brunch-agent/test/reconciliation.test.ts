@@ -24,7 +24,7 @@ import {
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {
-  ArcTransitionAttempt,
+  ArcMutationAttempt,
   DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
@@ -38,7 +38,7 @@ const messages = snapshot.messages;
 const resultMessage = messages.find(
   (message) =>
     message.signal?.tagName === "client-tool-result" &&
-    JSON.stringify(message).includes("transitionRecord"),
+    JSON.stringify(message).includes("mutationRecord"),
 );
 if (!resultMessage) throw new Error("Actual retained browser result missing.");
 const body = resultMessage.parts
@@ -46,7 +46,7 @@ const body = resultMessage.parts
   .join("");
 const delivered = JSON.parse(body) as {
   metadata: {
-    transitionRecord: {
+    mutationRecord: {
       attempts: {
         binding: {
           conversationId: string;
@@ -58,7 +58,7 @@ const delivered = JSON.parse(body) as {
     };
   };
 }[];
-const attempt = delivered[0]?.metadata.transitionRecord.attempts[0];
+const attempt = delivered[0]?.metadata.mutationRecord.attempts[0];
 if (!attempt) throw new Error("Actual browser observation missing.");
 const browser = {
   binding: attempt.binding,
@@ -162,9 +162,9 @@ test("refuses recreation of a recorded arc identity after it disappears from a f
   if (!result) throw new Error("Missing original browser result");
   const actual = (
     result.metadata as {
-      transitionRecord: { attempts: ArcTransitionAttempt[] };
+      mutationRecord: { attempts: ArcMutationAttempt[] };
     }
-  ).transitionRecord.attempts[0];
+  ).mutationRecord.attempts[0];
   expect(actual?.post).toBeDefined();
   if (!actual?.post) throw new Error("Missing original browser effect");
   await expect(
@@ -419,11 +419,11 @@ test.each(["no-op", "failed", "stale", "unknown"] as const)(
       toolCallId: string;
       output: { applied: boolean };
       metadata: {
-        transitionRecord: { outcome: string; attempts: ArcTransitionAttempt[] };
+        mutationRecord: { outcome: string; attempts: ArcMutationAttempt[] };
       };
     }[];
     const row = rows[0];
-    const original = row?.metadata.transitionRecord.attempts[0];
+    const original = row?.metadata.mutationRecord.attempts[0];
     if (!row || !original) throw new Error("Retained actual attempt absent.");
     if (outcome === "stale") {
       const transition = original.pre.definition.transitions[0];
@@ -437,7 +437,7 @@ test.each(["no-op", "failed", "stale", "unknown"] as const)(
     original.effects = { created: [], updated: [], deleted: [], derived: [] };
     original.outcome = outcome;
     if (outcome === "failed") original.error = "TEST failing executor control";
-    row.metadata.transitionRecord.outcome = outcome;
+    row.metadata.mutationRecord.outcome = outcome;
     row.output.applied = false;
     for (const part of negative.parts)
       if (part.type === "text") part.text = JSON.stringify(rows);
@@ -473,9 +473,9 @@ const a5Result = clientToolHistoryFrom(a5Snapshot.messages).results.find(
 if (!a5Result) throw new Error("Actual A5 browser result missing.");
 const a5Attempt = (
   a5Result.metadata as {
-    transitionRecord: { attempts: ArcTransitionAttempt[] };
+    mutationRecord: { attempts: ArcMutationAttempt[] };
   }
-).transitionRecord.attempts[0];
+).mutationRecord.attempts[0];
 if (!a5Attempt) throw new Error("Actual A5 browser attempt missing.");
 const a5Browser = {
   binding: a5Attempt.binding,

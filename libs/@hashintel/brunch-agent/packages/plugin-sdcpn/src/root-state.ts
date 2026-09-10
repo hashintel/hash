@@ -4,7 +4,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { observedArcEnvelopeSchema } from "./root-arc";
 
-import type { ConstructionMutationRequest } from "./transition-record";
+import type { ConstructionMutationRequest } from "./mutation-record";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { z } from "zod";
 

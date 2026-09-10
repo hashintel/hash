@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { mutatePetrinetInputSchema } from "../src/mutate-petrinet";
 import { createMutatePetrinetTool } from "../src/tools/mutate-petrinet";
 
-import type { DefinitionObservation } from "../src/transition-record";
+import type { DefinitionObservation } from "../src/mutation-record";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const hash = "a".repeat(64);

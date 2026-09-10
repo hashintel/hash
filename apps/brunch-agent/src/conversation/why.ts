@@ -17,14 +17,14 @@ import {
   type ConstructionMutationRequest,
   parseJoinedRootArcInput,
   parseObservedArcInput,
-  reconcileArcTransitionAttempts,
+  reconcileMutationAttempts,
   reconcileDefinitionObservations,
   rootArcWhyInputSchema,
   validateDeclaredBasis,
-  verifyArcTransitionAttempt,
+  verifyMutationAttempt,
   verifyDefinitionObservation,
   parseClientToolResultMetadata,
-  type ConstructionTransitionAttempt,
+  type ConstructionMutationAttempt,
   type DeclaredBasis,
   type DefinitionObservation,
   type RootArcWhyInput,
@@ -170,12 +170,12 @@ export interface RootArcExplanation {
     toolCallId: string;
     preHash: string;
     postHash: string;
-    effects: ConstructionTransitionAttempt["effects"];
+    effects: ConstructionMutationAttempt["effects"];
   };
   /** `not-admitted` is this app's disposition for a call the model never completed. */
   attempts: {
     toolCallId: string;
-    outcome: ConstructionTransitionAttempt["outcome"] | "not-admitted";
+    outcome: ConstructionMutationAttempt["outcome"] | "not-admitted";
   }[];
   quality: {
     sourceRelevance: "unassessed";
@@ -216,7 +216,7 @@ export const explainRootArc = async (input: {
     const results = clientToolHistoryFrom(resultMessages(snapshot)).results;
     const changes: {
       callId: string;
-      attempt: ConstructionTransitionAttempt;
+      attempt: ConstructionMutationAttempt;
       basis: DeclaredBasis;
       callIndex: number;
       partIndex: number;
@@ -291,11 +291,11 @@ export const explainRootArc = async (input: {
           throw new Error(
             "Conflicting browser deliveries are unknown attempts, not causes.",
           );
-        const transitionRecord = parseClientToolResultMetadata(
+        const mutationRecord = parseClientToolResultMetadata(
           first.metadata,
-        )?.transitionRecord;
-        if (first.toolName !== name || transitionRecord === undefined)
-          throw new Error("Missing verified browser transition record.");
+        )?.mutationRecord;
+        if (first.toolName !== name || mutationRecord === undefined)
+          throw new Error("Missing verified browser mutation record.");
         const expected: ConstructionMutationRequest = {
           toolCallId: call.toolCallId,
           toolName: name,
@@ -312,9 +312,9 @@ export const explainRootArc = async (input: {
         )
           throw new Error("Issued base differs from the bound conversation.");
         const attempts = await Promise.all(
-          transitionRecord.attempts.map(async (raw) => {
-            const attempt = await verifyArcTransitionAttempt(
-              raw as ConstructionTransitionAttempt,
+          mutationRecord.attempts.map(async (raw) => {
+            const attempt = await verifyMutationAttempt(
+              raw as ConstructionMutationAttempt,
             );
             if (
               canonicalContent(attempt.request) !==
@@ -328,9 +328,9 @@ export const explainRootArc = async (input: {
             return attempt;
           }),
         );
-        const reconciled = reconcileArcTransitionAttempts(attempts);
+        const reconciled = reconcileMutationAttempts(attempts);
         if (
-          reconciled.outcome !== transitionRecord.outcome ||
+          reconciled.outcome !== mutationRecord.outcome ||
           (record(first.output) &&
             first.output.applied === true &&
             reconciled.outcome !== "applied") ||

@@ -1,8 +1,8 @@
 import {
-  deriveArcEffects,
-  observedArcOutcome,
+  deriveMutationEffects,
+  observedMutationOutcome,
   type ConstructionMutationRequest,
-} from "../src/transition-record";
+} from "../src/mutation-record";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -36,10 +36,10 @@ export const observedOutcome = (
   pre: SDCPN,
   post: SDCPN,
 ) =>
-  observedArcOutcome({
+  observedMutationOutcome({
     request,
     binding: request.binding,
     pre: { definition: pre, sha256: request.requestedBaseHash },
     post: { definition: post, sha256: "b".repeat(64) },
-    effects: deriveArcEffects(request, pre, post),
+    effects: deriveMutationEffects(request, pre, post),
   });

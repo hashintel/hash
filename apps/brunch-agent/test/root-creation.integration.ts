@@ -22,9 +22,9 @@ import {
   canonicalContent,
   observedNodeInputSchema,
   observedNodeMutationNames,
-  verifyArcTransitionAttempt,
+  verifyMutationAttempt,
   verifyDefinitionObservation,
-  type ConstructionTransitionRecord,
+  type ConstructionMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
@@ -189,7 +189,7 @@ const afterMutation = (name: string, id: string) =>
   checked((context) => {
     const result = browserResult(context, name);
     assert.partialDeepStrictEqual(result.output, { applied: true });
-    assert.equal(result.metadata?.transitionRecord?.outcome, "applied");
+    assert.equal(result.metadata?.mutationRecord?.outcome, "applied");
     return tool("getLatestNetDefinition", {}, id);
   });
 const queue = {
@@ -464,17 +464,16 @@ try {
   const results = clientToolHistoryFrom(history.messages).results;
   const records = results.filter(
     (result) =>
-      (result.metadata as { transitionRecord?: unknown } | undefined)
-        ?.transitionRecord,
+      (result.metadata as { mutationRecord?: unknown } | undefined)
+        ?.mutationRecord,
   );
   assert.equal(records.length, 7);
   for (const result of records) {
     const record = (
-      result.metadata as { transitionRecord: ConstructionTransitionRecord }
-    ).transitionRecord;
+      result.metadata as { mutationRecord: ConstructionMutationRecord }
+    ).mutationRecord;
     assert.equal(record.outcome, "applied");
-    for (const attempt of record.attempts)
-      await verifyArcTransitionAttempt(attempt);
+    for (const attempt of record.attempts) await verifyMutationAttempt(attempt);
   }
   save("records", records);
   for (const name of observedNodeMutationNames) {
@@ -674,7 +673,7 @@ try {
     checked((context) => {
       const result = browserResult(context, "updatePlace");
       assert.partialDeepStrictEqual(result.output, { applied: false });
-      assert.equal(result.metadata?.transitionRecord?.outcome, "no-op");
+      assert.equal(result.metadata?.mutationRecord?.outcome, "no-op");
       return text("Unchanged node is not a change.");
     }),
   ]);
@@ -723,9 +722,9 @@ try {
   assert(lastAppliedResult);
   const lastApplied = (
     lastAppliedResult.metadata as {
-      transitionRecord: ConstructionTransitionRecord;
+      mutationRecord: ConstructionMutationRecord;
     }
-  ).transitionRecord.attempts[0]?.post;
+  ).mutationRecord.attempts[0]?.post;
   assert(lastApplied);
   assert.equal(
     canonicalContent(verifiedReopen.definition),
@@ -877,7 +876,7 @@ try {
     checked((context) => {
       const result = browserResult(context, "updatePlace");
       assert.partialDeepStrictEqual(result.output, { applied: false });
-      assert.equal(result.metadata?.transitionRecord?.outcome, "stale");
+      assert.equal(result.metadata?.mutationRecord?.outcome, "stale");
       return text("Stale node correction was not applied.");
     }),
   ]);
@@ -940,14 +939,14 @@ try {
     const result = controlResults.find((entry) => entry.toolCallId === id);
     assert(result);
     for (const attempt of (
-      result.metadata as { transitionRecord: ConstructionTransitionRecord }
-    ).transitionRecord.attempts)
-      await verifyArcTransitionAttempt(attempt);
+      result.metadata as { mutationRecord: ConstructionMutationRecord }
+    ).mutationRecord.attempts)
+      await verifyMutationAttempt(attempt);
   }
   const controlRecords = controlResults.filter(
     (entry) =>
-      (entry.metadata as { transitionRecord?: unknown } | undefined)
-        ?.transitionRecord,
+      (entry.metadata as { mutationRecord?: unknown } | undefined)
+        ?.mutationRecord,
   );
   assert.equal(
     controlRecords.length,
@@ -958,8 +957,8 @@ try {
   assert(original);
   for (const variant of ["foreign", "conflicting"] as const) {
     const record = structuredClone(
-      (original.metadata as { transitionRecord: ConstructionTransitionRecord })
-        .transitionRecord,
+      (original.metadata as { mutationRecord: ConstructionMutationRecord })
+        .mutationRecord,
     );
     if (variant === "foreign")
       for (const attempt of record.attempts) {
@@ -980,7 +979,7 @@ try {
               type: CLIENT_TOOL_RESULT_SIGNAL,
               tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify([
-                { ...original, metadata: { transitionRecord: record } },
+                { ...original, metadata: { mutationRecord: record } },
               ]),
             },
           }),

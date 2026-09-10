@@ -11,7 +11,7 @@
 A fresh builder must read these durable sources before deepening this cluster:
 
 - [`../../MISSION.md`](../../MISSION.md) — the current branch's live authority. Mission 4 is closed; later accepted mission archives and an owner-authorized Mission 11 cut become inherited authority before this draft can execute.
-- [`7-explainable-construction.md`](7-explainable-construction.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — the 2026-09-04 recut predecessors. Mission 11 consumes their genuine conversation, settled revisions, declared basis, transition records, and the why operation; it does not inherit a capture store or derivation fixture, because neither exists.
+- [`7-explainable-construction.md`](7-explainable-construction.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — the 2026-09-04 recut predecessors. Mission 11 consumes their genuine conversation, settled revisions, declared basis, mutation records, and the why operation; it does not inherit a capture store or derivation fixture, because neither exists.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
@@ -94,7 +94,7 @@ This proves one working handoff throughline. It is not the completion bar. Missi
 
 Mission 11 consumes rather than repairs:
 
-- Mission 7's genuine constructed region with settled revisions, declared basis, verifiable transition records, identity epochs, and the why operation past its safety and utility gates;
+- Mission 7's genuine constructed region with settled revisions, declared basis, verifiable mutation records, identity epochs, and the why operation past its safety and utility gates;
 - Mission 9's repeat, changed-input, and retirement behaviour and closed breadth stratum for the extended region;
 - Mission 10's accepted reviewer-authority classes, retained evidence, semantic revision, scoped patch/refusal, and stable unrelated behavior; and
 - an actual deployment threshold sufficient for the consumers to use the path, with each claimed identity, durability, telemetry, access, and recovery property observed rather than inferred from the local image.
@@ -125,7 +125,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 ## Inputs and joins
 
 - Selected upstream source: the genuine conversation, settled workpiece revisions, and adjudication accepted by Mission 7; Mission 4 itself closed without a full-run candidate and the Mission 6 prepared fixture is not promoted.
-- Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, transition records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
+- Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, mutation records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
 - Early consumer discovery: the non-binding record of one candidate question, minimum semantics, execution boundary, outputs, and credibility checks gathered before Mission 9's region selection.
 - Mission 8 actual contract: published ECS-startable application artifact plus still-open SRE-1013 / remote-proof handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.

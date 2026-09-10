@@ -13,9 +13,9 @@ import {
   type BrowserBinding,
   type ConstructionMutationRequest,
   type DefinitionObservation,
-  reconcileArcTransitionAttempts,
-  verifyArcTransitionAttempt,
-  type ConstructionTransitionAttempt as ArcTransitionAttempt,
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
+  type ConstructionMutationAttempt as ArcMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
@@ -63,17 +63,16 @@ export const assertArcNotRetired = async (
     throw new Error("Duplicate root arc identity cannot be created.");
   const results = clientToolHistoryFrom(snapshot.messages).results;
   for (const result of results) {
-    const transitionRecord = parseClientToolResultMetadata(
+    const mutationRecord = parseClientToolResultMetadata(
       result.metadata,
-    )?.transitionRecord;
-    if (result.toolName !== "addArc" || transitionRecord === undefined)
-      continue;
+    )?.mutationRecord;
+    if (result.toolName !== "addArc" || mutationRecord === undefined) continue;
     const verified = await Promise.all(
-      transitionRecord.attempts.map((raw) =>
-        verifyArcTransitionAttempt(raw as ArcTransitionAttempt),
+      mutationRecord.attempts.map((raw) =>
+        verifyMutationAttempt(raw as ArcMutationAttempt),
       ),
     );
-    const reconciled = reconcileArcTransitionAttempts(verified);
+    const reconciled = reconcileMutationAttempts(verified);
     for (const attempt of verified) {
       const previousInput = mutationActionInputSchemas.addArc.parse(
         attempt.request.input,
@@ -169,16 +168,14 @@ export const assertConstructionIdentity = async (
       binding,
       observationFor: async (id) => read(id),
     });
-    const transitionRecord = parseClientToolResultMetadata(
+    const mutationRecord = parseClientToolResultMetadata(
       result.metadata,
-    )?.transitionRecord;
-    if (transitionRecord === undefined)
+    )?.mutationRecord;
+    if (mutationRecord === undefined)
       throw new Error("Missing identity history.");
-    for (const raw of transitionRecord.attempts) {
-      const attempt = await verifyArcTransitionAttempt(
-        raw as ArcTransitionAttempt,
-      );
-      if (transitionRecord.outcome === "unknown")
+    for (const raw of mutationRecord.attempts) {
+      const attempt = await verifyMutationAttempt(raw as ArcMutationAttempt);
+      if (mutationRecord.outcome === "unknown")
         throw new Error(
           "Unknown construction history cannot establish safe identity reuse.",
         );
@@ -279,18 +276,18 @@ export const verifyRootArcResults = async (input: {
         throw new Error(
           "The issued browser base does not match the bound conversation.",
         );
-      const transitionRecord = parseClientToolResultMetadata(
+      const mutationRecord = parseClientToolResultMetadata(
         delivery.metadata,
-      )?.transitionRecord;
-      if (transitionRecord === undefined)
+      )?.mutationRecord;
+      if (mutationRecord === undefined)
         throw new Error(
-          "The root arc result requires a browser transition record.",
+          "The root arc result requires a browser mutation record.",
         );
       const attempts = await Promise.all(
-        transitionRecord.attempts.map(async (attempt) => {
+        mutationRecord.attempts.map(async (attempt) => {
           // The plugin's receiving-boundary verifier validates detached observations and effects.
-          const verified = await verifyArcTransitionAttempt(
-            attempt as ArcTransitionAttempt,
+          const verified = await verifyMutationAttempt(
+            attempt as ArcMutationAttempt,
           );
           if (
             canonicalContent(verified.request) !== canonicalContent(expected) ||
@@ -303,8 +300,8 @@ export const verifyRootArcResults = async (input: {
           return verified;
         }),
       );
-      const reconciled = reconcileArcTransitionAttempts(attempts);
-      if (reconciled.outcome !== transitionRecord.outcome)
+      const reconciled = reconcileMutationAttempts(attempts);
+      if (reconciled.outcome !== mutationRecord.outcome)
         throw new Error("The browser aggregate outcome is inconsistent.");
       if (
         record(delivery.output) &&
