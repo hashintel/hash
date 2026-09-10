@@ -10,7 +10,6 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
-  retainedSettledRevision,
   assertArcNotRetired,
   assertConstructionIdentity,
 } from "../src/conversation/root-arc.ts";
@@ -18,7 +17,10 @@ import {
   explainRootArc,
   recordedBrowserObservation,
 } from "../src/conversation/why.ts";
-import { workpieceEvidenceSources } from "../src/conversation/workpiece.ts";
+import {
+  retainedSettledRevision,
+  workpieceEvidenceSources,
+} from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {
@@ -379,6 +381,33 @@ test("refuses a new settlement when successful history exists but current state 
   expect(() => workpieceEvidenceSources(snapshot, null)).toThrow(
     /recovery is required/iu,
   );
+});
+
+test.each([
+  {
+    label: "failed output",
+    output: { error: "refused" },
+  },
+  {
+    label: "mismatched revision identity",
+    output: {
+      revisionId: "other-revision",
+      sha256: current.sha256,
+      ordinal: current.ordinal,
+    },
+  },
+])("does not treat a $label as a settled workpiece", ({ output }) => {
+  const invalid = structuredClone(snapshot);
+  for (const message of invalid.messages)
+    for (const part of message.parts)
+      if (
+        part.type === "dynamic-tool" &&
+        part.toolName === "update_workpiece" &&
+        part.state === "output-available"
+      )
+        part.output = output;
+
+  expect(() => workpieceEvidenceSources(invalid, null)).not.toThrow();
 });
 
 test.each(["no-op", "failed", "stale", "unknown"] as const)(

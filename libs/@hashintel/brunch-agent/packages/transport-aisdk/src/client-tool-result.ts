@@ -38,6 +38,14 @@ export const parseClientToolResults = (
   return Array.isArray(parsed) ? parsed.filter(isClientToolResult) : [];
 };
 
+/** Require the protocol's machine identity and its model-visible rendering tag. */
+export const isClientToolResultDelivery = (
+  delivery: DeliveredMessage,
+): delivery is Extract<DeliveredMessage, { kind: "signal" }> =>
+  delivery.kind === "signal" &&
+  delivery.type === CLIENT_TOOL_RESULT_SIGNAL &&
+  delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL;
+
 /** The signal that carries completed client-tool results back into the conversation. */
 export const clientToolResultSignal = (
   results: readonly ClientToolResult[],

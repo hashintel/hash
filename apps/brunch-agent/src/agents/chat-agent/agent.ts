@@ -39,12 +39,11 @@ import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 import { selectChatModel } from "../../chat-model.ts";
 import {
   ACTIVATE_SKILL_TOOL_NAME,
-  CLIENT_TOOL_RESULT_SIGNAL,
+  isClientToolResultDelivery,
 } from "../../conversation/client-tools.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
 import {
-  retainedSettledRevision,
   verifyRootArcResults,
   assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
@@ -52,7 +51,10 @@ import {
   createRootArcWhyTool,
   recordedBrowserObservation,
 } from "../../conversation/why.ts";
-import { workpieceEvidenceSources } from "../../conversation/workpiece.ts";
+import {
+  retainedSettledRevision,
+  workpieceEvidenceSources,
+} from "../../conversation/workpiece.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
@@ -85,11 +87,8 @@ export function ChatAgent({ id }: AgentProps) {
   const readSources = async () => workpieceEvidenceSources(await history());
   const activeObservationCallIds: string[] = [];
   const suppliedObservationCallIds: string[] = [];
-  if (
-    delivery.kind === "signal" &&
-    delivery.type === CLIENT_TOOL_RESULT_SIGNAL &&
-    delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL
-  ) {
+  const isClientResultDelivery = isClientToolResultDelivery(delivery);
+  if (isClientResultDelivery) {
     for (const result of parseClientToolResults(delivery.body)) {
       if (result.toolName !== getLatestNetDefinitionToolName) continue;
       activeObservationCallIds.push(result.toolCallId);
@@ -158,12 +157,7 @@ export function ChatAgent({ id }: AgentProps) {
       : []),
   );
   useAgentStart(async () => {
-    if (
-      browserContext &&
-      delivery.kind === "signal" &&
-      (delivery.type === CLIENT_TOOL_RESULT_SIGNAL ||
-        delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL)
-    ) {
+    if (browserContext && isClientResultDelivery) {
       // Legacy recorded reads lack this optional sidecar. Only a why lookup that
       // actually cites an observation requires it; legacy continuation is unchanged.
       const snapshot = await history();

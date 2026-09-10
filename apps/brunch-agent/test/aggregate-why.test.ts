@@ -8,11 +8,11 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { retainedSettledRevision } from "../src/conversation/root-arc.ts";
 import {
   explainRootArc,
   type RootArcExplanation,
 } from "../src/conversation/why.ts";
+import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

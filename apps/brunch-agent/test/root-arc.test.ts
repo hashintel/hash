@@ -4,10 +4,8 @@ import { describe, expect, test } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import {
-  retainedSettledRevision,
-  verifyRootArcResults,
-} from "../src/conversation/root-arc.ts";
+import { verifyRootArcResults } from "../src/conversation/root-arc.ts";
+import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { ArcTransitionRecord } from "@hashintel/brunch-agent-plugin-sdcpn";

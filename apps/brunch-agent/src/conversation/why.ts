@@ -34,8 +34,10 @@ import { settleWorkpieceEvidence } from "@hashintel/brunch-agent/flue";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
-import { retainedSettledRevision } from "./root-arc.ts";
-import { workpieceEvidenceSources } from "./workpiece.ts";
+import {
+  retainedSettledRevision,
+  workpieceEvidenceSources,
+} from "./workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";

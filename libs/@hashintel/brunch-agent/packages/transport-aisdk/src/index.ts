@@ -32,6 +32,7 @@ export {
   CLIENT_TOOL_RESULT_SIGNAL,
   clientToolResultSignal,
   isClientToolResult,
+  isClientToolResultDelivery,
   parseClientToolResults,
   type ClientToolResult,
 } from "./client-tool-result";

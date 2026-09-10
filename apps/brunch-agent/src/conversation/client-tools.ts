@@ -4,13 +4,16 @@ import {
   petrinautFixtureToolNames,
   READ_PETRINAUT_DOC_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  isClientToolResultDelivery,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 
 import type { FlueConversationPart } from "@flue/sdk";
 
 export { AWAITING_CLIENT };
-export { CLIENT_TOOL_RESULT_SIGNAL };
+export { CLIENT_TOOL_RESULT_SIGNAL, isClientToolResultDelivery };
 
 // Flue's built-in skill tools; Flue exports no constants for their names.
 export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";

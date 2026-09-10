@@ -1,7 +1,3 @@
-import { createHash } from "node:crypto";
-
-import * as v from "valibot";
-
 import {
   canonicalContent,
   parseJoinedRootArcInput,
@@ -26,11 +22,6 @@ import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isClientToolResult,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  UPDATE_WORKPIECE_TOOL_NAME,
-  updateWorkpieceInputSchema,
-  updateWorkpieceOutputSchema,
-} from "@hashintel/brunch-agent/flue";
 import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
 import {
   getLatestNetDefinitionToolName,
@@ -40,7 +31,6 @@ import {
 import { isAwaitingClient } from "./client-tools.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 const record = (input: unknown): input is Record<string, unknown> =>
   typeof input === "object" && input !== null && !Array.isArray(input);
@@ -53,50 +43,6 @@ const parseBrowserResults = (body: string) => {
       throw new Error("Malformed browser result identity.");
     return delivery;
   });
-};
-
-/** Historical citations resolve only actual successful core tool calls, never fenced recovery. */
-export const retainedSettledRevision = (
-  snapshot: FlueConversationSnapshot,
-  revisionId: string,
-): WorkpieceRevision | undefined => {
-  for (const message of snapshot.messages) {
-    if (message.role !== "assistant" || message.purpose !== "assistant")
-      continue;
-    for (const part of message.parts) {
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== UPDATE_WORKPIECE_TOOL_NAME ||
-        part.toolCallId !== revisionId ||
-        part.state !== "output-available"
-      )
-        continue;
-      // Core's own tool contracts decide what a settled call looks like.
-      const input = v.safeParse(
-        v.object({ markdown: updateWorkpieceInputSchema.entries.markdown }),
-        part.input,
-      );
-      const output = v.safeParse(updateWorkpieceOutputSchema, part.output);
-      if (!input.success || !output.success) continue;
-      const { markdown } = input.output;
-      const { sha256, ordinal, evidence, evidenceValidated } = output.output;
-      if (
-        output.output.revisionId !== revisionId ||
-        createHash("sha256").update(markdown).digest("hex") !== sha256
-      )
-        continue;
-      return {
-        revisionId,
-        sha256,
-        ordinal,
-        markdown,
-        ...(evidenceValidated === true && evidence !== undefined
-          ? { evidence, evidenceValidated }
-          : {}),
-      };
-    }
-  }
-  return undefined;
 };
 
 /** Root arc identity is endpoint/direction scoped. A recorded deletion/recreation lifecycle is not admitted. */
