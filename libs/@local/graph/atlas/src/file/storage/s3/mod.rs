@@ -65,6 +65,7 @@ impl WriteCondition<'_> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct S3 {
     client: Client,
 }

@@ -49,6 +49,7 @@ impl WriteCondition {
     }
 }
 
+#[derive(Debug)]
 pub struct Storage {
     s3: Option<S3>,
 
@@ -56,10 +57,16 @@ pub struct Storage {
 }
 
 impl Storage {
+    /// Create a new [`Storage`] with the specified scratch directory.
     pub const fn new(scratch: Utf8PathBuf) -> Self {
         Self { s3: None, scratch }
     }
 
+    /// Create a new [`Storage`] with a temporary scratch directory.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the scratch directory is not a valid UTF-8 path.
     #[must_use]
     pub fn in_temp_dir() -> Self {
         let scratch = std::env::temp_dir();
@@ -68,10 +75,12 @@ impl Storage {
         Self::new(scratch)
     }
 
+    /// Set the S3 client for this [`Storage`].
     pub fn set_s3(&mut self, s3: aws_sdk_s3::Client) {
         self.s3 = Some(S3::new(s3));
     }
 
+    /// Set the S3 client for this [`Storage`].
     #[must_use]
     pub fn with_s3(self, s3: aws_sdk_s3::Client) -> Self {
         Self {
