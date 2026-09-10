@@ -15,7 +15,8 @@
       "outputs": ["src/routeTree.gen.ts"]
     },
     "dev": {
-      "dependsOn": ["codegen", "examples:generate", "^build"]
+      "dependsOn": ["codegen", "examples:generate", "^build"],
+      "passThroughEnv": ["PORT"]
     },
     "examples:generate": {
       "dependsOn": ["^build"],

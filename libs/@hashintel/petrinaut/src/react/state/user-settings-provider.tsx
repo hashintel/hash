@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import {
   defaultUserSettings,
+  defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
@@ -27,6 +28,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * Still present in blobs written before that.
    */
   computeBackend?: "cpu" | "webgpu";
+  /**
+   * Chose between the entities tree and a stack of lists in the left panel.
+   * The tree is the only rendering, so the key is dropped on the next write.
+   */
+  useEntitiesTreeView?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -35,9 +41,11 @@ const loadSettings = (): UserSettings => {
     if (raw) {
       // Destructured rather than read through the spread, so the dead key is
       // dropped from storage on the next write instead of persisting forever.
-      const { computeBackend, ...parsed } = JSON.parse(
-        raw,
-      ) as PersistedUserSettings;
+      const {
+        computeBackend,
+        useEntitiesTreeView: _useEntitiesTreeView,
+        ...parsed
+      } = JSON.parse(raw) as PersistedUserSettings;
       return {
         ...defaultUserSettings,
         ...parsed,
@@ -51,7 +59,7 @@ const loadSettings = (): UserSettings => {
   return defaultUserSettings;
 };
 
-export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const [state, setState] = useState<UserSettings>(loadSettings);
@@ -96,8 +104,6 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, snapToGrid: value })),
     setPartialSelection: (value: boolean) =>
       setState((prev) => ({ ...prev, partialSelection: value })),
-    setUseEntitiesTreeView: (value: boolean) =>
-      setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setEnableNotebookView: (value: boolean) =>
@@ -129,6 +135,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     },
     setEnableInBrowserOptimization: (value: boolean) =>
       setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
+    setBrunchDemoMode: (value: boolean) =>
+      setState((prev) => ({ ...prev, brunchDemoMode: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
@@ -155,5 +163,21 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
 
   return (
     <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+  );
+};
+
+/**
+ * Provides the persisted user settings. A host may mount it above
+ * `Petrinaut` to share the settings with its own components; the editor's
+ * own instance then reuses that ancestor, so one state owns the storage key.
+ */
+export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
+  const ancestor = use(UserSettingsContext);
+  return ancestor === defaultUserSettingsContextValue ? (
+    <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
+  ) : (
+    children
   );
 };

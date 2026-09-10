@@ -1,7 +1,14 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -10,6 +17,7 @@ import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/re
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { brunchClientToolNames } from "./brunch-client-tools";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -233,6 +241,7 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
+    expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
       aiAssistant.interactiveTools?.some(
@@ -567,6 +576,35 @@ describe("local storage demo prepared fixture", () => {
     brunchPreviewConfig.isBrunchConfigured = true;
   });
 
+  test("shows the fixture selector only while Brunch demo mode is on", () => {
+    seedStoredNet();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const selector = () =>
+      document.querySelector<HTMLElement>(
+        '[aria-label="Prepared fixture selector"]',
+      );
+
+    // Never displayed by default, even on a Brunch-configured build.
+    expect(selector()).toBeNull();
+
+    // The palette command flips the persisted setting.
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
+    );
+    const shown = selector();
+    expect(shown).not.toBeNull();
+    // Clear of Petrinaut's 64px top bar, so the panel is usable.
+    expect(shown!.style.position).toBe("fixed");
+    expect(shown!.style.top).toBe("80px");
+
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
+    );
+    expect(selector()).toBeNull();
+  });
+
   test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     // With Brunch disabled there is no Flue client to prepare the fixture conversation. Opening the fixture URL
@@ -581,9 +619,6 @@ describe("local storage demo prepared fixture", () => {
       />,
     );
 
-    expect(
-      document.querySelector('[aria-label="Prepared fixture selector"]'),
-    ).toBeNull();
     expect(
       document.querySelector('[aria-label="Prepared fixture status"]'),
     ).toBeNull();

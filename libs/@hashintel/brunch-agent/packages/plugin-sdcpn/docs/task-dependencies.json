@@ -5,27 +5,43 @@
     "@hashintel/petrinaut-core"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/petrinaut-core#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/petrinaut-core#build"
-    ],
-    "test:unit": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/petrinaut-core#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

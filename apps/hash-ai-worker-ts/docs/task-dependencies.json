@@ -15,91 +15,160 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "build:docker": [],
-    "dev": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ],
-    "sentry:sourcemaps": [
-      "build"
-    ],
-    "start": [
-      "@apps/hash-graph#start:healthcheck",
-      "build"
-    ],
-    "start:healthcheck": [],
-    "start:test": [
-      "@apps/hash-graph#start:test:healthcheck",
-      "build"
-    ],
-    "start:test:healthcheck": [],
-    "test:unit": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/internal-api-client#build",
-      "@local/status#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "sentry:sourcemaps": {
+      "dependsOn": [
+        "build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "@apps/hash-graph#start:healthcheck",
+        "build"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "start:test": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck",
+        "build"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start:test:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/status#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

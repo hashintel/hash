@@ -10,74 +10,103 @@
     "@local/petrinaut-optimizer-client"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen",
-      "examples:generate"
-    ],
-    "codegen": [],
-    "dev": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen",
-      "examples:generate"
-    ],
-    "examples:generate": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen"
-    ],
-    "lint:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen"
-    ],
-    "lint:tsc": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen",
-      "examples:generate"
-    ],
-    "test:unit": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build",
-      "codegen",
-      "examples:generate"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "env": [
+        "SENTRY_DSN",
+        "VITE_PETRINAUT_OPT_PROVIDER",
+        "VITE_VERCEL_ENV"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "dev": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "examples:generate": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

@@ -1,0 +1,99 @@
+---
+title: The Optimizations tab
+description: "The list of studies, the create drawer, and the view drawer: one summary strip for both variants, the Parameters band, the Surface and the objective's chart for a connected study, and the steps table."
+sidebar_order: 40
+attachTo: ui.views.editor.optimizations
+---
+
+`optimizations-view.tsx` is the **Optimizations** tab of Simulate mode. It
+reads the [optimizations provider](layer:react.optimizations)'s context and
+renders one table row per record (name, scenario, objective with its
+direction, steps finished over requested, best value, and a status chip),
+with **Create** opening the create drawer
+(`setSimulateDrawer({ type: "create-optimization" })`) and a row selecting the
+record, which the navigation state carries as the simulate resource and the
+view drawer shows. The tab is rendered only while `useOptimizationSource()`
+yields a source: a remote capability, or a connected one with the experimental
+**In-browser optimization** setting on.
+
+## Status words
+
+`describeOptimizationStatus` names a record's status for the chip and the
+drawer: Initializing, Running, Complete, Error, and for `cancelled` either
+**Cancelled** (remote) or **Stopped** (connected), because a stopped connected
+study keeps its sampler and can be continued. The strip appends
+"(reconnecting…)" while a remote stream reconnects.
+
+## The view drawer
+
+`view-optimization-drawer.tsx` branches once, on `record.connected`: a
+`ConnectedStudyState` renders `ConnectedStudySections`, `null` renders
+`RemoteStudySections`. Both open with `StudySummaryStrip`
+(`view-optimization-drawer/study-summary-strip.tsx`): the status with its
+dot, **Steps** as `describeStepProgress` (`4 / 30`, then `· 3 runs each` and
+`· 2 at once` when those are above 1), and **Best** with the best step's
+parameters in a tooltip (`formatParameters`). Beneath it `ComputeActivity`
+shows the steps bar (`stepsBar`) and, for a connected study, the followed
+step's runs as a thinner bar (`followedStepBar`, `Step 4 · 2 / 3 runs`) and
+the `N computing` chip that expands into one row per batch (`describeBatch`:
+`Step 4`, or `Refining population=1850, infected_ratio=0.36`). Only a
+connected study gets the trailing `ComputeBackendBadge` and the
+`Ran on the CPU: …` fallback note; the record's error text follows for both.
+
+The remote sections continue with a collapsible **Best parameters** grid, the
+experimental **Surface** section when the **Optimization surface** setting is
+on and the study has two or more numeric axes (`OptimizationSurface`, which
+walks a grid through `sampleDetachedObjective`;
+[the sweep surface](doc:experiments/sweep-surface) covers it), and a **Steps**
+section once trials exist.
+
+The connected sections are laid out so the strip, the controls and both plots
+stay in view while the study streams:
+
+- `NavigatorBand` (`view-optimization-drawer/navigator-band.tsx`): the
+  **Parameters** title with its help tooltip, `OptimizationNavigatorStatus`,
+  the state line from `describeSelection` (`Following step 4`,
+  `12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
+  with the **Follow steps** switch while the study runs, and
+  `OptimizationNavigator`, a slider per numeric axis and a toggle per boolean parameter in a grid of
+  400 px columns. The controls are disabled while a running study is
+  followed; every change goes to `setOptimizationNavigation` as a patch.
+- A two-pane grid: `NavigatedOptimizationSurface` when the study has two or
+  more numeric axes, and `OptimizationMetrics`, one distribution timeline of
+  the objective fed `connected.selection` (the followed step, or the refined
+  point), which shows the empty shell when the selection carries an error.
+- `StepsTable` filling the remaining height, the best step starred and tinted
+  (`bestTrial`); the remote sections pass `bestTrial={null}`.
+
+The footer offers **Remove** once the study is inactive, **Stop** (connected)
+or **Cancel** (remote) while it is active, `ContinueControl` while
+`connected.resumable` (a count starting at the study's own step count and
+capped by `remainingOptimizationSteps`, the distance to
+`PETRINAUT_OPTIMIZATION_MAX_TRIALS`), **Retry** on an error, and **Close**.
+
+## The steps table
+
+`StepsTable` lists `record.trials` newest first: the step number (Optuna's
+trial number plus one), the parameters (`formatParameters`), the objective
+(`formatNumber`, `—` for a pruned or failed step) and a state mark: a green
+check, an orange filter or a red cross, labelled Complete, Pruned or Failed.
+It shows the latest `DISPLAYED_STEPS` (200) with a hint naming the total; the
+strip keeps the counts. A step a Stop cut short has no row: the study tells it
+failed without an event.
+
+## The connected surface
+
+`NavigatedOptimizationSurface` (`optimization-surface.tsx`) computes nothing
+of its own. The field is `trialSurfaceField` (each trial with an objective is
+a sample and a dot, the best emphasized, pruned trials muted rings), merged
+with `inFlightSurfaceField` (a ring per trial in flight, and a sample too once
+it has a running objective) and `navigatedSurfaceSample`, the selection stream's
+running value at the navigation: the followed step until its own event lands,
+the refined point afterwards. `surfaceInteraction` keeps the plot display-only
+(`following`) while a running study is followed and lets a click or drag
+commit `setOptimizationNavigation` (`navigable`) once the study is terminal or
+following is off; `describeSurfaceState` writes the caption
+(`12 steps placed · best 0.36 · the optimizer is choosing the next point`, or
+`12 steps · refining the picked point: 8 of 25 runs · drag or click to refine a point`).
+The [connected study](doc:optimizer/connected-study) owns the navigation and
+the selection stream the surface reads.

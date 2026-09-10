@@ -23,6 +23,7 @@ import {
 
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
+import { notificationsToaster } from "../../../../react/notifications/toaster";
 import {
   EditorContext,
   initialEditorState,
@@ -36,6 +37,7 @@ import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-
 import {
   addMappedToolOutput,
   AiAssistantPanel,
+  getVoiceToolCallIds,
   safelyAddToolOutput,
 } from "./ai-assistant-panel";
 
@@ -157,6 +159,44 @@ const textChunks = (id: string, text: string): UIMessageChunk[] => [
   { type: "text-end", id },
 ];
 
+const createPendingVoiceQuestionMessage = ({
+  id = "assistant-voice-questions",
+  metadata,
+  toolCallIds,
+}: {
+  id?: string;
+  metadata?: PetrinautAiMessage["metadata"];
+  toolCallIds: string[];
+}): PetrinautAiMessage =>
+  ({
+    id,
+    ...(metadata ? { metadata } : {}),
+    parts: toolCallIds.map((toolCallId) => ({
+      input: { question: `Question for ${toolCallId}` },
+      state: "input-available",
+      toolCallId,
+      toolName: "answerQuestion",
+      type: "dynamic-tool",
+    })),
+    role: "assistant",
+  }) as unknown as PetrinautAiMessage;
+
+const createTestMessageStore = (initialMessage: PetrinautAiMessage) => {
+  let messages = [initialMessage];
+
+  return {
+    getMessages: () => messages,
+    setMessages: (nextMessages: PetrinautAiMessage[]) => {
+      messages = nextMessages;
+    },
+    updateMessages: (
+      updater: (currentMessages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+    ) => {
+      messages = updater(messages);
+    },
+  };
+};
+
 const SubmitForSecondConversation = ({
   conversationId,
   submitText,
@@ -263,12 +303,28 @@ const renderTestPanel = ({
 
 afterEach(() => {
   cleanup();
+  notificationsToaster.remove();
   for (const instance of testInstances.splice(0)) {
     instance.dispose();
   }
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("normalizes current and legacy voice tool origins", () => {
+    expect(
+      getVoiceToolCallIds({
+        source: "voice",
+        toolCallId: "legacy-question",
+        voiceToolCallIds: [
+          "current-question",
+          "legacy-question",
+          "current-question",
+        ],
+      }),
+    ).toEqual(["current-question", "legacy-question"]);
+    expect(getVoiceToolCallIds({ toolCallId: "legacy-question" })).toEqual([]);
+  });
+
   test("disables Clear when the host owns canonical conversation history", () => {
     const transport: PetrinautAiTransport = {
       reconnectToStream: () => Promise.resolve(null),
@@ -2516,6 +2572,83 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
+  test.each([false, true])(
+    "preserves a failed durable Stop after completion (pending tool: %s)",
+    async (withTool) => {
+      let streamController:
+        | ReadableStreamDefaultController<UIMessageChunk>
+        | undefined;
+      let latest: PetrinautAiComposerControlContext | undefined;
+      const failure = new Error("Durable stop failed");
+      const requestStop = vi.fn(async () => {
+        throw failure;
+      });
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "preamble" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "preamble",
+                delta: "Work in progress",
+              });
+            },
+          }),
+      );
+      renderTestPanel({
+        aiAssistant: {
+          requestStop,
+          transport: { reconnectToStream: async () => null, sendMessages },
+          renderComposerControl: (context) => {
+            latest = context;
+            return null;
+          },
+        },
+        initialMessage: "Start work",
+        petriNetDefinition: nonEmptySDCPN,
+      });
+      await screen.findByText("Work in progress");
+      await act(async () => latest?.stop());
+      expect(requestStop).toHaveBeenCalledOnce();
+      expect(
+        screen.getAllByText(/Durable stop failed/u).length,
+      ).toBeGreaterThan(0);
+
+      await act(async () => {
+        streamController?.enqueue({ type: "text-end", id: "preamble" });
+        if (withTool) {
+          streamController?.enqueue({
+            type: "tool-input-available",
+            toolCallId: "withheld-mutation",
+            toolName: "updatePlace",
+            input: { placeId: "place-1", update: { name: "MustNotApply" } },
+          });
+        }
+        streamController?.enqueue({ type: "finish-step" });
+        streamController?.enqueue({
+          type: "finish",
+          finishReason: withTool ? "tool-calls" : "stop",
+        });
+        streamController?.close();
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+
+      expect(latest?.status).toBe("error");
+      expect(latest?.stopped).toBe(false);
+      expect(screen.queryByText("Response stopped")).toBeNull();
+      expect(
+        screen.getAllByText(/Durable stop failed/u).length,
+      ).toBeGreaterThan(0);
+      expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+        "PlaceOne",
+      );
+      expect(sendMessages).toHaveBeenCalledOnce();
+    },
+  );
+
   test("reports a textless automatic browser failure to hosts and its matching tool", async () => {
     let latest: PetrinautAiComposerControlContext | undefined;
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
@@ -3457,83 +3590,39 @@ describe("AiAssistantPanel composer submissions", () => {
   });
 
   test("retains every voice tool origin on one assistant message", async () => {
-    let latestMessages = [
-      {
-        id: "assistant-voice-questions",
-        parts: [
-          {
-            input: { question: "Who approves it?" },
-            state: "input-available",
-            toolCallId: "voice-question-1",
-            toolName: "answerQuestion",
-            type: "dynamic-tool",
-          },
-          {
-            input: { question: "Who acts next?" },
-            state: "input-available",
-            toolCallId: "voice-question-2",
-            toolName: "answerQuestion",
-            type: "dynamic-tool",
-          },
-        ],
-        role: "assistant",
-      },
-    ] as unknown as PetrinautAiMessage[];
-    const updateMessages = (
-      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
-    ) => {
-      latestMessages = updater(latestMessages);
-    };
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        toolCallIds: ["voice-question-1", "voice-question-2"],
+      }),
+    );
     const addToolOutput = vi.fn().mockResolvedValue(undefined);
 
     for (const toolCallId of ["voice-question-1", "voice-question-2"]) {
       await addMappedToolOutput({
         addToolOutput,
-        currentMessages: latestMessages,
+        currentMessages: messageStore.getMessages(),
         params: {
           output: { answer: toolCallId },
           tool: "answerQuestion",
           toolCallId,
         },
         source: "voice",
-        updateMessages,
+        updateMessages: messageStore.updateMessages,
       });
     }
 
-    expect(latestMessages[0]?.metadata).toEqual({
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
       source: "voice",
       voiceToolCallIds: ["voice-question-1", "voice-question-2"],
     });
   });
 
   test("preserves sibling voice provenance when another tool output rejects", async () => {
-    let latestMessages = [
-      {
-        id: "assistant-voice-questions",
-        parts: [
-          {
-            input: { question: "Who approves it?" },
-            state: "input-available",
-            toolCallId: "voice-question-1",
-            toolName: "answerQuestion",
-            type: "dynamic-tool",
-          },
-          {
-            input: { question: "Who acts next?" },
-            state: "input-available",
-            toolCallId: "voice-question-2",
-            toolName: "answerQuestion",
-            type: "dynamic-tool",
-          },
-        ],
-        role: "assistant",
-      },
-    ] as unknown as PetrinautAiMessage[];
-    const updateMessages = (
-      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
-    ) => {
-      latestMessages = updater(latestMessages);
-    };
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        toolCallIds: ["voice-question-1", "voice-question-2"],
+      }),
+    );
     let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
     const addToolOutput = vi
       .fn()
@@ -3547,14 +3636,14 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const firstSubmission = addMappedToolOutput({
       addToolOutput,
-      currentMessages: latestMessages,
+      currentMessages: messageStore.getMessages(),
       params: {
         output: { answer: "The shift lead" },
         tool: "answerQuestion",
         toolCallId: "voice-question-1",
       },
       source: "voice",
-      updateMessages,
+      updateMessages: messageStore.updateMessages,
     });
     const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
       "First voice tool output rejected.",
@@ -3562,55 +3651,198 @@ describe("AiAssistantPanel composer submissions", () => {
 
     await addMappedToolOutput({
       addToolOutput,
-      currentMessages: latestMessages,
+      currentMessages: messageStore.getMessages(),
       params: {
         output: { answer: "The release manager" },
         tool: "answerQuestion",
         toolCallId: "voice-question-2",
       },
       source: "voice",
-      updateMessages,
+      updateMessages: messageStore.updateMessages,
     });
     rejectFirstSubmission?.(new Error("First voice tool output rejected."));
     await firstSubmissionRejection;
 
-    expect(latestMessages[0]?.metadata).toEqual({
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
       source: "voice",
       voiceToolCallIds: ["voice-question-2"],
     });
   });
 
-  test("rolls back failed tool provenance before a typed retry", async () => {
-    let latestMessages = [
-      {
-        id: "assistant-pending-voice-question",
-        parts: [
-          {
-            input: { question: "Who approves it?" },
-            state: "input-available",
-            toolCallId: "voice-question",
-            toolName: "answerQuestion",
-            type: "dynamic-tool",
-          },
-        ],
-        role: "assistant",
-      },
-    ] as unknown as PetrinautAiMessage[];
-    const updateMessages = (
-      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
-    ) => {
-      latestMessages = updater(latestMessages);
-    };
-    const addToolOutput = vi
-      .fn()
-      .mockImplementationOnce(async () => {
-        latestMessages = latestMessages.map((message) => ({
+  test.each(["first-then-second", "second-then-first"] as const)(
+    "removes both failed voice origins when overlapping outputs reject %s",
+    async (rejectionOrder) => {
+      const messageStore = createTestMessageStore(
+        createPendingVoiceQuestionMessage({
+          toolCallIds: ["voice-question-1", "voice-question-2"],
+        }),
+      );
+      let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
+      let rejectSecondSubmission: ((reason?: unknown) => void) | undefined;
+      const addToolOutput = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectFirstSubmission = reject;
+            }),
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectSecondSubmission = reject;
+            }),
+        );
+
+      const firstSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-1",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      });
+      const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
+        "First voice tool output rejected.",
+      );
+      const secondSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The release manager" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-2",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      });
+      const secondSubmissionRejection = expect(
+        secondSubmission,
+      ).rejects.toThrow("Second voice tool output rejected.");
+
+      if (rejectionOrder === "first-then-second") {
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+      } else {
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+      }
+
+      expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
+    },
+  );
+
+  test("preserves independent voice provenance and concurrent message updates on rejection", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-voice-question",
+        metadata: { source: "voice" },
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi.fn().mockImplementationOnce(async () => {
+      messageStore.setMessages(
+        messageStore.getMessages().map((message) => ({
           ...message,
+          metadata: { ...message.metadata, stopped: true },
           parts: [
             ...message.parts,
             { text: "Unrelated concurrent update", type: "text" },
           ],
-        })) as PetrinautAiMessage[];
+        })) as PetrinautAiMessage[],
+      );
+      throw new Error("Voice tool output rejected.");
+    });
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      stopped: true,
+    });
+    expect(messageStore.getMessages()[0]?.parts).toContainEqual({
+      text: "Unrelated concurrent update",
+      type: "text",
+    });
+  });
+
+  test("preserves pre-existing voice attribution for a rejected tool", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-voice-question",
+        metadata: {
+          source: "voice",
+          voiceToolCallIds: ["voice-question"],
+        },
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Voice tool output rejected."));
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question"],
+    });
+  });
+
+  test("rolls back failed tool provenance before a typed retry", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-pending-voice-question",
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        messageStore.setMessages(
+          messageStore.getMessages().map((message) => ({
+            ...message,
+            parts: [
+              ...message.parts,
+              { text: "Unrelated concurrent update", type: "text" },
+            ],
+          })) as PetrinautAiMessage[],
+        );
         throw new Error("Voice tool output rejected.");
       })
       .mockResolvedValueOnce(undefined);
@@ -3623,27 +3855,27 @@ describe("AiAssistantPanel composer submissions", () => {
     await expect(
       addMappedToolOutput({
         addToolOutput,
-        currentMessages: latestMessages,
+        currentMessages: messageStore.getMessages(),
         params,
         source: "voice",
-        updateMessages,
+        updateMessages: messageStore.updateMessages,
       }),
     ).rejects.toThrow("Voice tool output rejected.");
 
-    expect(latestMessages[0]?.metadata).toBeUndefined();
-    expect(latestMessages[0]?.parts).toContainEqual({
+    expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
+    expect(messageStore.getMessages()[0]?.parts).toContainEqual({
       text: "Unrelated concurrent update",
       type: "text",
     });
 
     await addMappedToolOutput({
       addToolOutput,
-      currentMessages: latestMessages,
+      currentMessages: messageStore.getMessages(),
       params: {
         ...params,
         output: { answer: "Typed retry" },
       },
-      updateMessages,
+      updateMessages: messageStore.updateMessages,
     });
 
     expect(addToolOutput).toHaveBeenLastCalledWith({
@@ -3651,7 +3883,7 @@ describe("AiAssistantPanel composer submissions", () => {
       tool: "answerQuestion",
       toolCallId: "voice-question",
     });
-    expect(latestMessages[0]?.metadata).toBeUndefined();
+    expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
   });
 
   test("reports browser tool-output rejections through the AI SDK error state", async () => {

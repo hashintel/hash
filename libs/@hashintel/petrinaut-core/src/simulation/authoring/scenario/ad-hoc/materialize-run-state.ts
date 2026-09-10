@@ -106,10 +106,6 @@ export function initialMarkingToAdHocPlaces(
   return { places, truncated };
 }
 
-const variableType = (
-  type: Scenario["scenarioParameters"][number]["type"],
-): AdHocVariable["type"] => (type === "ratio" ? "real" : type);
-
 /**
  * The editable half of the pseudo-state: one exposed Variable per scenario
  * parameter, named by the parameter's identifier verbatim, seeded from this
@@ -138,7 +134,7 @@ export function classicRunVariables(
           : numeric;
       return {
         name: parameter.identifier,
-        type: variableType(parameter.type),
+        type: parameter.type,
         expression,
         exposed: true,
         optimize: null,
@@ -178,7 +174,8 @@ export function classicScenarioRunState(
  * The run values an edited pseudo-state produces, keyed by the classic
  * identifiers. Only literal values push (`12`, `0.5`, `true`) — an
  * expression mid-edit produces nothing, and the previous value stands until
- * the text is a literal again.
+ * the text is a literal again. A ratio outside 0 and 1 produces nothing
+ * either: the form marks it, and a run must not take what the form marks.
  */
 export function classicRunParameterValues(
   state: AdHocScenarioState,
@@ -209,9 +206,14 @@ export function classicRunParameterValues(
       }
       continue;
     }
-    if (Number.isFinite(Number(text))) {
-      values.push({ identifier: parameter.identifier, value: text });
+    const numeric = Number(text);
+    if (!Number.isFinite(numeric)) {
+      continue;
     }
+    if (parameter.type === "ratio" && (numeric < 0 || numeric > 1)) {
+      continue;
+    }
+    values.push({ identifier: parameter.identifier, value: text });
   }
   return values;
 }

@@ -7,12 +7,14 @@
  * `synthesizeAdHocOptimization` (optimization). The generated scenario is
  * never persisted; this component only edits `AdHocScenarioState`.
  *
- * Three consumers share it: Quick Simulation and plain experiment creation
- * render it with `selection` "none"; optimization experiments render it
- * with "optimize", which grows an Optimize toggle on every value slot; the
- * scenario creation form renders it with "expose", which offers a
- * "Scenario Parameter" toggle on each top-level Variable — the saved
- * scenario exposes those Variables as its tunable parameters.
+ * Four consumers share it: Quick Simulation renders it with `selection`
+ * "none"; experiment creation renders it with "sweep", which grows a Sweep
+ * toggle on every numeric value slot — each selection becomes a swept
+ * parameter of the experiment; optimizations render it with "optimize",
+ * which grows an Optimize toggle on every value slot; the scenario creation
+ * form renders it with "expose", which offers a "Scenario Parameter" toggle
+ * on each top-level Variable — the saved scenario exposes those Variables
+ * as its tunable parameters.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
@@ -34,6 +36,8 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
   adHocSlotKey,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
@@ -271,6 +275,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   };
 
+  // Both index the state once for the whole render: the slots beneath ask
+  // for one label each and every place block asks for its total, and doing
+  // that work per slot made a render quadratic in the net's size.
+  const labelFor = createAdHocTargetLabeler(state, context);
+  const placeTotal = createAdHocPlaceTotalResolver(state, context);
+
   const services: AdHocFormServices = {
     formState: state,
     dispatch,
@@ -279,6 +289,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    labelFor,
+    placeTotal,
     errorFor: (slot: AdHocSlot) => {
       const key = adHocSlotKey(slot);
       const synthesisError = synthesisErrors.get(key);

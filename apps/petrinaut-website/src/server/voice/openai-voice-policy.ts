@@ -1,3 +1,5 @@
+import { voiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
+
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
 export const OPENAI_REALTIME_POLICY_VERSION = "brunch-bounded-relay-v4";
 
@@ -8,15 +10,11 @@ interface VoiceEnvironment {
   readonly VERCEL_ENV?: string;
 }
 
-const isNonProductionRuntime = (environment: VoiceEnvironment): boolean =>
-  environment.VERCEL_ENV === "preview" ||
-  environment.VERCEL_ENV === "development" ||
-  (environment.VERCEL_ENV === undefined &&
-    environment.NODE_ENV !== "production");
-
+/**
+ * This operational provider switch is not caller authentication.
+ */
 export const getOpenAIVoiceAvailability = (environment: VoiceEnvironment) => ({
   available:
-    isNonProductionRuntime(environment) &&
     environment.PETRINAUT_OPENAI_VOICE_ENABLED === "true" &&
     Boolean(environment.OPENAI_VOICE_API_KEY?.trim()),
   connectionTimeoutMs: OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
@@ -63,12 +61,11 @@ export const createOpenAIRealtimeSession = () => ({
       transcription: {
         model: "gpt-4o-transcribe",
         language: "en",
-        prompt:
-          "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+        prompt: voiceTranscriptionPrompt,
       },
       turn_detection: {
         type: "semantic_vad" as const,
-        eagerness: "low" as const,
+        eagerness: "medium" as const,
         create_response: false,
         interrupt_response: false,
       },

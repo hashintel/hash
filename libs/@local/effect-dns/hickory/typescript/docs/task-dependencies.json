@@ -5,20 +5,48 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@local/eslint#build"
-    ],
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "build"
-    ],
-    "lint:tsc": [
-      "build"
-    ],
-    "test:unit": [
-      "build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@rust/effect-dns-hickory"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/effect-dns-hickory"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "build"
+      ],
+      "affectedBy": [
+        "@rust/effect-dns-hickory"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/effect-dns-hickory"
+      ]
+    }
   }
 }

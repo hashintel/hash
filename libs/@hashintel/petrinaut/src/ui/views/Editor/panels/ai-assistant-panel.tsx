@@ -160,6 +160,18 @@ const voiceInputWithdrawn = (signal: AbortSignal | undefined): unknown =>
     "AbortError",
   );
 
+export const getVoiceToolCallIds = (
+  metadata: PetrinautAiMessage["metadata"],
+): string[] =>
+  metadata?.source === "voice"
+    ? [
+        ...new Set([
+          ...(metadata.voiceToolCallIds ?? []),
+          ...(metadata.toolCallId ? [metadata.toolCallId] : []),
+        ]),
+      ]
+    : [];
+
 const markVoiceToolOrigin = (
   messages: PetrinautAiMessage[],
   messageId: string,
@@ -168,15 +180,7 @@ const markVoiceToolOrigin = (
   messages.map((message) =>
     message.id === messageId
       ? (() => {
-          const previousToolCallIds =
-            message.metadata?.source === "voice"
-              ? [
-                  ...(message.metadata.voiceToolCallIds ?? []),
-                  ...(message.metadata.toolCallId
-                    ? [message.metadata.toolCallId]
-                    : []),
-                ]
-              : [];
+          const previousToolCallIds = getVoiceToolCallIds(message.metadata);
           const { toolCallId: _legacyToolCallId, ...previousMetadata } =
             message.metadata ?? {};
 
@@ -256,6 +260,74 @@ const addDynamicToolOutput = (
   return Promise.resolve(addToolOutputForDynamicTool(params));
 };
 
+type UpdatePetrinautAiMessages = (
+  updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+) => void;
+
+type VoiceToolSubmissionState = {
+  pendingSubmissionCount: number;
+  preexistingSource: boolean;
+  preexistingToolCallIds: Set<string>;
+};
+
+const voiceToolSubmissionStates = new WeakMap<
+  UpdatePetrinautAiMessages,
+  Map<string, VoiceToolSubmissionState>
+>();
+
+const beginVoiceToolSubmission = (
+  updateMessages: UpdatePetrinautAiMessages,
+  message: PetrinautAiMessage,
+): VoiceToolSubmissionState => {
+  let messageStates = voiceToolSubmissionStates.get(updateMessages);
+  if (!messageStates) {
+    messageStates = new Map();
+    voiceToolSubmissionStates.set(updateMessages, messageStates);
+  }
+
+  let submissionState = messageStates.get(message.id);
+  if (!submissionState) {
+    submissionState = {
+      pendingSubmissionCount: 0,
+      preexistingSource: message.metadata?.source === "voice",
+      preexistingToolCallIds: new Set(getVoiceToolCallIds(message.metadata)),
+    };
+    messageStates.set(message.id, submissionState);
+  }
+
+  submissionState.pendingSubmissionCount += 1;
+  return submissionState;
+};
+
+const finishVoiceToolSubmission = (
+  updateMessages: UpdatePetrinautAiMessages,
+  messageId: string,
+): void => {
+  const messageStates = voiceToolSubmissionStates.get(updateMessages);
+  if (!messageStates) {
+    return;
+  }
+
+  const submissionState = messageStates.get(messageId);
+  if (!submissionState) {
+    return;
+  }
+
+  const pendingSubmissionCount = submissionState.pendingSubmissionCount - 1;
+  if (pendingSubmissionCount > 0) {
+    messageStates.set(messageId, {
+      ...submissionState,
+      pendingSubmissionCount,
+    });
+    return;
+  }
+
+  messageStates.delete(messageId);
+  if (messageStates.size === 0) {
+    voiceToolSubmissionStates.delete(updateMessages);
+  }
+};
+
 export const addMappedToolOutput = async ({
   addToolOutput,
   currentMessages,
@@ -283,7 +355,9 @@ export const addMappedToolOutput = async ({
           ),
         )
       : undefined;
-  const previousMetadata = containingMessage?.metadata;
+  const submissionState = containingMessage
+    ? beginVoiceToolSubmission(updateMessages, containingMessage)
+    : undefined;
 
   if (containingMessage) {
     updateMessages((latestMessages) =>
@@ -300,50 +374,61 @@ export const addMappedToolOutput = async ({
   } catch (error) {
     if (containingMessage) {
       updateMessages((latestMessages) =>
-        latestMessages.map((message) =>
-          message.id === containingMessage.id &&
-          message.metadata?.source === "voice" &&
-          (message.metadata.voiceToolCallIds?.includes(params.toolCallId) ===
-            true ||
-            message.metadata.toolCallId === params.toolCallId)
-            ? (() => {
-                const attributionAlreadyPresent =
-                  previousMetadata?.source === "voice" &&
-                  (previousMetadata.voiceToolCallIds?.includes(
-                    params.toolCallId,
-                  ) === true ||
-                    previousMetadata.toolCallId === params.toolCallId);
-                const voiceToolCallIds = [
-                  ...(message.metadata.voiceToolCallIds ?? []),
-                  ...(message.metadata.toolCallId
-                    ? [message.metadata.toolCallId]
-                    : []),
-                ];
-                const remainingVoiceToolCallIds = attributionAlreadyPresent
-                  ? voiceToolCallIds
-                  : voiceToolCallIds.filter(
-                      (candidateToolCallId) =>
-                        candidateToolCallId !== params.toolCallId,
-                    );
-                if (remainingVoiceToolCallIds.length === 0) {
-                  return { ...message, metadata: previousMetadata };
-                }
-                const { toolCallId: _legacyToolCallId, ...metadata } =
-                  message.metadata;
+        latestMessages.map((message) => {
+          if (
+            message.id !== containingMessage.id ||
+            message.metadata?.source !== "voice"
+          ) {
+            return message;
+          }
 
-                return {
-                  ...message,
-                  metadata: {
-                    ...metadata,
-                    voiceToolCallIds: [...new Set(remainingVoiceToolCallIds)],
-                  },
-                };
-              })()
-            : message,
-        ),
+          const voiceToolCallIds = getVoiceToolCallIds(message.metadata);
+          if (!voiceToolCallIds.includes(params.toolCallId)) {
+            return message;
+          }
+
+          const attributionAlreadyPresent =
+            submissionState?.preexistingToolCallIds.has(params.toolCallId) ===
+            true;
+          const remainingVoiceToolCallIds = attributionAlreadyPresent
+            ? voiceToolCallIds
+            : voiceToolCallIds.filter(
+                (candidateToolCallId) =>
+                  candidateToolCallId !== params.toolCallId,
+              );
+          if (remainingVoiceToolCallIds.length === 0) {
+            const {
+              source: _source,
+              toolCallId: _legacyToolCallId,
+              voiceToolCallIds: _voiceToolCallIds,
+              ...unrelatedMetadata
+            } = message.metadata;
+            const metadata = submissionState?.preexistingSource
+              ? { ...unrelatedMetadata, source: "voice" as const }
+              : Object.keys(unrelatedMetadata).length > 0
+                ? unrelatedMetadata
+                : undefined;
+
+            return { ...message, metadata };
+          }
+          const { toolCallId: _legacyToolCallId, ...metadata } =
+            message.metadata;
+
+          return {
+            ...message,
+            metadata: {
+              ...metadata,
+              voiceToolCallIds: remainingVoiceToolCallIds,
+            },
+          };
+        }),
       );
     }
     throw error;
+  } finally {
+    if (containingMessage && submissionState) {
+      finishVoiceToolSubmission(updateMessages, containingMessage.id);
+    }
   }
 };
 
@@ -624,6 +709,12 @@ const ConversationAiAssistantPanel = ({
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
           : {}),
         resume: () => controls.resume(),
+        ...(controls.setInterruptionBySpeaking
+          ? {
+              setInterruptionBySpeaking: (enabled: boolean) =>
+                controls.setInterruptionBySpeaking?.(enabled),
+            }
+          : {}),
         setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
@@ -942,6 +1033,9 @@ const ConversationAiAssistantPanel = ({
       ) {
         return false;
       }
+      if (automaticToolTurnIsTerminated(submissionGenerationRef.current)) {
+        return false;
+      }
       if (!stopRequestedRef.current) {
         // Left pending until the follow-up's own status change lands, so hosts
         // never observe the `ready` between this check and that request.
@@ -966,10 +1060,15 @@ const ConversationAiAssistantPanel = ({
     },
     onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      const termination = automaticToolTerminationRef.current;
+      const failed =
+        termination?.generation === submissionGenerationRef.current &&
+        termination.kind === "failed";
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
       const followUpPending =
+        !failed &&
         !isAbort &&
         !isError &&
         (lastAssistantMessageIsCompleteWithToolCalls({
@@ -1001,6 +1100,9 @@ const ConversationAiAssistantPanel = ({
       }
 
       aiAssistant.onMessages?.(finishedMessages);
+      // A rejected durable Stop remains an error even if the provider later
+      // completes. Neither completion nor deferred tools may report success.
+      if (failed) return;
       if (followUpPending) {
         // The turn is not over: a Stop pressed during this step must still be
         // able to withhold the follow-up, so its intent survives this step.
@@ -1535,7 +1637,10 @@ const ConversationAiAssistantPanel = ({
         if (submissionGenerationRef.current !== generation) {
           return;
         }
+        automaticToolTerminationRef.current = { generation, kind: "failed" };
         stopRequestedRef.current = false;
+        setContinuationPending(false);
+        setStopped(false);
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );

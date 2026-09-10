@@ -36,6 +36,7 @@ import {
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { buildSweepAxes, ExperimentsProvider } from "./provider";
+import { compileExperimentScenario } from "./provider/create-experiment";
 
 import type { LanguageClientContextValue } from "../lsp/context";
 import type { PetrinautNavigationState } from "../navigation";
@@ -1493,5 +1494,81 @@ describe("ExperimentsProvider", () => {
     } finally {
       renderResult.unmount();
     }
+  });
+});
+
+describe("compileExperimentScenario with an ad-hoc definition", () => {
+  const sdcpn: SDCPN = {
+    ...EMPTY_SDCPN,
+    places: [
+      {
+        id: "place-queue",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      },
+    ],
+  };
+  const adHocScenario: AdHocScenarioState = {
+    variables: [],
+    netParameters: [],
+    places: {
+      "place-queue": {
+        kind: "uncoloured",
+        count: {
+          expression: "4",
+          optimize: { min: "2", max: "8", scale: "linear" },
+        },
+      },
+    },
+  };
+  const compile = (adHocSweeps: boolean) =>
+    compileExperimentScenario({
+      input: {
+        name: "Ad-hoc sweep",
+        scenarioId: null,
+        scenarioParameterValues: {},
+        adHocScenario,
+        adHocSweeps,
+        runCount: 2,
+        seed: 42,
+        dt: 1,
+        maxTime: 1,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      },
+      scenario: null,
+      fixedValues: {},
+      axes: [],
+      sdcpn,
+      requestScenarioHir: (scenario, adHocContext) =>
+        Promise.resolve(lowerScenarioToHir(scenario, { adHocContext })),
+    });
+
+  it("sweeps each selection as a generated parameter with the value's label", async () => {
+    const compiled = await compile(true);
+    expect(compiled.axes).toEqual([
+      {
+        identifier: "adhoc_count_Queue",
+        label: "Queue › count",
+        min: 2,
+        max: 8,
+        stepCount: 6,
+        integer: true,
+      },
+    ]);
+    expect(
+      compiled.sweptCompiler?.compileForValues({ adhoc_count_Queue: 5 }).result
+        .initialState["place-queue"],
+    ).toBe(5);
+  });
+
+  it("runs the definition at its fixed values when sweeps are off", async () => {
+    const compiled = await compile(false);
+    expect(compiled.axes).toEqual([]);
+    expect(compiled.sweptCompiler).toBeNull();
+    expect(compiled.initialMarking["place-queue"]).toBe(4);
   });
 });

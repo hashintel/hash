@@ -1,77 +1,14 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import { describe, expect, test } from "vitest";
 
-import { CONTEXT_ROOT, contextRootPresent } from "./context-root";
-
-/**
- * The module under test lives at the context root, outside every workspace, so
- * CI's pruned checkout lacks it. The specifier is computed so `lint:tsc` does
- * not resolve it statically; the structural types below restate the contract
- * the tests exercise.
- */
-const SCRIPT_MODULE_URL = pathToFileURL(
-  join(CONTEXT_ROOT, "scripts/linear-project-graph.ts"),
-).href;
-
-interface ProjectIssue {
-  readonly identifier: string;
-  readonly title: string;
-  readonly stateName: string;
-  readonly parentIdentifier?: string;
-  readonly assigneeName?: string;
-  readonly assignedToViewer: boolean;
-  readonly external: boolean;
-}
-
-interface ProjectGraph {
-  readonly projectName: string;
-  readonly viewerName: string;
-  readonly includeClosed: boolean;
-  readonly issues: readonly ProjectIssue[];
-  readonly hardEdges: readonly { readonly from: string; readonly to: string }[];
-}
-
-interface LinearProjectGraphModule {
-  readonly renderProjectGraph: (graph: ProjectGraph) => string;
-  readonly readProjectIssuePage: (value: unknown) => ProjectIssuePage;
-  readonly fetchProjectGraph: (
-    projectName: string,
-    includeClosed: boolean,
-    queryPage: (projectName: string, after: string | null) => ProjectIssuePage,
-  ) => ProjectGraph;
-  readonly parseArguments: (arguments_: readonly string[]) => {
-    readonly projectName: string;
-    readonly includeClosed: boolean;
-    readonly help: boolean;
-  };
-}
-
-interface ProjectIssuePage {
-  readonly projectName: string;
-  readonly viewer: { readonly id: string; readonly name: string };
-  readonly issues: readonly LinearIssueRecord[];
-  readonly hasNextPage: boolean;
-  readonly endCursor: string | null;
-}
-
-interface LinearIssueRecord {
-  readonly identifier: string;
-  readonly title: string;
-  readonly state: { readonly name: string; readonly type: string };
-  readonly project: { readonly name: string } | null;
-  readonly assignee?: { readonly id: string; readonly name: string } | null;
-  readonly parent: { readonly identifier: string } | null;
-  readonly relations: {
-    readonly pageInfo: { readonly hasNextPage: boolean };
-    readonly nodes: readonly [];
-  };
-  readonly inverseRelations: {
-    readonly pageInfo: { readonly hasNextPage: boolean };
-    readonly nodes: readonly [];
-  };
-}
+import {
+  fetchProjectGraph,
+  parseArguments,
+  readProjectIssuePage,
+  renderProjectGraph,
+  type LinearIssueRecord,
+  type ProjectGraph,
+  type ProjectIssuePage,
+} from "../../src/linear-project-graph";
 
 const issue = (
   identifier: string,
@@ -108,18 +45,8 @@ const response = (
   },
 });
 
-async function loadRenderProjectGraph(): Promise<
-  LinearProjectGraphModule["renderProjectGraph"]
-> {
-  const module = (await import(SCRIPT_MODULE_URL)) as LinearProjectGraphModule;
-  return module.renderProjectGraph;
-}
-
-describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
-  test("parses viewer identity separately from its display name", async () => {
-    const { readProjectIssuePage } = (await import(
-      SCRIPT_MODULE_URL
-    )) as LinearProjectGraphModule;
+describe("the compact Linear project graph", () => {
+  test("parses viewer identity separately from its display name", () => {
     const page = readProjectIssuePage(
       response({ id: "viewer-id", name: "Same Display Name" }, [
         issue("FE-1", { id: "other-id", name: "Same Display Name" }),
@@ -130,20 +57,14 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
 
   test.each([undefined, null, {}, { id: "", name: "Lu" }])(
     "rejects missing or malformed viewer: %j",
-    async (viewer) => {
-      const { readProjectIssuePage } = (await import(
-        SCRIPT_MODULE_URL
-      )) as LinearProjectGraphModule;
+    (viewer) => {
       expect(() => readProjectIssuePage(response(viewer))).toThrow(
         "missing or malformed authenticated viewer",
       );
     },
   );
 
-  test("classifies viewer, wrong, unassigned, null, and absent assignees by ID", async () => {
-    const { readProjectIssuePage, fetchProjectGraph } = (await import(
-      SCRIPT_MODULE_URL
-    )) as LinearProjectGraphModule;
+  test("classifies viewer, wrong, unassigned, null, and absent assignees by ID", () => {
     const parsed = readProjectIssuePage(
       response({ id: "viewer-id", name: "Lu" }, [
         issue("FE-1", { id: "viewer-id", name: "Lu" }),
@@ -167,10 +88,7 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
     ]);
   });
 
-  test("accumulates two pages and passes the returned cursor", async () => {
-    const { fetchProjectGraph } = (await import(
-      SCRIPT_MODULE_URL
-    )) as LinearProjectGraphModule;
+  test("accumulates two pages and passes the returned cursor", () => {
     const calls: Array<string | null> = [];
     const pages: ProjectIssuePage[] = [
       {
@@ -203,9 +121,7 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
     ]);
   });
 
-  test("defaults to open issues and --all includes closed issues", async () => {
-    const { fetchProjectGraph, parseArguments, renderProjectGraph } =
-      (await import(SCRIPT_MODULE_URL)) as LinearProjectGraphModule;
+  test("defaults to open issues and --all includes closed issues", () => {
     const page: ProjectIssuePage = {
       projectName: "brunch-agent",
       viewer: { id: "viewer-id", name: "Lu" },
@@ -230,8 +146,7 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
     );
   });
 
-  test("renders hard-dependency layers with enough issue context for agent inference", async () => {
-    const renderProjectGraph = await loadRenderProjectGraph();
+  test("renders hard-dependency layers with enough issue context for agent inference", () => {
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       viewerName: "Lu Nelson",
@@ -288,8 +203,7 @@ L2 FE-103 [Todo p:FE-1 a:self] <=FE-101 | Ship the integration
 cycles: none`);
   });
 
-  test("makes a hard-dependency cycle explicit instead of inventing an order", async () => {
-    const renderProjectGraph = await loadRenderProjectGraph();
+  test("makes a hard-dependency cycle explicit instead of inventing an order", () => {
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       viewerName: "Lu Nelson",
