@@ -1,5 +1,9 @@
-use core::assert_matches;
-use std::{cell::RefCell, collections::HashMap, fs, io};
+#![expect(
+    clippy::significant_drop_tightening,
+    reason = "fixture is alive until end of scope on purpose"
+)]
+use core::{assert_matches, cell::RefCell};
+use std::{collections::HashMap, fs, io};
 
 use aws_sdk_s3::{error::SdkError, operation::put_object::PutObjectError};
 use bytes::Bytes;
@@ -143,6 +147,7 @@ impl Fault {
 struct Fixture {
     _scratch: ScratchDirectory,
     root: Utf8PathBuf,
+    destination: FilePath,
     storage: Storage,
     faults: RefCell<HashMap<String, Fault>>,
     events: RefCell<Vec<Event>>,
@@ -154,20 +159,23 @@ impl Fixture {
             .expect("should have a UTF-8 path")
             .join(format!("atlas-upload-fixture-{}", Uuid::now_v7()));
 
+        let destination = root
+            .as_str()
+            .parse()
+            .expect("should parse the fixture destination");
+
         Self {
             _scratch: ScratchDirectory::new(root.clone()),
             root,
+            destination,
             storage: Storage::in_temp_dir(),
             faults: RefCell::new(HashMap::new()),
             events: RefCell::new(Vec::new()),
         }
     }
 
-    fn destination(&self) -> FilePath {
-        self.root
-            .as_str()
-            .parse()
-            .expect("should parse the fixture destination")
+    fn destination(&self) -> &FilePath {
+        &self.destination
     }
 
     fn fault(&self, path: &Utf8Path, fault: Fault) {
@@ -320,7 +328,7 @@ async fn prepare_pointer_invalid_character() {
     let fixture = Fixture::new();
     seed(&current_path(&fixture.root), "z".repeat(64));
 
-    let error = Upload::prepare(&fixture, root, fixture.destination())
+    let error = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .err()
         .expect("should refuse preparation for a non-hexadecimal pointer");
@@ -340,7 +348,7 @@ async fn prepare_pointer_short() {
     let fixture = Fixture::new();
     seed(&current_path(&fixture.root), "0011");
 
-    let error = Upload::prepare(&fixture, root, fixture.destination())
+    let error = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .err()
         .expect("should refuse preparation for a short pointer");
@@ -360,7 +368,7 @@ async fn prepare_pointer_over_length() {
     let fixture = Fixture::new();
     seed(&current_path(&fixture.root), "1".repeat(65));
 
-    let error = Upload::prepare(&fixture, root, fixture.destination())
+    let error = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .err()
         .expect(
@@ -382,7 +390,7 @@ async fn prepare_storage_failure() {
     let fixture = Fixture::new();
     fixture.fault(&current_path(&fixture.root), Fault::Generic);
 
-    let error = Upload::prepare(&fixture, root, fixture.destination())
+    let error = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .err()
         .expect("should refuse preparation for a storage failure");
@@ -396,7 +404,7 @@ async fn upload_creates_repository() {
     let (repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root.clone(), fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     let before = fixture.events().len();
@@ -469,7 +477,7 @@ async fn upload_artifact_failure() {
         Fault::Generic,
     );
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
 
@@ -493,7 +501,7 @@ async fn upload_missing_local_content() {
     fs::remove_file(&path).expect("should remove the fixture artifact");
 
     let fixture = Fixture::new();
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     let before = fixture.events().len();
@@ -523,7 +531,7 @@ async fn upload_corrupt_local_content() {
     fs::write(&path, b"tampered bytes").expect("should overwrite the fixture artifact");
 
     let fixture = Fixture::new();
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     let before = fixture.events().len();
@@ -556,7 +564,7 @@ async fn upload_reuse_matching() {
         b"representations.arr",
     );
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
 
@@ -591,7 +599,7 @@ async fn upload_checksum_mismatch_artifact() {
         b"wrong bytes",
     );
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
 
@@ -622,7 +630,7 @@ async fn upload_checksum_mismatch_metadata() {
         b"wrong metadata bytes",
     );
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
 
@@ -643,7 +651,7 @@ async fn promote_current_absent() {
     let (repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root.clone(), fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -708,7 +716,7 @@ async fn promote_current_replaces_previous() {
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
 
-    let upload = Upload::prepare(&fixture, root.clone(), fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should capture the existing current pointer during preparation");
     upload.upload(id).await.expect("should complete the upload");
@@ -781,7 +789,7 @@ async fn promote_active_copy_failure() {
         Fault::Generic,
     );
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -807,7 +815,7 @@ async fn promote_active_metadata_failure() {
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     seed(&current, old_id.to_string());
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should capture the existing current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -843,7 +851,7 @@ async fn promote_active_metadata_mismatch() {
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -871,7 +879,7 @@ async fn promote_repository_metadata_mismatch() {
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -911,7 +919,7 @@ async fn promote_current_conflict_present() {
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should capture the existing current pointer during preparation");
     upload.upload(id).await.expect("should complete the upload");
@@ -968,7 +976,7 @@ async fn promote_current_conflict_absent() {
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -1027,7 +1035,7 @@ async fn promote_current_construction_failure() {
     let fixture = Fixture::new();
     let current_pointer = current_path(&fixture.root);
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
@@ -1082,7 +1090,7 @@ async fn promote_previous_write_failure() {
     seed(&current_pointer, old_id.to_string());
     fixture.fault(&previous_path(&fixture.root), Fault::Generic);
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should capture the existing current pointer during preparation");
     upload.upload(id).await.expect("should complete the upload");
@@ -1109,7 +1117,7 @@ async fn promote_checksum_mismatch() {
     let (repository, id) = publish(&root);
     let fixture = Fixture::new();
 
-    let upload = Upload::prepare(&fixture, root, fixture.destination())
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
     upload.upload(id).await.expect("should complete the upload");
