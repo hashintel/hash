@@ -1,6 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { quadTreeLevels, surfacePositions } from "./surface-sampling";
+import {
+  quadTreeLevels,
+  surfaceColumnCount,
+  surfacePositions,
+} from "./surface-sampling";
+
+describe("surfaceColumnCount", () => {
+  it("counts every position of a short axis and eleven of a long one, as many as surfacePositions lists", () => {
+    expect(surfaceColumnCount({ stepCount: 4 })).toBe(5);
+    expect(surfaceColumnCount({ stepCount: 50 })).toBe(11);
+    for (const stepCount of [1, 4, 9, 10, 11, 12, 50, 1000]) {
+      expect(surfacePositions({ stepCount })).toHaveLength(
+        surfaceColumnCount({ stepCount }),
+      );
+    }
+  });
+});
 
 describe("surfacePositions", () => {
   it("spreads at most eleven positions evenly over the axis", () => {

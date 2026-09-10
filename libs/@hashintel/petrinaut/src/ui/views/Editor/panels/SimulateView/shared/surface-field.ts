@@ -5,7 +5,7 @@
  * columns, so any of an axis's positions lands exactly where it belongs.
  */
 import { contourSurfaceKey } from "../../../../../components/contour-surface";
-import { surfacePositions } from "./surface-sampling";
+import { surfaceColumnCount } from "./surface-sampling";
 
 import type {
   ContourSurfaceMarker,
@@ -19,7 +19,13 @@ export type SurfaceAxisLike = { stepCount: number };
 export const surfaceGridCoordinate = (
   axis: SurfaceAxisLike,
   position: number,
-): number => (position / axis.stepCount) * (surfacePositions(axis).length - 1);
+): number => (position / axis.stepCount) * (surfaceColumnCount(axis) - 1);
+
+/** The axis position a plot fraction (0..1 across the surface) lands on. */
+export const surfaceAxisPosition = (
+  axis: SurfaceAxisLike,
+  fraction: number,
+): number => Math.round(fraction * axis.stepCount);
 
 /** A field's values and the markers drawn over them. */
 export type SurfaceField = {

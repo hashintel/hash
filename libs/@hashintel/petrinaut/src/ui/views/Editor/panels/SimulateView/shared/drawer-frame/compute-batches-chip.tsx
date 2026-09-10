@@ -13,6 +13,8 @@ import { useRef, useState } from "react";
 import { Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { formatCount } from "../format-value";
+
 /** One computing batch, for the list. */
 export type ComputeBatch = {
   id: string;
@@ -153,8 +155,7 @@ const BatchRow = ({ batch }: { batch: ComputeBatch }) => {
         />
       </div>
       <span className={countStyle}>
-        {batch.completedRuns.toLocaleString("en-US")} /{" "}
-        {batch.runCount.toLocaleString("en-US")} runs
+        {formatCount(batch.completedRuns)} / {formatCount(batch.runCount)} runs
       </span>
     </div>
   );

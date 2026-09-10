@@ -23,6 +23,7 @@ import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
   mergeSurfaceFields,
+  surfaceAxisPosition,
   surfaceGridCoordinate,
 } from "../shared/surface-field";
 import {
@@ -33,7 +34,7 @@ import {
   SurfaceControlLabel,
   SurfaceFrame,
 } from "../shared/surface-frame";
-import { surfacePositions } from "../shared/surface-sampling";
+import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
   computingSurfaceField,
   describeVisitedSurface,
@@ -79,8 +80,8 @@ export const SweepSurface = ({
     if (!xAxis || !yAxis) {
       return;
     }
-    const xPosition = Math.round(fraction.x * xAxis.stepCount);
-    const yPosition = Math.round(fraction.y * yAxis.stepCount);
+    const xPosition = surfaceAxisPosition(xAxis, fraction.x);
+    const yPosition = surfaceAxisPosition(yAxis, fraction.y);
     setSweepSelection(experiment.id, {
       ...selection,
       [xAxis.identifier]: { from: xPosition, to: xPosition },
@@ -91,7 +92,7 @@ export const SweepSurface = ({
   /** The axis readout a plot fraction lands on. */
   const readoutAt = (axis: ExperimentParameterAxis, fraction: number): string =>
     `${axisDisplayName(axis)} = ${formatAxisValue(
-      axisValueAt(axis, Math.round(fraction * axis.stepCount)),
+      axisValueAt(axis, surfaceAxisPosition(axis, fraction)),
       axisStep(axis),
     )}`;
 
@@ -165,8 +166,8 @@ export const SweepSurface = ({
     >
       {xAxis && yAxis && field ? (
         <ContourSurface
-          nx={surfacePositions(xAxis).length}
-          ny={surfacePositions(yAxis).length}
+          nx={surfaceColumnCount(xAxis)}
+          ny={surfaceColumnCount(yAxis)}
           height={SURFACE_PLOT_HEIGHT}
           contentKey={`${xAxisId}|${yAxisId}|${metricId}`}
           values={field.values}

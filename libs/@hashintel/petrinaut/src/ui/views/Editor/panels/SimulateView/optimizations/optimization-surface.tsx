@@ -34,7 +34,7 @@ import { formatAxisValue } from "../shared/format-axis-value";
 import { describeSurfaceSampling } from "../shared/surface-frame";
 import {
   SURFACE_CELL_RUNS,
-  surfacePositions,
+  surfaceColumnCount,
 } from "../shared/surface-sampling";
 import {
   type OptimizationSurfaceView,
@@ -267,9 +267,7 @@ export const OptimizationSurface = ({
         }).markers
       : [];
   const totalCells =
-    xAxis && yAxis
-      ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
-      : 0;
+    xAxis && yAxis ? surfaceColumnCount(xAxis) * surfaceColumnCount(yAxis) : 0;
 
   return (
     <OptimizationSurfacePlot

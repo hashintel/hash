@@ -1,9 +1,15 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { renderHook } from "@testing-library/react";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   type ExperimentResultsDependencies,
+  experimentMetricTiles,
   experimentResultsModel,
+  useExperimentResultsModel,
 } from "./experiment-results";
 import {
   makeExperiment,
@@ -11,6 +17,15 @@ import {
 } from "./experiments-story-fixtures";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+
+// uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
+// the tiles but never renders a timeline.
+vi.mock("./experiment-metric-timeline", () => ({
+  DEFAULT_METRIC_VIEW_SETTINGS: {},
+  describeMetricView: () => "",
+  ExperimentMetricTimeline: () => null,
+  MetricViewMenu: () => null,
+}));
 
 const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
   available: false,
@@ -21,8 +36,7 @@ const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
   discard: () => {},
 };
 
-const dependencies: ExperimentResultsDependencies = {
-  now: Date.now(),
+const dependencies: Omit<ExperimentResultsDependencies, "tiles"> = {
   actions: {
     cancelExperiment: vi.fn(),
     removeExperiment: vi.fn(),
@@ -35,7 +49,15 @@ const dependencies: ExperimentResultsDependencies = {
 const model = (
   experiment: ExperimentRecord,
   overrides: Partial<ExperimentResultsDependencies> = {},
-) => experimentResultsModel(experiment, { ...dependencies, ...overrides });
+) =>
+  experimentResultsModel(experiment, {
+    tiles: experimentMetricTiles(
+      experiment.metricFrames,
+      experiment.metricSpecs,
+    ),
+    ...dependencies,
+    ...overrides,
+  });
 
 type LabelledElement = ReactElement<{
   children?: ReactNode;
@@ -111,6 +133,8 @@ describe("experimentResultsModel for a running sweep", () => {
     ]);
     expect(statTexts(sweep).Runs).toMatch(/^\d+ active, \d+ complete$/u);
     expect(statTexts(sweep).Time).toMatch(/ \/ 180$/u);
+    // The clock ticks in a leaf of its own, so the model is not rebuilt with it.
+    expect(isValidElement(statTexts(sweep).Elapsed)).toBe(true);
     expect(statTexts(sweep).Selection).toMatch(/^\d+ \/ 100 runs$/u);
     expect(result.header.activity?.length).toBe(sweep.sweepBatches.length);
     expect(result.header.compute).toBe(sweep);
@@ -144,7 +168,7 @@ describe("experimentResultsModel for a running sweep", () => {
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({
       key: sweep.id,
-      contentEpoch: JSON.stringify(sweep.sweep!.selection),
+      contentEpoch: sweep.sweep!.selectionKey,
       plotHeight: 220,
       tone: "default",
       cards: null,
@@ -205,11 +229,38 @@ describe("experimentResultsModel for a plain experiment", () => {
       "Elapsed",
     ]);
     expect(result.metrics?.tiles).toHaveLength(sweep.metricSpecs.length);
-    expect(result.metrics?.contentEpoch).toBe("null");
+    expect(result.metrics?.contentEpoch).toBe("");
   });
 
   it("has no metrics grid without configured metrics", () => {
     expect(model(makeExperiment(1)).metrics).toBeNull();
+  });
+});
+
+describe("useExperimentResultsModel", () => {
+  it("hands every tile the same frames across a publish that keeps the frames array", () => {
+    const { result, rerender } = renderHook(
+      ({ experiment }: { experiment: ExperimentRecord }) =>
+        useExperimentResultsModel(experiment, () => {}),
+      { initialProps: { experiment: sweep } },
+    );
+    const before = result.current.metrics!.tiles;
+    expect(before[0]!.frames.length).toBeGreaterThan(0);
+
+    // A progress-only publish: a new record whose frames are the same array.
+    rerender({
+      experiment: {
+        ...sweep,
+        progress: {
+          ...sweep.progress!,
+          completedRuns: sweep.progress!.completedRuns + 1,
+        },
+      },
+    });
+
+    const after = result.current.metrics!.tiles;
+    expect(after).toBe(before);
+    expect(after[0]!.frames).toBe(before[0]!.frames);
   });
 });
 
