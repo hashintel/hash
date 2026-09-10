@@ -64,24 +64,33 @@ export type MultiSelectInput<TValue extends string = string> = {
       };
 };
 
-export type Input = TextInput | NumberInput;
+export type Input =
+  | TextInput
+  | NumberInput
+  | SingleSelectInput
+  | MultiSelectInput;
 
 /**
  * The input config an operator must declare for its value type in the
- * ValueMap: string → a text input, number → a number input, a tuple → a
- * tuple of inputs mapped element-wise (`[string, number]` → a text input
+ * ValueMap: string → a text input or a single select, number → a number
+ * input, a non-tuple array of strings → a multi select, a tuple → a tuple
+ * of inputs mapped element-wise (`[string, number]` → a text/select input
  * then a number input), null → no input. Unknown value types accept any
  * input shape.
  */
 export type InputFor<Value> = [Value] extends [null]
   ? null
   : [Value] extends [string]
-    ? TextInput
+    ? TextInput | SingleSelectInput<Value>
     : [Value] extends [number]
       ? NumberInput
-      : [Value] extends [infer Tuple extends ReadonlyArray<unknown>]
-        ? InputArrayFor<Tuple>
-        : Input | ReadonlyArray<Input | InputSeparator> | null;
+      : [Value] extends [infer Values extends ReadonlyArray<string>]
+        ? number extends Values["length"]
+          ? MultiSelectInput<Values[number]>
+          : InputArrayFor<Values>
+        : [Value] extends [infer Tuple extends ReadonlyArray<unknown>]
+          ? InputArrayFor<Tuple>
+          : Input | ReadonlyArray<Input | InputSeparator> | null;
 
 /**
  * Tuple of inputs matching a value tuple element-wise, optionally with a
@@ -121,7 +130,7 @@ export type FilterChange<ValueMap extends Record<string, unknown>> = {
  * The ValueMap machinery above types the consumer surface; internally the
  * component works against this untyped shape and casts at the boundary.
  */
-type LooseInputConfig = {
+export type LooseFieldConfig = {
   type: "string" | "number" | "int" | "float";
   placeholder?: string;
   min?: number;
@@ -129,6 +138,10 @@ type LooseInputConfig = {
   step?: number;
   pattern?: string;
 };
+
+export type LooseSelectConfig = SingleSelectInput | MultiSelectInput;
+
+type LooseInputConfig = LooseFieldConfig | LooseSelectConfig;
 
 export type LooseOperator = {
   key: string;
@@ -140,7 +153,8 @@ export type LooseOperator = {
   onChange?: (value: unknown) => void;
 };
 
-export type SlotValue = string | number | null;
+/** A multi select's slot holds its full array of selected values. */
+export type SlotValue = string | number | string[] | null;
 export type CommittedValue = { key: string; value: unknown } | null;
 
 /**
@@ -196,7 +210,9 @@ export const slotsForValue = (
   if (committed == null) {
     return configs.map(() => null);
   }
-  if (Array.isArray(committed)) {
+  // Only a tuple of inputs maps an array value element-wise — for a single
+  // input (a multi select) the whole array is that one input's slot.
+  if (Array.isArray(operator.input) && Array.isArray(committed)) {
     return configs.map((_, index) => (committed[index] as SlotValue) ?? null);
   }
   return configs.map((_, index) =>
@@ -204,11 +220,13 @@ export const slotsForValue = (
   );
 };
 
-export const isDraftComplete = (slots: SlotValue[]) =>
-  slots.every((slot) => slot !== null && slot !== "");
+const isEmptySlot = (slot: SlotValue) =>
+  Array.isArray(slot) ? slot.length === 0 : slot === null || slot === "";
 
-export const isDraftCleared = (slots: SlotValue[]) =>
-  slots.every((slot) => slot === null || slot === "");
+export const isDraftComplete = (slots: SlotValue[]) =>
+  slots.every((slot) => !isEmptySlot(slot));
+
+export const isDraftCleared = (slots: SlotValue[]) => slots.every(isEmptySlot);
 
 export const draftValue = (
   operator: LooseOperator,
@@ -220,9 +238,11 @@ export const draftValue = (
   return Array.isArray(operator.input) ? [...slots] : (slots[0] ?? null);
 };
 
+// Recurses so tuples containing multi-select (array) values compare deeply.
 const scalarOrTupleEqual = (a: unknown, b: unknown): boolean =>
   Array.isArray(a) && Array.isArray(b)
-    ? a.length === b.length && a.every((entry, index) => entry === b[index])
+    ? a.length === b.length &&
+      a.every((entry, index) => scalarOrTupleEqual(entry, b[index]))
     : a === b;
 
 export const committedEqual = (a: CommittedValue, b: CommittedValue): boolean =>
@@ -232,10 +252,10 @@ export const committedEqual = (a: CommittedValue, b: CommittedValue): boolean =>
     a.key === b.key &&
     scalarOrTupleEqual(a.value, b.value));
 
-export const numberStepOf = (config: LooseInputConfig): number | "any" =>
+export const numberStepOf = (config: LooseFieldConfig): number | "any" =>
   config.type === "int" ? (config.step ?? 1) : (config.step ?? "any");
 
-export const isIntegerConfig = (config: LooseInputConfig): boolean => {
+export const isIntegerConfig = (config: LooseFieldConfig): boolean => {
   const step = numberStepOf(config);
   return step !== "any" && Number.isInteger(step);
 };
@@ -253,7 +273,11 @@ export const normalizeSlots = (
 ): SlotValue[] =>
   inputConfigsOf(operator).map((config, index) => {
     const slot = slots[index] ?? null;
-    if (config.type === "string" || typeof slot !== "string") {
+    if (
+      config.type === "string" ||
+      config.type === "select" ||
+      typeof slot !== "string"
+    ) {
       return slot;
     }
     const parsed = isIntegerConfig(config)

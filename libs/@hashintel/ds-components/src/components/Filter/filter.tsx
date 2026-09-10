@@ -1,7 +1,7 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -18,6 +18,7 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
+import { Select } from "../Select/select";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
 import {
   type FilterChange,
@@ -35,12 +36,14 @@ import {
   inputSegmentsOf,
   numberStepOf,
   type LooseOperator,
+  type LooseSelectConfig,
   type CommittedValue,
   type SlotValue,
 } from "./filter-util";
 import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
+import type { MultiSelectItem } from "../Select/select";
 
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
@@ -100,6 +103,106 @@ const syncTruncationTitle = (event: React.MouseEvent<HTMLElement>) => {
 };
 
 /**
+ * A select input segment: an embedded subtle `Select` whose selection fills
+ * the segment's slot. Items given as an async loader are fetched once when
+ * the segment mounts (loaders are usually inline, so a new identity every
+ * render must not refetch); switching operators remounts the segment and so
+ * re-runs the loader.
+ */
+const FilterSelectInput = ({
+  config,
+  slot,
+  size,
+  disabled,
+  invalid,
+  ariaLabel,
+  assignRef,
+  onSlotChange,
+  onOpenChange,
+}: {
+  config: LooseSelectConfig;
+  slot: SlotValue;
+  size: FormInputSize;
+  disabled?: boolean;
+  invalid?: boolean;
+  ariaLabel: string;
+  assignRef: (element: HTMLElement | null) => void;
+  onSlotChange: (value: SlotValue) => void;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { items } = config;
+  const isAsync = typeof items === "function";
+  const [loadedItems, setLoadedItems] = useState<ReadonlyArray<
+    ItemOrGroup<MultiSelectItem>
+  > | null>(null);
+  useEffect(() => {
+    if (typeof items !== "function") {
+      return;
+    }
+    let cancelled = false;
+    void items().then(
+      (result) => {
+        if (!cancelled) {
+          setLoadedItems(result);
+        }
+      },
+      // A failed load leaves no options, surfacing the select's emptyState
+      () => {
+        if (!cancelled) {
+          setLoadedItems([]);
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per mount, see docstring
+  }, []);
+
+  const resolvedItems = isAsync ? (loadedItems ?? []) : items;
+  const shared = {
+    variant: "subtle" as const,
+    width: "fitContent" as const,
+    size,
+    disabled,
+    invalid,
+    loading: isAsync && loadedItems === null,
+    placeholder: config.placeholder,
+    emptyState: config.emptyState,
+    renderItem: config.renderItem,
+    onOpenChange,
+    ref: assignRef,
+    "aria-label": ariaLabel,
+  };
+  if (config.multiple) {
+    return (
+      <Select
+        {...shared}
+        multiple
+        items={resolvedItems}
+        searchable={config.searchable}
+        maxItems={config.maxItems}
+        overflow={config.overflow}
+        renderSelectedItem={config.renderSelectedItem}
+        value={Array.isArray(slot) ? slot : []}
+        onChange={(next) => onSlotChange(next)}
+      />
+    );
+  }
+  return (
+    <Select
+      {...shared}
+      multiple={false}
+      items={resolvedItems}
+      searchable={config.searchable}
+      renderSelectedItem={config.renderSelectedItem}
+      value={typeof slot === "string" ? slot : null}
+      onChange={(next) => onSlotChange(next ?? null)}
+    />
+  );
+};
+
+/**
  * An inline, chip-like filter control: a property label, an operator
  * dropdown, and — once an operator is chosen — that operator's input(s).
  *
@@ -111,8 +214,9 @@ const syncTruncationTitle = (event: React.MouseEvent<HTMLElement>) => {
  * every input is filled in and the user either presses Enter or moves focus
  * outside the control. Clearing every input and submitting the same way
  * fires `(key, null)`; a partially filled multi-input draft never fires.
- * Operators with `input: null` commit immediately on selection. Escape
- * reverts the draft to the last committed value.
+ * Operators with `input: null` commit immediately on selection. Select
+ * inputs additionally commit when their dropdown closes. Escape reverts the
+ * draft to the last committed value.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -148,7 +252,7 @@ export const Filter = <
   >;
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const inputRefs = useRef<Array<HTMLElement | null>>([]);
   const dropdownOpenRef = useRef(false);
 
   const flatOperators = useMemo(
@@ -171,6 +275,19 @@ export const Filter = <
   const [slots, setSlots] = useState<SlotValue[]>(() =>
     slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
   );
+  // Mirrors `slots` so handlers that fire before a pending update re-renders
+  // (a select's close event follows its change event within one click) can
+  // read the latest draft. Event handlers write it eagerly via applySlots;
+  // render-time updates (the sync block below) land via the layout effect,
+  // which runs before any subsequent user event.
+  const slotsRef = useRef(slots);
+  useLayoutEffect(() => {
+    slotsRef.current = slots;
+  });
+  const applySlots = (next: SlotValue[]) => {
+    slotsRef.current = next;
+    setSlots(next);
+  };
 
   // Adopt external `value` changes (the "adjust state when props change"
   // pattern) without clobbering the draft while the user is editing.
@@ -210,7 +327,7 @@ export const Filter = <
       return;
     }
     // Tidy the visible draft (e.g. "5." → 5) even when the commit is a no-op.
-    setSlots(normalized);
+    applySlots(normalized);
     const nextValue = complete ? draftValue(operator, normalized) : null;
     if (committedEqual(value, { key, value: nextValue })) {
       return;
@@ -222,12 +339,26 @@ export const Filter = <
     );
   };
 
+  // A text/number segment registers its <input>; a select segment registers
+  // its wrapper, inside which the trigger button is the focus target.
+  const focusSlot = (index: number) => {
+    const element = inputRefs.current[index];
+    if (!element) {
+      return;
+    }
+    if (element instanceof HTMLInputElement) {
+      element.focus();
+      return;
+    }
+    element.querySelector<HTMLElement>("[data-part=trigger]")?.focus();
+  };
+
   const focusFirstInput = () => {
     // Double rAF so the focus lands after ark-ui restores focus to the
     // trigger when the dropdown closes.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        inputRefs.current[0]?.focus();
+        focusSlot(0);
       });
     });
   };
@@ -245,7 +376,7 @@ export const Filter = <
         ? slotsForValue(operator, value.value)
         : slotsForValue(operator, null);
     setDraftKey(nextKey);
-    setSlots(nextSlots);
+    applySlots(nextSlots);
     if (inputConfigsOf(operator).length === 0) {
       // No input to fill in: choosing the operator is itself the submission.
       commitDraft(nextKey, nextSlots);
@@ -269,7 +400,7 @@ export const Filter = <
 
   const revertDraft = () => {
     setDraftKey(value?.key ?? defaultKey);
-    setSlots(
+    applySlots(
       slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
     );
   };
@@ -282,9 +413,8 @@ export const Filter = <
       event.preventDefault();
       // In a multi-input operator, Enter advances to the next input; only
       // Enter on the last input submits the draft.
-      const nextInput = inputRefs.current[inputIndex + 1];
-      if (nextInput) {
-        nextInput.focus();
+      if (inputRefs.current[inputIndex + 1]) {
+        focusSlot(inputIndex + 1);
         return;
       }
       commitDraft(draftKey, slots);
@@ -294,11 +424,20 @@ export const Filter = <
   };
 
   const setSlot = (index: number, slotValue: SlotValue) => {
-    setSlots((previous) => {
-      const next = [...previous];
-      next[index] = slotValue;
-      return next;
-    });
+    const next = [...slotsRef.current];
+    next[index] = slotValue;
+    applySlots(next);
+  };
+
+  // A select segment's dropdown suppresses blur-commits while open (focus
+  // may sit in the portaled list) and ends the interaction when it closes:
+  // commit then, off the ref, as the change and close events of a single
+  // click land before the slot state re-renders.
+  const handleSelectOpenChange = (open: boolean) => {
+    dropdownOpenRef.current = open;
+    if (!open) {
+      commitDraft(draftKey, slotsRef.current);
+    }
   };
 
   const menuItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
@@ -436,9 +575,30 @@ export const Filter = <
         const { config, inputIndex } = segment;
         const valueLabel = inputCount > 1 ? `value ${inputIndex + 1}` : "value";
         const ariaLabel = `${propertyLabel} ${selectedOperator?.label ?? ""} ${valueLabel}`;
-        const assignInputRef = (element: HTMLInputElement | null) => {
+        const assignInputRef = (element: HTMLElement | null) => {
           inputRefs.current[inputIndex] = element;
         };
+        if (config.type === "select") {
+          return (
+            <span
+              className={cx(classes.inputSlot, classes.selectSlot)}
+              data-disabled={disabled ? "" : undefined}
+              key={segmentKey}
+            >
+              <FilterSelectInput
+                config={config}
+                slot={slots[inputIndex] ?? null}
+                size={size}
+                disabled={disabled}
+                invalid={invalid}
+                ariaLabel={ariaLabel}
+                assignRef={assignInputRef}
+                onSlotChange={(next) => setSlot(inputIndex, next)}
+                onOpenChange={handleSelectOpenChange}
+              />
+            </span>
+          );
+        }
         const isText = config.type === "string";
         const integer = !isText && isIntegerConfig(config);
 

@@ -42,6 +42,7 @@ export const filterRecipe = sva({
     "triggerLabel",
     "inputSlot",
     "input",
+    "selectSlot",
     "separator",
     "remove",
     "errorTooltip",
@@ -247,6 +248,15 @@ export const filterRecipe = sva({
       },
       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
         display: "none",
+      },
+    },
+    // Layered on top of inputSlot when the segment hosts an embedded subtle
+    // Select, which brings its own interior spacing: sync its trigger to the
+    // chip's font and padding.
+    selectSlot: {
+      "& [data-part=trigger]": {
+        fontSize: "[var(--filter-font-size)]",
+        paddingInline: "[var(--filter-input-padding-x)]",
       },
     },
     separator: {

@@ -38,6 +38,8 @@ export { FilterGroup } from "./components/Filter/filter-group";
 export type {
   FilterChange,
   Input as FilterInput,
+  MultiSelectInput as FilterMultiSelectInput,
+  SingleSelectInput as FilterSingleSelectInput,
   FilterValue,
 } from "./components/Filter/filter-util";
 export { SortMenu } from "./components/Filter/sort-menu";

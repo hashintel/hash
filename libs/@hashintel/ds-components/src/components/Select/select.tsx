@@ -93,6 +93,8 @@ type SelectBaseProps<TValue extends string> = {
   inputRef?: React.Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
   emptyState?: React.ReactNode;
+  /** Called when the dropdown opens or closes */
+  onOpenChange?: (open: boolean) => void;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
@@ -387,6 +389,7 @@ export const Select = <TValue extends string>({
   invalid,
   autoFocus,
   emptyState,
+  onOpenChange,
   searchable,
   ...ariaProps
 }: SelectProps<TValue>) => {
@@ -749,6 +752,7 @@ export const Select = <TValue extends string>({
         if (!open && search !== "") {
           handleSearchChange("");
         }
+        onOpenChange?.(open);
       }}
       disabled={disabled}
       invalid={invalid}

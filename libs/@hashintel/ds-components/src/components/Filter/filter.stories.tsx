@@ -5,6 +5,7 @@ import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -126,6 +127,79 @@ type SingleOperatorValues = {
 const SingleOperatorOperators: Array<
   ItemOrGroup<FilterOperator<SingleOperatorValues>>
 > = [{ key: "contains", label: "contains", input: { type: "string" } }];
+
+type Status = "todo" | "inProgress" | "done";
+
+type SelectValues = {
+  is: Status;
+  isAnyOf: string[];
+  assignedTo: string;
+  became: [Status, number];
+};
+
+const statusItems: Array<ItemOrGroup<SelectItem<Status>>> = [
+  { value: "todo", text: "To do" },
+  { value: "inProgress", text: "In progress" },
+  { value: "done", text: "Done" },
+];
+
+const tagItems: Array<ItemOrGroup<MultiSelectItem<string>>> = [
+  { value: "bug", text: "Bug" },
+  { value: "feature", text: "Feature" },
+  { value: "docs", text: "Docs" },
+  { value: "infra", text: "Infra" },
+  { value: "design", text: "Design" },
+];
+
+const loadAssignees = () =>
+  new Promise<Array<ItemOrGroup<SelectItem<string>>>>((resolve) => {
+    setTimeout(() => {
+      resolve([
+        { value: "alex", text: "Alex" },
+        { value: "jamie", text: "Jamie" },
+        { value: "sam", text: "Sam" },
+        { value: "robin", text: "Robin" },
+      ]);
+    }, 1500);
+  });
+
+const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
+  {
+    key: "is",
+    label: "is",
+    input: { type: "select", items: statusItems },
+  },
+  {
+    key: "isAnyOf",
+    label: "is any of",
+    input: {
+      type: "select",
+      multiple: true,
+      items: tagItems,
+      placeholder: "Tags…",
+      searchable: true,
+    },
+  },
+  {
+    key: "assignedTo",
+    label: "is assigned to (async items)",
+    input: {
+      type: "select",
+      items: loadAssignees,
+      placeholder: "Anyone",
+      searchable: true,
+    },
+  },
+  {
+    key: "became",
+    label: "became",
+    input: [
+      { type: "select", items: statusItems },
+      "within",
+      { type: "int", min: 1, placeholder: "days" },
+    ],
+  },
+];
 
 const noop = () => {};
 
@@ -309,6 +383,63 @@ export const Default: Story = () => (
         "Latitude must be between -90 and 90",
         "Longitude must be between -180 and 180",
       ]}
+    />
+  </div>
+);
+
+const SelectState = ({
+  label,
+  ...filterProps
+}: { label: string } & Partial<
+  React.ComponentProps<typeof Filter<SelectValues>>
+>) => (
+  <>
+    <span style={stateLabelStyle}>{label}</span>
+    <Filter<SelectValues>
+      property="status"
+      propertyLabel="Status"
+      operators={SelectOperators}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+      {...filterProps}
+    />
+  </>
+);
+
+export const Selects: Story = () => (
+  <div style={columnStyle}>
+    <span style={stateLabelStyle}>
+      empty — single, multi (searchable), async and tuple select operators
+    </span>
+    <Demo<SelectValues>
+      property="status"
+      propertyLabel="Status"
+      operators={SelectOperators}
+    />
+    <SelectState
+      label="single select with value"
+      value={{ key: "is", value: "inProgress" }}
+    />
+    <SelectState
+      label="single select, no value"
+      value={{ key: "is", value: null }}
+    />
+    <SelectState
+      label="multi select with values"
+      value={{ key: "isAnyOf", value: ["bug", "docs"] }}
+    />
+    <SelectState
+      label="async items (1.5s), searchable — the committed value shows while options load"
+      value={{ key: "assignedTo", value: "alex" }}
+    />
+    <SelectState
+      label="select in a tuple with a number input"
+      value={{ key: "became", value: ["done", 7] }}
+    />
+    <SelectState
+      label="disabled"
+      value={{ key: "is", value: "done" }}
+      disabled
     />
   </div>
 );
