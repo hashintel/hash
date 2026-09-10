@@ -37,7 +37,22 @@
         "@local/status#build",
         "codegen"
       ],
-      "cache": false,
+      "env": [
+        "ANALYZE",
+        "API_ORIGIN",
+        "ENVIRONMENT",
+        "FRONTEND_URL",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF",
+        "NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA",
+        "NODE_ENV",
+        "NOTIFICATION_POLL_INTERVAL",
+        "SELF_HOSTED_HASH",
+        "SENTRY_DSN",
+        "SENTRY_ENVIRONMENT",
+        "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
+        "SHOW_WORKER_COST"
+      ],
       "affectedBy": [
         "@blockprotocol/type-system-rs",
         "@rust/darwin-kperf",
