@@ -11,6 +11,7 @@ import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import { objectiveMetricName } from "../../shared/study-labels";
 import {
   buildObjectiveHistory,
   toObjectiveHistoryData,
@@ -132,7 +133,7 @@ const chartOptions = ({
   ],
 });
 
-export const ObjectiveHistoryChart = ({
+const ObjectiveHistoryChart = ({
   optimization,
   plotHeight,
 }: {
@@ -201,31 +202,24 @@ export const ObjectiveHistoryCard = ({
   plotHeight,
   tone,
 }: {
-  optimization: Pick<OptimizationRecord, "trials" | "input" | "best">;
+  optimization: Pick<
+    OptimizationRecord,
+    "trials" | "input" | "best" | "completedTrials"
+  >;
   plotHeight: number;
   /** How the card reads: `paused` while the study is paused. */
   tone?: ChartCardTone;
-}) => {
-  const { input } = optimization;
-  const metric = input.model.definition.metrics?.find(
-    (candidate) => candidate.id === input.objective.metricId,
-  );
-  const metricName = metric?.name ?? input.objective.metricId;
-  const completed = optimization.trials.filter(
-    (trial) => trial.state === "complete",
-  ).length;
-  return (
-    <ChartCard
-      title="Objective by step"
-      subtitle={`${metricName} per step · best so far as a line · ${completed} completed`}
-      help="Each dot is one step's objective value; the line is the best value found up to that step. Pruned and failed steps have no dot."
-      bodyHeight={plotHeight}
-      tone={tone}
-    >
-      <ObjectiveHistoryChart
-        optimization={optimization}
-        plotHeight={plotHeight}
-      />
-    </ChartCard>
-  );
-};
+}) => (
+  <ChartCard
+    title="Objective by step"
+    subtitle={`${objectiveMetricName(optimization.input)} per step · best so far as a line · ${optimization.completedTrials} completed`}
+    help="Each dot is one step's objective value; the line is the best value found up to that step. Pruned and failed steps have no dot."
+    bodyHeight={plotHeight}
+    tone={tone}
+  >
+    <ObjectiveHistoryChart
+      optimization={optimization}
+      plotHeight={plotHeight}
+    />
+  </ChartCard>
+);

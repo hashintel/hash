@@ -114,6 +114,8 @@ export type ResultsModel = {
   metrics: ResultsMetrics | null;
   /** Full width beneath the columns: a study's steps table. */
   after: ReactNode | null;
-  /** The footer's actions. */
+  /** The footer's actions, pinned right. */
   footer: ReactNode;
+  /** The footer's left side: the controls that stay whatever the status; null leaves it empty. */
+  footerSecondary: ReactNode | null;
 };

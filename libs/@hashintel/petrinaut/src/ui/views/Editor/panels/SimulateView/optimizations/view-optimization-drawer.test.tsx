@@ -931,7 +931,7 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
       .getByText("Sensitivity analysis")
       .closest<HTMLElement>("[data-chart-card]")!;
 
-  it("ranks the optimized parameters with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
+  it("lists the optimized parameters in binding order with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
     renderDrawer(settledLong);
 
     const card = importanceCard();

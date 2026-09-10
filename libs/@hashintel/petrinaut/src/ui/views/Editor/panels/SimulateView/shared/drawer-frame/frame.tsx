@@ -59,17 +59,26 @@ const sectionHeaderStyle = css({
   flexShrink: "0",
 });
 
+// Two groups, one pinned to each edge, so a control that stays across a
+// status change never moves as its neighbours mount and unmount.
 const sectionFooterStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
-  gap: "2",
+  justifyContent: "space-between",
+  gap: "3",
   flexShrink: "0",
   paddingX: "5",
   paddingY: "3",
   borderTopWidth: "[1px]",
   borderTopStyle: "solid",
   borderTopColor: "neutral.s40",
+});
+
+const sectionFooterGroupStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minWidth: "[0]",
 });
 
 // The ds header's own padding and bottom rule go; the frame header brings
@@ -151,8 +160,10 @@ export type DrawerFrameProps = {
   progress: number;
   /** The row in the body's top padding; null keeps the row empty. */
   note?: FrameNote | null;
-  /** The footer's actions. */
+  /** The footer's actions, pinned to its right edge. */
   footer: ReactNode;
+  /** The footer's left side: the controls that stay whatever the status. */
+  footerSecondary?: ReactNode | null;
   /** Given, the frame renders inside a ds `Drawer`; otherwise it fills its section. */
   drawer?: { onClose: () => void; swapKey: string };
   children: ReactNode;
@@ -167,6 +178,7 @@ export const DrawerFrame = ({
   progress,
   note = null,
   footer,
+  footerSecondary = null,
   drawer,
   children,
 }: DrawerFrameProps) => {
@@ -225,7 +237,10 @@ export const DrawerFrame = ({
         <div className={sectionFrameStyle} data-drawer-frame>
           <div className={sectionHeaderStyle}>{header}</div>
           {body}
-          <div className={sectionFooterStyle}>{footer}</div>
+          <div className={sectionFooterStyle}>
+            <div className={sectionFooterGroupStyle}>{footerSecondary}</div>
+            <div className={sectionFooterGroupStyle}>{footer}</div>
+          </div>
         </div>
       </FrameAnimateContext>
     );
@@ -246,7 +261,10 @@ export const DrawerFrame = ({
         <Drawer.Body withPadding={false} className={drawerBodyStyle}>
           {body}
         </Drawer.Body>
-        <Drawer.Footer actions={footer ?? null} />
+        <Drawer.Footer
+          secondaryActions={footerSecondary}
+          actions={footer ?? null}
+        />
       </Drawer>
     </FrameAnimateContext>
   );

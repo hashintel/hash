@@ -56,7 +56,7 @@ const rowsStyle = css({
 });
 
 // Every row is exactly this tall, so a card never changes shape as
-// estimates land or the sort order changes.
+// estimates land.
 const rowStyle = css({
   height: "[30px]",
   flexShrink: "0",
@@ -128,10 +128,17 @@ export const ParameterImportancePanel = ({
   /** `paused` reads as paused whatever the floor says; otherwise the floor decides. */
   tone?: ChartCardTone;
 }) => {
-  // Keyed on the four fields a trial event replaces, so the correlations
+  // Keyed on the five fields a trial event replaces, so the correlations
   // stand while the selection stream re-publishes the record.
-  const { trials, importance, input, requestedTrials } = optimization;
-  const view = importanceRows({ trials, importance, input, requestedTrials });
+  const { trials, importance, input, requestedTrials, completedTrials } =
+    optimization;
+  const view = importanceRows({
+    trials,
+    importance,
+    input,
+    requestedTrials,
+    completedTrials,
+  });
 
   return (
     <ChartCard

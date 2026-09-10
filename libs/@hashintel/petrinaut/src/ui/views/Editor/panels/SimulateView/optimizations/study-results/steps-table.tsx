@@ -16,14 +16,12 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { Table, type TableColumn } from "../../../../../../components/table";
 import { formatNumber, formatParameters } from "../../shared/format-value";
+import { INFEASIBLE_COLOR } from "./shared/infeasible-color";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
 type Step = OptimizationRecord["trials"][number];
 type StepState = Step["state"];
-
-/** Optuna's grey for a step whose parameters broke a constraint. */
-const INFEASIBLE_MARK_COLOR = "#cccccc";
 
 const stepHintStyle = css({
   display: "block",
@@ -62,7 +60,7 @@ const stepStateStyle = css({
     backgroundColor: "red.s90",
   },
   "&[data-state='infeasible']": {
-    backgroundColor: `[${INFEASIBLE_MARK_COLOR}]`,
+    backgroundColor: `[${INFEASIBLE_COLOR}]`,
   },
   "& svg": {
     width: "[9px]",

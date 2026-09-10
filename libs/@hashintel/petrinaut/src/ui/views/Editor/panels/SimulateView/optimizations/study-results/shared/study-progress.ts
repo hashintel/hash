@@ -5,22 +5,13 @@
  */
 import {
   type ConnectedStudyState,
+  finishedTrialCount,
   type OptimizationBatchStatus,
   type OptimizationRecord,
 } from "../../../../../../../../react/optimizations/context";
 import { formatParameters } from "../../../shared/format-value";
 
 import type { ComputeBatch } from "../../../shared/drawer-frame";
-
-export const finishedStepCount = (
-  optimization: Pick<
-    OptimizationRecord,
-    "completedTrials" | "prunedTrials" | "failedTrials"
-  >,
-): number =>
-  optimization.completedTrials +
-  optimization.prunedTrials +
-  optimization.failedTrials;
 
 /** The header bar: steps finished over steps requested, 0 to 100. */
 export const stepsProgressPercent = (
@@ -32,7 +23,7 @@ export const stepsProgressPercent = (
   optimization.requestedTrials > 0
     ? Math.min(
         100,
-        (finishedStepCount(optimization) / optimization.requestedTrials) * 100,
+        (finishedTrialCount(optimization) / optimization.requestedTrials) * 100,
       )
     : 0;
 

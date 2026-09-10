@@ -18,6 +18,7 @@ import {
   optimizationBooleanIdentifiers,
   optimizationNavigationKey,
   optimizationNavigationValues,
+  partitionParameterBindings,
 } from "../../../../../../react/optimizations/surface-grid";
 
 import type {
@@ -183,24 +184,8 @@ export function makeTrials(
   trials: PetrinautOptimizationTrialEvent[];
   best: OptimizationBest | null;
 } {
-  const optimizedEntries = Object.entries(
-    input.scenario.parameterBindings,
-  ).filter(
-    (
-      entry,
-    ): entry is [
-      string,
-      Extract<PetrinautOptimizationParameterBinding, { kind: "optimize" }>,
-    ] => entry[1].kind === "optimize",
-  );
-  const fixedValues: Record<string, number | boolean> = {};
-  for (const [identifier, binding] of Object.entries(
-    input.scenario.parameterBindings,
-  )) {
-    if (binding.kind === "fixed") {
-      fixedValues[identifier] = binding.value;
-    }
-  }
+  const { fixed: fixedValues, optimized } = partitionParameterBindings(input);
+  const optimizedEntries = Object.entries(optimized);
 
   const trials: PetrinautOptimizationTrialEvent[] = [];
   let best: OptimizationBest | null = null;
@@ -579,9 +564,7 @@ export function makeImportance(
   input: PetrinautOptimizationInput,
   trials: readonly PetrinautOptimizationTrialEvent[],
 ): OptimizationImportance {
-  const identifiers = Object.entries(input.scenario.parameterBindings)
-    .filter(([, binding]) => binding.kind === "optimize")
-    .map(([identifier]) => identifier);
+  const identifiers = Object.keys(partitionParameterBindings(input).optimized);
   const total = identifiers.reduce(
     (sum, identifier) =>
       sum + (SYNTHETIC_IMPORTANCE_WEIGHTS[identifier] ?? 0.05),

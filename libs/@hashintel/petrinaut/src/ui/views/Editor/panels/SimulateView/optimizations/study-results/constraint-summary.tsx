@@ -16,7 +16,7 @@ import {
   passThresholdPercent,
   type StepVerdict,
   stepVerdict,
-  studyConstraintRates,
+  type StudyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { followedTrial } from "../../../../../../../react/optimizations/context";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
@@ -168,50 +168,55 @@ export const describedStep = (
   );
 };
 
-/** The step line in two parts: the verdict head the card colours, and the detail tail after it. */
-export type StepLine = {
-  /** "Step 12: limited" */
-  verdict: string;
-  /** " · 51 / 60 runs passed · Queue under 10", the infeasible draw's constraint, or "" when there is nothing to add. */
-  detail: string;
+/** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
+export type DescribedStep = {
+  verdict: StepVerdict;
+  head: string;
+  /** The infeasible draw's constraint; the binding rate as `51 / 60 runs passed · 85% · Queue under 10`; a state other than complete; null when the head says it all. */
+  detail: string | null;
 };
 
-/** "Step 12: limited · 51 / 60 runs passed · Queue under 10", or the infeasible draw's constraint. */
 export const describeStep = (
-  optimization: Pick<OptimizationRecord, "input">,
+  input: Pick<OptimizationRecord["input"], "constraints">,
   trial: OptimizationRecord["trials"][number],
   alpha: number,
-): StepLine => {
+): DescribedStep => {
   const verdict = stepVerdict(trial, alpha);
-  const { input } = optimization;
   const head = `Step ${trial.trial + 1}: ${VERDICT_WORD[verdict]}`;
   if (verdict === "infeasible") {
     return {
-      verdict: head,
-      detail: ` · ${constraintNameIn(input, trial.constraints?.infeasible ?? "")}`,
+      verdict,
+      head,
+      detail: constraintNameIn(input, trial.constraints?.infeasible ?? ""),
     };
   }
   const binding = bindingStepRate(trial, alpha);
   if (binding === null) {
     return {
-      verdict: head,
-      detail: trial.state === "complete" ? "" : ` · ${trial.state}`,
+      verdict,
+      head,
+      detail: trial.state === "complete" ? null : trial.state,
     };
   }
+  const percent = Math.round((binding.runsPassed / binding.runsTotal) * 100);
   return {
-    verdict: head,
-    detail: ` · ${formatRate(binding.runsPassed, binding.runsTotal).replace(" · ", " runs passed · ")} · ${constraintNameIn(input, binding.constraintId)}`,
+    verdict,
+    head,
+    detail: `${binding.runsPassed} / ${binding.runsTotal} runs passed · ${percent}% · ${constraintNameIn(input, binding.constraintId)}`,
   };
 };
 
 export const ConstraintSummaryCard = ({
   optimization,
   selection,
+  rates,
   plotHeight,
   tone,
 }: {
   optimization: OptimizationRecord;
   selection: ConnectedStudyState["selection"];
+  /** The study's rates, computed once by the model for the strip and this card. */
+  rates: StudyConstraintRates;
   /** The body's height in pixels; the card is exactly as tall as its neighbours. */
   plotHeight: number;
   /** How the card reads: `paused` while the study is paused. */
@@ -220,13 +225,12 @@ export const ConstraintSummaryCard = ({
   const { input, trials } = optimization;
   const alpha = constraintAlpha(input);
   const threshold = passThresholdPercent(alpha);
-  const rates = studyConstraintRates(trials, alpha);
   const constraints = input.constraints ?? [];
   const stateConstraints = constraints.filter(
     (constraint) => constraint.space === "state",
   );
   const step = describedStep(trials, selection);
-  const line = step === null ? null : describeStep(optimization, step, alpha);
+  const described = step === null ? null : describeStep(input, step, alpha);
   const infeasibleNote =
     rates.infeasibleDraws === 0
       ? ""
@@ -250,17 +254,14 @@ export const ConstraintSummaryCard = ({
           </span>
         </div>
         <span className={stepLineStyle}>
-          {step === null || line === null ? (
+          {described === null ? (
             "No step reported yet"
           ) : (
             <>
-              <span
-                className={verdictStyle}
-                data-verdict={stepVerdict(step, alpha)}
-              >
-                {line.verdict}
+              <span className={verdictStyle} data-verdict={described.verdict}>
+                {described.head}
               </span>
-              {line.detail}
+              {described.detail === null ? null : ` · ${described.detail}`}
             </>
           )}
         </span>

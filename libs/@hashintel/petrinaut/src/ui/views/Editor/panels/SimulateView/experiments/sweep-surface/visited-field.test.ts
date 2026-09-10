@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { surfaceFieldKey } from "../../shared/surface-field";
+import { contourSurfaceKey } from "../../../../../../components/contour-surface";
 import {
   computingSurfaceField,
   describeVisitedSurface,
@@ -56,8 +56,8 @@ describe("visitedSurfaceField", () => {
     });
 
     expect([...field.values]).toEqual([
-      [surfaceFieldKey(5, 5), 3],
-      [surfaceFieldKey(10, 0), 7],
+      [contourSurfaceKey(5, 5), 3],
+      [contourSurfaceKey(10, 0), 7],
     ]);
     expect(field.markers).toEqual([
       { x: 5, y: 5, kind: "dot", emphasis: false },
@@ -92,7 +92,7 @@ describe("computingSurfaceField", () => {
       metricFrames: [frame(4)],
     });
     expect(field.markers).toEqual([{ x: 2, y: 2, kind: "point" }]);
-    expect([...field.values]).toEqual([[surfaceFieldKey(2, 2), 4]]);
+    expect([...field.values]).toEqual([[contourSurfaceKey(2, 2), 4]]);
   });
 
   it("draws nothing for a range selection or an idle sweep", () => {

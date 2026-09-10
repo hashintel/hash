@@ -1,8 +1,9 @@
 /**
  * The footer of a study: Pause and Stop (connected) or Cancel (remote) while
  * active; Resume and Run at the best configuration while paused; Continue,
- * Remove and Retry as a settled study allows; plus the switch to the other
- * presentation and, in the drawer, Close.
+ * Remove and Retry as a settled study allows; and, in the drawer, Close. The
+ * switch to the other presentation is the footer's left side, so it stays
+ * put while the actions beside Close come and go.
  */
 import { use } from "react";
 
@@ -52,7 +53,7 @@ const PausedStudyActions = ({
   onClose,
 }: {
   optimization: OptimizationRecord;
-  onClose?: () => void;
+  onClose: () => void;
 }) => {
   const { resumeOptimization, removeOptimization } = use(OptimizationsContext);
   const owed = optimization.requestedTrials - optimization.trials.length;
@@ -67,7 +68,7 @@ const PausedStudyActions = ({
             text: "Remove",
             onClick: () => {
               removeOptimization(optimization.id);
-              onClose?.();
+              onClose();
             },
           },
         ]}
@@ -89,6 +90,36 @@ const PausedStudyActions = ({
   );
 };
 
+/** Open full view from the drawer, Show in drawer from the full view. */
+export const PresentationToggle = ({
+  presentation,
+  onPresentationChange,
+}: {
+  presentation: PetrinautSimulatePresentation;
+  onPresentationChange: (presentation: PetrinautSimulatePresentation) => void;
+}) =>
+  presentation === "drawer" ? (
+    <Button
+      variant="subtle"
+      tone="neutral"
+      size="sm"
+      prefix={<Icon name="expand" size="sm" />}
+      onClick={() => onPresentationChange("full")}
+    >
+      Open full view
+    </Button>
+  ) : (
+    <Button
+      variant="subtle"
+      tone="neutral"
+      size="sm"
+      prefix={<Icon name="collapse" size="sm" />}
+      onClick={() => onPresentationChange("drawer")}
+    >
+      Show in drawer
+    </Button>
+  );
+
 /**
  * `onClose` is called when the surface should leave the record: after
  * Remove, and from the drawer's Close button.
@@ -96,13 +127,11 @@ const PausedStudyActions = ({
 export const StudyActions = ({
   optimization,
   presentation,
-  onPresentationChange,
   onClose,
 }: {
   optimization: OptimizationRecord;
   presentation: PetrinautSimulatePresentation;
-  onPresentationChange: (presentation: PetrinautSimulatePresentation) => void;
-  onClose?: () => void;
+  onClose: () => void;
 }) => {
   const {
     cancelOptimization,
@@ -117,27 +146,6 @@ export const StudyActions = ({
 
   return (
     <>
-      {presentation === "drawer" ? (
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="expand" size="sm" />}
-          onClick={() => onPresentationChange("full")}
-        >
-          Open full view
-        </Button>
-      ) : (
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="collapse" size="sm" />}
-          onClick={() => onPresentationChange("drawer")}
-        >
-          Show in drawer
-        </Button>
-      )}
       {paused ? (
         <PausedStudyActions optimization={optimization} onClose={onClose} />
       ) : null}
@@ -149,7 +157,7 @@ export const StudyActions = ({
           prefix={<Icon name="trash" size="sm" />}
           onClick={() => {
             removeOptimization(optimization.id);
-            onClose?.();
+            onClose();
           }}
         >
           Remove
@@ -210,7 +218,7 @@ export const StudyActions = ({
           Retry
         </Button>
       ) : null}
-      {presentation === "drawer" && onClose ? (
+      {presentation === "drawer" ? (
         <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
           Close
         </Button>

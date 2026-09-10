@@ -2,7 +2,11 @@ import { createUserKeyedRecord } from "@hashintel/petrinaut-core";
 
 import { mergeMetricFramesAcrossCells } from "../../../../../../../react/experiments/parameter-grid";
 import { sweepBatchSeed } from "../../../../../../../react/experiments/sweep-session";
-import { optimizationAxisValueAt } from "../../../../../../../react/optimizations/surface-grid";
+import {
+  optimizationAxisValueAt,
+  partitionParameterBindings,
+} from "../../../../../../../react/optimizations/surface-grid";
+import { objectiveMetric } from "../../shared/study-labels";
 
 import type { ExperimentsContextValue } from "../../../../../../../react/experiments/context";
 import type { SweepCellSnapshot } from "../../../../../../../react/experiments/sweep-session";
@@ -47,10 +51,8 @@ export const sampleStudyCell = async (options: {
     minRuns,
   } = options;
   const input = optimization.input;
-  const objectiveMetric = input.model.definition.metrics?.find(
-    (metric) => metric.id === input.objective.metricId,
-  );
-  if (!objectiveMetric) {
+  const metric = objectiveMetric(input);
+  if (!metric) {
     return null;
   }
 
@@ -61,13 +63,13 @@ export const sampleStudyCell = async (options: {
       .map((entry) => entry.split("=") as [string, string]),
   );
 
+  const { fixed, optimized } = partitionParameterBindings(input);
   const values = createUserKeyedRecord<number | boolean>();
-  for (const [identifier, binding] of Object.entries(
-    input.scenario.parameterBindings,
-  )) {
-    if (binding.kind === "fixed") {
-      values[identifier] = binding.value;
-    } else if (binding.domain.kind === "boolean") {
+  for (const [identifier, value] of Object.entries(fixed)) {
+    values[identifier] = value;
+  }
+  for (const [identifier, binding] of Object.entries(optimized)) {
+    if (binding.domain.kind === "boolean") {
       values[identifier] = sliceEntries.get(identifier) === "true";
     }
   }
@@ -96,11 +98,7 @@ export const sampleStudyCell = async (options: {
       definition: input.model.definition,
       scenarioId: input.scenario.id,
       scenarioParameterValues: values,
-      metric: {
-        id: objectiveMetric.id,
-        label: objectiveMetric.name,
-        code: objectiveMetric.code,
-      },
+      metric: { id: metric.id, label: metric.name, code: metric.code },
       seed: sweepBatchSeed(input.execution.seed, from),
       runCount: minRuns - from,
       dt: input.execution.dt,

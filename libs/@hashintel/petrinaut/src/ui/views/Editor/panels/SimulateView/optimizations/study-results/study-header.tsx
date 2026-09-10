@@ -7,16 +7,17 @@
 import { Chip, type ChipColor } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import {
+  currentTrialNumber,
+  finishedTrialCount,
+  type OptimizationRecord,
+} from "../../../../../../../react/optimizations/context";
 import { formatNumber } from "../../shared/format-value";
 import {
   assessConvergence,
   type ConvergenceVerdict,
   describeConvergence,
 } from "./convergence";
-import { finishedStepCount } from "./shared/study-progress";
-import { studyPhase } from "./study-phase";
-
-import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
 const headerStyle = css({
   display: "flex",
@@ -63,14 +64,14 @@ export const describeStudyProgress = (
     | "best"
   >,
 ): string => {
-  const finished = finishedStepCount(optimization);
+  const finished = finishedTrialCount(optimization);
   const requested = optimization.requestedTrials;
   const best = bestPart(optimization.best);
   switch (optimization.status) {
     case "initializing":
       return `Starting · ${best}`;
     case "running":
-      return `Step ${Math.min(finished + 1, requested)} of ${requested} · ${best}`;
+      return `Step ${currentTrialNumber(optimization)} of ${requested} · ${best}`;
     case "paused": {
       const inFlight = optimization.connected?.inFlight.length ?? 0;
       const finishing =
@@ -102,7 +103,7 @@ export const StudyHeader = ({
   optimization: OptimizationRecord;
 }) => {
   const verdict =
-    studyPhase(optimization) === "live" && optimization.status === "running"
+    optimization.status === "running"
       ? assessConvergence(
           optimization.trials,
           optimization.input.objective.direction,

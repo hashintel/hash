@@ -20,6 +20,7 @@ import {
   selectionMidpoint,
 } from "../../../../../../react/experiments/parameter-grid";
 import { ContourSurface } from "../../../../../components/contour-surface";
+import { ChartCard } from "../shared/chart-card";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
   mergeSurfaceFields,
@@ -32,7 +33,6 @@ import {
   SurfaceAxisControls,
   surfaceCaption,
   SurfaceControlLabel,
-  SurfaceFrame,
 } from "../shared/surface-frame";
 import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
@@ -119,9 +119,9 @@ export const SweepSurface = ({
       : null;
 
   return (
-    <SurfaceFrame
+    <ChartCard
       title="Surface"
-      caption={surfaceCaption({
+      subtitle={surfaceCaption({
         preview:
           preview && xAxis && yAxis
             ? {
@@ -192,6 +192,6 @@ export const SweepSurface = ({
           aria-label="Sweep surface"
         />
       ) : null}
-    </SurfaceFrame>
+    </ChartCard>
   );
 };
