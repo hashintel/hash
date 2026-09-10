@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { HIR_MATH_FNS } from "../hir/hir";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
+import { metricStateValue, probePlaceBindings } from "./compile-net-shader";
 import {
   describeMathFnSupport,
   emitF32Literal,
@@ -11,6 +12,7 @@ import {
 } from "./emit-wgsl";
 
 import type { HirFunction } from "../hir/hir";
+import type { HirMetricContext } from "../hir/surface-context";
 import type { WgslValue } from "./emit-wgsl";
 
 /** Lowers a lambda body so tests exercise real HIR rather than hand-built trees. */
@@ -360,6 +362,220 @@ describe("WgslEmitter distributions", () => {
     expect(() =>
       emitter.emit(lowered.fn.body, new Map<string, WgslValue>()),
     ).toThrow(WgslBailError);
+  });
+});
+
+/**
+ * A metric reads a place's live tokens through a `tokenSpan`: a runtime
+ * count and a per-index reader. `.length` is the count and `.reduce` becomes
+ * a loop, which is how the shader samples `tokens.reduce(...)` metrics.
+ */
+describe("WgslEmitter token spans", () => {
+  function lowerMetric(code: string): HirFunction {
+    const result = lowerTypeScriptToHir(code, "metric");
+    if (!result.ok) {
+      throw new Error(
+        `test metric did not lower: ${result.diagnostics
+          .map((diagnostic) => diagnostic.message)
+          .join("; ")}`,
+      );
+    }
+    return result.fn;
+  }
+
+  /** One place `P` whose tokens read `tok_<field>(<index>)`, a stand-in for the slot read. */
+  const spanState = (): WgslValue =>
+    metricStateValue([
+      {
+        name: "P",
+        count: "counts[0u]",
+        readAt: (indexVar) => (fieldName) => ({
+          kind: "f32",
+          code: `tok_${fieldName}(${indexVar})`,
+        }),
+      },
+    ]);
+
+  function emitMetric(
+    code: string,
+    state: WgslValue = spanState(),
+  ): { statements: string[]; code: string } {
+    const fn = lowerMetric(code);
+    const emitter = new WgslEmitter({ parameterValues: {} });
+    const env = new Map<string, WgslValue>();
+    env.set(fn.params[0]!.name, state);
+    const value = emitter.emit(fn.body, env);
+    return { statements: emitter.statements, code: emitter.f32(value) };
+  }
+
+  it("reads a place's count as the f32 of its register", () => {
+    const result = emitMetric("return state.places.P.count;");
+
+    expect(result.statements).toStrictEqual([]);
+    expect(result.code).toBe("f32(counts[0u])");
+  });
+
+  it("reads `tokens.length` as the live count, not a static length", () => {
+    const result = emitMetric("return state.places.P.tokens.length;");
+
+    expect(result.statements).toStrictEqual([]);
+    expect(result.code).toBe("f32(counts[0u])");
+  });
+
+  it("emits `tokens.reduce` as a loop over the live slots", () => {
+    // The count is only known on the device, so the fold cannot unroll as a
+    // tuple reduce does: the accumulator is a `var` seeded from the initial
+    // value and assigned once per token.
+    const result = emitMetric(
+      "return state.places.P.tokens.reduce((sum, s) => sum + s.x, 0);",
+    );
+
+    expect(result.statements).toStrictEqual([
+      "var u_0_sum: f32 = 0.0;",
+      "for (var u_1_s: u32 = 0u; u_1_s < counts[0u]; u_1_s = u_1_s + 1u) {",
+      "  u_0_sum = (u_0_sum + tok_x(u_1_s));",
+      "}",
+    ]);
+    expect(result.code).toBe("u_0_sum");
+  });
+
+  it("places a `const` bound inside the callback inside the loop", () => {
+    // The binding reads the current token, so it has to be evaluated per
+    // iteration; hoisting it above the loop would read an unbound index.
+    const result = emitMetric(`return state.places.P.tokens.reduce((sum, s) => {
+  const twice = s.x * 2;
+  return sum + twice;
+}, 0);`);
+
+    expect(result.statements).toStrictEqual([
+      "var u_0_sum: f32 = 0.0;",
+      "for (var u_1_s: u32 = 0u; u_1_s < counts[0u]; u_1_s = u_1_s + 1u) {",
+      "  let u_2_twice: f32 = (tok_x(u_1_s) * 2.0);",
+      "  u_0_sum = (u_0_sum + u_2_twice);",
+      "}",
+    ]);
+  });
+
+  it("binds the index parameter to the loop variable as an f32", () => {
+    const result = emitMetric(
+      "return state.places.P.tokens.reduce((acc, t, i) => acc + i, 0);",
+    );
+
+    expect(result.statements).toContain("  u_0_acc = (u_0_acc + f32(u_1_t));");
+  });
+
+  it("gives a boolean seed a `bool` accumulator", () => {
+    const result = emitMetric(
+      "return state.places.P.tokens.reduce((any, s) => any || s.x > 1, false) ? 1 : 0;",
+    );
+
+    expect(result.statements).toStrictEqual([
+      "var u_0_any: bool = false;",
+      "for (var u_1_s: u32 = 0u; u_1_s < counts[0u]; u_1_s = u_1_s + 1u) {",
+      "  u_0_any = (u_0_any || (tok_x(u_1_s) > 1.0));",
+      "}",
+    ]);
+    expect(result.code).toBe("select(0.0, 1.0, u_0_any)");
+  });
+
+  it("nests a reduce inside a reduce, loop inside loop", () => {
+    const result = emitMetric(`return state.places.P.tokens.reduce(
+  (sum, s) => sum + state.places.P.tokens.reduce((inner, t) => inner + t.x * s.x, 0),
+  0,
+);`);
+
+    expect(result.statements).toStrictEqual([
+      "var u_0_sum: f32 = 0.0;",
+      "for (var u_1_s: u32 = 0u; u_1_s < counts[0u]; u_1_s = u_1_s + 1u) {",
+      "  var u_2_inner: f32 = 0.0;",
+      "  for (var u_3_t: u32 = 0u; u_3_t < counts[0u]; u_3_t = u_3_t + 1u) {",
+      "    u_2_inner = (u_2_inner + (tok_x(u_3_t) * tok_x(u_1_s)));",
+      "  }",
+      "  u_0_sum = (u_0_sum + u_2_inner);",
+      "}",
+    ]);
+    expect(result.code).toBe("u_0_sum");
+  });
+
+  it("refuses `.concat`, which would read two places at once", () => {
+    expect(() =>
+      emitMetric(
+        "return state.places.P.tokens.concat(state.places.P.tokens).length;",
+      ),
+    ).toThrow(/joins the tokens of two places/);
+  });
+
+  it("refuses indexing a token by position, which needs the CPU's bounds check", () => {
+    expect(() => emitMetric("return state.places.P.tokens[0].x;")).toThrow(
+      /bounds check/,
+    );
+  });
+
+  it("refuses a record seed, which has no WGSL accumulator", () => {
+    expect(() =>
+      emitMetric(
+        "return state.places.P.tokens.reduce((acc, s) => acc, { n: 0 }).n;",
+      ),
+    ).toThrow(/expected a numeric value/);
+  });
+
+  describe("through the probe's placeholder reader", () => {
+    const probeState = (
+      elements: HirMetricContext["places"][number]["elements"],
+    ): WgslValue => {
+      const context: HirMetricContext = {
+        surface: "metric",
+        parameters: [],
+        places: [{ name: "P", elements }],
+      };
+      return metricStateValue(probePlaceBindings(context));
+    };
+
+    it("reads numbers as 0.0 and booleans as false over an empty count", () => {
+      const result = emitMetric(
+        "return state.places.P.tokens.reduce((n, t) => t.active ? n + t.x : n, 0);",
+        probeState([
+          { name: "x", type: "real" },
+          { name: "active", type: "boolean" },
+        ]),
+      );
+
+      expect(result.statements).toStrictEqual([
+        "var u_0_n: f32 = 0.0;",
+        "for (var u_1_t: u32 = 0u; u_1_t < 0u; u_1_t = u_1_t + 1u) {",
+        "  u_0_n = select(u_0_n, (u_0_n + 0.0), false);",
+        "}",
+      ]);
+    });
+
+    it("refuses a string attribute with the emitter's own reason", () => {
+      // The net's eligibility already refuses string attributes; the probe
+      // must not read GPU-ready for a metric the net would refuse.
+      expect(() =>
+        emitMetric(
+          "return state.places.P.tokens.reduce((n, t) => n + t.status, 0);",
+          probeState([{ name: "status", type: "string" }]),
+        ),
+      ).toThrow(/32-bit/);
+    });
+
+    it("refuses a uuid attribute", () => {
+      expect(() =>
+        emitMetric(
+          "return state.places.P.tokens.reduce((n, t) => n + t.id, 0);",
+          probeState([{ name: "id", type: "uuid" }]),
+        ),
+      ).toThrow(/128-bit/);
+    });
+
+    it("refuses an attribute the place does not declare", () => {
+      expect(() =>
+        emitMetric(
+          "return state.places.P.tokens.reduce((n, t) => n + t.mass, 0);",
+          probeState([{ name: "x", type: "real" }]),
+        ),
+      ).toThrow(/has no attribute `mass`/);
+    });
   });
 });
 
