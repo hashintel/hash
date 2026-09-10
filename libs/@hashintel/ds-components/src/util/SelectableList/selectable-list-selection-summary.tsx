@@ -4,8 +4,6 @@ import {
   summaryRow,
 } from "./selectable-list-selection-summary.recipe";
 
-import type { ExclusifyUnion } from "type-fest";
-
 /**
  * A selection summary for the footer (or header) of a SelectableList
  * (`footer={<SelectableListSelectionSummary ... />}`). Unless hidden via
@@ -24,16 +22,12 @@ export const SelectableListSelectionSummary = ({
   onClearAll,
 }: {
   hideCount?: boolean;
+  hideSelectAllToggle?: boolean;
   selectedCount: number;
   totalCount: number;
-} & ExclusifyUnion<
-  | { hideSelectAllToggle: true }
-  | {
-      hideSelectAllToggle?: false;
-      onSelectAll: () => void;
-      onClearAll: () => void;
-    }
->) => {
+  onSelectAll?: () => void;
+  onClearAll?: () => void;
+}) => {
   if (hideCount && hideSelectAllToggle) {
     return null;
   }

@@ -23,6 +23,7 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
+import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
@@ -95,21 +96,29 @@ type SelectBaseProps<TValue extends string> = {
   inputRef?: React.Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
   emptyState?: React.ReactNode;
-  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
-  searchable?: {
-    searchable: boolean;
-    onSearch: (search: string) => void;
-  };
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
 > &
   React.AriaAttributes;
 
+/** Adds a search field to the dropdown that filters the items by their text.
+ * onSearch is called as the search value changes, including with "" when the
+ * dropdown closes and the search resets. */
+type SelectSearchable = {
+  searchable: boolean;
+  onSearch: (search: string) => void;
+};
+
 type SelectSingleProps<TValue extends string> = {
   /** Set to allow selecting multiple values */
   multiple?: false;
   maxItems?: never;
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
+  searchable?: SelectSearchable & {
+    hideCount?: never;
+    hideSelectAllToggle?: never;
+  };
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
@@ -131,6 +140,16 @@ type SelectMultipleProps<TValue extends string> = {
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
+  searchable?: SelectSearchable & {
+    /** Hide the "x of y" selected count in the selection summary. It is also
+     * hidden while `loading`, when the option count is not yet known. */
+    hideCount?: boolean;
+    /** Hide the "Select all" / "Clear all" toggle in the selection summary.
+     * It is also hidden when `maxItems` puts selecting every option out of
+     * reach. */
+    hideSelectAllToggle?: boolean;
+  };
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
   /** Custom renderer for the selected values in the trigger. Defaults to rendering each selected value with `renderItem` (or the item's `text`), comma-separated. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (values: TValue[]) => React.ReactNode;
@@ -514,6 +533,50 @@ export const Select = <TValue extends string>({
     },
     [onChange],
   );
+
+  // The selection summary of a searchable multi select. Its counts and its
+  // "Select all" span the whole option set — disabled options included, so
+  // "Select all" always reaches "X of X" — not the current search filter.
+  const optionValues = useMemo<TValue[]>(() => {
+    const values: TValue[] = [];
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        for (const it of entry.items) {
+          values.push(it.value);
+        }
+      } else {
+        values.push(entry.value);
+      }
+    }
+    return values;
+  }, [effectiveItems]);
+  const selectAll = useCallback(() => {
+    (onChange as (value: TValue[]) => void)([
+      ...new Set([...selectedValues, ...optionValues]),
+    ]);
+  }, [onChange, selectedValues, optionValues]);
+  const clearAll = useCallback(() => {
+    (onChange as (value: TValue[]) => void)([]);
+  }, [onChange]);
+  // Hide the count while options are still loading (the total is not yet
+  // known), and the toggle when maxItems makes selecting all impossible.
+  const hideSummaryCount = !!searchable?.hideCount || !!loading;
+  const hideSummaryToggle =
+    !!searchable?.hideSelectAllToggle ||
+    (maxItems !== undefined && maxItems < optionValues.length);
+  // Omitted entirely (rather than rendering an empty component) when both
+  // parts are hidden, so no empty footer band appears around it.
+  const selectionSummary =
+    showSearch && multiple && !(hideSummaryCount && hideSummaryToggle) ? (
+      <SelectableListSelectionSummary
+        hideCount={hideSummaryCount}
+        hideSelectAllToggle={hideSummaryToggle}
+        selectedCount={selectedValues.length}
+        totalCount={optionValues.length}
+        onSelectAll={selectAll}
+        onClearAll={clearAll}
+      />
+    ) : undefined;
   const resolvedEmptyState =
     emptyState ?? (loading ? "Loading options\u2026" : "No options available");
   const menuItems = useMemo(() => {
@@ -772,6 +835,7 @@ export const Select = <TValue extends string>({
                 />
               ) : undefined
             }
+            footer={selectionSummary}
             swapHeaderFooterOnFlip
           />
         </ArkSelect.Positioner>
