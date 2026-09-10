@@ -129,9 +129,12 @@ test("lists later entity updates without assigning one update to the whole entit
     field: "entity",
   });
 
-  expect(answer.appliedChanges?.map(({ toolCallId }) => toolCallId)).toEqual(
-    expect.arrayContaining(["typed-type", "typed-type-description"]),
-  );
+  expect(answer.appliedChanges?.map(({ toolCallId }) => toolCallId)).toEqual([
+    "typed-type",
+    "typed-active",
+    "typed-integer",
+    "typed-type-description",
+  ]);
   expect(answer.disposition).toBe("refused");
   expect(answer.governing).toBeUndefined();
   expect(answer.recordedChange).toBeUndefined();
