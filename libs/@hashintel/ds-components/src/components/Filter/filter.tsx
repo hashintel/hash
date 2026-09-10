@@ -215,8 +215,9 @@ const FilterSelectInput = ({
  * outside the control. Clearing every input and submitting the same way
  * fires `(key, null)`; a partially filled multi-input draft never fires.
  * Operators with `input: null` commit immediately on selection. Select
- * inputs additionally commit when their dropdown closes. Escape reverts the
- * draft to the last committed value.
+ * inputs additionally commit when their dropdown closes — except when it
+ * closes via Escape, which reverts the draft to the last committed value,
+ * as Escape does in a text input.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -432,12 +433,44 @@ export const Filter = <
   // A select segment's dropdown suppresses blur-commits while open (focus
   // may sit in the portaled list) and ends the interaction when it closes:
   // commit then, off the ref, as the change and close events of a single
-  // click land before the slot state re-renders.
+  // click land before the slot state re-renders. Closing with Escape reverts
+  // instead, matching Escape in a text input. Ark dismisses on Escape from a
+  // native document-capture listener — before any React handler — so the
+  // only spot that reliably precedes the close is a window-capture listener.
+  const selectDropdownOpenRef = useRef(false);
+  const selectEscapedRef = useRef(false);
+  useEffect(() => {
+    const markEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && selectDropdownOpenRef.current) {
+        selectEscapedRef.current = true;
+      }
+    };
+    window.addEventListener("keydown", markEscape, true);
+    return () => {
+      window.removeEventListener("keydown", markEscape, true);
+    };
+  }, []);
+  // Escape while the dropdown is closed reverts too, as in a text input.
+  // This handler runs after a dropdown Escape has already closed + reverted,
+  // where the repeated revert is a no-op.
+  const handleSelectKeyDownCapture = (event: React.KeyboardEvent) => {
+    if (event.key === "Escape" && !selectDropdownOpenRef.current) {
+      revertDraft();
+    }
+  };
   const handleSelectOpenChange = (open: boolean) => {
     dropdownOpenRef.current = open;
-    if (!open) {
-      commitDraft(draftKey, slotsRef.current);
+    selectDropdownOpenRef.current = open;
+    if (open) {
+      selectEscapedRef.current = false;
+      return;
     }
+    if (selectEscapedRef.current) {
+      selectEscapedRef.current = false;
+      revertDraft();
+      return;
+    }
+    commitDraft(draftKey, slotsRef.current);
   };
 
   const menuItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
@@ -583,6 +616,7 @@ export const Filter = <
             <span
               className={cx(classes.inputSlot, classes.selectSlot)}
               data-disabled={disabled ? "" : undefined}
+              onKeyDownCapture={handleSelectKeyDownCapture}
               key={segmentKey}
             >
               <FilterSelectInput

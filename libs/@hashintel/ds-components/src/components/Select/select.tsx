@@ -137,7 +137,7 @@ type SelectSingleProps<TValue extends string> = {
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while selecting, and items indicate selection with a checkbox unless they set their own `variant`. */
+  /** Set to allow selecting multiple values. The dropdown stays open while selecting, and items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
@@ -431,6 +431,29 @@ export const Select = <TValue extends string>({
     }
     return [...orphans, ...items];
   }, [items, orphans, loading]);
+
+  // A multi select's Escape reverts the selection to its state at dropdown
+  // open (per-toggle onChange commits are treated as a cancellable session).
+  // Ark dismisses on Escape from a native document-capture listener — before
+  // any React handler — so the only spot that reliably precedes the close is
+  // a window-capture listener; the close handler then consumes the flag.
+  const isOpenRef = useRef(false);
+  const escapedRef = useRef(false);
+  const valueAtOpenRef = useRef<TValue[]>([]);
+  useEffect(() => {
+    if (!multiple) {
+      return;
+    }
+    const markEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpenRef.current) {
+        escapedRef.current = true;
+      }
+    };
+    window.addEventListener("keydown", markEscape, true);
+    return () => {
+      window.removeEventListener("keydown", markEscape, true);
+    };
+  }, [multiple]);
 
   const [search, setSearch] = useState("");
   const showSearch = !!searchable;
@@ -749,8 +772,24 @@ export const Select = <TValue extends string>({
         }
       }}
       onOpenChange={({ open }) => {
-        if (!open && search !== "") {
-          handleSearchChange("");
+        isOpenRef.current = open;
+        if (open) {
+          escapedRef.current = false;
+          valueAtOpenRef.current = selectedValues;
+        } else {
+          if (multiple && escapedRef.current) {
+            escapedRef.current = false;
+            const atOpen = valueAtOpenRef.current;
+            const unchanged =
+              atOpen.length === selectedValues.length &&
+              atOpen.every((entry, index) => entry === selectedValues[index]);
+            if (!unchanged) {
+              (onChange as (value: TValue[]) => void)([...atOpen]);
+            }
+          }
+          if (search !== "") {
+            handleSearchChange("");
+          }
         }
         onOpenChange?.(open);
       }}
