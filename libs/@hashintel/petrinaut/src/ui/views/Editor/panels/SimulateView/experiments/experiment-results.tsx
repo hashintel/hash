@@ -1,10 +1,12 @@
 /**
  * An experiment record mapped onto the shared results view-model: the
- * one-line title, the status and the stat columns (runs, errors, simulated
- * time, wall-clock time, the selection's sampling for a sweep), the
- * computing chip and the compute badge, the Parameters card with its
- * optimizer control and the surface for a sweep, one metric card per
- * configured metric, and Remove, Cancel and Close in the footer.
+ * one-line title, the status and the stat columns (errors and simulated time
+ * for both kinds; runs and wall-clock time for a plain experiment, the
+ * selection's sampling for a sweep), the computing chip and the compute
+ * badge, the Parameters card with its optimizer control and the surface for
+ * a sweep, one metric card per configured metric, and Remove, Cancel and
+ * Close in the footer. While a study drives a sweep the header reads from
+ * the study: Optimizing, its step as the progress, its step on the batch.
  */
 import { use } from "react";
 
@@ -15,9 +17,11 @@ import {
   type ExperimentsActionsValue,
   type ExperimentRecord,
   isExperimentActive,
+  isTerminalExperimentStatus,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
+import { describeStudyProgress } from "../shared/describe-study-progress";
 import { type ComputeBatch } from "../shared/drawer-frame";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
@@ -25,8 +29,8 @@ import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
 import {
-  studyStepProgress,
   type SweepOptimizer,
+  type SweepStepProgress,
   useSweepOptimizer,
 } from "./sweep-optimizer";
 import { SweepSurface } from "./sweep-surface";
@@ -38,12 +42,16 @@ import type {
   ResultsStatus,
 } from "../shared/results/results-model";
 
+/** The record's status, or the study's while one drives the sweep. */
+type ExperimentDisplayStatus = ExperimentRecord["status"] | "optimizing";
+
 const STATUS_DISPLAY: Record<
-  ExperimentRecord["status"],
+  ExperimentDisplayStatus,
   Pick<ResultsStatus, "label" | "tone">
 > = {
   initializing: { label: "Initializing", tone: "active" },
   running: { label: "Running", tone: "active" },
+  optimizing: { label: "Optimizing", tone: "active" },
   idle: { label: "Idle", tone: "neutral" },
   complete: { label: "Complete", tone: "done" },
   error: { label: "Error", tone: "error" },
@@ -59,7 +67,7 @@ const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
 const WIDEST_DURATION = "59m 59s";
 
 const PARAMETERS_HELP =
-  "Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept and drawn on the Surface. Optimize lets an optimizer pick the points, one metric in view.";
+  "Only the selected combination computes. Move a control and compute follows it; results for visited points are kept and drawn on the Surface. Optimize lets an optimizer pick the points, one metric in view.";
 
 /** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
 const describeExperiment = (
@@ -67,60 +75,79 @@ const describeExperiment = (
 ): string =>
   `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${formatCount(experiment.runCount)} runs`;
 
-/** A sweep's only batches are the rungs of the selection's ladder. */
-const BATCH_KIND_META: Record<
-  SweepBatchStatus["kind"],
-  Pick<ComputeBatch, "label" | "tone">
-> = {
-  selection: { label: "Selection", tone: "priority" },
-};
-
-/** The sweep's batches as the computing list shows them. */
+/**
+ * The sweep's batches as the computing list shows them: a sweep's only
+ * batches are the rungs of the selection's ladder, named for the step while
+ * a study places the selection.
+ */
 const experimentComputeBatches = (
   sweepBatches: readonly SweepBatchStatus[],
+  following: SweepStepProgress | null,
 ): ComputeBatch[] =>
   sweepBatches.map((batch) => ({
     id: String(batch.id),
-    ...BATCH_KIND_META[batch.kind],
+    label: following ? `Step ${following.step}` : "Selection",
+    tone: "priority",
     runCount: batch.runCount,
     completedRuns: batch.completedRuns,
   }));
 
 /**
- * Simulated time to show when no batch is publishing progress: an idle sweep
- * or a complete run has taken every run to the end.
+ * Simulated time to show when no batch is publishing progress: a complete
+ * run has taken every run to the end, and so has an idle sweep once a batch
+ * of its selection finished; a sweep that never computed sits at zero.
  */
 const settledTime = (experiment: ExperimentRecord): number =>
-  experiment.status === "idle" || experiment.status === "complete"
+  experiment.status === "complete" ||
+  (experiment.status === "idle" &&
+    (experiment.sweep === null || experiment.sweep.runsCompleted > 0))
     ? experiment.maxTime
     : 0;
 
-/** The stat columns after the status pill, each sized for its widest value. */
+/**
+ * The stat columns after the status pill, each sized for its widest value.
+ * A plain experiment's runs and wall clock belong to a run that stops; a
+ * sweep's selection carries its sampling instead, and its batches' progress
+ * lives in the computing list.
+ */
 const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
-  const { progress } = experiment;
+  const { progress, sweep } = experiment;
   const runCount = formatCount(experiment.runCount);
   const maxTime = formatFixed(experiment.maxTime);
   // The widest time readout: a fraction just under the maximum, which prints
   // its three decimals, over the maximum.
   const widestTime = `${formatFixed(Math.max(0, experiment.maxTime - 0.001))} / ${maxTime}`;
   return [
-    {
-      id: "runs",
-      label: "Runs",
-      widest: `${runCount} active, ${runCount} complete`,
-      value: {
-        text: progress
-          ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
-          : runCount,
-      },
-      // Narrow, the finished count alone.
-      short: {
-        text: progress
-          ? `${formatCount(progress.completedRuns)} complete`
-          : runCount,
-        widest: `${runCount} complete`,
-      },
-    },
+    sweep
+      ? {
+          id: "selection",
+          label: "Selection",
+          widest: `${runCount} / ${runCount} runs`,
+          value: {
+            text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
+          },
+          short: {
+            text: `${formatCount(sweep.runsSampled)} / ${runCount}`,
+            widest: `${runCount} / ${runCount}`,
+          },
+        }
+      : {
+          id: "runs",
+          label: "Runs",
+          widest: `${runCount} active, ${runCount} complete`,
+          value: {
+            text: progress
+              ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
+              : runCount,
+          },
+          // Narrow, the finished count alone.
+          short: {
+            text: progress
+              ? `${formatCount(progress.completedRuns)} complete`
+              : runCount,
+            widest: `${runCount} complete`,
+          },
+        },
     {
       id: "errors",
       label: "Errors",
@@ -137,37 +164,26 @@ const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
     },
     // Wall-clock, as distinct from the simulated time; it stops once the
     // experiment finishes and is dashed out when stepping never began. The
-    // leaf keeps its own clock, so the tick re-renders nothing else.
-    {
-      id: "elapsed",
-      label: "Elapsed",
-      widest: WIDEST_DURATION,
-      value: {
-        text: (
-          <ElapsedStat
-            startedAt={experiment.startedAt}
-            finishedAt={experiment.finishedAt}
-            active={isExperimentActive(experiment)}
-          />
-        ),
-      },
-    },
-    ...(experiment.sweep
-      ? [
+    // leaf keeps its own clock, so the tick re-renders nothing else. A sweep
+    // never finishes, so it has no clock.
+    ...(sweep
+      ? []
+      : [
           {
-            id: "selection",
-            label: "Selection",
-            widest: `${runCount} / ${runCount} runs`,
+            id: "elapsed",
+            label: "Elapsed",
+            widest: WIDEST_DURATION,
             value: {
-              text: `${formatCount(experiment.sweep.runsSampled)} / ${runCount} runs`,
-            },
-            short: {
-              text: `${formatCount(experiment.sweep.runsSampled)} / ${runCount}`,
-              widest: `${runCount} / ${runCount}`,
+              text: (
+                <ElapsedStat
+                  startedAt={experiment.startedAt}
+                  finishedAt={experiment.finishedAt}
+                  active={isExperimentActive(experiment)}
+                />
+              ),
             },
           },
-        ]
-      : []),
+        ]),
   ];
 };
 
@@ -215,24 +231,37 @@ export const experimentResultsModel = (
   { tiles, actions, optimizer, onClose }: ExperimentResultsDependencies,
 ): ResultsModel => {
   const { sweep } = experiment;
-  const canCancel =
-    experiment.status === "initializing" || experiment.status === "running";
-  const driving = optimizer.driving && optimizer.study !== null;
-  const tone: ChartCardTone = driving ? "optimizing" : "default";
+  // The study's step while one drives the sweep: the header, the batch list,
+  // the navigator and the surface all read it, so they agree in one render.
+  const following = optimizer.driving;
+  const displayStatus: ExperimentDisplayStatus = following
+    ? "optimizing"
+    : experiment.status;
+  const canCancel = isExperimentActive(experiment) || following !== null;
+  const tone: ChartCardTone = following ? "optimizing" : "default";
+  const { study } = optimizer;
 
   return {
     header: {
       title: describeExperiment(experiment),
       headline: null,
-      status: { ...STATUS_DISPLAY[experiment.status], widest: WIDEST_STATUS },
+      status: { ...STATUS_DISPLAY[displayStatus], widest: WIDEST_STATUS },
       stats: experimentStats(experiment),
-      activity: experimentComputeBatches(experiment.sweepBatches),
+      activity: experimentComputeBatches(experiment.sweepBatches, following),
       compute: experiment,
-      progress: experimentProgressPercent(experiment),
+      // A driven sweep's own bar would saw once per step; the study's steps
+      // finished are what progresses.
+      progress: following
+        ? ((following.step - 1) / following.total) * 100
+        : experimentProgressPercent(experiment),
+      // The experiment's own failure first; else the study's, whose record
+      // has no other home than this drawer.
       note:
-        experiment.error === null
-          ? null
-          : { content: experiment.error, tone: "error" },
+        experiment.error !== null
+          ? { content: experiment.error, tone: "error" }
+          : study?.status === "error" && study.error !== null
+            ? { content: study.error, tone: "error" }
+            : null,
     },
     bands: sweep
       ? [
@@ -253,15 +282,23 @@ export const experimentResultsModel = (
                 selection={sweep.selection}
                 status={{
                   computing: sweep.computing,
-                  following:
-                    driving && optimizer.study
-                      ? studyStepProgress(optimizer.study)
-                      : null,
+                  following: following
+                    ? { kind: "following", ...following }
+                    : study === null
+                      ? null
+                      : {
+                          kind: "settled",
+                          summary: describeStudyProgress(study),
+                        },
                   runsCompleted: sweep.runsCompleted,
                   runsSampled: sweep.runsSampled,
                   runTarget: sweep.runTarget,
                   runCount: experiment.runCount,
                 }}
+                disabled={
+                  following !== null ||
+                  isTerminalExperimentStatus(experiment.status)
+                }
                 onSelectionChange={(selection) =>
                   actions.setSweepSelection(experiment.id, selection)
                 }
@@ -279,7 +316,7 @@ export const experimentResultsModel = (
         <SweepSurface
           key={experiment.id}
           experiment={experiment}
-          following={driving}
+          following={following !== null}
           tone={tone}
         />
       ) : null,

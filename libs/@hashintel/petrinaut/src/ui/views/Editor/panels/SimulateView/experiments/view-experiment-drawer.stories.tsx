@@ -123,7 +123,8 @@ const storyOptimizer: PetrinautConnectedOptimization = {
 /**
  * The sweep drawer with the in-browser optimizer available: the Parameters
  * card offers Optimize, and with a study driving the sweep it turns purple,
- * its sliders follow the steps and Stop replaces the button.
+ * the header reads Optimizing, its sliders follow the steps and the button
+ * reads Stop.
  */
 const OptimizableSweep = ({ driving }: { driving: boolean }) => {
   const sweep = makeParameterSweepExperiment();

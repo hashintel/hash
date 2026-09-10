@@ -8,7 +8,6 @@ import {
 } from "./visited-field";
 
 import type { ExperimentParameterAxis } from "../../../../../../../react/experiments/parameter-grid";
-import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
 /** Fifty positions, so the plot samples eleven columns. */
 const X: ExperimentParameterAxis = {
@@ -26,20 +25,6 @@ const Y: ExperimentParameterAxis = {
   stepCount: 10,
   integer: true,
 };
-
-const frame = (value: number): MonteCarloUserDefinedMetricFrame => ({
-  metricId: "m",
-  label: "M",
-  outputType: "distribution",
-  frameNumber: 1,
-  time: 1,
-  bins: [[value, 8]],
-  value: null,
-  frameValue: null,
-  timeValue: null,
-  runSampleCount: 8,
-  timeSampleCount: 8,
-});
 
 describe("visitedSurfaceField", () => {
   it("places every visited point at its fractional grid coordinate, emphasizing the selected one", () => {
@@ -81,18 +66,16 @@ describe("visitedSurfaceField", () => {
 });
 
 describe("computingSurfaceField", () => {
-  it("rings the point being computed and feeds its running value into the field", () => {
+  it("rings the point being computed and adds no value: the fold supplies it", () => {
     const field = computingSurfaceField({
       selection: { x: { from: 10, to: 10 }, y: { from: 2, to: 2 } },
       axes: [X, Y],
       xAxis: X,
       yAxis: Y,
-      metricId: "m",
       computing: true,
-      metricFrames: [frame(4)],
     });
     expect(field.markers).toEqual([{ x: 2, y: 2, kind: "point" }]);
-    expect([...field.values]).toEqual([[contourSurfaceKey(2, 2), 4]]);
+    expect(field.values.size).toBe(0);
   });
 
   it("draws nothing for a range selection or an idle sweep", () => {
@@ -101,18 +84,14 @@ describe("computingSurfaceField", () => {
       axes: [X, Y],
       xAxis: X,
       yAxis: Y,
-      metricId: "m",
       computing: false,
-      metricFrames: [frame(4)],
     });
     const range = computingSurfaceField({
       selection: { x: { from: 0, to: 50 }, y: { from: 2, to: 2 } },
       axes: [X, Y],
       xAxis: X,
       yAxis: Y,
-      metricId: "m",
       computing: true,
-      metricFrames: [frame(4)],
     });
     expect(idle.markers).toEqual([]);
     expect(range.markers).toEqual([]);
@@ -126,6 +105,7 @@ describe("describeVisitedSurface", () => {
       describeVisitedSurface({
         visitedCount: 0,
         computing: false,
+        pointSelection: false,
         runsCompleted: 0,
         runTarget: null,
         following: false,
@@ -135,6 +115,7 @@ describe("describeVisitedSurface", () => {
       describeVisitedSurface({
         visitedCount: 3,
         computing: true,
+        pointSelection: true,
         runsCompleted: 8,
         runTarget: 25,
         following: false,
@@ -142,12 +123,41 @@ describe("describeVisitedSurface", () => {
     ).toBe(
       "3 points · computing the selected point: 8 of 25 runs · drag or click to compute a point",
     );
+  });
+
+  it("words a range compute as the navigator does", () => {
+    expect(
+      describeVisitedSurface({
+        visitedCount: 3,
+        computing: true,
+        pointSelection: false,
+        runsCompleted: 8,
+        runTarget: null,
+        following: false,
+      }),
+    ).toBe(
+      "3 points · sampling across the selected ranges: 8 runs · drag or click to compute a point",
+    );
+  });
+
+  it("names the step's point computing while the optimizer drives, and the optimizer choosing between steps", () => {
     expect(
       describeVisitedSurface({
         visitedCount: 1,
         computing: true,
+        pointSelection: true,
+        runsCompleted: 5,
+        runTarget: 8,
+        following: true,
+      }),
+    ).toBe("1 point · computing the selected point: 5 of 8 runs");
+    expect(
+      describeVisitedSurface({
+        visitedCount: 1,
+        computing: false,
+        pointSelection: true,
         runsCompleted: 8,
-        runTarget: 25,
+        runTarget: null,
         following: true,
       }),
     ).toBe("1 point · the optimizer is choosing the next point");

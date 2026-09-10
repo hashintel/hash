@@ -55,7 +55,8 @@ the list and the drawer.
 The model's header: the one-line title `studyTitle` (the name, then
 `describeStudy`: the scenario, then `Maximize` or `Minimize` and the metric);
 the `headline` slot holding `StudyHeader` (`study-results/study-header.tsx`),
-`describeStudyProgress` (`Step 17 of 30 · best step so far: step 12 (650.5)`
+`describeStudyProgress` (`SimulateView/shared/describe-study-progress.ts`,
+shared with the sweep navigator; `Step 17 of 30 · best step so far: step 12 (650.5)`
 while running; `Paused at 12 of 30 steps · 1 step finishing · …` with a grey
 **Paused** chip while paused; `Finished`, `Stopped`, `Cancelled` or `Failed
 after …` once settled) and, while running, a verdict chip from
@@ -192,10 +193,16 @@ cap. The provider gives such a study an `origin` (`{ kind: "sweep",
 experimentId }`), no connected state and no drawer navigation, routes its
 run's `evaluateTrial` to a sweep trial evaluator
 ([react.optimizations.sweep-evaluator](layer:react.optimizations.sweep-evaluator))
-in front of the channel, and hides it from this tab's list. While the study
-runs the card takes the `optimizing` tone, its sliders follow the trials
-disabled, and a Stop button cancels the study; settling parks the sweep, uncapped,
-on the best point, or on the point it was trying when Stop ended it.
+in front of the channel, and hides it from this tab's list. The hook exposes
+the study and `driving`, the step of the study driving the sweep or null.
+While it drives, the card takes the `optimizing` tone, its sliders follow the
+trials disabled, the same purple button reads Stop and cancels the study, and
+the experiment drawer's header reads from the study: **Optimizing**, the
+steps finished as the progress bar, `Step N` on the computing batch. Settling
+parks the sweep, uncapped, on the best point, or on the point it was trying
+when Stop ended it; the navigator's status line then keeps the outcome
+(`describeStudyProgress`), the drawer's note row shows a failed study's error,
+and the experiment's Cancel stops a driving study first.
 
 ## The steps table
 

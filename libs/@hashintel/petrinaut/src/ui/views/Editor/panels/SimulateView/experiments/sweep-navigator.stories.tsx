@@ -90,6 +90,7 @@ const StatefulNavigator = ({
         axes={axes}
         selection={selection}
         status={status}
+        disabled={false}
         onSelectionChange={setSelection}
       />
     </div>
@@ -162,12 +163,13 @@ export const FollowingOptimizer: Story = {
         }}
         status={{
           computing: true,
-          following: { step: 4, total: 30 },
+          following: { kind: "following", step: 4, total: 30 },
           runsCompleted: 0,
           runsSampled: 5,
           runTarget: 8,
           runCount: 100,
         }}
+        disabled
         onSelectionChange={() => {}}
       />
     </div>
@@ -302,6 +304,7 @@ const NavigatorWithStreamingMetrics = () => {
         axes={axes}
         selection={selection}
         status={status}
+        disabled={false}
         onSelectionChange={setSelection}
       />
       <ChartCard
@@ -503,6 +506,7 @@ const RealSweepSession = ({
           runTarget: experiment.sweep.runTarget,
           runCount: experiment.runCount,
         }}
+        disabled={false}
         onSelectionChange={(selection) =>
           setSweepSelection(experiment.id, selection)
         }

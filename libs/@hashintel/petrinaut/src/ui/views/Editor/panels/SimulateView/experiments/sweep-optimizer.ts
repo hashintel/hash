@@ -13,7 +13,11 @@ import {
 } from "@hashintel/petrinaut-core/optimization";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
-import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import {
+  currentTrialNumber,
+  isOptimizationActive,
+  OptimizationsContext,
+} from "../../../../../../react/optimizations/context";
 import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { directionWord } from "../shared/study-labels";
@@ -163,24 +167,16 @@ export const buildSweepOptimizationInput = ({
   });
 };
 
-/** Whether a study still places steps. */
-export const isStudyDriving = (
-  study: Pick<OptimizationRecord, "status"> | null,
-): boolean =>
-  study !== null &&
-  (study.status === "initializing" || study.status === "running");
+/** The step a driving study is on, of those requested. */
+export type SweepStepProgress = { step: number; total: number };
 
-/** Steps the study has placed so far, of those requested. */
-export const studyStepProgress = (
+const studyStepProgress = (
   study: Pick<
     OptimizationRecord,
     "completedTrials" | "prunedTrials" | "failedTrials" | "requestedTrials"
   >,
-): { step: number; total: number } => ({
-  step: Math.min(
-    study.requestedTrials,
-    study.completedTrials + study.prunedTrials + study.failedTrials + 1,
-  ),
+): SweepStepProgress => ({
+  step: currentTrialNumber(study),
   total: study.requestedTrials,
 });
 
@@ -190,10 +186,13 @@ export type SweepOptimizer = {
    * the experiment has a saved scenario and at least one metric.
    */
   available: boolean;
-  /** The study started from this sweep most recently; null before any. */
+  /**
+   * The study started from this sweep most recently; null before any. Read
+   * for its outcome and its error once `driving` is null.
+   */
   study: OptimizationRecord | null;
-  /** Whether that study drives the sweep now. */
-  driving: boolean;
+  /** The step of the study driving the sweep now; null while none does. */
+  driving: SweepStepProgress | null;
   /** Starts a study; rejects with the reason when the experiment cannot be one. */
   start: (choice: SweepOptimizationChoice) => Promise<void>;
   /** Stops the driving study; the sweep keeps its last point. */
@@ -241,7 +240,10 @@ export const useSweepOptimizer = (
   return {
     available,
     study,
-    driving: isStudyDriving(study),
+    driving:
+      study !== null && isOptimizationActive(study)
+        ? studyStepProgress(study)
+        : null,
     start: async (choice) => {
       if (scenario === null) {
         throw new Error("The experiment's scenario is gone");
@@ -271,7 +273,7 @@ export const useSweepOptimizer = (
       });
     },
     stop: () => {
-      if (study !== null && isStudyDriving(study)) {
+      if (study !== null && isOptimizationActive(study)) {
         cancelOptimization(study.id);
       }
     },

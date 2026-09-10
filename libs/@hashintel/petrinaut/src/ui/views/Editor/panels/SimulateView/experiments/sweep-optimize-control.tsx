@@ -1,14 +1,14 @@
 /**
- * The Parameters card's optimizer control, on the right of its header. At
- * rest, an Optimize button opening a small prompt: the metric to optimize,
- * the direction, the number of steps, Start. While a study drives the sweep,
- * a chip counting its steps and a Stop button.
+ * The Parameters card's optimizer control, on the right of its header: one
+ * purple button. At rest it reads Optimize and opens a small prompt: the
+ * metric to optimize, the direction, the number of steps, Start. While a
+ * study drives the sweep the same button reads Stop; the navigator's status
+ * line beneath counts the steps.
  */
 import { useRef, useState } from "react";
 
 import {
   Button,
-  Chip,
   NumberInput,
   Popover,
   SegmentedControl,
@@ -20,7 +20,6 @@ import {
   SWEEP_OPTIMIZATION_DEFAULT_STEPS,
   type SweepOptimizationDirection,
   type SweepOptimizer,
-  studyStepProgress,
 } from "./sweep-optimizer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
@@ -36,13 +35,6 @@ const optimizeButtonStyle = css({
     backgroundColor: "purple.s20",
     borderColor: "purple.s80",
   },
-});
-
-const runningStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  flexShrink: "0",
 });
 
 const formStyle = css({
@@ -93,30 +85,7 @@ export const SweepOptimizeControl = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
-
-  if (optimizer.driving && optimizer.study) {
-    const progress = studyStepProgress(optimizer.study);
-    return (
-      <span className={runningStyle} data-sweep-optimizing>
-        <Chip
-          size="xs"
-          color="purple"
-          variant="soft"
-          prefix={{ loading: true }}
-        >
-          Optimizing · step {progress.step} of {progress.total}
-        </Chip>
-        <Button
-          variant="ghost"
-          size="xs"
-          iconName="stop"
-          aria-label="Stop optimizing"
-          tooltip="Stop optimizing"
-          onClick={optimizer.stop}
-        />
-      </span>
-    );
-  }
+  const driving = optimizer.driving !== null;
 
   const start = async () => {
     if (steps === null || steps < 1) {
@@ -136,19 +105,34 @@ export const SweepOptimizeControl = ({
 
   return (
     <>
-      <Button
-        ref={triggerRef}
-        className={optimizeButtonStyle}
-        variant="subtle"
-        tone="neutral"
-        size="xs"
-        iconName="sparkles"
-        aria-expanded={open}
-        onClick={() => setOpen((previous) => !previous)}
-      >
-        Optimize
-      </Button>
-      {open ? (
+      {driving ? (
+        <Button
+          className={optimizeButtonStyle}
+          variant="subtle"
+          tone="neutral"
+          size="xs"
+          iconName="stop"
+          tooltip="Stop optimizing; the sweep keeps its point"
+          data-sweep-optimizing
+          onClick={optimizer.stop}
+        >
+          Stop
+        </Button>
+      ) : (
+        <Button
+          ref={triggerRef}
+          className={optimizeButtonStyle}
+          variant="subtle"
+          tone="neutral"
+          size="xs"
+          iconName="sparkles"
+          aria-expanded={open}
+          onClick={() => setOpen((previous) => !previous)}
+        >
+          Optimize
+        </Button>
+      )}
+      {open && !driving ? (
         <Popover
           triggerRef={triggerRef}
           position="bottom-end"

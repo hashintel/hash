@@ -4,6 +4,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { describeStudyProgress } from "../../shared/describe-study-progress";
 import { formatNumber } from "../../shared/format-value";
 import {
   makeConnectedStudyState,
@@ -12,7 +13,7 @@ import {
   makeTrials,
   optimizedBindingSets,
 } from "../optimizations-story-fixtures";
-import { describeStudyProgress, StudyHeader } from "./study-header";
+import { StudyHeader } from "./study-header";
 
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 

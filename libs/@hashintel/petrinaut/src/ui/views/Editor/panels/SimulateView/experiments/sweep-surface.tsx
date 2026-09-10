@@ -2,11 +2,12 @@
  * The sweep surface: a contour of one metric's final value over two swept
  * parameters, drawn from the points the sweep has computed. Every visited
  * point is a dot with its value, the field is interpolated between them, and
- * the point being computed is a ring whose running value enters the field as
- * its runs complete. Nothing samples on its own: the surface fills in as the
- * navigator's controls, a pick on the plot, or an optimizer move the
- * selection. Picking a point collapses both shown parameters to it; while an
- * optimizer drives the sweep the plot only displays.
+ * the point being computed is a ring, which the fold turns into a dot.
+ * Nothing samples on its own: the surface fills in as the navigator's
+ * controls, a pick on the plot, or an optimizer move the selection. Picking
+ * a point collapses every parameter to a point — the two shown ones to the
+ * pick, the others to the middle of their ranges; while an optimizer drives
+ * the sweep the plot only displays.
  */
 import { use, useState } from "react";
 
@@ -38,27 +39,27 @@ import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
   computingSurfaceField,
   describeVisitedSurface,
+  isPointSelection,
   visitedSurfaceField,
 } from "./sweep-surface/visited-field";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
-import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
+import type {
+  ExperimentParameterAxis,
+  SweepAxisSelection,
+} from "../../../../../../react/experiments/parameter-grid";
 import type { ContourSurfaceFraction } from "../../../../../components/contour-surface";
 import type { ChartCardTone } from "../shared/chart-card";
-import type { ReactNode } from "react";
 
 export const SweepSurface = ({
   experiment,
-  following = false,
+  following,
   tone,
-  actions,
 }: {
   experiment: ExperimentRecord;
   /** An optimizer moves the selection: the plot displays and never picks. */
-  following?: boolean;
+  following: boolean;
   tone?: ChartCardTone;
-  /** The header's right side, e.g. a help tooltip. */
-  actions?: ReactNode;
 }) => {
   const { setSweepSelection } = use(ExperimentsActionsContext);
   const axes = experiment.parameterAxes;
@@ -80,13 +81,17 @@ export const SweepSurface = ({
     if (!xAxis || !yAxis) {
       return;
     }
-    const xPosition = surfaceAxisPosition(xAxis, fraction.x);
-    const yPosition = surfaceAxisPosition(yAxis, fraction.y);
-    setSweepSelection(experiment.id, {
-      ...selection,
-      [xAxis.identifier]: { from: xPosition, to: xPosition },
-      [yAxis.identifier]: { from: yPosition, to: yPosition },
-    });
+    const picked: Record<string, SweepAxisSelection> = {};
+    for (const axis of axes) {
+      const position =
+        axis === xAxis
+          ? surfaceAxisPosition(xAxis, fraction.x)
+          : axis === yAxis
+            ? surfaceAxisPosition(yAxis, fraction.y)
+            : Math.round(selectionMidpoint(selection, axis));
+      picked[axis.identifier] = { from: position, to: position };
+    }
+    setSweepSelection(experiment.id, picked);
   };
 
   /** The axis readout a plot fraction lands on. */
@@ -111,9 +116,7 @@ export const SweepSurface = ({
             axes,
             xAxis,
             yAxis,
-            metricId,
             computing: sweep.computing,
-            metricFrames: experiment.metricFrames,
           }),
         )
       : null;
@@ -132,12 +135,12 @@ export const SweepSurface = ({
         text: describeVisitedSurface({
           visitedCount: sweep.visited.length,
           computing: sweep.computing,
+          pointSelection: isPointSelection(selection, axes),
           runsCompleted: sweep.runsCompleted,
           runTarget: sweep.runTarget,
           following,
         }),
       })}
-      actions={actions}
       bodyHeight={SURFACE_PLOT_HEIGHT}
       // The axis selects on one row, the metric select on the next.
       footerHeight={SURFACE_FOOTER_TWO_ROW_HEIGHT}
