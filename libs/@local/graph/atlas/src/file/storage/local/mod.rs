@@ -73,10 +73,10 @@ impl<'path> LocalFile<'path> {
     )]
     pub(crate) async fn write(
         &self,
-        mut source: impl AsyncRead,
+        source: impl AsyncRead,
         condition: &WriteCondition,
     ) -> Result<(), StorageError> {
-        // we uses `.storage-` prefixed files for temporary allocation
+        // we reserve `.storage-` names for the staging directory and shared lock.
         if self.path.file_name().is_none()
             || self
                 .path
@@ -100,8 +100,8 @@ impl<'path> LocalFile<'path> {
             .unwrap_or_else(|| Utf8Path::new("."));
         fs::create_dir_all(parent).await?;
 
-        // readers should be able to see and observe the complete directory structure,
-        // this allows us to skip the `sync_all` call on each ancestor after the rename.
+        // we persist newly created directory entries before publication, then sync the
+        // destination's parent again after rename.
         for ancestor in parent.ancestors() {
             let ancestor = if ancestor.as_str().is_empty() {
                 Utf8Path::new(".")
@@ -112,7 +112,7 @@ impl<'path> LocalFile<'path> {
             File::open(ancestor).await?.sync_all().await?;
         }
 
-        // Persistent lock file, same inode, so that concurrent writers detect contention.
+        // keep the lock file in place so cooperating writers continue to lock the same inode.
         let lock = fs::File::options()
             .read(true)
             .write(true)
@@ -121,13 +121,13 @@ impl<'path> LocalFile<'path> {
             .open(parent.join(".storage-lock"))
             .await?;
 
-        // `asyncify` for locks, see: https://github.com/tokio-rs/tokio/issues/7523
-        let file = lock.into_std().await;
-        let file = tokio::task::spawn_blocking(|| file.lock().map(|()| file)).await??;
-        let file = fs::File::from_std(file);
+        // tokio does not expose file locking yet. we asyncify the blocking lock ourselves.
+        // https://github.com/tokio-rs/tokio/issues/7523
+        let lock = lock.into_std().await;
+        let lock = tokio::task::spawn_blocking(move || lock.lock().map(|()| lock)).await??;
 
-        // given the lock, we can now be sure that we're the only writer, therefore check the write
-        // condition now. This has TOCTOU potential, but only through external processes.
+        // with the shared lock held, we check the condition for replacement while other cooperating
+        // writers wait.
         match condition {
             WriteCondition::Any => {}
             WriteCondition::Absent => match fs::symlink_metadata(self.path).await {
@@ -150,15 +150,14 @@ impl<'path> LocalFile<'path> {
             }
         }
 
-        // stage the temporary file, to make sure that readers are only able to observe the complete
-        // contents. we do all the operations here and only once finished we rename it to the final
-        // destination.
+        // we prepare the new contents beside the destination and publish them with rename only
+        // after the file is complete and synced.
         let scratch = parent.join(format!(".storage-{}", Uuid::now_v7()));
         fs::create_dir(&scratch).await?;
 
         let scratch = ScratchDirectory::new(scratch);
-        let (temporary, mut file) = scratch.file("contents")?;
-        let file = fs::File::from_std(file);
+        let (temporary, file) = scratch.file("contents")?;
+        let mut file = fs::File::from_std(file);
 
         let mut source = pin!(source);
         tokio::io::copy(&mut source, &mut file).await?;
@@ -168,7 +167,7 @@ impl<'path> LocalFile<'path> {
 
         fs::rename(&temporary, self.path).await?;
 
-        // sync the directory (inode) to make sure the rename is visible to readers
+        // now sync the destination's parent directory to persist the replacement entry.
         File::open(parent).await?.sync_all().await?;
 
         drop(scratch);

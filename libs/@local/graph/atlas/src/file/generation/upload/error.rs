@@ -1,6 +1,8 @@
 use core::{error::Error, fmt};
 use std::io;
 
+use tokio::task::JoinError;
+
 use crate::{
     file::{
         generation::OpenError,
@@ -11,7 +13,6 @@ use crate::{
         },
     },
     integrity::{ParseHexError, Sha256Digest},
-    offload::OffloadError,
 };
 
 /// A failure to complete or select a destination generation.
@@ -26,7 +27,7 @@ pub(crate) enum UploadError {
     /// A local artifact failed its metadata document's integrity check.
     Integrity(IntegrityVerificationError),
     /// A filesystem worker failed to return its result.
-    Offload(OffloadError),
+    Join(JoinError),
     /// The destination current pointer is not a canonical generation identity.
     Current(ParseHexError),
     /// Reading an object body failed.
@@ -48,7 +49,7 @@ impl fmt::Display for UploadError {
             Self::Path(error) => write!(fmt, "constructing the upload path failed: {error}"),
             Self::Storage(error) => write!(fmt, "generation transfer failed: {error}"),
             Self::Integrity(error) => write!(fmt, "the local upload artifact is invalid: {error}"),
-            Self::Offload(error) => write!(fmt, "the upload filesystem worker failed: {error}"),
+            Self::Join(error) => write!(fmt, "the upload filesystem worker failed: {error}"),
             Self::Current(error) => {
                 write!(fmt, "the destination current pointer is invalid: {error}")
             }
@@ -72,7 +73,7 @@ impl Error for UploadError {
             Self::Path(error) => Some(error),
             Self::Storage(error) | Self::Conflict(error) => Some(error),
             Self::Integrity(error) => Some(error),
-            Self::Offload(error) => Some(error),
+            Self::Join(error) => Some(error),
             Self::Current(error) => Some(error),
             Self::Io(error) => Some(error),
             Self::Checksum { .. } => None,
@@ -104,9 +105,9 @@ impl From<IntegrityVerificationError> for UploadError {
     }
 }
 
-impl From<OffloadError> for UploadError {
-    fn from(error: OffloadError) -> Self {
-        Self::Offload(error)
+impl From<JoinError> for UploadError {
+    fn from(error: JoinError) -> Self {
+        Self::Join(error)
     }
 }
 

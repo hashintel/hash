@@ -43,8 +43,7 @@ impl BucketPath {
         let separator = if self.key().ends_with('/') { "" } else { "/" };
 
         let mut next =
-            BucketPath::new_box_zeroed_with_elems(self.path.len() + separator.len() + suffix.len())
-                .map_err(FilePathError::AllocationFailed)?;
+            Self::new_box_zeroed_with_elems(self.path.len() + separator.len() + suffix.len())?;
 
         let mut index = 0;
         next.path[..self.path.len()].copy_from_str(&self.path);
@@ -53,8 +52,8 @@ impl BucketPath {
         index += separator.len();
         next.path[index..].copy_from_str(suffix);
 
-        // The separator does not move
-        next.separator.set(index);
+        // appending to the key preserves the original bucket/key separator.
+        next.separator.set(self.separator.get());
         Ok(next)
     }
 
@@ -71,7 +70,7 @@ impl AsRef<str> for BucketPath {
 
 impl fmt::Debug for BucketPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("S3Path")
+        fmt.debug_struct("BucketPath")
             .field("bucket", &self.bucket())
             .field("key", &self.key())
             .finish()
@@ -111,7 +110,7 @@ impl FromStr for Box<BucketPath> {
 
 // SAFETY: CloneToUninit requires a valid Self at dest on normal return. Cloning the separator and
 // complete UTF-8 tail initializes every field with the source's metadata. The result is a valid
-// S3Path.
+// BucketPath.
 unsafe impl CloneToUninit for BucketPath {
     /// Initializes a destination with the separator and complete path text.
     ///

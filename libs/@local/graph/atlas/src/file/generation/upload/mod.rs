@@ -33,7 +33,7 @@ impl Current {
         backend: &impl GenerationUploadBackend,
         path: &FilePath,
     ) -> Result<Option<Self>, UploadError> {
-        // hex = 2*bytes + 1 (for the newline)
+        // read one byte beyond the hex identity to detect trailing data.
         const LIMIT: u64 = (Sha256Digest::BYTES * 2 + 1) as u64;
 
         let contents = match backend.get(path).await {
@@ -183,7 +183,7 @@ where
             })
             .await??;
 
-            let generation = returned;
+            generation = returned;
             let result = self
                 .backend
                 .upload(&destination, path.as_ref(), WriteCondition::Absent)

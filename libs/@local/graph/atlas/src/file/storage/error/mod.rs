@@ -2,8 +2,7 @@ use core::{error::Error, fmt};
 use std::io;
 
 use aws_sdk_s3::{error::SdkError, primitives::ByteStreamError};
-
-use crate::offload::OffloadError;
+use tokio::task::JoinError;
 
 #[cfg(test)]
 mod tests;
@@ -15,6 +14,8 @@ pub enum StorageError {
     S3Unavailable,
     /// A filesystem operation or streamed transfer failed.
     Io(io::Error),
+    /// A blocking filesystem worker failed to return its result.
+    Join(JoinError),
     /// The local destination has no file name or uses the reserved `.storage-` prefix.
     InvalidLocalDestination,
     /// The revision belongs to a different storage backend.
@@ -68,6 +69,7 @@ impl fmt::Display for StorageError {
         match self {
             Self::S3Unavailable => fmt.write_str("S3 storage is not configured"),
             Self::Io(error) => write!(fmt, "file I/O failed: {error}"),
+            Self::Join(error) => write!(fmt, "the filesystem worker failed: {error}"),
             Self::InvalidLocalDestination => {
                 fmt.write_str("invalid or reserved local storage destination")
             }
@@ -102,6 +104,7 @@ impl Error for StorageError {
             | Self::MissingChecksum
             | Self::MissingUploadId => None,
             Self::Io(error) => Some(error),
+            Self::Join(error) => Some(error),
             Self::Body(error) => Some(error),
             Self::Request(error) => Some(error.as_ref()),
         }
@@ -114,9 +117,9 @@ impl From<io::Error> for StorageError {
     }
 }
 
-impl From<OffloadError> for StorageError {
-    fn from(error: OffloadError) -> Self {
-        Self::Io(io::Error::other(error))
+impl From<JoinError> for StorageError {
+    fn from(error: JoinError) -> Self {
+        Self::Join(error)
     }
 }
 

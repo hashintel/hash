@@ -1,14 +1,10 @@
 use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
-use std::{io, pin, task};
 
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
-use tokio::{
-    fs,
-    io::{AsyncBufRead, AsyncRead},
-};
-use tokio_util::{either::Either, io::StreamReader};
+use tokio::{fs, io::AsyncBufRead};
+use tokio_util::either::Either;
 
 use self::error::FilePathError;
 use super::{
@@ -17,73 +13,12 @@ use super::{
 };
 use crate::file::generation::scratch::ScratchFile;
 
+mod contents;
 pub(crate) mod error;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum FileOrigin {
-    Local,
-    Bucket,
-}
-
-pin_project_lite::pin_project! {
-    pub(crate) struct FileContents<R> {
-        #[pin]
-        pub reader: R,
-        revision: Revision,
-    }
-}
-
-impl<R> FileContents<R> {
-    pub(crate) fn revision(&self) -> &Revision {
-        &self.revision
-    }
-
-    pub(crate) fn origin(&self) -> FileOrigin {
-        match self.revision.0 {
-            RevisionKind::Local(_) => FileOrigin::Local,
-            RevisionKind::Bucket(_) => FileOrigin::Bucket,
-        }
-    }
-
-    pub(crate) fn into_inner(self) -> R {
-        self.reader
-    }
-
-    pub(crate) fn into_parts(self) -> (R, Revision) {
-        (self.reader, self.revision)
-    }
-}
-
-impl<R> AsyncRead for FileContents<R>
-where
-    R: AsyncRead,
-{
-    fn poll_read(
-        self: pin::Pin<&mut Self>,
-        cx: &mut task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> task::Poll<io::Result<()>> {
-        self.project().reader.poll_read(cx, buf)
-    }
-}
-
-impl<R> AsyncBufRead for FileContents<R>
-where
-    R: AsyncBufRead,
-{
-    fn poll_fill_buf(
-        self: pin::Pin<&mut Self>,
-        cx: &mut task::Context<'_>,
-    ) -> task::Poll<io::Result<&[u8]>> {
-        self.project().reader.poll_fill_buf(cx)
-    }
-
-    fn consume(self: pin::Pin<&mut Self>, amt: usize) {
-        self.project().reader.consume(amt)
-    }
-}
+pub(crate) use self::contents::{FileContents, FileOrigin};
 
 #[derive(Debug, Clone)]
 enum FilePathVariant {
@@ -130,23 +65,22 @@ impl FilePath {
     ) -> Result<FileContents<impl AsyncBufRead + use<>>, StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
-                let path = path.clone();
-                let (revision, file) = LocalFile::new(&path).get().await?;
+                let (revision, file) = LocalFile::new(path).get().await?;
 
-                Ok(FileContents {
-                    reader: Either::Left(tokio::io::BufReader::new(file)),
+                Ok(FileContents::new(
+                    Either::Left(tokio::io::BufReader::new(file)),
                     revision,
-                })
+                ))
             }
             FilePathVariant::Bucket(path) => {
                 let (Some(etag), reader) = storage.s3()?.read(path).await? else {
                     return Err(StorageError::MissingEntityTag);
                 };
 
-                Ok(FileContents {
-                    reader: Either::Right(reader),
-                    revision: Revision(RevisionKind::Bucket(etag)),
-                })
+                Ok(FileContents::new(
+                    Either::Right(reader),
+                    Revision(RevisionKind::Bucket(etag)),
+                ))
             }
         }
     }
@@ -171,13 +105,7 @@ impl FilePath {
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
-                LocalFile::new(path)
-                    .write(
-                        // feels like there's a more efficient way...
-                        StreamReader::new(futures::stream::iter([Ok::<_, io::Error>(body)])),
-                        &condition,
-                    )
-                    .await
+                LocalFile::new(path).write(body.as_ref(), &condition).await
             }
             FilePathVariant::Bucket(path) => storage
                 .s3()?
@@ -205,11 +133,8 @@ impl FilePath {
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
-                let path = path.clone();
-                let source = source.as_ref().to_owned();
-
-                let source = fs::File::open(source).await?;
-                LocalFile::new(&path).write(source, &condition).await
+                let source = fs::File::open(source.as_ref()).await?;
+                LocalFile::new(path).write(source, &condition).await
             }
             FilePathVariant::Bucket(path) => {
                 storage.s3()?.upload(path, source, condition.as_s3()?).await
@@ -245,10 +170,10 @@ impl FilePath {
         let local = source.sync_to_local(storage).await?;
         let result = self.upload(storage, local.as_ref(), condition).await;
 
-        if let Cow::Owned(temporary) = local {
-            if let Err(error) = tokio::fs::remove_file(temporary).await {
-                tracing::warn!(?error, "failed to remove temporary file");
-            }
+        if let Cow::Owned(temporary) = local
+            && let Err(error) = tokio::fs::remove_file(temporary).await
+        {
+            tracing::warn!(?error, "failed to remove temporary file");
         }
 
         result

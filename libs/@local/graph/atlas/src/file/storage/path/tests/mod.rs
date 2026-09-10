@@ -21,14 +21,16 @@ fn parse_local() {
     let path: FilePath = "relative/file.bin"
         .parse()
         .expect("should parse a local path");
-    assert_matches!(path.as_s3(), None);
+    assert_matches!(&path.variant, FilePathVariant::Local(_));
     assert_eq!(path.to_string(), "relative/file.bin");
 }
 
 #[test]
 fn parse_s3() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
-    let remote = path.as_s3().expect("should retain the S3 variant");
+    let FilePathVariant::Bucket(remote) = &path.variant else {
+        panic!("should retain the S3 variant");
+    };
     assert_eq!((remote.bucket(), remote.key()), ("bucket", "key"));
 }
 
@@ -37,7 +39,7 @@ fn parse_embedded_scheme() {
     let path: FilePath = "not-s3://bucket/key"
         .parse()
         .expect("should parse a local path");
-    assert_matches!(path.as_s3(), None);
+    assert_matches!(&path.variant, FilePathVariant::Local(_));
 }
 
 #[test]
