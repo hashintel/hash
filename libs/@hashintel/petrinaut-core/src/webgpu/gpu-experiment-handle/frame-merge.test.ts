@@ -95,7 +95,7 @@ describe("createFrameMerger", () => {
     expect(state.latestByMetricId.b?.value).toBe(41);
   });
 
-  it("keeps frames the store already held, such as the host-built frame 0", () => {
+  it("keeps frames the store already held across a re-delivery", () => {
     const merger = createFrameMerger();
     let state = createEmptyMetricsState();
     state = merger.ingest(state, [frame("a", 0, 5)]);

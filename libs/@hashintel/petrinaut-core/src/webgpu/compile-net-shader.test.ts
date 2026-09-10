@@ -263,6 +263,49 @@ describe("compileNetShader", () => {
     expect(result.shader.metricIds).toStrictEqual(["infected"]);
   });
 
+  it("samples each frame before stepping it, so row 0 holds the initial marking", () => {
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) throw new Error(result.reason);
+    const wgsl = result.shader.wgsl;
+
+    // Row f holds frame f, the CPU's numbering: the sample reads the registers
+    // as the iteration starts, before `running` gates this frame's step. The
+    // guard is `in_range`, not `running`, because `running` is not yet bound.
+    const sampleAt = wgsl.indexOf("if (in_range && status == 0u) {");
+    const runningAt = wgsl.indexOf("let running = in_range && status == 0u");
+    expect(sampleAt).toBeGreaterThan(-1);
+    expect(runningAt).toBeGreaterThan(sampleAt);
+    expect(wgsl).toContain("atomicAdd(&hist[absolute_frame * ");
+    expect(wgsl).not.toContain("if (running && status == 0u) {");
+  });
+
+  it("never writes the histogram's last row, so sampling first costs no buffer", () => {
+    // The buffer holds `frame_limit` rows. Sampling after the step left row
+    // `frame_limit - 1` empty: every run still running takes status 2 at the
+    // frame limit inside the end-of-frame fold, and a finished run is never
+    // sampled. Sampling first fills rows 0..frame_limit - 1 of the same
+    // buffer, as long as that status flip still follows the sample.
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) throw new Error(result.reason);
+    const wgsl = result.shader.wgsl;
+
+    const sampleAt = wgsl.indexOf("if (in_range && status == 0u) {");
+    const foldAt = wgsl.indexOf(
+      "    if (running) {\n      counts[0u] = u32(max(0, i32(counts[0u]) + pending[0u]));",
+    );
+    const foldEnd = wgsl.indexOf("\n    }\n", foldAt);
+    const completeAt = wgsl.indexOf(
+      "if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }",
+    );
+    expect(foldAt).toBeGreaterThan(sampleAt);
+    expect(completeAt).toBeGreaterThan(foldAt);
+    expect(completeAt).toBeLessThan(foldEnd);
+  });
+
   it("emits no histogram machinery when there are no metrics", () => {
     const result = compileFor(sir);
     if (!result.ok) throw new Error(result.reason);
@@ -752,6 +795,19 @@ function sameScopeRedeclarations(wgsl: string): string[] {
   return found;
 }
 
+/** Open braces minus close braces; anything but zero fails at `createShaderModule`. */
+function unbalancedBraces(wgsl: string): number {
+  let depth = 0;
+  for (const character of wgsl) {
+    if (character === "{") {
+      depth++;
+    } else if (character === "}") {
+      depth--;
+    }
+  }
+  return depth;
+}
+
 describe("generated WGSL validity", () => {
   const cappedSatellites = (): SDCPN => ({
     ...satellites,
@@ -772,6 +828,29 @@ describe("generated WGSL validity", () => {
       }
 
       expect(sameScopeRedeclarations(compiled.shader.wgsl)).toStrictEqual([]);
+    },
+  );
+
+  it.each(["euler", "rk2", "rk4"] as const)(
+    "scans clean with a metric sampled at the top of the frame, with %s",
+    (odeMethod) => {
+      // The sampling block now precedes the dynamics and transition blocks in
+      // the same iteration, so its `let`/`var` declarations share the frame
+      // loop's scope tree with theirs.
+      const space = satellites.places.find((place) => place.name === "Space");
+      if (space === undefined) {
+        throw new Error("the satellites example has no Space place");
+      }
+      const compiled = compileFor(cappedSatellites(), {
+        odeMethod,
+        metrics: [{ id: "in_orbit", placeId: space.id }],
+      });
+      if (!compiled.ok) {
+        throw new Error(compiled.reason);
+      }
+
+      expect(sameScopeRedeclarations(compiled.shader.wgsl)).toStrictEqual([]);
+      expect(unbalancedBraces(compiled.shader.wgsl)).toBe(0);
     },
   );
 

@@ -8,9 +8,9 @@ import type { MetricWindow } from "../metric-windows";
 
 export type GpuHistogramFrame = {
   /**
-   * CPU-aligned frame number: frame 0 is the initial state (built by the
-   * host — the device never samples it), and the histogram's bin `f` holds
-   * the state after step `f`, published as frame `f + 1`.
+   * CPU-aligned frame number: row `f` holds the state after `f` steps,
+   * sampled before step `f`; frame 0 is the initial marking, sampled on the
+   * device like every other frame.
    */
   frameNumber: number;
   metricId: string;

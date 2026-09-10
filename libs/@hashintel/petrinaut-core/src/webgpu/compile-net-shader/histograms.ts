@@ -122,8 +122,12 @@ export const workgroupHistogramLines = (
       ];
 
 /**
- * Emits the end-of-frame sampling: zero the workgroup histogram, bin each
- * live run's counts, then flush to the global histogram and range.
+ * Emits the start-of-frame sampling: zero the workgroup histogram, bin each
+ * live run's counts, then flush to the global histogram and range. Sampling
+ * precedes the step, so row `f` holds the state after `f` steps and row 0 is
+ * the initial marking; no row is spent on it, because the last row was never
+ * written when sampling followed the step (every run still running takes
+ * `status = 2u` at the frame limit).
  */
 export const emitFrameHistograms = (
   push: (line: string) => void,
@@ -139,7 +143,16 @@ export const emitFrameHistograms = (
     return;
   }
   const totalBins = bins * metrics.length;
-  push(`    // per-frame histograms, reduced in workgroup memory`);
+  push(
+    `    // per-frame histograms, reduced in workgroup memory: the state after`,
+  );
+  push(
+    `    // \`absolute_frame\` steps, so row f is frame f and row 0 is the initial`,
+  );
+  push(
+    `    // marking. A run is sampled while active, the CPU metric default, which`,
+  );
+  push(`    // excludes a run in the frame it deadlocks or completes.`);
   push(
     `    for (var b: u32 = lid; b < ${totalBins}u; b = b + ${workgroupSize}u) {`,
   );
@@ -159,12 +172,13 @@ export const emitFrameHistograms = (
         `metric \`${metric.id}\` references unknown place ${metric.placeId}`,
       );
     }
-    // Samples only runs still active after this frame's step: the CPU metric
-    // default excludes a run in the frame it deadlocks or completes, because
-    // its status flips before the observation. A sample outside the window
-    // clamps into the edge bin and is counted as an escape, which triggers a
-    // recalibrated re-run — the clamped picture is only ever an intermediate.
-    push(`    if (running && status == 0u) {`);
+    // Samples only runs still active at the top of the frame: the previous
+    // step set the status, so the CPU metric default's exclusion of a run in
+    // the frame it deadlocks or completes holds here too. A sample outside the
+    // window clamps into the edge bin and is counted as an escape, which
+    // triggers a recalibrated re-run — the clamped picture is only ever an
+    // intermediate.
+    push(`    if (in_range && status == 0u) {`);
     push(`      let c${metricIndex} = counts[${placeIndex}u];`);
     push(`      atomicMin(&local_min[${metricIndex}u], c${metricIndex});`);
     push(`      atomicMax(&local_max[${metricIndex}u], c${metricIndex});`);
