@@ -15,7 +15,7 @@ import {
   type DefinitionObservation,
   reconcileMutationAttempts,
   verifyMutationAttempt,
-  type ConstructionMutationAttempt as ArcMutationAttempt,
+  type ArcMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,

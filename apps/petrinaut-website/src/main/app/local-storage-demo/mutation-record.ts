@@ -21,7 +21,7 @@ import {
   parseObservedStateInput,
   observedStateMutationNames,
   type ClientToolResultMetadata,
-  type ConstructionMutationAttempt as ArcMutationAttempt,
+  type ConstructionMutationAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
@@ -79,7 +79,7 @@ export const createBrowserMutationRecorder = ({
   const binding = structuredClone(suppliedBinding);
   if (binding.documentId !== handle.id)
     throw new Error("The transition binding does not match the live handle.");
-  const attemptsByCall = new Map<string, ArcMutationAttempt[]>();
+  const attemptsByCall = new Map<string, ConstructionMutationAttempt[]>();
   const results = new Map<
     string,
     {
@@ -90,7 +90,7 @@ export const createBrowserMutationRecorder = ({
   >();
 
   const retain = (
-    attempt: ArcMutationAttempt,
+    attempt: ConstructionMutationAttempt,
     { verifyEffects = true }: { verifyEffects?: boolean } = {},
   ) => {
     if (verifyEffects) assertMutationEffects(attempt);
@@ -144,7 +144,7 @@ export const createBrowserMutationRecorder = ({
     // Reject unearned scope before reserving this executor.
     deriveEffects(request, pre.definition, pre.definition);
     results.set(call.toolCallId, { request });
-    const attempt: ArcMutationAttempt = {
+    const attempt: ConstructionMutationAttempt = {
       request,
       binding: structuredClone(binding),
       pre,
@@ -287,7 +287,7 @@ export const createBrowserMutationRecorder = ({
     executeMutation,
     records: () => [...attemptsByCall.values()].map(reconcileMutationAttempts),
     /** External deliveries are verified before they can alter the first outcome. */
-    acceptDelivery: async (attempt: ArcMutationAttempt) => {
+    acceptDelivery: async (attempt: ConstructionMutationAttempt) => {
       const verified = await verifyMutationAttempt(attempt);
       const expected = requestFor(verified.request.toolCallId);
       if (canonicalContent(verified.request) !== canonicalContent(expected))
