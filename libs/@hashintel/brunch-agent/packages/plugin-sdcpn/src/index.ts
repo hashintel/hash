@@ -13,10 +13,12 @@
 export {
   assertArcEffects,
   canonicalContent,
+  classifyTransitionOutcome,
   clientToolResultMetadataSchema,
   deriveArcEffects,
   expectedNodeDefinition,
   observedArcOutcome,
+  type ClassifiedTransitionOutcome,
   parseClientToolResultMetadata,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,

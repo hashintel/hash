@@ -4,6 +4,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   assertArcEffects,
   canonicalContent,
+  classifyTransitionOutcome,
   deriveArcEffects,
   observedArcOutcome,
   parseJoinedRootArcInput,
@@ -211,10 +212,15 @@ export const createBrowserTransitionRecorder = ({
         pre.definition,
         attempt.post.definition,
       );
-      attempt.outcome = observedArcOutcome(attempt);
+      const classified = classifyTransitionOutcome(attempt);
+      attempt.outcome = classified.outcome;
+      // The catch below records this message as `attempt.error`, so the reason
+      // an outcome is unknown survives in the retained record.
       if (attempt.outcome === "unknown")
         throw new Error(
-          "Unmapped browser effects require review; do not retry.",
+          `Unmapped browser effects require review; do not retry.${
+            classified.reason === undefined ? "" : ` (${classified.reason})`
+          }`,
         );
       retain(attempt);
       const observedOutput: MutationOutput =

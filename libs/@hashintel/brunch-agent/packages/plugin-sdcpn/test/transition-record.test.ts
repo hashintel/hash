@@ -10,12 +10,14 @@ import {
 
 import {
   assertArcEffects,
+  classifyTransitionOutcome,
   deriveArcEffects,
   observedArcOutcome,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
   type ArcTransitionAttempt,
+  type ConstructionTransitionAttempt,
 } from "../src/transition-record";
 
 const pre: SDCPN = {
@@ -152,6 +154,31 @@ describe("root addArc transition semantics", () => {
     await expect(verifyArcTransitionAttempt(attempt)).rejects.toThrow(
       /outcome/u,
     );
+  });
+
+  test("explains an unknown node outcome when the expected definition cannot be derived", () => {
+    const attempt = applied();
+    const nested: ConstructionTransitionAttempt = {
+      ...attempt,
+      request: {
+        ...attempt.request,
+        toolName: "updatePlace",
+        input: {
+          placeId: "a3-place",
+          targetSubnetId: "a3-subnet",
+          update: { name: "Renamed" },
+        },
+      },
+    };
+    const classified = classifyTransitionOutcome(nested);
+    expect(classified.outcome).toBe("unknown");
+    expect(classified.reason).toMatch(
+      /^expected definition unavailable: Nested construction is unavailable/u,
+    );
+    // The projection is unchanged: callers that only want the outcome see `unknown`.
+    expect(observedArcOutcome(nested)).toBe("unknown");
+    // A derivable node outcome carries no reason.
+    expect(classifyTransitionOutcome(attempt)).toEqual({ outcome: "applied" });
   });
 
   test("does not attribute failed, no-op, stale or unknown attempts as applied changes", () => {
