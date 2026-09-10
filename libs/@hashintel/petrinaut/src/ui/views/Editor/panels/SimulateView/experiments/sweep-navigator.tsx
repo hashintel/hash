@@ -1,16 +1,16 @@
 /**
  * The parameter navigator of a sweep: one slider row per swept parameter,
- * plus a sampling status line. Each slider selects a position range on the
+ * plus a status line. Each slider selects a position range on the
  * parameter's quantized interval — the whole interval by default,
  * collapsible to a single point — and committing a move reports the new
  * selection so the owner can redirect compute to it. In the experiment
- * drawer this strip is the Parameters band across the body, under the
- * header.
+ * drawer this is the Parameters card's content, under the header.
  *
- * Purely presentational: selection and sampling progress come in as props,
- * and the only output is `onSelectionChange`. Slider moves commit live —
- * positions are quantized, so a drag emits one change per step crossed and
- * compute follows the thumb.
+ * Purely presentational: selection and progress come in as props, and the
+ * only output is `onSelectionChange`. Slider moves commit live — positions
+ * are quantized, so a drag emits one change per step crossed and compute
+ * follows the thumb. While an optimizer drives the sweep the controls only
+ * show where it went: they are disabled, and the status line names the step.
  */
 import {
   LoadingSpinner,
@@ -33,10 +33,15 @@ import type {
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 
-/** Sampling progress shown under the sliders. */
+/** Progress shown under the sliders. */
 export type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
+  /**
+   * The optimizer step the selection follows, when a study drives the
+   * sweep: the controls are disabled and show its point. Null otherwise.
+   */
+  following: { step: number; total: number } | null;
   /** Runs finished for the selection so far. */
   runsCompleted: number;
   /** Runs finished within the currently running batch's target. */
@@ -112,10 +117,12 @@ const spinnerSlotStyle = css({
 const AxisControl = ({
   axis,
   selected,
+  disabled,
   onSelect,
 }: {
   axis: ExperimentParameterAxis;
   selected: SweepAxisSelection;
+  disabled: boolean;
   onSelect: (range: SweepAxisSelection) => void;
 }) => {
   const isPoint = selected.from === selected.to;
@@ -135,6 +142,7 @@ const AxisControl = ({
     <>
       <SegmentedControl
         size="xs"
+        disabled={disabled}
         aria-label={`${axisDisplayName(axis)} selection mode`}
         items={[
           { value: "range", label: "Range" },
@@ -162,6 +170,7 @@ const AxisControl = ({
           max={axis.stepCount}
           step={1}
           value={selected.from}
+          disabled={disabled}
           aria-label={axisDisplayName(axis)}
           onChange={commitPoint}
         />
@@ -172,6 +181,7 @@ const AxisControl = ({
           max={axis.stepCount}
           step={1}
           value={[selected.from, selected.to]}
+          disabled={disabled}
           aria-label={axisDisplayName(axis)}
           onChange={commitRange}
         />
@@ -204,11 +214,20 @@ const SamplingStatus = ({
       <span className={spinnerSlotStyle} data-idle={!status.computing}>
         <LoadingSpinner size="xs" />
       </span>
-      {status.computing ? (
+      {status.following ? (
+        <span>
+          Following step {status.following.step} of {status.following.total}
+          {status.computing
+            ? ` — ${status.runsSampled} of ${status.runTarget ?? status.runCount} runs`
+            : ""}
+        </span>
+      ) : status.computing ? (
         <span>
           {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
           {activity}
         </span>
+      ) : status.runsCompleted === 0 ? (
+        <span>move a control or click the surface to compute a point</span>
       ) : (
         <span>
           {status.runsCompleted} of {status.runCount} runs
@@ -239,6 +258,7 @@ export const SweepNavigator = ({
           </span>
           <AxisControl
             axis={axis}
+            disabled={status.following !== null}
             selected={
               selection[axis.identifier] ?? {
                 from: 0,

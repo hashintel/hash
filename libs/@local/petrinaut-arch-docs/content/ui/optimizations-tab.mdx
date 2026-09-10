@@ -167,6 +167,23 @@ the running body with `tone="paused"` on every chart card and the resume note
 in the frame's note row. Settling on a pause, a stop or a failure never starts the
 point refinement; only a completed study refines where it parks.
 
+## Studies started from a sweep
+
+A parameter sweep's Parameters card (`experiments/sweep-optimize-control.tsx`
+over the `useSweepOptimizer` hook in `experiments/sweep-optimizer.ts`) starts
+a study with `createOptimization(input, { sweep })`. `buildSweepOptimizationInput`
+writes the manifest from the experiment: the swept axes as linear optimize
+bindings, every other scenario parameter fixed at its default, the chosen
+experiment metric as the sole `Metric`, `seedsPerTrial` at the trial's run
+cap. The provider gives such a study an `origin` (`{ kind: "sweep",
+experimentId }`), no connected state and no drawer navigation, routes its
+run's `evaluateTrial` to a sweep trial evaluator
+([react.optimizations.sweep-evaluator](layer:react.optimizations.sweep-evaluator))
+in front of the channel, and hides it from this tab's list. While the study
+runs the card takes the `optimizing` tone, its sliders follow the trials
+disabled, and a Stop button cancels the study; settling parks the sweep on
+the best point.
+
 ## The steps table
 
 `StepsTable` lists `record.trials` newest first: the step number (Optuna's

@@ -4,9 +4,9 @@ import {
   createSweepTrialEvaluator,
   SWEEP_TRIAL_RUNS,
   sweepPointFor,
-} from "./sweep-trial-evaluator";
+} from "./create-sweep-trial-evaluator";
 
-import type { ExperimentParameterAxis } from "../experiments/parameter-grid";
+import type { ExperimentParameterAxis } from "../../experiments/parameter-grid";
 import type { PetrinautOptimizationTrialRequest } from "@hashintel/petrinaut-core/optimization";
 
 const RATE: ExperimentParameterAxis = {
