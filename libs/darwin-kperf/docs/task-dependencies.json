@@ -9,6 +9,10 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen",
+        "@rust/darwin-kperf-criterion"
       ]
     }
   }

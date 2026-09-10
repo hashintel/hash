@@ -19,7 +19,10 @@
   "tasks": {
     "build:docker": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "compile": {
       "dependsOn": [],
@@ -33,7 +36,10 @@
       "dependsOn": [
         "@rust/hash-repo-chores#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
     },
     "fix:clippy": {
       "dependsOn": []
@@ -42,6 +48,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "start": {
@@ -86,6 +95,9 @@
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }

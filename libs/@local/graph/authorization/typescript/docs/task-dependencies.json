@@ -9,17 +9,50 @@
       "dependsOn": [
         "@blockprotocol/type-system#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-temporal-versioning"
       ]
     },
     "codegen": {
       "dependsOn": [
         "@rust/hash-graph-authorization#build:types"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-temporal-versioning"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@blockprotocol/type-system#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-temporal-versioning"
       ]
     }
   }
