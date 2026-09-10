@@ -136,7 +136,7 @@ const getCustomRowElement = (
  * button) counts as tabbable even though the browser skips it; filter those
  * out to match real Tab behaviour.
  */
-const getVisibleTabbables = (container: HTMLElement): HTMLElement[] =>
+export const getVisibleTabbables = (container: HTMLElement): HTMLElement[] =>
   getTabbables(container).filter(
     (el) => getComputedStyle(el).visibility !== "hidden",
   );

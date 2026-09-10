@@ -25,7 +25,10 @@ import {
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import {
+  getItemId,
+  getVisibleTabbables,
+} from "../../util/SelectableList/selectable-list-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -300,8 +303,8 @@ function mapToMenuItems<TValue extends string>(
 
 /**
  * Exposes the select machine's api to the component body — the context is
- * only readable beneath the Root — backing the Enter-closes-a-multi-select
- * keyboard handling on the Root element.
+ * only readable beneath the Root — backing the Root element's keyboard
+ * handling (Enter closing a multi select, Tab exiting an open dropdown).
  */
 const SelectApiBridge = ({
   onApi,
@@ -471,9 +474,67 @@ export const Select = <TValue extends string>({
   // phase, running after ark has toggled the item, closes it.
   const selectApiRef = useRef<ReturnType<typeof useSelectContext> | null>(null);
   const enterWhileOpenRef = useRef(false);
+
+  // Tab while open moves through the dropdown's own tabbables (search field,
+  // custom rows, footer buttons) and past the edge closes the dropdown,
+  // handing focus to the document's neighbouring tabbable — zag would
+  // otherwise trap focus in the open dropdown. Handled in the capture phase
+  // so zag never sees the key; all movement is programmatic.
+  const handleTabKeyDown = (event: React.KeyboardEvent) => {
+    const api = selectApiRef.current;
+    if (!api?.open) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const trigger = internalRef.current;
+    const doc = event.currentTarget.ownerDocument;
+    const contentId = trigger?.getAttribute("aria-controls");
+    const content = contentId ? doc.getElementById(contentId) : null;
+    const direction = event.shiftKey ? -1 : 1;
+    const tabbables = content ? getVisibleTabbables(content) : [];
+    const { activeElement } = doc;
+    const index = tabbables.findIndex(
+      (el) => el === activeElement || el.contains(activeElement),
+    );
+    const next =
+      index === -1
+        ? direction === 1
+          ? tabbables[0]
+          : undefined
+        : tabbables[index + direction];
+    if (next) {
+      next.focus();
+      return;
+    }
+    // Past the edge: close, then land focus. zag restores the trigger's
+    // focus on close (which covers the backward exit); a forward exit moves
+    // on to the document's next tabbable once that restore has flushed —
+    // double rAF, as the restore's timing varies with where focus sat.
+    api.setOpen(false);
+    if (direction === -1 || !trigger) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const follows = (el: HTMLElement) =>
+          Boolean(
+            // eslint-disable-next-line no-bitwise -- the DOM API returns a bitmask
+            trigger.compareDocumentPosition(el) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        const eligible = getVisibleTabbables(doc.body).filter(
+          (el) => el !== trigger && !content?.contains(el) && follows(el),
+        );
+        eligible[0]?.focus();
+      });
+    });
+  };
   const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && multiple) {
       enterWhileOpenRef.current = !!selectApiRef.current?.open;
+    } else if (event.key === "Tab") {
+      handleTabKeyDown(event);
     }
   };
   const handleRootKeyDown = (event: React.KeyboardEvent) => {
@@ -848,17 +909,15 @@ export const Select = <TValue extends string>({
       }}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
-      onKeyDownCapture={multiple ? handleRootKeyDownCapture : undefined}
+      onKeyDownCapture={handleRootKeyDownCapture}
       onKeyDown={multiple ? handleRootKeyDown : undefined}
     >
       <ArkSelect.HiddenSelect ref={inputRef} />
-      {multiple && (
-        <SelectApiBridge
-          onApi={(api) => {
-            selectApiRef.current = api;
-          }}
-        />
-      )}
+      <SelectApiBridge
+        onApi={(api) => {
+          selectApiRef.current = api;
+        }}
+      />
       {showSearch && (
         <SearchHighlightSync
           search={search}
