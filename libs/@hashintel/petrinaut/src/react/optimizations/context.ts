@@ -122,7 +122,7 @@ export const foldBestTrial = (
     : best;
 };
 
-export type CreateOptimizationOptions = {
+type CreateOptimizationOptions = {
   /**
    * The parameter sweep whose compute evaluates the trials: each trial moves
    * the sweep to the suggested point and reads the metric there. The

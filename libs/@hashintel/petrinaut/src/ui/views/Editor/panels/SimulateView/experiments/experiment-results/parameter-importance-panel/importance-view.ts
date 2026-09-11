@@ -5,9 +5,9 @@
  * which the estimate is only a hint. Pure, so the fade rule and the maths are
  * tested without the DOM.
  */
-import { partitionParameterBindings } from "../../../../../../../react/optimizations/parameter-bindings";
+import { partitionParameterBindings } from "../../../../../../../../react/optimizations/parameter-bindings";
 
-import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
+import type { OptimizationRecord } from "../../../../../../../../react/optimizations/context";
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
 /** A study requesting this many steps or more earns the higher floor. */

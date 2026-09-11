@@ -59,8 +59,14 @@ const attachMetricArtifacts = (
  * compiles the shader with the accepted ones, so the switch, the Compilation
  * panel and the run-time backend selection give the same reason for the same
  * metric. The form rebuilds its spec array every render, so the analysis keys
- * on the specs' serialised content rather than on the array's identity.
+ * on the specs' serialised content rather than on the array's identity, and
+ * a change waits `GPU_ANALYSIS_DEBOUNCE_MS` before it lowers the net, so a
+ * metric typed keystroke by keystroke costs one lowering, not one per key.
+ * While an analysis is pending the previous reason stands.
  */
+
+/** How long a spec change settles before the net is lowered again. */
+export const GPU_ANALYSIS_DEBOUNCE_MS = 250;
 export const useGpuAvailability = ({
   enabled,
   sdcpn,
@@ -128,10 +134,11 @@ export const useGpuAvailability = ({
       }
     };
 
-    void analyze();
+    const timer = setTimeout(() => void analyze(), GPU_ANALYSIS_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [enabled, sdcpn, extensions, specsKey, requestHirArtifacts]);
 
@@ -139,7 +146,7 @@ export const useGpuAvailability = ({
     return { available: false, reason: null, pending: false };
   }
   if (pending) {
-    return { available: false, reason: null, pending: true };
+    return { available: false, reason, pending: true };
   }
   if (reason !== null) {
     return { available: false, reason, pending: false };

@@ -7,13 +7,13 @@
  */
 import type { ChartCardTone } from "./chart-card";
 import type { ComputeBackendSummary } from "./compute-backend-badge";
+import type { FrameNote } from "./drawer-frame";
+import type { ComputeBatch } from "./drawer-frame/compute-batches-chip";
+import type { FrameCardMore } from "./drawer-frame/frame-card";
 import type {
-  ComputeBatch,
-  FrameCardMore,
-  FrameNote,
   FrameStatShort,
   FrameStatusTone,
-} from "./drawer-frame";
+} from "./drawer-frame/frame-header";
 import type { MetricTile } from "./metric-tiles";
 import type { ReactNode } from "react";
 
@@ -54,7 +54,7 @@ export type ResultsHeader = {
   status: ResultsStatus;
   /** The columns after the status pill, in order. */
   stats: readonly ResultsStat[];
-  /** The batches computing now; null leaves the Activity column out (a remote study). */
+  /** The batches computing now; null leaves the Activity column out. */
   activity: readonly ComputeBatch[] | null;
   /** The backend the record ran on; null leaves the Compute column out. */
   compute: ComputeBackendSummary | null;
@@ -65,10 +65,9 @@ export type ResultsHeader = {
 };
 
 /**
- * A titled card across the body, above the columns: the parameter controls,
- * or a remote study's best parameters. `more` is a part the card keeps
- * folded away behind a footer button, the parameters held fixed; null gives
- * the card no footer.
+ * A titled card across the body, above the columns: the parameter controls.
+ * `more` is a part the card keeps folded away behind a footer button, the
+ * parameters held fixed; null gives the card no footer.
  */
 export type ResultsBand = {
   /** The band's key; it carries the record's id so a fold never survives an in-place swap to another record. */

@@ -13,12 +13,12 @@ import {
   constraintAlpha,
   constraintNameIn,
   formatRate,
-} from "../../../../../../../react/optimizations/constraint-rates";
-import { Table, type TableColumn } from "../../../../../../components/table";
-import { formatNumber, formatParameters } from "../../shared/format-value";
-import { INFEASIBLE_COLOR } from "../../shared/infeasible-color";
+} from "../../../../../../../../react/optimizations/constraint-rates";
+import { Table, type TableColumn } from "../../../../../../../components/table";
+import { formatNumber, formatParameters } from "../../../shared/format-value";
+import { INFEASIBLE_COLOR } from "../../../shared/infeasible-color";
 
-import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
+import type { OptimizationRecord } from "../../../../../../../../react/optimizations/context";
 
 type Step = OptimizationRecord["trials"][number];
 type StepState = Step["state"];

@@ -33,12 +33,12 @@ import {
   type OptimizationsContextValue,
 } from "./context";
 import { OptimizationsProvider } from "./provider";
+import { sweepPointFor } from "./provider/create-sweep-trial-evaluator";
 import {
   sirConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
 } from "./sir-optimization-input.fixtures";
-import { sweepPointFor } from "./sweep-evaluator/create-sweep-trial-evaluator";
 
 import type {
   ExperimentParameterAxis,
@@ -84,6 +84,7 @@ const sweepCellAt = (point: SweepSelection): SweepVisitedCell => {
     position: { infected_ratio: position },
     runsCompleted: 8,
     means: { [metricId]: position / 100 },
+    sampleCounts: { [metricId]: 8 },
   };
 };
 
@@ -144,7 +145,6 @@ const NavigateSweepOverride = ({
 /** The connected capability's members a fake never exercises. */
 const inertCapabilityMembers = {
   extendOptimizationRun: () => Promise.resolve(),
-  pauseOptimizationRun: () => Promise.resolve(),
   releaseOptimizationRun: () => Promise.resolve(),
   dispose: () => {},
 };
@@ -699,6 +699,10 @@ describe("OptimizationsProvider driving a sweep", () => {
           means: {
             ...sweepCellAt(selection).means,
             "constraint:infected-cap": 0.75,
+          },
+          sampleCounts: {
+            ...sweepCellAt(selection).sampleCounts,
+            "constraint:infected-cap": 8,
           },
         }),
     );

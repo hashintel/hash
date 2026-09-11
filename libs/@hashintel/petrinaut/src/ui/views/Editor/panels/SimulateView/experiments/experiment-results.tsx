@@ -40,15 +40,14 @@ import {
   describeStepProgress,
   describeStudyProgress,
 } from "../shared/describe-study-progress";
-import { type ComputeBatch } from "../shared/drawer-frame";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
+import { constraintsFold } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
-import { constraintsFold } from "./study-cards/constraints-fold";
-import { ParameterImportancePanel } from "./study-cards/parameter-importance-panel";
-import { StudyConstraintsCard } from "./study-cards/study-constraints-card";
-import { StudyHeader } from "./study-cards/study-header";
-import { StudySteps } from "./study-cards/study-steps";
+import { ParameterImportancePanel } from "./experiment-results/parameter-importance-panel";
+import { StudyConstraintsCard } from "./experiment-results/study-constraints-card";
+import { StudyHeader } from "./experiment-results/study-header";
+import { StudySteps } from "./experiment-results/study-steps";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
@@ -60,6 +59,7 @@ import {
 import { SweepSurface } from "./sweep-surface";
 
 import type { ChartCardTone } from "../shared/chart-card";
+import type { ComputeBatch } from "../shared/drawer-frame/compute-batches-chip";
 import type {
   ResultsModel,
   ResultsStat,
@@ -355,11 +355,14 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            // A cancelled sweep's session is gone, so a study could not
-            // navigate it: nothing is left to optimize.
+            // Keyed so the prompt's choices never carry one experiment's metric
+            // into another when the drawer swaps records in place. A cancelled
+            // sweep's session is gone, so a study could not navigate it:
+            // nothing is left to optimize.
             trailing:
               optimizer.available && experiment.status !== "cancelled" ? (
                 <SweepOptimizeControl
+                  key={experiment.id}
                   experiment={experiment}
                   optimizer={optimizer}
                 />
@@ -394,6 +397,7 @@ export const experimentResultsModel = (
             below:
               studies.length === 0 ? null : (
                 <SweepObjectiveStrip
+                  key={experiment.id}
                   studies={studies}
                   driving={following !== null}
                 />

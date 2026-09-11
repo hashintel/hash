@@ -33,9 +33,9 @@ const errorMessage = (error: unknown): string =>
 /**
  * Runs the optimizer worker protocol against `runtime`.
  *
- * Handles `init`, `start`, `extend`, `evaluated`, `cancel`, `pause` and
- * `release`; posts `ready` or `init-error` once, then one `evaluate` per trial
- * and one `complete`, `paused`, `cancelled` or `error` per segment.
+ * Handles `init`, `start`, `extend`, `evaluated`, `cancel` and `release`;
+ * posts `ready` or `init-error` once, then one `evaluate` per trial and one
+ * `complete`, `cancelled` or `error` per segment.
  */
 export const attachOptimizerWorker = (
   runtime: WorkerThreadRuntime<
@@ -48,8 +48,6 @@ export const attachOptimizerWorker = (
   const pending = new Map<number, PendingEvaluation>();
   /** Runs whose current segment was cancelled; cleared when the segment ends. */
   const cancelled = new Set<string>();
-  /** Runs whose current segment was paused; cleared when the segment ends. */
-  const paused = new Set<string>();
   let nextRequestId = 1;
 
   const postError = (runId: string, error: unknown): void => {
@@ -84,7 +82,6 @@ export const attachOptimizerWorker = (
 
   const beginSegment = (runId: string): OptimizerStudyCallbacks => {
     cancelled.delete(runId);
-    paused.delete(runId);
     return {
       evaluate: (trial, suggestedValues) =>
         new Promise((resolve) => {
@@ -101,7 +98,6 @@ export const attachOptimizerWorker = (
         }),
       onTrial: (event) => runtime.postMessage({ type: "trial", runId, event }),
       isCancelled: () => cancelled.has(runId),
-      isPaused: () => paused.has(runId),
     };
   };
 
@@ -115,15 +111,12 @@ export const attachOptimizerWorker = (
           runtime.postMessage(
             result.cancelled === true
               ? { type: "cancelled", runId }
-              : result.paused === true
-                ? { type: "paused", runId, summary: result }
-                : { type: "complete", runId, summary: result },
+              : { type: "complete", runId, summary: result },
           ),
         (error: unknown) => postError(runId, error),
       )
       .finally(() => {
         cancelled.delete(runId);
-        paused.delete(runId);
       });
   };
 
@@ -182,11 +175,6 @@ export const attachOptimizerWorker = (
       }
       case "cancel":
         cancelSegment(message.runId);
-        return;
-      // The pending evaluations keep their promises: the loop stops asking
-      // and drains them with their real outcomes.
-      case "pause":
-        paused.add(message.runId);
         return;
       case "release": {
         if (!runner) {

@@ -191,6 +191,7 @@ export function syntheticVisitedCell(
         ),
       ),
     },
+    sampleCounts: { infected: runsCompleted },
   };
 }
 

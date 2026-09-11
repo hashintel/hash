@@ -223,6 +223,31 @@ const renderDrawerWithStudies = (
     </WithInBrowserOptimizer>,
   );
 
+/** No study yet: the optimizer is offered, nothing has been started. */
+const noStudies: OptimizationsContextValue = {
+  optimizations: [],
+  createOptimization: () => Promise.resolve("never"),
+  cancelOptimization: () => {},
+  removeOptimization: () => {},
+};
+
+/** The sweep's drawer with the optimizer offered and no study, so the record can be swapped in place. */
+const renderOptimizableDrawer = (experiment: ExperimentRecord) => {
+  const tree = (record: ExperimentRecord) => (
+    <WithInBrowserOptimizer>
+      <PetrinautOptimizationContext value={connectedOptimizer}>
+        <SDCPNContext value={sirSdcpnContextValue}>
+          <OptimizationsContext value={noStudies}>
+            <ViewExperimentDrawer open onClose={() => {}} experiment={record} />
+          </OptimizationsContext>
+        </SDCPNContext>
+      </PetrinautOptimizationContext>
+    </WithInBrowserOptimizer>
+  );
+  const { rerender } = render(tree(experiment));
+  return { swapTo: (record: ExperimentRecord) => rerender(tree(record)) };
+};
+
 /** The sweep's drawer with one study started from it, four steps landed (one pruned), driving or settled. */
 const renderDrawerWithStudy = (
   experiment: ExperimentRecord,
@@ -424,6 +449,36 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.getByRole("button", { name: /Cancel$/u })).toBeTruthy();
     expect(screen.getByText(/^Following step 5 of 30/u)).toBeTruthy();
+  });
+
+  it("starts the Optimize prompt afresh for another sweep swapped into the drawer", () => {
+    const { swapTo } = renderOptimizableDrawer(sweep);
+    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
+    const metricPicker = () =>
+      screen.getByRole("combobox", {
+        name: "Metric to optimize",
+      }) as HTMLSelectElement;
+    expect(metricPicker().value).toBe("infected");
+
+    swapTo({
+      ...sweep,
+      id: "experiment-9",
+      metricSpecs: [
+        {
+          kind: "placeTokenCountMean",
+          id: "recovered",
+          label: "Recovered",
+          placeId: "place__recovered",
+          runOutput: { type: "distribution", binning: "exact" },
+        },
+      ],
+    });
+
+    // The prompt closed with the record it belonged to; reopened, it offers
+    // the new sweep's metric rather than an identifier this sweep never had.
+    expect(screen.queryByRole("combobox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
+    expect(metricPicker().value).toBe("recovered");
   });
 
   it("offers Optimize again once the study settles and keeps its outcome on the status line", () => {

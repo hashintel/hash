@@ -12,7 +12,7 @@ import {
   assessConvergence,
   type ConvergenceVerdict,
   describeConvergence,
-} from "./convergence";
+} from "./study-header/convergence";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 

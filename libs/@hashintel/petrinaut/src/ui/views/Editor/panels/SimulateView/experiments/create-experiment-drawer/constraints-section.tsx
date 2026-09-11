@@ -18,10 +18,10 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import { DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA } from "@hashintel/petrinaut-core/optimization";
 
-import { LanguageClientContext } from "../../../../../../../../react/lsp/context";
-import { Section } from "../../../../../../../components/section";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getConstraintDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { Section } from "../../../../../../components/section";
+import { CodeEditor } from "../../../../../../monaco/code-editor";
+import { getConstraintDocumentUri } from "../../../../../../monaco/editor-paths";
 import {
   addConstraintDraft,
   type ConstraintDraftsState,
@@ -34,8 +34,8 @@ import {
   describeConstraint,
   getConstraintErrorMessage,
 } from "./constraint-lsp";
+import { useConstraintLspSession } from "./constraints-section/use-constraint-lsp-session";
 import { constraintPolicyFor } from "./lower-constraint-drafts";
-import { useConstraintLspSession } from "./use-constraint-lsp-session";
 
 import type {
   ConstraintSpace,

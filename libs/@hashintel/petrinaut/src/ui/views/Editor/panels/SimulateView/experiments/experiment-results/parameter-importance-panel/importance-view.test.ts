@@ -5,7 +5,7 @@ import {
   makeOptimizationRecord,
   makeTrials,
   optimizedBindingSets,
-} from "../study-fixtures";
+} from "../../study-fixtures";
 import {
   describeImportance,
   formatCorrelation,

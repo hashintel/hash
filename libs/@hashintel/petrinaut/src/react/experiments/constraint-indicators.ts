@@ -61,19 +61,19 @@ export const constraintIndicatorSpecs = (
 
 /**
  * A visited cell's verdict count for one state constraint: the indicator's
- * mean over the finished runs is `passed / total` exactly. Null when the
- * cell finished no run or carries no mean for the indicator.
+ * mean over the runs that reported it is `passed / total` exactly, over
+ * those runs — a run that errored reported nothing and counts in neither.
+ * Null when the cell carries no mean for the indicator.
  */
 export const sweepCellPassCount = (
-  cell: Pick<SweepVisitedCell, "runsCompleted" | "means">,
+  cell: Pick<SweepVisitedCell, "means" | "sampleCounts">,
   constraintId: string,
 ): { runsPassed: number; runsTotal: number } | null => {
-  const mean = getOwn(cell.means, constraintIndicatorMetricId(constraintId));
-  if (cell.runsCompleted === 0 || mean === undefined) {
+  const metricId = constraintIndicatorMetricId(constraintId);
+  const mean = getOwn(cell.means, metricId);
+  const runsTotal = getOwn(cell.sampleCounts, metricId);
+  if (mean === undefined || runsTotal === undefined || runsTotal === 0) {
     return null;
   }
-  return {
-    runsPassed: Math.round(mean * cell.runsCompleted),
-    runsTotal: cell.runsCompleted,
-  };
+  return { runsPassed: Math.round(mean * runsTotal), runsTotal };
 };

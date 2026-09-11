@@ -72,6 +72,7 @@ describe("createSweepTrialEvaluator", () => {
       position: { rate: 25, days: 5 },
       runsCompleted: 8,
       means: { infected: 12.5, other: 1 },
+      sampleCounts: { infected: 8, other: 8 },
     });
     const evaluator = createSweepTrialEvaluator({
       experimentId: "exp",
@@ -115,6 +116,7 @@ describe("createSweepTrialEvaluator", () => {
         position: { rate: 25, days: 5 },
         runsCompleted: 8,
         means: {},
+        sampleCounts: {},
       })
       .mockResolvedValue(null);
     const evaluator = createSweepTrialEvaluator({
@@ -315,7 +317,9 @@ describe("createSweepTrialEvaluator with constraints", () => {
       kind: "pruned",
       reason: "Infeasible: Ratio under a tenth",
       constraints: {
-        parameters: [{ constraintId: "ratio-cap", margin: expect.any(Number) as number }],
+        parameters: [
+          { constraintId: "ratio-cap", margin: expect.any(Number) as number },
+        ],
         state: [],
         infeasible: "ratio-cap",
       },
@@ -355,6 +359,10 @@ describe("createSweepTrialEvaluator with constraints", () => {
         [sirOptimizationMetric.id]: 0.3,
         "constraint:infected-cap": 0.75,
       },
+      sampleCounts: {
+        [sirOptimizationMetric.id]: 8,
+        "constraint:infected-cap": 8,
+      },
     });
     const evaluator = sirEvaluator(navigateSweep);
 
@@ -369,7 +377,9 @@ describe("createSweepTrialEvaluator with constraints", () => {
       kind: "objective",
       objective: 0.3,
       constraints: {
-        parameters: [{ constraintId: "ratio-cap", margin: expect.any(Number) as number }],
+        parameters: [
+          { constraintId: "ratio-cap", margin: expect.any(Number) as number },
+        ],
         state: [{ constraintId: "infected-cap", runsPassed: 6, runsTotal: 8 }],
       },
     });
@@ -380,11 +390,12 @@ describe("createSweepTrialEvaluator with constraints", () => {
     );
   });
 
-  it("omits a state constraint the cell has no indicator mean for", async () => {
+  it("prunes a trial whose point measured no verdict for a declared state constraint", async () => {
     const navigateSweep = vi.fn().mockResolvedValue({
       position: { infected_ratio: 12 },
       runsCompleted: 8,
       means: { [sirOptimizationMetric.id]: 0.3 },
+      sampleCounts: { [sirOptimizationMetric.id]: 8 },
     });
 
     await expect(
@@ -395,8 +406,8 @@ describe("createSweepTrialEvaluator with constraints", () => {
         }),
       ),
     ).resolves.toMatchObject({
-      kind: "objective",
-      constraints: { state: [] },
+      kind: "pruned",
+      reason: /^The point measured no verdict for "/u,
     });
   });
 
@@ -425,6 +436,7 @@ describe("createSweepTrialEvaluator with constraints", () => {
       position: { infected_ratio: 12 },
       runsCompleted: 8,
       means: { [sirOptimizationMetric.id]: 0.3 },
+      sampleCounts: { [sirOptimizationMetric.id]: 8 },
     });
     const evaluator = sirEvaluator(navigateSweep);
 
