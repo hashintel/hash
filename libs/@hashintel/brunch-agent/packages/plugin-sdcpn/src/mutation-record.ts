@@ -4,6 +4,7 @@ import {
   mutationActionInputSchemas,
   createPetrinautActions,
   parseSDCPNFile,
+  type DocumentRevisionId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -78,12 +79,18 @@ export type ConstructionMutationRequest = Omit<
   input: PetrinautAiToolInput<ConstructionMutationName>;
 };
 
-export type DefinitionObservation = { definition: SDCPN; sha256: string };
+export type DefinitionObservation = {
+  definition: SDCPN;
+  sha256: string;
+  /** Absent only on retained records created before document revisions existed. */
+  revisionId?: DocumentRevisionId;
+};
 
 /** A delivered observation before `verifyDefinitionObservation` has re-parsed and re-hashed it. */
 export type UnverifiedDefinitionObservation = {
   definition: unknown;
   sha256: string;
+  revisionId?: unknown;
 };
 
 const mutationOutcomes = [
@@ -108,6 +115,7 @@ export const clientToolResultMetadataSchema = v.object({
       observed: v.object({
         definition: v.unknown(),
         sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
       }),
     }),
   ),
@@ -129,10 +137,12 @@ export const clientToolResultMetadataSchema = v.object({
       pre: v.object({
         definition: v.unknown(),
         sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
       }),
       post: v.object({
         definition: v.unknown(),
         sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
       }),
       effects: v.array(v.unknown()),
     }),
@@ -843,7 +853,19 @@ export const verifyDefinitionObservation = async (
       "Transition observation hash does not match its definition.",
     );
   // The canonical parse above is what earns the SDCPN claim on the raw definition.
-  return { definition: detached.definition as SDCPN, sha256: detached.sha256 };
+  if (
+    detached.revisionId !== undefined &&
+    (typeof detached.revisionId !== "string" ||
+      detached.revisionId.trim().length === 0)
+  )
+    throw new Error("Transition observation has an invalid revision ID.");
+  return {
+    definition: detached.definition as SDCPN,
+    sha256: detached.sha256,
+    ...(detached.revisionId === undefined
+      ? {}
+      : { revisionId: detached.revisionId }),
+  };
 };
 
 /** Reconciliation only: never an alias or relaxation of mutation/base checks. */

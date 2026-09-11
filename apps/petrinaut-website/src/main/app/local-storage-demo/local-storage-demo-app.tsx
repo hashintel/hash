@@ -26,6 +26,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
   getLatestNetDefinitionToolName,
@@ -220,6 +221,7 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
     id: net.id,
     initial: net.sdcpn,
+    initialRevisionId: net.revisionId,
     capabilities: DEMO_CAPABILITIES,
   });
 
@@ -234,7 +236,10 @@ const stockChatTransport = new DefaultChatTransport({
   }),
 });
 
-const createBrunchFlueClient = async (conversationId: string) => {
+const createBrunchFlueClient = async (
+  conversationId: string,
+  currentRevisionId: () => string | undefined,
+) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
@@ -244,7 +249,15 @@ const createBrunchFlueClient = async (conversationId: string) => {
   mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
   return createFlueClient({
     url: mountUrl.href,
-    headers: agentOwnershipHeaders(identity),
+    headers: () => {
+      const revisionId = currentRevisionId();
+      return {
+        ...agentOwnershipHeaders(identity),
+        ...(revisionId === undefined
+          ? {}
+          : { [BRUNCH_DOCUMENT_REVISION_HEADER]: revisionId }),
+      };
+    },
   });
 };
 
@@ -295,10 +308,11 @@ type ActiveHandle = {
 
 const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
   const handle = createHandle(net);
-  const fallbackNet: SDCPNInLocalStorage =
-    net.incarnationId === undefined
-      ? { ...net, incarnationId: crypto.randomUUID() }
-      : net;
+  const fallbackNet: SDCPNInLocalStorage = {
+    ...net,
+    incarnationId: net.incarnationId ?? crypto.randomUUID(),
+    revisionId: handle.revisionId.get(),
+  };
   return {
     handle,
     netId: fallbackNet.id,
@@ -468,6 +482,7 @@ export const LocalStorageDemoApp = ({
             title: workedModel.copy.title,
             sdcpn: workedModel.copy.definition,
             incarnationId: workedModel.copy.incarnationId,
+            revisionId: workedModel.copy.revisionId,
             lastUpdated: new Date(0).toISOString(),
           },
     [workedModel.copy],
@@ -637,15 +652,15 @@ export const LocalStorageDemoApp = ({
     const isWorkedModelDocument = workedModel.copy?.documentId === netId;
     const isTracerDocument =
       netId === rootArcTracerDocumentId || netId === constructionDocumentId;
-    if (
-      !isWorkedModelDocument &&
-      (isTracerDocument || fallbackNet.incarnationId !== undefined)
-    ) {
+    if (!isWorkedModelDocument) {
       setStoredSDCPNs((previous) => {
         const stored = previous[netId];
         if (
-          !isTracerDocument &&
-          stored?.incarnationId === fallbackNet.incarnationId
+          stored?.incarnationId === fallbackNet.incarnationId &&
+          stored?.revisionId === fallbackNet.revisionId &&
+          (!isTracerDocument ||
+            stored?.rootArcRequestedBaseHash ===
+              fallbackNet.rootArcRequestedBaseHash)
         ) {
           return previous;
         }
@@ -654,6 +669,7 @@ export const LocalStorageDemoApp = ({
           [netId]: {
             ...(stored ?? fallbackNet),
             incarnationId: fallbackNet.incarnationId,
+            revisionId: fallbackNet.revisionId,
             rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
           },
         };
@@ -662,7 +678,11 @@ export const LocalStorageDemoApp = ({
 
     return handle.subscribe((event) => {
       if (isWorkedModelDocument) {
-        void workedModel.persistDefinition(event.next);
+        void workedModel.persistDefinition({
+          definition: event.next,
+          previousRevisionId: event.previousRevisionId,
+          revisionId: event.revisionId,
+        });
         return;
       }
       const lastUpdated = new Date().toISOString();
@@ -672,6 +692,7 @@ export const LocalStorageDemoApp = ({
         const next: SDCPNInLocalStorage = {
           ...stored,
           sdcpn: event.next,
+          revisionId: event.revisionId,
           lastUpdated,
         };
 
@@ -808,9 +829,11 @@ export const LocalStorageDemoApp = ({
   const flueClientPromise = useMemo(
     () =>
       brunchSelected && conversationId !== null
-        ? createBrunchFlueClient(conversationId)
+        ? createBrunchFlueClient(conversationId, () =>
+            activeHandle?.handle.revisionId.get(),
+          )
         : null,
-    [brunchSelected, conversationId],
+    [activeHandle, brunchSelected, conversationId],
   );
   const conversationTracker = useMemo(
     // Correlation state belongs to one conversation and must not cross a net switch.

@@ -33,6 +33,7 @@ const copy = (
   definitionSha256: string,
   definition = emptyDefinition,
   copyId = "copy-1",
+  revisionId = "revision-1",
 ): WorkedModelCopy => ({
   bundleKey: "inventory-purchasing",
   copyId,
@@ -44,6 +45,7 @@ const copy = (
   title: "Inventory purchasing",
   definition,
   definitionSha256,
+  revisionId,
 });
 
 const input = {
@@ -108,15 +110,27 @@ test("serializes definition writes against each returned hash", async () => {
     ],
   };
   vi.mocked(updateWorkedModelDefinition)
-    .mockResolvedValueOnce(copy("b".repeat(64), firstDefinition))
-    .mockResolvedValueOnce(copy("c".repeat(64), secondDefinition));
+    .mockResolvedValueOnce(
+      copy("b".repeat(64), firstDefinition, "copy-1", "revision-2"),
+    )
+    .mockResolvedValueOnce(
+      copy("c".repeat(64), secondDefinition, "copy-1", "revision-3"),
+    );
   const { result } = renderHook(() => useWorkedModelCopy(input));
   await waitFor(() => expect(result.current.copy).not.toBeNull());
 
   await act(async () => {
     await Promise.all([
-      result.current.persistDefinition(firstDefinition),
-      result.current.persistDefinition(secondDefinition),
+      result.current.persistDefinition({
+        definition: firstDefinition,
+        previousRevisionId: "revision-1",
+        revisionId: "revision-2",
+      }),
+      result.current.persistDefinition({
+        definition: secondDefinition,
+        previousRevisionId: "revision-2",
+        revisionId: "revision-3",
+      }),
     ]);
   });
 
@@ -126,7 +140,9 @@ test("serializes definition writes against each returned hash", async () => {
     principalKey: input.principalKey,
     copyId: "copy-1",
     expectedSha256: "a".repeat(64),
+    expectedRevisionId: "revision-1",
     definition: firstDefinition,
+    revisionId: "revision-2",
   });
   expect(updateWorkedModelDefinition).toHaveBeenNthCalledWith(2, {
     chatEndpoint: input.chatEndpoint,
@@ -134,14 +150,16 @@ test("serializes definition writes against each returned hash", async () => {
     principalKey: input.principalKey,
     copyId: "copy-1",
     expectedSha256: "b".repeat(64),
+    expectedRevisionId: "revision-2",
     definition: secondDefinition,
+    revisionId: "revision-3",
   });
   expect(result.current.copy?.definitionSha256).toBe("c".repeat(64));
 });
 
 test("creates a clean copy only after queued writes settle", async () => {
   vi.mocked(updateWorkedModelDefinition).mockResolvedValue(
-    copy("b".repeat(64)),
+    copy("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
   );
   vi.mocked(createCleanWorkedModelCopy).mockResolvedValue(
     copy("a".repeat(64), emptyDefinition, "copy-clean"),
@@ -150,7 +168,11 @@ test("creates a clean copy only after queued writes settle", async () => {
   await waitFor(() => expect(result.current.copy).not.toBeNull());
 
   await act(async () => {
-    await result.current.persistDefinition(emptyDefinition);
+    await result.current.persistDefinition({
+      definition: emptyDefinition,
+      previousRevisionId: "revision-1",
+      revisionId: "revision-2",
+    });
     await result.current.createCleanCopy();
   });
 

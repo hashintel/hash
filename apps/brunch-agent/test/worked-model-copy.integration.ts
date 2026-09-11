@@ -68,6 +68,7 @@ const fixture: WorkedModelFixture = {
     parameters: [],
     differentialEquations: [],
   },
+  revisionId: "copy-tracer-fixture-revision",
 };
 await store.seed([fixture]);
 

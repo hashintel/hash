@@ -33,6 +33,7 @@ test("packages one reviewed persona session, workpiece and net", async () => {
   const net = {
     id: "inventory-source-document",
     title: "Inventory purchasing",
+    revisionId: "inventory-source-revision",
     sdcpn: {
       places: [],
       transitions: [],
@@ -80,6 +81,7 @@ test("packages one reviewed persona session, workpiece and net", async () => {
     session: snapshot,
     workpiece,
     definition: net.sdcpn,
+    revisionId: net.revisionId,
   });
   expect(fixture.sourceManifestSha256).toBe(
     createHash("sha256").update(JSON.stringify(manifest)).digest("hex"),

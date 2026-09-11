@@ -60,6 +60,8 @@ export type NetLedgerEvent =
       readonly outcome: string;
       /** Verified post hash of the last applied attempt in the record. */
       readonly postHash: string;
+      /** Absent only for retained pre-revision records. */
+      readonly postRevisionId?: string;
     }
   | {
       readonly kind: "layout";
@@ -153,26 +155,26 @@ export const recordedBrowserObservation = async (
   return observation;
 };
 
-/** The verified post hash of the last applied attempt, or undefined when the record cannot vouch for one. */
-const appliedPostHash = async (
+/** The verified post observation of the last applied attempt, or undefined when the record cannot vouch for one. */
+const appliedPostObservation = async (
   attempts: readonly unknown[],
-): Promise<string | undefined> => {
-  let hash: string | undefined;
+): Promise<DefinitionObservation | undefined> => {
+  let post: DefinitionObservation | undefined;
   for (const attempt of attempts) {
     if (!isRecord(attempt) || attempt.outcome !== "applied") continue;
     if (!isRecord(attempt.post)) return undefined;
     try {
       // eslint-disable-next-line no-await-in-loop -- Attempts commit in order; the last applied post wins.
-      const verified = await verifyDefinitionObservation({
+      post = await verifyDefinitionObservation({
         definition: attempt.post.definition,
         sha256: String(attempt.post.sha256),
+        revisionId: attempt.post.revisionId,
       });
-      hash = verified.sha256;
     } catch {
       return undefined;
     }
   }
-  return hash;
+  return post;
 };
 
 const reasonOf = (error: unknown) =>
@@ -300,8 +302,8 @@ export const deriveNetLedger = async (
             output: first.output,
             mutationRecord: record,
           });
-          const postHash = attempts.at(-1)?.post?.sha256;
-          if (postHash === undefined)
+          const post = attempts.at(-1)?.post;
+          if (post === undefined)
             throw new Error(
               "The mutation record cannot vouch for a verified post observation.",
             );
@@ -311,7 +313,10 @@ export const deriveNetLedger = async (
             toolName,
             position,
             outcome: record.outcome,
-            postHash,
+            postHash: post.sha256,
+            ...(post.revisionId === undefined
+              ? {}
+              : { postRevisionId: post.revisionId }),
           });
         } catch (error) {
           events.push(
@@ -323,8 +328,8 @@ export const deriveNetLedger = async (
         continue;
       }
       // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
-      const postHash = await appliedPostHash(record.attempts);
-      if (postHash === undefined) {
+      const post = await appliedPostObservation(record.attempts);
+      if (post === undefined) {
         events.push(
           unrecorded(
             "The mutation record cannot vouch for a verified post observation.",
@@ -338,7 +343,10 @@ export const deriveNetLedger = async (
         toolName,
         position,
         outcome: record.outcome,
-        postHash,
+        postHash: post.sha256,
+        ...(post.revisionId === undefined
+          ? {}
+          : { postRevisionId: post.revisionId }),
       });
     }
   }

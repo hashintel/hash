@@ -49,6 +49,7 @@ export const observeBrowserDefinition = (
     sha256: bytesToHex(
       sha256(new TextEncoder().encode(JSON.stringify(definition))),
     ),
+    revisionId: handle.revisionId.get(),
   };
 };
 

@@ -34,6 +34,7 @@ const fixture: WorkedModelFixture = {
   },
   workpiece: "# Inventory purchasing\n",
   definition: emptyDefinition,
+  revisionId: "fixture-revision",
 };
 
 const request = (
@@ -102,6 +103,7 @@ describe("worked-model routes", () => {
     const copy = (await resolved.json()) as {
       copyId: string;
       definitionSha256: string;
+      revisionId: string;
     };
     const changedDefinition: SDCPN = {
       ...emptyDefinition,
@@ -118,19 +120,34 @@ describe("worked-model routes", () => {
       ],
     };
     const updatePath = `/api/worked-models/copies/${copy.copyId}/definition`;
+    const unchangedRevision = await app.fetch(
+      request(updatePath, "principal-a", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          expectedSha256: copy.definitionSha256,
+          expectedRevisionId: copy.revisionId,
+          definition: changedDefinition,
+          revisionId: copy.revisionId,
+        }),
+      }),
+    );
     const update = await app.fetch(
       request(updatePath, "principal-a", {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           expectedSha256: copy.definitionSha256,
+          expectedRevisionId: copy.revisionId,
           definition: changedDefinition,
+          revisionId: "changed-revision",
         }),
       }),
     );
     const updated = (await update.json()) as {
       definition: SDCPN;
       definitionSha256: string;
+      revisionId: string;
     };
     const stale = await app.fetch(
       request(updatePath, "principal-a", {
@@ -138,14 +155,21 @@ describe("worked-model routes", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           expectedSha256: copy.definitionSha256,
+          expectedRevisionId: copy.revisionId,
           definition: emptyDefinition,
+          revisionId: "stale-revision",
         }),
       }),
     );
 
+    expect(unchangedRevision.status).toBe(400);
+    expect(await unchangedRevision.json()).toEqual({
+      error: "invalid-definition-update",
+    });
     expect(update.status).toBe(200);
     expect(updated.definition).toMatchObject(changedDefinition);
     expect(updated.definitionSha256).not.toBe(copy.definitionSha256);
+    expect(updated.revisionId).toBe("changed-revision");
     expect(stale.status).toBe(409);
     expect(await stale.json()).toEqual({ error: "stale-copy" });
   });

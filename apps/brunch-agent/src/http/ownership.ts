@@ -2,10 +2,12 @@
 
 import {
   BRUNCH_CONVERSATION_HEADER,
+  BRUNCH_DOCUMENT_REVISION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
 } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import { ownsFlueInstance } from "../conversation/identity.ts";
+import { reportDocumentRevision } from "../conversation/reported-document-revision.ts";
 import { diagnostics } from "../runtime-diagnostics.ts";
 
 import type { MiddlewareHandler } from "hono";
@@ -35,6 +37,14 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
       return context.json({ error: "forbidden" }, 403);
     }
     if (context.req.method === "POST") {
+      const documentRevisionId = context.req
+        .header(BRUNCH_DOCUMENT_REVISION_HEADER)
+        ?.trim();
+      if (
+        documentRevisionId !== undefined &&
+        (documentRevisionId.length === 0 || documentRevisionId.length > 256)
+      )
+        return context.json({ error: "invalid-document-revision" }, 400);
       // Initial data is immutable, so bind it to the authorized conversation at admission.
       // The agent's canonical schema still owns shape validation.
       const body: unknown = await context.req.raw
@@ -78,6 +88,18 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
           }
         }
       }
+      const message =
+        typeof body === "object" && body !== null && "message" in body
+          ? body.message
+          : body;
+      if (
+        documentRevisionId !== undefined &&
+        typeof message === "object" &&
+        message !== null &&
+        "kind" in message &&
+        message.kind === "user"
+      )
+        reportDocumentRevision(instanceId, documentRevisionId);
     }
     return next();
   };

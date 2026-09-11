@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { parseSDCPNFile, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  parseSDCPNFile,
+  type DocumentRevisionId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import { createPostgresWorkedModelStore as createPostgresStore } from "./worked-model-store/postgres.ts";
 
@@ -18,6 +22,8 @@ export interface WorkedModelFixture {
   /** The accepted current workpiece retained beside its canonical session. */
   readonly workpiece: string;
   readonly definition: SDCPN;
+  /** Petrinaut revision of the accepted fixture document. */
+  readonly revisionId: DocumentRevisionId;
 }
 
 export interface WorkedModelCopy {
@@ -31,6 +37,7 @@ export interface WorkedModelCopy {
   readonly title: string;
   readonly definition: SDCPN;
   readonly definitionSha256: string;
+  readonly revisionId: DocumentRevisionId;
 }
 
 export interface WorkedModelStore {
@@ -47,7 +54,9 @@ export interface WorkedModelStore {
     readonly copyId: string;
     readonly principalKey: string;
     readonly expectedSha256: string;
+    readonly expectedRevisionId: DocumentRevisionId;
     readonly definition: SDCPN;
+    readonly revisionId: DocumentRevisionId;
   }) => Promise<WorkedModelCopy | undefined>;
 }
 
@@ -111,6 +120,7 @@ export const parseWorkedModelFixture = (value: unknown): WorkedModelFixture => {
     session: session as FlueConversationSnapshot,
     workpiece: nonBlank(fixture.workpiece, "workpiece"),
     definition,
+    revisionId: nonBlank(fixture.revisionId, "revisionId"),
   };
 };
 
@@ -150,6 +160,7 @@ export const createInMemoryWorkedModelStore = (
       title: fixture.title,
       definition,
       definitionSha256: definitionSha256(definition),
+      revisionId: fixture.revisionId,
     };
   };
 
@@ -204,17 +215,25 @@ export const createInMemoryWorkedModelStore = (
       copyId,
       principalKey,
       expectedSha256,
+      expectedRevisionId,
       definition,
+      revisionId,
     }) => {
       const current = copies.get(copyId);
       if (current === undefined || current.principalKey !== principalKey)
         return undefined;
-      if (current.definitionSha256 !== expectedSha256)
+      if (revisionId === expectedRevisionId)
+        throw new Error("Worked-model copy revision did not advance.");
+      if (
+        current.definitionSha256 !== expectedSha256 ||
+        current.revisionId !== expectedRevisionId
+      )
         throw new Error("Worked-model copy changed before this update.");
       const updated: WorkedModelCopy = {
         ...current,
         definition: structuredClone(definition),
         definitionSha256: definitionSha256(definition),
+        revisionId,
       };
       copies.set(copyId, updated);
       return cloneCopy(updated);

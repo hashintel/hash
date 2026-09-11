@@ -27,6 +27,7 @@ const copy = {
     differentialEquations: [],
   },
   definitionSha256: "a".repeat(64),
+  revisionId: "revision-1",
 };
 
 const response = (value: unknown, status = 200) =>
@@ -92,7 +93,9 @@ describe("worked-model client", () => {
         principalKey: "principal-a",
         copyId: "copy-1",
         expectedSha256: "a".repeat(64),
+        expectedRevisionId: "revision-1",
         definition: copy.definition,
+        revisionId: "revision-2",
       },
       fetcher,
     );
@@ -102,7 +105,9 @@ describe("worked-model client", () => {
     expect(fetcher.mock.calls[1]?.[1]?.body).toBe(
       JSON.stringify({
         expectedSha256: "a".repeat(64),
+        expectedRevisionId: "revision-1",
         definition: copy.definition,
+        revisionId: "revision-2",
       }),
     );
   });
