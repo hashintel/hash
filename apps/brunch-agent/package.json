@@ -38,6 +38,7 @@
     "test:root-creation": "node --experimental-strip-types test/root-creation.integration.ts",
     "test:typed-state": "node --experimental-strip-types test/typed-state.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
+    "test:worked-model-copy": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/worked-model-copy.integration.ts",
     "test:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },
