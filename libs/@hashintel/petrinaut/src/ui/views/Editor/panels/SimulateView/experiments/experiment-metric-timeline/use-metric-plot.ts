@@ -1,7 +1,7 @@
 /**
- * The uPlot lifecycle behind the metric timeline: one chart per view shape
- * and size, content applied once per animation frame (latest wins), the
- * previous picture crossfaded out on a content change, and pointer
+ * The uPlot lifecycle behind the metric timeline: one chart per view shape,
+ * resized in place, content applied once per animation frame (latest wins),
+ * the previous picture crossfaded out on a content change, and pointer
  * scrubbing turned into frame picks.
  */
 import { useEffect, useRef } from "react";
@@ -32,6 +32,14 @@ export type { FramePick } from "./use-metric-plot/frame-scrubbing";
 const UPlot = uPlot;
 /** Below this the axes and labels no longer fit. */
 const MIN_PLOT_HEIGHT = 220;
+
+type PlotSize = { width: number; height: number };
+
+/** The chart's size for a root of this size: the measured width, and no less height than the axes need. */
+const plotSize = ({ width, height }: PlotSize): PlotSize => ({
+  width,
+  height: Math.max(MIN_PLOT_HEIGHT, height),
+});
 
 type PlotContent = {
   frames: readonly MetricFrame[];
@@ -76,7 +84,7 @@ export const useMetricPlot = ({
   onFrameSelect,
 }: {
   chartRootRef: RefObject<HTMLDivElement | null>;
-  size: { width: number; height: number } | null;
+  size: PlotSize | null;
   canPlot: boolean;
   displayMode: MetricDisplayMode;
   outputType: MetricFrame["outputType"];
@@ -97,6 +105,8 @@ export const useMetricPlot = ({
   onFrameSelect: (pick: FramePick) => void;
 }): void => {
   const mountedRef = useRef<MountedPlot | null>(null);
+  /** The root's last measured size, read when a chart is created. */
+  const sizeRef = useRef<PlotSize | null>(null);
   /** What the plot shows; uPlot callbacks read it at draw and pointer time. */
   const contentRef = useRef<PlotContent>({
     frames,
@@ -146,16 +156,31 @@ export const useMetricPlot = ({
     };
   }, [contentEpoch, frames, plotData]);
 
+  // A resize is applied to the mounted chart: uPlot redraws its series and
+  // plugins on `setSize`, so the heatmap raster and a crossfade in progress
+  // survive where a new chart would cut to blank. This runs before the
+  // creating effect below, so the size it stores is there for a chart
+  // created in the same commit.
+  useEffect(() => {
+    sizeRef.current = size;
+    const mounted = mountedRef.current;
+    if (mounted && size) {
+      mounted.plot.setSize(plotSize(size));
+    }
+  }, [size]);
+
+  const hasSize = size !== null;
   useEffect(() => {
     const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
     if (yCeilingRef.current.viewKey !== viewKey) {
       yCeilingRef.current = { viewKey, ceiling: { value: 0 } };
     }
     const root = chartRootRef.current;
-    if (!root || !size || !canPlot) {
+    const initialSize = sizeRef.current;
+    if (!root || !hasSize || !initialSize || !canPlot) {
       return;
     }
-    const height = Math.max(MIN_PLOT_HEIGHT, size.height);
+    const { width, height } = plotSize(initialSize);
     const isHeatmap =
       displayMode === "chart" &&
       outputType === "distribution" &&
@@ -163,9 +188,9 @@ export const useMetricPlot = ({
       distributionView === "heatmap";
     const options =
       displayMode === "distribution"
-        ? distributionBarChartOptions(size.width, height)
+        ? distributionBarChartOptions(width, height)
         : chartOptions({
-            width: size.width,
+            width,
             height,
             shape: {
               outputType,
@@ -208,10 +233,10 @@ export const useMetricPlot = ({
     chartRootRef,
     displayMode,
     distributionView,
+    hasSize,
     onFrameSelect,
     outputType,
     runAggregation,
-    size,
     timeDomainEnd,
     timeDomainStart,
     timeTrace,

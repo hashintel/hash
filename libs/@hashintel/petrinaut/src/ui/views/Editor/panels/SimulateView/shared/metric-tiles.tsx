@@ -5,7 +5,8 @@
  * frame has arrived the cards are stable shells per configured metric, so
  * the first data causes no layout shift. The one thing that resizes a card
  * is its Enlarge button: the card then spans the grid's full row at twice
- * the row height, and only the cards after it move.
+ * the row height, the cards after it fill the cells its row has left, and
+ * the rest move below.
  */
 import { type ReactNode, useState } from "react";
 

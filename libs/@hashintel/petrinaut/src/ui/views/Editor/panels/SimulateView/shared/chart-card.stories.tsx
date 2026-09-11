@@ -192,8 +192,9 @@ const tiles: MetricTile[] = [
 
 /**
  * The metric tiles with the second card enlarged: it spans the full row at
- * twice the row height, the first card keeps its cell, and the cards after
- * it move below. Shrink puts it back.
+ * twice the row height, the first card keeps its cell, the third fills the
+ * cell the second left beside it, and the fourth moves below. Shrink puts
+ * it back.
  */
 export const GridWithLargeCard: Story = {
   render: () => (

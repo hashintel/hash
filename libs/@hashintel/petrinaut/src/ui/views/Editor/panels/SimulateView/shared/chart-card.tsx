@@ -295,8 +295,10 @@ export const CHART_CARD_MIN_WIDTH = 320;
 /** The grid's gap between cards, in pixels (the `4` spacing token). */
 export const CHART_CARD_GRID_GAP = 16;
 
-// Dense packing fills the cell a spanning card leaves in its row with the
-// next card instead of a hole; with equal cards it places them in order.
+// Dense packing fills the cells a spanning card leaves in its row with the
+// cards after it instead of holes; with equal cards it places them in order.
+// The cards stay in source order, so the Tab order is the grid's order
+// before any card was enlarged.
 const gridStyle = css({
   display: "grid",
   gridAutoFlow: "row dense",
