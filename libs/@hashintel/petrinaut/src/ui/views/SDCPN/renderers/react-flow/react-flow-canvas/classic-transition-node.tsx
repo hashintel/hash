@@ -96,22 +96,21 @@ function useFiringAnimation(
       return;
     }
 
-    // Animate the box: flash yellow background and glow
+    // Flash the box yellow with a glow. Only the flash is a keyframe: the
+    // animation runs back to whatever the stylesheet says, so the focus ring's
+    // white band in `box-shadow` returns once it is over instead of staying
+    // replaced by the glow's transparent end.
     box.animate(
       [
         {
           background: "rgba(255, 224, 132, 0.7)",
           boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
-        },
-        {
-          background: "rgb(247, 247, 247)",
-          boxShadow: "0 0 0 0 rgba(255, 132, 0, 0)",
+          offset: 0,
         },
       ],
       {
         duration: FIRING_ANIMATION_DURATION_MS,
         easing: "ease-out",
-        fill: "forwards",
       },
     );
 

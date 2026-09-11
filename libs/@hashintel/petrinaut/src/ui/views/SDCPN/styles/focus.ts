@@ -78,9 +78,12 @@ export const nodeFocusStyle = cva({
       /**
        * Border and label recede, the fill and the token count do not: the rest
        * of the net stays readable, and stays put, while a neighbourhood is
-       * highlighted.
+       * highlighted. A node's border colour is its own — a place's is its
+       * type's, set inline — so muting outranks it with `!important` rather
+       * than by stylesheet order. The label colour is inherited by a title;
+       * a subtitle already sits at this shade.
        */
-      muted: { borderColor: "neutral.s45", color: "neutral.s90" },
+      muted: { borderColor: "neutral.s45!", color: "neutral.s90" },
     },
   },
   defaultVariants: { focus: "none" },
