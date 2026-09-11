@@ -39,11 +39,7 @@
         "SENTRY_ENVIRONMENT",
         "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
         "SHOW_WORKER_COST"
-      ],
-      // `next.config.js` runs dotenv-flow against the repository root. The
-      // tracked root dotfiles are already global dependencies; the gitignored
-      // `.env.local` is outside Turborepo's default inputs.
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"]
+      ]
     },
     "dev": {
       "dependsOn": ["codegen", "^build"]
