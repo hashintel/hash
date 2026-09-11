@@ -67,6 +67,8 @@ export type CalibrationPolicy = {
   maxWindowReplans: number;
   /** Whether attempts open with a preview tile. */
   preview: boolean;
+  /** Whether the attempts calibrate rather than run the experiment itself. */
+  probe: boolean;
 };
 
 /**
@@ -79,6 +81,7 @@ export const PROBE_POLICY: CalibrationPolicy = {
   maxSlabGrowths: 7,
   maxWindowReplans: 0,
   preview: false,
+  probe: true,
 };
 
 /**
@@ -90,6 +93,7 @@ export const RUN_POLICY: CalibrationPolicy = {
   maxSlabGrowths: 3,
   maxWindowReplans: 1,
   preview: true,
+  probe: false,
 };
 
 /**
@@ -103,6 +107,7 @@ export const CACHED_RUN_POLICY: CalibrationPolicy = {
   maxSlabGrowths: 1,
   maxWindowReplans: 1,
   preview: true,
+  probe: false,
 };
 
 /** The shader in force and the derived slabs it was compiled at. */
@@ -121,6 +126,11 @@ export type ExecuteAttempt = (attempt: {
   runCount: number;
   windows: readonly MetricWindow[];
   preview: boolean;
+  /**
+   * A calibration attempt over a prefix of the runs: its frames stream like
+   * any other's, but its run counts are not the experiment's progress.
+   */
+  probe: boolean;
 }) => Promise<AttemptResult>;
 
 export type CalibratedRun =
@@ -215,6 +225,7 @@ export const runUntilCalibrated = async (options: {
       runCount: runsFor(session.shader),
       windows,
       preview: policy.preview,
+      probe: policy.probe,
     });
     if (!attempt.ok) {
       return attempt;
@@ -267,12 +278,15 @@ export const runUntilCalibrated = async (options: {
  * The slab each derived place gets for the full run, from the probe's per-run
  * maxima: the observed maximum plus margin, unless a heavy-tailed outlier
  * would need a slab past `GPU_ARENA_SLAB_BYTES` — that shape belongs on the
- * CPU.
+ * CPU. A slab never shrinks below its place's `slabFloor`: a re-probe after
+ * a full attempt overflowed at grown slabs observes only a prefix of the
+ * runs, and sizing below what already overflowed would overflow again.
  */
 export const slabsFromProbe = (
   session: CalibrationSession,
   probe: GpuExperimentResult,
   placeCounts: readonly number[],
+  slabFloor?: ReadonlyMap<string, number>,
 ):
   | { ok: true; capacities: Map<string, number> }
   | { ok: false; reason: string } => {
@@ -283,11 +297,12 @@ export const slabsFromProbe = (
   ] of session.shader.derivedCapacityPlaceIndices.entries()) {
     const place = session.backend.profile.places[placeIndex]!;
     const stats = probe.derivedPlaceMaxes[slot] ?? { max: 0, meanRunMax: 0 };
-    const capacity = Math.min(
-      Math.max(8, Math.ceil(stats.max * 1.5) + 4, placeCounts[placeIndex] ?? 0),
-      derivedSlabCeiling(place),
+    const observed = Math.max(
+      8,
+      Math.ceil(stats.max * 1.5) + 4,
+      placeCounts[placeIndex] ?? 0,
     );
-    const slabBytes = capacity * Math.max(1, tokenWordCount(place)) * 4;
+    const slabBytes = observed * Math.max(1, tokenWordCount(place)) * 4;
     if (
       stats.max > 4 * Math.max(1, stats.meanRunMax) &&
       slabBytes > GPU_ARENA_SLAB_BYTES
@@ -297,7 +312,13 @@ export const slabsFromProbe = (
         reason: `Probing \`${place.name}\` saw outlier runs reach ${stats.max} tokens against a typical per-run maximum of ${Math.round(stats.meanRunMax)}. Sizing every run for the outlier would take ${Math.round(slabBytes / 1024)} KB per run — that heavy-tailed shape needs a per-run token arena. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
       };
     }
-    capacities.set(place.id, capacity);
+    capacities.set(
+      place.id,
+      Math.min(
+        Math.max(observed, slabFloor?.get(place.id) ?? 0),
+        derivedSlabCeiling(place),
+      ),
+    );
   }
   return { ok: true, capacities };
 };
@@ -325,6 +346,8 @@ export const probeDerivedCapacities = async (options: {
    * attempts and before the recompile at the probed slabs.
    */
   stopped?: () => boolean;
+  /** Slabs the probed ones may not shrink below — see `slabsFromProbe`. */
+  slabFloor?: ReadonlyMap<string, number>;
 }): Promise<
   | {
       ok: true;
@@ -336,7 +359,7 @@ export const probeDerivedCapacities = async (options: {
     }
   | { ok: false; reason: string }
 > => {
-  const { session, runCount, placeCounts, execute } = options;
+  const { session, runCount, placeCounts, execute, slabFloor } = options;
   const stopped = options.stopped ?? (() => false);
   const probeWindows = planInitialWindows(
     options.windowInputs,
@@ -383,7 +406,7 @@ export const probeDerivedCapacities = async (options: {
       reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
     };
   }
-  const slabs = slabsFromProbe(session, probe.result, placeCounts);
+  const slabs = slabsFromProbe(session, probe.result, placeCounts, slabFloor);
   if (!slabs.ok) {
     return slabs;
   }
@@ -415,6 +438,7 @@ export const probeWindows = async (options: {
     runCount,
     windows,
     preview: false,
+    probe: true,
   });
   if (!attempt.ok) {
     return attempt;

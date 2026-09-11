@@ -36,6 +36,19 @@ export type RunPhaseOutcome =
     };
 
 /**
+ * Whether an uncalibrated run must probe before its full attempt: a derived
+ * slab needs measuring, or a metric has no declared ceiling to plan its
+ * window from. A run that needs neither has nothing another batch on the
+ * same marking could wait for.
+ */
+export const needsProbe = (
+  session: Pick<CalibrationSession, "capacities">,
+  windowInputs: readonly MetricWindowInput[],
+): boolean =>
+  session.capacities.size > 0 ||
+  windowInputs.some((input) => input.ceiling === null);
+
+/**
  * Probes when nothing is calibrated yet — derived capacities first, which
  * also observes the metric ranges; else the blind windows alone — then runs
  * the full attempt under `RUN_POLICY`. A cached calibration runs under
@@ -64,6 +77,11 @@ export const runCalibratedExperiment = async (options: {
     metricErrors: readonly number[],
     runCount: number,
   ) => string | null;
+  /**
+   * Slabs a fresh probe may not size below: the grown ones a cached
+   * calibration's full attempt still overflowed at.
+   */
+  slabFloor?: ReadonlyMap<string, number>;
 }): Promise<RunPhaseOutcome> => {
   const {
     session,
@@ -75,11 +93,14 @@ export const runCalibratedExperiment = async (options: {
     stopped,
     remember,
     metricFailure,
+    slabFloor,
   } = options;
 
   let windows: readonly MetricWindow[];
   if (calibratedWindows !== null) {
     windows = calibratedWindows;
+  } else if (!needsProbe(session, windowInputs)) {
+    windows = planInitialWindows(windowInputs, session.shader.histogramBins);
   } else if (session.capacities.size > 0) {
     const probed = await probeDerivedCapacities({
       session,
@@ -88,6 +109,7 @@ export const runCalibratedExperiment = async (options: {
       placeCounts,
       execute,
       stopped,
+      slabFloor,
     });
     if (stopped()) {
       return { kind: "stopped" };
@@ -102,29 +124,25 @@ export const runCalibratedExperiment = async (options: {
       return { kind: "failed", reason: probedFailure };
     }
   } else {
-    windows = planInitialWindows(windowInputs, session.shader.histogramBins);
-    const blindWindows = windowInputs.some((input) => input.ceiling === null);
-    if (blindWindows) {
-      const probeRuns = probeRunCount(session.shader, runCount);
-      const probe = await probeWindows({
-        session,
-        windows,
-        execute,
-        runCount: probeRuns,
-      });
-      if (!probe.ok) {
-        return { kind: "failed", reason: probe.reason };
-      }
-      if (probe.result.cancelled || stopped()) {
-        return { kind: "stopped" };
-      }
-      const probeFailure = metricFailure(probe.result.metricErrors, probeRuns);
-      if (probeFailure !== null) {
-        return { kind: "failed", reason: probeFailure };
-      }
-      windows = probe.windows;
-      remember(windows);
+    const probeRuns = probeRunCount(session.shader, runCount);
+    const probe = await probeWindows({
+      session,
+      windows: planInitialWindows(windowInputs, session.shader.histogramBins),
+      execute,
+      runCount: probeRuns,
+    });
+    if (!probe.ok) {
+      return { kind: "failed", reason: probe.reason };
     }
+    if (probe.result.cancelled || stopped()) {
+      return { kind: "stopped" };
+    }
+    const probeFailure = metricFailure(probe.result.metricErrors, probeRuns);
+    if (probeFailure !== null) {
+      return { kind: "failed", reason: probeFailure };
+    }
+    windows = probe.windows;
+    remember(windows);
   }
 
   const calibrated = await runUntilCalibrated({
@@ -146,8 +164,13 @@ export const runCalibratedExperiment = async (options: {
   ) {
     // A calibration learned on another selection undersizes this one past
     // what growth covers: probe afresh, as a first batch would, from the
-    // grown slabs. The probe's result outranks the stale entry.
-    return runCalibratedExperiment({ ...options, calibratedWindows: null });
+    // grown slabs — and never below them, so the probe's result is at least
+    // the stale entry's on every place and replaces it.
+    return runCalibratedExperiment({
+      ...options,
+      calibratedWindows: null,
+      slabFloor: new Map(session.capacities),
+    });
   }
   return {
     kind: "calibrated",

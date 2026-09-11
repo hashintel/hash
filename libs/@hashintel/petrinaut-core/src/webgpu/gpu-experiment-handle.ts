@@ -30,7 +30,10 @@ import { rememberCalibration } from "./gpu-experiment-handle/calibration";
 import { createFrameMerger } from "./gpu-experiment-handle/frame-merge";
 import { metricFailure } from "./gpu-experiment-handle/metric-failure";
 import { deriveRunParameters } from "./gpu-experiment-handle/run-parameters";
-import { runCalibratedExperiment } from "./gpu-experiment-handle/run-phase";
+import {
+  needsProbe,
+  runCalibratedExperiment,
+} from "./gpu-experiment-handle/run-phase";
 import { shareCalibration } from "./gpu-experiment-handle/shared-calibration";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import { anyEscapes, calibrationKey } from "./metric-windows";
@@ -407,6 +410,7 @@ export async function createGpuMonteCarloExperiment(
     runCount: attemptRunCount,
     windows,
     preview,
+    probe,
   }) =>
     runGpuExperiment(backend.handle, shader, {
       runCount: attemptRunCount,
@@ -443,7 +447,9 @@ export async function createGpuMonteCarloExperiment(
           }),
       signal,
       onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
-        if (disposed) {
+        // A probe's runs are a prefix the full attempt runs again, so
+        // reporting them would show progress that then falls back to zero.
+        if (disposed || probe) {
           return;
         }
         // Overall position, monotone across tiles: finished tiles count as
@@ -484,10 +490,11 @@ export async function createGpuMonteCarloExperiment(
     // every other attempt's: the first picture a batch shows is the probe's,
     // overwritten progressively as the full attempt lands. A batch that
     // starts while another on this marking still probes waits for that
-    // calibration rather than probing too.
+    // calibration rather than probing too; one that needs no probe has
+    // nothing to wait for and runs at once.
     let calibratedWindows = adoptCalibration();
     let settle = () => {};
-    if (calibratedWindows === null) {
+    if (calibratedWindows === null && needsProbe(session, windowInputs)) {
       const share = shareCalibration(backend.calibrating, batchCalibrationKey);
       if (share.inFlight !== undefined) {
         await share.inFlight;
