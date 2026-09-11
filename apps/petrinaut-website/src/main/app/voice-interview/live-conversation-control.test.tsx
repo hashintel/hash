@@ -107,6 +107,14 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
       microphoneMuted: false,
     }),
   );
+  act(() => onState({ phase: "connecting", message: null }));
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: "connecting", microphoneLevel: 0 }),
+  );
+  expect(
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(createLiveConversation).toHaveBeenCalledOnce();
   act(() =>
     onState({
       phase: "connected",

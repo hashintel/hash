@@ -26,6 +26,7 @@ export const createLiveConversation = (
   let audio: HTMLAudioElement | undefined;
   let started = false;
   let ready = false;
+  let recovering = false;
   let stopping = false;
   let finished = false;
   let creationRequested = false;
@@ -64,6 +65,8 @@ export const createLiveConversation = (
       // Optional browser telemetry must not terminate or retry the conversation.
     }
     if (abort.signal.aborted) return;
+    activityTimer = setTimeout(() => void sampleActivity(), 100);
+    if (recovering) return;
     const playing = audio?.srcObject && !audio.paused && !audio.muted;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     const activity = {
@@ -80,7 +83,6 @@ export const createLiveConversation = (
       lastActivity = activity;
       onState({ phase: "connected", message: null, activity });
     }
-    activityTimer = setTimeout(() => void sampleActivity(), 100);
   };
 
   const stopMedia = () => {
@@ -164,6 +166,33 @@ export const createLiveConversation = (
       microphone = stream;
       peer = new RTCPeerConnection();
       const connection = peer;
+      const handleConnectionState = () => {
+        if (stopping) return;
+        if (["failed", "closed"].includes(connection.connectionState)) {
+          fail("Live media connection ended.");
+        } else if (
+          connection.connectionState === "disconnected" &&
+          ready &&
+          !recovering
+        ) {
+          // ICE can recover on this connection. Do not create a session or replay input.
+          recovering = true;
+          lastActivity = undefined;
+          lastOutputActivity = -Infinity;
+          onState({ phase: "connecting", message: null });
+          connectionTimer = setTimeout(
+            () =>
+              fail(
+                "Live media connection did not recover. No automatic retry was made.",
+              ),
+            connectionTimeoutMs,
+          );
+        } else if (connection.connectionState === "connected" && recovering) {
+          recovering = false;
+          clearTimeout(connectionTimer);
+          onState({ phase: "connected", message: null });
+        }
+      };
       channel = connection.createDataChannel("oai-events");
       channel.addEventListener("message", (event: MessageEvent<string>) => {
         if (finished) return;
@@ -184,8 +213,9 @@ export const createLiveConversation = (
         if (data.type === "session.started" && !ready) {
           ready = true;
           clearTimeout(connectionTimer);
-          onState({ phase: "connected", message: null });
           activityTimer = setTimeout(() => void sampleActivity(), 100);
+          onState({ phase: "connected", message: null });
+          handleConnectionState();
         } else if (data.type === "error" || data.type === "session.error") {
           fail("Live reported an error. No automatic retry was made.");
         }
@@ -199,14 +229,10 @@ export const createLiveConversation = (
       channel.addEventListener("error", () =>
         fail("Live data connection failed."),
       );
-      connection.addEventListener("connectionstatechange", () => {
-        if (
-          ["failed", "disconnected", "closed"].includes(
-            connection.connectionState,
-          )
-        )
-          fail("Live media connection ended.");
-      });
+      connection.addEventListener(
+        "connectionstatechange",
+        handleConnectionState,
+      );
       connection.addEventListener("track", (event) => {
         if (stopping) {
           event.track.stop();
