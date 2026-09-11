@@ -324,17 +324,26 @@ describe("createPetrinaut", () => {
   it("exposes sanitized definitions from capability-restricted handles", async () => {
     const source = coloured();
     const subscribers = new Set<(event: DocChangeEvent) => void>();
+    const revisionId = createReadableStore("external-revision-1");
     let upstreamSubscriptions = 0;
     const handle: PetrinautDocHandle = {
       id: "external-doc",
+      revisionId,
       capabilities: { disabledExtensions: ["colors"] },
       state: createReadableStore("ready"),
       whenReady: () => Promise.resolve(),
       doc: () => source,
       change(fn) {
+        const previousRevisionId = revisionId.get();
         fn(source);
+        revisionId.set("external-revision-2");
         for (const subscriber of subscribers) {
-          subscriber({ next: source, source: "local" });
+          subscriber({
+            next: source,
+            previousRevisionId,
+            revisionId: revisionId.get(),
+            source: "local",
+          });
         }
       },
       subscribe(listener) {
@@ -396,11 +405,67 @@ describe("PetrinautDocHandle history", () => {
     expect(handle.history?.canRedo.get()).toBe(false);
     expect(handle.history?.entries.get()).toHaveLength(1);
     expect(handle.history?.currentIndex.get()).toBe(0);
+    expect(handle.history?.entries.get()[0]?.revisionId).toBe(
+      handle.revisionId.get(),
+    );
+  });
+
+  it("identifies every direct change and reports the produced revision", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      initialRevisionId: "seed-revision",
+    });
+    const events: DocChangeEvent[] = [];
+    handle.subscribe((event) => events.push(event));
+
+    handle.change(addType("c1"));
+    const changedRevisionId = handle.revisionId.get();
+
+    expect(changedRevisionId).not.toBe("seed-revision");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      previousRevisionId: "seed-revision",
+      revisionId: changedRevisionId,
+      source: "local",
+    });
+    expect(events[0]?.patches).not.toHaveLength(0);
+    expect(handle.history?.entries.get()[1]).toMatchObject({
+      revisionId: changedRevisionId,
+      patches: events[0]?.patches,
+    });
+  });
+
+  it("undo and redo move between existing revision identities", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      initialRevisionId: "seed-revision",
+    });
+    const events: DocChangeEvent[] = [];
+    handle.subscribe((event) => events.push(event));
+    handle.change(addType("c1"));
+    const changedRevisionId = handle.revisionId.get();
+
+    handle.history?.undo();
+    expect(handle.revisionId.get()).toBe("seed-revision");
+    expect(events.at(-1)).toMatchObject({
+      previousRevisionId: changedRevisionId,
+      revisionId: "seed-revision",
+    });
+
+    handle.history?.redo();
+    expect(handle.revisionId.get()).toBe(changedRevisionId);
+    expect(events.at(-1)).toMatchObject({
+      previousRevisionId: "seed-revision",
+      revisionId: changedRevisionId,
+    });
   });
 
   it("is omitted when historyLimit is 0", () => {
     const handle = createJsonDocHandle({ initial: empty(), historyLimit: 0 });
+    const initialRevisionId = handle.revisionId.get();
     expect(handle.history).toBeUndefined();
+    handle.change(addType("c1"));
+    expect(handle.revisionId.get()).not.toBe(initialRevisionId);
   });
 
   it("undoes a single mutation", () => {

@@ -4,6 +4,7 @@ import {
   type Patch as ImmerPatch,
   produceWithPatches,
 } from "immer";
+import { v4 as generateUuid } from "uuid";
 
 import {
   resolvePetrinautHandleCapabilities,
@@ -20,6 +21,7 @@ import type {
   DocChangeEvent,
   DocHandleState,
   DocumentId,
+  DocumentRevisionId,
   HistoryEntry,
   PetrinautDocHandle,
   PetrinautHistory,
@@ -45,6 +47,7 @@ function generateId(): DocumentId {
 type HistoryStackEntry = {
   forward: ImmerPatch[];
   inverse: ImmerPatch[];
+  revisionId: DocumentRevisionId;
   timestamp: string;
 };
 
@@ -52,6 +55,8 @@ const DEFAULT_HISTORY_LIMIT = 50;
 
 export type CreateJsonDocHandleOptions = {
   id?: DocumentId;
+  /** Revision identity to retain when hydrating a persisted document. */
+  initialRevisionId?: DocumentRevisionId;
   /**
    * Initial document. Accepts a loose {@link SDCPNInput} — extension fields
    * (`colorId`, `lambdaCode`, arc `type`/`weight`, the `types` /
@@ -103,10 +108,16 @@ export function createJsonDocHandle(
    */
   let cursor = -1;
 
-  const initialEntry: HistoryEntry = { timestamp: new Date().toISOString() };
+  let initialEntry: HistoryEntry = {
+    revisionId: opts.initialRevisionId ?? generateUuid(),
+    timestamp: new Date().toISOString(),
+  };
   const entriesStore = createReadableStore<readonly HistoryEntry[]>([
     initialEntry,
   ]);
+  const revisionIdStore = createReadableStore<DocumentRevisionId>(
+    initialEntry.revisionId,
+  );
   const currentIndexStore = createReadableStore<number>(0);
   const canUndoStore = createReadableStore<boolean>(false);
   const canRedoStore = createReadableStore<boolean>(false);
@@ -114,10 +125,17 @@ export function createJsonDocHandle(
   function refreshHistoryStores(): void {
     const entries: HistoryEntry[] = [initialEntry];
     for (const entry of stack) {
-      entries.push({ timestamp: entry.timestamp });
+      entries.push({
+        revisionId: entry.revisionId,
+        timestamp: entry.timestamp,
+        patches: entry.forward.map(fromImmerPatch),
+      });
     }
     entriesStore.set(entries);
     currentIndexStore.set(cursor + 1);
+    revisionIdStore.set(
+      cursor < 0 ? initialEntry.revisionId : stack[cursor]!.revisionId,
+    );
     canUndoStore.set(cursor >= 0);
     canRedoStore.set(cursor < stack.length - 1);
   }
@@ -140,24 +158,45 @@ export function createJsonDocHandle(
     return patches;
   }
 
-  function recordChange(forward: ImmerPatch[], inverse: ImmerPatch[]): void {
+  function recordChange(
+    forward: ImmerPatch[],
+    inverse: ImmerPatch[],
+  ): {
+    previousRevisionId: DocumentRevisionId;
+    revisionId: DocumentRevisionId;
+  } {
+    const previousRevisionId = revisionIdStore.get();
+    const revisionId = generateUuid();
     if (historyLimit <= 0) {
-      return;
+      revisionIdStore.set(revisionId);
+      return { previousRevisionId, revisionId };
     }
     // Truncate any redo entries past the cursor.
     if (cursor < stack.length - 1) {
       stack.length = cursor + 1;
     }
-    stack.push({ forward, inverse, timestamp: new Date().toISOString() });
+    stack.push({
+      forward,
+      inverse,
+      revisionId,
+      timestamp: new Date().toISOString(),
+    });
     cursor = stack.length - 1;
 
     // Enforce the limit by dropping oldest entries.
     if (stack.length > historyLimit) {
       const drop = stack.length - historyLimit;
+      const retainedBaseline = stack[drop - 1];
+      if (retainedBaseline)
+        initialEntry = {
+          revisionId: retainedBaseline.revisionId,
+          timestamp: retainedBaseline.timestamp,
+        };
       stack.splice(0, drop);
       cursor -= drop;
     }
     refreshHistoryStores();
+    return { previousRevisionId, revisionId };
   }
 
   const history: PetrinautHistory = {
@@ -169,6 +208,7 @@ export function createJsonDocHandle(
       if (cursor < 0) {
         return false;
       }
+      const previousRevisionId = revisionIdStore.get();
       const entry = stack[cursor]!;
       const patches = applyPatchesAndSanitize(entry.inverse);
       cursor -= 1;
@@ -176,6 +216,8 @@ export function createJsonDocHandle(
       emit({
         next: current,
         patches: patches.map(fromImmerPatch),
+        previousRevisionId,
+        revisionId: revisionIdStore.get(),
         source: "local",
       });
       return true;
@@ -184,6 +226,7 @@ export function createJsonDocHandle(
       if (cursor >= stack.length - 1) {
         return false;
       }
+      const previousRevisionId = revisionIdStore.get();
       cursor += 1;
       const entry = stack[cursor]!;
       const patches = applyPatchesAndSanitize(entry.forward);
@@ -191,6 +234,8 @@ export function createJsonDocHandle(
       emit({
         next: current,
         patches: patches.map(fromImmerPatch),
+        previousRevisionId,
+        revisionId: revisionIdStore.get(),
         source: "local",
       });
       return true;
@@ -204,6 +249,7 @@ export function createJsonDocHandle(
       if (targetCursor === cursor) {
         return false;
       }
+      const previousRevisionId = revisionIdStore.get();
       const collected: ImmerPatch[] = [];
       if (targetCursor < cursor) {
         // Roll backward, applying inverses from cursor down to targetCursor+1.
@@ -222,11 +268,17 @@ export function createJsonDocHandle(
       emit({
         next: current,
         patches: patches.map(fromImmerPatch),
+        previousRevisionId,
+        revisionId: revisionIdStore.get(),
         source: "local",
       });
       return true;
     },
     clear() {
+      initialEntry = {
+        revisionId: revisionIdStore.get(),
+        timestamp: new Date().toISOString(),
+      };
       stack.length = 0;
       cursor = -1;
       refreshHistoryStores();
@@ -235,6 +287,7 @@ export function createJsonDocHandle(
 
   return {
     id,
+    revisionId: revisionIdStore,
     capabilities,
     state: stateStore,
     whenReady: () => Promise.resolve(),
@@ -257,10 +310,11 @@ export function createJsonDocHandle(
         return;
       }
       current = next as SDCPN;
-      recordChange(patches, inversePatches);
+      const revision = recordChange(patches, inversePatches);
       emit({
         next: current,
         patches: patches.map(fromImmerPatch),
+        ...revision,
         source: "local",
       });
     },
