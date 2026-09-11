@@ -1,11 +1,11 @@
+/**
+ * The objective history of the study a sweep ran: what the strip under the
+ * sliders draws and what its row says.
+ */
 import {
   isOptimizationActive,
   type OptimizationRecord,
 } from "../../../../../../../react/optimizations/context";
-/**
- * The objective history of every study a sweep ran, end to end: what the
- * strip under the sliders draws and what its row says.
- */
 import {
   buildObjectiveHistory,
   type ObjectiveHistoryPoint,
@@ -13,20 +13,16 @@ import {
 import { objectiveMetricName } from "../../shared/study-labels";
 
 export type SweepObjectiveHistory = {
-  /** Every study's steps end to end, numbered from 1 across studies. */
+  /** The study's steps, numbered from 1. */
   points: readonly ObjectiveHistoryPoint[];
   /**
-   * The x axis's right edge: while the last study runs, the steps run so far
-   * plus its steps still to come; settled, the last step run.
+   * The x axis's right edge: while the study runs, the steps it asked for
+   * (never short of the steps run); settled, the last step run.
    */
   xMax: number;
-  /** The first global step of every study drawn after the first: where a divider is drawn. */
-  dividers: readonly number[];
-  /** The studies that drew a step or are about to, for the row's count. */
-  studyCount: number;
   /**
-   * The metric name and best of the last study that drew a step or is about
-   * to, for the row's summary; a study that failed at start never names it.
+   * The metric the study optimizes and the best it found, for the row's
+   * summary; a study that failed at start names neither.
    */
   metricName: string;
   best: number | null;
@@ -38,60 +34,25 @@ type SweepStudy = Pick<
 >;
 
 /**
- * Concatenates the studies' objective histories: each study's steps are
- * numbered after the previous study's run steps (`trials.length`, so a
- * stopped study leaves no gap), and best-so-far restarts with each study,
- * whose metric and direction may differ from the last. A study that ended
- * without a step, failed at start, adds no divider and no count; a sweep
- * whose studies all did is summarised as one that ran none.
+ * The study's steps numbered from 1 with its metric and best; a study that
+ * ended without a step, failed at start, is summarised as one that ran none.
  */
 export const buildSweepObjectiveHistory = (
-  studies: readonly SweepStudy[],
+  study: SweepStudy,
 ): SweepObjectiveHistory => {
-  const points: ObjectiveHistoryPoint[] = [];
-  const dividers: number[] = [];
-  let studyCount = 0;
-  let lastCounted: SweepStudy | null = null;
-  let offset = 0;
-  for (const study of studies) {
-    if (study.trials.length === 0 && !isOptimizationActive(study)) {
-      continue;
-    }
-    if (studyCount > 0) {
-      dividers.push(offset + 1);
-    }
-    studyCount += 1;
-    lastCounted = study;
-    for (const point of buildObjectiveHistory(
-      study.trials,
-      study.input.objective.direction,
-    )) {
-      points.push({ ...point, step: point.step + offset });
-    }
-    offset += study.trials.length;
-  }
-  const last = studies.at(-1);
-  if (last === undefined || lastCounted === null) {
-    return {
-      points,
-      xMax: 0,
-      dividers,
-      studyCount,
-      metricName: "",
-      best: null,
-    };
+  const points = buildObjectiveHistory(
+    study.trials,
+    study.input.objective.direction,
+  );
+  if (study.trials.length === 0 && !isOptimizationActive(study)) {
+    return { points, xMax: 0, metricName: "", best: null };
   }
   return {
     points,
-    xMax: isOptimizationActive(last)
-      ? Math.max(
-          points.length,
-          offset - last.trials.length + last.requestedTrials,
-        )
+    xMax: isOptimizationActive(study)
+      ? Math.max(points.length, study.requestedTrials)
       : points.length,
-    dividers,
-    studyCount,
-    metricName: objectiveMetricName(lastCounted.input),
-    best: lastCounted.best?.objective ?? null,
+    metricName: objectiveMetricName(study.input),
+    best: study.best?.objective ?? null,
   };
 };
