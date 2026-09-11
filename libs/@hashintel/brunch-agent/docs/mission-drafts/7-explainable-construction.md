@@ -1,6 +1,6 @@
 # Draft — After-demo construction and explanation evaluation
 
-> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Part A remains an engineering PR; the substantial worked-scenario product advance belongs to live [Mission 7b](../../MISSION.md). This broader cross-scenario evaluation programme is not a prerequisite to Part A or a substitute for the live mission's flagship readiness obligations.
+> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Mission 7b remains an engineering/product-seam PR; the substantial Inventory worked-model advance belongs to [Draft Mission 7c](7c-inventory-worked-model.md). This broader cross-scenario evaluation programme is not a prerequisite to Mission 7b or a substitute for 7c's flagship readiness obligations.
 
 ## Purpose and boundaries
 
@@ -49,7 +49,7 @@ For any claim including Voice/exact resume, retain a genuine two-tab scenario wi
 ## Product and maintenance allocation
 
 - Mission 7a owns its immediate workpiece UI merge blocker and compatibility with FE-1645/#9634.
-- Mission 7b owns the agreed live flow, desired video, selected correction and only the host/copy/source-inspection work they require.
+- Mission 7b owns the ordinary structural batch/correction seam. Draft Mission 7c owns the Inventory flow, desired video, selected correction and only the host/copy/source-inspection work they require.
 - Additional revision list/diff, broad source navigation and per-field intention mapping re-enter when the review task needs them; no new graph or UI is selected here.
 - Retire orphaned ask/sweep handlers and subset-era fixtures only after inspecting current consumers. The historical inventory named website ask mappings/interactive tools, sweep filters/output, Voice speech/coverage references and suspended core ask contracts. Some may already be removed; do not recreate or delete by stale path lists.
 - Capture/archive-lane subtraction follows the real retention need. The named historical consumers are app `capture/apply-sweep.ts`, binding history reading and core evidence/capture exports. Keep only a required archive function, not rejected capture-envelope semantics or a second transcript store.
@@ -57,7 +57,7 @@ For any claim including Voice/exact resume, retain a genuine two-tab scenario wi
 
 ## Successor joins
 
-[Mission 9](9-traceable-projection.md) retains broader repeat/change/retirement/concurrency, schema and case breadth. [Mission 10](10-bounded-reviewer-revision.md) retains reviewer authority, qualification, coexistence, conflict and impact-widening portfolios beyond the selected demo correction. [Mission 11](11-optimisation-handoff.md) retains the consumer-defined experiment contract. Their broad acceptance programmes do not block the narrow slices explicitly brought into 7b.
+[Mission 9](9-traceable-projection.md) retains broader repeat/change/retirement/concurrency, schema and case breadth. [Mission 10](10-bounded-reviewer-revision.md) retains reviewer authority, qualification, coexistence, conflict and impact-widening portfolios beyond the selected demo correction. [Mission 11](11-optimisation-handoff.md) retains the consumer-defined experiment contract. Their broad acceptance programmes do not block the narrow slices explicitly brought into Draft Mission 7c.
 
 The [future spine](../../MISSION.next.md) owns stable template delivery, current-host inspection, source/plugin hypotheses and explicit assumption-based preview. Selecting a demonstration example does not authorize a general gap-filling or stochastic modelling policy.
 
