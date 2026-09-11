@@ -158,27 +158,31 @@ const sweepStudy = (
   };
 };
 
+/** The steps the latest study has landed in each state: 4 of 30 while it runs, 17 when Stop ended it. */
+const latestStudySteps = { running: 4, complete: 30, cancelled: 17 } as const;
+
 /**
  * The sweep drawer with the in-browser optimizer available: the Parameters
  * card offers Optimize, and with a study driving the sweep it turns purple,
  * the header reads Optimizing, its sliders follow the steps, the button
  * reads Stop and the objective strip under the sliders fills in step by
- * step. Settled, the strip keeps the whole history; `previous` adds an
- * earlier, stopped study before it, so the strip shows the two end to end
- * with a divider where the second began.
+ * step, its axis reaching to the steps asked for. Settled, the strip keeps
+ * the whole history and its axis ends at the last step run, complete or
+ * stopped; `previous` adds an earlier, stopped study before it, so the
+ * strip shows the two end to end with a divider where the second began.
  */
 const OptimizableSweep = ({
-  driving,
+  latest,
   previous = false,
 }: {
-  driving: boolean;
+  latest: keyof typeof latestStudySteps;
   previous?: boolean;
 }) => {
   const sweep = makeParameterSweepExperiment();
   const study = sweepStudy(sweep, {
     id: "sweep-study-2",
-    status: driving ? "running" : "complete",
-    steps: driving ? 4 : 30,
+    status: latest,
+    steps: latestStudySteps[latest],
     startedAgoMs: 90_000,
   });
   const studies = previous
@@ -219,15 +223,20 @@ const OptimizableSweep = ({
 
 export const Optimizable: Story = {
   name: "Sweep, optimizer available",
-  render: () => <OptimizableSweep driving={false} />,
+  render: () => <OptimizableSweep latest="complete" />,
 };
 
 export const Optimizing: Story = {
   name: "Sweep, optimizer driving",
-  render: () => <OptimizableSweep driving />,
+  render: () => <OptimizableSweep latest="running" />,
+};
+
+export const StoppedOnce: Story = {
+  name: "Sweep, optimization stopped",
+  render: () => <OptimizableSweep latest="cancelled" />,
 };
 
 export const OptimizedTwice: Story = {
   name: "Sweep, optimized twice",
-  render: () => <OptimizableSweep driving previous />,
+  render: () => <OptimizableSweep latest="running" previous />,
 };

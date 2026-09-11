@@ -134,17 +134,11 @@ vi.mock("./sweep-surface", async () => {
 
 // uPlot cannot mount in jsdom; the strip's row and fold around the chart are
 // real, and so is the history the row describes.
-vi.mock("../shared/objective-history-chart", async () => {
-  const data = await vi.importActual<
-    typeof import("../shared/objective-history-chart/objective-history-data")
-  >("../shared/objective-history-chart/objective-history-data");
-  return {
-    buildObjectiveHistory: data.buildObjectiveHistory,
-    ObjectiveHistoryChart: ({ plotHeight }: { plotHeight: number }) => (
-      <div data-testid="objective-history" style={{ height: plotHeight }} />
-    ),
-  };
-});
+vi.mock("../shared/objective-history-chart", () => ({
+  ObjectiveHistoryChart: ({ plotHeight }: { plotHeight: number }) => (
+    <div data-testid="objective-history" style={{ height: plotHeight }} />
+  ),
+}));
 
 // uPlot cannot mount in jsdom; the menu and the subtitle are real.
 vi.mock("./experiment-metric-timeline", () =>

@@ -112,13 +112,14 @@ zero-layout-shift contract holds on the remote path as on the connected one.
 `ObjectiveHistoryCard` (`study-results/objective-history-card.tsx`) is the
 objective by step, the shared `ObjectiveHistoryChart`
 (`SimulateView/shared/objective-history-chart.tsx`) in a card:
-`buildObjectiveHistory` (`shared/objective-history-chart/objective-history-data.ts`)
+`buildObjectiveHistory` (`SimulateView/shared/objective-history-data.ts`)
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
 (`[steps, objectives, bestSoFar]`), and the chart draws the objectives as
 dots and the best as a stepped line, in the palette and sizes its
 `ObjectiveHistoryStyle` names, with an optional pinned right edge (`xMax`)
-and dashed `dividers` between studies for the sweep's strip.
+and dashed `dividers` between studies for the sweep's objective strip
+([Studies started from a sweep](#studies-started-from-a-sweep)).
 `trialFeasibility` reads a point's feasibility off the trial event's
 `constraints`: `unknown` without results, `infeasible` for a draw pruned by a
 parameter constraint. A pruned step has no objective, so it draws nothing,
@@ -200,15 +201,30 @@ experimentId }`), no connected state and no drawer navigation, routes its
 run's `evaluateTrial` to a sweep trial evaluator
 ([react.optimizations.sweep-evaluator](layer:react.optimizations.sweep-evaluator))
 in front of the channel, and hides it from this tab's list. The hook exposes
-the study and `driving`, the step of the study driving the sweep or null.
-While it drives, the card takes the `optimizing` tone, its sliders follow the
-trials disabled, the same purple button reads Stop and cancels the study, and
-the experiment drawer's header reads from the study: **Optimizing**, the
-steps finished as the progress bar, `Step N` on the computing batch. Settling
-parks the sweep, uncapped, on the best point, or on the point it was trying
-when Stop ended it; the navigator's status line then keeps the outcome
+the study, every study started from the sweep oldest first as `studies`, and
+`driving`, the step of the study driving the sweep or null. While it drives,
+the card takes the `optimizing` tone, its sliders follow the trials disabled,
+the same purple button reads Stop and cancels the study, and the experiment
+drawer's header reads from the study: **Optimizing**, the steps finished as
+the progress bar, `Step N` on the computing batch. Settling parks the sweep,
+uncapped, on the best point, or on the point it was trying when Stop ended
+it; the navigator's status line then keeps the outcome
 (`describeStudyProgress`), the drawer's note row shows a failed study's error,
 and the experiment's Cancel stops a driving study first.
+
+Once `studies` is non-empty, `experimentResultsModel` fills the Parameters
+band's `below` slot (`ResultsBand` in `shared/results/results-model.ts`,
+rendered after `band.content` in `results-view.tsx`) with
+`SweepObjectiveStrip` (`experiments/sweep-objective-strip.tsx`): a disclosure
+row over a `Fold` holding the shared `ObjectiveHistoryChart` in purple, kept
+while the drawer lives. `buildSweepObjectiveHistory`
+(`experiments/sweep-objective-strip/sweep-objective-history.ts`) numbers the
+studies' steps end to end by `trials.length`, restarts best-so-far per study
+and yields the `xMax` and `dividers` the chart takes: a divider at the first
+step of every further study that drew a step or is about to, and the right
+edge pinned to the last study's `requestedTrials` while it is active, so the
+axis stops at the last step run once Stop or an error ended it. A study that
+failed before its first step counts nowhere.
 
 ## The steps table
 

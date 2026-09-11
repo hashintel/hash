@@ -21,22 +21,25 @@ const trial = (
   best: null,
 });
 
-/** A study over `objectives`, one trial each in order, asked for `requestedTrials`. */
+/** A study over `objectives`, one trial each in order, asked for `requestedTrials`; complete unless a `status` says otherwise. */
 const study = (
   objectives: readonly (number | null)[],
   {
     direction = "maximize",
     requestedTrials = objectives.length,
     best = null,
+    status = "complete",
   }: {
     direction?: PetrinautOptimizationDirection;
     requestedTrials?: number;
     best?: number | null;
+    status?: OptimizationRecord["status"];
   } = {},
 ): Pick<
   OptimizationRecord,
-  "trials" | "input" | "requestedTrials" | "best"
+  "trials" | "input" | "requestedTrials" | "best" | "status"
 > => ({
+  status,
   trials: objectives.map((objective, index) => trial(index, objective)),
   input: {
     objective: { metricId: "infected", direction },
@@ -55,11 +58,12 @@ describe("buildSweepObjectiveHistory", () => {
   it("numbers a second study's steps after the first's and divides where it began", () => {
     const history = buildSweepObjectiveHistory([
       study([10, 12, 11]),
-      study([5, 9], { requestedTrials: 20, best: 9 }),
+      study([5, 9], { requestedTrials: 20, best: 9, status: "running" }),
     ]);
 
     expect(history.points.map((point) => point.step)).toEqual([1, 2, 3, 4, 5]);
     expect(history.dividers).toEqual([4]);
+    expect(history.studyCount).toBe(2);
     expect(history.xMax).toBe(3 + 20);
     expect(history.metricName).toBe("Infected peak");
     expect(history.best).toBe(9);
@@ -89,8 +93,8 @@ describe("buildSweepObjectiveHistory", () => {
 
   it("offsets by the steps a stopped study ran, not the steps it asked for", () => {
     const history = buildSweepObjectiveHistory([
-      study([1, 2], { requestedTrials: 30 }),
-      study([3], { requestedTrials: 30 }),
+      study([1, 2], { requestedTrials: 30, status: "cancelled" }),
+      study([3], { requestedTrials: 30, status: "running" }),
     ]);
 
     expect(history.points.map((point) => point.step)).toEqual([1, 2, 3]);
@@ -100,12 +104,57 @@ describe("buildSweepObjectiveHistory", () => {
 
   it("pins the axis to one study's requested steps while it runs, and never short of its points", () => {
     expect(
-      buildSweepObjectiveHistory([study([1, 2], { requestedTrials: 30 })]).xMax,
+      buildSweepObjectiveHistory([
+        study([1, 2], { requestedTrials: 30, status: "running" }),
+      ]).xMax,
     ).toBe(30);
     expect(
-      buildSweepObjectiveHistory([study([1, 2, 3], { requestedTrials: 2 })])
-        .xMax,
+      buildSweepObjectiveHistory([
+        study([1, 2, 3], { requestedTrials: 2, status: "running" }),
+      ]).xMax,
     ).toBe(3);
+  });
+
+  it("ends the axis at the last step run once the last study is stopped or done", () => {
+    expect(
+      buildSweepObjectiveHistory([
+        study([1, 2], { requestedTrials: 30, status: "cancelled" }),
+      ]).xMax,
+    ).toBe(2);
+    expect(
+      buildSweepObjectiveHistory([
+        study([1, 2, 3], { requestedTrials: 3, status: "complete" }),
+      ]).xMax,
+    ).toBe(3);
+  });
+
+  it("leaves a study that failed before its first step out of the axis, the dividers and the count", () => {
+    const history = buildSweepObjectiveHistory([
+      study([1, 2]),
+      study([], { requestedTrials: 30, status: "error" }),
+      study([3], { requestedTrials: 30, status: "running" }),
+    ]);
+
+    expect(history.dividers).toEqual([3]);
+    expect(history.studyCount).toBe(2);
+    expect(history.xMax).toBe(2 + 30);
+    expect(
+      buildSweepObjectiveHistory([
+        study([1, 2]),
+        study([], { requestedTrials: 30, status: "error" }),
+      ]),
+    ).toMatchObject({ dividers: [], studyCount: 1, xMax: 2 });
+  });
+
+  it("divides before a study that has just started, where its first step will land", () => {
+    const history = buildSweepObjectiveHistory([
+      study([1, 2]),
+      study([], { requestedTrials: 30, status: "running" }),
+    ]);
+
+    expect(history.dividers).toEqual([3]);
+    expect(history.studyCount).toBe(2);
+    expect(history.xMax).toBe(2 + 30);
   });
 
   it("keeps a pruned step in the numbering without a dot", () => {
@@ -124,6 +173,7 @@ describe("buildSweepObjectiveHistory", () => {
       points: [],
       xMax: 0,
       dividers: [],
+      studyCount: 0,
       metricName: "",
       best: null,
     });
