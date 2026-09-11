@@ -4,10 +4,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { describeStudyProgress } from "../../shared/describe-study-progress";
-import { formatNumber } from "../../shared/format-value";
 import {
-  makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
   makeTrials,
@@ -38,103 +35,6 @@ const trialsWithObjectives = (
 const verdictOf = () =>
   document.querySelector<HTMLElement>("[data-verdict]")?.dataset.verdict ??
   null;
-
-describe("describeStudyProgress", () => {
-  it("names the step in flight and the best step so far while running", () => {
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({
-          input,
-          trials: trials.slice(0, 4),
-          best: { trial: 2, parameters: {}, objective: 650.5 },
-          status: "running",
-        }),
-      ),
-    ).toBe(`Step 5 of 30 · best step so far: step 3 (${formatNumber(650.5)})`);
-  });
-
-  it("says how the study ended once settled, and who stopped it", () => {
-    const settled = {
-      input,
-      trials: trials.slice(0, 4),
-      best: { trial: 2, parameters: {}, objective: 650.5 },
-    };
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({
-          ...settled,
-          status: "cancelled",
-          connected: makeConnectedStudyState(input),
-        }),
-      ),
-    ).toBe(
-      `Stopped after 4 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({ ...settled, status: "cancelled" }),
-      ),
-    ).toBe(
-      `Cancelled after 4 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({ ...settled, status: "error" }),
-      ),
-    ).toBe(
-      `Failed after 4 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({ ...settled, trials, status: "complete" }),
-      ),
-    ).toBe(
-      `Finished 12 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-  });
-
-  it("says a paused study is paused, and how many steps are still finishing", () => {
-    const paused = {
-      input,
-      trials: trials.slice(0, 4),
-      best: { trial: 2, parameters: {}, objective: 650.5 },
-      status: "paused" as const,
-    };
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({
-          ...paused,
-          connected: makeConnectedStudyState(input),
-        }),
-      ),
-    ).toBe(
-      `Paused at 4 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({
-          ...paused,
-          connected: makeConnectedStudyState(input, {
-            inFlight: [
-              { trial: 4, parameters: {}, objective: null },
-              { trial: 5, parameters: {}, objective: null },
-            ],
-          }),
-        }),
-      ),
-    ).toBe(
-      `Paused at 4 of 30 steps · 2 steps finishing · best step so far: step 3 (${formatNumber(650.5)})`,
-    );
-  });
-
-  it("admits there is no best step yet", () => {
-    expect(
-      describeStudyProgress(
-        makeOptimizationRecord({ input, status: "initializing" }),
-      ),
-    ).toBe("Starting · no best step yet");
-  });
-});
 
 describe("StudyHeader", () => {
   it("shows the verdict chip only while the study runs", () => {

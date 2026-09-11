@@ -17,8 +17,16 @@ import {
   makeExperiment,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
+import {
+  fakeConstrainedStudyInput,
+  fakeConstrainedStudyTrials,
+  fakeStudyInput,
+  fakeStudyTrials,
+  makeOptimizationRecord,
+} from "./study-fixtures";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
@@ -346,18 +354,39 @@ describe("useExperimentResultsModel", () => {
   });
 });
 
-describe("experimentResultsModel with the optimizer", () => {
-  const study = {
-    id: "study",
-    status: "running",
-    connected: null,
-    requestedTrials: 30,
-    completedTrials: 3,
-    prunedTrials: 1,
-    failedTrials: 0,
+/** A study started from the sweep: four steps landed, one of them pruned, the third the best. */
+const sweepStudy = (
+  status: OptimizationRecord["status"],
+  input = fakeStudyInput,
+  trials = fakeStudyTrials.trials,
+): OptimizationRecord => ({
+  ...makeOptimizationRecord({
+    input,
+    status,
+    trials: trials.slice(0, 4),
     best: { trial: 2, parameters: {}, objective: 650.5 },
-    error: null,
-  } as NonNullable<ExperimentResultsDependencies["optimizer"]["study"]>;
+  }),
+  id: "study",
+  origin: { kind: "sweep", experimentId: sweep.id },
+  completedTrials: 3,
+  prunedTrials: 1,
+  failedTrials: 0,
+});
+
+/** The optimizer with `study` as the sweep's latest study. */
+const withStudy = (
+  study: OptimizationRecord,
+  driving: ExperimentResultsDependencies["optimizer"]["driving"] = null,
+): ExperimentResultsDependencies["optimizer"] => ({
+  ...idleOptimizer,
+  available: true,
+  study,
+  studies: [study],
+  driving,
+});
+
+describe("experimentResultsModel with the optimizer", () => {
+  const study = sweepStudy("running");
   const driving = { step: 5, total: 30 };
   /** The record between two steps: the session idles until the next point. */
   const betweenSteps = model(idleSweep, {
@@ -586,5 +615,116 @@ describe("experimentResultsModel with constraints", () => {
       after: result.after,
     });
     expect(shape(model(constrained))).toEqual(shape(model(sweep)));
+  });
+});
+
+describe("experimentResultsModel with a study", () => {
+  const driving = { step: 5, total: 30 };
+  const running = model(idleSweep, {
+    optimizer: withStudy(sweepStudy("running"), driving),
+  });
+
+  it("shows nothing of a study before one exists", () => {
+    const result = model(sweep, {
+      optimizer: { ...idleOptimizer, available: true },
+    });
+    expect(result.header.headline).toBeNull();
+    expect(Object.keys(statTexts(sweep))).toEqual([
+      "Selection",
+      "Errors",
+      "Time",
+    ]);
+    expect(result.metrics?.cards).toBeNull();
+    expect(result.after).toBeNull();
+  });
+
+  it("fills the headline, the Steps column, the Sensitivity card and the steps table from the study", () => {
+    expect(isValidElement(running.header.headline)).toBe(true);
+    expect(running.header.stats.map((stat) => stat.label)).toEqual([
+      "Selection",
+      "Errors",
+      "Time",
+      "Steps",
+    ]);
+    const steps = running.header.stats.find((stat) => stat.id === "steps")!;
+    expect(steps.value.text).toBe("4 / 30");
+    expect(steps.widest).toBe("30 / 30");
+    expect(steps.short).toEqual({ text: "4 / 30", widest: "30 / 30" });
+    expect(running.header.stats.some((stat) => stat.id === "best")).toBe(false);
+    const cards = propsOf<{ children: ReactNode[] }>(
+      running.metrics!.cards,
+    ).children;
+    expect(cards[0]).toBeNull();
+    expect(propsOf<{ plotHeight: number }>(cards[1]).plotHeight).toBe(220);
+    expect(
+      propsOf<{ bestTrial: number | null; optimization: OptimizationRecord }>(
+        running.after,
+      ),
+    ).toMatchObject({ bestTrial: 2, optimization: { id: "study" } });
+  });
+
+  it("keeps the objective strip under the sliders beside the study's cards", () => {
+    expect(isValidElement(running.bands[0]!.below)).toBe(true);
+    expect(
+      propsOf<{ studies: unknown[] }>(running.bands[0]!.below).studies,
+    ).toHaveLength(1);
+  });
+
+  it("adds Steps clear and the Constraints card only for a constrained study, in the card's tone", () => {
+    const constrained = model(makeConstrainedSweepExperiment(), {
+      optimizer: withStudy(
+        sweepStudy(
+          "running",
+          fakeConstrainedStudyInput,
+          fakeConstrainedStudyTrials.trials,
+        ),
+        driving,
+      ),
+    });
+    expect(constrained.header.stats.map((stat) => stat.label)).toEqual([
+      "Selection",
+      "Errors",
+      "Time",
+      "Steps",
+      "Steps clear",
+    ]);
+    const stepsClear = constrained.header.stats.find(
+      (stat) => stat.id === "steps-clear",
+    )!;
+    expect(stepsClear.value.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
+    expect(stepsClear.widest).toBe("30 / 30 · 100%");
+    expect(
+      constrained.header.stats.find((stat) => stat.id === "steps")?.value.text,
+    ).toBe("4 / 30 · 60 runs each");
+    const cards = propsOf<{ children: ReactNode[] }>(
+      constrained.metrics!.cards,
+    ).children;
+    expect(
+      propsOf<{ tone: string; plotHeight: number }>(cards[0]),
+    ).toMatchObject({ tone: "optimizing", plotHeight: 220 });
+    // The experiment's own constraints do not add the column; the study's do.
+    expect(
+      model(makeConstrainedSweepExperiment(), {
+        optimizer: withStudy(sweepStudy("running"), driving),
+      }).header.stats.some((stat) => stat.id === "steps-clear"),
+    ).toBe(false);
+  });
+
+  it("keeps every slot filled once the study settles, stopped or failed", () => {
+    for (const status of ["cancelled", "error"] as const) {
+      const settled = model(idleSweep, {
+        optimizer: withStudy({
+          ...sweepStudy(status),
+          error: status === "error" ? "worker crashed" : null,
+        }),
+      });
+      expect(isValidElement(settled.header.headline)).toBe(true);
+      expect(settled.header.stats.map((stat) => stat.label)).toEqual(
+        running.header.stats.map((stat) => stat.label),
+      );
+      expect(isValidElement(settled.metrics!.cards)).toBe(true);
+      expect(isValidElement(settled.after)).toBe(true);
+      expect(settled.bands[0]!.tone).toBe("default");
+    }
   });
 });

@@ -786,7 +786,7 @@ describe("ViewOptimizationDrawer for a paused connected study", () => {
     });
     renderDrawer(draining);
 
-    expect(screen.getByText(/1 step finishing/u)).toBeTruthy();
+    expect(screen.getByText(/^Paused at 3 of 30 steps/u)).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /Resume/u }).hasAttribute("disabled"),
     ).toBe(true);

@@ -67,7 +67,7 @@ over the last `convergenceWindow(requestedTrials)` completed steps,
 `too-early`, `improving` or `converging`; the status pill (`studyStatus`, from
 `OPTIMIZATION_STATUS_DISPLAY`, sized for `Reconnecting`); the stat columns
 (`studyStats`): **Steps** as `describeStepProgress` (`4 / 30`, then `· 3 runs
-each` and `· 2 at once` when those are above 1), **Steps clear** for a study
+each` above one run per step), **Steps clear** for a study
 with constraints, and **Best step so far** with the best step's parameters as
 its tooltip (`formatParameters`); the `activity` list for a connected study
 (`activityBatches`, `describeBatch`: `Step 4`, or `Refining population=1850,
@@ -92,7 +92,7 @@ study is followed, **Objective at the selected point** otherwise), named after
 the objective metric in its subtitle and fed `connected.selection` (empty when
 the selection carries an error; the navigator's status line carries the
 reason), followed by the study's cards in the same grid: `ObjectiveHistoryCard`,
-`ConstraintSummaryCard` when the study declares constraints, and
+`StudyConstraintsCard` when the study declares constraints, and
 `ParameterImportancePanel`, every card `OBJECTIVE_PLOT_HEIGHT` tall; and the
 `after` slot holding `StudySteps`
 (`SimulateView/experiments/study-cards/study-steps.tsx`), the steps
@@ -135,7 +135,7 @@ A study with constraints reports them through
 `react/optimizations/constraint-rates.ts`, derived per render from
 `record.trials`: `stepVerdict` (clear, limited, infeasible), `bindingStepRate`
 (the step's lowest pass rate) and `studyConstraintRates` (steps clear over
-steps simulated, per constraint too). `ConstraintSummaryCard`
+steps simulated, per constraint too). `StudyConstraintsCard`
 (`SimulateView/experiments/study-cards/study-constraints-card.tsx`) follows the
 objective by step in a
 connected study's grid, `studyStats` gains a **Steps clear** column, and
