@@ -1,15 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
+import { selectExperimentBackend } from "@hashintel/petrinaut-core/experiments";
+import { createWebGpuExperimentBackend } from "@hashintel/petrinaut-core/webgpu";
 
+import { sirOptimizationConstraints } from "../../optimizations/sir-optimization-input.fixtures";
+import { experimentSdcpnWithMetrics } from "../experiment-sdcpn-with-metrics";
 import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
+  createExperimentRequestBuilder,
   newExperimentRecord,
 } from "./create-experiment";
 
 import type { CreateExperimentInput } from "../context";
+import type { CompiledExperimentScenario } from "./create-experiment";
 import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 
 const span = { start: 0, length: 0 };
@@ -184,5 +191,105 @@ describe("newExperimentRecord", () => {
     expect(record.constraints).toEqual([]);
     expect(record.constraintPolicy).toBeNull();
     expect(record.scenarioParameterValues).toEqual({});
+  });
+});
+
+describe("createExperimentRequestBuilder", () => {
+  const constrainedInput: CreateExperimentInput = {
+    ...input,
+    constraints: sirOptimizationConstraints,
+  };
+  const compiled: CompiledExperimentScenario = {
+    parameterValues: {},
+    initialMarking: {},
+    sweptCompiler: null,
+    axes: [],
+    fixedScenarioValues: {},
+  };
+  const requestHirArtifacts = vi.fn(() =>
+    Promise.resolve({
+      artifacts: {
+        version: 4 as const,
+        fingerprint: "0000000000000000",
+        dynamics: {},
+        lambdas: {},
+        kernels: {},
+        metrics: {},
+      },
+      failures: [],
+    }),
+  );
+  const sdcpn = experimentSdcpnWithMetrics(
+    sirModel.petriNetDefinition,
+    constrainedInput.metricSpecs,
+  );
+  const buildRequest = () =>
+    createExperimentRequestBuilder({
+      input: constrainedInput,
+      sdcpn,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      compiled,
+      requestHirArtifacts,
+    });
+
+  it("appends one indicator per state constraint after the user's metric specs, leaving the record's specs and the compiled net alone", async () => {
+    const request = await buildRequest()({ needsHirTrees: false });
+
+    expect(request.metricSpecs).toEqual([
+      ...constrainedInput.metricSpecs,
+      {
+        kind: "expression",
+        id: "constraint:infected-cap",
+        label: "Infected under 900",
+        code: "return state.places.Infected.count <= 900;",
+        artifact: {
+          source: expect.any(String) as string,
+          placeNames: ["Infected"],
+        },
+        sampleRuns: "all",
+        runOutput: { type: "distribution" },
+        aggregateTime: "min",
+      },
+    ]);
+    const record = newExperimentRecord({
+      id: "experiment",
+      input: constrainedInput,
+      scenarioName: null,
+      axes: [],
+      fixedScenarioValues: {},
+    });
+    expect(record.metricSpecs).toEqual(constrainedInput.metricSpecs);
+    expect(sdcpn.metrics).toEqual([]);
+  });
+
+  it("is declined by the GPU backend naming the indicator's time aggregation", async () => {
+    const selection = await selectExperimentBackend({
+      registrations: [
+        {
+          id: "webgpu",
+          label: "GPU (WebGPU)",
+          // The backend is asked as if a device existed: the refusal under
+          // test comes from the metric gate, before any device is touched.
+          load: () =>
+            Promise.resolve({
+              ...createWebGpuExperimentBackend(),
+              isAvailable: () => true,
+            }),
+        },
+      ],
+      buildRequest: buildRequest(),
+    });
+
+    expect(selection).toEqual({
+      ok: false,
+      declined: [
+        {
+          backendId: "webgpu",
+          origin: "configuration",
+          reason:
+            'The GPU backend does not aggregate metrics over time yet; metric "Infected under 900" uses a time aggregation.',
+        },
+      ],
+    });
   });
 });

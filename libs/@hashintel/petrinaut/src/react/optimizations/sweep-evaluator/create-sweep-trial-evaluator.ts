@@ -13,8 +13,27 @@
  * point refines to the experiment's run count. A stop parks at once; the
  * terminal event that lands afterwards may carry the best, which re-parks
  * the sweep there.
+ *
+ * The experiment's constraints are enforced here. A parameter constraint is
+ * judged at the snapped point, before anything simulates, with `scenario.*`
+ * bound to the values the sweep simulates there and `parameters.*` to the
+ * net's defaults: an infeasible draw is pruned naming the constraint and the
+ * sweep does not move. A state
+ * constraint rides the sweep's batches as a 0/1 indicator metric, so the
+ * visited cell's mean for it is the share of runs that passed.
  */
-import { axisPositionFor } from "../../experiments/parameter-grid";
+import {
+  constraintsInSpace,
+  deriveDefaultParameterValues,
+} from "@hashintel/petrinaut-core";
+
+import { sweepCellPassCount } from "../../experiments/constraint-indicators";
+import { axisPositionFor, axisValueAt } from "../../experiments/parameter-grid";
+import { constraintNameIn } from "../constraint-rates";
+import {
+  hasParameterConstraints,
+  parameterConstraintOutcome,
+} from "../shared/parameter-constraints";
 import { prunedTrialOutcome } from "../shared/pruned-trial-outcome";
 
 import type {
@@ -28,6 +47,8 @@ import type {
 import type { OptimizationBest } from "../context";
 import type {
   PetrinautOptimizationChannel,
+  PetrinautOptimizationManifest,
+  PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialRequest,
 } from "@hashintel/petrinaut-core/optimization";
 
@@ -57,6 +78,42 @@ export const sweepPointFor = (
   }
   return selection;
 };
+
+/**
+ * The scenario values the sweep simulates at `point`: the request's values
+ * with each swept axis snapped to its position's value, which is what a
+ * parameter constraint must be judged against.
+ */
+export const snappedSweepValues = (
+  axes: readonly ExperimentParameterAxis[],
+  point: SweepSelection,
+  scenarioParameterValues: Readonly<Record<string, number>>,
+): Record<string, number> => {
+  const values: Record<string, number> = { ...scenarioParameterValues };
+  for (const axis of axes) {
+    const range = point[axis.identifier];
+    if (range !== undefined) {
+      values[axis.identifier] = axisValueAt(axis, range.from);
+    }
+  }
+  return values;
+};
+
+const declaresConstraints = (
+  manifest: Pick<PetrinautOptimizationManifest, "constraints">,
+): boolean => (manifest.constraints ?? []).length > 0;
+
+/** Each state constraint's verdict count at the cell, for those the cell measured. */
+const stateVerdicts = (
+  manifest: Pick<PetrinautOptimizationManifest, "constraints">,
+  cell: SweepVisitedCell,
+): PetrinautOptimizationTrialConstraints["state"] =>
+  constraintsInSpace(manifest.constraints ?? [], "state").flatMap(
+    (constraint) => {
+      const count = sweepCellPassCount(cell, constraint.id);
+      return count ? [{ constraintId: constraint.id, ...count }] : [];
+    },
+  );
 
 export const createSweepTrialEvaluator = ({
   experimentId,
@@ -88,6 +145,29 @@ export const createSweepTrialEvaluator = ({
         "The suggestion misses a swept parameter or is not a number",
       );
     }
+    // Judged at the values the sweep would simulate, not the raw suggestion:
+    // a draw just inside a bound can snap across it.
+    const parameters = hasParameterConstraints(request.manifest)
+      ? parameterConstraintOutcome(request.manifest, {
+          parameters: deriveDefaultParameterValues(
+            request.manifest.model.definition.parameters,
+          ),
+          scenario: snappedSweepValues(
+            axes,
+            point,
+            request.scenarioParameterValues,
+          ),
+        })
+      : null;
+    if (parameters !== null && parameters.infeasible !== null) {
+      // An infeasible draw costs one step and no simulation: the sweep does
+      // not move, so nothing lands on the Surface.
+      const { infeasible } = parameters;
+      return prunedTrialOutcome(
+        `Infeasible: ${constraintNameIn(request.manifest, infeasible)}`,
+        { parameters: parameters.results, state: [], infeasible },
+      );
+    }
     lastPoint = point;
     // The manifest's runs per trial are what the point computes before its
     // value is read. A failed batch or a gone sweep rejects here, and the
@@ -110,7 +190,16 @@ export const createSweepTrialEvaluator = ({
         `The point measured no finite value for "${metricId}"`,
       );
     }
-    return { kind: "objective" as const, objective };
+    return declaresConstraints(request.manifest)
+      ? {
+          kind: "objective" as const,
+          objective,
+          constraints: {
+            parameters: parameters?.results ?? [],
+            state: stateVerdicts(request.manifest, cell),
+          },
+        }
+      : { kind: "objective" as const, objective };
   };
 
   return {

@@ -27,7 +27,12 @@ import type {
   ExperimentRecord,
 } from "../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
-import type { Metric, Scenario, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  Metric,
+  Scenario,
+  ScenarioParameter,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 import type {
   PetrinautOptimizationDirection,
   PetrinautOptimizationInput,
@@ -82,10 +87,12 @@ export const sweepOptimizationMetric = (
 /**
  * The manifest of a study that searches a sweep's swept parameters for the
  * best value of one of its metrics. The swept axes become optimize bindings
- * over the same intervals; every other scenario parameter is fixed at its
- * scenario default, a description only: the sweep's compiled values are what
- * runs. Throws with the schema's message when the experiment cannot be a
- * study (a step budget over the cap, say).
+ * over the same intervals; every other scenario parameter is fixed at the
+ * value the experiment was created with, so the trials' values — which the
+ * evaluator judges the experiment's parameter constraints against — match
+ * what the sweep simulates. The experiment's constraints and pass threshold
+ * ride the manifest as they are. Throws with the schema's message when the
+ * experiment cannot be a study (a step budget over the cap, say).
  */
 export const buildSweepOptimizationInput = ({
   title,
@@ -100,13 +107,29 @@ export const buildSweepOptimizationInput = ({
   title: string;
   definition: SDCPN;
   scenario: Scenario;
-  experiment: ExperimentRecord;
+  experiment: Pick<
+    ExperimentRecord,
+    | "name"
+    | "seed"
+    | "dt"
+    | "maxTime"
+    | "parameterAxes"
+    | "scenarioParameterValues"
+    | "constraints"
+    | "constraintPolicy"
+  >;
   metric: Metric;
   direction: PetrinautOptimizationDirection;
   steps: number;
   /** Runs each point computes before its value is read. */
   runsPerStep: number;
 }): PetrinautOptimizationInput => {
+  const fixedValueFor = (parameter: ScenarioParameter): number | boolean => {
+    const value =
+      experiment.scenarioParameterValues[parameter.identifier] ??
+      parameter.default;
+    return parameter.type === "boolean" ? value !== 0 : value;
+  };
   const parameterBindings: Record<
     string,
     PetrinautOptimizationParameterBinding
@@ -118,10 +141,7 @@ export const buildSweepOptimizationInput = ({
     if (axis === undefined) {
       parameterBindings[parameter.identifier] = {
         kind: "fixed",
-        value:
-          parameter.type === "boolean"
-            ? parameter.default !== 0
-            : parameter.default,
+        value: fixedValueFor(parameter),
       };
     } else if (axis.integer) {
       parameterBindings[parameter.identifier] = {
@@ -146,6 +166,7 @@ export const buildSweepOptimizationInput = ({
       };
     }
   }
+  const { constraints, constraintPolicy } = experiment;
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
     version: 1,
@@ -156,6 +177,8 @@ export const buildSweepOptimizationInput = ({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
+    ...(constraints.length > 0 ? { constraints } : {}),
+    ...(constraints.length > 0 && constraintPolicy ? { constraintPolicy } : {}),
     execution: {
       seed: experiment.seed,
       dt: experiment.dt,
