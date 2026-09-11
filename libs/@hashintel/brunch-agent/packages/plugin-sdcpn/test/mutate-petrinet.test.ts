@@ -106,6 +106,26 @@ const requiredOf = (schema: Record<string, unknown>): string[] =>
     : [];
 
 describe("mutate_petrinet tool", () => {
+  test("admits the provisional 30-operation boundary and refuses 31", () => {
+    const firstOperation = input.operations[0];
+    if (!firstOperation) throw new Error("Missing test operation");
+    const operations = Array.from({ length: 31 }, (_, index) => ({
+      ...firstOperation,
+      operationId: `add-queue-${index}`,
+      input: { ...firstOperation.input, id: `queue-${index}` },
+    }));
+
+    expect(
+      mutatePetrinetInputSchema.parse({
+        ...input,
+        operations: operations.slice(0, 30),
+      }).operations,
+    ).toHaveLength(30);
+    expect(() =>
+      mutatePetrinetInputSchema.parse({ ...input, operations }),
+    ).toThrow(/30|too big|maximum/iu);
+  });
+
   test("admits only unique root operations with declared bases", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
