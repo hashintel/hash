@@ -271,6 +271,7 @@ const TestProviders = ({
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
     setEnableExperimentalIconPack: () => {},
+    setEnableAutomaticArcConnections: () => {},
     setArcRendering: () => {},
     setCursorMode: () => {},
     setIsLeftSidebarOpen: () => {},
