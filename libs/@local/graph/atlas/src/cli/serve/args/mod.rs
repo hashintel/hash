@@ -9,6 +9,7 @@ use core::{num::NonZero, time::Duration};
 use super::ServeCommand;
 use crate::{
     cli::RootArgs,
+    file::{generation::download::DownloadOptions, storage::path::FilePath},
     integrity::SecretHexBytesValueParser,
     math::nz,
     serve::{
@@ -44,6 +45,8 @@ const DEFAULT_DELTA: DeltaTaskOptions = DeltaTaskOptions {
 };
 /// Serving's own maintenance cadence, the source of each manager flag's default.
 const DEFAULT_MANAGER: ManagerOptions = ManagerOptions { .. };
+/// Serving's own download polling cadence, the source of the download flag's default.
+const DEFAULT_DOWNLOAD: DownloadOptions = DownloadOptions { .. };
 
 /// Per-request limits also published by the manifest.
 #[derive(Debug, clap::Args)]
@@ -286,6 +289,39 @@ impl From<ManagerArgs> for ManagerOptions {
     }
 }
 
+/// Remote generation source and the cadence at which it is polled.
+#[derive(Debug, clap::Args)]
+pub(super) struct DownloadArgs {
+    /// The remote storage path to download generations from.
+    ///
+    /// Omitting it serves local generations only.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
+    download: Option<FilePath>,
+
+    /// Seconds between remote storage polls for new generations.
+    ///
+    /// Defaults to [`DEFAULT_DOWNLOAD`]'s poll interval in seconds when neither the flag nor the
+    /// environment variable supplies one.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL",
+        default_value_t = NonZero::new(DEFAULT_DOWNLOAD.poll_interval.as_secs())
+            .expect("the default download poll interval is positive"),
+    )]
+    download_poll_interval: NonZero<u64>,
+}
+
+impl From<DownloadArgs> for (Option<FilePath>, DownloadOptions) {
+    fn from(args: DownloadArgs) -> Self {
+        (
+            args.download,
+            DownloadOptions {
+                poll_interval: Duration::from_secs(args.download_poll_interval.get()),
+            },
+        )
+    }
+}
+
 /// Generation selection and request-serving settings.
 #[derive(Debug, clap::Args)]
 pub struct ServeArgs {
@@ -300,6 +336,10 @@ pub struct ServeArgs {
     /// The generation maintenance cadence and its removal policy.
     #[command(flatten)]
     manager: ManagerArgs,
+
+    /// The remote generation source and its polling cadence.
+    #[command(flatten)]
+    download: DownloadArgs,
 
     /// The server secret behind the wire row-id codec.
     ///
@@ -322,6 +362,7 @@ impl From<(RootArgs, ServeArgs)> for ServeCommand {
                 limits,
                 delta,
                 manager,
+                download,
                 secret,
             },
         ): (RootArgs, ServeArgs),
@@ -333,6 +374,7 @@ impl From<(RootArgs, ServeArgs)> for ServeCommand {
             secret,
             delta,
             manager,
+            download,
         }
     }
 }

@@ -29,6 +29,10 @@ mod tests;
 
 pub(crate) use self::error::DownloadError;
 
+pub(crate) struct DownloadOptions {
+    pub poll_interval: Duration = Duration::from_secs(1),
+}
+
 /// A remote generation source synchronized into a local root.
 ///
 /// Completed downloads preserve the original metadata encoding. Local reuse verifies the complete
@@ -251,7 +255,7 @@ where
     /// Panics if `poll_interval` is zero.
     pub(crate) async fn run(
         &mut self,
-        poll_interval: Duration,
+        DownloadOptions { poll_interval }: DownloadOptions,
         shutdown: impl Future<Output = ()>,
     ) {
         let mut shutdown = pin!(shutdown);
@@ -269,5 +273,26 @@ where
                 tracing::warn!(?error, "failed to synchronize the remote generation");
             }
         }
+    }
+
+    pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<B> {
+        DownloadTask {
+            download: self,
+            options,
+        }
+    }
+}
+
+pub(crate) struct DownloadTask<B> {
+    download: Download<B>,
+    options: DownloadOptions,
+}
+
+impl<B> DownloadTask<B> {
+    pub(crate) async fn run(mut self, shutdown: impl Future<Output = ()>)
+    where
+        B: GenerationDownloadBackend,
+    {
+        self.download.run(self.options, shutdown).await;
     }
 }

@@ -137,26 +137,7 @@ pub struct FitArgs {
 }
 
 #[derive(Debug)]
-pub struct FitUploadError(UploadError);
-
-impl fmt::Display for FitUploadError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl core::error::Error for FitUploadError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        core::error::Error::source(&self.0)
-    }
-}
-
-/// One fit invocation's failure, by step.
-///
-/// The embedder and run variants splice into the chain transparently (their display text and
-/// sources are the wrapped fault's, unchanged). The report variant names its own step.
-#[derive(Debug)]
-pub enum FitError {
+enum FitErrorKind {
     /// Producing the embedding provider failed.
     Embedder(EmbedderError),
     /// The run failed.
@@ -164,50 +145,69 @@ pub enum FitError {
     /// Writing the admission report failed.
     Io(io::Error),
     /// Uploading the results failed.
-    Upload(FitUploadError),
+    Upload(UploadError),
     /// Serializing the admission report failed.
     Serialize(serde_json::Error),
 }
 
-impl From<UploadError> for FitError {
-    fn from(error: UploadError) -> Self {
-        Self::Upload(FitUploadError(error))
-    }
-}
+/// One fit invocation's failure, by step.
+///
+/// The embedder and run variants splice into the chain transparently (their display text and
+/// sources are the wrapped fault's, unchanged). The report variant names its own step.
+#[derive(Debug)]
+pub struct FitError(Box<FitErrorKind>);
 
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Embedder(error) => fmt::Display::fmt(error, fmt),
-            Self::Run(error) => fmt::Display::fmt(error, fmt),
-            Self::Io(_) => fmt.write_str("the admission report could not be written"),
-            Self::Upload(_) => fmt.write_str("uploading the results failed"),
-            Self::Serialize(_) => fmt.write_str("serializing the admission report failed"),
+        match &*self.0 {
+            FitErrorKind::Embedder(error) => fmt::Display::fmt(error, fmt),
+            FitErrorKind::Run(error) => fmt::Display::fmt(error, fmt),
+            FitErrorKind::Io(_) => fmt.write_str("the admission report could not be written"),
+            FitErrorKind::Upload(_) => fmt.write_str("uploading the results failed"),
+            FitErrorKind::Serialize(_) => fmt.write_str("serializing the admission report failed"),
         }
     }
 }
 
 impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Embedder(error) => error.source(),
-            Self::Run(error) => error.source(),
-            Self::Io(error) => Some(error),
-            Self::Upload(error) => Some(error),
-            Self::Serialize(error) => Some(error),
+        match &*self.0 {
+            FitErrorKind::Embedder(error) => error.source(),
+            FitErrorKind::Run(error) => error.source(),
+            FitErrorKind::Io(error) => Some(error),
+            FitErrorKind::Upload(error) => Some(error),
+            FitErrorKind::Serialize(error) => Some(error),
         }
+    }
+}
+
+impl From<UploadError> for FitError {
+    fn from(error: UploadError) -> Self {
+        Self(Box::new(FitErrorKind::Upload(error)))
+    }
+}
+
+impl From<serde_json::Error> for FitError {
+    fn from(value: serde_json::Error) -> Self {
+        Self(Box::new(FitErrorKind::Serialize(value)))
+    }
+}
+
+impl From<EmbedderError> for FitError {
+    fn from(value: EmbedderError) -> Self {
+        Self(Box::new(FitErrorKind::Embedder(value)))
     }
 }
 
 impl From<RunError> for FitError {
     fn from(value: RunError) -> Self {
-        Self::Run(value)
+        Self(Box::new(FitErrorKind::Run(value)))
     }
 }
 
 impl From<io::Error> for FitError {
     fn from(value: io::Error) -> Self {
-        Self::Io(value)
+        Self(Box::new(FitErrorKind::Io(value)))
     }
 }
 
@@ -347,9 +347,8 @@ where
         );
 
         // The provider holds its observer across every request, so it takes the detached half.
-        let embedder = embedder::openai(credential.into_key(), self.options.progress.detach())
-            .await
-            .map_err(FitError::Embedder)?;
+        let embedder =
+            embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
 
         let upload = match self.upload.as_ref() {
             Some(path) => {
@@ -372,10 +371,8 @@ where
         let elapsed = started.elapsed();
 
         let mut buffer = Vec::new();
-        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
-        tokio::fs::write(&self.report, buffer)
-            .await
-            .map_err(FitError::Io)?;
+        serde_json::to_writer_pretty(&mut buffer, &summary.report)?;
+        tokio::fs::write(&self.report, buffer).await?;
 
         if let Some(upload) = upload {
             upload.upload(summary.generation).await?;
@@ -451,10 +448,8 @@ where
         let elapsed = started.elapsed();
 
         let mut buffer = Vec::new();
-        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
-        tokio::fs::write(&self.report, buffer)
-            .await
-            .map_err(FitError::Io)?;
+        serde_json::to_writer_pretty(&mut buffer, &summary.report)?;
+        tokio::fs::write(&self.report, buffer).await?;
 
         if let Some(upload) = upload {
             upload.upload(summary.generation).await?;

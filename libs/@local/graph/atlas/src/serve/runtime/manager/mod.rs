@@ -35,7 +35,7 @@ pub(crate) mod source;
 mod tests;
 
 /// Current-pointer polling and optional removal of expired generations.
-#[derive(Default, Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub(crate) struct ManagerOptions {
     /// Time between maintenance passes, one second by default.
     pub poll_interval: Duration = Duration::from_secs(1),
@@ -350,6 +350,10 @@ impl GenerationManager {
 
         self.slots.clear();
     }
+
+    pub(crate) fn into_task(self) -> GenerationManagerTask {
+        GenerationManagerTask { manager: self }
+    }
 }
 
 impl Drop for GenerationManager {
@@ -361,5 +365,15 @@ impl Drop for GenerationManager {
     /// submitted to Rayon also continues, but the manager abandons its result handles.
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+pub(crate) struct GenerationManagerTask {
+    manager: GenerationManager,
+}
+
+impl GenerationManagerTask {
+    pub(crate) async fn run(mut self, shutdown: impl Future<Output = ()>) {
+        self.manager.run(shutdown).await;
     }
 }
