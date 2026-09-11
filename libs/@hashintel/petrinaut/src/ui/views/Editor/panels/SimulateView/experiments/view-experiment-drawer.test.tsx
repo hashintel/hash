@@ -310,6 +310,37 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(frameLayoutSignature(view.container)).toEqual(before);
   });
 
+  it("enlarges one metric card to the full row at twice the height and leaves the others alone", () => {
+    const view = renderDrawer(sweep);
+    const before = frameLayoutSignature(view.container);
+    const metricCards = before.cards.filter(([, height]) => height === "220px");
+    expect(metricCards.length).toBeGreaterThan(0);
+    expect(before.cards.length).toBeGreaterThan(metricCards.length);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Enlarge" })[0]!);
+
+    // Two 307px rows and the 16px gap between them, less the card's chrome.
+    const after = frameLayoutSignature(view.container);
+    const [enlarged, ...rest] = after.cards.filter(
+      ([title]) => title === metricCards[0]![0],
+    );
+    expect(enlarged![1]).toBe("543px");
+    expect(rest).toEqual([]);
+    expect(
+      screen.getAllByTestId("metric-timeline")[0]!.dataset.plotHeight,
+    ).toBe("543");
+    expect(screen.getByRole("button", { name: "Shrink" })).toBeTruthy();
+    expect(after.cards.filter(([title]) => title !== enlarged![0])).toEqual(
+      before.cards.filter(([title]) => title !== enlarged![0]),
+    );
+    expect(after.gridRows).toEqual(before.gridRows);
+
+    fireEvent.click(screen.getByRole("button", { name: "Shrink" }));
+
+    expect(frameLayoutSignature(view.container)).toEqual(before);
+    expect(screen.queryByRole("button", { name: "Shrink" })).toBeNull();
+  });
+
   it("reads Optimizing from the study driving the sweep, with Stop on the Parameters card and Cancel in the footer", () => {
     renderDrawerWithStudy({ ...sweep, status: "idle" }, "running");
 

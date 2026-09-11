@@ -13,6 +13,7 @@ import {
   CHART_CARD_FOOTER_CHROME,
   CHART_CARD_HEADER_HEIGHT,
   ChartCard,
+  chartCardBodyHeight,
   ChartCardGrid,
   chartCardHeight,
 } from "./chart-card";
@@ -114,6 +115,13 @@ describe("chartCardHeight", () => {
     expect(chartCardHeight({ bodyHeight: 100, footerHeight: 20 })).toBe(
       without + 20 + CHART_CARD_FOOTER_CHROME,
     );
+  });
+});
+
+describe("chartCardBodyHeight", () => {
+  it("inverts chartCardHeight for a card without a footer", () => {
+    expect(chartCardBodyHeight(chartCardHeight({ bodyHeight: 220 }))).toBe(220);
+    expect(chartCardBodyHeight(2 * 307 + 16)).toBe(543);
   });
 });
 
