@@ -52,7 +52,7 @@
     "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "vite": "8.2.2",
     "vitest": "4.1.10"
   }
