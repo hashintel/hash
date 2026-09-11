@@ -98,56 +98,19 @@ vi.mock("./optimization-surface", () => ({
 }));
 
 // uPlot cannot mount in jsdom; the card around the objective history is real.
-vi.mock("./study-view/objective-history-chart", async () => {
-  const chartCard = await vi.importActual<
-    typeof import("../shared/chart-card")
-  >("../shared/chart-card");
-  return {
-    ObjectiveHistoryCard: ({ plotHeight }: { plotHeight: number }) => (
-      <chartCard.ChartCard title="Objective by step" bodyHeight={plotHeight}>
-        <div data-testid="objective-history" />
-      </chartCard.ChartCard>
-    ),
-  };
-});
+vi.mock("./study-view/objective-history-chart", () =>
+  import("../shared/metric-timeline-test-stubs").then((stubs) =>
+    stubs.mockObjectiveHistoryCardModule(),
+  ),
+);
 
 // The timeline module pulls in uPlot, which jsdom cannot host; the card
 // chrome around the chart is real, so the menu and the subtitle are too.
-vi.mock("../experiments/experiment-metric-timeline", async () => {
-  const [menu, describeView, viewState] = await Promise.all([
-    vi.importActual<
-      typeof import("../experiments/experiment-metric-timeline/metric-view-menu")
-    >("../experiments/experiment-metric-timeline/metric-view-menu"),
-    vi.importActual<
-      typeof import("../experiments/experiment-metric-timeline/describe-metric-view")
-    >("../experiments/experiment-metric-timeline/describe-metric-view"),
-    vi.importActual<
-      typeof import("../experiments/experiment-metric-timeline/view-state")
-    >("../experiments/experiment-metric-timeline/view-state"),
-  ]);
-  return {
-    MetricViewMenu: menu.MetricViewMenu,
-    describeMetricView: describeView.describeMetricView,
-    DEFAULT_METRIC_VIEW_SETTINGS: viewState.DEFAULT_METRIC_VIEW_SETTINGS,
-    ExperimentMetricTimeline: ({
-      frames,
-      contentEpoch,
-      plotHeight,
-    }: {
-      frames: readonly unknown[];
-      contentEpoch: string;
-      plotHeight: number;
-    }) => (
-      <div
-        data-testid="metric-timeline"
-        data-epoch={contentEpoch}
-        data-plot-height={plotHeight}
-      >
-        {frames.length} frames
-      </div>
-    ),
-  };
-});
+vi.mock("../experiments/experiment-metric-timeline", () =>
+  import("../shared/metric-timeline-test-stubs").then((stubs) =>
+    stubs.mockExperimentMetricTimelineModule(),
+  ),
+);
 
 afterEach(cleanup);
 

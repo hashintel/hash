@@ -328,18 +328,6 @@ export const openPetrinautSimulationResource =
     overlay: null,
   });
 
-/** Opens one optimization as the whole Simulate section. */
-export const openPetrinautOptimizationFullView =
-  (id: string): PetrinautNavigationUpdater<PetrinautNavigationState> =>
-  (current) => ({
-    ...current,
-    mode: "simulate",
-    simulateView: "optimizations",
-    simulateResource: { type: "optimization", id },
-    simulatePresentation: "full",
-    overlay: null,
-  });
-
 export const openPetrinautSubnet =
   (
     subnetId: string | null,

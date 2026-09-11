@@ -38,7 +38,6 @@ export type {
 export {
   defaultPetrinautNavigationHistoryPolicy,
   defaultPetrinautNavigationState,
-  openPetrinautOptimizationFullView,
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,

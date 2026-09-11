@@ -6,7 +6,6 @@ import { describe, expect, test, vi } from "vitest";
 import {
   defaultPetrinautNavigationState,
   navigationResourceToSimulateDrawer,
-  openPetrinautOptimizationFullView,
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
@@ -544,30 +543,6 @@ describe("Petrinaut navigation", () => {
         id: "experiment-a",
       }),
     ).toEqual({ type: "view-experiment", experimentId: "experiment-a" });
-    expect(
-      navigationResourceToSimulateDrawer({
-        type: "optimization",
-        id: "optimization-a",
-      }),
-    ).toEqual({ type: "closed" });
-  });
-
-  test("presents an optimization in a drawer by default and opens the full view in one step", () => {
-    expect(defaultPetrinautNavigationState.simulatePresentation).toBe("drawer");
-    expect(
-      openPetrinautOptimizationFullView("optimization-a")({
-        ...defaultPetrinautNavigationState,
-        overlay: { type: "create-optimization" },
-      }),
-    ).toEqual({
-      ...defaultPetrinautNavigationState,
-      mode: "simulate",
-      simulateView: "optimizations",
-      simulateResource: { type: "optimization", id: "optimization-a" },
-      simulatePresentation: "full",
-    });
-    // The record's drawer is driven by the optimizations provider, not by
-    // the editor's drawer state, in either presentation.
     expect(
       navigationResourceToSimulateDrawer({
         type: "optimization",
