@@ -153,6 +153,9 @@ export const StepFilterBar = ({
                     (candidate) => candidate.filterKey !== filter.filterKey,
                   ),
                 ),
+              // Chips left unconfigured (or emptied) fade out and remove
+              // themselves once the user moves on.
+              dismissAbandoned: true,
             }}
           />
         );
