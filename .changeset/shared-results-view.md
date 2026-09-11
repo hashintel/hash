@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-The experiment drawer, the optimization drawer and the full optimization view render one shared results view: the same header stats, Parameters band, surface, metric cards and footer, with the study-only cards and actions slotted in. The objective's timeline in a study is the same card as an experiment's metric timelines.
+Experiment drawer cards take the wider Figma chrome, the header drops the time step from its title and keeps its stat strip on one line, turning into chips in a narrow drawer.
