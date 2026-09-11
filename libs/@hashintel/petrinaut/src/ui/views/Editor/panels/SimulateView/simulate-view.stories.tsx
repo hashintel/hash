@@ -411,7 +411,7 @@ export const RunSupplyChainOptimization: Story = {
     docs: {
       description: {
         story:
-          "A sweep over two supply-chain parameters is created and optimized from its Parameters card: a synthetic sampler suggests each step's point and the real experiments backend simulates it through the sweep, so the drawer follows the steps as it would with the real optimizer — the headline, the Steps column, the Objective by step strip under the sliders, the Sensitivity card and the steps table. Fast, deterministic, no download. For the real Pyodide/Optuna optimizer see Simulate / Browser optimizer (real).",
+          "A sweep over two supply-chain parameters is created with its study, as the Create Experiment drawer's Optimize does: a synthetic sampler suggests each step's point and the real experiments backend simulates it through the sweep, so the drawer follows the steps as it would with the real optimizer — the headline, the Steps column, the Objective by step strip under the sliders, the Sensitivity card and the steps table. Fast, deterministic, no download. For the real Pyodide/Optuna optimizer see Simulate / Browser optimizer (real).",
       },
     },
   },

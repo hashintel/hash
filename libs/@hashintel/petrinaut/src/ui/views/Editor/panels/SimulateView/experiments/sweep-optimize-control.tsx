@@ -16,12 +16,10 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  SWEEP_OPTIMIZATION_DEFAULT_STEPS,
-  type SweepOptimizer,
-} from "./sweep-optimizer";
+import { SWEEP_OPTIMIZATION_DEFAULT_STEPS } from "./create-experiment-drawer/sweep-objective";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import type { SweepOptimizer } from "./sweep-optimizer";
 import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";
 
 // The ds Button has no purple tone; the optimizer's button wears the
