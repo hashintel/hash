@@ -26,12 +26,18 @@ use futures::FutureExt as _;
 use hash_graph_atlas::test_utils;
 use uuid::Uuid;
 
+/// A fresh test bucket and its client configured for local MinIO.
 struct Bucket {
     client: Client,
     name: String,
 }
 
 impl Bucket {
+    /// Creates an isolated bucket using the development credentials or their environment overrides.
+    ///
+    /// # Panics
+    ///
+    /// Panics if bucket creation fails.
     async fn new() -> Self {
         let credentials = Credentials::new(
             env::var("AWS_S3_UPLOADS_ACCESS_KEY_ID")
@@ -76,10 +82,16 @@ impl Bucket {
         Self { client, name }
     }
 
+    /// Returns a prefix containing spaces and a literal percent escape.
     fn destination(&self) -> String {
         format!("s3://{}/transfer prefix%2f", self.name)
     }
 
+    /// Removes incomplete uploads and objects while retaining the bucket.
+    ///
+    /// # Errors
+    ///
+    /// Returns the S3 request error or an invalid-listing error when a key or upload id is missing.
     async fn clear(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         // deleting each first page avoids retaining continuation tokens for removed objects.
         loop {
@@ -133,6 +145,11 @@ impl Bucket {
         Ok(())
     }
 
+    /// Empties and deletes the test bucket.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error from clearing the contents or deleting the bucket.
     async fn cleanup(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.clear().await?;
         self.client
@@ -143,6 +160,7 @@ impl Bucket {
         Ok(())
     }
 
+    /// Writes cleanup failure to test output even without a global subscriber.
     fn report_cleanup_error(&self, error: &dyn Error) {
         // cleanup diagnostics must remain visible without a global subscriber.
         tracing::subscriber::with_default(
@@ -153,11 +171,17 @@ impl Bucket {
                 .with_max_level(tracing::Level::ERROR)
                 .finish(),
             || {
-                tracing::error!(bucket = %self.name, ?error, "failed to clean up test bucket");
+                tracing::error!(bucket = %self.name, %error, "failed to clean up test bucket");
             },
         );
     }
 
+    /// Awaits an operation and attempts cleanup before returning or resuming its panic.
+    ///
+    /// # Panics
+    ///
+    /// Resumes an operation's panic after the cleanup attempt. Panics if cleanup fails after a
+    /// successful operation.
     async fn run<T>(&self, operation: impl Future<Output = T>) -> T {
         let result = AssertUnwindSafe(operation).catch_unwind().await;
         let cleanup = self.cleanup().await;

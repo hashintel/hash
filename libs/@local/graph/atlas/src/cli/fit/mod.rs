@@ -1,34 +1,35 @@
 //! The fit command that runs one production generation over the live store or a dump directory.
 
-use core::{error::Error, fmt, num::NonZero, time::Duration};
-use std::{io, time::Instant};
+use core::{fmt, num::NonZero, time::Duration};
+use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use clap::{Args, ValueHint};
+use clap::ValueHint;
 use tokio_postgres::Client;
 
-use super::embedder::{self, EmbedderArgs, EmbedderError};
+use self::error::FitError;
+use super::embedder::{self, EmbedderArgs};
 use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
     file::{
         generation::{
             GenerationRoot,
-            upload::{Promotion, Upload, UploadError},
+            upload::{Promotion, Upload},
         },
         storage::{Storage, error::StorageError, path::FilePath},
     },
     progress::{NoProgress, Progress},
     salt::{
         knn::recall::RecallAdmission,
-        runner::operator::{
-            ClassifierSource, Options, Placement, RunError, Summary, live, offline,
-        },
+        runner::operator::{ClassifierSource, Options, Placement, Summary, live, offline},
     },
 };
 
+pub(crate) mod error;
+
 /// Root and run settings of one fit.
-#[derive(Debug, Args)]
+#[derive(Debug, clap::Args)]
 #[command(group = clap::ArgGroup::new("classifier_input")
     .required(true)
     .args(["annotations", "classifier"]))]
@@ -59,8 +60,8 @@ pub struct FitArgs {
 
     /// Path of a reviewed-verdicts document to supply.
     ///
-    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
-    /// so a corpus whose relations carry Proximal force needs one to train.
+    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs.
+    /// A corpus whose relations carry Proximal force needs these verdicts to train.
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS", value_hint = ValueHint::FilePath)]
     verdicts: Option<FilePath>,
 
@@ -71,7 +72,7 @@ pub struct FitArgs {
     /// 1]`) and `maximum_density_spread` (finite, non-negative, at most the `f32` maximum). A
     /// present field overrides its default, an unknown field refuses the document, and an
     /// out-of-domain value refuses the run before it starts. The source defaults are maximally
-    /// permissive, gating evidence presence rather than fidelity.
+    /// permissive. Admission still checks evidence presence.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS",
@@ -117,96 +118,17 @@ pub struct FitArgs {
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 
-    /// Whether to upload the generated results to remote storage.
+    /// Destination prefix for generated artifacts. No upload runs by default.
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 }
 
-#[derive(Debug)]
-enum FitErrorKind {
-    /// Producing the embedding provider failed.
-    Embedder(EmbedderError),
-    /// The run failed.
-    Run(RunError),
-    /// Writing the admission report failed.
-    Io(io::Error),
-    /// Uploading the results failed.
-    Upload(UploadError),
-    /// Serializing the admission report failed.
-    Serialize(serde_json::Error),
-}
-
-/// One fit invocation's failure, by step.
-///
-/// The embedder and run variants splice into the chain transparently (their display text and
-/// sources are the wrapped fault's, unchanged). The report variant names its own step.
-#[derive(Debug)]
-pub struct FitError(Box<FitErrorKind>);
-
-impl fmt::Display for FitError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &*self.0 {
-            FitErrorKind::Embedder(error) => fmt::Display::fmt(error, fmt),
-            FitErrorKind::Run(error) => fmt::Display::fmt(error, fmt),
-            FitErrorKind::Io(_) => fmt.write_str("the admission report could not be written"),
-            FitErrorKind::Upload(_) => fmt.write_str("uploading the results failed"),
-            FitErrorKind::Serialize(_) => fmt.write_str("serializing the admission report failed"),
-        }
-    }
-}
-
-impl Error for FitError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match &*self.0 {
-            FitErrorKind::Embedder(error) => error.source(),
-            FitErrorKind::Run(error) => error.source(),
-            FitErrorKind::Io(error) => Some(error),
-            FitErrorKind::Upload(error) => Some(error),
-            FitErrorKind::Serialize(error) => Some(error),
-        }
-    }
-}
-
-impl From<UploadError> for FitError {
-    fn from(error: UploadError) -> Self {
-        Self(Box::new(FitErrorKind::Upload(error)))
-    }
-}
-
-impl From<serde_json::Error> for FitError {
-    fn from(value: serde_json::Error) -> Self {
-        Self(Box::new(FitErrorKind::Serialize(value)))
-    }
-}
-
-impl From<EmbedderError> for FitError {
-    fn from(value: EmbedderError) -> Self {
-        Self(Box::new(FitErrorKind::Embedder(value)))
-    }
-}
-
-impl From<RunError> for FitError {
-    fn from(value: RunError) -> Self {
-        Self(Box::new(FitErrorKind::Run(value)))
-    }
-}
-
-impl From<io::Error> for FitError {
-    fn from(value: io::Error) -> Self {
-        Self(Box::new(FitErrorKind::Io(value)))
-    }
-}
-
-/// One fit's verdict.
-///
-/// The command's product, which its host renders rather than printing in place. The standalone
-/// shell's dashboard owns the terminal until the run ends, so the shell writes the verdict after
-/// the dashboard hands it back.
+/// A fit's result, admission-report path and fitting duration.
 #[derive(Debug)]
 pub struct FitVerdict {
     /// The run's plain-number summary.
     summary: Summary,
-    /// Where the admission report landed.
+    /// The admission-report destination.
     report: Utf8PathBuf,
     /// How long the run took.
     elapsed: Duration,
@@ -244,10 +166,9 @@ impl fmt::Display for FitVerdict {
     }
 }
 
-/// One fit invocation, resolved: the run's typed options over an opened root.
+/// A prepared fit with local inputs, a generation root and an optional upload destination.
 ///
-/// `P` is the run's progress observer: [`new`](Self::new) resolves the flags into a silent run, and
-/// [`with_progress`](Self::with_progress) hands the run to an operator surface that renders it.
+/// [`Self::with_progress`] replaces the initial silent observer with `P`.
 #[derive(Debug)]
 pub struct FitCommand<P> {
     root: GenerationRoot,
@@ -287,20 +208,15 @@ impl<P> FitCommand<P>
 where
     P: Progress + Sync,
 {
-    /// Runs one production generation over the live store and returns its verdict.
+    /// Fits one generation over the live store and returns its verdict.
     ///
-    /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
-    /// standalone shell, [`connect`] behind the graph binary's own store flags) and the embedding
-    /// provider's credential. This call pins the snapshot, so the run reads the store as of the
-    /// moment the command starts.
+    /// The store snapshot uses the temporal axes captured when fitting begins. The command writes
+    /// the admission report before uploading results. An activated generation also updates remote
+    /// current.
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: producing the embedding provider, the
-    /// run itself, or writing the admission report.
-    ///
-    /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
-    /// [`connect`]: super::connect
+    /// Returns [`FitError`] on preparation, fitting or result-publication failure.
     pub async fn run(
         self,
         client: &mut Client,
@@ -324,7 +240,7 @@ where
             "starting the production run"
         );
 
-        // The provider holds its observer across every request, so it takes the detached half.
+        // the provider retains its observer across requests.
         let embedder =
             embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
 
@@ -372,18 +288,14 @@ where
         })
     }
 
-    /// Runs one production generation over the dump directory at `dump` and returns its verdict.
+    /// Fits one generation from the snapshot and embeddings in `dump`.
     ///
-    /// The offline counterpart of [`run`](Self::run): the dump supplies the snapshot, its
-    /// temporal axes, and every embedding the run requests, so the command needs neither a store
-    /// connection nor a provider credential, and the generation publishes under the same root a
-    /// live fit's would.
+    /// The dump supplies the temporal axes. Report writing and remote publication follow
+    /// [`Self::run`].
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: the run itself, or writing the
-    /// admission report. A refused dump arrives in the run's own chain, exactly as a refused
-    /// supply document does.
+    /// Returns [`FitError`] if preparing the upload, fitting the dump or publishing results fails.
     pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError> {
         // The math kernels reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
@@ -442,11 +354,11 @@ where
 }
 
 impl FitCommand<NoProgress> {
-    /// Creates a new `FitCommand` from the given arguments and storage.
+    /// Resolves local or S3 fit inputs before starting a fit.
     ///
     /// # Errors
     ///
-    /// Returns an error if the arguments are invalid or the storage is unavailable.
+    /// Returns [`StorageError`] if resolving or downloading an input fails.
     pub async fn new(
         root: super::RootArgs,
         args: FitArgs,

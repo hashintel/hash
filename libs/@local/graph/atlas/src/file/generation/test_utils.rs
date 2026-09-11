@@ -19,6 +19,7 @@ use crate::{
     integrity::Sha256Digest,
 };
 
+/// Checks that `destination` selected `id` and holds the source's bytes for every file.
 #[track_caller]
 fn assert_publication(source: &GenerationRoot, destination: &GenerationRoot, id: GenerationId) {
     assert_eq!(

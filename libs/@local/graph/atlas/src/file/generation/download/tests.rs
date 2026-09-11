@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::{
     assert_matches,
     future::{Future, poll_fn},
@@ -9,7 +10,7 @@ use std::{
     collections::HashMap,
     fs,
     io::{self, Cursor},
-    sync::{Arc, Mutex},
+    sync::Mutex,
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -26,7 +27,7 @@ use super::{
         ActivateError, GenerationId, GenerationRoot, METADATA_FILE, OpenError, ScratchDirectory,
         tests::{make_writable, publish_noncanonical, repository, root},
     },
-    Download, DownloadError,
+    Download, DownloadError, DownloadOptions,
     backend::GenerationDownloadBackend,
 };
 use crate::{
@@ -38,12 +39,12 @@ use crate::{
     integrity::Sha256Digest,
 };
 
-/// The source's current-generation pointer.
+/// Returns the current-pointer path under the source root.
 fn current_path(source: &Utf8Path) -> Utf8PathBuf {
     source.join("generations/current")
 }
 
-/// One object of the source's active prefix.
+/// Locates a generation artifact under the source's active prefix.
 fn active_path(source: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
     source.join(format!("generations/active/{id}/{name}"))
 }
@@ -85,6 +86,7 @@ struct Hold {
 }
 
 impl Hold {
+    /// Announces the read, then waits for the test to release it.
     async fn wait(self) {
         self.entered
             .send(())
@@ -128,6 +130,7 @@ struct Fixture {
 }
 
 impl Fixture {
+    /// Creates a source directory holding no objects and no triggers.
     fn new() -> Self {
         let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
             .expect("the temporary directory should have a UTF-8 path")
@@ -143,7 +146,7 @@ impl Fixture {
         }
     }
 
-    /// The parent of the source's `generations/` namespace.
+    /// Returns the source containing the `generations/` namespace.
     fn source(&self) -> FilePath {
         self.path
             .as_str()
@@ -151,6 +154,7 @@ impl Fixture {
             .expect("should parse the fixture source")
     }
 
+    /// Installs a one-shot override for the next read of `path`.
     fn trigger(&self, path: &Utf8Path, trigger: Trigger) {
         self.triggers
             .lock()
@@ -158,7 +162,7 @@ impl Fixture {
             .insert(path.to_string(), trigger);
     }
 
-    /// The paths read so far, in call order.
+    /// Copies the recorded paths in their read order.
     fn reads(&self) -> Vec<String> {
         self.reads
             .lock()
@@ -166,7 +170,7 @@ impl Fixture {
             .clone()
     }
 
-    /// The paths read since `mark`, in call order.
+    /// Copies the paths recorded after `mark` in their read order.
     fn reads_since(&self, mark: usize) -> Vec<String> {
         self.reads()[mark..].to_vec()
     }
@@ -199,6 +203,7 @@ impl GenerationDownloadBackend for Arc<Fixture> {
     }
 }
 
+/// Publishes a fixture generation under `fit_seed`, with noncanonical metadata.
 fn publish(root: &GenerationRoot, fit_seed: u64) -> (SaltRepository, GenerationId) {
     let mut repository = repository();
     repository.metadata.reproducibility.config.seed = fit_seed;
@@ -227,7 +232,7 @@ fn seed_source(
     seed(&current_path(&fixture.path), id.to_string());
 }
 
-/// The read sequence one complete acquisition of `id` makes.
+/// Builds the expected source-read sequence for a complete acquisition of `id`.
 fn acquisition_reads(
     fixture: &Fixture,
     id: GenerationId,
@@ -247,7 +252,7 @@ fn acquisition_reads(
     expected
 }
 
-/// The staging directories an attempt left in the root.
+/// Lists the staging-directory names remaining after an attempt.
 fn staging_entries(root: &GenerationRoot) -> Vec<String> {
     fs::read_dir(root.path())
         .expect("should list the root")
@@ -309,13 +314,14 @@ fn assert_published(
     );
 }
 
-/// Runs one synchronization on a task, returning the download with its result.
-fn spawn_synchronize(
-    mut download: Download<Arc<Fixture>>,
-) -> JoinHandle<(
+/// A download recovered from a spawned synchronization, with that call's result.
+type SynchronizeOutcome = (
     Download<Arc<Fixture>>,
     Result<Option<GenerationId>, DownloadError>,
-)> {
+);
+
+/// Runs one synchronization on a task, returning the download with its result.
+fn spawn_synchronize(mut download: Download<Arc<Fixture>>) -> JoinHandle<SynchronizeOutcome> {
     tokio::spawn(async move {
         let result = download.synchronize().await;
         (download, result)
@@ -327,6 +333,7 @@ async fn poll_once<F: Future>(mut future: Pin<&mut F>) -> Poll<F::Output> {
     poll_fn(|context| Poll::Ready(future.as_mut().poll(context))).await
 }
 
+/// An acquisition publishes nothing mid-transfer, then selects the complete local copy.
 #[tokio::test]
 async fn synchronize_fresh_source() {
     let (_source_scratch, source) = root();
@@ -418,6 +425,7 @@ async fn synchronize_fresh_source() {
     );
 }
 
+/// An absent source pointer names no generation and preserves the local selection.
 #[tokio::test]
 async fn synchronize_source_pointer_absent() {
     let (_scratch, target) = root();
@@ -445,8 +453,10 @@ async fn synchronize_source_pointer_absent() {
         vec![current_path(&fixture.path).to_string()],
         "should read nothing beyond the absent pointer"
     );
+    drop(download);
 }
 
+/// Acquisition publishes nothing for a missing artifact and succeeds after source repair.
 #[tokio::test]
 async fn synchronize_artifact_absent() {
     let (_source_scratch, source) = root();
@@ -506,8 +516,11 @@ async fn synchronize_artifact_absent() {
         "should select the repaired generation"
     );
     assert_published(&target, &fixture, id, &repository);
+    drop(download);
+    drop(fixture);
 }
 
+/// Acquisition rejects an artifact's mismatched digest without changing the local selection.
 #[tokio::test]
 async fn synchronize_artifact_corrupt() {
     let (_source_scratch, source) = root();
@@ -555,8 +568,11 @@ async fn synchronize_artifact_corrupt() {
         staging_entries(&target).is_empty(),
         "should remove the failed attempt's staging directory"
     );
+    drop(download);
+    drop(fixture);
 }
 
+/// Acquisition rejects metadata naming another identity before reading any artifact.
 #[tokio::test]
 async fn synchronize_metadata_mismatch() {
     let (_source_scratch, source) = root();
@@ -604,8 +620,10 @@ async fn synchronize_metadata_mismatch() {
         staging_entries(&target).is_empty(),
         "should leave no staging directory for a rejected document"
     );
+    drop(download);
 }
 
+/// A body-read failure stops publication and triggers staging cleanup.
 #[tokio::test]
 async fn synchronize_body_truncated() {
     let (_source_scratch, source) = root();
@@ -651,8 +669,11 @@ async fn synchronize_body_truncated() {
         staging_entries(&target).is_empty(),
         "should remove the staging directory holding the written prefix"
     );
+    drop(download);
+    drop(fixture);
 }
 
+/// Selecting a complete local publication reads only the source's current-pointer object.
 #[tokio::test]
 async fn synchronize_publication_complete() {
     let (_scratch, target) = root();
@@ -679,8 +700,10 @@ async fn synchronize_publication_complete() {
         vec![current_path(&fixture.path).to_string()],
         "should read no metadata or artifact object for a complete local publication"
     );
+    drop(download);
 }
 
+/// An incomplete local publication fails verification and survives the failed call unchanged.
 #[tokio::test]
 async fn synchronize_publication_incomplete() {
     let (_source_scratch, source) = root();
@@ -733,8 +756,10 @@ async fn synchronize_publication_incomplete() {
         vec![current_path(&fixture.path).to_string()],
         "should read no metadata or artifact object for an existing publication"
     );
+    drop(download);
 }
 
+/// An existing publication without metadata fails without reacquiring source objects.
 #[tokio::test]
 async fn synchronize_publication_metadata_absent() {
     let (_source_scratch, source) = root();
@@ -774,8 +799,10 @@ async fn synchronize_publication_metadata_absent() {
         vec![current_path(&fixture.path).to_string()],
         "should not mistake absent metadata for an absent publication"
     );
+    drop(download);
 }
 
+/// A corrupt local publication fails verification, keeps its bytes and keeps the local selection.
 #[tokio::test]
 async fn synchronize_publication_corrupt() {
     let (_source_scratch, source) = root();
@@ -827,8 +854,10 @@ async fn synchronize_publication_corrupt() {
         vec![current_path(&fixture.path).to_string()],
         "should read no metadata or artifact object for an existing publication"
     );
+    drop(download);
 }
 
+/// A repeat call against an unchanged source reads the source pointer alone.
 #[tokio::test]
 async fn synchronize_repeat_unchanged() {
     let (_source_scratch, source) = root();
@@ -855,8 +884,10 @@ async fn synchronize_repeat_unchanged() {
         vec![current_path(&fixture.path).to_string()],
         "should read the source pointer and nothing else"
     );
+    drop(download);
 }
 
+/// A local rollback after a success revalidates the publication and restores the pointer.
 #[tokio::test]
 async fn synchronize_repeat_pointer_moved() {
     let (_source_scratch, source) = root();
@@ -894,8 +925,10 @@ async fn synchronize_repeat_pointer_moved() {
         vec![current_path(&fixture.path).to_string()],
         "should revalidate the local publication without reacquiring it"
     );
+    drop(download);
 }
 
+/// Removing the publication after a success makes the next call reacquire it.
 #[tokio::test]
 async fn synchronize_repeat_directory_removed() {
     let (_source_scratch, source) = root();
@@ -925,8 +958,10 @@ async fn synchronize_repeat_directory_removed() {
         acquisition_reads(&fixture, id, &repository),
         "should reacquire the generation instead of trusting the remembered success"
     );
+    drop(download);
 }
 
+/// A call completes the identity it sampled, and the next call observes the successor.
 #[tokio::test]
 async fn synchronize_source_advances_during_read() {
     let (_source_scratch, source) = root();
@@ -990,8 +1025,18 @@ async fn synchronize_source_advances_during_read() {
         "should select the successor"
     );
     assert_published(&target, &fixture, successor, &successor_repository);
+    drop(fixture);
 }
 
+/// Shutdown finishes the synchronization already started and polls the source no further.
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "the remainder is `tokio::select!`'s own branch dispatch"
+)]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "the pinned run retains the download until the end of the test"
+)]
 #[tokio::test(start_paused = true)]
 async fn run_shutdown_during_read() {
     let (_source_scratch, source) = root();
@@ -1011,9 +1056,13 @@ async fn run_shutdown_during_read() {
     );
 
     let (_scratch, target) = root();
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let task = Download::new(Arc::clone(&fixture), target.clone(), fixture.source()).into_task(
+        DownloadOptions {
+            poll_interval: Duration::from_secs(60),
+        },
+    );
     let (shutdown, shutdown_signal) = oneshot::channel();
-    let mut run = pin!(download.run(Duration::from_secs(60), async move {
+    let mut run = pin!(task.run(async move {
         shutdown_signal.await.expect("should signal shutdown");
     }));
 

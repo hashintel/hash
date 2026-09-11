@@ -322,7 +322,8 @@ impl GenerationManager {
         self.slots.clear();
     }
 
-    pub(crate) fn into_task(self) -> GenerationManagerTask {
+    /// Transfers ownership into a task that retains maintenance through shutdown.
+    pub(crate) const fn into_task(self) -> GenerationManagerTask {
         GenerationManagerTask { manager: self }
     }
 }
@@ -333,11 +334,17 @@ impl Drop for GenerationManager {
     }
 }
 
+/// Background updates to the generations available for serving.
 pub(crate) struct GenerationManagerTask {
     manager: GenerationManager,
 }
 
 impl GenerationManagerTask {
+    /// Maintains generations until shutdown, then joins all owned work.
+    ///
+    /// # Panics
+    ///
+    /// Panics when polled without a time-enabled Tokio runtime.
     pub(crate) async fn run(mut self, shutdown: impl Future<Output = ()>) {
         self.manager.run(shutdown).await;
     }

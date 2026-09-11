@@ -214,13 +214,17 @@ impl From<ManagerArgs> for ManagerOptions {
     }
 }
 
+/// Source selection and polling cadence for acquiring generations.
 #[derive(Debug, clap::Args)]
 pub(super) struct DownloadArgs {
-    /// Whether to upload the generated results to remote storage.
+    /// Source prefix containing `generations/current` and `generations/active/`.
+    ///
+    /// Source polling is off by default. An S3 prefix requires a configured S3 client. Removing
+    /// expired local generations remains opt-in through `--unlink-expired-generations`.
     #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
     download: Option<FilePath>,
 
-    /// Interval at which to poll for download completion.
+    /// Seconds between source-current checks, one second by default.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL",
@@ -231,11 +235,11 @@ pub(super) struct DownloadArgs {
 }
 
 impl From<DownloadArgs> for (Option<FilePath>, DownloadOptions) {
-    fn from(args: DownloadArgs) -> Self {
+    fn from(value: DownloadArgs) -> Self {
         (
-            args.download,
+            value.download,
             DownloadOptions {
-                poll_interval: Duration::from_secs(args.download_poll_interval.get()),
+                poll_interval: Duration::from_secs(value.download_poll_interval.get()),
             },
         )
     }

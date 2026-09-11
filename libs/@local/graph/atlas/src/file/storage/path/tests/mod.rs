@@ -2,6 +2,10 @@ use alloc::borrow::Cow;
 use core::{assert_matches, pin::pin};
 use std::{fs, io};
 
+use aws_sdk_s3::{
+    Client,
+    config::{BehaviorVersion, Credentials, Region},
+};
 use tokio::io::AsyncReadExt as _;
 
 use super::{FilePath, FilePathVariant};
@@ -54,6 +58,28 @@ fn parse_empty_bucket() {
             component: PathComponent::Bucket
         })
     );
+}
+
+/// Backend validation accepts configured S3 storage without accessing the source object.
+#[tokio::test]
+async fn validate_s3_unavailable_object() {
+    let client = Client::from_conf(
+        aws_sdk_s3::Config::builder()
+            .behavior_version(BehaviorVersion::latest())
+            .region(Region::new("us-east-1"))
+            .credentials_provider(Credentials::new(
+                "fixture", "fixture", None, None, "fixture",
+            ))
+            .endpoint_url("http://127.0.0.1:0")
+            .build(),
+    );
+    let storage = Storage::in_temp_dir().with_s3(client);
+    let source: FilePath = "s3://unavailable-bucket/source"
+        .parse()
+        .expect("should parse the source");
+    source
+        .validate_backend(&storage)
+        .expect("should accept a configured backend without reading an object");
 }
 
 /// Reading a local file yields its bytes without an S3 backend.

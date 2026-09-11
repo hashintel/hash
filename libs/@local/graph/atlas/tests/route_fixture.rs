@@ -58,7 +58,7 @@ use axum::{
 use clap::Parser;
 use error_stack::Report;
 use hash_graph_atlas::cli::{
-    RootArgs, SecretString, ServeArgs, ServeCommand, ServeOptions, VisibilityLimits,
+    RootArgs, SecretString, ServeArgs, ServeCommand, ServeOptions, Storage, VisibilityLimits,
 };
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
@@ -384,6 +384,7 @@ async fn served_router() -> (axum::Router, CancellationToken, JoinHandle<()>) {
             rate_limit_actor_burst: quota(100),
         },
         workflow: None,
+        storage: Storage::in_temp_dir(),
         pool: Arc::new(pool),
         visibility: VisibilityLimits {
             bytes: 1 << 30,
@@ -395,7 +396,13 @@ async fn served_router() -> (axum::Router, CancellationToken, JoinHandle<()>) {
         .run(facilities)
         .expect("the serving resources should initialize");
     let shutdown = CancellationToken::new();
-    let (router, maintenance) = serving.into_parts(shutdown.clone().cancelled_owned());
+    let task_shutdown = shutdown.clone();
+    let (router, maintenance, download) =
+        serving.into_parts(move || task_shutdown.clone().cancelled_owned());
+    assert!(
+        download.is_none(),
+        "the route fixture should use its local generation root"
+    );
     (router, shutdown, tokio::spawn(maintenance))
 }
 

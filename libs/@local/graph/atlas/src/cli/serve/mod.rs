@@ -1,4 +1,4 @@
-//! HTTP routing and owned generation maintenance.
+//! HTTP routing with independently retained generation maintenance and acquisition.
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt};
@@ -17,15 +17,17 @@ use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
 
-pub use self::args::ServeArgs;
 use self::args::{DeltaArgs, DownloadArgs, LimitsArgs, ManagerArgs};
-use super::{RootArgs, Storage};
+use super::RootArgs;
 use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
-    file::generation::{
-        GenerationRoot,
-        download::{Download, DownloadOptions, DownloadTask},
+    file::{
+        generation::{
+            GenerationRoot,
+            download::{Download, DownloadOptions, DownloadTask},
+        },
+        storage::{Storage, path::FilePath},
     },
     integrity::SecretString,
     serve::{
@@ -44,9 +46,13 @@ mod args;
 #[cfg(test)]
 mod tests;
 
+pub use self::args::ServeArgs;
+
 /// A failure constructing process-level serving resources.
 #[derive(Debug)]
 pub enum ServeError {
+    /// The configured source has no available storage backend.
+    Download,
     /// Drawing the process's authority-key salt failed.
     Authority,
     /// The generation-maintenance configuration is invalid.
@@ -56,6 +62,7 @@ pub enum ServeError {
 impl fmt::Display for ServeError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Download => fmt.write_str("could not configure generation download"),
             Self::Authority => fmt.write_str("could not initialize the authority key"),
             Self::Manager => fmt.write_str("could not configure generation maintenance"),
         }
@@ -85,8 +92,8 @@ pub struct ServeOptions<P> {
     pub storage: Storage,
 }
 
-/// HTTP routes and the owned generation-maintenance task.
-#[must_use = "generation maintenance must be retained and run by the host"]
+/// HTTP routes with owned generation maintenance and optional source polling.
+#[must_use = "the host must retain and run maintenance and any download task"]
 pub struct Serve {
     router: Router,
     manager: GenerationManagerTask,
@@ -94,7 +101,10 @@ pub struct Serve {
 }
 
 impl Serve {
-    /// Separates HTTP routing from maintenance retained until shutdown completes.
+    /// Separates routing from maintenance and the optional download future.
+    ///
+    /// The shutdown factory runs once for maintenance and once more for a configured downloader.
+    /// After signalling shutdown, await each future to finish its in-flight work.
     pub fn into_parts<S>(
         self,
         mut shutdown: impl FnMut() -> S,
@@ -150,18 +160,20 @@ impl ServeCommand {
         }
     }
 
-    /// Constructs HTTP routes and unstarted generation maintenance.
+    /// Constructs HTTP routes and unstarted generation-maintenance and download tasks.
     ///
     /// The read API answers 503 until maintenance publishes a generation. The liveness route
     /// answers outside request budgets. Retained-generation admission lasts for
     /// [`VisibilityLimits::hard`] after replacement promotion. The host must run and retain the
-    /// maintenance future returned by [`Serving::into_parts`] through listener failure and
-    /// shutdown.
+    /// maintenance future and any download future from [`Serve::into_parts`] through listener
+    /// failure and shutdown. Downloading verifies files and updates local current. Maintenance
+    /// observes that pointer to open and promote generations.
     ///
     /// # Errors
     ///
-    /// Returns [`ServeError::Authority`] for an entropy failure or [`ServeError::Manager`] for
-    /// invalid maintenance settings. Generation opening failures belong to the maintenance loop.
+    /// Returns [`ServeError`] for unavailable source backends, entropy failures or invalid
+    /// maintenance settings. Backend validation performs no source reads. Generation opening
+    /// failures belong to the maintenance loop.
     ///
     /// # Panics
     ///
@@ -183,6 +195,14 @@ impl ServeCommand {
     {
         crate::math::kernel::verify_cpu_baseline();
 
+        let (download_path, download_options): (Option<FilePath>, DownloadOptions) =
+            self.download.into();
+        if let Some(source) = &download_path {
+            source
+                .validate_backend(&storage)
+                .change_context(ServeError::Download)?;
+        }
+
         let authority = Authority::new(self.secret.as_ref(), visibility.hard, SysRng)
             .change_context(ServeError::Authority)?;
         let feed = (!self.delta.no_delta).then(|| FeedOptions {
@@ -202,7 +222,6 @@ impl ServeCommand {
         )
         .change_context(ServeError::Manager)?;
 
-        let (download_path, download_options) = self.download.into();
         let download = if let Some(download) = download_path {
             let download = Download::new(storage, self.root, download);
             let task = download.into_task(download_options);
