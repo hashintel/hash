@@ -259,7 +259,7 @@ export const SortMenu = <SortKey extends string = string>({
       <span
         role="button"
         tabIndex={-1}
-        className={triggerDirectionToggle({ size })}
+        className={triggerDirectionToggle({ size, align })}
         aria-label={`Sort by ${selectedSorter.name}, ${flipped(value.direction).toLowerCase()}`}
         onPointerDown={(event) => {
           event.preventDefault();
