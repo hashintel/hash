@@ -155,6 +155,10 @@ not authoritative turn boundaries or proof of heard playback. Browsers without
 audio-level telemetry retain Listening without an animated input level.
 There is no separate experiment panel, replay menu, or microphone toggle.
 Connection errors return to setup; starting again requires fresh consent.
+Brief WebRTC interruptions show **Connecting** while the existing session has up
+to the connection timeout (15 seconds by default) to recover. Media stays open;
+no new session is created and no input is replayed. End still stops both directions
+immediately. A failed connection or an expired recovery deadline ends the session.
 
 **End voice mode**, **Exit experiment** during setup, closing the panel, switching to text,
 changing conversation, and leaving the page stop local experimental capture

@@ -170,6 +170,133 @@ test("times out connection without inventing turn completion or retrying", async
   expect(fixture.fetch).toHaveBeenCalledTimes(1);
 });
 
+test("a temporary media disconnect recovers on the same session without replaying input", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  let release!: (stats: Map<string, unknown>) => void;
+  const getStats = vi.fn(
+    () =>
+      new Promise<Map<string, unknown>>((resolve) => {
+        release = resolve;
+      }),
+  );
+  Object.assign(fixture.peer, { getStats });
+  await fixture.conversation.start();
+  fixture.emit({ type: "session.started" });
+  await vi.advanceTimersByTimeAsync(100);
+  fixture.peer.connectionState = "disconnected";
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+  // A sample requested before the disconnect must not restore Listening.
+  release(
+    new Map([
+      ["input", { type: "media-source", kind: "audio", audioLevel: 0.4 }],
+    ]),
+  );
+  getStats.mockResolvedValue(new Map());
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+  fixture.peer.connectionState = "connected";
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connected");
+  await vi.advanceTimersByTimeAsync(16_000);
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    phase: "connected",
+    activity: { microphoneLevel: 0, outputActive: false },
+  });
+  expect(fixture.sent).toEqual([]);
+  expect(fixture.fetch).toHaveBeenCalledOnce();
+  expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+  const stopped = fixture.conversation.stop();
+  fixture.emit({ type: "session.closed" });
+  await stopped;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test("an unrecovered disconnect has a fixed deadline and cannot revive after cleanup", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  await fixture.conversation.start();
+  fixture.emit({ type: "session.started" });
+  fixture.peer.connectionState = "disconnected";
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  await vi.advanceTimersByTimeAsync(5_000);
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  await vi.advanceTimersByTimeAsync(9_999);
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(1);
+  expect(fixture.input.stop).toHaveBeenCalled();
+  expect(fixture.output.stop).toHaveBeenCalled();
+  expect(fixture.audio.pause).toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+  expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+    "did not recover",
+  );
+  const updates = fixture.onState.mock.calls.length;
+  fixture.peer.connectionState = "connected";
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  await vi.advanceTimersByTimeAsync(20_000);
+  expect(fixture.onState).toHaveBeenCalledTimes(updates);
+  expect(fixture.fetch).toHaveBeenCalledOnce();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test.each(["failed", "closed"])(
+  "terminal media state %s still ends immediately",
+  async (state) => {
+    const fixture = setup();
+    await fixture.conversation.start();
+    fixture.emit({ type: "session.started" });
+    fixture.peer.connectionState = state;
+    fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+    expect(fixture.input.stop).toHaveBeenCalled();
+    expect(fixture.audio.pause).toHaveBeenCalled();
+    fixture.emit({ type: "session.closed" });
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+  },
+);
+
+test("End during a disconnect cancels the recovery deadline", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  await fixture.conversation.start();
+  fixture.emit({ type: "session.started" });
+  fixture.peer.connectionState = "disconnected";
+  fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+  const stopped = fixture.conversation.stop();
+  fixture.emit({ type: "session.closed" });
+  await stopped;
+  await vi.advanceTimersByTimeAsync(20_000);
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("ended");
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test.each([false, true])(
+  "a handshake disconnect remains bounded (session.started received: %s)",
+  async (ready) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    await fixture.conversation.start();
+    fixture.peer.connectionState = "disconnected";
+    fixture.peer.dispatchEvent(new Event("connectionstatechange"));
+    await vi.advanceTimersByTimeAsync(5_000);
+    if (ready) fixture.emit({ type: "session.started" });
+    await vi.advanceTimersByTimeAsync(ready ? 14_999 : 9_999);
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.input.stop).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+    expect(fixture.fetch).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
 test("provider errors stop both media directions without exposing payloads", async () => {
   const fixture = setup();
   await fixture.conversation.start();
