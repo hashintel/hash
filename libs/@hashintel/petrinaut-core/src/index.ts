@@ -48,6 +48,7 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
+  type DocumentRevisionId,
   type HistoryEntry,
   type PetrinautDocHandle,
   type PetrinautHistory,

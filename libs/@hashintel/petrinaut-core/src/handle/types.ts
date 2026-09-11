@@ -3,6 +3,7 @@ import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 
 export type DocumentId = string;
+export type DocumentRevisionId = string;
 
 export type DocHandleState = "loading" | "ready" | "deleted" | "unavailable";
 
@@ -15,11 +16,16 @@ export type PetrinautPatch = {
 export type DocChangeEvent = {
   next: SDCPN;
   patches?: PetrinautPatch[];
+  previousRevisionId: DocumentRevisionId;
+  revisionId: DocumentRevisionId;
   source?: "local" | "remote";
 };
 
 export type HistoryEntry = {
+  revisionId: DocumentRevisionId;
   timestamp: string;
+  /** Patches which produced this revision; absent for the retained baseline. */
+  patches?: PetrinautPatch[];
 };
 
 export interface PetrinautHistory {
@@ -47,6 +53,8 @@ export interface PetrinautHistory {
 
 export interface PetrinautDocHandle {
   readonly id: DocumentId;
+  /** Identity of the current document revision, regardless of mutation actor. */
+  readonly revisionId: ReadableStore<DocumentRevisionId>;
   readonly capabilities?: PetrinautHandleCapabilities;
   readonly state: ReadableStore<DocHandleState>;
   whenReady(): Promise<void>;

@@ -74,6 +74,7 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
+  type DocumentRevisionId,
   type EventStream,
   type HistoryEntry,
   type MinimalNetMetadata,
