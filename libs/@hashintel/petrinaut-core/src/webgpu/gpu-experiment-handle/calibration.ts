@@ -92,6 +92,19 @@ export const RUN_POLICY: CalibrationPolicy = {
   preview: true,
 };
 
+/**
+ * A full attempt on a calibration another batch measured grows once, by the
+ * probe's factor: a small overflow is a tail that one step covers, and a
+ * larger one means this batch's dynamics differ from the measured ones, so
+ * the caller probes afresh rather than doubling towards them.
+ */
+export const CACHED_RUN_POLICY: CalibrationPolicy = {
+  slabGrowth: 4,
+  maxSlabGrowths: 1,
+  maxWindowReplans: 1,
+  preview: true,
+};
+
 /** The shader in force and the derived slabs it was compiled at. */
 export type CalibrationSession = {
   backend: Pick<GpuBackend, "recompile" | "profile">;
