@@ -42,9 +42,14 @@ Framing policy is HTTP, not JavaScript. `vercel.json` sends
 and marks that path `X-Robots-Tag: noindex` so it is not indexed alongside the
 canonical page.
 
-The iframe carries `sandbox="allow-scripts allow-same-origin"`. Both tokens are
-required: without `allow-same-origin` the framed document runs with an opaque
-origin, its module scripts fail CORS, and the embed renders blank.
+The iframe carries
+`sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"`.
+The first two tokens are required to render at all: without `allow-same-origin`
+the framed document runs with an opaque origin, its module scripts fail CORS,
+and the embed renders blank. The popup tokens are what let the preview's **Full
+view** link reach a new tab -- a sandbox without `allow-popups` drops the
+navigation silently, and without `allow-popups-to-escape-sandbox` the full page
+would inherit the embed's sandbox instead of running as itself.
 
 ## Embedding an example in your site
 
@@ -66,7 +71,7 @@ curl "https://demo.petrinaut.org/api/oembed?url=https%3A%2F%2Fdemo.petrinaut.org
   height="450"
   style="border: 0"
   loading="lazy"
-  sandbox="allow-scripts allow-same-origin"
+  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
   referrerpolicy="no-referrer"
   allowfullscreen
 ></iframe>

@@ -10,6 +10,13 @@ both surfaces. You can pan and zoom the canvas, fit the net into view, and use
 the minimap. You cannot move, connect, add, delete, or otherwise edit net
 elements.
 
+Text in the preview is not selectable, so dragging across the canvas always
+pans or selects rather than highlighting a label.
+
+When the embed supplies a full-size location for the model, **Full view** in
+the header opens it in a new tab, on the scenario and the item you were
+looking at.
+
 ## Inspecting a net
 
 Select a place, transition, arc, or other supported item to inspect it. The
