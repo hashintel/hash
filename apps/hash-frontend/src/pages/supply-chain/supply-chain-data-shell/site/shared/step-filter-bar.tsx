@@ -174,7 +174,10 @@ export const StepFilterBar = ({
           items={addMenuItems}
         />
       )}
-      <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
+      {/* A lone chip's own remove button already covers clearing. */}
+      {filters.length > 1 && (
+        <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
+      )}
     </FilterGroup>
   );
 };
