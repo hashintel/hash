@@ -26,7 +26,7 @@ Three schemas must agree on the Brunch-admitted set, and tests hold them in step
 | --- | --- | --- |
 | Canonical batch (Petrinaut-owned) | `libs/@hashintel/petrinaut-core/src/selected-mutation-batch.ts` | `selected-mutation-batch.test.ts` |
 | Model-facing carrier (plugin-owned, root-only, `basisId` per operation) | `libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/mutate-petrinet.ts` | `test/mutate-petrinet.test.ts` |
-| Browser executor (website-owned) | `apps/petrinaut-website/src/main/app/local-storage-demo/mutate-petrinet-tool.ts` | `mutate-petrinet-tool.test.ts` |
+| Host executor (website-owned; runs in the browser at product time, under vitest here) | `apps/petrinaut-website/src/main/app/local-storage-demo/mutate-petrinet-tool.ts` | `mutate-petrinet-tool.test.ts` |
 
 ## How a Brunch operation earns `applied`
 
@@ -42,7 +42,9 @@ Stock mode has no equivalent verification: the panel applies the action and repo
 
 ## Matrix
 
-Columns: **Stock** — offered as an individual tool in stock mode. **Brunch** — admitted in `mutate_petrinet`. **Evidence** — the host test that runs the operation through the Brunch executor and verifies its record at the receiving boundary, plus the plugin test that derives its effects; where an operation has referenced dependents, the petrinaut-core test that shows what happens to them. **Refusal** — what happens when the operation cannot be carried in Brunch.
+Columns: **Stock** — offered as an individual tool in stock mode. **Brunch** — admitted in `mutate_petrinet`. **Evidence** — the host test that runs the operation through the website-owned host executor and verifies its record at the receiving boundary, plus the plugin test that derives its effects; where an operation has referenced dependents, the petrinaut-core test that shows what happens to them. **Refusal** — what happens when the operation cannot be carried in Brunch.
+
+The Evidence column is unit/host evidence: the executor under vitest against a real Petrinaut document, not a live browser session driven by a model. It shows each admitted shape earns `applied` or is refused correctly; it does not show that a model reaches the shape through ordinary language in the product. That outer evidence is owed by `MISSION.md`'s portfolio and persona rows, which exercise a representative sample of this matrix through the live browser.
 
 ### Root places, transitions and arcs
 

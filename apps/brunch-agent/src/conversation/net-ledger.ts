@@ -7,8 +7,11 @@
  * identities (each event is the assistant's own tool call at its own place in
  * history), keeps a missing or ambiguous record as an `unrecorded` event with
  * its reason rather than repairing or dropping it, takes no live Petrinaut
- * observation as input, and leaves Flue history the only authority. Consumers
- * — freshness, why, verification — are folds over these events.
+ * observation as input, and leaves Flue history the only authority.
+ *
+ * Freshness folds over these events. Whether why moves onto them too is
+ * decided by a parity test against its own attribution walk, not assumed
+ * here (see the shared-history-projection fog-line in MISSION.md).
  */
 import {
   applyAutoLayoutToolName,
