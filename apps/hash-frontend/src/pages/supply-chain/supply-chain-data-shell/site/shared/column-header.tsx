@@ -1,8 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { FilterMenu, type ColumnFilter } from "./filter-menu";
-
 import type { SortDir } from "./row-types";
 
 export interface ColumnSort {
@@ -34,18 +32,16 @@ const sortArrow = css({
 });
 
 /**
- * Shared table column header for the site overview tables:
- * renders the label (clickable when sortable, with a direction caret)
- * plus an optional searchable filter menu.
+ * Shared table column header for the site overview tables: renders the label,
+ * clickable when sortable, with a direction caret. Filtering lives in the
+ * shared filter bar above each table (see step-filter-bar.tsx).
  */
 export const ColumnHeader = ({
   label,
   sort,
-  filter,
 }: {
   label: string;
   sort?: ColumnSort;
-  filter?: ColumnFilter;
 }) => {
   const sortStateLabel = sort?.active
     ? `, sorted ${sort.dir === "asc" ? "ascending" : "descending"}`
@@ -76,7 +72,6 @@ export const ColumnHeader = ({
       ) : (
         <span>{label}</span>
       )}
-      {filter && <FilterMenu {...filter} />}
     </span>
   );
 };

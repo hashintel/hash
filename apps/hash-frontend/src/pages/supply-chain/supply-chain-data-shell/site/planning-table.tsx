@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
@@ -17,11 +15,9 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
   statusKey,
-  type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
 import { TrendIndicator } from "../../shared/trend-indicator";
-import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortPlanningRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
@@ -34,7 +30,7 @@ import {
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
-import type { SiteNode, StepType } from "../../shared/types";
+import type { SiteNode } from "../../shared/types";
 
 function basisLabel(row: PlanningRow): string {
   if (row.type !== "procurement") {
@@ -86,16 +82,6 @@ export const PlanningTable = ({
   onRowClick,
   statusHistory = {},
   onStatus,
-  typeHidden,
-  onTypeHiddenChange,
-  productHidden,
-  onProductHiddenChange,
-  supplierHidden,
-  onSupplierHiddenChange,
-  basisHidden,
-  onBasisHiddenChange,
-  statusHidden,
-  onStatusHiddenChange,
 }: {
   rows: PlanningRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -105,80 +91,19 @@ export const PlanningTable = ({
   onRowClick: (node: SiteNode) => void;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
-  typeHidden: Set<StepType>;
-  onTypeHiddenChange: (next: Set<StepType>) => void;
-  productHidden: Set<string>;
-  onProductHiddenChange: (next: Set<string>) => void;
-  supplierHidden: Set<string>;
-  onSupplierHiddenChange: (next: Set<string>) => void;
-  basisHidden: Set<string>;
-  onBasisHiddenChange: (next: Set<string>) => void;
-  statusHidden: Set<StatusActionLabel>;
-  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const {
-    typeFilter,
-    productFilter,
-    statusFilter,
-    displayedRows: stepFilteredRows,
-    toggleSort,
-  } = useStepTableView<PlanningRow>({
+  const { displayedRows, toggleSort } = useStepTableView<PlanningRow>({
     rows,
     siteId,
     sort,
     onSort,
     statusHistory,
-    typeHidden,
-    onTypeHiddenChange,
-    productHidden,
-    onProductHiddenChange,
-    statusHidden,
-    onStatusHiddenChange,
     sortRows: sortPlanningRows,
     source: "planning_table",
   });
-
-  const supplierFilter = useMemo(() => {
-    const values = [...new Set(rows.map(supplierLabel))].sort((left, right) =>
-      left.localeCompare(right),
-    );
-    return buildColumnFilter<string>({
-      header: "Supplier",
-      values,
-      labelOf: (supplier) => supplier,
-      counts: countBy(rows, supplierLabel),
-      hidden: supplierHidden,
-      onHiddenChange: onSupplierHiddenChange,
-    });
-  }, [rows, supplierHidden, onSupplierHiddenChange]);
-
-  const basisFilter = useMemo(() => {
-    const values = [...new Set(rows.map(basisLabel))].sort((left, right) =>
-      left.localeCompare(right),
-    );
-    return buildColumnFilter<string>({
-      header: "Basis",
-      values,
-      labelOf: (basis) => basis,
-      counts: countBy(rows, basisLabel),
-      hidden: basisHidden,
-      onHiddenChange: onBasisHiddenChange,
-      searchable: false,
-    });
-  }, [rows, basisHidden, onBasisHiddenChange]);
-
-  const displayedRows = useMemo(
-    () =>
-      stepFilteredRows.filter(
-        (row) =>
-          !supplierHidden.has(supplierLabel(row)) &&
-          !basisHidden.has(basisLabel(row)),
-      ),
-    [stepFilteredRows, supplierHidden, basisHidden],
-  );
 
   return (
     <div
@@ -196,7 +121,6 @@ export const PlanningTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("material"),
                 }}
-                filter={typeFilter}
               />
             </th>
             <th className={threshold.th}>
@@ -207,7 +131,6 @@ export const PlanningTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("supplier"),
                 }}
-                filter={supplierFilter}
               />
             </th>
             <th className={threshold.th}>
@@ -218,11 +141,10 @@ export const PlanningTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("basis"),
                 }}
-                filter={basisFilter}
               />
             </th>
             <th className={threshold.th}>
-              <ColumnHeader label="Products" filter={productFilter} />
+              <ColumnHeader label="Products" />
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
@@ -292,7 +214,6 @@ export const PlanningTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("status"),
                 }}
-                filter={statusFilter}
               />
             </th>
           </tr>
