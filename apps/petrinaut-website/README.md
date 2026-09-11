@@ -26,11 +26,16 @@ Vercel Functions.
 
 ## Starting a new net
 
-`/new` creates an empty net in local storage and redirects to the editable demo,
-which opens the most recently modified net. The redirect replaces, so a reload
-cannot make a second net and Back skips the route. Empty nets earlier visits
-left behind are dropped, matching the editor's own rule when a visitor switches
-away from an untouched net.
+`/local/<UUID>` opens a document saved in this browser. Each saved document has a
+persistent UUID; older records receive one while keeping their existing storage
+and conversation keys. Opening `/` redirects to the most recently edited document,
+or creates one for a new visitor. `/new` creates an empty document and redirects
+to its URL. Empty documents remain saved when switching files.
+
+Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
+editable copy with its own UUID and opens its local URL. Local URLs work in the
+browser and origin that hold the document; a missing document shows a recovery
+page with a link back to Petrinaut.
 
 ## Example embeds and oEmbed
 

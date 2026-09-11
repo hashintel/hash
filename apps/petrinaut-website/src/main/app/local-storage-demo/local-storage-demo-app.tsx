@@ -76,7 +76,6 @@ import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   createLocalStorageNetRecord,
   emptySDCPN,
-  isEmptySDCPN,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
@@ -85,15 +84,15 @@ import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 
-const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
-  id: "net-1",
-  title: "New Process",
-  sdcpn: emptySDCPN,
-  lastUpdated: new Date(0).toISOString(),
-});
+const createDefaultStoredSDCPN = (): SDCPNInLocalStorage =>
+  createLocalStorageNetRecord({
+    title: "New Process",
+    petriNetDefinition: emptySDCPN,
+  });
 
 const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
   id: crewReservationDocumentId,
+  uuid: "dbb1b22c-f595-4c1a-b348-89eec09b79c3",
   title: "Prepared final inspection and dispatch",
   sdcpn: preparedCrewReservationNet,
   lastUpdated: new Date(0).toISOString(),
@@ -203,6 +202,7 @@ const createConversationTrackerFor = (
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
   crewReservationDocument: SDCPNInLocalStorage | undefined,
+  defaultStoredSDCPN: SDCPNInLocalStorage,
 ): Record<string, SDCPNInLocalStorage> => {
   if (crewReservationDocument !== undefined) {
     return {
@@ -214,7 +214,6 @@ const getStoredSDCPNsForDisplay = (
     return storedSDCPNs;
   }
 
-  const defaultStoredSDCPN = createDefaultStoredSDCPN();
   return { [defaultStoredSDCPN.id]: defaultStoredSDCPN };
 };
 
@@ -280,9 +279,13 @@ const DemoModeFixtureSelector = () => {
  * for background nets.
  */
 export const LocalStorageDemoApp = ({
+  initialNetId,
+  onNetChange,
   onSearchChange,
   search,
 }: {
+  initialNetId?: string;
+  onNetChange?: (net: SDCPNInLocalStorage) => void;
   onSearchChange: (
     search: SharedExampleSearch,
     history: "push" | "replace",
@@ -290,6 +293,7 @@ export const LocalStorageDemoApp = ({
   search: LocalStorageDemoSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const [defaultStoredSDCPN] = useState(createDefaultStoredSDCPN);
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
   >(() => (brunchPreviewConfig.isBrunchConfigured ? undefined : null));
@@ -342,6 +346,7 @@ export const LocalStorageDemoApp = ({
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
     storedSDCPNs,
     crewReservationBundle?.selectedDocument,
+    defaultStoredSDCPN,
   );
 
   useEffect(() => {
@@ -403,9 +408,12 @@ export const LocalStorageDemoApp = ({
       (a, b) =>
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
     )[0] ?? null;
-  const initiallySelectedNet = crewReservationFixtureSelected
-    ? storedSDCPNsForDisplay[crewReservationDocumentId]
-    : mostRecentlyModifiedNet;
+  const initiallySelectedNet =
+    initialNetId !== undefined
+      ? storedSDCPNsForDisplay[initialNetId]
+      : crewReservationFixtureSelected
+        ? storedSDCPNsForDisplay[crewReservationDocumentId]
+        : mostRecentlyModifiedNet;
 
   // The net currently selected in the UI.
   const [currentNetId, setCurrentNetId] = useState<string | null>(
@@ -465,27 +473,11 @@ export const LocalStorageDemoApp = ({
     title: string;
   }) => {
     const newNet = createLocalStorageNetRecord(params);
-    const previousNet =
-      currentNetId && currentNetId !== newNet.id ? currentNet : null;
-    const previousNetIdToRemove = previousNet !== null ? currentNetId : null;
-
-    setStoredSDCPNs((prev) => {
-      const next = { ...prev, [newNet.id]: newNet };
-
-      // Remove the previous net if it was empty and unmodified
-      if (
-        previousNetIdToRemove &&
-        previousNet &&
-        isEmptySDCPN(prev[previousNetIdToRemove]?.sdcpn ?? previousNet.sdcpn)
-      ) {
-        delete next[previousNetIdToRemove];
-      }
-
-      return next;
-    });
+    setStoredSDCPNs((previous) => ({ ...previous, [newNet.id]: newNet }));
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
-    clearSharedLocation();
+    if (onNetChange) onNetChange(newNet);
+    else clearSharedLocation();
   };
 
   const loadPetriNet = (petriNetId: string) => {
@@ -494,28 +486,11 @@ export const LocalStorageDemoApp = ({
       return;
     }
 
-    // Remove the current net if it was empty and unmodified
-    if (currentNetId && currentNetId !== petriNetId) {
-      const previousNetIdToRemove =
-        currentNet && isEmptySDCPN(currentNet.sdcpn) ? currentNetId : null;
-
-      setStoredSDCPNs((prev) => {
-        const prevNet = previousNetIdToRemove
-          ? prev[previousNetIdToRemove]
-          : null;
-
-        if (previousNetIdToRemove && prevNet && isEmptySDCPN(prevNet.sdcpn)) {
-          const next = { ...prev };
-          delete next[previousNetIdToRemove];
-          return next;
-        }
-        return prev;
-      });
-    }
     setActiveHandle(createActiveHandle(netToLoad));
     setCurrentNetId(petriNetId);
     if (petriNetId !== currentNetId) {
-      clearSharedLocation();
+      if (onNetChange) onNetChange(netToLoad);
+      else clearSharedLocation();
     }
   };
 

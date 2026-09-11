@@ -12,6 +12,7 @@ export type SDCPNInLocalStorage = {
    */
   coherentSnapshots?: Record<string, SDCPN>;
   id: string;
+  uuid: string;
   lastUpdated: string; // ISO timestamp
   sdcpn: SDCPN;
   title: string;
@@ -48,15 +49,23 @@ export const createLocalStorageNetRecord = (params: {
 }): SDCPNInLocalStorage => {
   const now = new Date();
 
+  const uuid = crypto.randomUUID();
+
   return {
-    id: `net-${now.getTime()}`,
+    id: uuid,
+    uuid,
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
   };
 };
 
-const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
+type LegacyStore = Record<
+  string,
+  Omit<SDCPNInLocalStorage, "uuid"> & { uuid?: string }
+>;
+
+const readStore = (storage: Storage): LegacyStore => {
   const raw = storage.getItem(rootLocalStorageKey);
 
   if (raw === null) {
@@ -73,34 +82,64 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   }
 
   return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-    ? (parsed as LocalStorageSDCPNsStore)
+    ? (parsed as LegacyStore)
     : {};
 };
 
-/**
- * Adds an empty net to `storage` and returns it, dropping the empty nets earlier
- * visits left behind. The editor prunes an empty net when the visitor switches
- * away from it, so a URL that starts nets holds to the same rule.
- */
-export const startEmptyNetInStorage = (
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+export const readLocalStorageNets = (
   storage: Storage,
+): LocalStorageSDCPNsStore => {
+  const stored = readStore(storage);
+  const usedUuids = new Set<string>();
+  const nets = Object.fromEntries(
+    Object.entries(stored).map(([id, net]) => {
+      const candidate = net.uuid ?? net.id;
+      const uuid =
+        typeof candidate === "string" &&
+        uuidPattern.test(candidate) &&
+        !usedUuids.has(candidate.toLowerCase())
+          ? candidate.toLowerCase()
+          : crypto.randomUUID();
+      usedUuids.add(uuid);
+      return [id, { ...net, uuid }];
+    }),
+  );
+  if (Object.entries(nets).some(([id, net]) => stored[id]?.uuid !== net.uuid)) {
+    storage.setItem(rootLocalStorageKey, JSON.stringify(nets));
+  }
+  return nets;
+};
+
+export const saveLocalStorageNet = (
+  storage: Storage,
+  params: { petriNetDefinition: SDCPN; title: string },
 ): SDCPNInLocalStorage => {
-  const net = createLocalStorageNetRecord({
+  const nets = readLocalStorageNets(storage);
+  const net = createLocalStorageNetRecord(params);
+  storage.setItem(
+    rootLocalStorageKey,
+    JSON.stringify({ ...nets, [net.id]: net }),
+  );
+  return net;
+};
+
+export const startEmptyNetInStorage = (storage: Storage): SDCPNInLocalStorage =>
+  saveLocalStorageNet(storage, {
     petriNetDefinition: emptySDCPN,
     title: "New Process",
   });
 
-  const kept = Object.entries(readStore(storage)).filter(
-    ([, stored]) => !isEmptySDCPN(stored.sdcpn),
-  );
-
-  storage.setItem(
-    rootLocalStorageKey,
-    JSON.stringify({ ...Object.fromEntries(kept), [net.id]: net }),
-  );
-
-  return net;
-};
+export const getInitialLocalStorageNet = (
+  storage: Storage,
+): SDCPNInLocalStorage =>
+  Object.values(readLocalStorageNets(storage)).sort(
+    (left, right) =>
+      new Date(right.lastUpdated).getTime() -
+      new Date(left.lastUpdated).getTime(),
+  )[0] ?? startEmptyNetInStorage(storage);
 
 export const useLocalStorageSDCPNs = () => {
   const [storedSDCPNs, setStoredSDCPNs] =
