@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { userEvent, within } from "storybook/test";
 
 import { Chip, Select } from "@hashintel/ds-components";
 
@@ -16,6 +17,7 @@ import {
   chartCardHeight,
   ChartCardMenu,
 } from "./chart-card";
+import { type MetricTile, MetricTiles } from "./metric-tiles";
 import {
   SURFACE_FOOTER_TWO_ROW_HEIGHT,
   SurfaceAxisControls,
@@ -173,6 +175,43 @@ export const Grid: Story = {
       </p>
     </div>
   ),
+};
+
+const tiles: MetricTile[] = [
+  "Infected",
+  "Recovered",
+  "Susceptible",
+  "Hospitalized",
+].map((title) => ({
+  id: title.toLowerCase(),
+  title,
+  metricName: null,
+  frames,
+  outputType: "distribution",
+}));
+
+/**
+ * The metric tiles with the second card enlarged: it spans the full row at
+ * twice the row height, the first card keeps its cell, and the cards after
+ * it move below. Shrink puts it back.
+ */
+export const GridWithLargeCard: Story = {
+  render: () => (
+    <div style={{ width: 900 }}>
+      <MetricTiles
+        tiles={tiles}
+        timeDomain={[0, FRAME_COUNT - 1]}
+        contentEpoch="story"
+        plotHeight={PLOT_HEIGHT}
+        tone="default"
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getAllByRole("button", { name: "Enlarge" })[1]!,
+    );
+  },
 };
 
 export const Paused: Story = {

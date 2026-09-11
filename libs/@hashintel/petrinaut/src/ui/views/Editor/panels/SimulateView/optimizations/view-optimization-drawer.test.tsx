@@ -1133,6 +1133,29 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     expect(note.title).toBe(note.textContent);
   });
 
+  it("enlarges the objective card to the full row at twice the height and leaves the study's cards alone", () => {
+    const view = renderDrawer(states[0]!);
+    const before = frameLayoutSignature(view.container);
+    const objectiveTitle = "Objective at the step in flight";
+    const others = (cards: typeof before.cards) =>
+      cards.filter(([title]) => title !== objectiveTitle);
+
+    fireEvent.click(screen.getByRole("button", { name: "Enlarge" }));
+
+    // Two 408px rows and the 16px gap between them, less the card's chrome.
+    const after = frameLayoutSignature(view.container);
+    expect(after.cards.find(([title]) => title === objectiveTitle)![1]).toBe(
+      "745px",
+    );
+    expect(screen.getByRole("button", { name: "Shrink" })).toBeTruthy();
+    expect(others(after.cards)).toEqual(others(before.cards));
+    expect(after.gridRows).toEqual(before.gridRows);
+
+    fireEvent.click(screen.getByRole("button", { name: "Shrink" }));
+
+    expect(frameLayoutSignature(view.container)).toEqual(before);
+  });
+
   it("leaves the objective card's height alone when its aggregation changes", () => {
     const view = renderDrawer(states[0]!);
     const before = frameLayoutSignature(view.container);
