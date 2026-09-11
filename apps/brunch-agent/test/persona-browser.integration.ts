@@ -116,12 +116,12 @@ try {
     revisionId: string,
   ) => [
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { markdown, locateTexts: [passage] },
       `${revisionId}-sources`,
     ),
     (context: Context) => {
-      const result = toolOutput(context, "brunch_workpiece");
+      const result = toolOutput(context, "read_workpiece");
       const source = (result.sources as { id: string; text: string }[]).find(
         (entry) => entry.text === utterance,
       );
@@ -138,7 +138,7 @@ try {
       checked++;
       evidence.push({ revisionId, sourceIds: [source.id], markdown });
       return call(
-        "update_workpiece",
+        "mutate_workpiece",
         {
           markdown,
           evidence: [{ locator, messageIds: [source.id], kind: "elicited" }],
@@ -149,7 +149,7 @@ try {
     (context: Context) => {
       const current = parse(
         updateWorkpieceOutputSchema,
-        toolOutput(context, "update_workpiece"),
+        toolOutput(context, "mutate_workpiece"),
       );
       assert.equal(current.revisionId, revisionId);
       assert.equal(current.markdown, markdown);
@@ -434,13 +434,13 @@ try {
   const continuation =
     "TEST UI continuation: keep timing unknown and create one test configuration parameter, not an operational value.";
   faux.setResponses([
-    call("brunch_workpiece", {}, "ui-continuation-read"),
+    call("read_workpiece", {}, "ui-continuation-read"),
     (context: Context) => {
       const queried = parse(
         workpieceReadOutputSchema,
-        toolOutput(context, "brunch_workpiece"),
+        toolOutput(context, "read_workpiece"),
       ).currentWorkpiece;
-      assert.deepEqual(queried, toolOutput(context, "update_workpiece"));
+      assert.deepEqual(queried, toolOutput(context, "mutate_workpiece"));
       checked++;
       return call("getLatestNetDefinition", {}, "ui-fresh-browser-read");
     },

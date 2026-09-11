@@ -64,6 +64,11 @@ import {
   summarizeApplyAutoLayout,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
+import {
+  pendingDiagnosticsContext,
+  type PendingMutationDiagnosticsVersion,
+  waitForDiagnosticsRefresh,
+} from "./ai-assistant-panel/wait-for-diagnostics-refresh";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
@@ -455,41 +460,6 @@ export const addMappedToolOutput = async ({
   }
 };
 
-const waitForDiagnosticsRefresh = async ({
-  consumePendingMutationDiagnosticsVersion,
-  diagnosticsVersionRef,
-}: {
-  consumePendingMutationDiagnosticsVersion: () => number | null;
-  diagnosticsVersionRef: { current: number };
-}) => {
-  const pendingVersion = consumePendingMutationDiagnosticsVersion();
-
-  if (
-    pendingVersion === null ||
-    diagnosticsVersionRef.current > pendingVersion
-  ) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const timeoutAt = Date.now() + 1_000;
-
-    const check = () => {
-      if (
-        diagnosticsVersionRef.current > pendingVersion ||
-        Date.now() >= timeoutAt
-      ) {
-        resolve();
-        return;
-      }
-
-      setTimeout(check, 25);
-    };
-
-    check();
-  });
-};
-
 const applyPetrinautAiCommand = async ({
   aiToolCall,
   instance,
@@ -620,6 +590,18 @@ const ConversationAiAssistantPanel = ({
   const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
   const diagnosticsVersionRef = useRef(0);
   const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
+  // Read and disarm through one pair so a timed-out diagnostics read leaves
+  // the version armed and only the wait that saw it pass may clear it. Built
+  // at each call over the ref alone, so the wrapped transport keeps closing
+  // over refs only.
+  const armedDiagnosticsVersion = (): PendingMutationDiagnosticsVersion => ({
+    peek: () => pendingMutationDiagnosticsVersionRef.current,
+    disarm: (version) => {
+      if (pendingMutationDiagnosticsVersionRef.current === version) {
+        pendingMutationDiagnosticsVersionRef.current = null;
+      }
+    },
+  });
 
   useEffect(() => {
     diagnosticsVersionRef.current += 1;
@@ -648,12 +630,7 @@ const ConversationAiAssistantPanel = ({
         transport,
         waitForDiagnosticsRefresh: () =>
           waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
+            pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
             diagnosticsVersionRef,
           }),
       }),
@@ -904,11 +881,16 @@ const ConversationAiAssistantPanel = ({
       );
     }
 
-    if (toolCall.dynamic) {
+    const canonicalToolName =
+      aiAssistant.toolAliases?.[toolCall.toolName] ?? toolCall.toolName;
+
+    if (toolCall.dynamic && canonicalToolName === toolCall.toolName) {
       const automaticTool = aiAssistant.automaticTools?.find(
         ({ toolName }) => toolName === toolCall.toolName,
       );
       if (automaticTool) {
+        pendingMutationDiagnosticsVersionRef.current =
+          diagnosticsVersionRef.current;
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
         let output: unknown;
@@ -949,7 +931,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
 
-    if (toolCall.toolName === getLatestNetDefinitionToolName) {
+    if (canonicalToolName === getLatestNetDefinitionToolName) {
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
@@ -958,38 +940,39 @@ const ConversationAiAssistantPanel = ({
           definition: instance.definition.get(),
           extensions: instance.extensions,
         },
-      });
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === getNetCompilationErrorsToolName) {
-      await waitForDiagnosticsRefresh({
-        consumePendingMutationDiagnosticsVersion: () => {
-          const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-          pendingMutationDiagnosticsVersionRef.current = null;
-          return pendingVersion;
-        },
+    if (canonicalToolName === getNetCompilationErrorsToolName) {
+      const outcome = await waitForDiagnosticsRefresh({
+        pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
         diagnosticsVersionRef,
       });
+      // A read that timed out reports pending, never the previous version's
+      // diagnostics as if they described the change just applied.
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: diagnosticsContextRef.current,
-      });
+        output:
+          outcome === "pending"
+            ? pendingDiagnosticsContext
+            : diagnosticsContextRef.current,
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === readPetrinautDocToolName) {
+    if (canonicalToolName === readPetrinautDocToolName) {
       const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output: petrinautDocsContent[doc],
-      });
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === setNetTitleToolName) {
+    if (canonicalToolName === setNetTitleToolName) {
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({
@@ -1000,7 +983,7 @@ const ConversationAiAssistantPanel = ({
             blocked: setNetTitleReadOnlyReason.kind,
             reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
           } satisfies AiToolOutput,
-        });
+        } as never);
         return;
       }
 
@@ -1021,11 +1004,11 @@ const ConversationAiAssistantPanel = ({
               ? `Previous title: ${previousTitle}`
               : undefined,
         } satisfies AiToolOutput,
-      });
+      } as never);
       return;
     }
 
-    const toolName = toolCall.toolName;
+    const toolName = canonicalToolName;
     if (
       !isPetrinautAiMutationToolName(toolName) &&
       !isPetrinautAiCommandToolName(toolName)
@@ -1044,14 +1027,14 @@ const ConversationAiAssistantPanel = ({
 
       if (!allowedDespiteReadOnly) {
         await addAutomaticToolOutput({
-          tool: toolName,
+          tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           output: {
             applied: false,
             blocked: currentReadOnlyReason.kind,
             reason: formatReadOnlyReason(currentReadOnlyReason),
           } satisfies AiToolOutput,
-        });
+        } as never);
         return;
       }
     }
@@ -1079,10 +1062,10 @@ const ConversationAiAssistantPanel = ({
         instance,
       });
       await addAutomaticToolOutput({
-        tool: toolName,
+        tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output,
-      });
+      } as never);
       return;
     }
 
@@ -1106,10 +1089,10 @@ const ConversationAiAssistantPanel = ({
     });
 
     await addAutomaticToolOutput({
-      tool: toolName,
+      tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       output,
-    });
+    } as never);
   };
 
   const {
@@ -1236,7 +1219,8 @@ const ConversationAiAssistantPanel = ({
       if (
         aiAssistant.automaticTools?.some(
           ({ toolName }) => toolName === toolCall.toolName,
-        )
+        ) ||
+        aiAssistant.toolAliases?.[toolCall.toolName] !== undefined
       )
         return undefined;
       return executeToolCall({ toolCall });
@@ -1406,21 +1390,26 @@ const ConversationAiAssistantPanel = ({
           part,
           aiAssistant.automaticTools,
         );
-        if (!isStatic && !isAutomaticDynamic) continue;
+        const isAliasedDynamic =
+          part.type === "dynamic-tool" &&
+          part.state === "input-available" &&
+          aiAssistant.toolAliases?.[part.toolName] !== undefined;
+        if (!isStatic && !isAutomaticDynamic && !isAliasedDynamic) continue;
 
-        const toolCall = isAutomaticDynamic
-          ? {
-              dynamic: true as const,
-              input: part.input,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
-            }
-          : ({
-              dynamic: false,
-              input: part.input,
-              toolCallId: part.toolCallId,
-              toolName: getStaticToolName(part),
-            } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
+        const toolCall =
+          isAutomaticDynamic || isAliasedDynamic
+            ? {
+                dynamic: true as const,
+                input: part.input,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+              }
+            : ({
+                dynamic: false,
+                input: part.input,
+                toolCallId: part.toolCallId,
+                toolName: getStaticToolName(part),
+              } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
         if (
           aiAssistant.followMessages !== undefined &&
@@ -1508,6 +1497,7 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.automaticTools,
     aiAssistant.followMessages,
+    aiAssistant.toolAliases,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,

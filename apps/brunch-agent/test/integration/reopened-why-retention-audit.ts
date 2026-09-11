@@ -139,7 +139,7 @@ export const auditReopenedWhyRetention = (
     source.purpose === "user", "source authorized role/purpose");
   require(textOf(source) === sourceText, "source exact identity/content");
   const protectedTools = toolsOf(baseline).filter((part) =>
-    ["update_workpiece", "addArc", "getLatestNetDefinition"].includes(
+    ["mutate_workpiece", "addArc", "getLatestNetDefinition"].includes(
       String(part.toolName),
     ),
   );
@@ -181,7 +181,7 @@ export const auditReopenedWhyRetention = (
     ) === JSON.stringify([source]), "source exact identity/content");
     require(JSON.stringify(
       toolsOf(snapshot).filter((part) =>
-        ["update_workpiece", "addArc", "getLatestNetDefinition"].includes(
+        ["mutate_workpiece", "addArc", "getLatestNetDefinition"].includes(
           String(part.toolName),
         ),
       ),
@@ -248,8 +248,8 @@ export const auditReopenedWhyRetention = (
         (message) =>
           isJsonObject(message) &&
           message.role === "toolResult" &&
-          (message.toolName === "brunch_workpiece" ||
-            message.toolName === "brunch_why"),
+          (message.toolName === "read_workpiece" ||
+            message.toolName === "query_workpiece"),
       ), "prior workpiece/why results absent from query context");
       require(!asArray(query.priorQueryIds, `${name} prior query ids`).some(
         (callId) => serialized.includes(String(callId)),
@@ -520,7 +520,7 @@ export const falsifyReopenedWhyRetention = (
       }
       asArray(context.messages, "context messages").push({
         role: "toolResult",
-        toolName: "brunch_why",
+        toolName: "query_workpiece",
         toolCallId: "retention-live-why",
         content: [{ type: "text", text: JSON.stringify(answer) }],
       });

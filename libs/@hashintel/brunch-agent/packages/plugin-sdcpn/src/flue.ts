@@ -12,11 +12,11 @@ import {
   preparedWorkpieceInitialDataMode,
   preparedWorkpieceSignalType,
 } from "@hashintel/brunch-agent/workpiece";
-import {
-  getLatestNetDefinitionToolName,
-  getNetCompilationErrorsToolName,
-} from "@hashintel/petrinaut-core/ai";
 
+import {
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "./construction-tool-names";
 import { sha256Pattern } from "./declared-basis";
 import { batchedConstructionMode } from "./mutate-petrinet";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
@@ -31,6 +31,7 @@ import {
   createObservedArcTool,
   observedDefinitionReadTool,
   observedCompilationReadTool,
+  observedLayoutCommandTool,
   observedConstructionBrowserToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
@@ -38,7 +39,11 @@ import {
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 import {
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
   READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  isReadPetrinautDocsToolName,
+  readPetrinautDocs,
   readPetrinautDoc,
 } from "./tools/read-petrinaut-doc";
 
@@ -46,7 +51,7 @@ export { conversationConstructionMode } from "./root-arc";
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 export {
   batchedConstructionMode,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
 } from "./mutate-petrinet";
 export const validatedFixtureMutationMode = preparedWorkpieceInitialDataMode;
 
@@ -118,15 +123,17 @@ export function useSdcpnPlugin(
 
   useInstruction(sdcpnAppend.trim());
   useSkill(sdcpnModellingSkill);
-  useTool(readPetrinautDoc);
+  useTool(readPetrinautDocs);
 
   if (initialData?.mode === batchedConstructionMode) {
     if (!initialData.construction || !options?.observationFor)
       throw new Error("Batched construction requires authorized observations.");
     useInstruction(
-      "Construction uses three strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only getLatestNetDefinition; wait for its browser result. Proposal 3 contains only mutate_petrinet; wait for its browser result. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. Only root addPlace, addTransition, addArc, removePlace, removeTransition, and removeArc are available in this candidate mode. removePlace also removes connected arcs. Operations commit in order; failure leaves the later suffix unattempted.",
+      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only read_petrinaut_net; wait for its browser result. Proposal 3 contains only mutate_petrinaut_net; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain read_petrinaut_diagnostics in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. mutate_petrinaut_net carries root-net operations only: adds (addPlace, addTransition, addArc, addType, addTypeElement, addParameter, addDifferentialEquation), edits to existing parts by ID (updatePlace, updateTransition, updateArcWeight, updateArcType, updateType, updateTypeElement, updateParameter, updateDifferentialEquation) and removals (removePlace, removeTransition, removeArc, removeType, removeTypeElement, removeParameter, removeDifferentialEquation). Correct an existing part by editing it; do not remove and re-add it. removePlace also removes connected arcs; removing a type, element, parameter or equation that code still reads leaves that code dirty until repaired. Canvas positions are not operations; layout owns them. A read_petrinaut_diagnostics result that reports diagnostics as still pending is not a result: repeat the read before any compiler claim. Operations commit in order; failure leaves the later suffix unattempted. After a batch that added or restructured places or transitions, and once diagnostics are settled, call layout_petrinaut_net in its own proposal; pass askUserFirst false only when this conversation built the net from an empty canvas, otherwise true so the user can decline. Do not lay out after a batch that only changed types, parameters or dynamics. Layout is recorded separately with its own pre and post hash; the post hash is the base for any later observation.",
     );
     useTool(observedDefinitionReadTool);
+    useTool(observedCompilationReadTool);
+    useTool(observedLayoutCommandTool);
     useTool(
       createMutatePetrinetTool({
         ...options,
@@ -147,13 +154,13 @@ export function useSdcpnPlugin(
       }),
     );
     useInstruction(
-      "This is a synthetic candidate conversation-bound construction path, not provider-class or genuine construction admission. No prepared workpiece is supplied. Elicit and settle the actual workpiece via update_workpiece. Use brunch_workpiece to obtain source IDs and settled passage locators. Before each mutation obtain getLatestNetDefinition and cite its result metadata.observation.toolCallId and metadata.observation.observed.sha256 as brunch.observationToolCallId and brunch.requestedBaseHash, alongside explicit settled basis. Never infer a latest/sibling base or reconstruct one at execution. Root places and transitions can be created/corrected with addPlace/updatePlace/addTransition/updateTransition, connected with addArc and corrected with updateArcWeight; addParameter supplies a root net-level parameter with its native declared default, and addDifferentialEquation supplies one root native continuous-dynamics definition, while addType/updateType, addTypeElement/updateTypeElement and addScenario/updateScenario supply typed-state and labelled scenario construction. Nested elements are ordered attributes, not an invented inventory. Structural element edits migrate per_place scenario rows; those derived cells do not inherit basis. Scenario field queries may use an entity-relative JSON pointer; type-element queries also name the parent type. Omit parameterOverrides when unused. getNetCompilationErrors checks canonical compilation, not scenario execution or simulation; disclose warnings and behavioral limits after consequential correction. Other required operations remain unavailable and must be disclosed, never silently replaced. Duplicate and known-retired identities are refused from verified document/history. Generated or sanitized fields are recorded as derived, not automatically supported by the request basis. Preserve unknown operational quantities; do not invent rates to satisfy compilation. Submit one browser call per proposal and wait for its result; stale, unknown, conflicting, failed and no-op attempts are not causes and must not be reapplied.",
+      "This is a synthetic candidate conversation-bound construction path, not provider-class or genuine construction admission. No prepared workpiece is supplied. Elicit and settle the actual workpiece via mutate_workpiece. Use read_workpiece to obtain source IDs and settled passage locators. Before each mutation obtain read_petrinaut_net and cite its result metadata.observation.toolCallId and metadata.observation.observed.sha256 as brunch.observationToolCallId and brunch.requestedBaseHash, alongside explicit settled basis. Never infer a latest/sibling base or reconstruct one at execution. Root places and transitions can be created/corrected with addPlace/updatePlace/addTransition/updateTransition, connected with addArc and corrected with updateArcWeight; addParameter supplies a root net-level parameter with its native declared default, and addDifferentialEquation supplies one root native continuous-dynamics definition, while addType/updateType, addTypeElement/updateTypeElement and addScenario/updateScenario supply typed-state and labelled scenario construction. Nested elements are ordered attributes, not an invented inventory. Structural element edits migrate per_place scenario rows; those derived cells do not inherit basis. Scenario field queries may use an entity-relative JSON pointer; type-element queries also name the parent type. Omit parameterOverrides when unused. read_petrinaut_diagnostics checks canonical compilation, not scenario execution or simulation; disclose warnings and behavioral limits after consequential correction. Other required operations remain unavailable and must be disclosed, never silently replaced. Duplicate and known-retired identities are refused from verified document/history. Generated or sanitized fields are recorded as derived, not automatically supported by the request basis. Preserve unknown operational quantities; do not invent rates to satisfy compilation. Submit one browser call per proposal and wait for its result; stale, unknown, conflicting, failed and no-op attempts are not causes and must not be reapplied.",
     );
     for (const name of observedConstructionBrowserToolNames)
       useTool(
-        name === getLatestNetDefinitionToolName
+        name === readPetrinautNetToolName
           ? observedDefinitionReadTool
-          : name === getNetCompilationErrorsToolName
+          : name === readPetrinautDiagnosticsToolName
             ? observedCompilationReadTool
             : createObservedArcTool(name, {
                 ...options,
@@ -192,7 +199,7 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
         });
       });
       useInstruction(
-        "This is a labelled prepared-fixture mechanical tracer, not genuine construction. Settle the full workpiece with update_workpiece before construction. Never mix server and browser tools in one proposal. The current settled WorkpieceRevision is the sole new-workpiece authority. Cite its exact revisionId and sha256 in brunch.basis with immutable UTF-16 span locators, rationale and operation scope, or declare basis absent with a reason. Older citations require explicit supersessionIntended and retained settled history. Read the live document and cite the issued requestedBaseHash. Only one root place arc is admitted; do not retry stale, unknown or conflicting outcomes. Prepared material is test-authored, not elicited testimony.",
+        "This is a labelled prepared-fixture mechanical tracer, not genuine construction. Settle the full workpiece with mutate_workpiece before construction. Never mix server and browser tools in one proposal. The current settled WorkpieceRevision is the sole new-workpiece authority. Cite its exact revisionId and sha256 in brunch.basis with immutable UTF-16 span locators, rationale and operation scope, or declare basis absent with a reason. Older citations require explicit supersessionIntended and retained settled history. Read the live document and cite the issued requestedBaseHash. Only one root place arc is admitted; do not retry stale, unknown or conflicting outcomes. Prepared material is test-authored, not elicited testimony.",
       );
     } else
       useInstruction(
@@ -212,10 +219,18 @@ This is a visibly labelled prepared-fixture conversation. Treat its tagged prepa
   }
 }
 
-export { READ_PETRINAUT_DOC_TOOL_NAME, readPetrinautDoc };
+export {
+  isReadPetrinautDocsToolName,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautDocs,
+  readPetrinautDoc,
+};
 export { SDCPN_MODELLING_SKILL_NAME };
 export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  layoutPetrinautNetToolName,
   observedConstructionBrowserToolNames,
   petrinautFixtureToolNames,
   petrinautConstructionTools,

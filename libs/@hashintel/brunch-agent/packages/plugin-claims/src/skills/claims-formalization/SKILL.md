@@ -37,7 +37,7 @@ For a source-transcribed account, locate the authoritative statement, transcribe
 
 Keep a claims account in the person's and the source's vocabulary. Record each claim's authoritative wording, its origin, its hypotheses and the choices made explicit, its dependencies, its intended card status, and its consequential open matters. Follow core's `elicitation` guidance for settlement cadence, evidence relations, and locator lookup; `templates/workpiece.md` supplies the claims-specific recording shape.
 
-Settle the current account with `update_workpiece` before preparing cards for submission and before workpiece-only delivery. A card drafted in prose is not a settled workpiece, and a settled workpiece is not a submitted card.
+Settle the current account with `mutate_workpiece` before preparing cards for submission and before workpiece-only delivery. A card drafted in prose is not a settled workpiece, and a settled workpiece is not a submitted card.
 
 ### Prepare cards
 

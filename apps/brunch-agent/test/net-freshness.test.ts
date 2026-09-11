@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 
 import {
+  applyAutoLayoutToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
@@ -51,9 +52,10 @@ const oneHopNet: SDCPN = {
 };
 const sha256Of = (definition: SDCPN): string =>
   createHash("sha256").update(JSON.stringify(definition)).digest("hex");
-const observationOf = (definition: SDCPN) => ({
+const observationOf = (definition: SDCPN, revisionId?: string) => ({
   definition,
   sha256: sha256Of(definition),
+  ...(revisionId === undefined ? {} : { revisionId }),
 });
 
 const assistantCall = (
@@ -104,6 +106,7 @@ const resultDelivery = (
 const readTurn = (
   toolCallId: string,
   definition: SDCPN,
+  revisionId?: string,
 ): FlueConversationMessage[] => [
   assistantCall(toolCallId, getLatestNetDefinitionToolName),
   resultDelivery(
@@ -111,7 +114,11 @@ const readTurn = (
     getLatestNetDefinitionToolName,
     { title: "Net", definition },
     {
-      observation: { toolCallId, binding, observed: observationOf(definition) },
+      observation: {
+        toolCallId,
+        binding,
+        observed: observationOf(definition, revisionId),
+      },
     },
   ),
 ];
@@ -269,6 +276,40 @@ test("one verified read is current", async () => {
   expect(
     await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), browser),
   ).toEqual({ kind: "current", hash: sha256Of(emptyNet) });
+});
+
+test("a caller-reported direct edit makes an otherwise hash-invisible revision stale", async () => {
+  const snapshot = snapshotOf(readTurn("read-1", emptyNet, "read-revision"));
+  expect(await deriveNetFreshness(snapshot, browser, "read-revision")).toEqual({
+    kind: "current",
+    hash: sha256Of(emptyNet),
+    revisionId: "read-revision",
+  });
+  expect(
+    await deriveNetFreshness(snapshot, browser, "direct-edit-revision"),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: sha256Of(emptyNet),
+    lastReadRevisionId: "read-revision",
+    lastKnownRevisionId: "read-revision",
+    reportedRevisionId: "direct-edit-revision",
+  });
+});
+
+test("a revision-aware read is stale when the caller cannot confirm the current revision", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf(readTurn("read-1", emptyNet, "read-revision")),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: sha256Of(emptyNet),
+    lastReadRevisionId: "read-revision",
+    lastKnownRevisionId: "read-revision",
+  });
 });
 
 test("an applied mutation with a different post hash makes the last read stale", async () => {
@@ -483,6 +524,50 @@ test("an unverifiable observation is not a read", async () => {
       browser,
     ),
   ).toEqual({ kind: "never-read" });
+});
+
+test("a recorded layout is a known change, not an unrecorded one", async () => {
+  const movedNet: SDCPN = {
+    ...oneHopNet,
+    places: [{ ...oneHopNet.places[0]!, x: 120, y: 40 }],
+  };
+  const layoutTurn: FlueConversationMessage[] = [
+    assistantCall("layout-1", applyAutoLayoutToolName, { askUserFirst: false }),
+    resultDelivery(
+      "layout-1",
+      applyAutoLayoutToolName,
+      { commitCount: 1 },
+      {
+        layoutRecord: {
+          toolCallId: "layout-1",
+          binding,
+          pre: observationOf(oneHopNet),
+          post: observationOf(movedNet),
+          effects: [],
+        },
+      },
+    ),
+  ];
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([...readTurn("read-1", oneHopNet), ...layoutTurn]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(oneHopNet),
+    lastKnownHash: sha256Of(movedNet),
+  });
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", oneHopNet),
+        ...layoutTurn,
+        ...readTurn("read-2", movedNet),
+      ]),
+      browser,
+    ),
+  ).toEqual({ kind: "current", hash: sha256Of(movedNet) });
 });
 
 test("a read belonging to another document incarnation is not a read", async () => {

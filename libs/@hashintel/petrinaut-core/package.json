@@ -42,6 +42,10 @@
       "types": "./dist/compiled-model.d.ts",
       "import": "./dist/compiled-model.js"
     },
+    "./diagnostics": {
+      "types": "./dist/diagnostics.d.ts",
+      "import": "./dist/diagnostics.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.ts",
       "import": "./dist/examples/index.js"

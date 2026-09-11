@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop -- Local services start in order; readiness is polled until ready or cancelled. */
 import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, open, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
@@ -7,8 +8,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
+
+import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
 import { selectChatModel, STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
@@ -16,7 +19,10 @@ import {
   localPanelListen,
 } from "../../http/local-origins.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
-import { writeProofArtifacts } from "./proof-artifacts.ts";
+import {
+  refreshProofManifest,
+  writeProofArtifacts,
+} from "./proof-artifacts.ts";
 
 export { openPersonaConversation } from "./launch/browser.ts";
 
@@ -133,6 +139,53 @@ const runPersona = async (run: string) => {
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+export const documentIdFromInitialData = (
+  initialData: unknown,
+): string | undefined => {
+  if (!record(initialData)) return undefined;
+  const browser = record(initialData.construction)
+    ? initialData.construction
+    : record(initialData.browser)
+      ? initialData.browser
+      : undefined;
+  const binding =
+    browser && record(browser.binding) ? browser.binding : undefined;
+  return typeof binding?.documentId === "string"
+    ? binding.documentId
+    : undefined;
+};
+
+const retainPersonaDocument = async (
+  page: Page,
+  documentId: string,
+  evidenceDirectory: string,
+): Promise<void> => {
+  const document = await page.evaluate(
+    ({ id, storageKey }) => {
+      const raw = localStorage.getItem(storageKey);
+      if (raw === null) return undefined;
+      const parsed: unknown = JSON.parse(raw);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      )
+        return undefined;
+      return (parsed as Record<string, unknown>)[id];
+    },
+    { id: documentId, storageKey: "petrinaut-sdcpn" },
+  );
+  if (!record(document) || !record(document.sdcpn))
+    throw new Error(
+      `The persona browser has no retained Petrinaut document ${documentId}.`,
+    );
+  await writeFile(
+    join(evidenceDirectory, "net.json"),
+    `${JSON.stringify(document, null, 2)}\n`,
+  );
+  await refreshProofManifest(evidenceDirectory);
+};
+
 const isLoadingRuntimeUnavailable = (body: unknown) =>
   record(body) &&
   record(body.error) &&
@@ -174,12 +227,31 @@ export const responds = async (
 export const launchPersona = async (
   caseDirectory: string,
   objective?: string,
+  route = "/?brunchTracer=root-creation",
+  initialNetPath?: string,
 ) => {
   if (process.env.HERDR_ENV !== "1")
     throw new Error("Run brunch:persona from a Herdr terminal");
   const { pack, opening } = await readPersonaCase(caseDirectory);
   const env = environment();
   const model = selectChatModel(env);
+  const initialNet =
+    initialNetPath === undefined
+      ? undefined
+      : await readFile(initialNetPath).then((bytes) => {
+          const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
+          if (!parsed.ok) throw new Error(parsed.error);
+          const { title, ...sdcpn } = parsed.sdcpn;
+          const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
+          return {
+            id: `persona-source-${sourceSha256.slice(0, 12)}`,
+            incarnationId: randomUUID(),
+            lastUpdated: new Date().toISOString(),
+            sdcpn,
+            sourceSha256,
+            title,
+          };
+        });
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
   const run = await mkdtemp(join(runs, "run-"));
@@ -195,6 +267,13 @@ export const launchPersona = async (
     model,
     browserProfile,
     panelOrigin,
+    route,
+    ...(initialNetPath === undefined
+      ? {}
+      : {
+          initialNetPath,
+          initialNetSha256: initialNet?.sourceSha256,
+        }),
     createdAt: new Date().toISOString(),
   };
   await save(join(run, "run.json"), record);
@@ -204,13 +283,14 @@ export const launchPersona = async (
   let browser:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
+  let page: Page | undefined;
+  let documentId: string | undefined;
   let pane: string | undefined;
   let interrupted = false;
   const interrupt = () => {
     if (interrupted) return;
     interrupted = true;
     stop.abort();
-    void browser?.close();
   };
   process.on("SIGINT", interrupt);
   process.on("SIGTERM", interrupt);
@@ -294,12 +374,33 @@ export const launchPersona = async (
       ) as Record<string, string>,
     });
     browser.once("close", interrupt);
-    const page = browser.pages()[0] ?? (await browser.newPage());
+    page = browser.pages()[0] ?? (await browser.newPage());
+    if (initialNet !== undefined) {
+      const serializedInitialNet = JSON.stringify({
+        [initialNet.id]: {
+          id: initialNet.id,
+          incarnationId: initialNet.incarnationId,
+          lastUpdated: initialNet.lastUpdated,
+          sdcpn: initialNet.sdcpn,
+          title: initialNet.title,
+        },
+      });
+      await page.addInitScript(
+        ({ serialized, storageKey }) =>
+          localStorage.setItem(storageKey, serialized),
+        {
+          serialized: serializedInitialNet,
+          storageKey: "petrinaut-sdcpn",
+        },
+      );
+    }
     report("Opening a fresh browser conversation…");
     const opened = await openPersonaConversation(page, panelOrigin, opening, {
+      route,
       sessionPath: join(run, "session.json"),
       signal: stop.signal,
     });
+    documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
     await writeFile(
       join(run, "persona-input.md"),
@@ -377,7 +478,16 @@ export const launchPersona = async (
           );
         });
       try {
-        await browser?.close();
+        try {
+          if (page && !page.isClosed() && documentId !== undefined)
+            await retainPersonaDocument(
+              page,
+              documentId,
+              join(run, "evidence"),
+            );
+        } finally {
+          await browser?.close();
+        }
       } finally {
         for (const child of started) {
           if (child.pid && child.exitCode === null && child.signalCode === null)
@@ -400,13 +510,15 @@ if (
     options: {
       case: { type: "string" },
       objective: { type: "string" },
+      "initial-net": { type: "string" },
+      route: { type: "string" },
       "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>]\nStarts/reuses the local app, opens a fresh Chrome conversation and a Pi persona in Herdr. Requires Chrome, Pi and the app's normal Anthropic configuration. No accounting gates or turn deadline. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nStarts/reuses the local app, optionally preloads one reference net, opens a fresh Chrome conversation and a Pi persona in Herdr. Requires Chrome, Pi and the app's normal Anthropic configuration. No accounting gates or turn deadline. Ctrl-C stops owned resources; run data is retained.",
     );
   } else {
     const selected = values.case;
@@ -418,7 +530,17 @@ if (
     const task = values["run-persona"]
       ? runPersona(resolve(values["run-persona"]))
       : directory
-        ? launchPersona(directory, values.objective)
+        ? launchPersona(
+            directory,
+            values.objective,
+            values.route ?? (values["initial-net"] ? "/" : undefined),
+            values["initial-net"]
+              ? resolve(
+                  process.env.INIT_CWD ?? process.cwd(),
+                  values["initial-net"],
+                )
+              : undefined,
+          )
         : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {
       process.stderr.write(

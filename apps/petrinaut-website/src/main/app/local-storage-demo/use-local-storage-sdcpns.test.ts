@@ -55,13 +55,16 @@ const storedNet = (id: string, sdcpn: SDCPN): [string, SDCPNInLocalStorage] => [
 ];
 
 describe("createLocalStorageNetRecord", () => {
-  test("assigns an incarnation id once at creation", () => {
+  test("assigns incarnation and document revision identities at creation", () => {
     const net = createLocalStorageNetRecord({
       petriNetDefinition: emptySDCPN,
       title: "New Process",
     });
 
     expect(net.incarnationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
+    );
+    expect(net.revisionId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
     );
   });

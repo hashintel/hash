@@ -129,6 +129,7 @@ export const createHeadlessPetrinautClient = (
     document,
     execute,
     parse,
+    revisionId: () => handle.revisionId.get(),
     dispose: instance.dispose,
   };
 };

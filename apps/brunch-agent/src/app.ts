@@ -10,18 +10,25 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
-  mutatePetrinetToolName,
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
   observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
+import {
+  CHAT_AGENT_ROUTE,
+  HEALTH_ROUTE,
+  WORKED_MODELS_ROUTE,
+} from "./http/routes.ts";
+import { createWorkedModelRouter } from "./http/worked-models.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
@@ -78,8 +85,9 @@ setProvider(
     new Set([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
       ...observedConstructionBrowserToolNames,
-      mutatePetrinetToolName,
-      READ_PETRINAUT_DOC_TOOL_NAME,
+      layoutPetrinautNetToolName,
+      mutatePetrinautNetToolName,
+      READ_PETRINAUT_DOCS_TOOL_NAME,
     ]),
   ),
 );
@@ -96,6 +104,13 @@ app.use(
 );
 app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
+app.use(
+  `${WORKED_MODELS_ROUTE}/*`,
+  createAgentCors(
+    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+  ),
+);
+app.route(WORKED_MODELS_ROUTE, createWorkedModelRouter(workedModelStore));
 
 app.get(HEALTH_ROUTE, healthHandler);
 

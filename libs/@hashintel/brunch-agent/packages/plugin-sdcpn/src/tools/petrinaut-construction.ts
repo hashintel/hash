@@ -3,12 +3,15 @@ import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import {
-  getLatestNetDefinitionToolName,
-  getNetCompilationErrorsToolName,
   normalizePetrinautAiToolInput,
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import {
+  layoutPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "../construction-tool-names";
 import { validateDeclaredBasis } from "../declared-basis";
 import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
 import { isObservedNodeMutation, observedNodeInputSchema } from "../root-node";
@@ -63,10 +66,13 @@ export const createJoinedRootArcTool = (
     },
   });
 
-export { observedConstructionBrowserToolNames } from "../construction-tool-names";
+export {
+  layoutPetrinautNetToolName,
+  observedConstructionBrowserToolNames,
+} from "../construction-tool-names";
 
 export const observedDefinitionReadTool = defineTool({
-  name: getLatestNetDefinitionToolName,
+  name: readPetrinautNetToolName,
   description: petrinautAiTools.getLatestNetDefinition.description,
   input: petrinautAiTools.getLatestNetDefinition.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
@@ -76,9 +82,24 @@ export const observedDefinitionReadTool = defineTool({
 });
 
 export const observedCompilationReadTool = defineTool({
-  name: getNetCompilationErrorsToolName,
+  name: readPetrinautDiagnosticsToolName,
   description: petrinautAiTools.getNetCompilationErrors.description,
   input: petrinautAiTools.getNetCompilationErrors.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+/**
+ * Canonical Petrinaut ELK layout, executed by the browser as its own recorded
+ * command. Its client result carries `metadata.layoutRecord` with the observed
+ * pre/post hashes and position effects; the post hash is the next base.
+ */
+export const observedLayoutCommandTool = defineTool({
+  name: layoutPetrinautNetToolName,
+  description: `${petrinautAiTools.applyAutoLayout.description}\nLayout is a recorded document mutation, separate from mutate_petrinaut_net. Call it in its own proposal after a batch that added or restructured places or transitions, never after a batch that only changed types, parameters or dynamics. The browser result's metadata.layoutRecord reports the observed pre hash, post hash and position effects; the post hash is the current base, so obtain a fresh read_petrinaut_net before any further mutation.`,
+  input: petrinautAiTools.applyAutoLayout.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
   run() {
     return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
@@ -99,7 +120,13 @@ export const createObservedArcTool = (
 ) =>
   defineTool({
     name,
-    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) && name !== "addParameter" ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
+    description: `${
+      petrinautAiTools[name].description
+    }\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${
+      isObservedStateMutation(name) && name !== "addParameter"
+        ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities."
+        : ""
+    }`,
     input: isObservedNodeMutation(name)
       ? observedNodeInputSchema(name)
       : isObservedStateMutation(name)

@@ -15,6 +15,7 @@ export {
   canonicalContent,
   classifyMutationOutcome,
   clientToolResultMetadataSchema,
+  deriveLayoutEffects,
   deriveMutationEffects,
   expectedNodeDefinition,
   observedMutationOutcome,
@@ -54,18 +55,39 @@ export {
   type ObservedArcMutationName,
   type RootArcWhyInput,
 } from "./root-arc";
-export { observedConstructionBrowserToolNames } from "./construction-tool-names";
+export {
+  applyAutoLayoutToolName,
+  isLayoutPetrinautNetToolName,
+  isReadPetrinautDiagnosticsToolName,
+  isReadPetrinautNetToolName,
+  layoutPetrinautNetToolName,
+  legacyLayoutPetrinautNetToolName,
+  legacyReadPetrinautDiagnosticsToolName,
+  legacyReadPetrinautNetToolName,
+  observedConstructionBrowserToolNames,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "./construction-tool-names";
 export {
   batchedConstructionMode,
+  isMutatePetrinautNetToolName,
+  legacyMutatePetrinautNetToolName,
   mutatePetrinetAttemptCallId,
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
   mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   type MutatePetrinetInput,
   type MutatePetrinetOperation,
   type MutatePetrinetOutput,
 } from "./mutate-petrinet";
+export {
+  isReadPetrinautDocsToolName,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+} from "./tools/read-petrinaut-doc";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,

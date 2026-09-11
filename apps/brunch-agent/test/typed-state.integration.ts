@@ -223,17 +223,13 @@ const browserResult = (context: Context, name: string): BrowserResult =>
   );
 let basis: Record<string, unknown> | undefined;
 const settle = (markdown: string, id: string) => [
-  tool("update_workpiece", { markdown }, id),
+  tool("mutate_workpiece", { markdown }, id),
   checked((context) => {
-    assert.equal(toolOutput(context, "update_workpiece").revisionId, id);
-    return tool(
-      "brunch_workpiece",
-      { locateTexts: [markdown] },
-      `${id}-locate`,
-    );
+    assert.equal(toolOutput(context, "mutate_workpiece").revisionId, id);
+    return tool("read_workpiece", { locateTexts: [markdown] }, `${id}-locate`);
   }),
   checked((context) => {
-    const result = toolOutput(context, "brunch_workpiece");
+    const result = toolOutput(context, "read_workpiece");
     const current = result.currentWorkpiece as {
       revisionId: string;
       sha256: string;
@@ -360,7 +356,7 @@ const query = (context: Context, args: Record<string, unknown>, id: string) => {
     fields.field = `/initialState/content/${queueId.replaceAll("~", "~0").replaceAll("/", "~1")}/${initialCell.join("/")}`;
   }
   return tool(
-    "brunch_why",
+    "query_workpiece",
     { ...fields, observationToolCallId: observation.toolCallId },
     id,
   );
@@ -547,7 +543,7 @@ try {
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /derived/);
@@ -612,7 +608,7 @@ try {
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /derived/);
@@ -826,7 +822,7 @@ try {
       );
       responses.push(
         checked((context) => {
-          const answer = toolOutput(context, "brunch_why");
+          const answer = toolOutput(context, "query_workpiece");
           answers.push(answer);
           assert.equal(answer.disposition, expected);
           if (change)
@@ -1004,7 +1000,7 @@ try {
         [
           fauxToolCall(name, {}, { id: `typed-mixed-${name}` }),
           fauxToolCall(
-            "update_workpiece",
+            "mutate_workpiece",
             { markdown: "TEST forbidden sibling" },
             { id: `typed-mixed-revision-${name}` },
           ),
@@ -1193,7 +1189,7 @@ try {
   );
   faux.setResponses([
     tool(
-      "brunch_why",
+      "query_workpiece",
       {
         kind: "type",
         name: selectedType.name,
@@ -1203,7 +1199,7 @@ try {
       "typed-external-why",
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/);

@@ -18,16 +18,27 @@ import { createPortal } from "react-dom";
 import {
   batchedConstructionMode,
   conversationConstructionMode,
-  mutatePetrinetToolName,
+  layoutPetrinautNetToolName,
+  legacyLayoutPetrinautNetToolName,
+  legacyMutatePetrinautNetToolName,
+  legacyReadPetrinautDiagnosticsToolName,
+  legacyReadPetrinautNetToolName,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  mutatePetrinautNetToolName,
   observedConstructionBrowserToolNames,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
@@ -63,6 +74,11 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
+import {
+  isBrunchSelected,
+  stockChatEndpoint,
+  useAssistantSelection,
+} from "./assistant-selection";
 import {
   getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
@@ -115,6 +131,7 @@ import {
   selectCrewReservationPreparationBrowser,
   usePrepareCrewReservationConversation,
 } from "./use-prepare-crew-reservation-conversation";
+import { useWorkedModelCopy } from "./use-worked-model-copy";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -136,17 +153,37 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
 
 const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
 const constructionClientToolNames: ReadonlySet<string> = new Set([
-  readPetrinautDocToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
   ...observedConstructionBrowserToolNames,
+  legacyReadPetrinautNetToolName,
+  legacyReadPetrinautDiagnosticsToolName,
 ]);
 const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
-  readPetrinautDocToolName,
-  getLatestNetDefinitionToolName,
-  mutatePetrinetToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautNetToolName,
+  legacyReadPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  legacyReadPetrinautDiagnosticsToolName,
+  mutatePetrinautNetToolName,
+  legacyMutatePetrinautNetToolName,
+  layoutPetrinautNetToolName,
+  legacyLayoutPetrinautNetToolName,
 ]);
 const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([
-  mutatePetrinetToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  mutatePetrinautNetToolName,
+  layoutPetrinautNetToolName,
 ]);
+const brunchPetrinautToolAliases = {
+  [READ_PETRINAUT_DOCS_TOOL_NAME]: readPetrinautDocToolName,
+  [readPetrinautNetToolName]: getLatestNetDefinitionToolName,
+  [readPetrinautDiagnosticsToolName]: getNetCompilationErrorsToolName,
+  [layoutPetrinautNetToolName]: legacyLayoutPetrinautNetToolName,
+} as const;
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
   ...preparedCrewReservationStoredSDCPN,
@@ -210,19 +247,25 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
     id: net.id,
     initial: net.sdcpn,
+    initialRevisionId: net.revisionId,
     capabilities: DEMO_CAPABILITIES,
   });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
+// The stock assistant's transport is the same whether or not Brunch is
+// configured: selecting the stock assistant must not route it through Brunch.
 const stockChatTransport = new DefaultChatTransport({
-  api: brunchPreviewConfig.chatEndpoint,
+  api: stockChatEndpoint,
   headers: () => ({
     [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
   }),
 });
 
-const createBrunchFlueClient = async (conversationId: string) => {
+const createBrunchFlueClient = async (
+  conversationId: string,
+  currentRevisionId: () => string | undefined,
+) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
@@ -232,7 +275,15 @@ const createBrunchFlueClient = async (conversationId: string) => {
   mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
   return createFlueClient({
     url: mountUrl.href,
-    headers: agentOwnershipHeaders(identity),
+    headers: () => {
+      const revisionId = currentRevisionId();
+      return {
+        ...agentOwnershipHeaders(identity),
+        ...(revisionId === undefined
+          ? {}
+          : { [BRUNCH_DOCUMENT_REVISION_HEADER]: revisionId }),
+      };
+    },
   });
 };
 
@@ -259,12 +310,12 @@ const createConversationTrackerFor = (
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
-  crewReservationDocument: SDCPNInLocalStorage | undefined,
+  selectedDocument: SDCPNInLocalStorage | undefined,
 ): Record<string, SDCPNInLocalStorage> => {
-  if (crewReservationDocument !== undefined) {
+  if (selectedDocument !== undefined) {
     return {
       ...storedSDCPNs,
-      [crewReservationDocument.id]: crewReservationDocument,
+      [selectedDocument.id]: selectedDocument,
     };
   }
   if (Object.values(storedSDCPNs).length > 0) {
@@ -283,10 +334,11 @@ type ActiveHandle = {
 
 const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
   const handle = createHandle(net);
-  const fallbackNet: SDCPNInLocalStorage =
-    net.incarnationId === undefined
-      ? { ...net, incarnationId: crypto.randomUUID() }
-      : net;
+  const fallbackNet: SDCPNInLocalStorage = {
+    ...net,
+    incarnationId: net.incarnationId ?? crypto.randomUUID(),
+    revisionId: handle.revisionId.get(),
+  };
   return {
     handle,
     netId: fallbackNet.id,
@@ -303,13 +355,20 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
 
 /**
  * The demo's own palette commands, registered beside Petrinaut's: one starts
- * a fresh net, one toggles Brunch demo mode, the persisted user setting that
- * shows the prepared-fixture selector.
+ * a fresh net, one switches between Brunch and the stock assistant, one
+ * toggles Brunch demo mode, the persisted user setting that shows the
+ * prepared-fixture selector.
  */
 const DemoCommands = ({
   createNewNet,
+  createCleanWorkedModelCopy,
+  brunchSelected,
+  selectAssistant,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
+  createCleanWorkedModelCopy?: () => Promise<void>;
+  brunchSelected: boolean;
+  selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
   const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
   useCommand({
@@ -320,6 +379,32 @@ const DemoCommands = ({
     run: () =>
       createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
   });
+  // Only offered when there is a Brunch to select; without an endpoint the
+  // stock assistant is the only one and the choice would be a fiction.
+  useCommand(
+    {
+      id: "demo.worked-model.clean-copy",
+      label: "Create a clean copy of this worked model",
+      category: "Demo",
+      keywords: ["bundle", "copy", "reset", "template"],
+      run: () => {
+        void createCleanWorkedModelCopy?.();
+      },
+    },
+    { when: createCleanWorkedModelCopy !== undefined },
+  );
+  useCommand(
+    {
+      id: "demo.assistant.switch",
+      label: brunchSelected
+        ? "Use the stock Petrinaut assistant"
+        : "Use Brunch (default assistant)",
+      category: "Demo",
+      keywords: ["assistant", "brunch", "stock", "ai"],
+      run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
+    },
+    { when: brunchPreviewConfig.isBrunchConfigured },
+  );
   useCommand(
     {
       id: "demo.brunch.toggle-demo-mode",
@@ -328,7 +413,7 @@ const DemoCommands = ({
       keywords: ["fixture", "prepared", "crew reservation"],
       run: () => setBrunchDemoMode(!brunchDemoMode),
     },
-    { when: brunchPreviewConfig.isBrunchConfigured },
+    { when: brunchSelected },
   );
   return null;
 };
@@ -361,9 +446,18 @@ export const LocalStorageDemoApp = ({
   search: LocalStorageDemoSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  // Brunch is the default assistant; the stock assistant is the host-selected
+  // alternate. Every Brunch-specific branch below keys off this, never off the
+  // bare configuration, so selecting stock leaves no Brunch dependency behind.
+  const { selection: assistantSelection, setSelection: selectAssistant } =
+    useAssistantSelection();
+  const brunchSelected = isBrunchSelected(
+    brunchPreviewConfig.isBrunchConfigured,
+    assistantSelection,
+  );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
-  >(() => (brunchPreviewConfig.isBrunchConfigured ? undefined : null));
+  >(() => (brunchSelected ? undefined : null));
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -393,6 +487,32 @@ export const LocalStorageDemoApp = ({
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
+  const routeIdentity = localStorageDemoRouteIdentity(search);
+  const workedModelSelected =
+    brunchSelected &&
+    routeIdentity === "worked-model-bundle" &&
+    search.bundle !== undefined;
+  const workedModel = useWorkedModelCopy({
+    bundleKey: search.bundle,
+    chatEndpoint: brunchPreviewConfig.chatEndpoint,
+    currentOrigin: window.location.origin,
+    enabled: workedModelSelected,
+    principalKey: brunchPrincipal,
+  });
+  const workedModelDocument = useMemo<SDCPNInLocalStorage | undefined>(
+    () =>
+      workedModel.copy === null
+        ? undefined
+        : {
+            id: workedModel.copy.documentId,
+            title: workedModel.copy.title,
+            sdcpn: workedModel.copy.definition,
+            incarnationId: workedModel.copy.incarnationId,
+            revisionId: workedModel.copy.revisionId,
+            lastUpdated: new Date(0).toISOString(),
+          },
+    [workedModel.copy],
+  );
   const { settledManifest, setSettledManifest } =
     useCrewReservationSettledManifestStorage();
   /**
@@ -400,13 +520,12 @@ export const LocalStorageDemoApp = ({
    * endpoint there is no Flue client to prepare the conversation, so the URL
    * falls back to the ordinary demo rather than a banner stuck on preparing.
    */
-  const constructionSelected =
-    brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
+  const constructionSelected = brunchSelected && isConstructionSelected(search);
   const rootCreationSelected =
     constructionSelected && search.brunchTracer === "root-creation";
   const productConstructionSelected =
-    brunchPreviewConfig.isBrunchConfigured &&
-    localStorageDemoRouteIdentity(search) === "ordinary";
+    brunchSelected &&
+    (routeIdentity === "ordinary" || routeIdentity === "worked-model-bundle");
   const batchedConstructionSelected =
     rootCreationSelected || productConstructionSelected;
   const constructionDocumentId = rootCreationSelected
@@ -416,7 +535,7 @@ export const LocalStorageDemoApp = ({
     ? constructionDocumentId
     : rootArcTracerDocumentId;
   const crewReservationFixtureSelected =
-    brunchPreviewConfig.isBrunchConfigured &&
+    brunchSelected &&
     (isCrewReservationFixtureSelected(search) || constructionSelected);
   const rootArcTracerSelected =
     crewReservationFixtureSelected &&
@@ -446,9 +565,10 @@ export const LocalStorageDemoApp = ({
       : undefined;
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
     storedSDCPNs,
-    rootArcTracerSelected
-      ? (storedSDCPNs[tracerDocumentId] ?? initialTracerDocument)
-      : crewReservationBundle?.selectedDocument,
+    workedModelDocument ??
+      (rootArcTracerSelected
+        ? (storedSDCPNs[tracerDocumentId] ?? initialTracerDocument)
+        : crewReservationBundle?.selectedDocument),
   );
 
   useEffect(() => {
@@ -493,7 +613,9 @@ export const LocalStorageDemoApp = ({
   );
 
   useEffect(() => {
-    if (!brunchPreviewConfig.isBrunchConfigured) {
+    if (!brunchSelected) {
+      // Voice is a Brunch feature; the stock assistant never shows it.
+      setOpenAIVoiceConfig(null);
       return;
     }
 
@@ -508,7 +630,7 @@ export const LocalStorageDemoApp = ({
     });
 
     return () => abortController.abort();
-  }, []);
+  }, [brunchSelected]);
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -516,9 +638,11 @@ export const LocalStorageDemoApp = ({
       (a, b) =>
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
     )[0] ?? null;
-  const initiallySelectedNet = crewReservationFixtureSelected
-    ? storedSDCPNsForDisplay[fixtureDocumentId]
-    : mostRecentlyModifiedNet;
+  const initiallySelectedNet = workedModelSelected
+    ? workedModelDocument
+    : crewReservationFixtureSelected
+      ? storedSDCPNsForDisplay[fixtureDocumentId]
+      : mostRecentlyModifiedNet;
 
   // The net currently selected in the UI.
   const [currentNetId, setCurrentNetId] = useState<string | null>(
@@ -536,19 +660,33 @@ export const LocalStorageDemoApp = ({
   );
 
   useEffect(() => {
+    if (
+      workedModelDocument === undefined ||
+      currentNetId === workedModelDocument.id
+    )
+      return;
+    setCurrentNetId(workedModelDocument.id);
+    setActiveHandle(createActiveHandle(workedModelDocument));
+  }, [currentNetId, workedModelDocument]);
+
+  useEffect(() => {
     if (!activeHandle) {
       return;
     }
 
     const { fallbackNet, handle, netId } = activeHandle;
+    const isWorkedModelDocument = workedModel.copy?.documentId === netId;
     const isTracerDocument =
       netId === rootArcTracerDocumentId || netId === constructionDocumentId;
-    if (isTracerDocument || fallbackNet.incarnationId !== undefined) {
+    if (!isWorkedModelDocument) {
       setStoredSDCPNs((previous) => {
         const stored = previous[netId];
         if (
-          !isTracerDocument &&
-          stored?.incarnationId === fallbackNet.incarnationId
+          stored?.incarnationId === fallbackNet.incarnationId &&
+          stored?.revisionId === fallbackNet.revisionId &&
+          (!isTracerDocument ||
+            stored?.rootArcRequestedBaseHash ===
+              fallbackNet.rootArcRequestedBaseHash)
         ) {
           return previous;
         }
@@ -557,6 +695,7 @@ export const LocalStorageDemoApp = ({
           [netId]: {
             ...(stored ?? fallbackNet),
             incarnationId: fallbackNet.incarnationId,
+            revisionId: fallbackNet.revisionId,
             rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
           },
         };
@@ -564,6 +703,14 @@ export const LocalStorageDemoApp = ({
     }
 
     return handle.subscribe((event) => {
+      if (isWorkedModelDocument) {
+        void workedModel.persistDefinition({
+          definition: event.next,
+          previousRevisionId: event.previousRevisionId,
+          revisionId: event.revisionId,
+        });
+        return;
+      }
       const lastUpdated = new Date().toISOString();
 
       setStoredSDCPNs((prev) => {
@@ -571,6 +718,7 @@ export const LocalStorageDemoApp = ({
         const next: SDCPNInLocalStorage = {
           ...stored,
           sdcpn: event.next,
+          revisionId: event.revisionId,
           lastUpdated,
         };
 
@@ -579,7 +727,13 @@ export const LocalStorageDemoApp = ({
         });
       });
     });
-  }, [activeHandle, setStoredSDCPNs, constructionDocumentId]);
+  }, [
+    activeHandle,
+    setStoredSDCPNs,
+    constructionDocumentId,
+    workedModel.copy?.documentId,
+    workedModel.persistDefinition,
+  ]);
 
   const existingNets: MinimalNetMetadata[] = Object.values(
     storedSDCPNsForDisplay,
@@ -687,21 +841,25 @@ export const LocalStorageDemoApp = ({
   const conversationId =
     currentNetId === null
       ? null
-      : productConstructionSelected &&
-          activeHandle?.fallbackNet.incarnationId !== undefined
-        ? ordinaryConstructionConversationIdFrom(
-            activeHandle.fallbackNet.incarnationId,
-          )
-        : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-          ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
-          : (fixtureConfiguration?.conversationId ??
-            getOrCreateBrunchConversationId(currentNetId));
+      : currentNetId === workedModel.copy?.documentId
+        ? workedModel.copy.conversationId
+        : productConstructionSelected &&
+            activeHandle?.fallbackNet.incarnationId !== undefined
+          ? ordinaryConstructionConversationIdFrom(
+              activeHandle.fallbackNet.incarnationId,
+            )
+          : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
+            ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
+            : (fixtureConfiguration?.conversationId ??
+              getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
-      brunchPreviewConfig.isBrunchConfigured && conversationId !== null
-        ? createBrunchFlueClient(conversationId)
+      brunchSelected && conversationId !== null
+        ? createBrunchFlueClient(conversationId, () =>
+            activeHandle?.handle.revisionId.get(),
+          )
         : null,
-    [conversationId],
+    [activeHandle, brunchSelected, conversationId],
   );
   const conversationTracker = useMemo(
     // Correlation state belongs to one conversation and must not cross a net switch.
@@ -949,6 +1107,9 @@ export const LocalStorageDemoApp = ({
           : [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
+      ...(flueClientPromise === null
+        ? {}
+        : { toolAliases: brunchPetrinautToolAliases }),
       ...(mutationRecorder === undefined
         ? {}
         : { executeMutation: mutationRecorder.executeMutation }),
@@ -1053,7 +1214,7 @@ export const LocalStorageDemoApp = ({
       {/* The settings are mounted here, above the editor, so the demo's own
           command and selector read the same persisted state the editor does. */}
       <UserSettingsProvider>
-        {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent ? (
+        {brunchSelected && !preparedFixtureIsCurrent ? (
           <DemoModeFixtureSelector />
         ) : null}
         <CommandRegistryProvider>
@@ -1071,7 +1232,14 @@ export const LocalStorageDemoApp = ({
               viewportActions={[sentryFeedbackAction]}
             />
           </WalkthroughProvider>
-          <DemoCommands createNewNet={createNewNet} />
+          <DemoCommands
+            createNewNet={createNewNet}
+            createCleanWorkedModelCopy={
+              workedModelSelected ? workedModel.createCleanCopy : undefined
+            }
+            brunchSelected={brunchSelected}
+            selectAssistant={selectAssistant}
+          />
           <CommandPalette />
         </CommandRegistryProvider>
       </UserSettingsProvider>

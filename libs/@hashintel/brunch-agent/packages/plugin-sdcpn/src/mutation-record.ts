@@ -4,6 +4,7 @@ import {
   mutationActionInputSchemas,
   createPetrinautActions,
   parseSDCPNFile,
+  type DocumentRevisionId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -23,6 +24,7 @@ import {
 import {
   assertStateIdentity,
   isObservedStateMutation,
+  locateRootState,
   stateMutationTarget,
   type ObservedStateMutationName,
 } from "./root-state";
@@ -47,10 +49,27 @@ export type ObservedConstructionMutationName =
   | ObservedArcMutationName
   | ObservedNodeMutationName
   | ObservedStateMutationName;
+/** Edits and removals of net-level state that only the batched carrier admits; located by ID in the pre observation, never created. */
+const batchedStateMutationNames = [
+  "updateDifferentialEquation",
+  "updateParameter",
+  "removeType",
+  "removeTypeElement",
+  "removeParameter",
+  "removeDifferentialEquation",
+] as const;
+type BatchedStateMutationName = (typeof batchedStateMutationNames)[number];
+
 export type ConstructionMutationName =
   | ObservedConstructionMutationName
   | BatchedArcMutationName
-  | BatchedNodeMutationName;
+  | BatchedNodeMutationName
+  | BatchedStateMutationName;
+
+const isBatchedStateMutation = (
+  name: string,
+): name is BatchedStateMutationName =>
+  batchedStateMutationNames.some((entry) => entry === name);
 
 export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
@@ -60,12 +79,18 @@ export type ConstructionMutationRequest = Omit<
   input: PetrinautAiToolInput<ConstructionMutationName>;
 };
 
-export type DefinitionObservation = { definition: SDCPN; sha256: string };
+export type DefinitionObservation = {
+  definition: SDCPN;
+  sha256: string;
+  /** Absent only on retained records created before document revisions existed. */
+  revisionId?: DocumentRevisionId;
+};
 
 /** A delivered observation before `verifyDefinitionObservation` has re-parsed and re-hashed it. */
 export type UnverifiedDefinitionObservation = {
   definition: unknown;
   sha256: string;
+  revisionId?: unknown;
 };
 
 const mutationOutcomes = [
@@ -90,6 +115,7 @@ export const clientToolResultMetadataSchema = v.object({
       observed: v.object({
         definition: v.unknown(),
         sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
       }),
     }),
   ),
@@ -97,6 +123,28 @@ export const clientToolResultMetadataSchema = v.object({
     v.object({
       attempts: v.array(v.unknown()),
       outcome: v.picklist(mutationOutcomes),
+    }),
+  ),
+  /**
+   * A separately recorded `layout_petrinaut_net` command: layout is a document
+   * mutation with its own observed pre/post hashes and position effects, not
+   * part of a `mutate_petrinaut_net` result and never a hidden hash change.
+   */
+  layoutRecord: v.optional(
+    v.object({
+      toolCallId: v.pipe(v.string(), v.minLength(1)),
+      binding: browserBindingSchema,
+      pre: v.object({
+        definition: v.unknown(),
+        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
+      }),
+      post: v.object({
+        definition: v.unknown(),
+        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
+      }),
+      effects: v.array(v.unknown()),
     }),
   ),
 });
@@ -197,6 +245,32 @@ const definitionChanges = (
   return [{ path, kind: "updated", before, after }];
 };
 
+const layoutPositionPath =
+  /^\/(?:places|transitions|componentInstances)\/\d+\/(?:x|y)$/u;
+
+/**
+ * Position effects of one ELK layout run between two observations. Layout may
+ * move root places, transitions and component instances and nothing else; any
+ * other difference is a hidden change the layout record refuses to absorb.
+ */
+export const deriveLayoutEffects = (
+  pre: SDCPN,
+  post: SDCPN,
+): DefinitionChange[] => {
+  const changes = definitionChanges(pre, post);
+  const foreign = changes.filter(
+    (change) =>
+      change.kind !== "updated" || !layoutPositionPath.test(change.path),
+  );
+  if (foreign.length > 0)
+    throw new Error(
+      `Layout changed more than positions: ${foreign
+        .map((change) => change.path)
+        .join(", ")}`,
+    );
+  return changes;
+};
+
 /** Partition the named root operation; unrequested fields remain derived, never inherited basis. */
 export const deriveMutationEffects = (
   request: ConstructionMutationRequest,
@@ -205,7 +279,8 @@ export const deriveMutationEffects = (
 ): MutationEffects => {
   if (
     isBatchedNodeMutation(request.toolName) ||
-    isObservedStateMutation(request.toolName)
+    isObservedStateMutation(request.toolName) ||
+    isBatchedStateMutation(request.toolName)
   )
     return deriveNodeEffects(request, pre, post);
   const input = mutationActionInputSchemas[request.toolName].parse(
@@ -219,7 +294,11 @@ export const deriveMutationEffects = (
   );
   const arcSource = request.toolName === "removeArc" ? pre : post;
   const transition = arcSource.transitions[transitionIndex];
-  const direction = input.arcDirection === "input" ? "inputArcs" : "outputArcs";
+  // Only input arcs carry a type, so updateArcType names no direction.
+  const direction =
+    !("arcDirection" in input) || input.arcDirection === "input"
+      ? "inputArcs"
+      : "outputArcs";
   const arcIndex =
     transition !== undefined && transition.id === input.transitionId
       ? transition[direction].findIndex(
@@ -274,6 +353,40 @@ export const expectedNodeDefinition = (
         mutationActionInputSchemas.addDifferentialEquation.parse(request.input),
       );
       break;
+    case "updateDifferentialEquation":
+      actions.updateDifferentialEquation(
+        mutationActionInputSchemas.updateDifferentialEquation.parse(
+          request.input,
+        ),
+      );
+      break;
+    case "updateParameter":
+      actions.updateParameter(
+        mutationActionInputSchemas.updateParameter.parse(request.input),
+      );
+      break;
+    case "removeParameter":
+      actions.removeParameter(
+        mutationActionInputSchemas.removeParameter.parse(request.input),
+      );
+      break;
+    case "removeDifferentialEquation":
+      actions.removeDifferentialEquation(
+        mutationActionInputSchemas.removeDifferentialEquation.parse(
+          request.input,
+        ),
+      );
+      break;
+    case "removeType":
+      actions.removeType(
+        mutationActionInputSchemas.removeType.parse(request.input),
+      );
+      break;
+    case "removeTypeElement":
+      actions.removeTypeElement(
+        mutationActionInputSchemas.removeTypeElement.parse(request.input),
+      );
+      break;
     case "addPlace":
       actions.addPlace(
         mutationActionInputSchemas.addPlace.parse(request.input),
@@ -300,6 +413,11 @@ export const expectedNodeDefinition = (
     case "updateArcWeight":
       actions.updateArcWeight(
         mutationActionInputSchemas.updateArcWeight.parse(request.input),
+      );
+      break;
+    case "updateArcType":
+      actions.updateArcType(
+        mutationActionInputSchemas.updateArcType.parse(request.input),
       );
       break;
     case "addType":
@@ -357,18 +475,112 @@ export const expectedNodeDefinition = (
   return expected;
 };
 
+/** Which existing root-state entity a batched state operation names, and what it asks of it. */
+const batchedStateLocator = (
+  request: ConstructionMutationRequest,
+): {
+  kind: "parameter" | "differential-equation" | "type" | "type-element";
+  name: string;
+  typeId?: string;
+  removing: boolean;
+  fields: Record<string, unknown>;
+} => {
+  switch (request.toolName) {
+    case "updateParameter": {
+      const parsed = mutationActionInputSchemas.updateParameter.parse(
+        request.input,
+      );
+      return {
+        kind: "parameter",
+        name: parsed.parameterId,
+        removing: false,
+        fields: parsed.update,
+      };
+    }
+    case "updateDifferentialEquation": {
+      const parsed =
+        mutationActionInputSchemas.updateDifferentialEquation.parse(
+          request.input,
+        );
+      return {
+        kind: "differential-equation",
+        name: parsed.equationId,
+        removing: false,
+        fields: parsed.update,
+      };
+    }
+    case "removeParameter": {
+      const parsed = mutationActionInputSchemas.removeParameter.parse(
+        request.input,
+      );
+      return {
+        kind: "parameter",
+        name: parsed.parameterId,
+        removing: true,
+        fields: {},
+      };
+    }
+    case "removeDifferentialEquation": {
+      const parsed =
+        mutationActionInputSchemas.removeDifferentialEquation.parse(
+          request.input,
+        );
+      return {
+        kind: "differential-equation",
+        name: parsed.equationId,
+        removing: true,
+        fields: {},
+      };
+    }
+    case "removeType": {
+      const parsed = mutationActionInputSchemas.removeType.parse(request.input);
+      return { kind: "type", name: parsed.typeId, removing: true, fields: {} };
+    }
+    case "removeTypeElement": {
+      const parsed = mutationActionInputSchemas.removeTypeElement.parse(
+        request.input,
+      );
+      return {
+        kind: "type-element",
+        name: parsed.elementId,
+        typeId: parsed.typeId,
+        removing: true,
+        fields: {},
+      };
+    }
+    default:
+      throw new Error("Not a batched state operation.");
+  }
+};
+
 /** A creation is partitioned by canonical field so generated fields cannot inherit its basis. */
 const deriveNodeEffects = (
   request: ConstructionMutationRequest,
   pre: SDCPN,
   post: SDCPN,
 ): MutationEffects => {
-  const state = isObservedStateMutation(request.toolName)
-    ? stateMutationTarget(
-        request,
-        request.toolName.startsWith("add") ? post : pre,
-      )
-    : undefined;
+  /** The batched state operations name an existing entity; resolve it by kind and ID in `definition`. */
+  const batchedStateTarget = (definition: SDCPN) => {
+    const located = batchedStateLocator(request);
+    return {
+      target: locateRootState(definition, {
+        kind: located.kind,
+        name: located.name,
+        field: "entity",
+        ...(located.typeId === undefined ? {} : { type: located.typeId }),
+      }),
+      creating: false,
+      fields: located.fields,
+    };
+  };
+  const state = isBatchedStateMutation(request.toolName)
+    ? batchedStateTarget(pre)
+    : isObservedStateMutation(request.toolName)
+      ? stateMutationTarget(
+          request,
+          request.toolName.startsWith("add") ? post : pre,
+        )
+      : undefined;
   if (!state && !isBatchedNodeMutation(request.toolName))
     throw new Error("Not an entity mutation.");
   const input = isBatchedNodeMutation(request.toolName)
@@ -434,7 +646,9 @@ const deriveNodeEffects = (
         ? Object.entries(change.after).map(
             ([field, after]): DefinitionChange => ({
               kind: "created",
-              path: `${path}/${field.replaceAll("~", "~0").replaceAll("/", "~1")}`,
+              path: `${path}/${field
+                .replaceAll("~", "~0")
+                .replaceAll("/", "~1")}`,
               after,
             }),
           )
@@ -449,25 +663,33 @@ const deriveNodeEffects = (
         field === undefined
           ? undefined
           : (expected as Record<string, unknown>)[field];
+      // A removed entity has no post-side node; its fields cannot be direct.
+      const removing =
+        state === undefined
+          ? !creating && input !== undefined && !("update" in input)
+          : isBatchedStateMutation(request.toolName) &&
+            batchedStateLocator(request).removing;
       const actualNode = state
-        ? stateMutationTarget(request, post).target.value
+        ? isBatchedStateMutation(request.toolName)
+          ? removing
+            ? undefined
+            : batchedStateTarget(post).target.value
+          : stateMutationTarget(request, post).target.value
         : post[collection][index];
       const actualField =
         field === undefined || !actualNode
           ? undefined
           : (actualNode as unknown as Record<string, unknown>)[field];
-      const direct =
-        (!creating &&
-          input !== undefined &&
-          !("update" in input) &&
-          effect.kind === "deleted" &&
-          effect.path === path) ||
-        ((state !== undefined || index >= 0) &&
-          effect.path.startsWith(`${path}/`) &&
-          field !== undefined &&
-          Object.hasOwn(expected, field) &&
-          canonicalContent(expectedField) === canonicalContent(actualField));
-      effects[direct ? effect.kind : "derived"].push(effect);
+      const removedEntity =
+        removing && effect.kind === "deleted" && effect.path === path;
+      const requestedField =
+        (state !== undefined || index >= 0) &&
+        effect.path.startsWith(`${path}/`) &&
+        field !== undefined &&
+        Object.hasOwn(expected, field) &&
+        canonicalContent(expectedField) === canonicalContent(actualField);
+      if (removedEntity || requestedField) effects[effect.kind].push(effect);
+      else effects.derived.push(effect);
     }
   }
   return effects;
@@ -528,7 +750,8 @@ export const classifyMutationOutcome = (
   if (
     isBatchedNodeMutation(attempt.request.toolName) ||
     attempt.request.toolName === "removeArc" ||
-    isObservedStateMutation(attempt.request.toolName)
+    isObservedStateMutation(attempt.request.toolName) ||
+    isBatchedStateMutation(attempt.request.toolName)
   ) {
     try {
       return {
@@ -555,20 +778,30 @@ const observedArcEffectOutcome = (
   attempt: Omit<ConstructionMutationAttempt, "outcome">,
 ): ConstructionMutationAttempt["outcome"] => {
   const effects = attempt.effects;
-  if (attempt.request.toolName === "updateArcWeight") {
+  // An arc field update earns applied only as exactly one direct change to that field.
+  const singleFieldUpdate = (field: "weight" | "type", after: unknown) => {
     const change = effects.updated[0];
-    const input = mutationActionInputSchemas.updateArcWeight.parse(
-      attempt.request.input,
-    );
     return effects.derived.length === 0 &&
       effects.created.length === 0 &&
       effects.deleted.length === 0 &&
       effects.updated.length === 1 &&
       change?.kind === "updated" &&
-      change.path.endsWith("/weight") &&
-      change.after === input.weight
+      change.path.endsWith(`/${field}`) &&
+      change.after === after
       ? "applied"
       : "unknown";
+  };
+  if (attempt.request.toolName === "updateArcWeight") {
+    const input = mutationActionInputSchemas.updateArcWeight.parse(
+      attempt.request.input,
+    );
+    return singleFieldUpdate("weight", input.weight);
+  }
+  if (attempt.request.toolName === "updateArcType") {
+    const input = mutationActionInputSchemas.updateArcType.parse(
+      attempt.request.input,
+    );
+    return singleFieldUpdate("type", input.type);
   }
   if (
     effects.derived.length ||
@@ -620,7 +853,19 @@ export const verifyDefinitionObservation = async (
       "Transition observation hash does not match its definition.",
     );
   // The canonical parse above is what earns the SDCPN claim on the raw definition.
-  return { definition: detached.definition as SDCPN, sha256: detached.sha256 };
+  if (
+    detached.revisionId !== undefined &&
+    (typeof detached.revisionId !== "string" ||
+      detached.revisionId.trim().length === 0)
+  )
+    throw new Error("Transition observation has an invalid revision ID.");
+  return {
+    definition: detached.definition as SDCPN,
+    sha256: detached.sha256,
+    ...(detached.revisionId === undefined
+      ? {}
+      : { revisionId: detached.revisionId }),
+  };
 };
 
 /** Reconciliation only: never an alias or relaxation of mutation/base checks. */
@@ -663,7 +908,8 @@ export const verifyMutationAttempt = async <
   if (
     (!isBatchedArcMutation(attempt.request.toolName) &&
       !isBatchedNodeMutation(attempt.request.toolName) &&
-      !isObservedStateMutation(attempt.request.toolName)) ||
+      !isObservedStateMutation(attempt.request.toolName) &&
+      !isBatchedStateMutation(attempt.request.toolName)) ||
     !sha256Pattern.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,

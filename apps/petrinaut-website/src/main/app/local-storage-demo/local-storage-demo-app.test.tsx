@@ -14,10 +14,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { assistantSelectionStorageKey } from "./assistant-selection";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
@@ -35,8 +37,12 @@ import type {
   AgentConversationObservationSnapshot,
   FlueClient,
 } from "@flue/sdk";
+import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
-import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiMessage,
+} from "@hashintel/petrinaut/ui";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -45,10 +51,41 @@ const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
+const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
+const workedModelHook = vi.hoisted(() => ({
+  current: {
+    copy: null as null | {
+      bundleKey: string;
+      copyId: string;
+      conversationId: string;
+      documentId: string;
+      incarnationId: string;
+      fixtureVersion: string;
+      principalKey: string;
+      title: string;
+      definition: {
+        places: unknown[];
+        transitions: unknown[];
+        types: unknown[];
+        parameters: unknown[];
+        differentialEquations: unknown[];
+      };
+      definitionSha256: string;
+      revisionId: string;
+    },
+    error: null as Error | null,
+    loading: false,
+    createCleanCopy: vi.fn(async () => undefined),
+    persistDefinition: vi.fn(async () => undefined),
+  },
+}));
 
 vi.mock("@flue/sdk", () => ({
-  createFlueClient: () => flueClientMock.current,
+  createFlueClient: (options: unknown) => {
+    flueClientOptions.current = options;
+    return flueClientMock.current;
+  },
 }));
 
 const brunchPreviewConfig = vi.hoisted(() => ({
@@ -62,16 +99,22 @@ vi.mock("./brunch-preview-config", () => ({
 const editorProps = vi.hoisted(() => ({
   current: null as {
     aiAssistant?: unknown;
-    navigation?: unknown;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
       title: string;
     }) => void;
+    existingNets?: unknown;
+    handle?: unknown;
+    navigation?: unknown;
+    title?: string;
   } | null,
 }));
 
 vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
+}));
+vi.mock("./use-worked-model-copy", () => ({
+  useWorkedModelCopy: () => workedModelHook.current,
 }));
 
 vi.mock("./brunch-panel-transport", async (importOriginal) => {
@@ -124,7 +167,7 @@ const stubStorage = () => {
   } satisfies Storage);
 };
 
-const seedStoredNet = (incarnationId?: string) => {
+const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   stubStorage();
   localStorage.setItem(
     "petrinaut-sdcpn",
@@ -134,6 +177,7 @@ const seedStoredNet = (incarnationId?: string) => {
         title: "Seeded net",
         lastUpdated: "2020-01-01T00:00:00.000Z",
         ...(incarnationId === undefined ? {} : { incarnationId }),
+        ...(revisionId === undefined ? {} : { revisionId }),
         sdcpn: {
           places: [],
           transitions: [],
@@ -304,7 +348,10 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
+    expect([...brunchClientToolNames]).toEqual([
+      "read_petrinaut_docs",
+      "readPetrinautDoc",
+    ]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
@@ -594,6 +641,58 @@ describe("local storage demo URL navigation", () => {
   });
 });
 
+describe("local document revision persistence", () => {
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+  });
+
+  test("retains direct document changes across handle reopen", async () => {
+    flueClientOptions.current = null;
+    seedStoredNet("local-incarnation", "local-revision-1");
+    const firstView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
+    await waitFor(() => expect(flueClientOptions.current).not.toBeNull());
+    const headers = (
+      flueClientOptions.current as {
+        headers: () => Record<string, string>;
+      }
+    ).headers;
+    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe("local-revision-1");
+
+    act(() => {
+      firstHandle.change((draft) => {
+        draft.places.push({
+          id: "direct-place",
+          name: "Direct place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    const changedRevisionId = firstHandle.revisionId.get();
+    expect(changedRevisionId).not.toBe("local-revision-1");
+    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe(changedRevisionId);
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<string, { revisionId?: string }>;
+      expect(stored["net-1"]?.revisionId).toBe(changedRevisionId);
+    });
+
+    firstView.unmount();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+  });
+});
+
 describe("local storage demo prepared fixture", () => {
   afterEach(() => {
     cleanup();
@@ -740,7 +839,7 @@ describe("local storage demo prepared fixture", () => {
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(
       aiAssistant.automaticTools?.some(
-        ({ toolName }) => toolName === "mutate_petrinet",
+        ({ toolName }) => toolName === "mutate_petrinaut_net",
       ),
     ).toBe(true);
     expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
@@ -751,12 +850,264 @@ describe("local storage demo prepared fixture", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "applyAutoLayout",
       "getLatestNetDefinition",
+      "getNetCompilationErrors",
+      "layout_petrinaut_net",
+      "mutate_petrinaut_net",
       "mutate_petrinet",
       "readPetrinautDoc",
+      "read_petrinaut_diagnostics",
+      "read_petrinaut_docs",
+      "read_petrinaut_net",
     ]);
     expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
-      "mutate_petrinet",
+      "read_petrinaut_docs",
+      "read_petrinaut_net",
+      "read_petrinaut_diagnostics",
+      "mutate_petrinaut_net",
+      "layout_petrinaut_net",
     ]);
+  });
+});
+
+describe("worked-model bundle selection", () => {
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+    workedModelHook.current.copy = null;
+  });
+
+  test("opens the server-owned document and conversation selected by bundle", async () => {
+    stubStorage();
+    workedModelHook.current.createCleanCopy.mockClear();
+    workedModelHook.current.persistDefinition.mockClear();
+    workedModelHook.current.copy = {
+      bundleKey: "inventory-purchasing",
+      copyId: "copy-1",
+      conversationId: "bundle-conversation",
+      documentId: "bundle-document",
+      incarnationId: "bundle-incarnation",
+      fixtureVersion: "inventory-purchasing-v1",
+      principalKey: "test-principal",
+      title: "Inventory purchasing",
+      definition: {
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+      },
+      definitionSha256: "a".repeat(64),
+      revisionId: "bundle-revision",
+    };
+    flueClientMock.current = {
+      history: async () => ({
+        conversation: {
+          conversationId: "bundle-conversation",
+          settlements: [],
+          messages: [],
+        },
+        offset: "offset-0",
+      }),
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const assistant = editorProps.current?.aiAssistant as
+      | PetrinautAiAssistant
+      | undefined;
+    expect(assistant?.conversationId).toBe("bundle-conversation");
+    expect(assistant?.executeMutation).toBeDefined();
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.revisionId.get()).toBe("bundle-revision");
+    expect(editorProps.current?.existingNets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          netId: "bundle-document",
+          title: "Inventory purchasing",
+        }),
+      ]),
+    );
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "bundle-place",
+          name: "Bundle place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    expect(workedModelHook.current.persistDefinition).toHaveBeenCalledWith({
+      definition: expect.objectContaining({
+        places: [expect.objectContaining({ id: "bundle-place" })],
+      }),
+      previousRevisionId: "bundle-revision",
+      revisionId: handle.revisionId.get(),
+    });
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Create a clean copy of this worked model/u,
+      }),
+    );
+    expect(workedModelHook.current.createCleanCopy).toHaveBeenCalledOnce();
+  });
+});
+
+describe("assistant selection", () => {
+  const flueHistoryClient = (incarnationId: string) => ({
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  });
+  const switchAssistant = (label: RegExp) => {
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(screen.getByRole("button", { name: label }));
+  };
+  const currentAssistant = () =>
+    editorProps.current?.aiAssistant as PetrinautAiAssistant;
+
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+    brunchPanelTransportOptions.current = null;
+    brunchPreviewConfig.isBrunchConfigured = true;
+  });
+
+  test("Brunch is the default when configured; the stock assistant is the selectable alternate and mounts nothing of Brunch", async () => {
+    const incarnationId = "selection-incarnation";
+    seedStoredNet(incarnationId);
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeDefined(),
+    );
+    expect(localStorage.getItem(assistantSelectionStorageKey)).not.toBe(
+      "stock",
+    );
+    const brunchTransport = currentAssistant().transport;
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeUndefined(),
+    );
+    const stock = currentAssistant();
+    // The stock assistant's own transport and endpoint, not Brunch's.
+    expect(stock.transport).not.toBe(brunchTransport);
+    expect((defaultTransportOptions.current as { api: string }).api).toBe(
+      "/api/chat",
+    );
+    // Nothing Brunch-owned is mounted: no batch executor, no client tools,
+    // no Workpiece pane, no Voice, no durable Stop; messages are the local
+    // store's and can be cleared locally.
+    expect(stock.automaticTools).toEqual([]);
+    expect(stock.additionalTab).toBeUndefined();
+    expect(stock.renderVoiceMode).toBeUndefined();
+    expect(stock.requestStop).toBeUndefined();
+    expect(stock.followMessages).toBeUndefined();
+    expect(stock.canClearMessages).toBe(true);
+    // The preference persists as the host's own key.
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+    // Brunch demo affordances are gone with it.
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(
+      screen.queryByRole("button", { name: /Toggle Brunch demo mode/ }),
+    ).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+  });
+
+  test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
+    const incarnationId = "history-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => expect(currentAssistant()).toBeDefined());
+    const stock = currentAssistant();
+    expect(stock.executeMutation).toBeUndefined();
+
+    const stockMessage = {
+      id: "stock-1",
+      role: "user",
+      parts: [{ type: "text", text: "Stock assistant turn" }],
+    } as PetrinautAiMessage;
+    act(() => stock.onMessages?.([stockMessage]));
+    await waitFor(() =>
+      expect(currentAssistant().messages).toEqual([stockMessage]),
+    );
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
+    ).toEqual({ "net-1": [stockMessage] });
+
+    switchAssistant(/Use Brunch \(default assistant\)/);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeDefined(),
+    );
+    const brunch = currentAssistant();
+    // Brunch reads Flue history, which holds none of the stock turn; and a
+    // Brunch-side message write never reaches the local store.
+    expect(brunch.messages).not.toContainEqual(stockMessage);
+    act(() =>
+      brunch.onMessages?.([
+        { id: "brunch-1", role: "user", parts: [] } as PetrinautAiMessage,
+      ]),
+    );
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
+    ).toEqual({ "net-1": [stockMessage] });
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeUndefined(),
+    );
+    // The stock history is exactly as it was left.
+    expect(currentAssistant().messages).toEqual([stockMessage]);
+  });
+
+  test("without a configured Brunch endpoint there is no choice to make", () => {
+    brunchPreviewConfig.isBrunchConfigured = false;
+    seedStoredNet();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const stock = currentAssistant();
+    expect(stock.executeMutation).toBeUndefined();
+    expect(stock.automaticTools).toEqual([]);
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(
+      screen.queryByRole("button", {
+        name: /stock Petrinaut assistant|Use Brunch/,
+      }),
+    ).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
   });
 });

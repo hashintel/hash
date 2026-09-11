@@ -106,6 +106,26 @@ const requiredOf = (schema: Record<string, unknown>): string[] =>
     : [];
 
 describe("mutate_petrinet tool", () => {
+  test("admits the provisional 30-operation boundary and refuses 31", () => {
+    const firstOperation = input.operations[0];
+    if (!firstOperation) throw new Error("Missing test operation");
+    const operations = Array.from({ length: 31 }, (_, index) => ({
+      ...firstOperation,
+      operationId: `add-queue-${index}`,
+      input: { ...firstOperation.input, id: `queue-${index}` },
+    }));
+
+    expect(
+      mutatePetrinetInputSchema.parse({
+        ...input,
+        operations: operations.slice(0, 30),
+      }).operations,
+    ).toHaveLength(30);
+    expect(() =>
+      mutatePetrinetInputSchema.parse({ ...input, operations }),
+    ).toThrow(/30|too big|maximum/iu);
+  });
+
   test("admits only unique root operations with declared bases", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
@@ -178,6 +198,210 @@ describe("mutate_petrinet tool", () => {
         })
         .operations.map(({ type }) => type),
     ).toEqual(["removePlace", "removeTransition", "removeArc"]);
+    expect(
+      mutatePetrinetInputSchema
+        .parse({
+          ...input,
+          operations: [
+            {
+              operationId: "add-item",
+              basisId: "queue-basis",
+              type: "addType",
+              input: {
+                id: "item",
+                name: "Item",
+                iconSlug: "circle",
+                displayColor: "#1E90FF",
+                elements: [],
+              },
+            },
+            {
+              operationId: "add-rate",
+              basisId: "queue-basis",
+              type: "addParameter",
+              input: {
+                id: "rate",
+                name: "Rate",
+                variableName: "arrival_rate",
+                type: "real",
+                defaultValue: "1",
+              },
+            },
+            {
+              operationId: "add-decay",
+              basisId: "queue-basis",
+              type: "addDifferentialEquation",
+              input: {
+                id: "decay",
+                name: "Decay",
+                colorId: "item",
+                code: "return tokens.map(() => ({}));",
+              },
+            },
+            {
+              operationId: "repair-decay",
+              basisId: "queue-basis",
+              type: "updateDifferentialEquation",
+              input: {
+                equationId: "decay",
+                update: { code: "return tokens.map(() => ({}));" },
+              },
+            },
+          ],
+        })
+        .operations.map(({ type }) => type),
+    ).toEqual([
+      "addType",
+      "addParameter",
+      "addDifferentialEquation",
+      "updateDifferentialEquation",
+    ]);
+  });
+
+  test("admits edits to existing parts by ID, but not canvas positions or subnet targets", () => {
+    const edits = [
+      {
+        operationId: "rename-queue",
+        basisId: "queue-basis",
+        type: "updatePlace",
+        input: { placeId: "queue", update: { name: "Backlog" } },
+      },
+      {
+        operationId: "start-rate",
+        basisId: "queue-basis",
+        type: "updateTransition",
+        input: {
+          transitionId: "start",
+          update: { lambdaType: "stochastic", lambdaCode: "return 2;" },
+        },
+      },
+      {
+        operationId: "double-weight",
+        basisId: "queue-basis",
+        type: "updateArcWeight",
+        input: {
+          transitionId: "start",
+          arcDirection: "input",
+          placeId: "queue",
+          weight: 2,
+        },
+      },
+      {
+        operationId: "read-only",
+        basisId: "queue-basis",
+        type: "updateArcType",
+        input: { transitionId: "start", placeId: "queue", type: "read" },
+      },
+      {
+        operationId: "rename-item",
+        basisId: "queue-basis",
+        type: "updateType",
+        input: { typeId: "item", update: { name: "Lot" } },
+      },
+      {
+        operationId: "add-age",
+        basisId: "queue-basis",
+        type: "addTypeElement",
+        input: {
+          typeId: "item",
+          element: { elementId: "age", name: "age", type: "real" },
+        },
+      },
+      {
+        operationId: "rename-age",
+        basisId: "queue-basis",
+        type: "updateTypeElement",
+        input: {
+          typeId: "item",
+          elementId: "age",
+          update: { name: "age_days" },
+        },
+      },
+      {
+        operationId: "rename-rate",
+        basisId: "queue-basis",
+        type: "updateParameter",
+        input: {
+          parameterId: "rate",
+          update: { variableName: "daily_demand", defaultValue: "12" },
+        },
+      },
+      {
+        operationId: "drop-age",
+        basisId: "queue-basis",
+        type: "removeTypeElement",
+        input: { typeId: "item", elementId: "age" },
+      },
+      {
+        operationId: "drop-rate",
+        basisId: "queue-basis",
+        type: "removeParameter",
+        input: { parameterId: "rate" },
+      },
+      {
+        operationId: "drop-decay",
+        basisId: "queue-basis",
+        type: "removeDifferentialEquation",
+        input: { equationId: "decay" },
+      },
+      {
+        operationId: "drop-item",
+        basisId: "queue-basis",
+        type: "removeType",
+        input: { typeId: "item" },
+      },
+    ];
+    expect(
+      mutatePetrinetInputSchema
+        .parse({ ...input, operations: edits })
+        .operations.map(({ type }) => type),
+    ).toEqual(edits.map(({ type }) => type));
+    // An unadmitted operation is refused at its own position with the admitted
+    // list spelled out, so the model sees which operation was unsupported and
+    // what it may send instead. Nothing is applied.
+    for (const type of [
+      "updatePlacePosition",
+      "updateTransitionPosition",
+      "addScenario",
+      "moveTypeElement",
+    ]) {
+      const refused = mutatePetrinetInputSchema.safeParse({
+        ...input,
+        operations: [
+          input.operations[0],
+          {
+            operationId: "unsupported",
+            basisId: "queue-basis",
+            type,
+            input: {},
+          },
+        ],
+      });
+      expect(refused.success).toBe(false);
+      const issue = refused.error?.issues[0];
+      expect(issue?.path).toEqual(["operations", 1, "type"]);
+      expect(issue?.message).toMatch(/Invalid discriminator value/u);
+      expect(issue?.message).toContain("'updateParameter'");
+      expect(issue?.message).toContain("'removeType'");
+      expect(issue?.message).not.toContain(`'${type}'`);
+    }
+    expect(() =>
+      mutatePetrinetInputSchema.parse({
+        ...input,
+        operations: [
+          {
+            operationId: "nested",
+            basisId: "queue-basis",
+            type: "updatePlace",
+            input: {
+              placeId: "queue",
+              update: { name: "Backlog" },
+              targetSubnetId: "nested",
+            },
+          },
+        ],
+      }),
+    ).toThrow(/unrecognized|targetSubnetId/iu);
   });
 
   test("refuses the wrapped operation dialect and addArc endpoint shorthand", () => {
@@ -244,14 +468,14 @@ describe("mutate_petrinet tool", () => {
     const observation = property(root, "observation", root);
     const bases = property(root, "bases", root);
     const operations = property(root, "operations", root);
-    expect(observation?.description).toMatch(/getLatestNetDefinition/u);
+    expect(observation?.description).toMatch(/read_petrinaut_net/u);
     expect(bases?.description).toMatch(/basisId/u);
     expect(operations?.description).toMatch(
       /\{operationId, basisId, type, input\}/u,
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(6);
+    expect(variants.length).toBe(22);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),
@@ -289,6 +513,15 @@ describe("mutate_petrinet tool", () => {
     expect(requiredOf(removeArcInput)).toContain("placeId");
     expect(property(removeArcInput, "endpoint", root)).toBeUndefined();
     expect(asRecord(removeArcInput.properties)?.endpoint).toBeUndefined();
+    for (const name of ["updateArcWeight", "updateArcType"]) {
+      const variant = variants.find(
+        (candidate) => property(candidate, "type", root)?.const === name,
+      );
+      const arcInput = property(variant, "input", root);
+      if (!arcInput) throw new Error(`Missing ${name} input schema`);
+      expect(requiredOf(arcInput)).toContain("placeId");
+      expect(asRecord(arcInput.properties)?.endpoint).toBeUndefined();
+    }
   });
 
   test("validates the workpiece and exact prior observation before deferring", async () => {

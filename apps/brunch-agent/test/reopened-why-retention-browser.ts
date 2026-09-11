@@ -247,12 +247,12 @@ export const seedRetentionBrowser = async (options: {
     let verifiedReadCount = 0;
     faux.setResponses([
       retentionCall(
-        "brunch_workpiece",
+        "read_workpiece",
         { markdown: retentionMarkdown, locateTexts: [retentionQuote] },
         "retention-discover",
       ),
       (context) => {
-        const output = retentionOutput(context, "brunch_workpiece");
+        const output = retentionOutput(context, "read_workpiece");
         const source = (output.sources as { id: string; text: string }[]).find(
           (entry) => entry.text === retentionSource,
         );
@@ -269,7 +269,7 @@ export const seedRetentionBrowser = async (options: {
         assert(locator);
         verifiedReadCount++;
         return retentionCall(
-          "update_workpiece",
+          "mutate_workpiece",
           {
             markdown: retentionMarkdown,
             evidence: [
@@ -281,17 +281,17 @@ export const seedRetentionBrowser = async (options: {
         );
       },
       retentionCall(
-        "update_workpiece",
+        "mutate_workpiece",
         { markdown: `${retentionMarkdown}\n\nUnrelated appended context.` },
         "retention-revision-2",
       ),
       retentionCall(
-        "brunch_workpiece",
+        "read_workpiece",
         { locateTexts: [retentionQuote] },
         "retention-settled-locator",
       ),
       (context) => {
-        const output = retentionOutput(context, "brunch_workpiece");
+        const output = retentionOutput(context, "read_workpiece");
         governing = output.currentWorkpiece as WorkpieceRevision;
         assert.equal(governing.revisionId, "retention-revision-2");
         assert.equal(governing.evidenceValidated, true);
@@ -374,7 +374,7 @@ export const seedRetentionBrowser = async (options: {
     save("canonical-post", attempt.post);
     faux.setResponses([
       retentionCall(
-        "update_workpiece",
+        "mutate_workpiece",
         {
           markdown: `${governing.markdown}\n\nLater unrelated context; no retroactive basis.`,
         },
@@ -382,7 +382,7 @@ export const seedRetentionBrowser = async (options: {
       ),
       retentionCall("getLatestNetDefinition", {}, "retention-live-read"),
       retentionCall(
-        "brunch_why",
+        "query_workpiece",
         { ...retentionQuery, observationToolCallId: "retention-live-read" },
         "retention-live-why",
       ),

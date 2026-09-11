@@ -19,7 +19,9 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  isReadPetrinautNetToolName,
   parseClientToolResultMetadata,
+  readPetrinautNetToolName,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -34,7 +36,6 @@ import {
   createWorkpieceReadTool,
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { selectChatModel } from "../../chat-model.ts";
 import {
@@ -49,14 +50,13 @@ import {
   NET_STALE_SIGNAL,
   netStaleSignalBody,
 } from "../../conversation/net-freshness.ts";
+import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
+import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
 import {
   verifyRootArcResults,
   assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
-import {
-  createRootArcWhyTool,
-  recordedBrowserObservation,
-} from "../../conversation/why.ts";
+import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -103,7 +103,7 @@ export function ChatAgent({ id }: AgentProps) {
       }),
     );
     for (const result of results) {
-      if (result.toolName !== getLatestNetDefinitionToolName) continue;
+      if (!isReadPetrinautNetToolName(result.toolName)) continue;
       activeObservationCallIds.push(result.toolCallId);
       if (parseClientToolResultMetadata(result.metadata)?.observation)
         suppliedObservationCallIds.push(result.toolCallId);
@@ -153,7 +153,7 @@ export function ChatAgent({ id }: AgentProps) {
       if (browserContext) {
         useTool(createWorkpieceReadTool({ currentRevision, readSources }));
         useTool(
-          createRootArcWhyTool({
+          createQueryWorkpieceTool({
             current: currentRevision,
             browser: browserContext,
             history,
@@ -177,6 +177,7 @@ export function ChatAgent({ id }: AgentProps) {
       const freshness = await deriveNetFreshness(
         await history(),
         browserContext,
+        takeReportedDocumentRevision(id),
       );
       if (freshness.kind !== "current")
         append({
@@ -230,9 +231,15 @@ export function ChatAgent({ id }: AgentProps) {
 Call ping when you need to confirm the server tool path.
 Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
 A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${getLatestNetDefinitionToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${getLatestNetDefinitionToolName} result in this conversation is the current net.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${readPetrinautNetToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${readPetrinautNetToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
+  if (browserContext)
+    useInstruction(
+      `
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call read_petrinaut_net and nothing else, then end your response; query_workpiece is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call query_workpiece citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+`.replace(/^\s+|\s+$/gu, ""),
+    );
   useTool(ping);
 
   return coreSystemPrompt;

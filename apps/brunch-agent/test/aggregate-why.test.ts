@@ -9,12 +9,48 @@ import {
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
-  explainRootArc,
+  queryWorkpiece,
   type RootArcExplanation,
 } from "../src/conversation/why.ts";
 import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const withAttemptPostRevision = (
+  source: FlueConversationSnapshot,
+  toolCallId: string,
+  revisionId: string,
+): FlueConversationSnapshot => {
+  const next = structuredClone(source);
+  for (const message of next.messages) {
+    for (const part of message.parts) {
+      if (part.type !== "text") continue;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(part.text);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(parsed)) continue;
+      const result = parsed.find(
+        (entry) => isRecord(entry) && entry.toolCallId === toolCallId,
+      );
+      if (!isRecord(result) || !isRecord(result.metadata)) continue;
+      const mutationRecord = result.metadata.mutationRecord;
+      if (!isRecord(mutationRecord) || !Array.isArray(mutationRecord.attempts))
+        continue;
+      for (const attempt of mutationRecord.attempts) {
+        if (isRecord(attempt) && isRecord(attempt.post))
+          attempt.post.revisionId = revisionId;
+      }
+      (part as { text: string }).text = JSON.stringify(parsed);
+    }
+  }
+  return next;
+};
 
 // Untouched actual browser capture; never imported into a product store.
 const snapshot = JSON.parse(
@@ -38,7 +74,7 @@ const binding = (
 if (!binding) throw new Error("Missing actual document binding");
 const browser = { binding, construction: true as const };
 const explain = (query: unknown) =>
-  explainRootArc({
+  queryWorkpiece({
     snapshot,
     current,
     browser,
@@ -56,7 +92,7 @@ test("supports an entity origin without inheriting its derived child fields", as
   );
   if (!creationRevision) throw new Error("Missing creation revision");
 
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot: creationSnapshot,
     current: creationRevision,
     browser,
@@ -69,12 +105,52 @@ test("supports an entity origin without inheriting its derived child fields", as
 
   expect(answer.disposition).toBe("partially-supported");
   expect(answer.originToolCallId).toBe("typed-scenario");
+  expect(answer.targetMutationAttemptIds).toEqual(["typed-scenario"]);
   expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
   expect(
     answer.recordedChange?.effects.derived.some(({ path }) =>
       path.endsWith("/parameterOverrides"),
     ),
   ).toBe(true);
+});
+
+test("distinguishes Petrinaut document revisions from mutation-attempt identities", async () => {
+  const creationSnapshot = withAttemptPostRevision(
+    {
+      ...snapshot,
+      messages: snapshot.messages.slice(0, 25),
+    },
+    "typed-scenario",
+    "petrinaut-scenario-revision",
+  );
+  const creationRevision = retainedSettledRevision(
+    creationSnapshot,
+    "typed-revision-one",
+  );
+  if (!creationRevision) throw new Error("Missing creation revision");
+
+  const answer = await queryWorkpiece({
+    snapshot: creationSnapshot,
+    current: creationRevision,
+    browser,
+    query: parseConstructionWhyInput({
+      kind: "scenario",
+      name: "TestInitial",
+      field: "entity",
+    }),
+  });
+
+  expect(answer.targetMutationAttemptIds).toEqual(["typed-scenario"]);
+  expect(answer.targetPetrinautRevisionIds).toEqual([
+    "petrinaut-scenario-revision",
+  ]);
+  expect(answer.appliedChanges).toEqual([
+    expect.objectContaining({
+      toolCallId: "typed-scenario",
+      mutationAttemptId: "typed-scenario",
+      petrinautRevisionId: "petrinaut-scenario-revision",
+    }),
+  ]);
 });
 
 test.each([
@@ -151,6 +227,20 @@ test("keeps explicit and derived leaf causes separate beneath the refused row", 
   expect(explicit.recordedChange?.toolCallId).toBe("typed-explicit-initial");
   expect(explicit.governing?.revisionId).toBe("typed-revision-two");
   expect(explicit.originToolCallId).toBe("typed-scenario");
+  expect(explicit.targetMutationAttemptIds).toEqual([
+    "typed-scenario",
+    "typed-active",
+    "typed-integer",
+    "typed-explicit-initial",
+  ]);
+  expect(explicit.workpieceRevisionTurns).toEqual({
+    revisionId: "typed-revision-two",
+    startTurn: 2,
+    endTurn: 2,
+    userMessageIds: [
+      "entry_direct_c3ViX2lrX2U1ZGE2NTYwN2UwMGEyMjRiOTdiMTJlOGM4NTgxMTZi",
+    ],
+  });
   const derived = await explain({
     kind: "scenario",
     name: "TestInitial",
@@ -191,7 +281,7 @@ test("existing transition arc aggregates cannot inherit their empty creation bas
   ) as RootArcExplanation[];
   if (!prior) throw new Error("Missing actual root explanation fixture");
   const explainField = (field: string) =>
-    explainRootArc({
+    queryWorkpiece({
       snapshot: rootSnapshot,
       current: prior.currentWorkpiece,
       browser: { binding: prior.binding, construction: true },
@@ -225,14 +315,14 @@ test("preserves exact live observation reconciliation while refusing aggregate b
     field: "initialState",
     observationToolCallId: "typed-reopened-read",
   });
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot,
     current,
     browser,
     query,
     activeObservationCallIds: ["typed-reopened-read"],
   });
-  const leaf = await explainRootArc({
+  const leaf = await queryWorkpiece({
     snapshot,
     current,
     browser,

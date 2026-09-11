@@ -391,7 +391,7 @@ try {
         foreign.send({
           message: {
             kind: "user",
-            body: "TEST forbidden request for brunch_workpiece and brunch_why",
+            body: "TEST forbidden request for read_workpiece and query_workpiece",
           },
         }),
       );
@@ -421,8 +421,8 @@ try {
       const priorQueryIds = tools(await client.history())
         .filter(
           (part) =>
-            part.toolName === "brunch_workpiece" ||
-            part.toolName === "brunch_why",
+            part.toolName === "read_workpiece" ||
+            part.toolName === "query_workpiece",
         )
         .map((part) => part.toolCallId);
       const beforeContext = contexts.length;
@@ -432,18 +432,18 @@ try {
       const refusedId = `${label}-unknown-observation-why`;
       responses.push(
         retentionCall(
-          "brunch_workpiece",
+          "read_workpiece",
           { locateTexts: [retentionQuote] },
           readId,
         ),
-        retentionCall("brunch_why", retentionQuery, whyId),
+        retentionCall("query_workpiece", retentionQuery, whyId),
         retentionCall(
-          "brunch_why",
+          "query_workpiece",
           { ...retentionQuery, observationToolCallId: "retention-live-read" },
           oldId,
         ),
         retentionCall(
-          "brunch_why",
+          "query_workpiece",
           {
             ...retentionQuery,
             observationToolCallId: "TEST-not-an-observed-read",
@@ -505,10 +505,10 @@ try {
         .slice(beforeContext)
         .filter((entry) => entry.purpose === "agent");
       for (const [name, id, expected] of [
-        ["brunch_workpiece", readId, read],
-        ["brunch_why", whyId, why],
-        ["brunch_why", oldId, old],
-        ["brunch_why", refusedId, refused],
+        ["read_workpiece", readId, read],
+        ["query_workpiece", whyId, why],
+        ["query_workpiece", oldId, old],
+        ["query_workpiece", refusedId, refused],
       ] as const) {
         assert(
           actual.some((entry) =>
@@ -552,8 +552,8 @@ try {
           !request.context.messages.some(
             (message) =>
               message.role === "toolResult" &&
-              (message.toolName === "brunch_workpiece" ||
-                message.toolName === "brunch_why"),
+              (message.toolName === "read_workpiece" ||
+                message.toolName === "query_workpiece"),
           ),
           "No prior workpiece/why tool result may substitute for authorized history",
         );
@@ -752,7 +752,7 @@ try {
         [settlement],
       );
     const completedNames = new Set([
-      "update_workpiece",
+      "mutate_workpiece",
       "addArc",
       "getLatestNetDefinition",
     ]);

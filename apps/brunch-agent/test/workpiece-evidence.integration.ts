@@ -102,12 +102,12 @@ const observations: unknown[] = [];
 try {
   faux.setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: ["missing current"] },
       "unavailable-locators",
     ),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       assert.equal(result.currentWorkpiece, null);
       const lookup = result.locatorLookup as {
         subject: { kind: string };
@@ -143,12 +143,12 @@ try {
   );
   faux.setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { markdown, locateTexts: ["Reserve one crew."] },
       "discover-sources",
     ),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       const lookup = result.locatorLookup as {
         subject: { kind: string; revisionId?: string };
         queries: {
@@ -187,7 +187,7 @@ try {
       );
       sourceId = source.id;
       return call(
-        "update_workpiece",
+        "mutate_workpiece",
         {
           markdown,
           evidence: expectedEvidence(),
@@ -196,12 +196,12 @@ try {
       );
     },
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: ["Reserve one crew."] },
       "read-settled",
     ),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
         expectedEvidence(),
@@ -238,7 +238,7 @@ try {
   );
   faux.setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       {
         markdown: "# A different unsettled candidate",
         locateTexts: ["candidate"],
@@ -246,7 +246,7 @@ try {
       "candidate-not-authority",
     ),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       const lookup = result.locatorLookup as {
         subject: { kind: string; revisionId?: string; ordinal?: number };
         sha256: string;
@@ -331,10 +331,10 @@ try {
     ],
   ] as const) {
     faux.setResponses([
-      call("update_workpiece", { markdown, evidence }, `refused-${label}`),
-      call("brunch_workpiece", {}, `state-after-${label}`),
+      call("mutate_workpiece", { markdown, evidence }, `refused-${label}`),
+      call("read_workpiece", {}, `state-after-${label}`),
       (context) => {
-        const result = toolResult(context, "brunch_workpiece");
+        const result = toolResult(context, "read_workpiece");
         assert.equal(
           (result.currentWorkpiece as { revisionId: string }).revisionId,
           "evidence-revision",
@@ -353,13 +353,13 @@ try {
   }
   faux.setResponses([
     call(
-      "update_workpiece",
+      "mutate_workpiece",
       { markdown: `${markdown}\nUnrelated context.` },
       "carried-revision",
     ),
-    call("brunch_workpiece", {}, "read-carried"),
+    call("read_workpiece", {}, "read-carried"),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
         expectedEvidence(),
@@ -383,9 +383,9 @@ try {
   await application.stop();
   application = await loadBuiltBrunchApplication();
   faux.setResponses([
-    call("brunch_workpiece", {}, "reopened-current"),
+    call("read_workpiece", {}, "reopened-current"),
     (context) => {
-      const result = toolResult(context, "brunch_workpiece");
+      const result = toolResult(context, "read_workpiece");
       assert.equal(
         (result.currentWorkpiece as { revisionId: string }).revisionId,
         "carried-revision",

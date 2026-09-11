@@ -19,16 +19,18 @@ describe("the authored elicitation skill", () => {
 
   test("owns shared workpiece settlement, evidence and locator guidance", () => {
     const instructions = elicitationSkill.instructions;
-    expect(instructions).toContain("`update_workpiece`");
+    expect(instructions).toContain("`mutate_workpiece`");
     expect(instructions).toContain(
       "as soon as one consequential distinction exists",
     );
     expect(instructions).toContain(
       "after each useful stretch or correction and before delivery",
     );
-    expect(instructions).toContain("full current Markdown account");
+    expect(instructions).toContain("full next Markdown account");
+    expect(instructions).toContain("current `baseRevisionId`");
+    expect(instructions).toContain("prior/next hashes and changed window");
     expect(instructions).toContain("`revisionId` and `sha256`");
-    expect(instructions).toContain("Read back with `brunch_workpiece`");
+    expect(instructions).toContain("Read back with `read_workpiece`");
     expect(instructions).toContain(
       "unsettled `markdown` candidate and `locateTexts`",
     );

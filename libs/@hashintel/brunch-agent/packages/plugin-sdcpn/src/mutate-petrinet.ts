@@ -1,13 +1,23 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
+import {
+  mutationActionInputSchemas,
+  parameterSchema,
+} from "@hashintel/petrinaut-core";
 
 import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
 export const batchedConstructionMode = "batched-construction";
-export const mutatePetrinetToolName = "mutate_petrinet";
+export const mutatePetrinautNetToolName = "mutate_petrinaut_net";
+/** @deprecated Use `mutatePetrinautNetToolName`. */
+export const mutatePetrinetToolName = mutatePetrinautNetToolName;
+export const legacyMutatePetrinautNetToolName = "mutate_petrinet";
 
-/** Per-operation attempt identity retained under one outer `mutate_petrinet` call. */
+export const isMutatePetrinautNetToolName = (name: string): boolean =>
+  name === mutatePetrinautNetToolName ||
+  name === legacyMutatePetrinautNetToolName;
+
+/** Per-operation attempt identity retained under one outer `mutate_petrinaut_net` call. */
 export const mutatePetrinetAttemptCallId = (
   toolCallId: string,
   operationId: string,
@@ -79,6 +89,26 @@ const rootRemoveTransitionInputSchema =
     targetSubnetId: true,
   });
 
+const rootAddTypeInputSchema = mutationActionInputSchemas.addType.omit({
+  targetSubnetId: true,
+});
+
+// Zod 4.4.3 throws on `.omit()` here because addParameter carries a
+// default-value refinement. The root form is the parameter schema itself.
+const rootAddParameterInputSchema = parameterSchema.meta({
+  description: "Add a net-level parameter available to SDCPN code.",
+});
+
+const rootAddDifferentialEquationInputSchema =
+  mutationActionInputSchemas.addDifferentialEquation.omit({
+    targetSubnetId: true,
+  });
+
+const rootUpdateDifferentialEquationInputSchema =
+  mutationActionInputSchemas.updateDifferentialEquation.omit({
+    targetSubnetId: true,
+  });
+
 const removeArcShape = mutationActionInputSchemas.removeArc.shape;
 const rootRemoveArcInputSchema = z
   .strictObject({
@@ -89,6 +119,84 @@ const rootRemoveArcInputSchema = z
     }),
   })
   .meta({ description: "Remove an input or output arc from a transition." });
+
+// Edits to existing parts of the net. Each names the part by ID and carries
+// only the fields to change; canvas positions stay with layout.
+const rootUpdatePlaceInputSchema = mutationActionInputSchemas.updatePlace.omit({
+  targetSubnetId: true,
+});
+
+const rootUpdateTransitionInputSchema =
+  mutationActionInputSchemas.updateTransition.omit({
+    targetSubnetId: true,
+  });
+
+// Both arc updates carry the single-endpoint `.check()`; rebuild from `.shape`
+// as addArc does and keep the root-place endpoint only.
+const updateArcWeightShape = mutationActionInputSchemas.updateArcWeight.shape;
+const rootUpdateArcWeightInputSchema = z
+  .strictObject({
+    transitionId: updateArcWeightShape.transitionId,
+    arcDirection: updateArcWeightShape.arcDirection,
+    placeId: z.string().min(1).meta({
+      description: "ID of a place in the root net.",
+    }),
+    weight: updateArcWeightShape.weight,
+  })
+  .meta({ description: "Update the token weight on an existing arc." });
+
+const updateArcTypeShape = mutationActionInputSchemas.updateArcType.shape;
+const rootUpdateArcTypeInputSchema = z
+  .strictObject({
+    transitionId: updateArcTypeShape.transitionId,
+    placeId: z.string().min(1).meta({
+      description: "ID of a place in the root net.",
+    }),
+    type: updateArcTypeShape.type,
+  })
+  .meta({
+    description:
+      "Update an existing input arc's type (standard, read or inhibitor).",
+  });
+
+const rootUpdateTypeInputSchema = mutationActionInputSchemas.updateType.omit({
+  targetSubnetId: true,
+});
+
+const rootAddTypeElementInputSchema =
+  mutationActionInputSchemas.addTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootUpdateTypeElementInputSchema =
+  mutationActionInputSchemas.updateTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootUpdateParameterInputSchema =
+  mutationActionInputSchemas.updateParameter.omit({
+    targetSubnetId: true,
+  });
+
+// Removals of net-level state; Petrinaut clears the references they leave.
+const rootRemoveTypeInputSchema = mutationActionInputSchemas.removeType.omit({
+  targetSubnetId: true,
+});
+
+const rootRemoveTypeElementInputSchema =
+  mutationActionInputSchemas.removeTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootRemoveParameterInputSchema =
+  mutationActionInputSchemas.removeParameter.omit({
+    targetSubnetId: true,
+  });
+
+const rootRemoveDifferentialEquationInputSchema =
+  mutationActionInputSchemas.removeDifferentialEquation.omit({
+    targetSubnetId: true,
+  });
 
 const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
@@ -127,6 +235,102 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("removeArc"),
     input: rootRemoveArcInputSchema,
   }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addType"),
+    input: rootAddTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addParameter"),
+    input: rootAddParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addDifferentialEquation"),
+    input: rootAddDifferentialEquationInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateDifferentialEquation"),
+    input: rootUpdateDifferentialEquationInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updatePlace"),
+    input: rootUpdatePlaceInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateTransition"),
+    input: rootUpdateTransitionInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateArcWeight"),
+    input: rootUpdateArcWeightInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateArcType"),
+    input: rootUpdateArcTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateType"),
+    input: rootUpdateTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addTypeElement"),
+    input: rootAddTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateTypeElement"),
+    input: rootUpdateTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateParameter"),
+    input: rootUpdateParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeType"),
+    input: rootRemoveTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeTypeElement"),
+    input: rootRemoveTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeParameter"),
+    input: rootRemoveParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeDifferentialEquation"),
+    input: rootRemoveDifferentialEquationInputSchema,
+  }),
 ]);
 
 /** Browser-safe selected batch carrier; execution remains split across Flue and the host. */
@@ -139,7 +343,7 @@ export const mutatePetrinetInputSchema = z
       })
       .meta({
         description:
-          "The exact preceding getLatestNetDefinition browser result this batch cites. toolCallId is that call's id; baseHash is the independently observed definition hash from that result.",
+          "The exact preceding read_petrinaut_net browser result this batch cites. toolCallId is that call's id; baseHash is the independently observed definition hash from that result.",
       }),
     bases: z
       .array(

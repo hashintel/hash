@@ -82,6 +82,7 @@ export const settleWorkpieceEvidence = async (
 /** Ceiling in UTF-8 bytes, before hashing; whitespace and line endings are preserved. */
 export const workpieceMarkdownByteCeiling = 262_144;
 export const updateWorkpieceInputSchema = v.object({
+  baseRevisionId: v.optional(v.nullable(v.string())),
   markdown: v.pipe(
     v.string(),
     v.check((markdown) => /\S/u.test(markdown), "Markdown must not be empty."),
@@ -97,6 +98,76 @@ export const updateWorkpieceInputSchema = v.object({
   ),
   evidence: v.optional(v.array(evidenceRelationSchema)),
 });
+
+export const workpieceMutationSchema = v.object({
+  baseRevisionId: v.nullable(v.string()),
+  beforeSha256: v.nullable(v.string()),
+  afterSha256: v.string(),
+  commonPrefixUtf16: v.number(),
+  commonSuffixUtf16: v.number(),
+  removed: v.object({
+    start: v.number(),
+    end: v.number(),
+    utf16Length: v.number(),
+    sha256: v.string(),
+  }),
+  inserted: v.object({
+    start: v.number(),
+    end: v.number(),
+    utf16Length: v.number(),
+    sha256: v.string(),
+  }),
+});
+
+export type WorkpieceMutation = v.InferOutput<typeof workpieceMutationSchema>;
+
+const sha256 = (content: string): string =>
+  createHash("sha256").update(content, "utf8").digest("hex");
+
+export const deriveWorkpieceMutation = (
+  previous: WorkpieceRevision | null,
+  markdown: string,
+): WorkpieceMutation => {
+  const before = previous?.markdown ?? "";
+  let commonPrefixUtf16 = 0;
+  while (
+    commonPrefixUtf16 < before.length &&
+    commonPrefixUtf16 < markdown.length &&
+    before[commonPrefixUtf16] === markdown[commonPrefixUtf16]
+  )
+    commonPrefixUtf16 += 1;
+  let commonSuffixUtf16 = 0;
+  while (
+    commonSuffixUtf16 < before.length - commonPrefixUtf16 &&
+    commonSuffixUtf16 < markdown.length - commonPrefixUtf16 &&
+    before[before.length - commonSuffixUtf16 - 1] ===
+      markdown[markdown.length - commonSuffixUtf16 - 1]
+  )
+    commonSuffixUtf16 += 1;
+  const removedEnd = before.length - commonSuffixUtf16;
+  const insertedEnd = markdown.length - commonSuffixUtf16;
+  const removed = before.slice(commonPrefixUtf16, removedEnd);
+  const inserted = markdown.slice(commonPrefixUtf16, insertedEnd);
+  return {
+    baseRevisionId: previous?.revisionId ?? null,
+    beforeSha256: previous?.sha256 ?? null,
+    afterSha256: sha256(markdown),
+    commonPrefixUtf16,
+    commonSuffixUtf16,
+    removed: {
+      start: commonPrefixUtf16,
+      end: removedEnd,
+      utf16Length: removed.length,
+      sha256: sha256(removed),
+    },
+    inserted: {
+      start: commonPrefixUtf16,
+      end: insertedEnd,
+      utf16Length: inserted.length,
+      sha256: sha256(inserted),
+    },
+  };
+};
 
 export const workpieceLocatorTextsSchema = v.pipe(
   v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
@@ -163,7 +234,7 @@ export const prepareWorkpieceRevision = (
   }
   return {
     revisionId: toolCallId,
-    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    sha256: sha256(markdown),
     markdown,
     ...(evidence === undefined ? {} : { evidence }),
   };

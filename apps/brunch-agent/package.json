@@ -10,6 +10,7 @@
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "fixture:worked-model": "node --experimental-strip-types src/evaluations/persona/create-worked-model-fixture.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "persona": "node --experimental-strip-types src/evaluations/persona/launch.ts",
@@ -23,6 +24,7 @@
     "start:test": "NODE_ENV=test PORT=3002 node dist/server.mjs",
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:3002/health",
     "test:browser-tracer": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-tracer.ts",
+    "test:compiler-feedback": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/compiler-feedback.integration.ts",
     "test:construction-progression": "node --experimental-strip-types test/construction-progression.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:history-retention-new-records": "A4_NEW_RECORDS_ONLY=1 node --experimental-strip-types test/browser-tracer.ts",
@@ -36,6 +38,7 @@
     "test:root-creation": "node --experimental-strip-types test/root-creation.integration.ts",
     "test:typed-state": "node --experimental-strip-types test/typed-state.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
+    "test:worked-model-copy": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/worked-model-copy.integration.ts",
     "test:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },

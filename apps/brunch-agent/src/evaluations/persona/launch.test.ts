@@ -5,11 +5,39 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
+  documentIdFromInitialData,
   paneIdFrom,
   personaArguments,
   readPersonaCase,
   responds,
 } from "./launch.ts";
+
+test("locates the bound Petrinaut document in supported persona modes", () => {
+  expect(
+    documentIdFromInitialData({
+      mode: "batched-construction",
+      construction: {
+        binding: {
+          conversationId: "conversation",
+          documentId: "document-construction",
+          incarnationId: "incarnation",
+        },
+      },
+    }),
+  ).toBe("document-construction");
+  expect(
+    documentIdFromInitialData({
+      browser: {
+        binding: {
+          conversationId: "conversation",
+          documentId: "document-browser",
+          incarnationId: "incarnation",
+        },
+      },
+    }),
+  ).toBe("document-browser");
+  expect(documentIdFromInitialData({})).toBeUndefined();
+});
 
 const loadingRuntimeUnavailable = {
   error: { type: "runtime_unavailable", meta: { state: "loading" } },

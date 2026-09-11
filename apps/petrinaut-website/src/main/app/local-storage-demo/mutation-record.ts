@@ -5,8 +5,12 @@ import {
   assertMutationEffects,
   canonicalContent,
   classifyMutationOutcome,
+  deriveLayoutEffects,
   deriveMutationEffects,
-  mutatePetrinetToolName,
+  isLayoutPetrinautNetToolName,
+  isMutatePetrinautNetToolName,
+  isReadPetrinautNetToolName,
+  mutatePetrinautNetToolName,
   observedMutationOutcome,
   parseJoinedRootArcInput,
   parseObservedArcInput,
@@ -47,6 +51,7 @@ export const observeBrowserDefinition = (
     sha256: bytesToHex(
       sha256(new TextEncoder().encode(JSON.stringify(definition))),
     ),
+    revisionId: handle.revisionId.get(),
   };
 };
 
@@ -318,6 +323,8 @@ export const createJoinedBrowserMutationRecorder = (input: {
   const requestedBaseHash = input.requestedBaseHash;
   const issuedReads = new Set<string>();
   const observedReads = new Map<string, string>();
+  /** Live observation taken when the layout call was issued, before the browser ran it. */
+  const issuedLayouts = new Map<string, DefinitionObservation>();
   const issued = new Map<
     string,
     { request: ConstructionMutationRequest; envelope: unknown }
@@ -343,8 +350,16 @@ export const createJoinedBrowserMutationRecorder = (input: {
   const mapClientToolInput: NonNullable<
     FlueChatTransportOptions["mapClientToolInput"]
   > = (call) => {
-    if (call.toolName === "getLatestNetDefinition") {
+    if (isReadPetrinautNetToolName(call.toolName)) {
       issuedReads.add(call.toolCallId);
+      return call.input;
+    }
+    if (isLayoutPetrinautNetToolName(call.toolName)) {
+      if (!issuedLayouts.has(call.toolCallId))
+        issuedLayouts.set(
+          call.toolCallId,
+          observeBrowserDefinition(input.handle),
+        );
       return call.input;
     }
     if (
@@ -388,7 +403,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
   const clientToolResultMetadata: NonNullable<
     FlueChatTransportOptions["clientToolResultMetadata"]
   > = (result) => {
-    if (result.toolName === "getLatestNetDefinition") {
+    if (isReadPetrinautNetToolName(result.toolName)) {
       if (!issuedReads.has(result.toolCallId))
         throw new Error("Unknown issued browser read.");
       const observed = observeBrowserDefinition(input.handle);
@@ -407,7 +422,31 @@ export const createJoinedBrowserMutationRecorder = (input: {
         observation: { toolCallId: result.toolCallId, binding, observed },
       } satisfies ClientToolResultMetadata;
     }
-    if (result.toolName === mutatePetrinetToolName) {
+    if (isLayoutPetrinautNetToolName(result.toolName)) {
+      const pre = issuedLayouts.get(result.toolCallId);
+      if (!pre) throw new Error("Unknown issued browser layout command.");
+      const post = observeBrowserDefinition(input.handle);
+      return {
+        layoutRecord: {
+          toolCallId: result.toolCallId,
+          binding,
+          pre,
+          post,
+          effects: deriveLayoutEffects(pre.definition, post.definition),
+        },
+      } satisfies ClientToolResultMetadata;
+    }
+    if (isMutatePetrinautNetToolName(result.toolName)) {
+      const reported =
+        typeof result.output === "object" &&
+        result.output !== null &&
+        "postHash" in result.output
+          ? result.output.postHash
+          : undefined;
+      if (reported !== observeBrowserDefinition(input.handle).sha256)
+        throw new Error(
+          "The document changed after the mutate_petrinaut_net result reported its final hash.",
+        );
       const prefix = `${result.toolCallId}:`;
       const attempts = recorder
         .records()
@@ -417,7 +456,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
         .flatMap((record) => record.attempts);
       if (attempts.length === 0)
         throw new Error(
-          "A mutate_petrinet result requires observed browser mutation records.",
+          "A mutate_petrinaut_net result requires observed browser mutation records.",
         );
       const outcome = attempts.some((attempt) => attempt.outcome === "unknown")
         ? "unknown"
@@ -467,7 +506,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
             "updatePlace",
             "addTransition",
             "updateTransition",
-            mutatePetrinetToolName,
+            mutatePetrinautNetToolName,
             ...observedStateMutationNames,
           ]
         : ["addArc"],

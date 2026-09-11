@@ -1,12 +1,14 @@
 import { useLocalStorage } from "@mantine/hooks";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
   /** Assigned when a construction-bound document is created or first opened. */
   incarnationId?: string;
+  /** Petrinaut revision retained when the document handle is reopened. */
+  revisionId?: DocumentRevisionId;
   /** Immutable request base for the single prepared root-arc tracer. */
   rootArcRequestedBaseHash?: string;
   /**
@@ -58,6 +60,7 @@ export const createLocalStorageNetRecord = (params: {
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
     incarnationId: crypto.randomUUID(),
+    revisionId: crypto.randomUUID(),
   };
 };
 
