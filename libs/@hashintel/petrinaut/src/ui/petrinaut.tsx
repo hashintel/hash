@@ -4,7 +4,10 @@ import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
 
-import { PortalContainerContext } from "@hashintel/ds-components";
+import {
+  PortalContainerContext,
+  useCustomScrollbarUI,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
@@ -161,6 +164,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
+  useCustomScrollbarUI();
+
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
     () => createPetrinaut({ document: handle, readonly }),

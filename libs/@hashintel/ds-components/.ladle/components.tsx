@@ -4,6 +4,7 @@ import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 
+import { useCustomScrollbarUI } from "../src/util/use-custom-scrollbar-ui";
 import "./index.css";
 
 /**
@@ -14,6 +15,8 @@ export const Provider: GlobalProvider = ({
   children,
   globalState: { theme },
 }) => {
+  useCustomScrollbarUI();
+
   useLayoutEffect(() => {
     const root = document.documentElement;
 

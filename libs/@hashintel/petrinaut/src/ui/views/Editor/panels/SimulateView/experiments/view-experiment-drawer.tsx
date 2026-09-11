@@ -32,7 +32,6 @@ const metricsScrollStyle = css({
   flex: "[1]",
   minHeight: "[160px]",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
 });
 
 // Keeps its footprint when a run can no longer be cancelled, so Remove and

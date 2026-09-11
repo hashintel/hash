@@ -43,7 +43,6 @@ const fixedSectionStyle = css({
 const stepsScrollStyle = css({
   flex: "[1]",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
