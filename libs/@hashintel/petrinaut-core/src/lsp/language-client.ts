@@ -89,6 +89,12 @@ export interface LanguageClient {
   killConstraintSession(this: void, sessionId: string): void;
 
   // --- Requests (return Promise) ---
+  /** Checks the supplied snapshot independently of editor sessions and pending notifications. */
+  requestDiagnostics(
+    this: void,
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ): Promise<DiagnosticsSnapshot>;
   requestCompletion(
     this: void,
     uri: DocumentUri,
@@ -338,6 +344,14 @@ export function createLanguageClient(
 
   return {
     diagnostics,
+
+    async requestDiagnostics(sdcpn, extensions) {
+      const result = await sendRequest<PublishDiagnosticsParams[]>(
+        "sdcpn/diagnostics",
+        { sdcpn, extensions },
+      );
+      return buildSnapshot(result, EMPTY_DIAGNOSTICS);
+    },
 
     initialize(sdcpn, extensions) {
       sendNotification({

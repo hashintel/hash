@@ -170,7 +170,11 @@ The composer stays open in all of these cases, so you can still ask questions, r
 
 ## Diagnostics integration
 
-When the assistant edits code surfaces (lambdas, kernels, dynamics, visualizers, metric/scenario code), it sees the resulting TypeScript diagnostics on the next turn and can iteratively fix them. You don't have to relay errors manually -- the post-edit re-check happens automatically. The same diagnostics also appear in the bottom **Diagnostics** tab as usual; the assistant just sees them in addition.
+The assistant can request a fresh TypeScript check of the current net and
+use the returned errors to revise its code. An unchanged set of errors still
+counts as a completed check. If checking fails, the assistant receives an
+error. The bottom **Diagnostics** tab continues to show diagnostics for the
+code you are editing.
 
 ## Host configuration
 
