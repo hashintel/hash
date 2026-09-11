@@ -97,25 +97,47 @@ describe("constraintIndicatorSpecs", () => {
 });
 
 describe("sweepCellPassCount", () => {
-  it("reads 6 of 8 runs passed from a mean of 0.75", () => {
+  it("reads 6 of 8 runs passed from a mean of 0.75 over the 8 runs that reported", () => {
     expect(
       sweepCellPassCount(
-        { runsCompleted: 8, means: { "constraint:infected-cap": 0.75 } },
+        {
+          means: { "constraint:infected-cap": 0.75 },
+          sampleCounts: { "constraint:infected-cap": 8 },
+        },
         "infected-cap",
       ),
     ).toEqual({ runsPassed: 6, runsTotal: 8 });
   });
 
-  it("is null for a cell that finished no run or carries no mean for the indicator", () => {
+  it("counts over the runs that reported, not the runs the cell completed", () => {
+    // 8 runs completed, one errored: 5 of the 7 that reported passed.
     expect(
       sweepCellPassCount(
-        { runsCompleted: 0, means: { "constraint:infected-cap": 1 } },
+        {
+          means: { "constraint:infected-cap": 5 / 7 },
+          sampleCounts: { "constraint:infected-cap": 7 },
+        },
+        "infected-cap",
+      ),
+    ).toEqual({ runsPassed: 5, runsTotal: 7 });
+  });
+
+  it("is null for a cell whose indicator no run reported, or that carries no mean for it", () => {
+    expect(
+      sweepCellPassCount(
+        {
+          means: { "constraint:infected-cap": 1 },
+          sampleCounts: { "constraint:infected-cap": 0 },
+        },
         "infected-cap",
       ),
     ).toBeNull();
     expect(
       sweepCellPassCount(
-        { runsCompleted: 8, means: { "infected-cap": 0.75 } },
+        {
+          means: { "infected-cap": 0.75 },
+          sampleCounts: { "infected-cap": 8 },
+        },
         "infected-cap",
       ),
     ).toBeNull();

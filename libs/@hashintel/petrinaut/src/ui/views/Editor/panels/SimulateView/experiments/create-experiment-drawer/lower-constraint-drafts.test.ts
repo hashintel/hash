@@ -12,7 +12,7 @@ import {
   stateConstraintGateSpecs,
 } from "./lower-constraint-drafts";
 
-import type { LanguageClientContextValue } from "../../../../../../../../react/lsp/context";
+import type { LanguageClientContextValue } from "../../../../../../../react/lsp/context";
 import type {
   ConstraintSource,
   LowerConstraintResult,

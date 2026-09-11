@@ -13,7 +13,7 @@ import {
   formatCorrelation,
   formatImportance,
   importanceRows,
-} from "./importance-view";
+} from "./parameter-importance-panel/importance-view";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 

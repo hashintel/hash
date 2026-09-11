@@ -4,7 +4,7 @@
  */
 import { css } from "@hashintel/ds-helpers/css";
 
-import { StepsTable } from "./steps-table";
+import { StepsTable } from "./study-steps/steps-table";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 

@@ -33,7 +33,7 @@ import {
 import {
   createSweepTrialEvaluator,
   type SweepTrialEvaluator,
-} from "./sweep-evaluator/create-sweep-trial-evaluator";
+} from "./provider/create-sweep-trial-evaluator";
 import { useOptimizationSource } from "./use-optimization-source";
 
 import type { PropsWithChildren } from "react";
@@ -240,19 +240,6 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           }));
           settleStudy(optimizationId, event.best);
           break;
-        case "paused":
-          // Nothing here asks the optimizer to pause; a segment that ends
-          // drained without completing has stopped, as far as the sweep is
-          // concerned.
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            lastSeq,
-            status: "cancelled",
-            requestedTrials: event.requestedTrials,
-            best: event.best ?? current.best,
-          }));
-          settleStudy(optimizationId, event.best);
-          break;
         case "error": {
           // A cancellation reaches us as an error event — the stream has no
           // type of its own for it. It is an outcome, not a failure, so it
@@ -312,11 +299,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             }
             lastSeq = event.seq;
           }
-          if (
-            event.type === "complete" ||
-            event.type === "paused" ||
-            event.type === "error"
-          ) {
+          if (event.type === "complete" || event.type === "error") {
             sawTerminalEvent = true;
           }
           applyOptimizationEvent(optimizationId, event, lastSeq);

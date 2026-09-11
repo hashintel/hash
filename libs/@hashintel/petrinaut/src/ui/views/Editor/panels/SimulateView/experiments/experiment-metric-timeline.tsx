@@ -1,7 +1,7 @@
 /**
- * @layerRoot ui.views.editor.metric-timeline
- * @role Charts one experiment metric over time — line, percentile bands,
- * density heatmap, or aggregates — as frames stream in
+ * Charts one experiment metric over time — line, percentile bands, density
+ * heatmap, or aggregates — as frames stream in. Its private pieces in
+ * `experiment-metric-timeline/` form the metric-timeline layer.
  */
 import { useRef, useState } from "react";
 

@@ -33,8 +33,8 @@ import { constraintNameIn } from "../constraint-rates";
 import {
   hasParameterConstraints,
   parameterConstraintOutcome,
-} from "../shared/parameter-constraints";
-import { prunedTrialOutcome } from "../shared/pruned-trial-outcome";
+} from "./create-sweep-trial-evaluator/parameter-constraints";
+import { prunedTrialOutcome } from "./create-sweep-trial-evaluator/pruned-trial-outcome";
 
 import type {
   ExperimentsActionsValue,
@@ -103,17 +103,30 @@ const declaresConstraints = (
   manifest: Pick<PetrinautOptimizationManifest, "constraints">,
 ): boolean => (manifest.constraints ?? []).length > 0;
 
-/** Each state constraint's verdict count at the cell, for those the cell measured. */
+/**
+ * Each declared state constraint's verdict count at the cell, or the id of
+ * the first one the cell measured no verdict for: a trial reporting nothing
+ * for a declared constraint would otherwise read as clear.
+ */
 const stateVerdicts = (
   manifest: Pick<PetrinautOptimizationManifest, "constraints">,
   cell: SweepVisitedCell,
-): PetrinautOptimizationTrialConstraints["state"] =>
-  constraintsInSpace(manifest.constraints ?? [], "state").flatMap(
-    (constraint) => {
-      const count = sweepCellPassCount(cell, constraint.id);
-      return count ? [{ constraintId: constraint.id, ...count }] : [];
-    },
-  );
+):
+  | { verdicts: PetrinautOptimizationTrialConstraints["state"] }
+  | { unobserved: string } => {
+  const verdicts: PetrinautOptimizationTrialConstraints["state"] = [];
+  for (const constraint of constraintsInSpace(
+    manifest.constraints ?? [],
+    "state",
+  )) {
+    const count = sweepCellPassCount(cell, constraint.id);
+    if (count === null) {
+      return { unobserved: constraint.id };
+    }
+    verdicts.push({ constraintId: constraint.id, ...count });
+  }
+  return { verdicts };
+};
 
 export const createSweepTrialEvaluator = ({
   experimentId,
@@ -190,16 +203,23 @@ export const createSweepTrialEvaluator = ({
         `The point measured no finite value for "${metricId}"`,
       );
     }
-    return declaresConstraints(request.manifest)
-      ? {
-          kind: "objective" as const,
-          objective,
-          constraints: {
-            parameters: parameters?.results ?? [],
-            state: stateVerdicts(request.manifest, cell),
-          },
-        }
-      : { kind: "objective" as const, objective };
+    if (!declaresConstraints(request.manifest)) {
+      return { kind: "objective" as const, objective };
+    }
+    const state = stateVerdicts(request.manifest, cell);
+    if ("unobserved" in state) {
+      return prunedTrialOutcome(
+        `The point measured no verdict for "${constraintNameIn(request.manifest, state.unobserved)}"`,
+      );
+    }
+    return {
+      kind: "objective" as const,
+      objective,
+      constraints: {
+        parameters: parameters?.results ?? [],
+        state: state.verdicts,
+      },
+    };
   };
 
   return {

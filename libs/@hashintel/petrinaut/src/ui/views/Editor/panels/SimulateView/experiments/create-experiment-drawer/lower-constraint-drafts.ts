@@ -10,8 +10,8 @@ import {
  */
 import { describeConstraint } from "./constraint-lsp";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../../../react/experiments/context";
-import type { LanguageClientContextValue } from "../../../../../../../../react/lsp/context";
+import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
+import type { LanguageClientContextValue } from "../../../../../../../react/lsp/context";
 import type {
   Constraint,
   LowerConstraintContext,

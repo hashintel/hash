@@ -250,10 +250,9 @@ const fakeConnectedOptimization: PetrinautConnectedOptimization = {
   kind: "connected",
   connect: (channel) => ({
     ...createFakeOptimization(channelTrialEvaluator(channel)),
-    // The synthetic study keeps no sampler to continue or pause.
+    // The synthetic study keeps no sampler to continue.
     extendOptimizationRun: () =>
       Promise.reject(new Error("The synthetic optimizer cannot be continued")),
-    pauseOptimizationRun: () => Promise.resolve(),
     releaseOptimizationRun: (runId) => {
       fakeRuns.delete(runId);
       return Promise.resolve();

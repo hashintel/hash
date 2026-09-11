@@ -11,19 +11,14 @@
 import { Tooltip } from "@hashintel/ds-components";
 
 import { ComputeBackendBadge } from "./compute-backend-badge";
-import {
-  ComputeBatchesChip,
-  DrawerFrame,
-  type DrawerFrameProps,
-  FrameCard,
-  FrameColumns,
-  FrameStat,
-  FrameStatusPill,
-} from "./drawer-frame";
+import { DrawerFrame, type DrawerFrameProps } from "./drawer-frame";
+import { ComputeBatchesChip } from "./drawer-frame/compute-batches-chip";
+import { FrameCard } from "./drawer-frame/frame-card";
+import { FrameColumns } from "./drawer-frame/frame-columns";
+import { FrameStat, FrameStatusPill } from "./drawer-frame/frame-header";
 import { MetricTiles } from "./metric-tiles";
 
 import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";
-import type { ReactNode } from "react";
 
 const StatValue = ({ value }: { value: ResultsStat["value"] }) =>
   value.tooltip === undefined ? (
@@ -63,13 +58,10 @@ const ResultsStats = ({ header }: { header: ResultsHeader }) => (
 export const ResultsView = ({
   model,
   drawer,
-  leading,
 }: {
   model: ResultsModel;
   /** Given, the view renders inside a ds `Drawer`; otherwise it fills its section. */
   drawer?: DrawerFrameProps["drawer"];
-  /** Before the title: a Back button in the full view. */
-  leading?: ReactNode;
 }) => {
   const { header, bands, surface, metrics, after, footer, footerSecondary } =
     model;
@@ -77,7 +69,6 @@ export const ResultsView = ({
   return (
     <DrawerFrame
       drawer={drawer}
-      leading={leading}
       title={header.title}
       headline={header.headline}
       stats={<ResultsStats header={header} />}

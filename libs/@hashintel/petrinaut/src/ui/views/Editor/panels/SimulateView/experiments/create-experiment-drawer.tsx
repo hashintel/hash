@@ -54,14 +54,14 @@ import { useGpuAvailability } from "../shared/use-gpu-availability";
 import {
   type ConstraintDraftsState,
   EMPTY_CONSTRAINT_DRAFTS,
-} from "./create-experiment-drawer/constraints/constraint-drafts";
-import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraints/constraint-lsp";
-import { ConstraintsSection } from "./create-experiment-drawer/constraints/constraints-section";
+} from "./create-experiment-drawer/constraint-drafts";
+import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
+import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
 import {
   constraintPolicyFor,
   lowerConstraintDrafts,
   stateConstraintGateSpecs,
-} from "./create-experiment-drawer/constraints/lower-constraint-drafts";
+} from "./create-experiment-drawer/lower-constraint-drafts";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,

@@ -112,9 +112,9 @@ headline (`StudyHeader`: `describeStudyProgress` plus the convergence chip
 in a reserved cell), the Steps and Steps clear stat columns (`studyStats`,
 sized by their widest value from `requestedTrials`), the Constraints and
 Sensitivity analysis cards in the metric grid at `METRIC_PLOT_HEIGHT`
-(`study-cards/`, wrapped in a fragment keyed on `study.id`), and the steps
+(`experiment-results/`, wrapped in a fragment keyed on `study.id`), and the steps
 table under both columns. The Parameters card's footer lists the record's
-constraints (`study-cards/constraints-fold.tsx`) whether or not a study
+constraints (`experiment-results/constraints-fold.tsx`) whether or not a study
 exists.
 
 The gate is the study's existence, never its status or connection state, so
