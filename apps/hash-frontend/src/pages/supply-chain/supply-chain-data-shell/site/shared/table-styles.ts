@@ -35,7 +35,7 @@ export const filterHeader = css({
   borderColor: "bd.subtle",
   display: "flex",
   alignItems: "flex-start",
-  gap: "3",
+  gap: "1",
 });
 /** Grows the filter bar so the sort menu stays pinned to the band's right edge. */
 export const filterHeaderBar = css({ flex: "1", minW: "0" });

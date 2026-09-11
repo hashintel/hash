@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 
-import { Filter, FilterGroup, Menu, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Filter,
+  FilterGroup,
+  Menu,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -16,6 +22,7 @@ type MenuItems = React.ComponentProps<typeof Menu>["items"];
 // With no chips the bar is just the add button; push it to the right edge of
 // whatever row hosts it (a block band or a flex title row).
 const emptyBarAlign = css({
+  display: "flex",
   flex: "1",
   minW: "0",
   justifyContent: "flex-end",
@@ -94,8 +101,32 @@ export const StepFilterBar = ({
     );
   };
 
+  // With no chips there is no group to show: just a stock icon-only button
+  // (regular Button styling, unlike the chip-scale FilterGroup.AddFilter used
+  // below) opening the add-filter dropdown, pushed to the right of its host row.
+  if (filters.length === 0) {
+    if (addMenuItems.length === 0) {
+      return null;
+    }
+    return (
+      <div className={emptyBarAlign}>
+        <Menu
+          trigger={
+            <Button
+              variant="ghost"
+              size="sm"
+              iconName="filter"
+              aria-label="Add filter"
+            />
+          }
+          items={addMenuItems}
+        />
+      </div>
+    );
+  }
+
   return (
-    <FilterGroup className={filters.length === 0 ? emptyBarAlign : undefined}>
+    <FilterGroup>
       {filters.map((filter) => {
         const definition = STEP_FILTER_DEFINITIONS.find(
           (candidate) => candidate.key === filter.filterKey,
@@ -139,17 +170,11 @@ export const StepFilterBar = ({
       })}
       {addMenuItems.length > 0 && (
         <Menu
-          trigger={
-            <FilterGroup.AddFilter
-              renderAs={filters.length === 0 ? "plusLabel" : "plus"}
-            />
-          }
+          trigger={<FilterGroup.AddFilter renderAs="plus" />}
           items={addMenuItems}
         />
       )}
-      {filters.length > 0 && (
-        <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
-      )}
+      <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
     </FilterGroup>
   );
 };
