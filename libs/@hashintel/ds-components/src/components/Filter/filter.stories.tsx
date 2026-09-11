@@ -530,7 +530,12 @@ const groupContainerStyle: React.CSSProperties = {
 };
 
 /** Stateful harness: filters can be added, edited, removed and cleared. */
-const GroupDemo = () => {
+const GroupDemo = ({
+  dismissAbandoned = false,
+}: {
+  /** Passed through to each chip's `removeable` config. */
+  dismissAbandoned?: boolean;
+}) => {
   const [filters, setFilters] = useState<GroupEntry[]>([
     {
       id: 1,
@@ -602,7 +607,10 @@ const GroupDemo = () => {
                   ),
                 );
               }}
-              removeable={{ onRemove: () => removeFilter(filter.id) }}
+              removeable={{
+                onRemove: () => removeFilter(filter.id),
+                dismissAbandoned,
+              }}
             />
           ) : (
             <Filter<KitchenSinkValues>
@@ -623,7 +631,10 @@ const GroupDemo = () => {
                   ),
                 );
               }}
-              removeable={{ onRemove: () => removeFilter(filter.id) }}
+              removeable={{
+                onRemove: () => removeFilter(filter.id),
+                dismissAbandoned,
+              }}
             />
           ),
         )}
@@ -646,6 +657,15 @@ export const Group: Story = () => (
       <FilterGroup.AddFilter renderAs="plusLabel" onClick={noop} />
       <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
     </div>
+    <span style={stateLabelStyle}>
+      dismissAbandoned: every chip below sets `removeable.dismissAbandoned`.
+      Leave a chip incomplete — no operator, or any input empty (including
+      emptying an input of one of the pre-filled chips) — then click or focus
+      elsewhere: after 3s it fades out over 3s and removes itself. Interacting
+      with it — including its dropdowns — rescues it. Complete chips and
+      input-less ones (&quot;is true&quot;) are never dismissed.
+    </span>
+    <GroupDemo dismissAbandoned />
   </div>
 );
 
