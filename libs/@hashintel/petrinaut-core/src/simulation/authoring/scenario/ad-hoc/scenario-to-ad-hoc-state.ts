@@ -21,6 +21,7 @@ import type {
   Place,
   Scenario,
 } from "../../../../types/sdcpn";
+import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 export type AdHocStateFromScenario =
   /** The stored definition, verbatim. */
@@ -35,15 +36,26 @@ type PerPlaceContent = Extract<
   { type: "per_place" }
 >["content"];
 
-/** One net-parameter entry per override key, expression verbatim. */
-const netParameterEntries = (scenario: Scenario): AdHocNetParameter[] =>
-  Object.entries(scenario.parameterOverrides).map(
-    ([parameterId, expression]) => ({
+/**
+ * One net-parameter entry per override key the net knows, expression
+ * verbatim. A key for a parameter the net no longer has (or every key, when
+ * the context carries no net parameters) is dropped: compilation skips such
+ * an override, but synthesis rejects it and the form has no row to clear it
+ * from.
+ */
+const netParameterEntries = (
+  scenario: Scenario,
+  netParameters: readonly { id: string }[],
+): AdHocNetParameter[] =>
+  Object.entries(scenario.parameterOverrides)
+    .filter(([parameterId]) =>
+      netParameters.some((parameter) => parameter.id === parameterId),
+    )
+    .map(([parameterId, expression]) => ({
       parameterId,
       expression,
       optimize: null,
-    }),
-  );
+    }));
 
 /**
  * Per-place content as form blocks, walked in the net's place order so a
@@ -108,20 +120,21 @@ const perPlaceStates = (
  * identifier verbatim (schema identifiers are snake_case, so
  * `adHocExposedParameterIdentifier` is the identity) with the default as a
  * literal (`true`/`false` for booleans); parameter overrides become one
- * net-parameter entry per key, expression verbatim; per-place content
- * converts through {@link perPlaceStates}. Places absent from the content
- * stay absent: in both formats an absent place keeps the canvas marking.
+ * net-parameter entry per key the net knows, expression verbatim
+ * ({@link netParameterEntries}); per-place content converts through
+ * {@link perPlaceStates}. Places absent from the content stay absent: in
+ * both formats an absent place keeps the canvas marking.
  */
 export const adHocStateFromScenario = (
   scenario: Scenario,
-  context: { places: Place[]; types: Color[] },
+  context: AdHocSynthesisContext,
 ): AdHocStateFromScenario => {
   const { initialState } = scenario;
   if (initialState.type === "adhoc") {
     return { kind: "adhoc", state: initialState.content };
   }
   const variables = classicRunVariables(scenario, {});
-  const netParameters = netParameterEntries(scenario);
+  const netParameters = netParameterEntries(scenario, context.netParameters);
   if (initialState.type === "code") {
     return {
       kind: "code",

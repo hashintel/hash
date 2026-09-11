@@ -112,14 +112,12 @@ const Harness: React.FC<{
   selection?: AdHocFormSelection;
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
-  withVariables?: boolean;
   renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
   mode?: React.ComponentProps<typeof AdHocScenarioForm>["mode"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
-  withVariables,
   renderLayout,
   mode,
 }) => {
@@ -133,7 +131,6 @@ const Harness: React.FC<{
       }}
       context={context}
       selection={selection}
-      withVariables={withVariables}
       renderLayout={renderLayout}
       mode={mode}
     />
@@ -1097,22 +1094,6 @@ describe("AdHocScenarioForm", () => {
     expect(screen.getByText("1 + 0 … 10 tokens")).toBeTruthy();
   });
 
-  it("hides the Variables section when the embedding offers none", () => {
-    render(<Harness withVariables={false} />);
-    expect(
-      screen.queryByRole("button", {
-        name: "Add a variable (Top-level variables)",
-      }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Toggle Variables section" }),
-    ).toBeNull();
-    // The other groups are untouched.
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-  });
-
   it("the add-variable line selects on the first pointer click and materializes on the second", () => {
     let latest: AdHocScenarioState | undefined;
     render(
@@ -1225,7 +1206,6 @@ describe("AdHocScenarioForm", () => {
   it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {
     render(
       <Harness
-        withVariables={false}
         renderLayout={({ parameters, places }) => (
           <div>
             <div>

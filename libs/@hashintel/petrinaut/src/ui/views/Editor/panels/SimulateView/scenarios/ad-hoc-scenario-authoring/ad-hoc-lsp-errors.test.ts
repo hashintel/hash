@@ -15,7 +15,7 @@ describe("summarizeAdHocLspErrors", () => {
       [getAdHocDocumentUri("session-b", "slot-1"), [{ message: "other form" }]],
       [
         "inmemory://sdcpn/_temp/scenarios/session-a/initial-state-code.ts",
-        [{ message: "classic editor" }],
+        [{ message: "another URI namespace" }],
       ],
     ]);
 

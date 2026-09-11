@@ -152,9 +152,6 @@ function makeLanguageClient(): LanguageClientContextValue {
     requestHirArtifacts: vi.fn((sdcpn: SDCPN, extensions, options) =>
       Promise.resolve(compileHirArtifacts(sdcpn, extensions, options)),
     ),
-    initializeScenarioSession: vi.fn(),
-    updateScenarioSession: vi.fn(),
-    killScenarioSession: vi.fn(),
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),

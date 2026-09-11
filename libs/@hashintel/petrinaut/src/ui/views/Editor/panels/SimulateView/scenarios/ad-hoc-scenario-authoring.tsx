@@ -59,7 +59,7 @@ const codeNoteStyle = css({
 const codeSlotHeight = "300px";
 
 export const codeScenarioNotice =
-  "This scenario defines its initial state as code, shown here read-only. Edit the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count).";
+  "This scenario defines its initial state as code, shown here read-only. Only Variables marked Scenario Parameter are kept with it, each as its computed default. Edit the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count).";
 
 export interface AdHocScenarioDraft {
   name: string;
@@ -106,8 +106,21 @@ const missingCodeParameterErrors = (
     );
 
 /**
+ * A `code` scenario persists no form state, only the synthesized parameters
+ * (the exposed Variables): a Variable left unexposed would be inlined into
+ * the overrides and vanish on the next open, so each one is an error.
+ */
+const unexposedCodeVariableErrors = (state: AdHocScenarioState): string[] =>
+  state.variables
+    .filter((variable) => variable.exposed !== true)
+    .map(
+      ({ name }) =>
+        `Variable "${name}" cannot be kept with code-defined initial state; turn Scenario Parameter on or delete it.`,
+    );
+
+/**
  * The draft state plus everything the footer needs: the error summary
- * (name validation, synthesis errors, the code's parameter check, this
+ * (name validation, synthesis errors, the code's parameter checks, this
  * form's LSP diagnostics) and `buildScenario`, which derives the persisted
  * shape from the draft.
  */
@@ -138,7 +151,10 @@ export function useAdHocScenarioAuthoring({
   const synthesized = synthesizeAdHocScenario(state, context);
   const synthesisErrors = synthesized.ok ? [] : synthesized.errors;
   const codeParameterErrors = code
-    ? missingCodeParameterErrors(state, code.parameters)
+    ? [
+        ...missingCodeParameterErrors(state, code.parameters),
+        ...unexposedCodeVariableErrors(state),
+      ]
     : [];
   const { count: lspErrorCount, firstMessage: firstLspMessage } =
     summarizeAdHocLspErrors(diagnosticsByUri, sessionId);

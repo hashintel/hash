@@ -447,11 +447,10 @@ The sections render Variables first, then Parameters, then Initial state —
 a net-parameter override may read the Variables, so the reading order
 matches the data flow.
 
-Two props shape an **embedding**: `withVariables={false}` removes the
-Variables section (an expression referencing `scenario.<name>` then fails as
-unknown), and `renderLayout` hands the host each group — Variables,
-Parameters, places — already wired to the form's contexts and without
-section chrome, so the host lays them out under its own headings; each
+One prop shapes an **embedding**: `renderLayout` hands the host each group
+— Variables, Parameters, places — already wired to the form's contexts and
+without section chrome, so the host lays them out under its own headings
+(a group the host leaves out of its layout is simply not rendered); each
 visual column goes in a `FormLayoutColumn` so the keyboard walk chains the
 column's groups and crosses between columns. The Parameters group is `null`
 when the context carries no net parameters. Simulation Settings uses

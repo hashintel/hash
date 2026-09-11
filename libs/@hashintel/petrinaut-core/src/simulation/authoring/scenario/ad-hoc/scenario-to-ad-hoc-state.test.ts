@@ -19,7 +19,13 @@ import {
 } from "./ad-hoc-scenario";
 import { adHocStateFromScenario } from "./scenario-to-ad-hoc-state";
 
-import type { Color, Place, Scenario, SDCPN } from "../../../../types/sdcpn";
+import type {
+  Color,
+  Parameter,
+  Place,
+  Scenario,
+  SDCPN,
+} from "../../../../types/sdcpn";
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 const place = (id: string, name: string, colorId: string | null): Place => ({
@@ -45,7 +51,19 @@ const SATELLITE: Color = {
   ],
 };
 
-const CONTEXT = {
+const netParameter = (id: string, variableName: string): Parameter => ({
+  id,
+  name: variableName,
+  variableName,
+  type: "real",
+  defaultValue: "1",
+});
+
+const CONTEXT: AdHocSynthesisContext = {
+  netParameters: [
+    netParameter("param-gravity", "gravity"),
+    netParameter("param-drag", "drag"),
+  ],
   places: [
     place("place-space", "Space", "colour-satellite"),
     place("place-debris", "Debris", null),
@@ -171,6 +189,30 @@ describe("adHocStateFromScenario", () => {
         ],
       },
     });
+  });
+
+  it("drops an override for a parameter the net does not know", () => {
+    const result = adHocStateFromScenario(
+      {
+        ...scenario({ type: "per_place", content: {} }),
+        parameterOverrides: {
+          "param-gravity": "9.81",
+          "param-gone": "3",
+          "param-drag": "",
+        },
+      },
+      CONTEXT,
+    );
+    expect(result.state.netParameters).toEqual(EXPECTED_NET_PARAMETERS);
+  });
+
+  it("drops every override when the context carries no net parameters", () => {
+    const result = adHocStateFromScenario(
+      scenario({ type: "code", content: "return {};" }),
+      { ...CONTEXT, netParameters: [] },
+    );
+    expect(result.state.netParameters).toEqual([]);
+    expect(result.state.variables).toEqual(EXPECTED_VARIABLES);
   });
 
   it("keeps an empty uncoloured expression empty", () => {

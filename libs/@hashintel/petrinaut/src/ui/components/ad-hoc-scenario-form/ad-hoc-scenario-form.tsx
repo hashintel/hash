@@ -99,19 +99,11 @@ export interface AdHocScenarioFormProps {
    */
   mode?: AdHocFormMode;
   /**
-   * Whether the Variables section is offered. Embeddings that provide no
-   * scenario Variables (quick simulation's Simulation Settings) turn it
-   * off; an expression referencing `scenario.<name>` then fails as unknown,
-   * exactly as it should. The Parameters section hides itself the same way
-   * when the context carries no net parameters.
-   */
-  withVariables?: boolean;
-  /**
    * Custom arrangement: the host receives each group — already wired to the
    * form's contexts — and lays them out itself (e.g. Simulation Settings
    * places Variables + Parameters and Initial state in separate panel
-   * columns). The groups render without section chrome; a group the props
-   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * columns). The groups render without section chrome; the Parameters
+   * group is `null` when the context carries no net parameters. The
    * host's own chrome may render inside too — the wrapper only carries the
    * form's keyboard handling. Wrap each visual column of the layout in a
    * `FormLayoutColumn`: vertical arrows chain the column's groups, and
@@ -178,7 +170,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   mode = "author",
-  withVariables = true,
   renderLayout,
   className,
   sessionId: externalSessionId,
@@ -321,13 +312,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const variableRows =
     mode === "run" ? (
       <ScenarioParameterRows variables={state.variables} />
-    ) : withVariables ? (
+    ) : (
       <VariableRows
         scopeLabel="Top-level variables"
         placeId={null}
         variables={state.variables}
       />
-    ) : null;
+    );
 
   const placesList = (
     <div className={placesListStyle}>
@@ -387,14 +378,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           ) : (
             <FocusStack axis="vertical">
               <SectionList>
-                {variableRows ? (
-                  <NavigableSection
-                    title="Variables"
-                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                  >
-                    {variableRows}
-                  </NavigableSection>
-                ) : null}
+                <NavigableSection
+                  title="Variables"
+                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                >
+                  {variableRows}
+                </NavigableSection>
 
                 {parameterRows ? (
                   <NavigableSection

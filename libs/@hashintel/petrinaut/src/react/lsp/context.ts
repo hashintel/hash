@@ -22,7 +22,6 @@ import type {
   AdHocSessionParams,
   ConstraintSessionParams,
   MetricSessionParams,
-  ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
@@ -85,12 +84,6 @@ export interface LanguageClientContextValue {
     source: ConstraintSource,
     context: LowerConstraintContext,
   ) => Promise<LowerConstraintResult>;
-  /** Initialize a temporary scenario editing session. */
-  initializeScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Update a scenario editing session. */
-  updateScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Kill a scenario editing session. */
-  killScenarioSession: (sessionId: string) => void;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
   /** Starts an ad-hoc scenario editing session for expression type-checking */
@@ -151,9 +144,6 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
         },
       ],
     }),
-  initializeScenarioSession: () => {},
-  updateScenarioSession: () => {},
-  killScenarioSession: () => {},
   initializeMetricSession: () => {},
   initializeAdHocSession: () => {},
   updateAdHocSession: () => {},
