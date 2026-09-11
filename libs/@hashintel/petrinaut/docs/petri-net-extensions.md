@@ -58,7 +58,7 @@ Kernel, firing rate/predicate, differential equation, metric, and scenario code 
 | [Transition kernel](#transition-kernel)                   | `input`, `parameters`             | tokens for each typed output place, keyed by place name |
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`             | `true`/`false` (predicate) or a rate (stochastic)       |
 | [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`            | one derivative object per token                         |
-| Metric (see [Optimization](optimization.md))              | `state`, `parameters`             | a finite number                                         |
+| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`             | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range` | tokens or counts, keyed by place name                   |
 
 `input` is the tokens from the transition's typed input places, keyed by place name; `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.

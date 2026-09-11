@@ -65,6 +65,68 @@ A session that stopped computing publishes an empty list. Both show the same pro
 sampled runs over the run budget; otherwise simulated time over the
 experiment's max time.
 
+## Constraints through the sweep
+
+An experiment's constraints are lowered to HIR in the Create Experiment
+drawer (`create-experiment-drawer/constraints/`: the drafts and their
+transitions in `constraint-drafts.ts`, one LSP session per row in
+`use-constraint-lsp-session.ts`, the lowering and the GPU gate specs in
+`lower-constraint-drafts.ts`, the section in `constraints-section.tsx`) and
+stored on the record with the pass threshold as `constraintPolicy` and the
+scenario's parsed values as `scenarioParameterValues`. They are enforced in
+two places, both outside the study's own code:
+
+- A **parameter constraint** is judged by the sweep evaluator at the snapped
+  grid point, before `navigateSweep` is called
+  (`shared/parameter-constraints.ts` interprets the HIR with the net
+  defaults as `parameters` and the snapped values as `scenario`). An
+  infeasible draw is pruned as `Infeasible: <name>`, carries
+  `{ parameters, state: [], infeasible }`, and moves nothing: the sweep's
+  selection stays where it was.
+- A **state constraint** rides every request the experiments provider
+  builds for the sweep, from creation on, as one precompiled indicator
+  metric (`react/experiments/constraint-indicators.ts`): the body wrapped
+  as `cond ? 1 : 0`, `aggregateTime: "min"` over each run's frames and
+  `sampleRuns: "all"`, under the id `constraint:<id>`. Those ids never
+  reach `record.metricSpecs`, so no tile, picker or surface option shows
+  them. A visited cell's mean of the indicator is `passed / total` over its
+  finished runs, and `sweepCellPassCount` turns it back into the count the
+  evaluator reports as `constraints.state`. Because `toGpuMetricSpecs`
+  refuses a time aggregation, a sweep with state constraints runs on the
+  CPU; the drawer's GPU gate carries a placeholder `min` spec per drafted
+  state row so the switch says so before creation.
+
+Downstream, `constraint-rates.ts` turns `trial.constraints` into the rates
+the Constraints card, the steps table and the objective strip's greyed
+infeasible steps read. A trial pruned as cancelled or "the sweep moved on"
+carries no `constraints` and counts in no rate.
+
+## The study in the experiment drawer
+
+`experimentResultsModel` (`experiments/experiment-results.tsx`) builds the
+shared `ResultsModel` the [results view](layer:ui.views.editor.results)
+renders. It finds the sweep's studies through `useSweepOptimizer`, which
+matches `OptimizationRecord.origin.experimentId`, and fills four of the
+model's optional members whenever `optimizer.study !== null`: the header's
+headline (`StudyHeader`: `describeStudyProgress` plus the convergence chip
+in a reserved cell), the Steps and Steps clear stat columns (`studyStats`,
+sized by their widest value from `requestedTrials`), the Constraints and
+Sensitivity analysis cards in the metric grid at `METRIC_PLOT_HEIGHT`
+(`study-cards/`, wrapped in a fragment keyed on `study.id`), and the steps
+table under both columns. The Parameters card's footer lists the record's
+constraints (`study-cards/constraints-fold.tsx`) whether or not a study
+exists.
+
+The gate is the study's existence, never its status or connection state, so
+the drawer changes shape once, at the first Optimize, and holds it across
+running, stopped and failed studies and later ones: a second study remounts
+the keyed cards in the same boxes, with row counts that are properties of
+the experiment (one bar per constraint, one row per swept axis). The
+`experiment-results` and `view-experiment-drawer` tests pin this with
+`frameLayoutSignature` equality between running, stopped and failed states
+and between a first and a second study, and between two renders before any
+study.
+
 ## Where the pieces live
 
 - The session's private pieces (selection keys and range draws) sit next to

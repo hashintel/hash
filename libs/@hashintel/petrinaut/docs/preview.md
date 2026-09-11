@@ -71,6 +71,6 @@ markup, content-security policy, sandbox permissions, and any other embedding
 or security headers.
 
 The preview intentionally omits source code, editing tools, mode and document
-management controls, experiments, optimizations, and the AI assistant. Quick
+management controls, experiments, and the AI assistant. Quick
 Simulation is available only when the embed supplies it. Use the full Petrinaut
 interface when the omitted workflows are needed.
