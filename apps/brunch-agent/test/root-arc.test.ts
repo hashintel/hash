@@ -1,0 +1,104 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, test } from "vitest";
+
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+
+import { verifyRootArcResults } from "../src/conversation/root-arc.ts";
+import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
+
+import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { ArcTransitionRecord } from "@hashintel/brunch-agent-plugin-sdcpn";
+
+// Immutable positive fixture earned by the actual local browser, not an invented applied record.
+const witness = new URL("./fixtures/root-arc/history.json", import.meta.url);
+const fixture = () => {
+  const snapshot = JSON.parse(
+    readFileSync(witness, "utf8"),
+  ) as FlueConversationSnapshot;
+  const result = clientToolHistoryFrom(snapshot.messages).results.find(
+    (entry) => entry.toolCallId === "m7-browser-arc",
+  );
+  if (!result)
+    throw new Error("The browser witness must contain its canonical result");
+  const record = (result.metadata as { transitionRecord: ArcTransitionRecord })
+    .transitionRecord;
+  const request = record.attempts[0]!.request;
+  return {
+    snapshot,
+    result,
+    record,
+    binding: request.binding,
+    requestedBaseHash: request.requestedBaseHash,
+  };
+};
+
+describe("bound root-arc receiving boundary", () => {
+  test("accepts the actual browser record with its correlated unchanged canonical result", async () => {
+    const input = fixture();
+    await expect(
+      verifyRootArcResults({ ...input, body: JSON.stringify([input.result]) }),
+    ).resolves.toBeUndefined();
+    expect(
+      retainedSettledRevision(input.snapshot, "m7-browser-revision"),
+    ).toMatchObject({ revisionId: "m7-browser-revision", ordinal: 1 });
+    expect(retainedSettledRevision(input.snapshot, "unknown")).toBeUndefined();
+  });
+  test.each(["conversationId", "documentId", "incarnationId"] as const)(
+    "refuses a mismatched %s",
+    async (key) => {
+      const input = fixture();
+      await expect(
+        verifyRootArcResults({
+          ...input,
+          binding: { ...input.binding, [key]: "another" },
+          body: JSON.stringify([input.result]),
+        }),
+      ).rejects.toThrow(/incarnation/iu);
+    },
+  );
+  test("refuses unknown calls, changed names, missing records, and a changed issued base", async () => {
+    const input = fixture();
+    await Promise.all(
+      [
+        { ...input.result, toolCallId: "unknown" },
+        { ...input.result, toolName: "unknown" },
+        { ...input.result, metadata: undefined },
+      ].map(async (result) => {
+        await expect(
+          verifyRootArcResults({ ...input, body: JSON.stringify([result]) }),
+        ).rejects.toThrow(/canonical call|browser transition record/u);
+      }),
+    );
+    await expect(
+      verifyRootArcResults({
+        ...input,
+        requestedBaseHash: "0".repeat(64),
+        body: JSON.stringify([input.result]),
+      }),
+    ).rejects.toThrow(/base/iu);
+  });
+  test("refuses unaccounted effects and conflicting outcomes rather than blessing success", async () => {
+    const input = fixture();
+    const attempt = input.record.attempts[0]!;
+    attempt.effects.created = [];
+    await expect(
+      verifyRootArcResults({ ...input, body: JSON.stringify([input.result]) }),
+    ).rejects.toThrow(/diff/iu);
+    const conflict = fixture();
+    const first = conflict.record.attempts[0]!;
+    conflict.record.attempts.push({
+      ...structuredClone(first),
+      post: structuredClone(first.pre),
+      outcome: "no-op",
+      effects: { created: [], updated: [], deleted: [], derived: [] },
+    });
+    conflict.record.outcome = "unknown";
+    await expect(
+      verifyRootArcResults({
+        ...conflict,
+        body: JSON.stringify([conflict.result]),
+      }),
+    ).rejects.toThrow(/conflicts/iu);
+  });
+});

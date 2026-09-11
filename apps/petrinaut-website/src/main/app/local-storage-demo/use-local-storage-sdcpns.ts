@@ -5,6 +5,10 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
+  /** Assigned when the opt-in tracer document is created, never on rerender. */
+  incarnationId?: string;
+  /** Immutable request base for the single prepared root-arc tracer. */
+  rootArcRequestedBaseHash?: string;
   /**
    * Content-addressed coherent revisions retained by prepared fixtures. The
    * live `sdcpn` remains the automatic mirror; these snapshots give a settled

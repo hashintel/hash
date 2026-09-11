@@ -1,0 +1,2032 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M2247TG0C3GJ1YGZCQF3SDSQ",
+  "offset": "0000000000000000_0000000000000188",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViX2lrXzMzNzU1MmI5ZTMwZDZiOGFkYmE3MmYyOGZmODVhNWEz",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_337552b9e30d6b8adba72f28ff85a5a3",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST synthetic account: waiting items have a limit of two and move one at a time to a completed state after an operation. For this test condition the operation is enabled. Timing and actual inventory are unknown.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TH2F9VKJGHYG9YPKHDA",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_337552b9e30d6b8adba72f28ff85a5a3",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247THK6SRHEBNXTDKTEPWK",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_337552b9e30d6b8adba72f28ff85a5a3",
+      "turnId": "turn_01M2247TH3G4M61PJWAVKG9NN3",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "creation-revision-one",
+          "state": "output-available",
+          "input": {
+            "markdown": "# TEST synthetic workpiece\n\nItems wait in TestQueue with capacity two, then move individually through Test operation to TestCompleted. For this mechanical test only, the operation is enabled by a true predicate; execution timing is unknown. No actual inventory is claimed."
+          },
+          "output": {
+            "revisionId": "creation-revision-one",
+            "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+            "ordinal": 1
+          },
+          "durationMs": 4
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_workpiece",
+          "toolCallId": "creation-revision-one-locate",
+          "state": "output-available",
+          "input": {
+            "locateTexts": [
+              "# TEST synthetic workpiece\n\nItems wait in TestQueue with capacity two, then move individually through Test operation to TestCompleted. For this mechanical test only, the operation is enabled by a true predicate; execution timing is unknown. No actual inventory is claimed."
+            ]
+          },
+          "output": {
+            "currentWorkpiece": {
+              "revisionId": "creation-revision-one",
+              "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+              "markdown": "# TEST synthetic workpiece\n\nItems wait in TestQueue with capacity two, then move individually through Test operation to TestCompleted. For this mechanical test only, the operation is enabled by a true predicate; execution timing is unknown. No actual inventory is claimed.",
+              "ordinal": 1
+            },
+            "locatorLookup": {
+              "subject": {
+                "kind": "current-revision",
+                "revisionId": "creation-revision-one"
+              },
+              "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+              "utf16Length": 272,
+              "utf8Bytes": 272,
+              "queries": [
+                {
+                  "text": "# TEST synthetic workpiece\n\nItems wait in TestQueue with capacity two, then move individually through Test operation to TestCompleted. For this mechanical test only, the operation is enabled by a true predicate; execution timing is unknown. No actual inventory is claimed.",
+                  "occurrences": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "matchedCount": 1,
+                  "omittedCount": 0
+                }
+              ]
+            },
+            "state": "current",
+            "sources": [
+              {
+                "id": "entry_direct_c3ViX2lrXzMzNzU1MmI5ZTMwZDZiOGFkYmE3MmYyOGZmODVhNWEz",
+                "role": "user",
+                "purpose": "user",
+                "text": "TEST synthetic account: waiting items have a limit of two and move one at a time to a completed state after an operation. For this test condition the operation is enabled. Timing and actual inventory are unknown.",
+                "textTruncated": false,
+                "untrusted": true
+              }
+            ],
+            "earlierSourcesOmitted": 0,
+            "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-revision-one-read",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzQ4MDg4NmQ1NTc4OTYxNzJmMzY5YWNhYWQ5M2RmMWNi",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_480886d557896172f369acaad93df1cb",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-revision-one-read"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-revision-one-read\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-revision-one-read\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"28b3d59d5d58920b2cf90253ff84e4454f33469dd8cc2964f931d3d3e7707ced\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TNAJNZQPPHREX2499DJ",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_480886d557896172f369acaad93df1cb",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TNEE3ZYMHHGFKMCKKJS",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_480886d557896172f369acaad93df1cb",
+      "turnId": "turn_01M2247TNBXGNV82JQDP71SB3G",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addPlace",
+          "toolCallId": "creation-queue",
+          "state": "output-available",
+          "input": {
+            "id": "test-queue",
+            "name": "TestQueue",
+            "colorId": null,
+            "dynamicsEnabled": false,
+            "differentialEquationId": null,
+            "capacity": 2,
+            "x": 0,
+            "y": 0,
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-one",
+                "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 272
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-revision-one-read",
+              "requestedBaseHash": "28b3d59d5d58920b2cf90253ff84e4454f33469dd8cc2964f931d3d3e7707ced"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 3
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzc3MTE0YjBjMmE0ZmI0MDllYmM5OTc0N2MxZWNkMDI5",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_77114b0c2a4fb409ebc99747c1ecd029",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-queue"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-queue\",\"toolName\":\"addPlace\",\"output\":{\"title\":\"Added place TestQueue\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"place\",\"id\":\"test-queue\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-queue\",\"toolName\":\"addPlace\",\"input\":{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},\"observationToolCallId\":\"creation-revision-one-read\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"28b3d59d5d58920b2cf90253ff84e4454f33469dd8cc2964f931d3d3e7707ced\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"28b3d59d5d58920b2cf90253ff84e4454f33469dd8cc2964f931d3d3e7707ced\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"kind\":\"created\",\"path\":\"/places/0/id\",\"after\":\"test-queue\"},{\"kind\":\"created\",\"path\":\"/places/0/name\",\"after\":\"TestQueue\"},{\"kind\":\"created\",\"path\":\"/places/0/colorId\",\"after\":null},{\"kind\":\"created\",\"path\":\"/places/0/dynamicsEnabled\",\"after\":false},{\"kind\":\"created\",\"path\":\"/places/0/differentialEquationId\",\"after\":null},{\"kind\":\"created\",\"path\":\"/places/0/capacity\",\"after\":2},{\"kind\":\"created\",\"path\":\"/places/0/x\",\"after\":0},{\"kind\":\"created\",\"path\":\"/places/0/y\",\"after\":0}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TPGFQ7AMRNQX9T3DDB4",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_77114b0c2a4fb409ebc99747c1ecd029",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TPJ8J16DMZC7FC73HB7",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_77114b0c2a4fb409ebc99747c1ecd029",
+      "turnId": "turn_01M2247TPGCRQWNRXA902Z7KHZ",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-queue",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2U5ZmVhNmRkMjI5YjE0OWZhZGM4NTQ1NWJiMjM0M2Iy",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e9fea6dd229b149fadc85455bb2343b2",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-queue"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-queue\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-queue\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TQQ4HA01PGXX9WZTZCQ",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e9fea6dd229b149fadc85455bb2343b2",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TQS7N2C931JCSTYJZF5",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_e9fea6dd229b149fadc85455bb2343b2",
+      "turnId": "turn_01M2247TQQQ1N0ZJZ38C7KQV27",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addPlace",
+          "toolCallId": "creation-completed",
+          "state": "output-available",
+          "input": {
+            "id": "test-completed",
+            "name": "TestCompleted",
+            "colorId": null,
+            "dynamicsEnabled": false,
+            "differentialEquationId": null,
+            "capacity": null,
+            "x": 320,
+            "y": 0,
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-one",
+                "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 272
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-read-queue",
+              "requestedBaseHash": "6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 6
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2U0ZmIzNzllNTFhNjUzODQ0NWMwN2Y3NWRiOGVjYWE0",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e4fb379e51a6538445c07f75db8ecaa4",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-completed"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-completed\",\"toolName\":\"addPlace\",\"output\":{\"title\":\"Added place TestCompleted\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"place\",\"id\":\"test-completed\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-completed\",\"toolName\":\"addPlace\",\"input\":{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0},\"observationToolCallId\":\"creation-read-queue\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"kind\":\"created\",\"path\":\"/places/1/id\",\"after\":\"test-completed\"},{\"kind\":\"created\",\"path\":\"/places/1/name\",\"after\":\"TestCompleted\"},{\"kind\":\"created\",\"path\":\"/places/1/colorId\",\"after\":null},{\"kind\":\"created\",\"path\":\"/places/1/dynamicsEnabled\",\"after\":false},{\"kind\":\"created\",\"path\":\"/places/1/differentialEquationId\",\"after\":null},{\"kind\":\"created\",\"path\":\"/places/1/capacity\",\"after\":null},{\"kind\":\"created\",\"path\":\"/places/1/x\",\"after\":320},{\"kind\":\"created\",\"path\":\"/places/1/y\",\"after\":0}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"aa5e8797913877fc5e6af30f8cae82fe196d33a94cb500b38a3ef0bf0d4ac5ab\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TRNVZ6MQGX2TR2D9GEJ",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e4fb379e51a6538445c07f75db8ecaa4",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TRQVWV2FEZ868Y9TYK3",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_e4fb379e51a6538445c07f75db8ecaa4",
+      "turnId": "turn_01M2247TRNXVFC2NPBNDJKAW89",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-places",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzcxZGNlYWNhZjMwN2UxNTU3ODc5MTNlZWZhMDRkMTM5",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_71dceacaf307e155787913eefa04d139",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-places"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-places\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-places\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"aa5e8797913877fc5e6af30f8cae82fe196d33a94cb500b38a3ef0bf0d4ac5ab\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TT80EXEQDP3KZGJ7S1E",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_71dceacaf307e155787913eefa04d139",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TTBHHSSTZ8FPFTZV1JB",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_71dceacaf307e155787913eefa04d139",
+      "turnId": "turn_01M2247TT9S6M89AT8AHX3ZB2Q",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addTransition",
+          "toolCallId": "creation-step",
+          "state": "output-available",
+          "input": {
+            "id": "test-step",
+            "name": "Test operation",
+            "inputArcs": [],
+            "outputArcs": [],
+            "lambdaType": "predicate",
+            "lambdaCode": "export default Lambda(() => true);",
+            "transitionKernelCode": "",
+            "x": 160,
+            "y": 0,
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-one",
+                "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 272
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-read-places",
+              "requestedBaseHash": "aa5e8797913877fc5e6af30f8cae82fe196d33a94cb500b38a3ef0bf0d4ac5ab"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 9
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzYwNzM0NmUwOTc0MWYwNzE4YzhhMTNkNWExZTczZDFl",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_607346e09741f0718c8a13d5a1e73d1e",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-step"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-step\",\"toolName\":\"addTransition\",\"output\":{\"title\":\"Added transition Test operation\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"transition\",\"id\":\"test-step\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-step\",\"toolName\":\"addTransition\",\"input\":{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0},\"observationToolCallId\":\"creation-read-places\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"aa5e8797913877fc5e6af30f8cae82fe196d33a94cb500b38a3ef0bf0d4ac5ab\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"aa5e8797913877fc5e6af30f8cae82fe196d33a94cb500b38a3ef0bf0d4ac5ab\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"kind\":\"created\",\"path\":\"/transitions/0/id\",\"after\":\"test-step\"},{\"kind\":\"created\",\"path\":\"/transitions/0/name\",\"after\":\"Test operation\"},{\"kind\":\"created\",\"path\":\"/transitions/0/inputArcs\",\"after\":[]},{\"kind\":\"created\",\"path\":\"/transitions/0/outputArcs\",\"after\":[]},{\"kind\":\"created\",\"path\":\"/transitions/0/lambdaType\",\"after\":\"predicate\"},{\"kind\":\"created\",\"path\":\"/transitions/0/lambdaCode\",\"after\":\"export default Lambda(() => true);\"},{\"kind\":\"created\",\"path\":\"/transitions/0/transitionKernelCode\",\"after\":\"\"},{\"kind\":\"created\",\"path\":\"/transitions/0/x\",\"after\":160},{\"kind\":\"created\",\"path\":\"/transitions/0/y\",\"after\":0}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"cdec398f7faef1e20421fc60233f53d70c06e3c927aef23f1b9854403a45ad98\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TX04V1T5NBAJ3VS9RK2",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_607346e09741f0718c8a13d5a1e73d1e",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TX3V56P6S8JX3EMWQQ5",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_607346e09741f0718c8a13d5a1e73d1e",
+      "turnId": "turn_01M2247TX0ETD00TM997XF02AE",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-step",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzY0ZDBiOGZiN2Q3ZmM5MDUxOTY4MjU0MTViNmJmMDE5",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_64d0b8fb7d7fc905196825415b6bf019",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-step"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-step\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-step\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"cdec398f7faef1e20421fc60233f53d70c06e3c927aef23f1b9854403a45ad98\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TZKYG0RCQKZSNQNZR1C",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_64d0b8fb7d7fc905196825415b6bf019",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247TZP2NYK7AATWQSK5A82",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_64d0b8fb7d7fc905196825415b6bf019",
+      "turnId": "turn_01M2247TZM7V0F5F532B1S55HG",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "creation-input",
+          "state": "output-available",
+          "input": {
+            "transitionId": "test-step",
+            "placeId": "test-queue",
+            "arcDirection": "input",
+            "type": "standard",
+            "weight": "1",
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-one",
+                "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 272
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-read-step",
+              "requestedBaseHash": "cdec398f7faef1e20421fc60233f53d70c06e3c927aef23f1b9854403a45ad98"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 3
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzc2YjljZGNkYjdmN2ZiNWFiZTU3MWY3Y2I2NTQyMjRi",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_76b9cdcdb7f7fb5abe571f7cb654224b",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-input"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-input\",\"toolName\":\"addArc\",\"output\":{\"title\":\"Added input arc\",\"detail\":\"TestQueue <-> Test operation\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"arc\",\"id\":\"$A_place:test-queue___test-step\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-input\",\"toolName\":\"addArc\",\"input\":{\"transitionId\":\"test-step\",\"arcDirection\":\"input\",\"placeId\":\"test-queue\",\"weight\":1,\"type\":\"standard\"},\"observationToolCallId\":\"creation-read-step\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"cdec398f7faef1e20421fc60233f53d70c06e3c927aef23f1b9854403a45ad98\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"cdec398f7faef1e20421fc60233f53d70c06e3c927aef23f1b9854403a45ad98\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"path\":\"/transitions/0/inputArcs/0\",\"kind\":\"created\",\"after\":{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"236233b1592bd83671c87727f24775acc279a1e254f08164e57c5c9177db3881\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V0HAA30HD5BMXP21BCY",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_76b9cdcdb7f7fb5abe571f7cb654224b",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V0KEEEWK8V8Z70BVC04",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_76b9cdcdb7f7fb5abe571f7cb654224b",
+      "turnId": "turn_01M2247V0HTDVYNXF0RPV1D2GQ",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-input",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2UwNmI2YWMyMjMxYjY0YjIwNWZmODk5MmRlYjRjMmMz",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e06b6ac2231b64b205ff8992deb4c2c3",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-input"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-input\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-input\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"236233b1592bd83671c87727f24775acc279a1e254f08164e57c5c9177db3881\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V247EFQRATX9A518DWF",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e06b6ac2231b64b205ff8992deb4c2c3",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V274W3FKBG8BNRCZR48",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_e06b6ac2231b64b205ff8992deb4c2c3",
+      "turnId": "turn_01M2247V25B0PE2MYM32P3WPZC",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "creation-output",
+          "state": "output-available",
+          "input": {
+            "transitionId": "test-step",
+            "placeId": "test-completed",
+            "arcDirection": "output",
+            "weight": 1,
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-one",
+                "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 272
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-read-input",
+              "requestedBaseHash": "236233b1592bd83671c87727f24775acc279a1e254f08164e57c5c9177db3881"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzRkZmY3ODIzYWM3Zjg4YjVmMGJlNDk1YWM2MGM1OGU3",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_4dff7823ac7f88b5f0be495ac60c58e7",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-output"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-output\",\"toolName\":\"addArc\",\"output\":{\"title\":\"Added output arc\",\"detail\":\"TestCompleted <-> Test operation\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"arc\",\"id\":\"$A_test-step___place:test-completed\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-output\",\"toolName\":\"addArc\",\"input\":{\"transitionId\":\"test-step\",\"arcDirection\":\"output\",\"placeId\":\"test-completed\",\"weight\":1},\"observationToolCallId\":\"creation-read-input\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"236233b1592bd83671c87727f24775acc279a1e254f08164e57c5c9177db3881\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"236233b1592bd83671c87727f24775acc279a1e254f08164e57c5c9177db3881\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"path\":\"/transitions/0/outputArcs/0\",\"kind\":\"created\",\"after\":{\"placeId\":\"test-completed\",\"weight\":1}}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V2X9GMH1H5H509B13AK",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_4dff7823ac7f88b5f0be495ac60c58e7",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V30RE6M461WMP1BKVXA",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_4dff7823ac7f88b5f0be495ac60c58e7",
+      "turnId": "turn_01M2247V2Y1YYDABAFD4HC74QE",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-connected",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzFjMDRiZGVmZjZjOTI3NTgwYzUxZmE4MjBiMGNjZGVk",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1c04bdeff6c927580c51fa820b0ccded",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-connected"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-connected\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-connected\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V4QAT50HNW5XAQNJX9H",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1c04bdeff6c927580c51fa820b0ccded",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V4TPH6R5148BJTW13DX",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_1c04bdeff6c927580c51fa820b0ccded",
+      "turnId": "turn_01M2247V4R2BJ7N6QFEV6H45RV",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getNetCompilationErrors",
+          "toolCallId": "creation-check",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzk5MDJmZTNiNThlMDYyMTdiNWQ5NWFkNGRkMTI2NTcy",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_9902fe3b58e06217b5d95ad4dd126572",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-check"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-check\",\"toolName\":\"getNetCompilationErrors\",\"output\":\"No errors detected in your model – everything compiles!\"}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V78MZ342ZF9X6NP3P8T",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_9902fe3b58e06217b5d95ad4dd126572",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247V7BF8BVGMMQ75S6R7Z8",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_9902fe3b58e06217b5d95ad4dd126572",
+      "turnId": "turn_01M2247V78QA8TB6AMRWYF3TQA",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Native creation and canonical check completed.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2U5ZjkwNTdhZTFlMjMwYWUxZTU1NzJkMzg3M2I2ZTkz",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_e9f9057ae1e230ae1e5572d3873b6e93",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST synthetic correction: the waiting limit is three, not two, and the operation is paused for this test. Timing and actual inventory remain unknown.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VBMMEB5K653A8XDSDZM",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e9f9057ae1e230ae1e5572d3873b6e93",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VBQYQQ0D0GF1MYCR222",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_e9f9057ae1e230ae1e5572d3873b6e93",
+      "turnId": "turn_01M2247VBN3MGF46D5KQ0V5FAZ",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "creation-revision-two",
+          "state": "output-available",
+          "input": {
+            "markdown": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown."
+          },
+          "output": {
+            "revisionId": "creation-revision-two",
+            "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+            "ordinal": 2
+          },
+          "durationMs": 0
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_workpiece",
+          "toolCallId": "creation-revision-two-locate",
+          "state": "output-available",
+          "input": {
+            "locateTexts": [
+              "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown."
+            ]
+          },
+          "output": {
+            "currentWorkpiece": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "markdown": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+              "ordinal": 2
+            },
+            "locatorLookup": {
+              "subject": {
+                "kind": "current-revision",
+                "revisionId": "creation-revision-two"
+              },
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "utf16Length": 263,
+              "utf8Bytes": 263,
+              "queries": [
+                {
+                  "text": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+                  "occurrences": [
+                    {
+                      "start": 0,
+                      "end": 263
+                    }
+                  ],
+                  "matchedCount": 1,
+                  "omittedCount": 0
+                }
+              ]
+            },
+            "state": "current",
+            "sources": [
+              {
+                "id": "entry_direct_c3ViX2lrXzMzNzU1MmI5ZTMwZDZiOGFkYmE3MmYyOGZmODVhNWEz",
+                "role": "user",
+                "purpose": "user",
+                "text": "TEST synthetic account: waiting items have a limit of two and move one at a time to a completed state after an operation. For this test condition the operation is enabled. Timing and actual inventory are unknown.",
+                "textTruncated": false,
+                "untrusted": true
+              },
+              {
+                "id": "entry_direct_c3ViX2lrX2U5ZjkwNTdhZTFlMjMwYWUxZTU1NzJkMzg3M2I2ZTkz",
+                "role": "user",
+                "purpose": "user",
+                "text": "TEST synthetic correction: the waiting limit is three, not two, and the operation is paused for this test. Timing and actual inventory remain unknown.",
+                "textTruncated": false,
+                "untrusted": true
+              }
+            ],
+            "earlierSourcesOmitted": 0,
+            "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-revision-two-read",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzU5YmM3NTU2YmMyMDUzNTZjY2U4OWIyMWY2ODQ3MGJk",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_59bc7556bc205356cce89b21f68470bd",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-revision-two-read"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-revision-two-read\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-revision-two-read\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VEW799NEA5HD6RZKR8R",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_59bc7556bc205356cce89b21f68470bd",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VEZGBBTVT72X4C5GX7X",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_59bc7556bc205356cce89b21f68470bd",
+      "turnId": "turn_01M2247VEX8BK4WS1B7DEZDA6Y",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "updatePlace",
+          "toolCallId": "creation-capacity",
+          "state": "output-available",
+          "input": {
+            "placeId": "test-queue",
+            "update": {
+              "capacity": 3
+            },
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-two",
+                "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 263
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-revision-two-read",
+              "requestedBaseHash": "d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 14
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzFhODJjMmI0MmY1MDA3MzUyZWRiMzIwNjg2OWU2MDU2",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1a82c2b42f5007352edb3206869e6056",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-capacity"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-capacity\",\"toolName\":\"updatePlace\",\"output\":{\"title\":\"Updated place TestQueue\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"place\",\"id\":\"test-queue\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-capacity\",\"toolName\":\"updatePlace\",\"input\":{\"placeId\":\"test-queue\",\"update\":{\"capacity\":3}},\"observationToolCallId\":\"creation-revision-two-read\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":2,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb\"},\"outcome\":\"applied\",\"effects\":{\"created\":[],\"updated\":[{\"path\":\"/places/0/capacity\",\"kind\":\"updated\",\"before\":2,\"after\":3}],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VG15WEDE8H8V2D3HTXT",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1a82c2b42f5007352edb3206869e6056",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VG474NTVE3Z3EKSV653",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_1a82c2b42f5007352edb3206869e6056",
+      "turnId": "turn_01M2247VG29ZVN5EJYJYRZ6VKB",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-capacity",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzQ5MTg4YWEyYjA3OTUyZjRiMzliOWE0NmI2NmNjZTc1",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_49188aa2b07952f4b39b9a46b66cce75",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-capacity"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-capacity\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-capacity\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VHD2FJKEHYXK14ENTBT",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_49188aa2b07952f4b39b9a46b66cce75",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VHFDGG5F273E463SBF6",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_49188aa2b07952f4b39b9a46b66cce75",
+      "turnId": "turn_01M2247VHDD5C7XYRN612G5YN3",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "updateTransition",
+          "toolCallId": "creation-pause",
+          "state": "output-available",
+          "input": {
+            "transitionId": "test-step",
+            "update": {
+              "lambdaCode": "export default Lambda(() => false);"
+            },
+            "brunch": {
+              "basis": {
+                "kind": "declared",
+                "revisionId": "creation-revision-two",
+                "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 263
+                  }
+                ],
+                "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                "scope": "operation"
+              },
+              "observationToolCallId": "creation-read-capacity",
+              "requestedBaseHash": "bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45"
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 15
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzU5OWYyOWQ2ZGZlZDJjMTNmMGFkODY1YTFmODVjMGUw",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_599f29d6dfed2c13f0ad865a1f85c0e0",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-pause"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-pause\",\"toolName\":\"updateTransition\",\"output\":{\"title\":\"Updated transition Test operation\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"transition\",\"id\":\"test-step\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"creation-pause\",\"toolName\":\"updateTransition\",\"input\":{\"transitionId\":\"test-step\",\"update\":{\"lambdaCode\":\"export default Lambda(() => false);\"}},\"observationToolCallId\":\"creation-read-capacity\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"requestedBaseHash\":\"bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45\"},\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => true);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45\"},\"outcome\":\"applied\",\"effects\":{\"created\":[],\"updated\":[{\"path\":\"/transitions/0/lambdaCode\",\"kind\":\"updated\",\"before\":\"export default Lambda(() => true);\",\"after\":\"export default Lambda(() => false);\"}],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => false);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VJMGAVGC8GBVBKTSGR5",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_599f29d6dfed2c13f0ad865a1f85c0e0",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VJQCQ1DA3FKZF3J424F",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_599f29d6dfed2c13f0ad865a1f85c0e0",
+      "turnId": "turn_01M2247VJNC25DC5HHPBJJBJ67",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "creation-read-correction",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzNlNWY2MzZmNDU1ODMzNTEwYzQ1NjQxNzRkYWM4NDNm",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_3e5f636f455833510c4564174dac843f",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "creation-read-correction"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"creation-read-correction\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Synthetic root creation — empty document\",\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => false);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"creation-read-correction\",\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"test-queue\",\"name\":\"TestQueue\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":3,\"x\":0,\"y\":0},{\"id\":\"test-completed\",\"name\":\"TestCompleted\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"capacity\":null,\"x\":320,\"y\":0}],\"transitions\":[{\"id\":\"test-step\",\"name\":\"Test operation\",\"inputArcs\":[{\"type\":\"standard\",\"placeId\":\"test-queue\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"test-completed\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"export default Lambda(() => false);\",\"transitionKernelCode\":\"\",\"x\":160,\"y\":0}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VKWESFJ9CP2M1JE1JNK",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_3e5f636f455833510c4564174dac843f",
+      "signal": {
+        "tagName": "brunch.construction-binding"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"binding\":{\"conversationId\":\"root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239\",\"documentId\":\"synthetic-root-creation-v1\",\"incarnationId\":\"fe5f2133-0be1-4bc2-93c5-c06c43329239\"}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2247VKZ99STGCQ6W6EAWZ9P",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_3e5f636f455833510c4564174dac843f",
+      "turnId": "turn_01M2247VKWSQ0YZ494TMZ9S97E",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "creation-why-capacity",
+          "state": "output-available",
+          "input": {
+            "kind": "place",
+            "name": "TestQueue",
+            "field": "capacity",
+            "observationToolCallId": "creation-read-correction"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239",
+              "documentId": "synthetic-root-creation-v1",
+              "incarnationId": "fe5f2133-0be1-4bc2-93c5-c06c43329239"
+            },
+            "currentWorkpiece": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "markdown": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+              "ordinal": 2
+            },
+            "reconciliation": {
+              "status": "live-observed",
+              "sha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedSha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedToolCallId": "creation-pause",
+              "observationToolCallId": "creation-read-correction",
+              "observationScope": "live-observed"
+            },
+            "attempts": [
+              {
+                "toolCallId": "creation-queue",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-completed",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-step",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-input",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-output",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-capacity",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-pause",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "kind": "place",
+              "id": "test-queue",
+              "nodePath": "/places/0",
+              "path": "/places/0/capacity",
+              "value": 3,
+              "formalism": "Places store tokens; transitions define enabling and firing. Canonical defaults and generated code are not elicited operational facts."
+            },
+            "originToolCallId": "creation-queue",
+            "appliedChanges": [
+              {
+                "toolCallId": "creation-queue",
+                "operation": "addPlace",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-one",
+                  "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              },
+              {
+                "toolCallId": "creation-capacity",
+                "operation": "updatePlace",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-two",
+                  "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 263
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              }
+            ],
+            "recordedChange": {
+              "toolCallId": "creation-capacity",
+              "preHash": "d9ab6200a8559fb4781cf1ee1d55560b958c53efd005e68f93e0ba38c6dda7fb",
+              "postHash": "bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45",
+              "effects": {
+                "created": [],
+                "updated": [
+                  {
+                    "path": "/places/0/capacity",
+                    "kind": "updated",
+                    "before": 2,
+                    "after": 3
+                  }
+                ],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "status": "current",
+              "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 0,
+                    "end": 263
+                  },
+                  "text": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+                  "standing": "temporal-context-only",
+                  "relations": []
+                }
+              ]
+            }
+          },
+          "durationMs": 14
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "creation-why-pause",
+          "state": "output-available",
+          "input": {
+            "kind": "transition",
+            "name": "Test operation",
+            "field": "lambdaCode"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239",
+              "documentId": "synthetic-root-creation-v1",
+              "incarnationId": "fe5f2133-0be1-4bc2-93c5-c06c43329239"
+            },
+            "currentWorkpiece": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "markdown": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+              "ordinal": 2
+            },
+            "reconciliation": {
+              "status": "as-of",
+              "sha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedSha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedToolCallId": "creation-pause"
+            },
+            "attempts": [
+              {
+                "toolCallId": "creation-queue",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-completed",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-step",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-input",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-output",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-capacity",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-pause",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "kind": "transition",
+              "id": "test-step",
+              "nodePath": "/transitions/0",
+              "path": "/transitions/0/lambdaCode",
+              "value": "export default Lambda(() => false);",
+              "formalism": "Places store tokens; transitions define enabling and firing. Canonical defaults and generated code are not elicited operational facts."
+            },
+            "originToolCallId": "creation-step",
+            "appliedChanges": [
+              {
+                "toolCallId": "creation-step",
+                "operation": "addTransition",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-one",
+                  "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              },
+              {
+                "toolCallId": "creation-input",
+                "operation": "addArc",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-one",
+                  "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              },
+              {
+                "toolCallId": "creation-output",
+                "operation": "addArc",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-one",
+                  "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              },
+              {
+                "toolCallId": "creation-pause",
+                "operation": "updateTransition",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-two",
+                  "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 263
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              }
+            ],
+            "recordedChange": {
+              "toolCallId": "creation-pause",
+              "preHash": "bb8edeac74e82c9d534ca30f6a81ff61bc7e15003127b47928c79b2c3b05ab45",
+              "postHash": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "effects": {
+                "created": [],
+                "updated": [
+                  {
+                    "path": "/transitions/0/lambdaCode",
+                    "kind": "updated",
+                    "before": "export default Lambda(() => true);",
+                    "after": "export default Lambda(() => false);"
+                  }
+                ],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "status": "current",
+              "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 0,
+                    "end": 263
+                  },
+                  "text": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+                  "standing": "temporal-context-only",
+                  "relations": []
+                }
+              ]
+            }
+          },
+          "durationMs": 12
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "creation-why-entity",
+          "state": "output-available",
+          "input": {
+            "kind": "place",
+            "name": "TestQueue",
+            "field": "entity"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "root-creation-candidate-v1:fe5f2133-0be1-4bc2-93c5-c06c43329239",
+              "documentId": "synthetic-root-creation-v1",
+              "incarnationId": "fe5f2133-0be1-4bc2-93c5-c06c43329239"
+            },
+            "currentWorkpiece": {
+              "revisionId": "creation-revision-two",
+              "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+              "markdown": "# TEST synthetic corrected workpiece\n\nTestQueue capacity is three, not two. Test operation is paused with a false predicate for this test condition. Items still move individually to TestCompleted when enabled. Execution timing and actual inventory remain unknown.",
+              "ordinal": 2
+            },
+            "reconciliation": {
+              "status": "as-of",
+              "sha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedSha256": "4266f030dd106c86e35c079a6a19ca4e8c212ebfc6cabd3763b6cf35fe3be864",
+              "recordedToolCallId": "creation-pause"
+            },
+            "attempts": [
+              {
+                "toolCallId": "creation-queue",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-completed",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-step",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-input",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-output",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-capacity",
+                "outcome": "applied"
+              },
+              {
+                "toolCallId": "creation-pause",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "kind": "place",
+              "id": "test-queue",
+              "nodePath": "/places/0",
+              "path": "/places/0",
+              "value": {
+                "id": "test-queue",
+                "name": "TestQueue",
+                "colorId": null,
+                "dynamicsEnabled": false,
+                "differentialEquationId": null,
+                "capacity": 3,
+                "x": 0,
+                "y": 0
+              },
+              "formalism": "Places store tokens; transitions define enabling and firing. Canonical defaults and generated code are not elicited operational facts."
+            },
+            "originToolCallId": "creation-queue",
+            "appliedChanges": [
+              {
+                "toolCallId": "creation-queue",
+                "operation": "addPlace",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-one",
+                  "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 272
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              },
+              {
+                "toolCallId": "creation-capacity",
+                "operation": "updatePlace",
+                "basis": {
+                  "kind": "declared",
+                  "revisionId": "creation-revision-two",
+                  "sha256": "c0ff44cdd9925e4ec4a8519cb0562aa5f1188d455b4473d3d1db0784f011e7dc",
+                  "locators": [
+                    {
+                      "start": 0,
+                      "end": 263
+                    }
+                  ],
+                  "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+                  "scope": "operation"
+                }
+              }
+            ],
+            "recordedChange": {
+              "toolCallId": "creation-queue",
+              "preHash": "28b3d59d5d58920b2cf90253ff84e4454f33469dd8cc2964f931d3d3e7707ced",
+              "postHash": "6f82f5a6e08a30de2fddca3d4ed508a5afecbbf28497bef224aa1f9706c58f95",
+              "effects": {
+                "created": [
+                  {
+                    "kind": "created",
+                    "path": "/places/0/id",
+                    "after": "test-queue"
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/name",
+                    "after": "TestQueue"
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/colorId",
+                    "after": null
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/dynamicsEnabled",
+                    "after": false
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/differentialEquationId",
+                    "after": null
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/capacity",
+                    "after": 2
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/x",
+                    "after": 0
+                  },
+                  {
+                    "kind": "created",
+                    "path": "/places/0/y",
+                    "after": 0
+                  }
+                ],
+                "updated": [],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "creation-revision-one",
+              "sha256": "ef64a080c002103144c14b825f71daf94bf20ed0fedff3ef5c6538845687dfae",
+              "status": "superseded",
+              "rationale": "Synthetic operation-level test basis; relevance and useful coverage are unassessed.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 0,
+                    "end": 272
+                  },
+                  "text": "# TEST synthetic workpiece\n\nItems wait in TestQueue with capacity two, then move individually through Test operation to TestCompleted. For this mechanical test only, the operation is enabled by a true predicate; execution timing is unknown. No actual inventory is claimed.",
+                  "standing": "temporal-context-only",
+                  "relations": []
+                }
+              ]
+            }
+          },
+          "durationMs": 11
+        },
+        {
+          "type": "text",
+          "text": "Native correction and ordinary-name why completed.",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_ik_337552b9e30d6b8adba72f28ff85a5a3",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_337552b9e30d6b8adba72f28ff85a5a3"
+    },
+    {
+      "submissionId": "sub_ik_480886d557896172f369acaad93df1cb",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_480886d557896172f369acaad93df1cb"
+    },
+    {
+      "submissionId": "sub_ik_77114b0c2a4fb409ebc99747c1ecd029",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_77114b0c2a4fb409ebc99747c1ecd029"
+    },
+    {
+      "submissionId": "sub_ik_e9fea6dd229b149fadc85455bb2343b2",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_e9fea6dd229b149fadc85455bb2343b2"
+    },
+    {
+      "submissionId": "sub_ik_e4fb379e51a6538445c07f75db8ecaa4",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_e4fb379e51a6538445c07f75db8ecaa4"
+    },
+    {
+      "submissionId": "sub_ik_71dceacaf307e155787913eefa04d139",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_71dceacaf307e155787913eefa04d139"
+    },
+    {
+      "submissionId": "sub_ik_607346e09741f0718c8a13d5a1e73d1e",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_607346e09741f0718c8a13d5a1e73d1e"
+    },
+    {
+      "submissionId": "sub_ik_64d0b8fb7d7fc905196825415b6bf019",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_64d0b8fb7d7fc905196825415b6bf019"
+    },
+    {
+      "submissionId": "sub_ik_76b9cdcdb7f7fb5abe571f7cb654224b",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_76b9cdcdb7f7fb5abe571f7cb654224b"
+    },
+    {
+      "submissionId": "sub_ik_e06b6ac2231b64b205ff8992deb4c2c3",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_e06b6ac2231b64b205ff8992deb4c2c3"
+    },
+    {
+      "submissionId": "sub_ik_4dff7823ac7f88b5f0be495ac60c58e7",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_4dff7823ac7f88b5f0be495ac60c58e7"
+    },
+    {
+      "submissionId": "sub_ik_1c04bdeff6c927580c51fa820b0ccded",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_1c04bdeff6c927580c51fa820b0ccded"
+    },
+    {
+      "submissionId": "sub_ik_9902fe3b58e06217b5d95ad4dd126572",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_9902fe3b58e06217b5d95ad4dd126572"
+    },
+    {
+      "submissionId": "sub_ik_e9f9057ae1e230ae1e5572d3873b6e93",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_e9f9057ae1e230ae1e5572d3873b6e93"
+    },
+    {
+      "submissionId": "sub_ik_59bc7556bc205356cce89b21f68470bd",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_59bc7556bc205356cce89b21f68470bd"
+    },
+    {
+      "submissionId": "sub_ik_1a82c2b42f5007352edb3206869e6056",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_1a82c2b42f5007352edb3206869e6056"
+    },
+    {
+      "submissionId": "sub_ik_49188aa2b07952f4b39b9a46b66cce75",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_49188aa2b07952f4b39b9a46b66cce75"
+    },
+    {
+      "submissionId": "sub_ik_599f29d6dfed2c13f0ad865a1f85c0e0",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_599f29d6dfed2c13f0ad865a1f85c0e0"
+    },
+    {
+      "submissionId": "sub_ik_3e5f636f455833510c4564174dac843f",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_3e5f636f455833510c4564174dac843f"
+    }
+  ],
+  "incarnation": "inc_01M2247TFY09A3A0HKDA27FGXM"
+}

@@ -10,12 +10,10 @@ This document names what a Mission 3 runbook IR must conserve and make usable, i
 current heading catalogue. Earlier typed designs are research evidence, not an instruction to
 restore kinds, slots, precision grades, fold rules, or completion algebra.
 
-Working artefacts: `apps/brunch-agent/src/skills/sdcpn-modelling/ir-template.md`; the two real IRs
-at `docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T10-56-59-351Z.ir.md`
-(Run 1) and
-`…/runbook-headless-2026-08-28T11-03-53-683Z.ir.md` (Run 2); matching transcripts; construction
-from Run 2 at `…/runbook-validated-construction-2026-08-28T13-02-51-095Z.md`; proof
-`docs/evidence/implementations/fe-1525-headless-runbook-pn.md`.
+Working artefacts: `apps/brunch-agent/src/skills/sdcpn-modelling/ir-template.md`; the two
+historical headless IRs (the surviving filled IR is now
+`evaluations/cases/vestera-scheduling/filled-runbook.ir.md`); matching transcripts; and the
+historical `fe-1525-headless-runbook-pn` implementation note.
 
 ---
 

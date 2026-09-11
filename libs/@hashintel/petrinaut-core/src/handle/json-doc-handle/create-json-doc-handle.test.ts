@@ -68,6 +68,33 @@ describe("createJsonDocHandle", () => {
     expect(handle.doc()).toEqual(empty());
   });
 
+  it.each([undefined, null, 0, 3])(
+    "preserves capacity %s through canonical initialization and JSON reopening",
+    (capacity) => {
+      const initial: SDCPN = {
+        ...empty(),
+        places: [
+          {
+            id: "p1",
+            name: "Capacity",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 1,
+            y: 2,
+            ...(capacity === undefined ? {} : { capacity }),
+          },
+        ],
+      };
+      const handle = createJsonDocHandle({ initial });
+      expect(handle.doc()).toStrictEqual(initial);
+      // This is the serialization of our controlled canonical fixture, not external input.
+      const serialized = JSON.parse(JSON.stringify(handle.doc())) as SDCPN;
+      const reopened = createJsonDocHandle({ initial: serialized });
+      expect(reopened.doc()).toStrictEqual(initial);
+    },
+  );
+
   it("emits a change event with patches on mutation", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     const events: DocChangeEvent[] = [];

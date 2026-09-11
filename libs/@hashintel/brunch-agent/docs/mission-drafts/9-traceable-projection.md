@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** [Mission 7b](7b-september-demo.md) owns a substantial connected flagship and therefore brings forward its exact construction/schema operation classes, safe template-copy/rehearsal behaviour, and one ordinary correction family without unrelated rebuilding. That includes deletion or nested/component operations when the selected artifact actually needs them; it is not a thin tracer. This draft retains general unchanged-repeat, changed-input, retirement, concurrency and broader schema/scenario coverage after the demo. Re-evaluate its whole-stratum gates against the substantial shipped 7b seam before cutting this broader mission.
+
 Recut on 2026-09-04. The construction half of the former Mission 9 (schema-carrier repair, the first real nested mutation, one meaningful region built by the model, stable ids, and the positive why over a generated element) moved into the consolidated [Mission 7](7-explainable-construction.md), because the owner chose fully connected parts over thin tracers and because the provenance design showed that lineage only exists when the model actually constructs. This draft keeps what "repeatable" first makes load-bearing: unchanged repeat, changed input, deletion and retirement, concurrent user change, cross-conversation document access, broader schema classes, and the per-action versus batch decision if Mission 7 has not settled it. The reasoning is recorded in the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) entries F12 and G16 and the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md) items 16 and 18.
 
 ## Cold-start reads
@@ -14,18 +16,39 @@ A fresh builder must resolve these authorities and evidence before choosing a me
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 floor, cross-mission obligations, standing locks, the 2026-09-04 planning migration matrix, and the current Mission 10 handoff.
 - [`7-explainable-construction.md`](7-explainable-construction.md) — the consolidated predecessor at cut-level detail: settled-revision protocol, declared basis, transition record, identity epochs, passage policy, document reconciliation, recorded roles, scenario-selected tool admission, and its readiness gate. At cut time replace this draft pointer with Mission 7's accepted archive and close evidence, and consume the actual seam it shipped.
 - [`../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md`](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md) and the two reviews beside it — the design rationale, the four contracts, the probe decision tables, and the rejected alternatives. Design evidence, not authority.
-- [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece leg, canonical callback fixture, the provider-visible nested-schema failure that Mission 7 now retires, and the vacuous empty-net warning.
-- [`../specs/petrinaut-batched-construction-tools.md`](../specs/petrinaut-batched-construction-tools.md) — candidate `pn_read`/`pn_edit` design input and its corrected transaction, outcome, identity, carrier, and ownership constraints. It does not select batching. Mission 7 repairs the single-action carrier; this mission admits a batch only if the probes below establish it as the least sufficient mechanism for repeat and changed-input projection.
+- [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — historical workpiece leg and construction limits. The implementation packet is retired; inspect current [earned contracts](../../MISSION.md#earned-data-and-execution-contracts) and their owning tests for present construction guarantees.
+- [`../specs/petrinaut-batched-construction-tools.md`](../specs/petrinaut-batched-construction-tools.md) — collapsed unselected-candidate note. The 2026-09-02 survey is pinned at `ed9edfe7f0`. This draft owns the batch-versus-per-action decision and the probes below.
 - [`../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts), [`../../packages/plugin-sdcpn/src/flue.ts`](../../packages/plugin-sdcpn/src/flue.ts), and [`../../packages/plugin-sdcpn/test/construction-tools.test.ts`](../../packages/plugin-sdcpn/test/construction-tools.test.ts) — the tool factory, mounting seams, and alignment guards as Mission 7 leaves them.
 - [`../../../petrinaut-core/src/ai.ts`](../../../petrinaut-core/src/ai.ts), [`../../../petrinaut-core/src/action-schemas.ts`](../../../petrinaut-core/src/action-schemas.ts), [`../../../petrinaut-core/src/schemas/entity-schemas.ts`](../../../petrinaut-core/src/schemas/entity-schemas.ts), and [`../../../petrinaut-core/src/ai.test.ts`](../../../petrinaut-core/src/ai.test.ts) — canonical Petrinaut AI schemas, mutation callbacks, ids, nested types, and JSON Schema evidence. These are the authority; Brunch prose or copied field catalogs are not.
 - [`../../../petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx`](../../../petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx) and its test — current `useChat` / `onToolCall`, canonical input parsing, mutation execution, and visible failure surface.
 - [`../../packages/transport-aisdk/src/client-tool-history.ts`](../../packages/transport-aisdk/src/client-tool-history.ts) and the Mission 7 transition-record contract — how browser results are correlated and deduplicated by call id.
 - [`../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), [`templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md), and [`references/pn-construction.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/pn-construction.md) — construction posture as Mission 7 leaves it.
 - [`../reference/architecture/flue-routing.md`](../reference/architecture/flue-routing.md) — the per-conversation versus cross-conversation state distinction that governs the document-scoped owner this mission may need.
-- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — the locally verified application contract and the still-open infrastructure handoff. Mission 9 names local posture unless a Mission 8 successor has landed.
+- [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) — application artifact landed on `main` through #9495/#9487/#9573; SRE-1013 still owns ECS provisioning and the remote proof matrix. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`. Mission 9 names local posture unless a Mission 8 successor has landed.
 - [`../../../petrinaut/docs/ai-assistant.md`](../../../petrinaut/docs/ai-assistant.md) and [`drawing-a-net.md`](../../../petrinaut/docs/drawing-a-net.md) — user-visible projection behaviour must update the user guide and prompt screenshot replacement.
 
 The accepted Mission 7 region, proving scenario, transition-record shape, and passage policy are not yet canonical paths. Name them from accepted predecessor evidence when this draft is cut.
+
+### Unselected batch candidate
+
+Do not implement `pn_read` / `pn_edit` from the survey. Batching does not repair the Mission 3
+schema-carrier failure; it inherits it. After Mission 7's single-action carrier and first nested
+mutation exist, admit a batch only if these probes all pass, in order:
+
+1. **Shape-preserving carrier** already holds for one nested action (Mission 7's job). Stop if
+   no mechanical path preserves nested shape; do not widen the opaque carrier or hand-copy fields.
+2. **First-class transactional batch** in Petrinaut core, beside `mutations`, with explicit
+   rollback, readonly/extension parity, indexed `{ index, action, path, message }` failure, and
+   honest no-op outcomes. `handle.change` is not that contract. Advertise only the handles the
+   tests cover.
+3. **Production-path comparison** of a bounded subset against per-action tools: schema cost,
+   correction behavior, resulting state, and failure visibility. Keep per-action tools unless
+   the batch earns its core and host contracts and shows a measured benefit for repeat or
+   changed-input projection.
+
+Rejected regardless: `best-effort` mode, Brunch/Flue types in `petrinaut-core`, full 41-action
+parity, and treating call-count reduction as sufficient. Reuse `getLatestNetDefinition`; do not
+rename it until a naming and dispatch reason exists.
 
 ## Visible product advance
 
@@ -55,6 +78,12 @@ The bounded stratum includes:
 - basis and transition records for every generated, changed, and retired element, and the current-state why answer over them.
 
 Stratum closure is over the named extended region, accepted peer set, and mutation classes actually used, not all Petrinaut tools or the full optimisation handoff. Mission 10 owns reviewer authority; Mission 11 owns broadening to its accepted handoff scenario.
+
+### Scenario breadth obligation
+
+On 2026-09-07 the owner selected Vestera for Mission 7 and required later missions to prove the more complex cases. Vestera construction-and-explanation evidence must not be generalized to continuous dynamics or the other cases' richer operational constraints. Mission 9 owns the next scenario-breadth allocation at its cut: name the more complex cases and additional contract classes it will prove, and assign any remaining cases to a named later mission with a re-entry gate and oracle rather than leaving them as optional backlog. Industrial Gas, Data Centre Thermal Operations, and Pharma Cold Chain are existing candidates for continuous/hybrid behaviour; Truck Fleet Maintenance and Semiconductor Fab Operations carry other richer constraints. Selection and order remain owner decisions informed by the Mission 7 result and consumer discovery.
+
+**Re-entry gate:** Mission 9's region and scenario portfolio are selected over the accepted Mission 7 seam, before expanded tool admission or a claim of broader support. **Oracle:** for each admitted case, a genuine production-agent conversation constructs a meaningful region using its newly required canonical classes; a case-derived executable behavioural check and reopened why safety/utility checks establish the added claim. Classes outside the selected portfolio remain explicitly unproven. This obligation does not authorize these cases under Mission 7 or replace Mission 9's repeat/change/readiness requirements.
 
 ## Boundary crossings and current throughline hypothesis
 
@@ -144,7 +173,7 @@ Do not defer repeat idempotence, changed-input identity, retirement, or concurre
 | Retirement closes an epoch and answers why | **ORACLE GAP:** bind to an epoch ledger assertion and a why answer with retired disposition. |
 | Concurrent or hand change refuses rather than overwrites | **ORACLE GAP:** inject a hand edit between plan and apply and assert stale refusal plus external-import disposition. |
 | Cross-conversation access is arbitrated or refused | **ORACLE GAP:** decide at cut time whether the proving scenario needs it; if so, bind a second-conversation probe to the document-scoped owner. |
-| A bounded batch improves repeat or changed-input projection | **ORACLE GAP:** follow the three probes in `docs/specs/petrinaut-batched-construction-tools.md`; batch selection requires rollback, readonly and extension parity, indexed failure, no-op honesty, supported-handle scope, production client routing, and material measured benefit. |
+| A bounded batch improves repeat or changed-input projection | **ORACLE GAP:** follow the [three probes](#unselected-batch-candidate); batch selection requires rollback, readonly and extension parity, indexed failure, no-op honesty, supported-handle scope, production client routing, and material measured benefit. |
 | Semantic correspondence of the extended region | **ORACLE GAP:** workpiece-specific human adjudication plus the Mission 7 behavioural discriminator rerun after each change. |
 | Mission 10-ready correction | **ORACLE GAP:** choose with the owner after the extended region exists; record expected retained and changed ids and behaviour before Mission 10 is cut. |
 
@@ -160,7 +189,7 @@ Do not defer repeat idempotence, changed-input identity, retirement, or concurre
 ## Inputs and joins
 
 - **Mission 7 join:** the accepted conversation, settled revisions, transition records, epochs, passage policy, tool set, compaction posture, fixture route, and gates. Draft promises are not join evidence.
-- **Petrinaut canonical-contract join:** consume `petrinautAiTools`, `mutationActionInputSchemas`, entity schemas, and writable callbacks by import or mechanical generation. Mismatches route upstream. The batched-tools design is candidate input: Petrinaut core may own a generic subset-derived schema and first-class transaction operation; Brunch retains selection, Flue carriage, client routing, and identity.
+- **Petrinaut canonical-contract join:** consume `petrinautAiTools`, `mutationActionInputSchemas`, entity schemas, and writable callbacks by import or mechanical generation. Mismatches route upstream. The batched-tools survey is candidate input only: Petrinaut core may own a generic subset-derived schema and first-class transaction operation; Brunch retains selection, Flue carriage, client routing, and identity.
 - **Flue join:** the repaired carrier from Mission 7; a new upstream requirement if a class cannot be carried.
 - **Host join:** preserve `useChat` / `onToolCall` and client-tool result resumption; mutation execution remains browser and Petrinaut owned.
 - **Scenario join:** the owner selects the extended region, expected impact sets, accepted change classes, and one Mission 10 correction.

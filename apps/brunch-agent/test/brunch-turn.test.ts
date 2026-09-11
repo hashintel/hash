@@ -2,7 +2,6 @@ import {
   FlueExecutionError,
   type AgentReadResult,
   type AgentSendResult,
-  type FlueClient,
   type FlueConversationPart,
   type FlueConversationSnapshot,
 } from "@flue/sdk";
@@ -15,6 +14,7 @@ import {
 import {
   createBrunchTurnTool,
   registerBrunchTurn,
+  type BrunchFlueClient,
   type BrunchTurnExtensionApi,
   type BrunchTurnTool,
 } from "../src/evaluations/persona/brunch-turn";
@@ -22,8 +22,6 @@ import {
   createMockClientToolHost,
   createRealHeadlessClientToolHost,
 } from "../src/evaluations/persona/client-tool-hosts";
-
-type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
 const admission = (submissionId: string, uid: string): AgentSendResult => ({
   streamUrl: `http://brunch.local/stream/${submissionId}`,
@@ -84,6 +82,57 @@ const renderTheme = {
 };
 
 describe("brunch_turn", () => {
+  test("forwards opaque initialData only on creation, never subsequent conditional sends", async () => {
+    const send = vi
+      .fn<BrunchFlueClient["send"]>()
+      .mockResolvedValue(admission("submission", "runtime"));
+    const initialData = { opaque: ["operator-owned", { nested: true }] };
+    const tool = createBrunchTurnTool({
+      conversationId: "configured",
+      initialData,
+      client: controlledClient(
+        send,
+        vi
+          .fn<BrunchFlueClient["read"]>()
+          .mockResolvedValue(reply("submission", "runtime", "Reply")),
+      ),
+    });
+    await tool.execute("first", { message: "First utterance" });
+    await tool.execute("second", { message: "Second utterance" });
+    expect(send.mock.calls[0]?.[0].initialData).toBe(initialData);
+    expect(send.mock.calls[0]?.[0].uid).toBeNull();
+    expect(send.mock.calls[1]?.[0]).not.toHaveProperty("initialData");
+    expect(send.mock.calls[1]?.[0].uid).toBe("runtime");
+  });
+
+  test("attaches to a captured runtime UID and rejects bootstrap on continuation", async () => {
+    const send = vi
+      .fn<BrunchFlueClient["send"]>()
+      .mockResolvedValue(admission("submission", "captured"));
+    const client = controlledClient(
+      send,
+      vi
+        .fn<BrunchFlueClient["read"]>()
+        .mockResolvedValue(reply("submission", "captured", "Reply")),
+    );
+    const tool = createBrunchTurnTool({
+      conversationId: "attached",
+      uid: "captured",
+      client,
+    });
+    await tool.execute("turn", { message: "Continue" });
+    expect(send.mock.calls[0]?.[0].uid).toBe("captured");
+    expect(send.mock.calls[0]?.[0]).not.toHaveProperty("initialData");
+    expect(() =>
+      createBrunchTurnTool({
+        conversationId: "attached",
+        uid: "captured",
+        initialData: {},
+        client,
+      }),
+    ).toThrow(/no initialData/u);
+  });
+
   test("refuses to register without a usable Herdr child identity", () => {
     expect(() =>
       registerBrunchTurn(
@@ -400,6 +449,7 @@ describe("brunch_turn", () => {
     ]);
     const tool = createBrunchTurnTool({
       conversationId: "persona-client-tool",
+      initialData: { opaque: "creation only, never a result signal" },
       client: controlledClient(send, read, history),
       resolveClientToolHost: () => host,
     });

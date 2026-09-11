@@ -44,6 +44,29 @@ describe("Petrinaut construction tools", () => {
     ).toThrow(/Invalid type/u);
   });
 
+  test("restricts issued browser binding to the opt-in prepared mode", () => {
+    const browser = {
+      binding: {
+        conversationId: "conversation",
+        documentId: "document",
+        incarnationId: "incarnation",
+      },
+      requestedBaseHash: "a".repeat(64),
+    };
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: validatedFixtureMutationMode,
+        browser,
+      }),
+    ).toEqual({ mode: validatedFixtureMutationMode, browser });
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: VALIDATED_CONSTRUCTION_MODE,
+        browser,
+      }),
+    ).toThrow(/prepared root-arc/u);
+  });
+
   test("exposes exactly the bounded canonical subset", () => {
     expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -68,7 +91,7 @@ describe("Petrinaut construction tools", () => {
     }
   });
 
-  test("delegates accepted and rejected inputs to Petrinaut's Zod schemas", () => {
+  test("delegates accepted and rejected inputs to Petrinaut's Zod schemas", async () => {
     const addArc = toolByName("addArc");
     const invalidArc = {
       transitionId: "transition",
@@ -79,17 +102,17 @@ describe("Petrinaut construction tools", () => {
     };
     const validArc = { ...invalidArc, weight: 1 };
 
-    expect(v.safeParse(addArc.input!, invalidArc).success).toBe(
-      petrinautAiTools.addArc.inputSchema.safeParse(invalidArc).success,
-    );
-    expect(v.safeParse(addArc.input!, validArc).success).toBe(
+    expect(
+      !(await addArc.input!["~standard"].validate(invalidArc)).issues,
+    ).toBe(petrinautAiTools.addArc.inputSchema.safeParse(invalidArc).success);
+    expect(!(await addArc.input!["~standard"].validate(validArc)).issues).toBe(
       petrinautAiTools.addArc.inputSchema.safeParse(validArc).success,
     );
   });
 
-  test("normalizes a finite provider numeric-string arc weight", () => {
+  test("normalizes a finite provider numeric-string arc weight", async () => {
     const addArc = toolByName("addArc");
-    const result = v.parse(addArc.input!, {
+    const result = await addArc.input!["~standard"].validate({
       transitionId: "transition",
       arcDirection: "input",
       placeId: "place",
@@ -97,10 +120,10 @@ describe("Petrinaut construction tools", () => {
       type: "standard",
     });
 
-    expect(result).toMatchObject({ weight: 1 });
+    expect(result).toMatchObject({ value: { weight: 1 } });
   });
 
-  test("retains nested values in canonical validation paths", () => {
+  test("retains nested values in canonical validation paths", async () => {
     const addType = toolByName("addType");
     const invalidElement = {
       elementId: "speed",
@@ -114,13 +137,9 @@ describe("Petrinaut construction tools", () => {
       displayColor: "#808080",
       elements: [invalidElement],
     };
-    const result = v.safeParse(addType.input!, invalidType);
-    if (result.success) throw new Error("Expected nested type rejection");
+    const result = await addType.input!["~standard"].validate(invalidType);
+    if (!result.issues) throw new Error("Expected nested type rejection");
 
-    expect(result.issues[0].path).toMatchObject([
-      { input: invalidType, key: "elements", value: invalidType.elements },
-      { input: invalidType.elements, key: 0, value: invalidElement },
-      { input: invalidElement, key: "type", value: "not-a-type" },
-    ]);
+    expect(result.issues[0]?.path).toEqual(["elements", 0, "type"]);
   });
 });

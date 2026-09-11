@@ -7,105 +7,240 @@ import {
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 
-import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  FlueClient,
+  FlueConversationState,
+} from "@flue/sdk";
 
-test("delegates one typed message to the supplied Flue conversation", async () => {
-  const admission: AgentSendResult = {
-    streamUrl: "http://brunch.test/stream",
-    offset: "offset-1",
-    submissionId: "submission-1",
-    uid: "uid-1",
-  };
-  const send = vi.fn<FlueClient["send"]>(async () => admission);
-  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
-    await options?.onEvent?.({
-      type: "message-started",
-      conversationId: "conversation-stable",
-      messageId: "assistant-1",
-      submissionId: admission.submissionId,
-      turnId: "turn-1",
-      position: { batch: 1, index: 0 },
-    });
-    await options?.onEvent?.({
-      type: "message-completed",
-      conversationId: "conversation-stable",
-      messageId: "assistant-1",
-      position: { batch: 1, index: 1 },
-    });
-    await options?.onEvent?.({
-      type: "submission-settled",
-      conversationId: "conversation-stable",
-      submissionId: admission.submissionId,
-      outcome: "completed",
-      position: { batch: 1, index: 2 },
-    });
-  });
-  const client = {
-    send,
-    wait,
-  } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+test("host following uses exact local admission settlement and response association, not message size", async () => {
   const tracker = new BrunchPanelConversationTracker();
-  const admissionListener = vi.fn();
-  tracker.subscribeToAdmission(
-    { kind: "user", messageId: "user-1" },
-    admissionListener,
+  const empty: FlueConversationState = {
+    conversationId: "canonical-conversation",
+    messages: [],
+    settlements: [],
+  };
+  expect(tracker.canReplaceMessages(undefined)).toBe(false);
+  expect(tracker.canReplaceMessages(empty)).toBe(true);
+  let release: (() => void) | undefined;
+  const pending = tracker.trackSubmission(
+    new Promise<void>((resolve) => {
+      release = resolve;
+    }),
   );
-  const responseCompletedListener = vi.fn();
-  tracker.subscribeToResponseMessageCompleted(responseCompletedListener);
-  const responseStartedListener = vi.fn();
-  tracker.subscribeToResponseMessageStarted(responseStartedListener);
-  const onAdmission = vi.fn();
-  const transport = createBrunchPanelTransport(
-    Promise.resolve(client),
-    tracker,
-    { onAdmission },
-  );
-  const stream = await transport.sendMessages({
-    trigger: "submit-message",
-    chatId: "conversation-stable",
-    messageId: undefined,
+  expect(tracker.canReplaceMessages(empty)).toBe(false);
+  tracker.recordAdmission({
+    kind: "user",
+    messageId: "ui-user",
+    admission: {
+      streamUrl: "http://local/stream",
+      offset: "opaque",
+      submissionId: "local-submission",
+      uid: "one",
+    },
+  });
+  release?.();
+  await pending;
+  expect(tracker.canReplaceMessages(empty)).toBe(false); // admitted, no assistant yet
+  const partial: FlueConversationState = {
+    ...empty,
     messages: [
       {
-        id: "user-1",
-        role: "user",
-        parts: [{ type: "text", text: "Typed tracer." }],
+        id: "same-assistant",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "local-submission",
+        parts: [{ type: "text", state: "streaming", text: "partial" }],
       },
     ],
-    abortSignal: undefined,
+  };
+  expect(tracker.canReplaceMessages(partial)).toBe(false); // same ID is not completion
+  const missingResponse: FlueConversationState = {
+    ...empty,
+    settlements: [{ submissionId: "local-submission", outcome: "completed" }],
+  };
+  expect(tracker.canReplaceMessages(missingResponse)).toBe(false);
+  const completed: FlueConversationState = {
+    ...partial,
+    messages: [
+      {
+        ...partial.messages[0]!,
+        parts: [{ type: "text", state: "done", text: "complete" }],
+      },
+    ],
+    settlements: missingResponse.settlements,
+  };
+  expect(tracker.canReplaceMessages(completed)).toBe(true);
+  expect(tracker.canReplaceMessages(partial)).toBe(false); // decision belongs to this snapshot
+  tracker.recordAdmission({
+    kind: "client-tool-result",
+    messageId: "same-assistant",
+    admission: {
+      streamUrl: "http://local/stream",
+      offset: "opaque",
+      submissionId: "continuation",
+      uid: "one",
+    },
   });
-  expect(admissionListener).toHaveBeenCalledOnce();
-  expect(admissionListener).toHaveBeenCalledWith({
-    admission,
-    kind: "user",
-    messageId: "user-1",
-  });
-  await stream.pipeTo(new WritableStream());
-
-  expect(send).toHaveBeenCalledOnce();
-  expect(send).toHaveBeenCalledWith({
-    idempotencyKey: "ai-sdk:user:user-1",
-    message: { kind: "user", body: "Typed tracer." },
-    signal: undefined,
-  });
-  expect(tracker.submissionForInput("user-1")).toBe("submission-1");
-  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
-    "submission-1",
-  ]);
-  expect(responseStartedListener).toHaveBeenCalledOnce();
-  expect(responseStartedListener).toHaveBeenCalledWith({
-    messageId: "assistant-1",
-    position: { batch: 1, index: 0 },
-    submissionId: "submission-1",
-  });
-  expect(responseCompletedListener).toHaveBeenCalledOnce();
-  expect(responseCompletedListener).toHaveBeenCalledWith({
-    messageId: "assistant-1",
-    position: { batch: 1, index: 1 },
-    submissionId: "submission-1",
-  });
-  expect(onAdmission).toHaveBeenCalledOnce();
-  expect(onAdmission).toHaveBeenCalledWith(admission);
+  expect(tracker.canReplaceMessages(completed)).toBe(false);
+  const coalesced = {
+    ...completed,
+    settlements: [
+      ...completed.settlements,
+      {
+        submissionId: "continuation",
+        outcome: "completed" as const,
+        answeredBySubmissionId: "coalesced-response",
+      },
+    ],
+  };
+  expect(tracker.canReplaceMessages(coalesced)).toBe(false);
+  expect(
+    tracker.canReplaceMessages({
+      ...coalesced,
+      messages: [
+        ...completed.messages,
+        {
+          ...completed.messages[0]!,
+          id: "continuation-message",
+          submissionId: "coalesced-response",
+        },
+      ],
+    }),
+  ).toBe(true);
+  // Neither retention loss nor a fresh unrelated tracker grants old admissions.
+  expect(tracker.canReplaceMessages(empty)).toBe(false);
+  expect(new BrunchPanelConversationTracker().canReplaceMessages(empty)).toBe(
+    true,
+  );
 });
+
+test.each(["failed", "aborted"] as const)(
+  "host following accepts canonical %s without fabricating an assistant",
+  (outcome) => {
+    const tracker = new BrunchPanelConversationTracker();
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: "ui-user",
+      admission: {
+        streamUrl: "http://local/stream",
+        offset: "opaque",
+        submissionId: "terminal",
+        uid: "one",
+      },
+    });
+    expect(
+      tracker.canReplaceMessages({
+        conversationId: "canonical",
+        messages: [],
+        settlements: [{ submissionId: "terminal", outcome }],
+      }),
+    ).toBe(true);
+  },
+);
+
+test.each([undefined, { mode: "synthetic-bound", incarnation: "one" }])(
+  "delegates a typed message and optional opaque initialization: %j",
+  async (initialData) => {
+    const admission: AgentSendResult = {
+      streamUrl: "http://brunch.test/stream",
+      offset: "offset-1",
+      submissionId: "submission-1",
+      uid: "uid-1",
+    };
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+      await options?.onEvent?.({
+        type: "message-started",
+        conversationId: "conversation-stable",
+        messageId: "assistant-1",
+        submissionId: admission.submissionId,
+        turnId: "turn-1",
+        position: { batch: 1, index: 0 },
+      });
+      await options?.onEvent?.({
+        type: "message-completed",
+        conversationId: "conversation-stable",
+        messageId: "assistant-1",
+        position: { batch: 1, index: 1 },
+      });
+      await options?.onEvent?.({
+        type: "submission-settled",
+        conversationId: "conversation-stable",
+        submissionId: admission.submissionId,
+        outcome: "completed",
+        position: { batch: 1, index: 2 },
+      });
+    });
+    const client = {
+      send,
+      wait,
+    } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+    const tracker = new BrunchPanelConversationTracker();
+    const admissionListener = vi.fn();
+    tracker.subscribeToAdmission(
+      { kind: "user", messageId: "user-1" },
+      admissionListener,
+    );
+    const responseCompletedListener = vi.fn();
+    tracker.subscribeToResponseMessageCompleted(responseCompletedListener);
+    const responseStartedListener = vi.fn();
+    tracker.subscribeToResponseMessageStarted(responseStartedListener);
+    const onAdmission = vi.fn();
+    const transport = createBrunchPanelTransport(
+      Promise.resolve(client),
+      tracker,
+      { onAdmission, initialData },
+    );
+    const stream = await transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "conversation-stable",
+      messageId: undefined,
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Typed tracer." }],
+        },
+      ],
+      abortSignal: undefined,
+    });
+    expect(admissionListener).toHaveBeenCalledOnce();
+    expect(admissionListener).toHaveBeenCalledWith({
+      admission,
+      kind: "user",
+      messageId: "user-1",
+    });
+    await stream.pipeTo(new WritableStream());
+
+    expect(send).toHaveBeenCalledOnce();
+    expect(send).toHaveBeenCalledWith({
+      idempotencyKey: "ai-sdk:user:user-1",
+      ...(initialData === undefined ? {} : { initialData }),
+      message: { kind: "user", body: "Typed tracer." },
+      signal: undefined,
+    });
+    expect(tracker.submissionForInput("user-1")).toBe("submission-1");
+    expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+      "submission-1",
+    ]);
+    expect(responseStartedListener).toHaveBeenCalledOnce();
+    expect(responseStartedListener).toHaveBeenCalledWith({
+      messageId: "assistant-1",
+      position: { batch: 1, index: 0 },
+      submissionId: "submission-1",
+    });
+    expect(responseCompletedListener).toHaveBeenCalledOnce();
+    expect(responseCompletedListener).toHaveBeenCalledWith({
+      messageId: "assistant-1",
+      position: { batch: 1, index: 1 },
+      submissionId: "submission-1",
+    });
+    expect(onAdmission).toHaveBeenCalledOnce();
+    expect(onAdmission).toHaveBeenCalledWith(admission);
+  },
+);
 
 test("matches client-tool admissions once and supports unsubscribe", () => {
   const admission: AgentSendResult = {

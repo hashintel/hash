@@ -10,8 +10,8 @@ Preserve v2 as an aborted operational campaign. Do not run replication 3, replac
 | 2 | Simulated expert returned `stop_reason: refusal` with no text after three ordinary exchanges | Expert-simulator/provider boundary | None; no workpiece |
 | 3 | Not run | Owner stopped the confounded campaign | None |
 
-Both observed failures have immutable nonce-bearing JSON records. Replication 2 also retains the exact partial Flue snapshot and expert exchange. Neither failure establishes a defect in the Mission 4 workpiece architecture, and neither supplies a gradeable workpiece.
+Both observed failures were captured in nonce-bearing JSON records, with an exact partial Flue snapshot and expert exchange for replication 2. Those raw records were subsequently retired; this adjudication retains the outcomes, not a replayable bundle. Neither failure establishes a defect in the Mission 4 workpiece architecture, and neither supplies a gradeable workpiece.
 
 ## Reorientation
 
-The owner narrowed the Mission 4 comparison to the selected architecture's workpiece quality against the latest two valid flat-prompt baseline workpieces. [`prospective-runbook-v3`](../../../../evaluations/protocols/prospective-runbook-v3/protocol.md) freezes that question, hashes the exact controls, keeps runtime accounting separate from quality scores, and adds credential preflight outside campaign membership.
+The owner narrowed the Mission 4 comparison to the selected architecture's workpiece quality against the latest two valid flat-prompt baseline workpieces. That later instrument has itself been retired; this abort remains the v2 conclusion.

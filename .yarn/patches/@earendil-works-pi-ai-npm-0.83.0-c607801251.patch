@@ -1,0 +1,38 @@
+diff --git a/README.md b/README.md
+index ed4e4a545f30a40b8da8ac7ffd5cdc427f562e6b..3463a097ad3c15c2d2ba4dd6ea120b8a2990077f 100644
+--- a/README.md
++++ b/README.md
+@@ -480,6 +480,8 @@ const bookMeetingTool: Tool = {
+ 
+ ### Constrained Sampling for Tools
+ 
++Brunch overrides Pi's Anthropic `convertTools` collapse to `{ type, properties, required }`. That collapse is deliberate for typical Pi tools and remains upstream through 0.85, including when `strict` is off. Brunch construction tools publish nested JSON Schema (`$defs`, `additionalProperties`, descriptions, joined `brunch` fields) that native admission and the model must see on the wire; constrained-sampling `strict` cannot be the carriage switch, because unsupported models would silently strip again. This patch is pinned to 0.83.0 and applies only to Anthropic `input_schema` serialization. It does not change validation, other providers, or tool execution. Drop or rewrite it when upgrading `pi-ai` if upstream grows an explicit full-schema carriage option.
++
+ Tools can opt in to provider-side constrained sampling. For JSON-schema tools, `strict: 'prefer'` uses provider-side strict schema enforcement when supported and otherwise falls back to normal tool calling. `strict: 'require'` fails the request when the active provider/model cannot honor it. Set `constrainedSampling: false` to explicitly opt out; it behaves the same as omitting the field.
+ 
+ ```typescript
+diff --git a/dist/api/anthropic-messages.js b/dist/api/anthropic-messages.js
+index 17ec1ac38f1124cbb520522660b6f0dcab70d64d..692f81e97038bd8f2cab749d5a43fcc8e7f0d8af 100644
+--- a/dist/api/anthropic-messages.js
++++ b/dist/api/anthropic-messages.js
+@@ -997,18 +997,8 @@ function convertTools(tools, isOAuthToken, supportsEagerToolInputStreaming, supp
+         return [];
+     return tools.map((tool, index) => {
+         const strict = resolveJsonSchemaStrictSampling(tool, supportsStrictTools);
+-        const schema = tool.parameters;
+-        const legacyInputSchema = {
+-            type: "object",
+-            properties: schema.properties ?? {},
+-            required: schema.required ?? [],
+-        };
+-        const inputSchema = strict === true
+-            ? {
+-                ...tool.parameters,
+-                ...legacyInputSchema,
+-            }
+-            : legacyInputSchema;
++        // Schema carriage is independent of constrained generation policy.
++        const inputSchema = tool.parameters;
+         return {
+             name: isOAuthToken ? toClaudeCodeName(tool.name) : tool.name,
+             description: tool.description,

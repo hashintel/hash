@@ -51,7 +51,9 @@ describe("PreparedFixtureBanner", () => {
     const markup = renderToStaticMarkup(<PreparedFixtureSelector />);
 
     expect(markup).toContain("Prepared fixture selector");
-    expect(markup).toContain("Open the labelled crew-reservation fixture");
+    expect(markup).toContain(
+      "Open the labelled legacy crew-reservation fixture",
+    );
     expect(markup).toContain("?brunch-fixture=crew-reservation-v1");
     // Petrinaut's top bar is 64px tall; the panel sits under it, not behind.
     expect(markup).toContain("position:fixed");

@@ -9,8 +9,6 @@ import {
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
 
-type Environment = Readonly<Record<string, string | undefined>>;
-
 interface TelemetryDependencies {
   readonly createFlueInstrumentation?: typeof createOpenTelemetryInstrumentation;
   readonly registerOpenTelemetry?: typeof registerOpenTelemetry;
@@ -25,7 +23,7 @@ interface TelemetryDependencies {
  * flushed rather than dropped.
  */
 export function createBrunchTelemetryInstrumentation(
-  environment: Environment = process.env,
+  environment: NodeJS.ProcessEnv = process.env,
   dependencies: TelemetryDependencies = {},
 ) {
   const endpoint = environment.HASH_OTLP_ENDPOINT?.trim();

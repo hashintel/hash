@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk";
+
 import {
   validatePersistedHistory,
   validateUiMessageStream,
@@ -23,7 +25,7 @@ const conversationId =
 const requestId = process.env.BRUNCH_SMOKE_REQUEST_ID?.trim() || randomUUID();
 const headers = new Headers({
   "content-type": "application/json",
-  "x-brunch-principal": principal,
+  [BRUNCH_PRINCIPAL_HEADER]: principal,
   "x-request-id": requestId,
 });
 // A streamed turn legitimately takes tens of seconds; a hung server must still fail the smoke.

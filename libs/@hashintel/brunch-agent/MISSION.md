@@ -1,191 +1,113 @@
-# Voice interruption by speaking
+# Mission 7a — Workpiece, construction and explanation groundwork
 
 ## Status
 
-**Live as of 2026-09-09** for
-[FE-1604](https://linear.app/hash/issue/FE-1604/allow-voice-interruption-by-speaking)
-on `kostandin/fe-1604-recut-voice-interruption`, cut from post-deployment `main` at
-`ef0f4449876d63d82657147fb4e29cdf024e9f79`.
+**Part A closeout in progress; tabbed workpiece implemented, pending Lu's UI review and FE-1645 integration before merge. Not a demo or semantic-quality acceptance.** Lu has directed a split: this branch and [PR #9562](https://github.com/hashintel/hash/pull/9562) carry the mechanical groundwork; Mission 7b continues under the same FE-1573 issue on a child branch. The former full-region/100%-useful-explanation campaign is not a prerequisite to this engineering split, but the split does not authorize a narrow scripted demo: 7b requires a substantial worked scenario with broad explanation coverage across every consequential visible flagship element and human utility review across representative classes. The broader cross-scenario, passage/lifecycle and adversarial evaluation portfolio remains in the [after-demo evaluation draft](docs/mission-drafts/7-explainable-construction.md); the substantial product successor is the [Mission 7b draft](docs/mission-drafts/7b-september-demo.md).
 
-This is an independent semantic recut of the interruption-only delta from the
-stale, conflicting [PR #9550](https://github.com/hashintel/hash/pull/9550) head
-`f69ac17034dfe4290691d34b64930e5a07245480`. It must not merge the old branch or
-carry its unrelated Brunch stack. The open settlement port in
-[PR #9588](https://github.com/hashintel/hash/pull/9588) is a separate sibling and
-is not part of this branch.
+The current implementation saves and displays evolving workpieces, observes a bounded set of native Petrinaut mutations, and resolves their recorded basis through chat. Controlled browser tests exercise the broader surface. The retained persona session contains one parameter, one type and one equation, not a connected process model. Its lineage queries and original-store reopening were observed; semantic correspondence, automatic citation coverage, a complete construction flow, portability and demo readiness are not established. No persona, browser or paid run is active.
 
-On 2026-09-10 the owner explicitly approved closing this interruption-only
-recut without the production Voice/Stop/second-tab continuity witness. The
-installed Flue 2.0.3 contract cannot durably project direct-user Voice origin,
-and FE-1604 does not recut that transport or history boundary. This is a scoped
-deferral, not continuity evidence: the post-FE-1604 re-entry gate remains in
-`MISSION.next.md`.
-
-## Supplemental FE-1580 settlement follow-up
-
-**Live as of 2026-09-08** for
-[PR #9588](https://github.com/hashintel/hash/pull/9588) on
-`kostandin/fe-1580-port-voice-settlement-fixes`, based directly on current
-`main` after #9564 and #9537 merged. This supplement preserves the accepted
-Voice contract without changing the CORS authority in this file.
-
-- **Imperative:** semantically port the omitted #9531 commit `9415e1b007`;
-  release silent Voice ownership and settle completed submissions without
-  canonical prose. Preserve failed durable Stop errors and remove the stale
-  browser `brunch_ask` catalogue entry.
-- **Throughline:** OpenAI terminal output → session/bridge/controller ownership;
-  correlated Brunch settlement → next Voice turn; panel Stop rejection →
-  deferred browser-tool termination; shared browser catalogue →
-  transport/history.
-- **Proof:** donor session/bridge/controller and preview regressions; panel DOM
-  tests for persistent Stop failure and withheld continuation; catalogue and
-  fixture tests; focused unit, build, TypeScript, ESLint and formatting checks.
-  These tests establish local settlement behavior, not paid-provider behavior,
-  audible latency or a new microphone witness.
-- **Constraints:** preserve current `main`'s accepted Voice and CORS joins; no
-  #9538 grounding, #9550 VAD/interruption, snapshot-overlay or provenance
-  rollback work, generic interactive tools, obsolete shim, or `brunch_ask`
-  restoration.
-- **Stop or reorient:** stop if the port erases errors, releases unrelated
-  playback, revives withheld tools, weakens the CORS policy, or disturbs other
-  work.
+**Local-only / not portable:** the actual-session oracle is `apps/brunch-agent/.data-wipe-me/persona-runs/run-7ceo9j/` and the original `apps/brunch-agent/.data-wipe-me/conversations.db`. Inspect the native history, saved revisions and observed definitions, not an invented reconstruction. These local records establish observed behaviour without claiming repository-reproducible fixtures or teammate access. Commits, tests and the PR are the engineering record.
 
 ## Imperative
 
-Let a person interrupt Voice assistant playback by speaking without losing the
-interrupting utterance. Keep the existing **Your turn** handoff as a
-browser-saved half-duplex fallback, and reject likely prompt regurgitation or
-assistant self-echo before a completed interruption transcript becomes an
-answer.
+Deliver the working integration from conversation to saved workpiece, browser-applied net edits and record-backed explanation, with a usable workpiece surface rather than an intrusive debug overlay. Make that bounded result reviewable and landable independently of the complete September demo and evaluation of the prompt/skill architecture's modelling effectiveness.
 
-The interruption must stop playback immediately while preserving completed
-transcription as the sole answer authority and the existing Brunch admission
-path as the sole submission authority.
+The harness is structurally checked, not a semantic acceptance engine. A valid reference, applied edit or successful lookup is a mechanical result; a good model or persuasive rationale is a different judgment. Preserve that distinction without making the latter a universal execution gate.
 
 ## Throughline
 
 ```text
-OpenAI Realtime microphone input remains enabled during canonical playback
-→ input_audio_buffer.speech_started
-→ response.cancel + output_audio_buffer.clear, without input_audio_buffer.clear
-→ completed transcription for the same input item
-→ interruption-only prompt-regurgitation and active-playback self-echo checks
-→ retain while the previous Brunch turn settles, if necessary
-→ existing Voice bridge and panel admission path exactly once
-→ canonical Brunch turn and ordinary Voice lifecycle
+Petrinaut Brunch chat / attached persona
+→ mounted Flue ChatAgent
+→ core workpiece revision + optional passage/source relations
+→ plugin mutation request + declared workpiece basis
+→ browser executes canonical Petrinaut operation and returns observed effects
+→ chat why resolves element/field → edit → revision/passage → linked source messages
+→ reopen the original session and continue querying
 ```
 
-The playback menu owns a default-on **Interruption by speaking** preference.
-Disabling it restores the existing half-duplex microphone closure and
-acknowledged **Your turn** handoff.
+### Delivered construction boundary
+
+In conversation-bound construction mode, the observed mutation catalog is:
+
+| Object | Operations |
+| --- | --- |
+| Root place / transition | `addPlace`, `updatePlace`, `addTransition`, `updateTransition` |
+| Root place–transition arc | `addArc`, `updateArcWeight` |
+| Type / ordered attribute | `addType`, `updateType`, `addTypeElement`, `updateTypeElement` |
+| Scenario | `addScenario`, `updateScenario` |
+| Root parameter / differential equation | `addParameter`, `addDifferentialEquation` |
+
+These fourteen operations are not stock-tool parity or fourteen genuine-persona demonstrations. Deletion, parameter/equation update, nested nets/components and component-port arcs are outside this observed surface. Typed-state operations also reject documents containing subnets/components. Canonical input/refinement rules still apply. Necessary native reads and compilation checks accompany this surface; compilation does not prove simulation.
+
+### UI closeout before merge
+
+[FE-1645 / PR #9634](https://github.com/hashintel/hash/pull/9634) gates the existing prepared-fixture selector behind an opt-in Brunch demo setting and moves it below the top bar. That selector is distinct from this branch's fixed `BrunchWorkpiecePane`. Preserve the colleague's selector/provider behaviour when integrating; do not restore default fixture chrome or copy a competing settings mechanism.
+
+The workpiece now uses AI / Workpiece tabs in the existing assistant panel, selected by Lu in place of the separate dock. Reuse Petrinaut's tab patterns and the assistant's existing resize/collapse behaviour. Keep chat mounted across tab switches so drafts, requests and Voice lifecycle survive; maintain reachable active controls. The additional-tab extension point is generic, while workpiece/provenance semantics stay in the website host. The surface remains readable as it evolves and does not obstruct the canvas, top bar, assistant opener or composer. Keep engineering IDs, hashes and raw why payloads out of the primary reading surface while preserving inspectable provenance and honest freshness/unknown-state reporting. Hiding the useful workpiece together with fixture controls is not the fix. Inspect integration against #9634 without rewriting the colleague's branch; no full editor redesign or construction-tool rewrite belongs in this closeout.
+
+### What is linked
+
+Petrinaut references connect net objects; they do not propagate provenance. Separately, workpiece evidence relations link revision-local text spans to authorized conversation message IDs. A construction request cites a saved revision/hash, passage locators and an operation-level rationale, or an explicit absent-basis reason. The matching browser result records actual changes. Why traverses those records; it does not infer source links from adjacency, graph connectivity or plausible prose. Brunch metadata remains outside canonical Petrinaut documents.
+
+The implemented positive declared-basis path reports `partially-supported`: operation-level links are not independently established field-level intention mappings or semantic grades. Queries can identify an object/field by unique name or ID; canvas-selection-to-source-navigation UX is not claimed by this part.
 
 ## Proof
 
-1. **Immediate, input-preserving cancellation.** Session tests observe
-   `speech_started → response.cancel → output_audio_buffer.clear`, no input
-   buffer clear, and completion of the same input item.
-2. **Exactly-once admission.** Bridge and controller tests cover duplicate
-   completions, delayed Brunch admission, an unsettled previous turn, follow-on
-   canonical speech, queued playback, and lifecycle cleanup.
-3. **Local false-transcript rejection.** Tests cover configured transcription
-   prompt regurgitation and exact active canonical self-echo, while preserving
-   short novel answers and leaving ordinary non-interruption capture unchanged.
-4. **Retained-answer visibility.** Controller tests prove that later empty,
-   failed, prompt-regurgitated, or self-echo transcripts cannot erase an
-   earlier retained answer or submit a replacement.
-5. **User control.** Shared Petrinaut tests prove the preference is default-on,
-   browser-saved, exposed in the existing playback menu, and controls whether
-   **Your turn** is visible.
-6. **Continuity projection guard.**
-   `local-storage-demo/voice-history-continuity.integration.test.tsx` mounts the
-   real history projector and Petrinaut panel against prepared before/after
-   observations, then remounts the observer. It proves typed history, supported
-   Voice client-tool attribution, aborted-settlement rendering, and the local
-   **Exit voice mode** versus injected **Stop** port remain distinct at those
-   component boundaries. It does not prove production Voice provenance
-   creation, `requestFlueStop`/Flue abort persistence, a fresh Flue client or
-   second browser tab, or direct-user Voice source reconstruction after reopen.
-   The owner-approved FE-1604 deferral above leaves those claims open rather
-   than treating this prepared fixture as a substitute.
-7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
-   TypeScript checks, ESLint, the website and library builds, architecture-doc
-   lint, repository formatting, and `git diff --check` distinguish a working
-   recut from code presence alone.
+Review the existing code/tests and actual-session records under their respective claim scopes. No new model-quality campaign is required to submit Part A.
 
-Mocked protocol tests establish event ordering and state behavior; they do not
-establish real microphone latency, speaker echo cancellation, or acoustic
-classifier accuracy.
+| Claim | Oracle and limit |
+| --- | --- |
+| Saved workpiece is visible and remains queryable | `packages/core/test/update-workpiece.test.ts`, `apps/brunch-agent/test/workpiece-revisions.test.ts`, website `brunch-workpiece-pane.test.tsx`, and actual persona history/display observations. Pointer-only historical results remain readable but do not invent Markdown. |
+| Native mutations carry shape, binding and complete effects | Plugin `test/root-node.test.ts`, `test/root-state.test.ts`, `test/declared-basis.test.ts`; app `test/root-creation.integration.ts` and `test/typed-state.integration.ts`. Broader controlled-browser evidence, not a claim of a complete persona-built model. |
+| Why resolves recorded changes and citations honestly | App `test/reconciliation.test.ts`, `test/reopened-why.integration.ts` and the retained ordinary persona-session why results. Source linkage may be absent; prose quality is not guaranteed by the structured result. |
+| All authorized source IDs remain discoverable | Core `test/update-workpiece.test.ts` and app `test/reopened-why-retention.integration.ts`, implemented in `367d4994fa`. Source text may be clipped; IDs are not windowed. |
+| Original-store stop/reopen preserves the actual conversation | Native session history and browser observations under the run above. This is verified local-only evidence, not a fresh-store import, clone or remote durability claim. |
+| Persona launching and shutdown use the maintained entrypoint | `src/evaluations/persona/launch.test.ts`, `test/persona-browser.integration.ts`, actual launcher cleanup observations. Run-local Pi trust does not add persona tools or persistent trust. |
+| Workpiece UI is usable and compatible with FE-1645 | A real-browser witness at the integrated revision: ordinary mode has no unsolicited fixture chrome; demo mode retains the selector; a long evolving workpiece remains readable with canvas/chat controls reachable; saved-query/freshness behaviour survives. Use the website workpiece and host tests for regression, then Lu reviews the placement before merge. No provider run is required solely to test layout. |
+| The PR accurately states the bounded result | Review #9562's purpose, tests, known issues and six-section mission summary against this contract; retain existing package checks and changed-package publication obligations. Review/merge acceptance remains external. |
 
-### Expected touched paths
-
-```text
-~ apps/petrinaut-website/src/main/app/voice-interview/  session, bridge, controller, preference, tests
-~ apps/petrinaut-website/src/main/app/local-storage-demo/ history projection and remount guard
-~ apps/petrinaut-website/src/server/voice/              Realtime VAD and transcription policy
-~ apps/petrinaut-website/src/shared/                    shared transcription vocabulary
-~ apps/petrinaut-website/README.md                      website behavior
-~ libs/@hashintel/petrinaut/                            shared state, playback control, user guide
-~ libs/@hashintel/brunch-agent/docs/adr/                Voice turn-shell decision
-+ .changeset/                                           Petrinaut patch release note
-```
+Before the branch transition, retain unresolved obligations in the future record, remove the consumed ownership side quest after recording its outcome, and archive this contract with the engineering-split status explicit. Do not mark the former full Step A acceptance programme passed.
 
 ## Constraints
 
-- A completed provider transcription is the only Voice-answer authority.
-  Provisional text remains display-only.
-- Interruption cancellation is immediate and is never gated on transcript
-  classification. It clears output, never the interrupting input buffer.
-- Only input that began while canonical playback was active is classified as an
-  interruption. Ordinary capture behavior remains unchanged.
-- Self-echo compares only with the exact canonical text active when speech
-  started, not queued speech or conversation history.
-- Comparison may normalize Unicode, case, punctuation, and whitespace, but
-  admitted wording, casing, and punctuation remain unchanged.
-- Rejection diagnostics contain operational metadata and a reason, never the
-  transcript, transcription prompt, or assistant text.
-- Short novel answers such as “stop”, “no”, and “wait” remain admissible.
-- Mute, pause, Stop, end, reconnect, exact question replay, and exact full
-  response replay retain their current behavior in both preference modes.
-- Keep FE-1604 independent from PR #9588. If that sibling lands, update from
-  `main` and resolve overlap semantically instead of importing its branch.
-- Update the Petrinaut user guide and retain exactly one Petrinaut patch
-  changeset.
+### Earned data and execution contracts
+
+- Core owns `brunch_mark_question`, durable nonterminating `update_workpiece` and current-workpiece query semantics. Keep one current revision: native tool-call ID, Markdown/hash and display ordinal. A saved version is not an owner-approved meaning.
+- Preserve settled revision/basis/locators/rationale/scope or an explicit absent reason in canonical history. Source relations resolve to authorized true-user messages in the same conversation; assistant, signal, prepared and foreign material is not elicited testimony. `brunch_workpiece` returns every authorized source ID; per-source text may be truncated. Unique unchanged same-span carry is bounded; candidate locator queries create no revision, authority or semantic-continuity claim.
+- Preserve the current complete-proposal checks, single-browser-call continuation and refusal of mixed browser/server proposals. A future tool-surface redesign must explicitly revisit those contracts where necessary; this split does not weaken or canonize them as the only future design.
+- Browser edits use the bound document/incarnation and a prior verified full read. Account independently for all direct and derived effects. Defaults, coercions, generated values and migrations do not inherit testimony or declared intent automatically. Duplicate/retired IDs and conflicting/unknown outcomes remain explicit; failed, no-op, stale and unknown attempts are not causes or permission to replay.
+- Keep origin, current changes and attempts distinct. Why uses a verified observation or an explicit as-of scope; a historical call ID alone is not live evidence. Object-key-order equivalence does not relax arrays, field presence, values or mutation base hashes. Outside edits are not attributed to Brunch.
+- Petrinaut owns canonical schemas, native input semantics/refinements, mutations, compilation and simulation. Preserve the maintained Flue/Pi carriage/recovery patches, stock-assistant isolation, capacity absence/null/zero/positive semantics, visible Not applied outcomes and publication obligations. No copied schema catalog, second provenance store, graph, observer, runner or generic projection engine.
+- Preserve Mission 6b's causal Voice/tool results and active Stop. Direct spoken-user attribution after hydration, durable withholding after settled steps and comparative latency remain unproved. Workpiece/basis/tool payloads are not spoken assistant prose.
+- Keep `useBrunchAgent()` plus `useSdcpnPlugin()`, inward dependencies and dedicated `./flue` resources. Prepared fixtures stay test-authored; diagnostic exports are not restoration APIs. No content-bearing telemetry, hidden persona-pack leakage or guessed operational facts labelled as testimony.
+
+### Continuing operating limits
+
+The persona's pack grounds a realistic role, not a closed factual whitelist. Natural improvisation, uncertainty and correction are allowed. Only the actor receives private background; it supplies interview utterances, not construction instructions. Keep persona and operator submissions serial, distinguish operator technical choices from testimony, and never replay old unanswered browser requests.
+
+The maintained launcher uses Pi's run-local `--approve` with its explicit tool/extension allowlist and disabled context/skill/template discovery. Both persona and ChatAgent use `anthropic/claude-sonnet-4-6` with `BRUNCH_STEP_A_ACCOUNTING` unset. Do not revive retired per-request holds, response deadlines, call-count gates or ledger writes; the historical ledger retains its unresolved row and released hold. Existing owner spending/escalation policy remains; this documentation split starts no provider run. Remote writes, release and Linear writes remain separately authorized.
+
+### Owner decisions
+
+- **2026-09-10 — Part A/7b split.** Lu directs this engineering groundwork to its own PR and a substantial worked-scenario Mission 7b child branch under the same FE-1573 issue. This is the specific exception to one-issue/one-PR bookkeeping; one live mission per branch remains. It supersedes treating the former semantic-quality/full-region programme as the condition for landing Part A, not the validity of its historical findings.
+- **2026-09-10 — UI before Part A merge.** Lu requires UI remediation before merging 7a, coordinated with FE-1645/#9634. This moves the workpiece-placement fix from the proposed 7b scope into Part A closeout. Lu initially selected a separate dock, then replaced it with AI / Workpiece tabs in the existing assistant panel to conserve visual space and limit implementation. The tab choice is current.
+- **2026-09-10 — Demo priority, strengthened after scope reconciliation.** Mission 7b is not one narrow prepared interaction. A PM must open and explore a database-seeded substantial scenario bundle containing a retained realistic conversation, multiple workpiece revisions, a handoff-quality current workpiece, a connected operational Petri net and broad element-level explanation coverage; then ask ordinary why questions, correct the account, observe bounded workpiece/net change, inspect updated why and reopen/continue. A companion recording must show persona-driven elicitation through visible native construction. Scenario URLs, independently owned working copies, the selected model's required operation classes and scenario-specific dynamics/simulation where claimed are pre-demo concerns. The crew-reservation tracer is not demo content. Optimisation and Chris/Yannis handoff require separate explicit admission. The tool approach remains a required discussion; neither allowlist expansion nor a replacement construction tool is selected here. The [7b draft](docs/mission-drafts/7b-september-demo.md) owns the ranges, oracles and unresolved choices.
 
 ## Fog-line
 
-- Browser echo cancellation may still allow speaker feedback to trigger VAD or
-  transcription. A deterministic completed-transcript classifier reduces false
-  admission but cannot prevent playback from stopping after a false VAD event.
-- Real interruption latency and acoustic behavior remain unmeasured until a
-  human browser/microphone witness is retained.
-- The classifier is intentionally conservative. Evidence of rejected novel
-  speech or admitted repeated playback requires threshold or feature
-  re-evaluation before release.
+- **Construction surface:** individual instrumented operations work; a smooth complete conversation-driven construction sequence remains unproved. Mission 7b must settle the tool approach before broadening or redesigning it.
+- **Link coverage:** optional relations preserve supplied links, not automatic completeness. The demo needs ordinary interaction that creates and retrieves the links it shows, without operator citation-offset instructions.
+- **UI:** the tabbed surface is implemented and browser-tested; Lu's placement review and combined verification with #9634 remain pre-merge. Source-navigation polish and the complete correction interaction remain successor work. Confirm #9634 integration/landing order rather than copying its selector/settings changes.
+- **Delivery:** original-store recovery is observed. Actual demo host, independent-copy requirements, source selection and current deployed frontend/backend revisions remain to be inspected/decided.
+- **Modelling:** the inert clock is an exercised native operation, not an adopted stochastic/dynamics strategy. Modelling effectiveness and broader semantic acceptance remain separate evaluation work.
 
 ## Stop or reorient
 
-Stop if the recut requires unrelated stale-branch files, a second Voice
-submission path, delayed cancellation, input-buffer clearing, transcript
-logging, or assistant-generated classification.
-
-Stop if current-main APIs cannot preserve the same input item through
-cancellation and completion, if an interruption can submit twice, if a rejected
-completion can replace or erase a retained answer, or if disabling the
-preference no longer restores the acknowledged half-duplex handoff.
+Stop Part A expansion if a task is building the full demo rather than fixing the explicitly admitted UI blocker or a defect in the PR's stated mechanical claim. Preserve and report source/identity corruption, false effect attribution and unavailable native state; a fluently explained result must not conceal them. Do not gate this engineering split on full model fidelity, a new persona campaign, an optimiser, a new tool design or every historical proof-matrix row. Do not claim the deferred evaluation or demo passed.
 
 ## Deferred
 
-- PR #9588 owns the omitted Voice settlement port and remains a separate
-  mainline update.
-- A human browser/microphone witness owns claims about speaker feedback,
-  acoustic false interruption, and audible interruption latency.
-- Preventing a false VAD event from stopping playback is outside FE-1604.
-- The projection guard in Proof 6 does not discharge the combined durable
-  continuity witness required by `MISSION.next.md`. That witness still needs a
-  production Voice input, production **Stop**/Flue abort, destroyed browser
-  client, independently created second-tab client, and persisted-history
-  hydration. Direct-user Voice source reconstruction remains blocked because
-  Flue 2.0.3 projects neither caller metadata nor idempotency keys on canonical
-  user messages, while browser-side correlation and visible text encoding
-  remain prohibited. Re-entry remains governed by
-  `docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md`.
+- [Mission 7b](docs/mission-drafts/7b-september-demo.md): substantial database-seeded worked scenarios, PM exploration/correction, broad flagship explanation coverage, persona-driven construction recording, selected-model tool/dynamics/simulation needs and necessary delivery joins.
+- [After-demo construction/explanation evaluation](docs/mission-drafts/7-explainable-construction.md): full-region semantic/behavioural and useful-explanation evaluation, broad passage/adversarial and lifecycle matrices. These remain evaluation questions, not automatic runtime semantic gates.
+- [Future spine](MISSION.next.md): broader cross-scenario evaluation; Missions 9/10 general repeat/change/retirement/concurrency/reviewer classes beyond the flagship; Mission 11 consumer-defined optimisation; assumption-preview and other plugin/source work. The scenario catalogue and coherent template-to-working-copy path are now 7b obligations, not conditional future polish.

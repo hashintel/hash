@@ -14,12 +14,14 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
@@ -36,6 +38,8 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-icons": "5.5.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

@@ -11,17 +11,22 @@ export type CrewReservationPreparationStatus =
 export const usePrepareCrewReservationConversation = (
   clientPromise: Promise<FlueClient> | null,
   enabled: boolean,
+  browser?: Parameters<typeof prepareCrewReservationConversation>[1],
 ): {
   readonly clientPromise: Promise<FlueClient> | null;
   readonly status: CrewReservationPreparationStatus;
 } => {
   const preparedClientPromise = useMemo(() => {
     if (!enabled || clientPromise === null) return clientPromise;
-    return clientPromise.then(async (client) => {
-      await prepareCrewReservationConversation(client);
+    const prepared = clientPromise.then(async (client) => {
+      await prepareCrewReservationConversation(client, browser);
       return client;
     });
-  }, [clientPromise, enabled]);
+    // The effect awaits the same promise; this keeps a rejected preparation
+    // from becoming an unhandled rejection if render tears down first.
+    void prepared.catch(() => {});
+    return prepared;
+  }, [browser, clientPromise, enabled]);
   const [observed, setObserved] = useState<{
     readonly clientPromise: Promise<FlueClient>;
     readonly status: CrewReservationPreparationStatus;
