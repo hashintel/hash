@@ -1,0 +1,184 @@
+import { describe, expect, test } from "vitest";
+
+import {
+  createInMemoryWorkedModelStore,
+  definitionSha256,
+  type WorkedModelFixture,
+} from "../src/worked-model-store.ts";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
+
+const emptyDefinition: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+const fixture = (
+  fixtureVersion = "inventory-purchasing-v1",
+): WorkedModelFixture => ({
+  bundleKey: "inventory-purchasing",
+  fixtureVersion,
+  title: "Inventory purchasing",
+  session: {
+    v: 1,
+    conversationId: "fixture-source",
+    offset: "fixture-offset",
+    messages: [],
+    settlements: [],
+  },
+  workpiece: "# Inventory purchasing\n",
+  definition: emptyDefinition,
+});
+
+const sequentialIds = () => {
+  let next = 0;
+  return () => `id-${next++}`;
+};
+
+describe("worked-model store", () => {
+  test("seeds idempotently and refuses changed bytes under one version", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await store.seed([fixture()]);
+    await expect(store.seed([fixture()])).resolves.toBeUndefined();
+    await expect(
+      store.seed([{ ...fixture(), title: "Changed without a new version" }]),
+    ).rejects.toThrow(/version change/u);
+  });
+
+  test("resumes one active copy for a principal and isolates another principal", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await store.seed([fixture()]);
+
+    const first = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    const resumed = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    const sibling = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-b",
+    });
+
+    expect(resumed).toEqual(first);
+    expect(sibling?.copyId).not.toBe(first?.copyId);
+    expect(sibling?.conversationId).not.toBe(first?.conversationId);
+    expect(sibling?.documentId).not.toBe(first?.documentId);
+    expect(sibling?.incarnationId).not.toBe(first?.incarnationId);
+  });
+
+  test("creates a clean active copy from the current seed without changing its sibling", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await store.seed([fixture()]);
+    const first = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    if (first === undefined) throw new Error("Missing first copy");
+    const changedDefinition: SDCPN = {
+      ...emptyDefinition,
+      places: [
+        {
+          id: "on-hand",
+          name: "On hand",
+          x: 0,
+          y: 0,
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+        },
+      ],
+    };
+    const changed = await store.updateCopyDefinition({
+      copyId: first.copyId,
+      principalKey: "principal-a",
+      expectedSha256: first.definitionSha256,
+      definition: changedDefinition,
+    });
+    const clean = await store.createCleanCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    const resumed = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+
+    expect(changed?.definition).toEqual(changedDefinition);
+    expect(clean?.copyId).not.toBe(first.copyId);
+    expect(clean?.definition).toEqual(emptyDefinition);
+    expect(clean?.definitionSha256).toBe(definitionSha256(emptyDefinition));
+    expect(resumed).toEqual(clean);
+    expect(changed?.definition).toEqual(changedDefinition);
+  });
+
+  test("keeps existing copies on their fixture version when a new seed lands", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await store.seed([fixture()]);
+    const existing = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    await store.seed([fixture("inventory-purchasing-v2")]);
+    const resumed = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    const clean = await store.createCleanCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+
+    expect(existing?.fixtureVersion).toBe("inventory-purchasing-v1");
+    expect(resumed?.fixtureVersion).toBe("inventory-purchasing-v1");
+    expect(clean?.fixtureVersion).toBe("inventory-purchasing-v2");
+  });
+
+  test("rejects stale or foreign updates without changing the active copy", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await store.seed([fixture()]);
+    const copy = await store.resolveCopy({
+      bundleKey: "inventory-purchasing",
+      principalKey: "principal-a",
+    });
+    if (copy === undefined) throw new Error("Missing copy");
+
+    await expect(
+      store.updateCopyDefinition({
+        copyId: copy.copyId,
+        principalKey: "principal-a",
+        expectedSha256: "0".repeat(64),
+        definition: emptyDefinition,
+      }),
+    ).rejects.toThrow(/changed before/u);
+    await expect(
+      store.updateCopyDefinition({
+        copyId: copy.copyId,
+        principalKey: "principal-b",
+        expectedSha256: copy.definitionSha256,
+        definition: emptyDefinition,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      store.resolveCopy({
+        bundleKey: "inventory-purchasing",
+        principalKey: "principal-a",
+      }),
+    ).resolves.toEqual(copy);
+  });
+
+  test("returns no copy for an unknown bundle", async () => {
+    const store = createInMemoryWorkedModelStore(sequentialIds());
+    await expect(
+      store.resolveCopy({
+        bundleKey: "unknown",
+        principalKey: "principal-a",
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
