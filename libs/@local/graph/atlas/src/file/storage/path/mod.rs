@@ -42,6 +42,18 @@ pub(crate) struct FilePath {
 }
 
 impl FilePath {
+    /// Verifies that storage provides this path's backend without accessing the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::S3Unavailable`] when an S3 location has no configured backend.
+    pub(crate) fn validate_backend(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(_) => Ok(()),
+            FilePathVariant::Bucket(_) => storage.s3().map(|_| ()),
+        }
+    }
+
     /// Appends a suffix using the destination's path syntax.
     ///
     /// Local suffixes follow filesystem path rules. S3 suffixes append literal key text, separated

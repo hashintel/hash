@@ -11,7 +11,12 @@ use crate::{
     integrity::Sha256Digest,
 };
 
+/// Import retains the original metadata encoding without activating the generation.
 #[test]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "import consumes the staging guard before the assertions"
+)]
 fn import_original_bytes() {
     let scratch = ScratchDirectory::new(
         Utf8PathBuf::from_path_buf(std::env::temp_dir())
