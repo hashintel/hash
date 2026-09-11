@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -68,53 +69,8 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
   const { Drawer } = await import("../shared/ds-drawer-stub");
-  const Tooltip = ({ children }: { children: ReactNode }) => <>{children}</>;
-  type FlatItem = {
-    id?: string;
-    text?: ReactNode;
-    onClick?: (id: string) => void;
-  };
-  type MenuEntry = FlatItem & { items?: MenuEntry[] };
-  const flatten = (entries: MenuEntry[]): FlatItem[] =>
-    entries.flatMap((entry) => (entry.items ? flatten(entry.items) : [entry]));
-  // The Ark menu positions itself with a ResizeObserver jsdom lacks; this one
-  // lists the items as buttons.
-  const Menu = ({
-    items,
-    trigger,
-  }: {
-    items: MenuEntry[];
-    trigger: ReactNode;
-  }) => (
-    <>
-      {trigger}
-      <div role="menu">
-        {flatten(items).map((item, index) => (
-          <button
-            key={item.id ?? index}
-            type="button"
-            role="menuitem"
-            onClick={() => item.onClick?.(item.id ?? "")}
-          >
-            {item.text}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-  // The Ark popover positions itself against a trigger jsdom cannot lay out;
-  // this one renders its panel in place.
-  const Popover = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Container: ({ children }: { children: ReactNode }) => (
-        <div>{children}</div>
-      ),
-      Header: ({ title }: { title: ReactNode }) => <div>{title}</div>,
-      Footer: ({ actions }: { actions: ReactNode }) => <div>{actions}</div>,
-    },
-  );
-  return { ...actual, Drawer, Menu, Popover, Tooltip };
+  const stubs = await import("../shared/ds-control-stubs");
+  return { ...actual, ...stubs, Drawer };
 });
 
 // The contour surface draws on a canvas jsdom cannot host; the card around
@@ -340,7 +296,15 @@ describe("ViewExperimentDrawer in the frame", () => {
     fireEvent.click(
       screen.getAllByRole("button", { name: "Chart options" })[0]!,
     );
-    fireEvent.click(screen.getAllByRole("menuitem", { name: "Median" })[0]!);
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Runs mode" })).getByRole(
+        "button",
+        { name: "Aggregate" },
+      ),
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Runs" }), {
+      target: { value: "median" },
+    });
 
     expect(screen.getAllByText(/^median over runs/u).length).toBeGreaterThan(0);
     expect(frameLayoutSignature(view.container)).toEqual(before);

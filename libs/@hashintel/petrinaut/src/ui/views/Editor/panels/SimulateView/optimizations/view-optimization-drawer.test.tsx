@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { cloneElement, use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -120,18 +121,8 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     );
   };
 
-  // The Ark popover positions itself against a trigger jsdom cannot lay out;
-  // this one renders its panel in place.
-  const Popover = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Container: ({ children }: { children: ReactNode }) => (
-        <div>{children}</div>
-      ),
-    },
-  );
-
-  return { ...actual, Drawer, Menu, Popover, Slider, Tooltip };
+  const stubs = await import("../shared/ds-control-stubs");
+  return { ...actual, ...stubs, Drawer, Menu, Slider, Tooltip };
 });
 
 vi.mock("./optimization-surface", () => ({
@@ -1147,7 +1138,15 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     const before = frameLayoutSignature(view.container);
 
     fireEvent.click(screen.getByRole("button", { name: "Chart options" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Median" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Runs mode" })).getByRole(
+        "button",
+        { name: "Aggregate" },
+      ),
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Runs" }), {
+      target: { value: "median" },
+    });
 
     expect(frameLayoutSignature(view.container)).toEqual(before);
   });
