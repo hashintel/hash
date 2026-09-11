@@ -8,9 +8,9 @@ import {
   compileStateConstraintIndicator,
   constraintLabel,
   constraintsInSpace,
-  deriveDefaultParameterValues,
   evaluateParameterConstraints,
   getOwn,
+  type HirInterpretBindings,
   type ParameterConstraintResult,
 } from "@hashintel/petrinaut-core";
 
@@ -29,15 +29,22 @@ export type ParameterConstraintOutcome = {
   infeasible: string | null;
 };
 
+/** Whether the study declares a parameter constraint, so a trial has resolved net values to check. */
+export const hasParameterConstraints = (
+  manifest: Pick<PetrinautOptimizationManifest, "constraints">,
+): boolean =>
+  constraintsInSpace(manifest.constraints ?? [], "parameters").length > 0;
+
 /**
- * The parameter constraints' margins at the trial's values, with `parameters`
- * bound to the net's defaults and `scenario` to the trial's values (booleans
- * as 0/1). Null when the manifest has no parameter constraints. Throws
- * where interpretation would.
+ * The parameter constraints' margins at the trial's point, with `parameters`
+ * bound to the net parameter values the trial simulates with (the scenario's
+ * overrides applied at the trial's values) and `scenario` to the trial's
+ * values (booleans as 0/1). Null when the manifest has no parameter
+ * constraints. Throws where interpretation would.
  */
 export const parameterConstraintOutcome = (
   manifest: PetrinautOptimizationManifest,
-  scenarioParameterValues: Readonly<Record<string, number>>,
+  bindings: HirInterpretBindings,
 ): ParameterConstraintOutcome | null => {
   const constraints = constraintsInSpace(
     manifest.constraints ?? [],
@@ -46,25 +53,9 @@ export const parameterConstraintOutcome = (
   if (constraints.length === 0) {
     return null;
   }
-  const results = evaluateParameterConstraints(constraints, {
-    parameters: deriveDefaultParameterValues(
-      manifest.model.definition.parameters,
-    ),
-    scenario: scenarioParameterValues,
-  });
+  const results = evaluateParameterConstraints(constraints, bindings);
   const broken = results.find((result) => result.margin < 0);
   return { results, infeasible: broken?.constraintId ?? null };
-};
-
-/** The name a report gives constraint `constraintId`, or the id when the manifest does not know it. */
-export const constraintNameIn = (
-  manifest: Pick<PetrinautOptimizationManifest, "constraints">,
-  constraintId: string,
-): string => {
-  const constraint = manifest.constraints?.find(
-    (candidate) => candidate.id === constraintId,
-  );
-  return constraint ? constraintLabel(constraint) : constraintId;
 };
 
 /**

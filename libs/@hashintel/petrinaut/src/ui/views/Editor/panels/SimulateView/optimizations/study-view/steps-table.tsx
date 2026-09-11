@@ -1,5 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
 /**
  * The study's steps, newest first: number, parameters, objective, the runs
  * passed when the study has constraints, and a state mark. The best step
@@ -7,11 +8,10 @@ import { css } from "@hashintel/ds-helpers/css";
  * parameter constraint is greyed, its mark naming the constraint. A long
  * study shows its latest steps only, so the table stays light.
  */
-import { constraintLabel } from "@hashintel/petrinaut-core";
-
 import {
   bindingStepRate,
   constraintAlpha,
+  constraintNameIn,
   formatRate,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { Table, type TableColumn } from "../../../../../../components/table";
@@ -91,13 +91,9 @@ const infeasibleConstraint = (
   trial: Step,
 ): string | null => {
   const constraintId = trial.constraints?.infeasible;
-  if (constraintId === undefined) {
-    return null;
-  }
-  const constraint = input.constraints?.find(
-    (candidate) => candidate.id === constraintId,
-  );
-  return constraint ? constraintLabel(constraint) : constraintId;
+  return constraintId === undefined
+    ? null
+    : constraintNameIn(input, constraintId);
 };
 
 const renderStepState = (state: StepState, infeasible: string | null) => {

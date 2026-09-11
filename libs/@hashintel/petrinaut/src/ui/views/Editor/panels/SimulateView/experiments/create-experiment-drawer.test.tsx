@@ -186,6 +186,7 @@ const TestProviders = ({
               }),
               cancel: () => {},
             }),
+            resolveDetachedObjectiveParameters: () => Promise.resolve({}),
           }}
         >
           <SDCPNContext value={sdcpnContextValue}>

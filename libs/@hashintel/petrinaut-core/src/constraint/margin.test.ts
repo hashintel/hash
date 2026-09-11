@@ -2,11 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { HirInterpretError } from "../hir/interpret";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
-import {
-  constraintMargin,
-  evaluateParameterConstraints,
-  marginForOptuna,
-} from "./margin";
+import { constraintMargin, evaluateParameterConstraints } from "./margin";
 
 import type { HirFunction } from "../hir/hir";
 import type { ParameterConstraint } from "./constraint";
@@ -97,14 +93,6 @@ describe("constraintMargin", () => {
 
   it("throws where interpretation would", () => {
     expect(() => margin("scenario.unknown < 3")).toThrow(HirInterpretError);
-  });
-});
-
-describe("marginForOptuna", () => {
-  it("negates once so a satisfied margin reads as non-positive", () => {
-    expect(marginForOptuna(4)).toBe(-4);
-    expect(marginForOptuna(-2)).toBe(2);
-    expect(marginForOptuna(0)).toBe(-0);
   });
 });
 

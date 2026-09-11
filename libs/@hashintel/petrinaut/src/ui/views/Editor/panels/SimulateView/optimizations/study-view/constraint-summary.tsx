@@ -11,6 +11,7 @@ import { constraintLabel } from "@hashintel/petrinaut-core";
 import {
   bindingStepRate,
   constraintAlpha,
+  constraintNameIn,
   formatRate,
   passThresholdPercent,
   type StepVerdict,
@@ -174,22 +175,16 @@ export const describeStep = (
   alpha: number,
 ): string => {
   const verdict = stepVerdict(trial, alpha);
-  const constraints = optimization.input.constraints ?? [];
-  const nameOf = (constraintId: string): string => {
-    const constraint = constraints.find(
-      (candidate) => candidate.id === constraintId,
-    );
-    return constraint ? constraintLabel(constraint) : constraintId;
-  };
+  const { input } = optimization;
   const head = `Step ${trial.trial + 1}: ${VERDICT_WORD[verdict]}`;
   if (verdict === "infeasible") {
-    return `${head} · ${nameOf(trial.constraints?.infeasible ?? "")}`;
+    return `${head} · ${constraintNameIn(input, trial.constraints?.infeasible ?? "")}`;
   }
   const binding = bindingStepRate(trial, alpha);
   if (binding === null) {
     return trial.state === "complete" ? head : `${head} · ${trial.state}`;
   }
-  return `${head} · ${formatRate(binding.runsPassed, binding.runsTotal).replace(" · ", " runs passed · ")} · ${nameOf(binding.constraintId)}`;
+  return `${head} · ${formatRate(binding.runsPassed, binding.runsTotal).replace(" · ", " runs passed · ")} · ${constraintNameIn(input, binding.constraintId)}`;
 };
 
 export const ConstraintSummaryCard = ({
@@ -291,12 +286,6 @@ export const ConstraintSummaryCard = ({
                 ? "constraint is"
                 : "constraints are"}{" "}
               checked before each step runs.
-            </span>
-          ) : null}
-          {input.study.sampler === "random" ? (
-            <span className={noteStyle}>
-              The random sampler ignores constraints; results are still
-              reported.
             </span>
           ) : null}
         </div>

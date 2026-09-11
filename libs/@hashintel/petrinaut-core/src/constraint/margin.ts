@@ -1,8 +1,7 @@
 /**
  * The signed margin of a constraint: how far its condition holds or fails at
  * one point of the parameter space. `margin >= 0` means satisfied, and every
- * consumer reads the sign that way; a sampler that wants the opposite
- * convention negates through `marginForOptuna`, in one place.
+ * consumer reads the sign that way.
  */
 import {
   HirInterpretError,
@@ -13,9 +12,6 @@ import {
 
 import type { HirBinaryOp, HirExpr, HirFunction, Span } from "../hir/hir";
 import type { ParameterConstraint } from "./constraint";
-
-/** Negated exactly once, here, for a sampler that reads `<= 0` as feasible. Unused until a margin reaches Optuna. */
-export const marginForOptuna = (margin: number): number => -margin;
 
 export type ParameterConstraintResult = {
   constraintId: string;

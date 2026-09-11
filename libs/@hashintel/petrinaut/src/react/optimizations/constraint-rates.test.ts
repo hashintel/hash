@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   bindingStepRate,
   constraintAlpha,
+  constraintNameIn,
   formatRate,
   passThresholdPercent,
   stepConstraintRates,
   stepVerdict,
   studyConstraintRates,
 } from "./constraint-rates";
+import { sirConstrainedOptimizationInput } from "./sir-optimization-input.fixtures";
 
 import type {
   PetrinautOptimizationTrialConstraints,
@@ -155,5 +157,16 @@ describe("formatRate", () => {
     expect(formatRate(52, 60)).toBe("52 / 60 · 87%");
     expect(formatRate(14, 20)).toBe("14 / 20 · 70%");
     expect(formatRate(0, 0)).toBe("0 / 0");
+  });
+});
+
+describe("constraintNameIn", () => {
+  it("prefers the authored name and falls back to the id", () => {
+    expect(constraintNameIn(sirConstrainedOptimizationInput, "ratio-cap")).toBe(
+      "Ratio under a tenth",
+    );
+    expect(constraintNameIn(sirConstrainedOptimizationInput, "other")).toBe(
+      "other",
+    );
   });
 });

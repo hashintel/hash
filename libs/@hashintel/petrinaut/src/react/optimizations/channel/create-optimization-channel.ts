@@ -3,8 +3,10 @@
  * @role Evaluates optimizer trials as detached objective runs on the experiments backend
  */
 import { errorMessage } from "../../experiments/shared/error-message";
+import { constraintNameIn } from "../constraint-rates";
 import {
-  constraintNameIn,
+  hasParameterConstraints,
+  type ParameterConstraintOutcome,
   parameterConstraintOutcome,
   stateConstraintMetrics,
   stateConstraintResults,
@@ -52,18 +54,21 @@ export type OptimizationChannel = PetrinautOptimizationChannel & {
  * The channel a connected optimizer evaluates its trials through. Each trial
  * becomes one detached objective run compiled once per optimizer run id and
  * queued on its own, so trials the optimizer keeps in flight together
- * overlap. A study's parameter constraints are checked at the trial's values
- * first: a draw that breaks one is pruned before anything simulates, naming
- * the constraint. Its state constraints run beside the objective as 0/1
- * metrics, and their per-run verdicts ride on the outcome; the objective
- * stays the mean over every run. The channel never throws: whatever stops a
- * trial reaches Optuna as a pruned trial carrying the reason.
+ * overlap. A study's parameter constraints are checked first, at the trial's
+ * values and the net parameter values they resolve to: a draw that breaks
+ * one is pruned before anything simulates, naming the constraint. Its state
+ * constraints run beside the objective as 0/1 metrics, and their per-run
+ * verdicts ride on the outcome; the objective stays the mean over every run.
+ * The channel never throws: whatever stops a trial reaches Optuna as a pruned
+ * trial carrying the reason.
  */
 export const createOptimizationChannel = ({
   runDetachedObjective,
+  resolveDetachedObjectiveParameters,
   resolveStudy,
 }: {
   runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+  resolveDetachedObjectiveParameters: ExperimentsActionsValue["resolveDetachedObjectiveParameters"];
   /**
    * The study behind a run id, or null for a run the provider does not
    * know, whose trials run on the CPU with nobody watching.
@@ -108,16 +113,32 @@ export const createOptimizationChannel = ({
       return prunedTrialOutcome("cancelled");
     }
 
-    let parameterOutcome: ReturnType<typeof parameterConstraintOutcome>;
+    const study = resolveStudy(request.runId);
+    const cacheKey = study?.cacheKey ?? request.runId;
+    let parameterOutcome: ParameterConstraintOutcome | null = null;
     let indicators: DetachedObjectiveAuxiliaryMetric[];
     try {
-      parameterOutcome = parameterConstraintOutcome(
-        request.manifest,
-        request.scenarioParameterValues,
-      );
       indicators = indicatorsFor(request);
+      if (hasParameterConstraints(request.manifest)) {
+        // `parameters.*` reads what the batch would simulate with: the
+        // scenario's overrides resolved at this trial's values.
+        const parameters = await resolveDetachedObjectiveParameters({
+          cacheKey,
+          definition: request.manifest.model.definition,
+          scenarioId: request.manifest.scenario.id,
+          scenarioParameterValues: request.scenarioParameterValues,
+          metric: { id: metric.id, label: metric.name, code: metric.code },
+        });
+        parameterOutcome = parameterConstraintOutcome(request.manifest, {
+          parameters,
+          scenario: request.scenarioParameterValues,
+        });
+      }
     } catch (error) {
       return prunedTrialOutcome(errorMessage(error));
+    }
+    if (isCancelled()) {
+      return prunedTrialOutcome("cancelled");
     }
     if (
       parameterOutcome?.infeasible !== undefined &&
@@ -141,9 +162,8 @@ export const createOptimizationChannel = ({
     let run: DetachedObjectiveRun | null = null;
     let outcome: DetachedObjectiveRunOutcome;
     try {
-      const study = resolveStudy(request.runId);
       run = runDetachedObjective({
-        cacheKey: study?.cacheKey ?? request.runId,
+        cacheKey,
         // Trials in flight at once each take a queue of their own; the
         // compiled study is shared through the cache key.
         queueKey: `${request.runId}:trial:${request.trial}`,

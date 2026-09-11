@@ -676,11 +676,16 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     (request) => getDetachedObjectiveSampler().sample(request);
   const runDetachedObjective: ExperimentsContextValue["runDetachedObjective"] =
     (request) => getDetachedObjectiveSampler().run(request);
+  const resolveDetachedObjectiveParameters: ExperimentsContextValue["resolveDetachedObjectiveParameters"] =
+    (request) => getDetachedObjectiveSampler().resolveParameters(request);
 
   const stableSampleDetachedObjective = useStableCallback(
     sampleDetachedObjective,
   );
   const stableRunDetachedObjective = useStableCallback(runDetachedObjective);
+  const stableResolveDetachedObjectiveParameters = useStableCallback(
+    resolveDetachedObjectiveParameters,
+  );
 
   // Every callback is identity-stable, so this object never changes and
   // actions-only consumers sit out the per-publish re-render storm.
@@ -693,6 +698,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sampleSurfaceCells: stableSampleSurfaceCells,
     sampleDetachedObjective: stableSampleDetachedObjective,
     runDetachedObjective: stableRunDetachedObjective,
+    resolveDetachedObjectiveParameters:
+      stableResolveDetachedObjectiveParameters,
   }));
 
   const contextValue: ExperimentsContextValue = {

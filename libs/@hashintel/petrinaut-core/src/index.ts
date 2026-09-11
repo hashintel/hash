@@ -474,7 +474,6 @@ export {
 export {
   constraintMargin,
   evaluateParameterConstraints,
-  marginForOptuna,
   type ParameterConstraintResult,
 } from "./constraint/margin";
 export type { HirInterpretBindings } from "./hir/interpret";

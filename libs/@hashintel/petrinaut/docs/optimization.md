@@ -91,7 +91,7 @@ browser (see [Running in the browser](#running-in-the-browser)) evaluates them
 and reports what it finds; the objective is never changed by them, and no run
 is excluded from it. Two kinds:
 
-- **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. Before each step runs, the browser checks them at the step's values. A step whose values break one is **infeasible**: it costs one step and no simulation, it is reported as pruned with the constraint named, and it is drawn grey everywhere a step is drawn.
+- **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. Before each step runs, the browser checks them at the step's values. A step whose values break one is **infeasible**: it costs one step and no simulation, it is reported as pruned with the constraint named, and it is greyed in the steps table and drawn as a hollow ring on the surface.
 - **State constraints** -- small code bodies that read the simulation `state` exactly like a [metric](experiments.md#metrics) and `return` a boolean, for example `return state.places.Queue.count <= 10;`. Every run of a step reports whether the condition held at every sampled time: a run **passed** when it did and **failed** otherwise.
 
 A step's verdict comes from its runs. The **Pass threshold**, one setting for
@@ -153,7 +153,7 @@ scrolls on its own, and a long study shows its newest 200 steps while the
 strip keeps the totals and the best. A study with
 [constraints](#constraints) run in the browser adds a **Runs passed** column
 (`52 / 60 · 87%`, the constraint with the fewest passing runs when there are
-several; hover the mark for the rest) and greys the rows of infeasible steps,
+several) and greys the rows of infeasible steps,
 their mark reading **Infeasible:** and the constraint's name.
 
 Once a study is over, whether it finished, was stopped, or failed, its
@@ -237,8 +237,8 @@ view on a laptop screen while the study streams:
   passed its tightest constraint, and one bar per state constraint shows the
   share of steps it passed, with a dashed mark at the threshold. The same
   headline sits in the summary band as **Steps clear**. Infeasible draws are
-  grey dots on the Objective by step chart and hollow grey rings on the
-  surface, and the best step so far is never one of them.
+  hollow grey rings on the surface and grey rows in the steps table, and the
+  best step so far is never one of them.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.

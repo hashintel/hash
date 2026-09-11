@@ -2,6 +2,7 @@ import {
   type Constraint,
   type ConstraintSource,
   petrinautOptimizationInputSchema,
+  type Scenario,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { lowerConstraint } from "@hashintel/petrinaut-core/hir";
@@ -88,4 +89,39 @@ export const sirConstrainedOptimizationInput =
   petrinautOptimizationInputSchema.parse({
     ...sirOptimizationInput,
     constraints: sirOptimizationConstraints,
+  });
+
+/** The seasonal flu scenario with the net's infection rate rebound to twenty times the infected ratio. */
+export const sirOverridingOptimizationScenario: Scenario = {
+  ...scenario,
+  parameterOverrides: {
+    ...scenario.parameterOverrides,
+    param__infection_rate: "scenario.infected_ratio * 20",
+  },
+};
+
+/**
+ * The SIR study on the overriding scenario with one constraint over the net
+ * parameter: `parameters.infection_rate <= 2` holds at an infected ratio of
+ * 0.05 (rate 1) and breaks at 0.15 (rate 3), while the net's default of 3
+ * would break it at every draw.
+ */
+export const sirNetConstrainedOptimizationInput =
+  petrinautOptimizationInputSchema.parse({
+    ...sirOptimizationInput,
+    model: {
+      ...sirOptimizationInput.model,
+      definition: {
+        ...sirOptimizationInput.model.definition,
+        scenarios: [sirOverridingOptimizationScenario],
+      },
+    },
+    constraints: [
+      lowerSirConstraint({
+        space: "parameters",
+        id: "rate-cap",
+        name: "Infection rate under two",
+        code: "parameters.infection_rate <= 2",
+      }),
+    ],
   });

@@ -5,6 +5,7 @@
  * study some share of the steps are clear. One word per level, and every
  * percentage printed beside the fraction it came from.
  */
+import { constraintLabel } from "@hashintel/petrinaut-core";
 import { DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA } from "@hashintel/petrinaut-core/optimization";
 
 import type {
@@ -17,6 +18,17 @@ export const constraintAlpha = (
   manifest: Pick<PetrinautOptimizationManifest, "constraintPolicy">,
 ): number =>
   manifest.constraintPolicy?.alpha ?? DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA;
+
+/** The name a report gives constraint `constraintId`, or the id when the manifest does not know it. */
+export const constraintNameIn = (
+  manifest: Pick<PetrinautOptimizationManifest, "constraints">,
+  constraintId: string,
+): string => {
+  const constraint = manifest.constraints?.find(
+    (candidate) => candidate.id === constraintId,
+  );
+  return constraint ? constraintLabel(constraint) : constraintId;
+};
 
 /** The threshold in percent, as the settings show it: 95 for alpha 0.05. */
 export const passThresholdPercent = (alpha: number): number =>

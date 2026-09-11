@@ -13,6 +13,7 @@ import {
 } from "../fake-detached-objective-runs.fixtures";
 import {
   sirConstrainedOptimizationInput,
+  sirNetConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
 } from "../sir-optimization-input.fixtures";
@@ -20,6 +21,8 @@ import {
   createOptimizationChannel,
   type OptimizationChannelStudy,
 } from "./create-optimization-channel";
+
+import type { DetachedObjectiveParametersRequest } from "../../experiments/context";
 
 const metricId = sirOptimizationMetric.id;
 
@@ -42,6 +45,21 @@ const trialRequest = (
   };
 };
 
+/**
+ * Stands in for the sampler's scenario compile: the net's infection rate at
+ * twenty times the trial's infected ratio, as the overriding fixture
+ * scenario resolves it, and the recovery rate at the scenario's constant.
+ */
+const fakeResolveParameters = vi.fn(
+  (request: DetachedObjectiveParametersRequest) => {
+    const ratio = request.scenarioParameterValues.infected_ratio;
+    return Promise.resolve({
+      infection_rate: typeof ratio === "number" ? ratio * 20 : 3,
+      recovery_rate: 0.8,
+    });
+  },
+);
+
 const setup = () => {
   const fake = createFakeDetachedObjectiveRuns();
   const study: OptimizationChannelStudy = {
@@ -50,8 +68,10 @@ const setup = () => {
     trialStarted: vi.fn(),
     trialSettled: vi.fn(),
   };
+  fakeResolveParameters.mockClear();
   const channel = createOptimizationChannel({
     runDetachedObjective: fake.runDetachedObjective,
+    resolveDetachedObjectiveParameters: fakeResolveParameters,
     resolveStudy: (runId) => (runId === "run-1" ? study : null),
   });
   return { fake, study, channel };
@@ -208,11 +228,82 @@ describe("createOptimizationChannel", () => {
     expect(study.trialStarted).not.toHaveBeenCalled();
   });
 
+  it("checks a constraint over a net parameter at the value the study's scenario resolves for the trial", async () => {
+    const { fake, channel } = setup();
+    const at = (ratio: number) => {
+      const suggestedValues = { infected_ratio: ratio };
+      return trialRequest({
+        manifest: sirNetConstrainedOptimizationInput,
+        suggestedValues,
+        scenarioParameterValues: resolveTrialScenarioParameterValues(
+          sirNetConstrainedOptimizationInput,
+          suggestedValues,
+        ),
+      });
+    };
+
+    // Rate 3 at a ratio of 0.15: the draw is pruned without a batch.
+    const infeasible = await channel.evaluateTrial(at(0.15));
+    expect(infeasible).toMatchObject({
+      kind: "pruned",
+      reason: "Infeasible: Infection rate under two",
+      constraints: { infeasible: "rate-cap" },
+    });
+    expect(infeasible.constraints?.parameters[0]?.margin).toBeCloseTo(-1);
+    expect(fakeResolveParameters).toHaveBeenCalledWith({
+      cacheKey: "run-1",
+      definition: sirNetConstrainedOptimizationInput.model.definition,
+      scenarioId: sirNetConstrainedOptimizationInput.scenario.id,
+      scenarioParameterValues: { population: 1_000, infected_ratio: 0.15 },
+      metric: {
+        id: metricId,
+        label: sirOptimizationMetric.name,
+        code: sirOptimizationMetric.code,
+      },
+    });
+    expect(fake.runs).toHaveLength(0);
+
+    // Rate 1 at a ratio of 0.05: the batch runs, the margin riding along.
+    const feasible = channel.evaluateTrial(at(0.05));
+    await vi.waitFor(() => expect(fake.runs).toHaveLength(1));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.3, 1]])],
+        runValues: [0.3],
+      }),
+    );
+    const settled = await feasible;
+    expect(settled).toMatchObject({
+      kind: "objective",
+      objective: 0.3,
+      constraints: { parameters: [{ constraintId: "rate-cap" }], state: [] },
+    });
+    expect(settled.constraints?.parameters[0]?.margin).toBeCloseTo(1);
+  });
+
+  it("prunes a trial as failed to resolve when the scenario does not compile at its values", async () => {
+    const { fake, channel } = setup();
+    fakeResolveParameters.mockRejectedValueOnce(
+      new Error('Scenario parameter "population" must be a finite number.'),
+    );
+    await expect(
+      channel.evaluateTrial(
+        trialRequest({ manifest: sirNetConstrainedOptimizationInput }),
+      ),
+    ).resolves.toEqual({
+      kind: "pruned",
+      reason: 'Scenario parameter "population" must be a finite number.',
+    });
+    expect(fake.runs).toHaveLength(0);
+  });
+
   it("runs the state constraints as auxiliary metrics and reports their per-run verdicts with the plain mean objective", async () => {
     const { fake, channel } = setup();
     const outcome = channel.evaluateTrial(
       trialRequest({ manifest: sirConstrainedOptimizationInput }),
     );
+    await vi.waitFor(() => expect(fake.runs).toHaveLength(1));
     const request = fake.runs[0]?.request;
     expect(request?.auxiliaryMetrics).toHaveLength(1);
     expect(request?.auxiliaryMetrics?.[0]).toMatchObject({
@@ -247,6 +338,7 @@ describe("createOptimizationChannel", () => {
     const second = channel.evaluateTrial(
       trialRequest({ manifest: sirConstrainedOptimizationInput, trial: 1 }),
     );
+    await vi.waitFor(() => expect(fake.runs).toHaveLength(2));
     expect(fake.runs[1]?.request.auxiliaryMetrics?.[0]?.artifact).toBe(
       request?.auxiliaryMetrics?.[0]?.artifact,
     );
@@ -279,6 +371,7 @@ describe("createOptimizationChannel", () => {
       runDetachedObjective: () => {
         throw new Error("no compute");
       },
+      resolveDetachedObjectiveParameters: fakeResolveParameters,
       resolveStudy: () => null,
     });
     await expect(throwing.evaluateTrial(trialRequest())).resolves.toEqual({

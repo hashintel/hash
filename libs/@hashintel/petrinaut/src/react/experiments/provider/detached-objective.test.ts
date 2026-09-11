@@ -633,6 +633,36 @@ describe("createDetachedObjectiveSampler().run", () => {
   });
 });
 
+describe("createDetachedObjectiveSampler().resolveParameters", () => {
+  it("resolves the net parameters a batch runs with, the scenario's overrides applied, and names a point that does not compile", async () => {
+    const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
+    const { sampler } = createSampler({ cpu });
+    const {
+      runSeeds: _runSeeds,
+      computeBackend: _backend,
+      ...request
+    } = runRequest();
+
+    // The seasonal flu scenario overrides the net's infection rate of 3.
+    await expect(sampler.resolveParameters(request)).resolves.toEqual({
+      infection_rate: 1.5,
+      recovery_rate: 0.8,
+    });
+    await expect(
+      sampler.resolveParameters({
+        ...request,
+        scenarioParameterValues: {
+          population: Number.NaN,
+          infected_ratio: 0.05,
+        },
+      }),
+    ).rejects.toThrow(
+      /^Scenario parameter "population" must be a finite number\./,
+    );
+    expect(cpu.requests).toHaveLength(0);
+  });
+});
+
 describe("createDetachedObjectiveSampler().sample", () => {
   it("runs the sample on the CPU pool in the surface queue and resolves the finished snapshot", async () => {
     const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);

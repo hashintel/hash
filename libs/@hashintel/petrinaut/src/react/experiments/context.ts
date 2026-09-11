@@ -248,6 +248,15 @@ export type ExperimentsContextValue = {
   runDetachedObjective: (
     request: DetachedObjectiveRunRequest,
   ) => DetachedObjectiveRun;
+  /**
+   * The net parameter values a study's batch simulates with at one
+   * parameter point: the scenario's overrides applied to the net's defaults,
+   * from the same compiled snapshot the batches use. Rejects when the
+   * scenario does not compile there.
+   */
+  resolveDetachedObjectiveParameters: (
+    request: DetachedObjectiveParametersRequest,
+  ) => Promise<Readonly<Record<string, number | boolean>>>;
 };
 
 /**
@@ -280,6 +289,16 @@ export type DetachedObjectiveRequest = {
   dt: number;
   maxTime: number;
 };
+
+/** One parameter point of a study, for resolving the net parameters its batch would run with. */
+export type DetachedObjectiveParametersRequest = Pick<
+  DetachedObjectiveRequest,
+  | "cacheKey"
+  | "definition"
+  | "scenarioId"
+  | "scenarioParameterValues"
+  | "metric"
+>;
 
 export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
   /**
@@ -359,6 +378,8 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
     }),
     cancel: () => {},
   }),
+  resolveDetachedObjectiveParameters: () =>
+    Promise.reject(new Error("Experiments are unavailable")),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
@@ -381,6 +402,7 @@ export type ExperimentsActionsValue = Pick<
   | "sampleSurfaceCells"
   | "sampleDetachedObjective"
   | "runDetachedObjective"
+  | "resolveDetachedObjectiveParameters"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(
