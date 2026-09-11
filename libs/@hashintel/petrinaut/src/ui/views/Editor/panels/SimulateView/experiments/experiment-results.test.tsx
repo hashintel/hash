@@ -28,8 +28,14 @@ vi.mock("./experiment-metric-timeline", () => ({
   MetricViewMenu: () => null,
 }));
 
+// The strip draws through uPlot; the model hands it the studies and no more.
+vi.mock("./sweep-objective-strip", () => ({
+  SweepObjectiveStrip: () => null,
+}));
+
 const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
   available: false,
+  studies: [],
   study: null,
   driving: null,
   start: () => Promise.resolve(),
@@ -173,6 +179,7 @@ describe("experimentResultsModel for a running sweep", () => {
       more: null,
       tone: "default",
     });
+    expect(result.bands[0]!.below).toBeNull();
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({
       key: sweep.id,
@@ -353,7 +360,13 @@ describe("experimentResultsModel with the optimizer", () => {
   const driving = { step: 5, total: 30 };
   /** The record between two steps: the session idles until the next point. */
   const betweenSteps = model(idleSweep, {
-    optimizer: { ...idleOptimizer, available: true, study, driving },
+    optimizer: {
+      ...idleOptimizer,
+      available: true,
+      study,
+      studies: [study],
+      driving,
+    },
   });
 
   it("offers the Optimize control on the Parameters card when the optimizer is available", () => {
@@ -366,7 +379,13 @@ describe("experimentResultsModel with the optimizer", () => {
 
   it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
     const result = model(sweep, {
-      optimizer: { ...idleOptimizer, available: true, study, driving },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study,
+        studies: [study],
+        driving,
+      },
     });
     expect(result.bands[0]!.tone).toBe("optimizing");
     expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
@@ -398,7 +417,15 @@ describe("experimentResultsModel with the optimizer", () => {
           { id: 7, kind: "selection", runCount: 8, completedRuns: 3 },
         ],
       },
-      { optimizer: { ...idleOptimizer, available: true, study, driving } },
+      {
+        optimizer: {
+          ...idleOptimizer,
+          available: true,
+          study,
+          studies: [study],
+          driving,
+        },
+      },
     );
     expect(result.header.activity?.map((batch) => batch.label)).toEqual([
       "Step 5",
@@ -409,12 +436,45 @@ describe("experimentResultsModel with the optimizer", () => {
     });
   });
 
+  it("puts the objective strip under the sliders from the first study on, driving or settled", () => {
+    expect(
+      model(sweep, { optimizer: { ...idleOptimizer, available: true } })
+        .bands[0]!.below,
+    ).toBeNull();
+    const strip = propsOf<{ studies: unknown[]; driving: boolean }>(
+      betweenSteps.bands[0]!.below,
+    );
+    expect(isValidElement(betweenSteps.bands[0]!.below)).toBe(true);
+    expect(strip.studies).toHaveLength(1);
+    expect(strip.driving).toBe(true);
+    const settled = { ...study, status: "complete" as const };
+    expect(
+      propsOf<{ driving: boolean }>(
+        model(idleSweep, {
+          optimizer: {
+            ...idleOptimizer,
+            available: true,
+            study: settled,
+            studies: [settled],
+          },
+        }).bands[0]!.below,
+      ).driving,
+    ).toBe(false);
+  });
+
   it("stops the study before cancelling the sweep", () => {
     const stop = vi.fn();
     const cancelExperiment = vi.fn();
     const result = model(sweep, {
       actions: { ...dependencies.actions, cancelExperiment },
-      optimizer: { ...idleOptimizer, available: true, study, driving, stop },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study,
+        studies: [study],
+        driving,
+        stop,
+      },
     });
     propsOf<{ onClick: () => void }>(footerButtonsOf(result)[0]).onClick();
     expect(stop).toHaveBeenCalledOnce();
@@ -431,7 +491,12 @@ describe("experimentResultsModel with the optimizer", () => {
       completedTrials: 29,
     };
     const result = model(idleSweep, {
-      optimizer: { ...idleOptimizer, available: true, study: finished },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study: finished,
+        studies: [finished],
+      },
     });
     expect(result.header.status.label).toBe("Idle");
     expect(result.bands[0]!.tone).toBe("default");
@@ -453,7 +518,12 @@ describe("experimentResultsModel with the optimizer", () => {
       error: "The in-browser optimizer could not start",
     };
     const result = model(idleSweep, {
-      optimizer: { ...idleOptimizer, available: true, study: failed },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study: failed,
+        studies: [failed],
+      },
     });
     expect(result.header.note).toEqual({
       content: "The in-browser optimizer could not start",
@@ -462,7 +532,14 @@ describe("experimentResultsModel with the optimizer", () => {
     expect(
       model(
         { ...idleSweep, error: "worker crashed" },
-        { optimizer: { ...idleOptimizer, available: true, study: failed } },
+        {
+          optimizer: {
+            ...idleOptimizer,
+            available: true,
+            study: failed,
+            studies: [failed],
+          },
+        },
       ).header.note?.content,
     ).toBe("worker crashed");
   });

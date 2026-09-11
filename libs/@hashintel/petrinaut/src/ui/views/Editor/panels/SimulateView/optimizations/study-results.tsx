@@ -359,6 +359,7 @@ const parametersBand = (
         onNavigationChange={onNavigationChange}
       />
     ),
+    below: null,
     more:
       fixedCount === 0
         ? null
@@ -435,6 +436,7 @@ const bestParametersBand = (optimization: OptimizationRecord): ResultsBand => {
         )}
       />
     ),
+    below: null,
     more: null,
     tone: "default",
   };

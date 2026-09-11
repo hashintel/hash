@@ -176,7 +176,9 @@ scrolls on its own. Every card keeps its height whatever it shows.
 The **Objective by step** card draws every step's objective value as a dot
 over the step number, with the best so far as a line stepping up (or down,
 for a minimized objective) through them. Pruned and failed steps have no dot.
-The line under the title counts the completed steps.
+The line under the title counts the completed steps. A sweep optimized from
+its own drawer draws the same chart, in purple, under its sliders (see
+[Optimizing a sweep](experiments.md#optimizing-a-sweep)).
 
 The steps table sits at the bottom, newest steps first, each with its
 parameters, objective value and a state mark (complete, pruned or failed). It
