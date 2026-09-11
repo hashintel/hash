@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require("setimmediate");
+import "setimmediate";
 
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 import { useId } from "react";

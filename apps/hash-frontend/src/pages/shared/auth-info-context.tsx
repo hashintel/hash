@@ -12,7 +12,6 @@ import {
 import {
   getOutgoingLinksForEntity,
   getRoots,
-  intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import {
@@ -47,6 +46,8 @@ type AuthInfoContextValue = {
   authenticatedUser?: User;
   emailVerificationStatusKnown: boolean;
   isInstanceAdmin: boolean | undefined;
+  isInstanceAdminLoading: boolean;
+  isAuthInfoLoading: boolean;
   refetch: RefetchAuthInfoFunction;
 };
 
@@ -54,65 +55,22 @@ export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
   undefined,
 );
 
-/**
- * Returns `true` if `candidate` contains a newer edition of the user (by
- * transaction time) than `existing`.
- */
-const subgraphHasNewerUser = (
-  candidate: Subgraph<EntityRootType<HashEntity>>,
-  existing: Subgraph<EntityRootType<HashEntity>>,
-): boolean => {
-  const candidateUser = getRoots(candidate)[0];
-  const existingUser = getRoots(existing)[0];
-
-  if (!candidateUser || !existingUser) {
-    return true;
-  }
-
-  return (
-    intervalCompareWithInterval(
-      existingUser.metadata.temporalVersioning.transactionTime,
-      candidateUser.metadata.temporalVersioning.transactionTime,
-    ) < 0
-  );
-};
-
 type AuthInfoProviderProps = {
-  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   children: ReactElement;
 };
 
 export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
-  initialAuthenticatedUserSubgraph,
   children,
 }) => {
-  const [authenticatedUserSubgraph, setAuthenticatedUserSubgraph] = useState(
-    initialAuthenticatedUserSubgraph,
-  ); // use the initial server-sent data to start – after that, the client controls the value
+  const [authenticatedUserSubgraph, setAuthenticatedUserSubgraph] =
+    useState<Subgraph<EntityRootType<HashEntity>>>();
   const [verifiableAddresses, setVerifiableAddresses] = useState<
     VerifiableIdentityAddress[]
   >([]);
   const [aal2Required, setAal2Required] = useState(false);
   const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] =
     useState(false);
-
-  /**
-   * `getInitialProps` re-fetches the authenticated user on every navigation and
-   * passes it as `initialAuthenticatedUserSubgraph`. Adopt that server-provided
-   * data whenever it is newer than what the client currently holds.
-   */
-  useEffect(() => {
-    if (!initialAuthenticatedUserSubgraph) {
-      return;
-    }
-
-    setAuthenticatedUserSubgraph((current) =>
-      !current ||
-      subgraphHasNewerUser(initialAuthenticatedUserSubgraph, current)
-        ? initialAuthenticatedUserSubgraph
-        : current,
-    );
-  }, [initialAuthenticatedUserSubgraph]);
+  const [isAuthInfoLoading, setIsAuthInfoLoading] = useState(true);
 
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {
@@ -180,7 +138,10 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const apolloClient = useApolloClient();
 
-  const { isUserAdmin: isInstanceAdmin } = useHashInstance();
+  const {
+    isUserAdmin: isInstanceAdmin,
+    loading: isInstanceAdminLoading,
+  } = useHashInstance();
 
   /**
    * Use a ref to avoid `fetchAuthenticatedUser` depending on the identity of `constructUserValue`,
@@ -236,6 +197,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       setEmailVerificationStatusKnown(
         kratosSessionResult.emailVerificationStatusKnown,
       );
+      setIsAuthInfoLoading(false);
 
       if (!subgraph) {
         setAuthenticatedUserSubgraph(undefined);
@@ -270,6 +232,8 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       authenticatedUser,
       emailVerificationStatusKnown,
       isInstanceAdmin,
+      isInstanceAdminLoading,
+      isAuthInfoLoading,
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified.
         // Only attempt if the user has completed signup – users who haven't finished
@@ -290,6 +254,8 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       authenticatedUser,
       emailVerificationStatusKnown,
       isInstanceAdmin,
+      isInstanceAdminLoading,
+      isAuthInfoLoading,
       fetchAuthenticatedUser,
       refetchOrgs,
     ],

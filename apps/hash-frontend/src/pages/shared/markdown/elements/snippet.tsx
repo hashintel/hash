@@ -9,17 +9,10 @@
  *
  * @see https://prismjs.com
  */
-import Prism from "prismjs"; // oxfmt-ignore
-
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-json5";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-rust";
-import "prismjs/components/prism-typescript";
 import { Box } from "@mui/material";
 import DOMPurify from "dompurify";
+
+import { Prism } from "../../../../shared/prism";
 
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent } from "react";

@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { createContext, useContext, useMemo } from "react";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import type { ParsedUrlQuery } from "node:querystring";
 import type { FunctionComponent, ReactNode } from "react";
 
 type RoutePageInfo = {
@@ -19,7 +19,7 @@ type PageParsedUrlQuery = {
 };
 
 export const isPageParsedUrlQuery = (
-  queryParams: NextParsedUrlQuery,
+  queryParams: ParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
   typeof queryParams.shortname === "string" &&
   typeof queryParams["page-slug"] === "string";

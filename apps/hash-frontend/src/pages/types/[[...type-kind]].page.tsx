@@ -1,5 +1,6 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
@@ -26,7 +27,6 @@ import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
   | "entity-type"
@@ -34,27 +34,27 @@ type ParsedQueryKindParam =
   | "property-type"
   | "data-type";
 
-type ParsedQueryParams = {
-  ["type-kind"]?: ParsedQueryKindParam[];
-};
-
 export type TabId = "all" | ParsedQueryKindParam;
 
-type TypesPageProps = {
-  currentTab: TabId;
-};
+const typeKindParams: ParsedQueryKindParam[] = [
+  "entity-type",
+  "link-type",
+  "property-type",
+  "data-type",
+];
 
-export const getServerSideProps: GetServerSideProps<
-  TypesPageProps,
-  ParsedQueryParams
-  // eslint-disable-next-line @typescript-eslint/require-await
-> = async ({ params }) => {
-  const currentTab = params?.["type-kind"]?.[0] ?? "all";
+const TypesPage: NextPageWithLayout = () => {
+  const router = useRouter();
+  const typeKindParam = router.query["type-kind"];
+  const requestedTypeKind = Array.isArray(typeKindParam)
+    ? typeKindParam[0]
+    : typeKindParam;
+  const currentTab: TabId = typeKindParams.some(
+    (typeKind) => typeKind === requestedTypeKind,
+  )
+    ? (requestedTypeKind as ParsedQueryKindParam)
+    : "all";
 
-  return { props: { currentTab } };
-};
-
-const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
   const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
