@@ -5137,4 +5137,89 @@ describe("AiAssistantPanel host interactive tools", () => {
       instance.dispose();
     }
   });
+
+  test("aborts an in-flight automatic tool when the panel unmounts", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "automatic-call-unmount",
+              toolName: "hostAutomatic",
+              input: { value: 2 },
+            },
+          ]),
+        ),
+      ),
+    };
+    let executeSignal: AbortSignal | undefined;
+    const execute = vi.fn(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise<{ doubled: number }>((_resolve, reject) => {
+          executeSignal = signal;
+          signal.addEventListener("abort", () => {
+            reject(
+              new DOMException("The automatic tool was aborted.", "AbortError"),
+            );
+          });
+        }),
+    );
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-unmount-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+    const sdcpnContext: SDCPNContextValue = {
+      createNewNet: () => {},
+      existingNets: [],
+      loadPetriNet: () => {},
+      petriNetId: "automatic-tool-unmount-test",
+      petriNetDefinition: emptySDCPN,
+      readonly: false,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      setTitle: () => {},
+      title: "Automatic tool unmount test",
+      getItemType: () => null,
+    };
+
+    try {
+      const mounted = render(
+        <PetrinautInstanceContext.Provider value={instance}>
+          <EditorContext.Provider value={editorContextValue}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={{
+                  automaticTools: [
+                    {
+                      toolName: "hostAutomatic",
+                      inputSchema: {
+                        parse: (raw: unknown) => raw as { value: number },
+                      },
+                      outputSchema: {
+                        parse: (raw: unknown) => raw as { doubled: number },
+                      },
+                      execute,
+                    },
+                  ],
+                  transport,
+                }}
+                initialMessage="Run the automatic tool"
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </PetrinautInstanceContext.Provider>,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      expect(executeSignal?.aborted).toBe(false);
+      mounted.unmount();
+      expect(executeSignal?.aborted).toBe(true);
+    } finally {
+      instance.dispose();
+    }
+  });
 });

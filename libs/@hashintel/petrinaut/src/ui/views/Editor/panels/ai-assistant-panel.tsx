@@ -799,6 +799,17 @@ const ConversationAiAssistantPanel = ({
     }
     automaticToolAbortsRef.current.clear();
   };
+  // Conversation switch remounts this panel via key; abort here, not only
+  // when conversationId changes on the same instance.
+  useEffect(
+    () => () => {
+      for (const controller of automaticToolAbortsRef.current) {
+        controller.abort();
+      }
+      automaticToolAbortsRef.current.clear();
+    },
+    [],
+  );
   const automaticToolExecutionTimersRef = useRef(
     new Map<ReturnType<typeof setTimeout>, string>(),
   );
