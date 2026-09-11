@@ -27,10 +27,11 @@ remain independent.
 
 ## Imperative
 
-Use local persona-based development to produce a versioned Inventory fixture
-bundle containing one retained Brunch session, its workpiece and its
-sophisticated SDCPN. Package that accepted fixture with the deployed app and
-seed it into Postgres when the database is created or upgraded.
+Use the team's established, compiler-clean Inventory reference SDCPN and local
+Pi-harness persona-based development to produce a versioned Inventory fixture
+bundle containing one retained Brunch session, its workpiece and that reviewed
+net. Package the accepted fixture with the deployed app and seed it into
+Postgres when the database is created or upgraded.
 
 Make a product manager able to open that stable Inventory purchasing template
 through `?bundle=inventory-purchasing` as an independently owned working copy;
@@ -172,7 +173,7 @@ hold:
 | Ordinary requests succeed or refuse visibly | Representative live-browser construction and correction across the capability envelope succeeds through canonical operations or produces a clear unsupported-operation refusal. No case crashes, stalls, corrupts the net, silently omits requested meaning, leaves hidden partial state or claims success. |
 | Code-bearing construction is clean or visibly unresolved | The live copy reaches level 2 for the exact produced definition, or visibly reports errors/pending. No timeout is treated as success. |
 | Consequential content has an honest basis disposition | Sampled ordinary why questions traverse the recorded mechanical path and return a current-revision basis or an explicit absent/ambiguous disposition. |
-| The flagship is genuinely persona-driven | The retained recording shows ordinary-language interview, recurring workpiece revisions, product-route construction, model-originated tool calls, compiler repair where needed, layout, explanation, correction and same-copy reopen. An operator-authored net or synthetic fixture cannot pass. |
+| The flagship is genuinely persona-driven | A local Pi-harness recording shows ordinary-language interview around the established reference net, recurring workpiece revisions, model-originated tool calls, compiler repair where needed, layout, explanation, correction and same-copy reopen. Browser-only or faux-provider scripts remain product/mechanism tests, not persona evidence. |
 | Mode isolation survives the product route | A flag-off comparison preserves the stock transport, tool manifest and history behavior; switching modes in the flagship session preserves separate histories. |
 | Compaction dependence is disclosed | If the flagship crosses compaction, reopen, current-workpiece recovery and explanation are proven afterward. If it does not, dependence on uncompacted history is stated at closure and remains required before Mission 9 or any hosted long-lived provenance claim. |
 | Tool authority and topology are coherent | The topology and import/mount tests agree with a generated or checked catalogue that fails on duplicate names, ownerless tools, schema copies and unrecorded mount modes. |
@@ -192,9 +193,12 @@ hold:
   wait may return `pending`; it never becomes clean by timeout.
 - Petrinaut's ELK layout is authoritative. Coordinates do not inherit
   operational basis, and nothing may mutate after the recorded final hash.
-- Why identifies the current workpiece revision and passage and preserves
-  absence or ambiguity. Stable semantic identity across arbitrary workpiece
-  rewrites belongs to Missions 9 and 10.
+- One model-facing explanation operation identifies the current workpiece
+  revision and passage and preserves absence or ambiguity. The Brunch app owns
+  canonical-history/current-document reconciliation; the SDCPN plugin owns
+  target location, mutation/effect interpretation and declared-basis meaning;
+  the workpiece layer owns revision and passage reads. Stable semantic
+  identity across arbitrary workpiece rewrites belongs to Missions 9 and 10.
 - Safeguards remain only when earned by an observed failure, external
   constraint or explicit owner requirement. The 30-operation maximum remains
   provisional; the retired 64 KiB schema threshold is not a provider limit.
@@ -238,6 +242,9 @@ hold:
 
 - No Petrinaut simulation scenarios or metrics, structured-question widgets
   or questionnaires enter 7c unless PM explicitly recuts the objective.
+- The established Inventory fixture's existing scenarios and metrics are
+  retained as reference content. Mission 7c does not thereby support creating
+  or editing them, or claim their behavioral results.
 - No arbitrary user import/clone, attachments or complete historical-effect
   rebinding enter the copy path. Catalogue-controlled instantiation of a
   versioned seeded fixture into an independently writable copy is the intended
@@ -272,9 +279,16 @@ hold:
   projection is retained only if parity tests show that it removes duplicate
   interpretation without creating a store, identity scheme or authority.
 - **Why scope:** the current contract is limited to current-revision recorded
-  basis or an honest absent/ambiguous disposition. The product concept, tool
-  name, authority and code ownership remain under owner review; do not widen
-  the tool before that review.
+  basis or an honest absent/ambiguous disposition. The one-tool/split-internals
+  authority shape is settled above; the model-facing name remains under owner
+  review.
+- **Seeded session instantiation:** Flue 2.0.3 has no supported public
+  export/fork operation for an independently writable retained session.
+  Projected `history()` cannot reconstruct canonical stream records or
+  persistent state. Decide whether to add one bounded runtime mechanism for
+  versioned build fixtures or explicitly reduce what a clean copy inherits;
+  never clone private Flue tables or present replayed model turns as the
+  accepted session.
 - **Tool catalogue:** choose a generated catalogue from mount declarations or
   a checked curated authority map, including the migration/reset policy for
   retained histories.
