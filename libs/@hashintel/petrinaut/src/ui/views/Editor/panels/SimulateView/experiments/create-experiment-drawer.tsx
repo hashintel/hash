@@ -45,13 +45,13 @@ import {
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
 import {
   type ConstraintDraftsState,
   EMPTY_CONSTRAINT_DRAFTS,
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
-import { useCreateOptimizedExperiment } from "./create-experiment-drawer/create-optimized-experiment";
 import {
   fieldStyle,
   gridStyle,
@@ -69,6 +69,7 @@ import {
   sweepObjectiveError,
   sweepObjectiveFor,
 } from "./create-experiment-drawer/sweep-objective";
+import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -874,8 +875,10 @@ export const CreateExperimentDrawer = ({
       axes.push(outcome.axis);
     }
     if (adHocSweeping && adHocState) {
-      // A definition that does not synthesize reports at its slots and
-      // refuses to run on submit; the summary only speaks for its sweeps.
+      // A definition that does not synthesize reports at its slots. While a
+      // toggle is on, the summary carries its first error the way a saved
+      // scenario's invalid interval does, so the Objective section and the
+      // footer word hold their place while a bound is being edited.
       const synthesized = synthesizeAdHocOptimization(
         adHocState,
         adHocFormContext,
@@ -886,6 +889,11 @@ export const CreateExperimentDrawer = ({
           return { text: outcome.error, tone: "error", error: true };
         }
         axes.push(...outcome.axes);
+      } else if (hasAdHocIntervalToggle(adHocState)) {
+        const firstError = synthesized.errors[0];
+        if (firstError) {
+          return { text: firstError.message, tone: "error", error: true };
+        }
       }
     }
     if (axes.length === 0) {

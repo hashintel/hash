@@ -4,22 +4,22 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ExperimentsActionsContext } from "../../../../../../../react/experiments/context";
-import { OptimizationsContext } from "../../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
+import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   makeExperiment,
   sirSdcpnContextValue,
   sweepFixtureScenario,
-} from "../experiments-story-fixtures";
-import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
+} from "./experiments-story-fixtures";
 
 import type {
   CreateExperimentInput,
   ExperimentRecord,
   ExperimentsActionsValue,
-} from "../../../../../../../react/experiments/context";
-import type { OptimizationsContextValue } from "../../../../../../../react/optimizations/context";
+} from "../../../../../../react/experiments/context";
+import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { ReactNode } from "react";
 
 /** A sweep over the fixture scenario's two parameters with one metric to read. */
