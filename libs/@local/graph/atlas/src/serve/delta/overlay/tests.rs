@@ -323,7 +323,8 @@ fn insert_exhausted() {
 /// The base remains constant, and each step writes to that row's delta index.
 #[test]
 fn withdraw_added_constant_base() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(&base);
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
     let (row, _) = data
@@ -378,7 +379,8 @@ fn withdraw_added_constant_base() {
 #[test]
 #[should_panic(expected = "an added identity row must follow the fitted rows")]
 fn withdraw_added_grown_base() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut lower_data = IdentityProviderResidual::new(&base);
     let lower = DeltaIdentityProvider::from_parts(&lower_data, &base);
     let mut upper_data = IdentityProviderResidual::new(&lower);
@@ -403,7 +405,8 @@ fn withdraw_added_grown_base() {
 
 #[test]
 fn insert_hidden_origin() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut lower_data = IdentityProviderResidual::new(&base);
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
     let (row, _) = lower_data
@@ -489,7 +492,8 @@ fn payload_replacements() {
 
 #[test]
 fn arrival_lifetime() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(&base);
     let (key, row) = add_arrival(&mut data, DeltaRevision::new(4));
     {
@@ -605,7 +609,8 @@ fn base_origin_rollover() {
 
 #[test]
 fn arrival_origin_rollover() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(&base);
     let (key, row) = add_arrival(&mut data, DeltaRevision::new(1));
     let entry = &mut data.inverse[DeltaRowId::new(0)];
@@ -628,7 +633,8 @@ fn arrival_origin_rollover() {
 
 #[test]
 fn nested_origin_revision() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut lower_data = IdentityProviderResidual::new(&base);
     let (key, row) = add_arrival(&mut lower_data, DeltaRevision::new(4));
     lower_data.inverse[DeltaRowId::new(0)].push(EntryKind::Withdrawn, DeltaRevision::new(7));

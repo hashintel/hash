@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
 use sprs::CsMatViewI;
 
-use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
+use super::{Adjacency, AdjacencyArchive, EdgeList, artifact::InvalidAdjacencyFile};
 use crate::{
     file::{
         WriteInto as _,

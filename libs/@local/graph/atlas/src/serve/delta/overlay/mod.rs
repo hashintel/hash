@@ -31,6 +31,14 @@ impl<T: ?Sized> NaiveIdentityProvider<T> {
         // preserves pointer metadata and the shared borrow's lifetime.
         unsafe { &*(ptr as *const Self) }
     }
+
+    #[inline]
+    pub(crate) const fn from_mut(value: &mut T) -> &mut Self {
+        let ptr = &raw mut *value;
+        // SAFETY: `Self` is transparent over `T` and adds no validity requirements. The cast
+        // preserves pointer metadata and the shared borrow's lifetime.
+        unsafe { &mut *(ptr as *mut Self) }
+    }
 }
 
 impl<K, R, T: IdentityProvider<K, R> + ?Sized> IdentityProvider<K, R> for NaiveIdentityProvider<T>
