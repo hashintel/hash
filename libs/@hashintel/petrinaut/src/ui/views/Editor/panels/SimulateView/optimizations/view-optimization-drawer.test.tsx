@@ -662,7 +662,7 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
     expect(
       card.querySelector("[data-chart-card-subtitle]")?.textContent,
     ).toMatch(
-      /^PED-ANOVA importance estimated from \d+ completed steps · how much/u,
+      /^PED-ANOVA importance estimated from \d+ completed steps · how much each parameter matters for reaching the best steps$/u,
     );
     expect(card.textContent).not.toContain("floor");
     const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");

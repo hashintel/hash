@@ -118,7 +118,7 @@ const correlationStyle = css({
 });
 
 const HELP =
-  "PED-ANOVA compares the parameter values of the best steps with those of every step: the parameter whose values differ most between the two explains most of the objective's variance. Shares sum to 100%. Correlation is the signed Pearson correlation of each parameter with the objective over the completed steps, computed from the steps themselves, so it is available from the third completed step. Below the floor the estimate is faded: treat it as a hint.";
+  "PED-ANOVA looks at the best tenth of the completed steps and measures how far each parameter's values there are concentrated relative to its whole range: the parameter whose good values are the most concentrated matters most for reaching top results. Shares are relative and sum to 100%. Correlation is the signed Pearson correlation of each parameter with the objective over the completed steps, computed from the steps themselves, so it is available from the third completed step. Below the floor the estimate is faded: treat it as a hint.";
 
 export const ParameterImportancePanel = ({
   optimization,

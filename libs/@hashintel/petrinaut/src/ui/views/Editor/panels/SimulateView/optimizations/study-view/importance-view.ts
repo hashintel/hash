@@ -19,7 +19,7 @@ const MIN_CORRELATION_TRIALS = 3;
 
 export type ImportanceRow = {
   identifier: string;
-  /** PED-ANOVA share of the objective's variance; null while none was received. */
+  /** PED-ANOVA share of relative importance for reaching the best steps; null while none was received. */
   importance: number | null;
   /** Signed Pearson correlation of the parameter with the objective over the completed steps. */
   correlation: number | null;
@@ -178,7 +178,7 @@ export const describeImportance = (view: ImportanceView): string => {
   const floor = view.belowFloor
     ? ` · below the ${view.floor}-step floor, treat as a hint`
     : "";
-  return `${count}${floor} · how much of the objective's variance each parameter explains`;
+  return `${count}${floor} · how much each parameter matters for reaching the best steps`;
 };
 
 /** A share as the bar prints it: a whole percentage. */

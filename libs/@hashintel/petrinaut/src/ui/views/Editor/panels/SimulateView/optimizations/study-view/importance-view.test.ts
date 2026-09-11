@@ -197,7 +197,7 @@ describe("the card's copy", () => {
         barScale: 0.5,
       }),
     ).toBe(
-      "PED-ANOVA importance estimated from 54 completed steps · how much of the objective's variance each parameter explains",
+      "PED-ANOVA importance estimated from 54 completed steps · how much each parameter matters for reaching the best steps",
     );
     expect(
       describeImportance({
@@ -209,7 +209,7 @@ describe("the card's copy", () => {
         barScale: 1,
       }),
     ).toBe(
-      "PED-ANOVA importance estimated from 27 completed steps · below the 50-step floor, treat as a hint · how much of the objective's variance each parameter explains",
+      "PED-ANOVA importance estimated from 27 completed steps · below the 50-step floor, treat as a hint · how much each parameter matters for reaching the best steps",
     );
     expect(
       describeImportance({

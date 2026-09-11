@@ -46,9 +46,10 @@ export type OptimizationBest = NonNullable<
 >;
 
 /**
- * PED-ANOVA importances as the optimizer last reported them: a share of the
- * objective's variance per optimized parameter, summing to 1, and the
- * completed trials the estimate was fitted on.
+ * PED-ANOVA importances as the optimizer last reported them: a share of
+ * relative importance per optimized parameter (how concentrated its values
+ * are among the best steps relative to its whole range), summing to 1, and
+ * the completed trials the estimate was fitted on.
  */
 export type OptimizationImportance = PetrinautOptimizationImportances;
 
