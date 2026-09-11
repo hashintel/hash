@@ -1,3 +1,9 @@
+//! File locations parsed from their text spelling, and the transfers they support.
+//!
+//! A [`FilePath`] holds either a filesystem path or an S3 object location, told apart by an
+//! `s3://` prefix. One set of operations covers both, each taking the [`Storage`] that supplies
+//! the S3 backend and the scratch directory.
+
 use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
 
@@ -18,11 +24,14 @@ pub(crate) mod error;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::contents::{FileContents, FileOrigin};
+pub(crate) use self::contents::FileContents;
 
+/// The backend a [`FilePath`] addresses, in that backend's own location form.
 #[derive(Debug, Clone)]
 enum FilePathVariant {
+    /// A filesystem path, absolute or relative.
     Local(Utf8PathBuf),
+    /// A bucket and object key.
     Bucket(Box<BucketPath>),
 }
 
@@ -173,7 +182,7 @@ impl FilePath {
         if let Cow::Owned(temporary) = local
             && let Err(error) = tokio::fs::remove_file(temporary).await
         {
-            tracing::warn!(?error, "failed to remove temporary file");
+            tracing::warn!(%error, "failed to remove temporary file");
         }
 
         result
@@ -254,6 +263,7 @@ impl FilePath {
 }
 
 impl fmt::Display for FilePath {
+    /// Writes the spelling [`FilePath::from_str`] accepts, `s3://` prefix included.
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.variant {
             FilePathVariant::Local(path) => fmt::Display::fmt(path, fmt),
@@ -265,6 +275,12 @@ impl fmt::Display for FilePath {
 impl FromStr for FilePath {
     type Err = FilePathError;
 
+    /// Reads an `s3://` spelling as an object location and any other text as a local path.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FilePathError`] when an `s3://` spelling names no bucket or no key, or when
+    /// allocating the object location fails.
     fn from_str(path: &str) -> Result<Self, Self::Err> {
         let variant = if path.starts_with("s3://") {
             FilePathVariant::Bucket(path.parse()?)

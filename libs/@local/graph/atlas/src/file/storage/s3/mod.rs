@@ -45,11 +45,12 @@ pub(crate) enum WriteCondition<'etag> {
     Any,
     /// Creates the destination only when it does not exist.
     Absent,
-    /// Replaces the destination only when its `ETag` matches this opaque token.
+    /// Replaces the destination only when its [`ETag`] matches this opaque token.
     Match(&'etag str),
 }
 
 impl WriteCondition<'_> {
+    /// Returns the `If-Match` value this condition requires of the destination.
     const fn if_match(&self) -> Option<&str> {
         match self {
             Self::Match(etag) => Some(etag),
@@ -57,6 +58,7 @@ impl WriteCondition<'_> {
         }
     }
 
+    /// Returns the `If-None-Match` value this condition requires of the destination.
     const fn if_none_match(&self) -> Option<&'static str> {
         match self {
             Self::Absent => Some("*"),
@@ -65,22 +67,26 @@ impl WriteCondition<'_> {
     }
 }
 
+/// A loaded S3 backend, holding the SDK client its object requests use.
 #[derive(Debug)]
 pub(crate) struct S3 {
     client: Client,
 }
 
 impl S3 {
-    // The single-request object operations permit up to 5 GiB. Larger objects use multipart.
+    /// The largest object sent by one upload or copy request.
     const SINGLE_REQUEST_BYTES: u64 = 5 * 1024 * 1024 * 1024;
 
+    /// Adopts a configured SDK client.
     pub(crate) const fn new(client: Client) -> Self {
         Self { client }
     }
 
+    /// Returns a per-request override that makes exactly one attempt.
     fn single_attempt() -> config::Builder {
-        // Retrying a committed conditional write after losing its response can report a false
-        // conflict.
+        // retrying a committed conditional write after losing its response can report a false
+        // conflict. A lost multipart-creation response hides that upload's identifier. Retrying
+        // creation can start another upload without recovering the first identifier.
         config::Builder::new().retry_config(RetryConfig::standard().with_max_attempts(1))
     }
 
@@ -129,6 +135,11 @@ impl S3 {
         Ok((output.e_tag.map(ETag::new), output.body.into_async_read()))
     }
 
+    /// Writes the object from an assembled body stream in one request attempt.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::Request`] if the write fails.
     async fn put_body(
         &self,
         path: &BucketPath,
@@ -276,6 +287,7 @@ impl S3 {
         let response = self.get(path).await?;
         let mut body = response.body.into_async_read();
 
+        // `tokio::io::copy` does an implicit flush
         tokio::io::copy(&mut body, &mut output).await?;
         Ok(())
     }

@@ -13,6 +13,7 @@ use crate::file::{
     },
 };
 
+/// A local join appends a multi-segment suffix under one separator and keeps the variant.
 #[test]
 fn join_local_nested() {
     let path: FilePath = "output".parse().expect("should parse the local prefix");
@@ -23,6 +24,7 @@ fn join_local_nested() {
     assert_matches!(&joined.variant, FilePathVariant::Local(_));
 }
 
+/// Joining appends an S3 suffix as literal key text, with exactly one separating slash.
 #[test]
 fn join_s3_literal() {
     for prefix in ["s3://bucket/prefix", "s3://bucket/prefix/"] {
@@ -76,6 +78,7 @@ async fn get_replaced_contents() {
     drop(directory);
 }
 
+/// A refused absent write leaves the existing contents in place.
 #[tokio::test]
 async fn put_absent_existing() {
     let directory = scratch();
@@ -99,6 +102,7 @@ async fn put_absent_existing() {
     drop(directory);
 }
 
+/// Conditional replacement of a removed destination fails without recreating it.
 #[tokio::test]
 async fn put_match_missing() {
     let directory = scratch();
@@ -125,6 +129,7 @@ async fn put_match_missing() {
     drop(directory);
 }
 
+/// Repeated replacement leaves the destination and the persistent lock, and no staging residue.
 #[tokio::test]
 async fn put_any_nested() {
     let directory = scratch();
@@ -218,6 +223,7 @@ async fn put_match_competing() {
     drop(directory);
 }
 
+/// A write refuses a destination inside the `.storage-` namespace and creates nothing.
 #[tokio::test]
 async fn put_reserved_destination() {
     let directory = scratch();
@@ -238,6 +244,7 @@ async fn put_reserved_destination() {
     drop(directory);
 }
 
+/// Copying creates missing parents and preserves the first body against a later absent-only copy.
 #[tokio::test]
 async fn copy_local_nested() {
     let directory = scratch();
@@ -271,6 +278,7 @@ async fn copy_local_nested() {
     drop(directory);
 }
 
+/// Every mutation reports the missing backend without touching the filesystem.
 #[tokio::test]
 async fn mutations_s3_unconfigured() {
     let directory = scratch();

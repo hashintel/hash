@@ -5,6 +5,7 @@ use aws_sdk_s3::operation::head_object::HeadObjectOutput;
 use super::Metadata;
 use crate::file::storage::{error::StorageError, s3::metadata::ETag};
 
+/// An absent length and a negative length fail the conversion alike.
 #[test]
 fn metadata_invalid_length() {
     for length in [None, Some(-1)] {
@@ -20,6 +21,7 @@ fn metadata_invalid_length() {
     }
 }
 
+/// A response carrying a valid length still requires the entity tag.
 #[test]
 fn metadata_missing_etag() {
     let output = HeadObjectOutput::builder().content_length(11).build();
@@ -29,6 +31,7 @@ fn metadata_missing_etag() {
     );
 }
 
+/// A valid response keeps every nonnegative length and the tag's own quotation marks.
 #[test]
 fn metadata_observed_values() {
     for length in [0, 11, i64::MAX] {

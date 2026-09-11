@@ -1,5 +1,6 @@
 use super::WriteCondition;
 
+/// Conditional writes select one precondition header, while unconditional writes select neither.
 #[test]
 fn write_condition_headers() {
     for (condition, expected) in [

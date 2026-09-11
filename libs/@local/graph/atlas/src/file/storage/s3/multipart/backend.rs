@@ -11,14 +11,18 @@ use crate::file::storage::{
     },
 };
 
+/// The local file or conditional remote copy supplying a multipart transfer.
 pub(crate) enum Source<'source> {
+    /// Reads each interval from this local file.
     File(&'source Utf8Path),
+    /// Copies each interval while the source retains its captured entity tag.
     Copy {
         header: CopySource<'source>,
         etag: ETag,
     },
 }
 
+/// S3 request state for one multipart destination and its source.
 pub(crate) struct Remote<'transfer> {
     pub backend: &'transfer S3,
     pub destination: &'transfer BucketPath,
@@ -130,7 +134,7 @@ impl Backend for Remote<'_> {
             .send()
             .await
         {
-            tracing::warn!(destination = %self.destination, upload_id = %upload, ?error, "could not abort the failed multipart upload");
+            tracing::warn!(destination = %self.destination, upload_id = %upload, %error, "could not abort the failed multipart upload");
         }
     }
 }

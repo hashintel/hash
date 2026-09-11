@@ -1,7 +1,8 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use aws_sdk_s3::{error::SdkError, primitives::ByteStreamError};
+use aws_smithy_runtime_api::client::{orchestrator::HttpResponse, result::SdkError};
+use aws_smithy_types::byte_stream::error::Error as ByteStreamError;
 use tokio::task::JoinError;
 
 #[cfg(test)]
@@ -25,7 +26,10 @@ pub enum StorageError {
     /// Constructing a file-backed request body failed.
     Body(ByteStreamError),
     /// The object cannot fit within S3's multipart size and part-count bounds.
-    ObjectTooLarge { length: u64 },
+    ObjectTooLarge {
+        /// The rejected object's length in bytes.
+        length: u64,
+    },
     /// The S3 response omitted a nonnegative object length.
     InvalidContentLength,
     /// The S3 response omitted the entity tag required to complete or copy an object.
@@ -35,10 +39,11 @@ pub enum StorageError {
     /// The S3 response omitted the multipart upload identifier.
     MissingUploadId,
     /// An S3 request failed, retaining its service response or transport failure.
-    Request(Box<SdkError<aws_sdk_s3::Error>>),
+    Request(Box<SdkError<aws_sdk_s3::Error, HttpResponse>>),
 }
 
 impl StorageError {
+    /// Identifies an absent local file or S3 key.
     pub(crate) fn is_not_found(&self) -> bool {
         match self {
             Self::Io(error) => error.kind() == io::ErrorKind::NotFound,
@@ -46,10 +51,21 @@ impl StorageError {
                 error.as_service_error(),
                 Some(aws_sdk_s3::Error::NoSuchKey(_))
             ),
-            _ => false,
+            Self::S3Unavailable
+            | Self::Join(_)
+            | Self::InvalidLocalDestination
+            | Self::RevisionMismatch
+            | Self::PreconditionFailed
+            | Self::Body(_)
+            | Self::ObjectTooLarge { .. }
+            | Self::InvalidContentLength
+            | Self::MissingEntityTag
+            | Self::MissingChecksum
+            | Self::MissingUploadId => false,
         }
     }
 
+    /// Identifies a rejected conditional write, excluding transport failures.
     pub(crate) fn is_precondition_failed(&self) -> bool {
         match self {
             Self::PreconditionFailed => true,
@@ -59,7 +75,17 @@ impl StorageError {
                         .raw_response()
                         .is_some_and(|response| response.status().as_u16() == 412)
             }
-            _ => false,
+            Self::S3Unavailable
+            | Self::Io(_)
+            | Self::Join(_)
+            | Self::InvalidLocalDestination
+            | Self::RevisionMismatch
+            | Self::Body(_)
+            | Self::ObjectTooLarge { .. }
+            | Self::InvalidContentLength
+            | Self::MissingEntityTag
+            | Self::MissingChecksum
+            | Self::MissingUploadId => false,
         }
     }
 }
@@ -112,28 +138,28 @@ impl Error for StorageError {
 }
 
 impl From<io::Error> for StorageError {
-    fn from(error: io::Error) -> Self {
-        Self::Io(error)
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
     }
 }
 
 impl From<JoinError> for StorageError {
-    fn from(error: JoinError) -> Self {
-        Self::Join(error)
+    fn from(value: JoinError) -> Self {
+        Self::Join(value)
     }
 }
 
 impl From<ByteStreamError> for StorageError {
-    fn from(error: ByteStreamError) -> Self {
-        Self::Body(error)
+    fn from(value: ByteStreamError) -> Self {
+        Self::Body(value)
     }
 }
 
-impl<E> From<SdkError<E>> for StorageError
+impl<E> From<SdkError<E, HttpResponse>> for StorageError
 where
     aws_sdk_s3::Error: From<E>,
 {
-    fn from(error: SdkError<E>) -> Self {
-        Self::Request(Box::new(error.map_service_error(aws_sdk_s3::Error::from)))
+    fn from(value: SdkError<E, HttpResponse>) -> Self {
+        Self::Request(Box::new(value.map_service_error(aws_sdk_s3::Error::from)))
     }
 }

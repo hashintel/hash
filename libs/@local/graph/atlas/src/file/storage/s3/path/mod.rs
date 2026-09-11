@@ -1,3 +1,10 @@
+//! An S3 object location holding the caller's own bucket and key text.
+#![expect(
+    clippy::empty_enums,
+    reason = "zerocopy's derive emits one variantless enum per field, inside a module-level const \
+              block that no attribute on `BucketPath` reaches"
+)]
+
 use core::{
     clone::CloneToUninit,
     fmt::{self, Write as _},
@@ -26,10 +33,12 @@ pub(crate) struct BucketPath {
     reason = "the separator is the byte offset of an ASCII slash"
 )]
 impl BucketPath {
+    /// Returns the bucket name.
     pub(crate) fn bucket(&self) -> &str {
         &self.path[..self.separator.get()]
     }
 
+    /// Returns the object key, in its original spelling.
     pub(crate) fn key(&self) -> &str {
         &self.path[(self.separator.get() + 1)..]
     }
@@ -57,12 +66,14 @@ impl BucketPath {
         Ok(next)
     }
 
+    /// Returns this location rendered for the `x-amz-copy-source` request header.
     pub(super) const fn copy_source(&self) -> CopySource<'_> {
         CopySource(self)
     }
 }
 
 impl AsRef<str> for BucketPath {
+    /// Returns the `bucket/key` text, without the `s3://` prefix.
     fn as_ref(&self) -> &str {
         &self.path
     }
@@ -78,6 +89,7 @@ impl fmt::Debug for BucketPath {
 }
 
 impl fmt::Display for BucketPath {
+    /// Writes the `s3://bucket/key` spelling [`FromStr`] accepts.
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "s3://{}", self.as_ref())
     }
@@ -86,6 +98,12 @@ impl fmt::Display for BucketPath {
 impl FromStr for Box<BucketPath> {
     type Err = FilePathError;
 
+    /// Parses an `s3://bucket/key` spelling, keeping the key as literal text.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FilePathError`] for a spelling that does not name a nonempty bucket and a
+    /// nonempty key after an `s3://` prefix, or when allocating the path fails.
     fn from_str(path: &str) -> Result<Self, Self::Err> {
         let path = path.strip_prefix("s3://").ok_or(FilePathError::Scheme)?;
         let position = path.find('/').ok_or(FilePathError::MissingKey)?;
@@ -147,6 +165,10 @@ impl Clone for Box<BucketPath> {
     }
 }
 
+/// A bucket and key rendered for the `x-amz-copy-source` request header.
+///
+/// [`fmt::Display`] keeps `/` and the unreserved characters, and percent-encodes every other
+/// byte. A `%` already in the key becomes `%25`, which preserves a key spelling its own escapes.
 pub(crate) struct CopySource<'path>(&'path BucketPath);
 
 impl fmt::Display for CopySource<'_> {

@@ -23,12 +23,19 @@ mod tests;
 
 pub(crate) use self::error::UploadError;
 
+/// The destination's selected generation and the revision a promotion writes against.
 struct Current {
     id: GenerationId,
     revision: Revision,
 }
 
 impl Current {
+    /// Reads the pointer object, returning [`None`] when no object exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UploadError`] if opening the object, reading its body or parsing its identity
+    /// fails.
     async fn read(
         backend: &impl GenerationUploadBackend,
         path: &FilePath,
@@ -104,6 +111,12 @@ where
         self.destination.join(&suffix.to_string())
     }
 
+    /// Opens the local publication `id` on a blocking worker.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UploadError`] if the worker fails to return its result or the generation does
+    /// not open.
     async fn open(&self, id: GenerationId) -> Result<Generation, UploadError> {
         let root = self.root.clone();
 
@@ -113,6 +126,12 @@ where
             .map_err(From::from)
     }
 
+    /// Confirms that the object at `path` hashes to `expected`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UploadError`] if reading the object fails, and [`UploadError::Checksum`] when its
+    /// bytes hash to another digest.
     async fn verify_destination(
         &self,
         path: FilePath,
@@ -140,6 +159,12 @@ where
         Ok(())
     }
 
+    /// Completes one object write, verifying an existing object when the precondition rejected it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UploadError`] for a failed write or a failed verification, and
+    /// [`UploadError::Checksum`] when an existing object holds other bytes.
     async fn finish_object(
         &self,
         path: FilePath,
@@ -149,9 +174,8 @@ where
         match result {
             Ok(()) => Ok(()),
             Err(error) if error.is_precondition_failed() => {
-                // a failed precondition can turn into a file that already exists. by verifying we
-                // decide if it's because it's the same content, or if it's a different file with
-                // the same name.
+                // a failed precondition can mean the file already exists. verification decides
+                // between the same content and a different file with the same name.
                 self.verify_destination(path, expected).await
             }
             Err(error) => Err(error.into()),

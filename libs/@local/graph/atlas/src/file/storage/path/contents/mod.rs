@@ -1,20 +1,19 @@
+//! The value a file open returns: a reader, and the revision a conditional replacement checks.
+
 use core::{pin, task};
 use std::io;
 
 use tokio::io::{AsyncBufRead, AsyncRead};
 
-use crate::file::storage::{Revision, RevisionKind};
+use crate::file::storage::Revision;
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum FileOrigin {
-    Local,
-    Bucket,
-}
-
 pin_project_lite::pin_project! {
+    /// An opened reader and the revision identifying the contents it reads.
+    ///
+    /// The revision belongs to the contents observed at open time. [`AsyncRead`] and [`AsyncBufRead`] both use the opened reader and share one position.
     pub(crate) struct FileContents<R> {
         #[pin]
         pub reader: R,
@@ -23,25 +22,12 @@ pin_project_lite::pin_project! {
 }
 
 impl<R> FileContents<R> {
+    /// Pairs an opened reader with the revision of the contents it reads.
     pub(super) const fn new(reader: R, revision: Revision) -> Self {
         Self { reader, revision }
     }
 
-    pub(crate) const fn revision(&self) -> &Revision {
-        &self.revision
-    }
-
-    pub(crate) const fn origin(&self) -> FileOrigin {
-        match self.revision.0 {
-            RevisionKind::Local(_) => FileOrigin::Local,
-            RevisionKind::Bucket(_) => FileOrigin::Bucket,
-        }
-    }
-
-    pub(crate) fn into_inner(self) -> R {
-        self.reader
-    }
-
+    /// Separates the reader from the revision.
     pub(crate) fn into_parts(self) -> (R, Revision) {
         (self.reader, self.revision)
     }

@@ -56,11 +56,15 @@ impl ScratchDirectory {
 impl Drop for ScratchDirectory {
     fn drop(&mut self) {
         if let Err(error) = fs::remove_dir_all(&self.path) {
-            tracing::warn!(path = %self.path, ?error, "failed to remove scratch directory");
+            tracing::warn!(path = %self.path, %error, "failed to remove scratch directory");
         }
     }
 }
 
+/// One transfer's input file, open for writing under a unique name.
+///
+/// The transfer writes through `file` and passes its result to [`Self::finish`]. It retains the
+/// input file on success and attempts to remove it on failure.
 pub(crate) struct ScratchFile {
     pub file: tokio::fs::File,
     path: Utf8PathBuf,
@@ -93,7 +97,7 @@ impl ScratchFile {
 
         if let Err(error) = result {
             if let Err(cleanup_error) = tokio::fs::remove_file(&self.path).await {
-                tracing::warn!(path = %self.path, error = ?cleanup_error, "failed to remove partial input");
+                tracing::warn!(path = %self.path, error = %cleanup_error, "failed to remove partial input");
             }
             return Err(error);
         }
