@@ -55,18 +55,38 @@ export const menuContent = cva({
   },
 });
 
+// The truncation styles must land on the trigger's label span, whose position
+// among the Button's element children depends on which side the sort icon
+// occupies: icon-left leaves the label last, icon-right leaves it first.
 export const triggerButton = cva({
   base: {
     maxWidth: "[100%]",
     "& svg": {
       flexShrink: "0",
     },
-    "& > span:last-child": {
-      minWidth: "0",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
+  },
+  variants: {
+    align: {
+      left: {
+        "& > span:last-child": {
+          minWidth: "0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      },
+      right: {
+        "& > span:first-child": {
+          minWidth: "0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      },
     },
+  },
+  defaultVariants: {
+    align: "left",
   },
 });
 
