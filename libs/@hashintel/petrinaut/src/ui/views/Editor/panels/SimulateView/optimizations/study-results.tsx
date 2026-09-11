@@ -63,7 +63,7 @@ import {
   OptimizationSurface,
 } from "./optimization-surface";
 import { ConstraintSummaryCard } from "./study-results/constraint-summary";
-import { ObjectiveHistoryCard } from "./study-results/objective-history-chart";
+import { ObjectiveHistoryCard } from "./study-results/objective-history-card";
 import {
   OptimizationNavigator,
   OptimizationNavigatorStatus,

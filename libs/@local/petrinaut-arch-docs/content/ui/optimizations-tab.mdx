@@ -109,17 +109,22 @@ evaluated here receives importances, so a remote study has no Sensitivity
 analysis card rather than an empty one. Nothing mounts mid-stream: the frame's
 zero-layout-shift contract holds on the remote path as on the connected one.
 
-`ObjectiveHistoryCard` (`study-results/objective-history-chart.tsx`) is the
-objective by step: `buildObjectiveHistory` (`study-results/objective-history-data.ts`)
+`ObjectiveHistoryCard` (`study-results/objective-history-card.tsx`) is the
+objective by step, the shared `ObjectiveHistoryChart`
+(`SimulateView/shared/objective-history-chart.tsx`) in a card:
+`buildObjectiveHistory` (`shared/objective-history-chart/objective-history-data.ts`)
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
 (`[steps, objectives, bestSoFar]`), and the chart draws the objectives as
-dots and the best as a stepped line. `trialFeasibility` reads a point's
-feasibility off the trial event's `constraints`: `unknown` without results,
-`infeasible` for a draw pruned by a parameter constraint. A pruned step has
-no objective, so it draws nothing, and an `infeasible` step never becomes the
-best so far; the steps table marks its state in `INFEASIBLE_COLOR`
-(`study-results/shared/infeasible-color.ts`, Optuna's grey).
+dots and the best as a stepped line, in the palette and sizes its
+`ObjectiveHistoryStyle` names, with an optional pinned right edge (`xMax`)
+and dashed `dividers` between studies for the sweep's strip.
+`trialFeasibility` reads a point's feasibility off the trial event's
+`constraints`: `unknown` without results, `infeasible` for a draw pruned by a
+parameter constraint. A pruned step has no objective, so it draws nothing,
+and an `infeasible` step never becomes the best so far; the steps table marks
+its state in `INFEASIBLE_COLOR` (`SimulateView/shared/infeasible-color.ts`,
+Optuna's grey).
 
 A study with constraints reports them through
 `react/optimizations/constraint-rates.ts`, derived per render from
