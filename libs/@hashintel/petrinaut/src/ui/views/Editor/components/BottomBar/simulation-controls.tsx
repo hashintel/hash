@@ -54,9 +54,11 @@ const sliderStyle = cva({
   base: {
     // Sized to the space available rather than to a fixed 300px: `clamp`
     // tracks the viewport continuously, so a window or iframe resize slides
-    // the scrubber's width with it instead of stepping at a breakpoint, and
-    // `flex` lets it take any slack the row has left over once the bar is
-    // wider than its content.
+    // the scrubber's width with it instead of stepping at a breakpoint.
+    //
+    // The flexing applies to the embed's expanded bar, whose row is held to
+    // the bar's full width and so has slack to give. The editor's toolbar
+    // group is sized to its content, where there is none to take.
     width: "[clamp(140px, 24vw, 420px)]",
     flex: "[1 1 auto]",
     minWidth: "[96px]",
@@ -248,6 +250,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         {hasSimulation && (
           <>
             <div
+              role="timer"
               aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
               className={timeReadoutStyle({
                 compact: presentation.compactControls,
