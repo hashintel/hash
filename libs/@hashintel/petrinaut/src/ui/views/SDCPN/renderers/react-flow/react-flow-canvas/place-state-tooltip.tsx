@@ -341,10 +341,12 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   }).y;
 
   // Above-placed box grows upward from the node's top edge; flip below if its
-  // top would intrude into the top bar's zone.
-  const boxHeight = boxSize?.height ?? 0;
+  // top would intrude into the top bar's zone. Decided against what is about
+  // to show: the box's own height, or the button's once the box is closed,
+  // since the last measured box height outlives the box.
+  const shownHeight = showVisualizer ? (boxSize?.height ?? 0) : TRIGGER_SIZE_PX;
   const placeBelow =
-    nodeTopY - TOOLTIP_OFFSET_PX - boxHeight < TOP_BAR_SAFE_ZONE_PX;
+    nodeTopY - TOOLTIP_OFFSET_PX - shownHeight < TOP_BAR_SAFE_ZONE_PX;
 
   const keepHovered = {
     // Both surfaces count as part of the place while the pointer is on them:
@@ -419,6 +421,12 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
           transformOrigin: placeBelow ? "top center" : "bottom center",
         }}
         {...keepHovered}
+        // The box is a portal but still a child of the node in the React
+        // tree, so without this a press or a click anywhere on it, the
+        // artwork, its scrollbar or the pin, also selects the place and opens
+        // its properties.
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div ref={contentRef} className={tooltipStyle}>
           <PlaceStateVisualization place={place} placeType={placeType} />
@@ -434,14 +442,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
             }
             aria-pressed={pinned}
             tooltip={pinned ? "Unpin" : "Keep open while you work"}
-            // The box is a portal but still a child of the node in the React
-            // tree, so without this a click on the pin also selects the place
-            // and opens its properties.
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              toggleVisualizerPin(nodeId);
-            }}
+            onClick={() => toggleVisualizerPin(nodeId)}
           />
         </div>
       </div>
