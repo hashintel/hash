@@ -35,8 +35,7 @@ pub(crate) struct NodeIndex {
 impl NodeIndex {
     /// Opens the identity and permutation artifacts and checks their counts.
     ///
-    /// The open bounds the fitted row count by `u32::MAX` before any row encodes, which keeps every
-    /// fitted row inside the wire domain `[0, 2^32)`.
+    /// The fitted position domain needs an exclusive bound representable by `u32`.
     ///
     /// # Errors
     ///
@@ -73,17 +72,13 @@ impl NodeIndex {
 
         let encoding = lookup.and_then(|column: Column<BasePosition, NodeRowId>| {
             let nodes = column.len();
-            // `Encoding::open` encodes every fitted row. The codec encodes the rows in `[0, 2^32)`,
-            // row `u32::MAX` included. This refusal bounds the count itself by `u32::MAX`, and
-            // every fitted row then lies below `u32::MAX`, inside the codec's domain.
             u32::try_from(nodes).map_err(|error| {
                 Report::new(error).change_context(WorldError::TooManyNodes { nodes })
             })?;
 
-            Ok((
-                Encoding::open(options, RowDomain::from_length(nodes)),
-                column,
-            ))
+            let encoding = Encoding::open(options, RowDomain::from_length(nodes))?;
+
+            Ok((encoding, column))
         });
 
         let (identity, (encoding, lookup), reverse) =

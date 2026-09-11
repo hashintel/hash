@@ -64,7 +64,7 @@ impl Error for SealError {
 
 /// Reading the current-generation pointer failed.
 #[derive(Debug)]
-pub enum CurrentError {
+pub(crate) enum CurrentError {
     /// The pointer's content is not a generation id.
     Corrupt(ParseHexError),
     /// Reading the pointer failed.
@@ -132,7 +132,7 @@ impl From<io::Error> for ActivateError {
 
 /// Opening a published generation failed.
 #[derive(Debug)]
-pub enum OpenError {
+pub(crate) enum OpenError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
     /// The document's bytes do not hash to the generation id.

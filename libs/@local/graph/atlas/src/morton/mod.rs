@@ -42,6 +42,7 @@ hashql_core::id::newtype! {
 
 impl Depth {
     #[inline]
+    #[must_use]
     pub const fn try_new(depth: u8) -> Option<Self> {
         if depth > Self::MAX.get() {
             return None;
@@ -50,18 +51,26 @@ impl Depth {
         Some(Self::new(depth))
     }
 
+    #[inline]
+    #[must_use]
     pub const fn from_zoom(zoom: Zoom) -> Self {
         Self::new(zoom.get())
     }
 
+    #[inline]
+    #[must_use]
     pub const fn ceiling(self) -> Zoom {
         Zoom(Self::MAX.get() - self.get())
     }
 
+    #[inline]
+    #[must_use]
     pub const fn first_zoom(self, span: Log2) -> Zoom {
         Zoom(self.get().saturating_sub(span.get()))
     }
 
+    #[inline]
+    #[must_use]
     pub const fn zoom(self, span: Log2) -> Zoom {
         Zoom(self.get().saturating_sub(span.get()))
     }
@@ -86,6 +95,8 @@ impl Depth {
         Self::try_new(sum).unwrap_or(Self::MAX)
     }
 
+    #[inline]
+    #[must_use]
     pub const fn checked_add(self, steps: Log2) -> Option<Self> {
         let sum = self.get().checked_add(steps.get())?;
         Self::try_new(sum)
@@ -93,6 +104,7 @@ impl Depth {
 
     /// Iterates every depth, [`Depth::MIN`] through [`Depth::MAX`].
     #[inline]
+    #[must_use]
     pub fn all() -> impl DoubleEndedIterator<Item = Self> {
         Self::MIN..=Self::MAX
     }
@@ -151,7 +163,7 @@ impl schemars::JsonSchema for Depth {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub(crate) struct Zoom(u8);
+pub struct Zoom(u8);
 
 impl Zoom {
     /// The maximum zoom level, [`Depth::MAX`].
@@ -234,9 +246,8 @@ impl Step for Zoom {
     }
 
     fn forward_overflowing(start: Self, count: usize) -> (Self, bool) {
-        match Self::forward_checked(start, count) {
-            Some(zoom) => (zoom, false),
-            None => {
+        Self::forward_checked(start, count).map_or_else(
+            || {
                 // Stepping past `MAX` wraps into the domain as if the levels
                 // formed a cycle of `MAX + 1` values, mirroring the primitive
                 // integers' overflow semantics on this bounded range.
@@ -247,8 +258,9 @@ impl Step for Zoom {
                     reason = "the wrapped value is below `span`, which fits u8"
                 )]
                 (Self(wrapped as u8), true)
-            }
-        }
+            },
+            |zoom| (zoom, false),
+        )
     }
 
     fn backward_checked(start: Self, count: usize) -> Option<Self> {
@@ -257,9 +269,8 @@ impl Step for Zoom {
     }
 
     fn backward_overflowing(start: Self, count: usize) -> (Self, bool) {
-        match Self::backward_checked(start, count) {
-            Some(zoom) => (zoom, false),
-            None => {
+        Self::backward_checked(start, count).map_or_else(
+            || {
                 // Stepping below `MIN` wraps around the same `MAX + 1` cycle
                 // as the forward direction.
                 let span = usize::from(Self::MAX.0) + 1;
@@ -269,8 +280,9 @@ impl Step for Zoom {
                     reason = "the wrapped value is below `span`, which fits u8"
                 )]
                 (Self(wrapped as u8), true)
-            }
-        }
+            },
+            |zoom| (zoom, false),
+        )
     }
 }
 
@@ -393,7 +405,9 @@ impl MortonKey {
         [compact_bits(self.0), compact_bits(self.0 >> 1)]
     }
 
-    pub const fn tile(self, depth: Depth) -> MortonTile {
+    #[inline]
+    #[must_use]
+    pub(crate) const fn tile(self, depth: Depth) -> MortonTile {
         let [x, y] = self.coordinates();
         MortonTile {
             z: Depth::MAX,
@@ -509,7 +523,9 @@ impl MortonCell {
         })
     }
 
-    pub const fn from_tile(tile: MortonTile) -> Option<Self> {
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_tile(tile: MortonTile) -> Option<Self> {
         Self::new(tile.z, tile.x, tile.y)
     }
 

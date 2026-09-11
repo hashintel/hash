@@ -170,7 +170,7 @@ impl Layout {
         const SAMPLES: u64 = 64;
         let nodes = self.geometry.node_count() as u64;
 
-        // A position is a u32, and the node index refuses a fitted count past that bound at open.
+        // opening the node index rejects out-of-range counts.
         if nodes == 0 || u32::try_from(nodes - 1).is_err() {
             return Ok(());
         }

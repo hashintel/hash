@@ -25,28 +25,11 @@ pub(crate) struct NaiveIdentityProvider<T: ?Sized>(T);
 
 impl<T: ?Sized> NaiveIdentityProvider<T> {
     #[inline]
-    pub(crate) const fn new(value: T) -> Self
-    where
-        T: Sized,
-    {
-        Self(value)
-    }
-
-    #[inline]
     pub(crate) const fn from_ref(value: &T) -> &Self {
         let ptr = &raw const *value;
         // SAFETY: `Self` is transparent over `T` and adds no validity requirements. The cast
         // preserves pointer metadata and the shared borrow's lifetime.
         unsafe { &*(ptr as *const Self) }
-    }
-
-    #[inline]
-    pub(crate) const fn from_mut(value: &mut T) -> &mut Self {
-        let ptr = &raw mut *value;
-
-        // SAFETY: `Self` is transparent over `T` and adds no validity requirements. The cast
-        // preserves pointer metadata and the exclusive borrow's lifetime.
-        unsafe { &mut *(ptr as *mut Self) }
     }
 }
 

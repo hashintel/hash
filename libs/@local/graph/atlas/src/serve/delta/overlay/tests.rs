@@ -22,7 +22,7 @@ struct Base {
 }
 
 impl Base {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             key: ArchivedOntologyTypeUuid::from(Uuid::from_u128(1)),
             key_reads: Cell::new(0),
@@ -198,7 +198,8 @@ fn insert_fitted() {
 
 #[test]
 fn insert_arrival() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(&base);
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
     let row = OntologyRowId::new(1);
@@ -230,7 +231,8 @@ fn insert_arrival() {
 
 #[test]
 fn insert_revival() {
-    let base = NaiveIdentityProvider::new(Base::new());
+    let base = Base::new();
+    let base = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(&base);
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
     let (row, _) = data

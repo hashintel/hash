@@ -267,7 +267,7 @@ impl ArchivedOntologyTypeUuid {
     }
 }
 
-impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
+const impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
         Self(id.into_bytes())

@@ -231,7 +231,7 @@ impl IdentityProvider<ArchivedEntityId, NodeRowId> for NoIdentities {
 /// Nested priority and identity providers retain a hidden lower row's identity.
 #[test]
 fn identity_nested() {
-    let base = NaiveIdentityProvider::new(NoIdentities);
+    let base = NaiveIdentityProvider::from_ref(&NoIdentities);
     let mut lower_data = IdentityProviderResidual::new(&base);
     let key = entity(4, 1);
     let (row, _) = lower_data

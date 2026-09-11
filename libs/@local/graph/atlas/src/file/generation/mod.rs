@@ -27,9 +27,8 @@ mod staging;
 #[cfg(test)]
 mod tests;
 
-pub use self::error::CurrentError;
 pub(crate) use self::{
-    error::{ActivateError, OpenError, RemoveError, SealError},
+    error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
     staging::{PublishedGeneration, StagedGeneration},

@@ -60,6 +60,11 @@ pub enum WorldError {
         /// The nodes the world holds.
         nodes: usize,
     },
+    /// The row count exceeds the wire domain or address space.
+    TooManyRows {
+        /// The opening row domain's size.
+        rows: u64,
+    },
     /// The edge identity table, the endpoint column and the adjacency disagree on the edge count.
     TopologyCountMismatch {
         /// The edges the edge identity table covers.
@@ -151,6 +156,10 @@ impl fmt::Display for WorldError {
             Self::TooManyNodes { nodes } => write!(
                 fmt,
                 "the world holds {nodes} nodes where positions and wire ids span the u32 range",
+            ),
+            Self::TooManyRows { rows } => write!(
+                fmt,
+                "row count {rows} exceeds the wire domain or address space",
             ),
             Self::TopologyCountMismatch {
                 identity,

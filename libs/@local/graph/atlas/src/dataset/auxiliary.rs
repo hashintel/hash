@@ -113,11 +113,6 @@ impl OwnedLegend {
         unsafe { boxed.label.0.as_bytes_mut() }.copy_from_slice(label.as_bytes());
         Self(boxed)
     }
-
-    /// Returns the legend's retained heap in bytes: the representative header and the label text.
-    pub(crate) fn heap_bytes(&self) -> u64 {
-        size_of_val(&*self.0) as u64
-    }
 }
 
 impl Clone for OwnedLegend {
