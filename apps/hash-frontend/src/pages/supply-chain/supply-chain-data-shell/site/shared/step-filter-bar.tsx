@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Filter, FilterGroup, Menu, Tooltip } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   STEP_FILTER_DEFINITIONS,
@@ -11,6 +12,14 @@ import {
 } from "./step-filters";
 
 type MenuItems = React.ComponentProps<typeof Menu>["items"];
+
+// With no chips the bar is just the add button; push it to the right edge of
+// whatever row hosts it (a block band or a flex title row).
+const emptyBarAlign = css({
+  flex: "1",
+  minW: "0",
+  justifyContent: "flex-end",
+});
 
 /**
  * The shared filter row rendered above each site table. Chips are added from
@@ -86,7 +95,7 @@ export const StepFilterBar = ({
   };
 
   return (
-    <FilterGroup>
+    <FilterGroup className={filters.length === 0 ? emptyBarAlign : undefined}>
       {filters.map((filter) => {
         const definition = STEP_FILTER_DEFINITIONS.find(
           (candidate) => candidate.key === filter.filterKey,

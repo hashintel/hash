@@ -92,12 +92,79 @@ export function subtitleForVendor(value: VendorOtifStats): string {
 
 // ── Table sorting ──────────────────────────────────────────────────────────
 
+const nullRankFor = (dir: SortDir): number =>
+  dir === "desc" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+
+/**
+ * Sort-menu-only metrics shared by the three step tables, derived from fields
+ * every row variant carries. Returns undefined for keys it does not handle
+ * (the table's own sorter takes over); null values rank last either way.
+ */
+function sharedStepSortValue(
+  row: SiteNode & { trendPct?: number | null; previousValue?: number | null },
+  key: SortKey,
+  measure: BaseMeasure,
+): number | null | undefined {
+  switch (key) {
+    case "tailRatio": {
+      const { median, p95 } = row.stats;
+      return median != null && median > 0 && p95 != null ? p95 / median : null;
+    }
+    case "variability": {
+      const { mean, std } = row.stats;
+      return mean != null && mean > 0 && std != null ? std / mean : null;
+    }
+    case "changeDays": {
+      const current = selectStat(row.stats, measure);
+      return current != null && row.previousValue != null
+        ? current - row.previousValue
+        : null;
+    }
+    case "bufferReleasable":
+      return row.plan != null && row.stats.p85 != null
+        ? Math.max(0, row.plan - row.stats.p85)
+        : null;
+    case "trend":
+      return row.trendPct ?? null;
+    case "previous":
+      return row.previousValue ?? null;
+    default:
+      return undefined;
+  }
+}
+
+/** Comparator for the shared menu-only keys, or null when the key is not one. */
+function compareSharedStepSort<
+  Row extends SiteNode & {
+    trendPct?: number | null;
+    previousValue?: number | null;
+  },
+>(
+  left: Row,
+  right: Row,
+  sort: { key: SortKey; dir: SortDir },
+  measure: BaseMeasure,
+): number | null {
+  const leftValue = sharedStepSortValue(left, sort.key, measure);
+  if (leftValue === undefined) {
+    return null;
+  }
+  const nullRank = nullRankFor(sort.dir);
+  const va = leftValue ?? nullRank;
+  const vb = sharedStepSortValue(right, sort.key, measure) ?? nullRank;
+  return sort.dir === "desc" ? vb - va : va - vb;
+}
+
 export function sortRows(
   rows: DwellRow[],
   sort: { key: SortKey; dir: SortDir },
   measure: BaseMeasure = "median",
 ): DwellRow[] {
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort, measure);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "median") {
@@ -162,6 +229,10 @@ export function sortPlanningRows(
   };
 
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort, measure);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "deviation") {
@@ -242,6 +313,10 @@ export function sortTrendRows(
   measure: BaseMeasure = "median",
 ): TrendRow[] {
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort, measure);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "median") {
@@ -305,6 +380,17 @@ export function sortSupplierRows(
           return value.mean_days_late_when_late ?? 0;
         case "maxLate":
           return value.max_days_late;
+        case "nLate":
+          return value.n_late;
+        case "lateShare":
+          return value.n_lines > 0 ? value.n_late / value.n_lines : 0;
+        // Punctual-but-short-shipped gap: how much OTIF trails pure on-time.
+        case "inFullGap":
+          return (value.on_time_pct ?? 0) - (value.otif_pct ?? 0);
+        case "severeLate":
+          return value.late_buckets.ge_7d_pct ?? 0;
+        case "materialsCount":
+          return value.materials?.length ?? 0;
         default:
           return 0;
       }

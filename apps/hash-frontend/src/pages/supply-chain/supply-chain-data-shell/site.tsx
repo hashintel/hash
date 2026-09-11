@@ -146,7 +146,9 @@ const content = css({
 // The carry-cost chart keeps its natural height between the two tables.
 const chartShrink = css({ flexShrink: "0" });
 // Tab bar directly above the detail table; the table's sticky header parks
-// beneath it once the table scrolls internally.
+// beneath it once the table scrolls internally. No bottom border of its own —
+// the table card's top border sits directly beneath, and doubling them up
+// reads as two lines. The active tab keeps its own dark underline.
 const tabBar = css({
   flexShrink: "0",
   display: "flex",
@@ -155,21 +157,11 @@ const tabBar = css({
   gap: "4",
   minH: "11",
   bg: "bgSolid.min",
-  borderBottomWidth: "1px",
-  borderColor: "bd.subtle",
   pb: "[1px]",
 });
 const tabButtons = css({ display: "flex", alignItems: "flex-end", gap: "3" });
 // Groups the tab bar with its active table so they stack tightly.
 const tableSection = css({ display: "flex", flexDirection: "column", pb: "6" });
-// Shared filter bar sitting directly above its table.
-const filterBarRow = css({ flexShrink: "0", py: "3" });
-// Groups a filter bar with the table beneath it (the content area spaces
-// direct children apart).
-const filterableTableSection = css({
-  display: "flex",
-  flexDirection: "column",
-});
 
 interface SiteOverviewProps {
   products: Product[];
@@ -529,6 +521,16 @@ export const SiteOverview = ({
     trendApplication,
     supplierApplication,
   ]);
+  // One bar instance handed to whichever tabbed table is active; it shares the
+  // filter state with the opportunities table's bar above.
+  const activeTabFilterBar = (
+    <StepFilterBar
+      filters={stepFilters}
+      onFiltersChange={setStepFilters}
+      options={stepFilterOptions}
+      skippedKeys={activeTabSkippedKeys}
+    />
+  );
 
   const overPlanCount = useMemo(
     () =>
@@ -763,28 +765,27 @@ export const SiteOverview = ({
 
       {/* Content */}
       <div className={content}>
-        <div className={filterableTableSection}>
-          <div className={filterBarRow}>
+        <OpportunitiesTable
+          opportunities={opportunities}
+          siteId={siteSlug}
+          statusHistory={opportunityStatusHistory}
+          onRowClick={(opportunity) =>
+            handleStepClick(opportunity.node, opportunity.kind)
+          }
+          onStatus={openStatus}
+          sort={oppSort}
+          onSort={setOppSort}
+          filterBar={
             <StepFilterBar
               filters={stepFilters}
               onFiltersChange={setStepFilters}
               options={stepFilterOptions}
               skippedKeys={opportunitySkippedKeys}
             />
-          </div>
-          <OpportunitiesTable
-            opportunities={opportunities}
-            siteId={siteSlug}
-            statusHistory={opportunityStatusHistory}
-            onRowClick={(opportunity) =>
-              handleStepClick(opportunity.node, opportunity.kind)
-            }
-            onStatus={openStatus}
-            sort={oppSort}
-            onSort={setOppSort}
-            revealSectionRequest={oppSectionRevealRequest}
-          />
-        </div>
+          }
+          filtersActive={stepFilters.length > 0}
+          revealSectionRequest={oppSectionRevealRequest}
+        />
 
         <div className={chartShrink}>
           <SiteMonthlyCarryCostChart
@@ -857,17 +858,7 @@ export const SiteOverview = ({
             </div>
           </div>
 
-          {/* Shared filter bar — one filter set across every site table */}
-          <div className={filterBarRow}>
-            <StepFilterBar
-              filters={stepFilters}
-              onFiltersChange={setStepFilters}
-              options={stepFilterOptions}
-              skippedKeys={activeTabSkippedKeys}
-            />
-          </div>
-
-          {/* Detail tables */}
+          {/* Detail tables, each hosting the shared filter bar in its header band */}
           {tab === "dwell" && (
             <DwellTable
               rows={filteredDwellRows}
@@ -879,6 +870,7 @@ export const SiteOverview = ({
               onStatus={openStatus}
               timeRange={timeRange}
               currency={siteCurrency}
+              filterBar={activeTabFilterBar}
             />
           )}
           {tab === "planning" && (
@@ -890,6 +882,7 @@ export const SiteOverview = ({
               onRowClick={handleStepClick}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
+              filterBar={activeTabFilterBar}
             />
           )}
           {tab === "trends" && (
@@ -901,6 +894,7 @@ export const SiteOverview = ({
               onRowClick={handleStepClick}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
+              filterBar={activeTabFilterBar}
             />
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (
@@ -911,6 +905,7 @@ export const SiteOverview = ({
               onRowClick={(value) =>
                 value.vendor_id && setSelectedVendorId(value.vendor_id)
               }
+              filterBar={activeTabFilterBar}
             />
           )}
         </div>
