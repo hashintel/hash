@@ -12,7 +12,11 @@ import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
-import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import {
+  type OptimizationRecord,
+  OptimizationsContext,
+  type OptimizationsContextValue,
+} from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
@@ -134,10 +138,24 @@ vi.mock("./sweep-surface", async () => {
 });
 
 // uPlot cannot mount in jsdom; the strip's row and fold around the chart are
-// real, and so is the history the row describes.
+// real, and so is the history the row describes. The axis edge and the
+// dividers the chart would draw sit on the stub as data attributes.
 vi.mock("../shared/objective-history-chart", () => ({
-  ObjectiveHistoryChart: ({ plotHeight }: { plotHeight: number }) => (
-    <div data-testid="objective-history" style={{ height: plotHeight }} />
+  ObjectiveHistoryChart: ({
+    plotHeight,
+    xMax,
+    dividers,
+  }: {
+    plotHeight: number;
+    xMax: number | undefined;
+    dividers: readonly number[];
+  }) => (
+    <div
+      data-testid="objective-history"
+      style={{ height: plotHeight }}
+      data-x-max={xMax}
+      data-dividers={dividers.join(" ")}
+    />
   ),
 }));
 
@@ -190,30 +208,40 @@ const WithInBrowserOptimizer = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/** The sweep's drawer with a study started from it, driving or settled. */
-const renderDrawerWithStudy = (
+/** A study started from the sweep, driving or settled: four steps, one of them pruned. */
+const sweepStudy = (
   experiment: ExperimentRecord,
   status: "running" | "cancelled",
-) => {
-  const study = {
-    ...makeOptimizationRecord({
-      input: fakeStudyInput,
-      status,
-      trials: fakeStudyTrials.trials.slice(0, 4),
-      best: { trial: 2, parameters: {}, objective: 650.5 },
-    }),
-    origin: { kind: "sweep" as const, experimentId: experiment.id },
-    completedTrials: 3,
-    prunedTrials: 1,
-  };
-  return render(
+  overrides: Partial<OptimizationRecord> = {},
+): OptimizationRecord => ({
+  ...makeOptimizationRecord({
+    input: fakeStudyInput,
+    status,
+    trials: fakeStudyTrials.trials.slice(0, 4),
+    best: { trial: 2, parameters: {}, objective: 650.5 },
+  }),
+  origin: { kind: "sweep" as const, experimentId: experiment.id },
+  completedTrials: 3,
+  prunedTrials: 1,
+  ...overrides,
+});
+
+/** The sweep's drawer over the host's studies, in the order the provider lists them. */
+const renderDrawerWithStudies = (
+  experiment: ExperimentRecord,
+  [first, ...rest]: readonly [OptimizationRecord, ...OptimizationRecord[]],
+  overrides: Partial<OptimizationsContextValue> = {},
+) =>
+  render(
     <WithInBrowserOptimizer>
       <PetrinautOptimizationContext value={connectedOptimizer}>
         <SDCPNContext value={sirSdcpnContextValue}>
           <OptimizationsContext
-            value={makeOptimizationsContextValue(study, {
+            value={makeOptimizationsContextValue(first, {
+              optimizations: [first, ...rest],
               selectedOptimization: null,
               selectedOptimizationId: null,
+              ...overrides,
             })}
           >
             <ViewExperimentDrawer
@@ -226,7 +254,12 @@ const renderDrawerWithStudy = (
       </PetrinautOptimizationContext>
     </WithInBrowserOptimizer>,
   );
-};
+
+/** The sweep's drawer with a study started from it, driving or settled. */
+const renderDrawerWithStudy = (
+  experiment: ExperimentRecord,
+  status: "running" | "cancelled",
+) => renderDrawerWithStudies(experiment, [sweepStudy(experiment, status)]);
 
 /** The sweep in each state a drawer can show it. */
 const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
@@ -492,5 +525,41 @@ describe("the Optimize control", () => {
     fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
 
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("orders the host's studies by creation, summarises the strip from the later one and stops it", () => {
+    const cancelOptimization = vi.fn();
+    const experiment = { ...sweep, status: "idle" as const };
+    const earlier = sweepStudy(experiment, "cancelled", {
+      id: "study-1",
+      createdAt: Date.now() - 200_000,
+    });
+    const later = sweepStudy(experiment, "running", {
+      id: "study-2",
+      trials: fakeStudyTrials.trials.slice(0, 3),
+      completedTrials: 3,
+      prunedTrials: 0,
+      best: { trial: 1, parameters: {}, objective: 700.25 },
+    });
+    // The provider prepends, so the later study comes first.
+    renderDrawerWithStudies(experiment, [later, earlier], {
+      cancelOptimization,
+    });
+
+    const row = screen.getByRole("button", { name: /^Objective by step/u });
+    expect(row.textContent).toMatch(
+      / · 7 steps in 2 optimizations · best 700\.250$/u,
+    );
+    // The divider sits at the later study's first step; the axis reaches its
+    // requested steps past the earlier study's four.
+    const chart = screen.getByTestId("objective-history");
+    expect(chart.dataset.dividers).toBe("5");
+    expect(chart.dataset.xMax).toBe(String(4 + 30));
+    expect(screen.getByText(/^Following step 4 of 30/u)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
+
+    expect(cancelOptimization).toHaveBeenCalledTimes(1);
+    expect(cancelOptimization).toHaveBeenCalledWith("study-2");
   });
 });
