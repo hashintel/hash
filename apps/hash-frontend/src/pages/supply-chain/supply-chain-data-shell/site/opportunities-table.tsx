@@ -494,8 +494,9 @@ export const OpportunitiesTable = ({
               onChange={(key, direction) =>
                 onSort(sortFromMenu(key, direction))
               }
+              align="right"
               variant="ghost"
-              size="sm"
+              size="xs"
             />
           </div>
         </div>

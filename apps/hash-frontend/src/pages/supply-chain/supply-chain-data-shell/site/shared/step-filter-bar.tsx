@@ -114,7 +114,7 @@ export const StepFilterBar = ({
           trigger={
             <Button
               variant="ghost"
-              size="sm"
+              size="xs"
               iconName="filter"
               aria-label="Add filter"
             />
