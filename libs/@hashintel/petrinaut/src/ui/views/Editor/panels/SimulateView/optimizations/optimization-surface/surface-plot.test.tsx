@@ -6,11 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildOptimizationSurfaceAxes } from "../../../../../../../react/optimizations/surface-grid";
 import { contourSurfaceKey } from "../../../../../../components/contour-surface";
-import { mergeSurfaceFields } from "../../shared/surface-field";
 import {
   makeOptimizationInput,
   optimizedBindingSets,
-} from "../optimizations-story-fixtures";
+} from "../../experiments/study-fixtures";
+import { mergeSurfaceFields } from "../../shared/surface-field";
 import {
   describeSurfaceState,
   inFlightSurfaceField,

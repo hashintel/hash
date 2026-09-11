@@ -6,14 +6,14 @@
  */
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
-import { OptimizationFullView } from "./optimization-full-view";
 import {
   fakeStudyInput,
   fakeStudyTrials,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   useFakeConnectedStudy,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
+import { OptimizationFullView } from "./optimization-full-view";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";

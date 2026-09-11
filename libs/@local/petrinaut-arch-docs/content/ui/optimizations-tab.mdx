@@ -54,13 +54,15 @@ the list and the drawer.
 
 The model's header: the one-line title `studyTitle` (the name, then
 `describeStudy`: the scenario, then `Maximize` or `Minimize` and the metric);
-the `headline` slot holding `StudyHeader` (`study-results/study-header.tsx`),
+the `headline` slot holding `StudyHeader`
+(`SimulateView/experiments/study-cards/study-header.tsx`),
 `describeStudyProgress` (`SimulateView/shared/describe-study-progress.ts`,
 shared with the sweep navigator; `Step 17 of 30 · best step so far: step 12 (650.5)`
 while running; `Paused at 12 of 30 steps · 1 step finishing · …` with a grey
 **Paused** chip while paused; `Finished`, `Stopped`, `Cancelled` or `Failed
 after …` once settled) and, while running, a verdict chip from
-`assessConvergence` (`study-results/convergence.ts`): best-so-far stagnation
+`assessConvergence` (`SimulateView/experiments/study-cards/convergence.ts`):
+best-so-far stagnation
 over the last `convergenceWindow(requestedTrials)` completed steps,
 `too-early`, `improving` or `converging`; the status pill (`studyStatus`, from
 `OPTIMIZATION_STATUS_DISPLAY`, sized for `Reconnecting`); the stat columns
@@ -92,7 +94,8 @@ the selection carries an error; the navigator's status line carries the
 reason), followed by the study's cards in the same grid: `ObjectiveHistoryCard`,
 `ConstraintSummaryCard` when the study declares constraints, and
 `ParameterImportancePanel`, every card `OBJECTIVE_PLOT_HEIGHT` tall; and the
-`after` slot holding `StudySteps` (`study-results/study-steps.tsx`), the steps
+`after` slot holding `StudySteps`
+(`SimulateView/experiments/study-cards/study-steps.tsx`), the steps
 table in a fixed 320 px box with the best step starred. A paused study is the
 running layout with `tone: "paused"` on the grid and its cards.
 
@@ -133,11 +136,12 @@ A study with constraints reports them through
 `record.trials`: `stepVerdict` (clear, limited, infeasible), `bindingStepRate`
 (the step's lowest pass rate) and `studyConstraintRates` (steps clear over
 steps simulated, per constraint too). `ConstraintSummaryCard`
-(`study-results/constraint-summary.tsx`) follows the objective by step in a
+(`SimulateView/experiments/study-cards/study-constraints-card.tsx`) follows the
+objective by step in a
 connected study's grid, `studyStats` gains a **Steps clear** column, and
 `StepsTable` a **Runs passed** column with an `infeasible` state tone; both name
 a constraint through `constraintNameIn`, beside the rates. The channel
-(`react/optimizations/channel/create-optimization-channel/trial-constraints.ts`)
+(`react/optimizations/shared/parameter-constraints.ts`)
 prunes an infeasible draw before any simulation and runs state constraints as
 `auxiliaryMetrics` on the detached objective request, 0/1 indicators
 aggregated with `min` over each run's frames.
@@ -150,7 +154,8 @@ needs numpy alone) and `pyodide_entry.py` attaches them to the summary and, at
 browser capability copies the block onto the `trial` and `complete` log events
 as `importances`. `OptimizationsProvider` keeps the latest on
 `record.importance`. `ParameterImportancePanel`
-(`study-results/parameter-importance-panel.tsx`), the **Sensitivity analysis**
+(`SimulateView/experiments/study-cards/parameter-importance-panel.tsx`), the
+**Sensitivity analysis**
 card, renders it from the pure
 `importance-view.ts`: one row per optimized parameter in binding order, so no
 row moves as estimates land and the bars carry the ranking, a signed Pearson

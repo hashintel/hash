@@ -38,10 +38,15 @@ import {
   type PetrinautSimulatePresentation,
 } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { ParameterImportancePanel } from "../experiments/study-cards/parameter-importance-panel";
+import { ConstraintSummaryCard } from "../experiments/study-cards/study-constraints-card";
+import { StudyHeader } from "../experiments/study-cards/study-header";
+import { StudySteps } from "../experiments/study-cards/study-steps";
 import {
   CHART_CARD_FOOTER_CHROME,
   type ChartCardTone,
 } from "../shared/chart-card";
+import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatNumber, formatParameters } from "../shared/format-value";
 import {
   directionWord,
@@ -62,24 +67,20 @@ import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
 } from "./optimization-surface";
-import { ConstraintSummaryCard } from "./study-results/constraint-summary";
 import { ObjectiveHistoryCard } from "./study-results/objective-history-card";
 import {
   OptimizationNavigator,
   OptimizationNavigatorStatus,
 } from "./study-results/optimization-navigator";
-import { ParameterImportancePanel } from "./study-results/parameter-importance-panel";
 import { ParameterValues } from "./study-results/parameter-values";
 import {
   PresentationToggle,
   StudyActions,
 } from "./study-results/study-actions";
-import { StudyHeader } from "./study-results/study-header";
 import {
   activityBatches,
   stepsProgressPercent,
 } from "./study-results/study-progress";
-import { StudySteps } from "./study-results/study-steps";
 
 import type { FrameNote } from "../shared/drawer-frame";
 import type {
@@ -119,27 +120,6 @@ const describeStudy = (optimization: OptimizationRecord): string => {
 /** The frame's one-line title: `Supply chain · Base scenario · Maximize Profit`. */
 const studyTitle = (optimization: OptimizationRecord): string =>
   `${optimization.input.name} · ${describeStudy(optimization)}`;
-
-/** "4 / 30 · 3 runs each · 2 at once", with the parts that are 1 left out. */
-export const describeStepProgress = (
-  optimization: Pick<
-    OptimizationRecord,
-    | "completedTrials"
-    | "prunedTrials"
-    | "failedTrials"
-    | "requestedTrials"
-    | "connected"
-    | "input"
-  >,
-): string => {
-  const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
-  const parallelism = optimization.connected?.parallelism ?? 1;
-  return [
-    `${finishedTrialCount(optimization)} / ${optimization.requestedTrials}`,
-    ...(runsPerStep > 1 ? [`${runsPerStep} runs each`] : []),
-    ...(parallelism > 1 ? [`${parallelism} at once`] : []),
-  ].join(" · ");
-};
 
 const studyStatus = (optimization: OptimizationRecord): ResultsStatus => ({
   ...OPTIMIZATION_STATUS_DISPLAY[optimizationDisplayStatus(optimization)],

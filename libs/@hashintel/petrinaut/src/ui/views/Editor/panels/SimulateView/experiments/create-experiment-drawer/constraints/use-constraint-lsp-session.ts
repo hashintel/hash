@@ -1,6 +1,6 @@
 import { use, useEffect, useRef } from "react";
 
-import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { LanguageClientContext } from "../../../../../../../../react/lsp/context";
 
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 

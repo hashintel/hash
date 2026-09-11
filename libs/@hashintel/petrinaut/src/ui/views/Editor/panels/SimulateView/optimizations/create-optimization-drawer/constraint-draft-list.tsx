@@ -10,8 +10,8 @@ import {
   type ConstraintDraft,
   describeConstraint,
   getConstraintErrorMessage,
-} from "./constraint-lsp";
-import { useConstraintLspSession } from "./use-constraint-lsp-session";
+} from "../../experiments/create-experiment-drawer/constraints/constraint-lsp";
+import { useConstraintLspSession } from "../../experiments/create-experiment-drawer/constraints/use-constraint-lsp-session";
 
 import type {
   ConstraintSpace,

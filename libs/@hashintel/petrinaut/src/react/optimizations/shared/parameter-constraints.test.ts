@@ -11,13 +11,13 @@ import {
   sirNetConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOverridingOptimizationScenario,
-} from "../../sir-optimization-input.fixtures";
+} from "../sir-optimization-input.fixtures";
 import {
   hasParameterConstraints,
   parameterConstraintOutcome,
   stateConstraintMetrics,
   stateConstraintResults,
-} from "./trial-constraints";
+} from "./parameter-constraints";
 
 import type { PetrinautOptimizationManifest } from "@hashintel/petrinaut-core/optimization";
 

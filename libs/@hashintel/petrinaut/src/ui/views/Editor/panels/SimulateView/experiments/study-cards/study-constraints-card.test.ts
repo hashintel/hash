@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { fakeConstrainedStudyInput } from "../optimizations-story-fixtures";
-import { describeStep } from "./constraint-summary";
+import { fakeConstrainedStudyInput } from "../study-fixtures";
+import { describeStep } from "./study-constraints-card";
 
 import type {
   PetrinautOptimizationTrialConstraints,
