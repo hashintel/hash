@@ -5,5 +5,4 @@ declare const __ENVIRONMENT__: string;
 
 interface ImportMetaEnv {
   readonly VITE_BRUNCH_CHAT_ENDPOINT?: string;
-  readonly VITE_PETRINAUT_OPT_PROVIDER?: "service";
 }

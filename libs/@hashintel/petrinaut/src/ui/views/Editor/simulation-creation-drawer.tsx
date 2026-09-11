@@ -18,7 +18,6 @@ export const SimulationCreationDrawer = () => {
     case "create-scenario":
       return <CreateScenarioDrawer open onClose={closeDrawer} />;
     case "closed":
-    case "create-optimization":
     case "view-experiment":
     case "view-metric":
     case "view-scenario":

@@ -73,32 +73,14 @@ use provider-pattern discovery instead.
 
 ### Optimization demo
 
-The main demo at [http://localhost:5173](http://localhost:5173) runs the
-optimizer in the browser: the Optuna study runs in a Pyodide web worker and
-each optimization step runs on Petrinaut's own experiments backend, so no
-Python service is involved. The **Optimizations** tab appears once the
-experimental **In-browser optimization** setting is on, under **Viewport
-controls > Settings > Simulation**. The first optimization in a browser
-downloads the Python runtime from jsDelivr and Optuna from PyPI; later runs use
-the browser cache.
-
-The `/optimization` route is the Python-service variant. It returns the
-website's not-found page unless `VITE_PETRINAUT_OPT_PROVIDER=service` is set.
-To run it, from the repository root:
-
-```sh
-turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
-```
-
-The flag builds and starts the local Petrinaut Opt Docker image, waits for its
-health endpoint, and starts the website with
-`VITE_PETRINAUT_OPT_PROVIDER=service`. Open
-[http://localhost:5173/optimization](http://localhost:5173/optimization).
-Stopping the command also stops and removes its optimizer container.
-
-The development server proxies `/api/petrinaut-opt/*` to the optimizer on
-`127.0.0.1:4004`, avoiding development-only CORS changes to the Python service.
-Storybook provides a fake optimizer for isolated UI development.
+The demo at [http://localhost:5173](http://localhost:5173) runs the optimizer
+in the browser: the Optuna study runs in a Pyodide web worker and each
+optimization step runs on Petrinaut's own experiments backend, so no Python
+service is involved. With the experimental **Parameter sweeps** and
+**In-browser optimization** settings on, under **Viewport controls > Settings >
+Simulation**, a sweep's Parameters card in the Experiments tab offers
+**Optimize**. The first optimization in a browser downloads the Python runtime
+from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
@@ -108,9 +90,7 @@ Storybook provides a fake optimizer for isolated UI development.
 | `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
 | `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.    |
 | `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
-| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
 | `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the `/optimization` route.      |
 | `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.

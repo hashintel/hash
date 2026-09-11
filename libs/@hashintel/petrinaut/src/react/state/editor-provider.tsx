@@ -486,11 +486,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         simulateDrawer: { type: "closed" },
       }),
     setSimulateDrawer: (drawer) => navigateTo({ simulateDrawer: drawer }),
-    setSimulatePresentation: (presentation) =>
-      navigation.navigate(
-        { simulatePresentation: presentation },
-        { cause: "user", action: "simulation-presentation" },
-      ),
     setSearchOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => {
@@ -540,7 +535,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       navigation.state.simulateResource,
       navigation.state.overlay,
     ),
-    simulatePresentation: navigation.state.simulatePresentation,
     selection,
     hasSelection: selection.size > 0,
   };
