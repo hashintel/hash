@@ -10,10 +10,11 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
-  mutatePetrinetToolName,
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
   observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -84,8 +85,9 @@ setProvider(
     new Set([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
       ...observedConstructionBrowserToolNames,
-      mutatePetrinetToolName,
-      READ_PETRINAUT_DOC_TOOL_NAME,
+      layoutPetrinautNetToolName,
+      mutatePetrinautNetToolName,
+      READ_PETRINAUT_DOCS_TOOL_NAME,
     ]),
   ),
 );

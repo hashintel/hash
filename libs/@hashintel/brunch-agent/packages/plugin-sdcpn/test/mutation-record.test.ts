@@ -9,6 +9,18 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import {
+  isLayoutPetrinautNetToolName,
+  isReadPetrinautDiagnosticsToolName,
+  isReadPetrinautNetToolName,
+  layoutPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "../src/construction-tool-names";
+import {
+  isMutatePetrinautNetToolName,
+  mutatePetrinautNetToolName,
+} from "../src/mutate-petrinet";
+import {
   assertMutationEffects,
   classifyMutationOutcome,
   deriveLayoutEffects,
@@ -21,6 +33,33 @@ import {
   type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
 } from "../src/mutation-record";
+import {
+  isReadPetrinautDocsToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+} from "../src/tools/read-petrinaut-doc";
+
+test("uses the selected Brunch Petrinaut family and recognizes retained names", () => {
+  expect([
+    readPetrinautNetToolName,
+    READ_PETRINAUT_DOCS_TOOL_NAME,
+    readPetrinautDiagnosticsToolName,
+    layoutPetrinautNetToolName,
+    mutatePetrinautNetToolName,
+  ]).toEqual([
+    "read_petrinaut_net",
+    "read_petrinaut_docs",
+    "read_petrinaut_diagnostics",
+    "layout_petrinaut_net",
+    "mutate_petrinaut_net",
+  ]);
+  expect(isReadPetrinautNetToolName("getLatestNetDefinition")).toBe(true);
+  expect(isReadPetrinautDocsToolName("readPetrinautDoc")).toBe(true);
+  expect(isReadPetrinautDiagnosticsToolName("getNetCompilationErrors")).toBe(
+    true,
+  );
+  expect(isLayoutPetrinautNetToolName("applyAutoLayout")).toBe(true);
+  expect(isMutatePetrinautNetToolName("mutate_petrinet")).toBe(true);
+});
 
 const pre: SDCPN = {
   places: [

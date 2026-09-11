@@ -14,20 +14,18 @@
  * here (see the shared-history-projection fog-line in MISSION.md).
  */
 import {
-  applyAutoLayoutToolName,
   canonicalContent,
+  isLayoutPetrinautNetToolName,
+  isMutatePetrinautNetToolName,
+  isReadPetrinautDocsToolName,
+  isReadPetrinautDiagnosticsToolName,
+  isReadPetrinautNetToolName,
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
   parseClientToolResultMetadata,
   verifyDefinitionObservation,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  getLatestNetDefinitionToolName,
-  getNetCompilationErrorsToolName,
-} from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
@@ -91,11 +89,10 @@ const resultMessages = (snapshot: FlueConversationSnapshot) =>
   );
 
 /** Browser-executed tools that observe the net without changing it. */
-const nonMutatingBrowserTools: ReadonlySet<string> = new Set([
-  getLatestNetDefinitionToolName,
-  getNetCompilationErrorsToolName,
-  READ_PETRINAUT_DOC_TOOL_NAME,
-]);
+const isNonMutatingBrowserTool = (name: string): boolean =>
+  isReadPetrinautNetToolName(name) ||
+  isReadPetrinautDiagnosticsToolName(name) ||
+  isReadPetrinautDocsToolName(name);
 
 /** A model-selected ID selects a recorded browser observation, never a model-supplied hash. */
 export const recordedBrowserObservation = async (
@@ -116,7 +113,7 @@ export const recordedBrowserObservation = async (
   if (
     calls.length !== 1 ||
     call?.type !== "dynamic-tool" ||
-    call.toolName !== getLatestNetDefinitionToolName ||
+    !isReadPetrinautNetToolName(call.toolName) ||
     call.state !== "output-available" ||
     !isAwaitingClient(call.output)
   )
@@ -214,7 +211,7 @@ export const deriveNetLedger = async (
         reason,
       });
 
-      if (toolName === getLatestNetDefinitionToolName) {
+      if (isReadPetrinautNetToolName(toolName)) {
         try {
           // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
           const observation = await recordedBrowserObservation(
@@ -228,7 +225,7 @@ export const deriveNetLedger = async (
         }
         continue;
       }
-      if (nonMutatingBrowserTools.has(toolName)) continue;
+      if (isNonMutatingBrowserTool(toolName)) continue;
 
       const deliveries = deliveriesFor(toolCallId);
       const first = deliveries[0];
@@ -252,7 +249,7 @@ export const deriveNetLedger = async (
       }
       const metadata = parseClientToolResultMetadata(first.metadata);
 
-      if (toolName === applyAutoLayoutToolName) {
+      if (isLayoutPetrinautNetToolName(toolName)) {
         const layout = metadata?.layoutRecord;
         if (layout === undefined) {
           events.push(
@@ -291,7 +288,7 @@ export const deriveNetLedger = async (
         );
         continue;
       }
-      if (toolName === mutatePetrinetToolName) {
+      if (isMutatePetrinautNetToolName(toolName)) {
         try {
           const batch = mutatePetrinetInputSchema.parse(call.input);
           // eslint-disable-next-line no-await-in-loop -- History order is the fold order.

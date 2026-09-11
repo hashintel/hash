@@ -1,6 +1,6 @@
 # Mutation capability matrix
 
-Every canonical Petrinaut AI operation, in both assistant modes: who owns it, whether Brunch's `mutate_petrinet` admits it, whether the stock assistant offers it, where it executes, what test evidence exists, and what the model sees when it is refused. This is the operation-coverage authority Mission 7c's proof floor points at; `MISSION.md` cites it rather than restating it.
+Every canonical Petrinaut AI operation, in both assistant modes: who owns it, whether Brunch's `mutate_petrinaut_net` admits it, whether the stock assistant offers it, where it executes, what test evidence exists, and what the model sees when it is refused. This is the operation-coverage authority Mission 7c's proof floor points at; `MISSION.md` cites it rather than restating it.
 
 The acceptance rule it serves:
 
@@ -12,7 +12,7 @@ The acceptance rule it serves:
 
 | | Stock assistant | Brunch |
 | --- | --- | --- |
-| Tool surface | Every `petrinautAiTools` entry as an individual tool: all mutation actions, `applyAutoLayout`, `getLatestNetDefinition`, `getNetCompilationErrors`, `setNetTitle`, `readPetrinautDoc` | `getLatestNetDefinition`, `getNetCompilationErrors`, `readPetrinautDoc`, `applyAutoLayout`, and one `mutate_petrinet` batch carrying the admitted operations below |
+| Tool surface | Every `petrinautAiTools` entry as an individual tool: all mutation actions, `applyAutoLayout`, `getLatestNetDefinition`, `getNetCompilationErrors`, `setNetTitle`, `readPetrinautDoc` | `read_petrinaut_net`, `read_petrinaut_diagnostics`, `read_petrinaut_docs`, `layout_petrinaut_net`, and one `mutate_petrinaut_net` batch carrying the admitted operations below |
 | Where mutations execute | `@hashintel/petrinaut` panel (`apply-petrinaut-ai-mutation.ts`) directly on the open document | `apps/petrinaut-website/.../mutate-petrinet-tool.ts`, mounted through the panel's `automaticTools`, with per-operation observed pre/post hashes and effects |
 | Where reads and layout execute | `@hashintel/petrinaut` panel | `@hashintel/petrinaut` panel; the website attaches `observation` / `layoutRecord` metadata to the result |
 | Diagnostics after a mutation | Panel waits up to 1 s for the refresh; on timeout it reports **pending**, never the previous version's diagnostics | Same panel behaviour; Brunch is instructed that a pending read is not a result and must be repeated before any compiler claim |
@@ -42,7 +42,7 @@ Stock mode has no equivalent verification: the panel applies the action and repo
 
 ## Matrix
 
-Columns: **Stock** — offered as an individual tool in stock mode. **Brunch** — admitted in `mutate_petrinet`. **Evidence** — the host test that runs the operation through the website-owned host executor and verifies its record at the receiving boundary, plus the plugin test that derives its effects; where an operation has referenced dependents, the petrinaut-core test that shows what happens to them. **Refusal** — what happens when the operation cannot be carried in Brunch.
+Columns: **Stock** — offered as an individual tool in stock mode. **Brunch** — admitted in `mutate_petrinaut_net`. **Evidence** — the host test that runs the operation through the website-owned host executor and verifies its record at the receiving boundary, plus the plugin test that derives its effects; where an operation has referenced dependents, the petrinaut-core test that shows what happens to them. **Refusal** — what happens when the operation cannot be carried in Brunch.
 
 The Evidence column is unit/host evidence: the executor under vitest against a real Petrinaut document, not a live browser session driven by a model. It shows each admitted shape earns `applied` or is refused correctly; it does not show that a model reaches the shape through ordinary language in the product. That outer evidence is owed by `MISSION.md`'s portfolio and persona rows, which exercise a representative sample of this matrix through the live browser.
 
@@ -99,9 +99,9 @@ Removals of state that code still reads leave that code compiler-dirty. The batc
 
 | Tool | Stock | Brunch | Notes |
 | --- | --- | --- | --- |
-| `applyAutoLayout` | yes | yes, as its own browser client tool | Brunch records `layoutRecord` (pre/post hashes, position-only effects); `compiler-feedback.integration.ts`, website `mutation-record.test.ts` |
-| `getLatestNetDefinition` | yes | yes | Brunch attaches the verified `observation` sidecar every batch must cite |
-| `getNetCompilationErrors` | yes | yes | pending-not-clean in both modes |
+| `applyAutoLayout` | yes | yes, as `layout_petrinaut_net` | Brunch records `layoutRecord` (pre/post hashes, position-only effects); `compiler-feedback.integration.ts`, website `mutation-record.test.ts` |
+| `getLatestNetDefinition` | yes | yes, as `read_petrinaut_net` | Brunch attaches the verified `observation` sidecar every batch must cite |
+| `getNetCompilationErrors` | yes | yes, as `read_petrinaut_diagnostics` | pending-not-clean in both modes |
 | `readPetrinautDoc` | yes | yes | — |
 | `setNetTitle` | yes | no | not mounted in Brunch |
 

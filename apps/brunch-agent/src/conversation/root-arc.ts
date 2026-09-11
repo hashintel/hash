@@ -11,7 +11,8 @@ import {
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
-  mutatePetrinetToolName,
+  isMutatePetrinautNetToolName,
+  isReadPetrinautNetToolName,
   type MutatePetrinetInput,
   parseClientToolResultMetadata,
   parseObservedStateInput,
@@ -30,14 +31,11 @@ import {
   isClientToolResult,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
-import {
-  getLatestNetDefinitionToolName,
-  type PetrinautAiToolInput,
-} from "@hashintel/petrinaut-core/ai";
 
 import { isAwaitingClient } from "./client-tools.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 const record = (input: unknown): input is Record<string, unknown> =>
   typeof input === "object" && input !== null && !Array.isArray(input);
@@ -76,7 +74,7 @@ export const assertArcNotRetired = async (
     if (
       mutationRecord === undefined ||
       (result.toolName !== "addArc" &&
-        result.toolName !== mutatePetrinetToolName)
+        !isMutatePetrinautNetToolName(result.toolName))
     )
       continue;
     const verified = await Promise.all(
@@ -171,7 +169,7 @@ export const assertConstructionIdentity = async (
       // observation. Correlate delivery by call ID: a same-ID wrong-name result
       // must reach the verifier and refuse rather than being silently skipped.
       if (
-        call.toolName === getLatestNetDefinitionToolName &&
+        isReadPetrinautNetToolName(call.toolName) &&
         deliveredResults.some((result) => result.toolCallId === call.toolCallId)
       )
         earlier.push(await read(call.toolCallId));
@@ -182,7 +180,7 @@ export const assertConstructionIdentity = async (
       !isObservedNodeMutation(result.toolName) &&
       !isObservedStateMutation(result.toolName) &&
       !isObservedArcMutation(result.toolName) &&
-      result.toolName !== mutatePetrinetToolName
+      !isMutatePetrinautNetToolName(result.toolName)
     )
       continue;
     await verifyRootArcResults({
@@ -437,7 +435,7 @@ export const verifyRootArcResults = async (input: {
         throw new Error(
           "The browser result has no matching admitted canonical call.",
         );
-      if (call.toolName === mutatePetrinetToolName) {
+      if (isMutatePetrinautNetToolName(call.toolName)) {
         await verifyMutatePetrinetDelivery({
           delivery,
           call,

@@ -8,9 +8,16 @@ import {
 import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
 export const batchedConstructionMode = "batched-construction";
-export const mutatePetrinetToolName = "mutate_petrinet";
+export const mutatePetrinautNetToolName = "mutate_petrinaut_net";
+/** @deprecated Use `mutatePetrinautNetToolName`. */
+export const mutatePetrinetToolName = mutatePetrinautNetToolName;
+export const legacyMutatePetrinautNetToolName = "mutate_petrinet";
 
-/** Per-operation attempt identity retained under one outer `mutate_petrinet` call. */
+export const isMutatePetrinautNetToolName = (name: string): boolean =>
+  name === mutatePetrinautNetToolName ||
+  name === legacyMutatePetrinautNetToolName;
+
+/** Per-operation attempt identity retained under one outer `mutate_petrinaut_net` call. */
 export const mutatePetrinetAttemptCallId = (
   toolCallId: string,
   operationId: string,
@@ -336,7 +343,7 @@ export const mutatePetrinetInputSchema = z
       })
       .meta({
         description:
-          "The exact preceding getLatestNetDefinition browser result this batch cites. toolCallId is that call's id; baseHash is the independently observed definition hash from that result.",
+          "The exact preceding read_petrinaut_net browser result this batch cites. toolCallId is that call's id; baseHash is the independently observed definition hash from that result.",
       }),
     bases: z
       .array(

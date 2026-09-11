@@ -117,13 +117,13 @@ those remain with their definition owners.
 | `read_skill_resource` | Flue | Flue | skill resource read |
 | `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
 | `mutate_workpiece` | Brunch core | Brunch app | durable full-revision write with recorded delta |
-| `readPetrinautDoc` | Petrinaut canonical contract | Petrinaut website | guide read |
-| `getLatestNetDefinition` | Petrinaut Core | Petrinaut website | current document read |
-| `getNetCompilationErrors` | Petrinaut Core | Petrinaut website | diagnostics read |
-| `applyAutoLayout` | Petrinaut Core | Petrinaut website | recorded layout mutation |
-| `mutate_petrinet` | SDCPN plugin over Petrinaut actions | Petrinaut website | selected root-net mutation carrier |
+| `read_petrinaut_net` | Petrinaut Core | Petrinaut website | current document read |
+| `read_petrinaut_docs` | Petrinaut Core | Petrinaut website | user-guide read |
+| `read_petrinaut_diagnostics` | Petrinaut Core | Petrinaut website | diagnostics read |
+| `layout_petrinaut_net` | Petrinaut Core | Petrinaut website | recorded layout mutation |
+| `mutate_petrinaut_net` | SDCPN plugin over Petrinaut actions | Petrinaut website | selected root-net mutation carrier |
 | `read_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
-| `brunch_why` | Brunch app today; split under Mission 7c review | Brunch app | current-model explanation |
+| `query_workpiece` | Brunch app | Brunch app | current-model explanation and provenance query |
 | `ping` | Brunch app | Brunch app | server diagnostic |
 
 Stock Petrinaut has its own canonical individual AI-tool surface and history.

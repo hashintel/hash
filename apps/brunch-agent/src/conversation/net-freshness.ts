@@ -5,7 +5,7 @@
  * post hash, or a layout's post hash). Anything the ledger could not vouch
  * for makes the answer conservative; it never makes it confident.
  */
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
+import { isReadPetrinautNetToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { deriveNetLedger } from "./net-ledger.ts";
 
@@ -64,7 +64,7 @@ export const deriveNetFreshness = async (
       case "unrecorded":
         // An unverifiable read is not a read; an unrecorded change may have
         // changed the net.
-        if (event.toolName !== getLatestNetDefinitionToolName) {
+        if (!isReadPetrinautNetToolName(event.toolName)) {
           unrecordedChange = true;
           lastKnownHash = undefined;
           lastKnownRevisionId = undefined;
@@ -112,9 +112,9 @@ export const netStaleSignalBody = (
   freshness: Exclude<NetFreshness, { kind: "current" }>,
 ): string =>
   freshness.kind === "never-read"
-    ? "No verified read of the current net exists in this conversation. Call getLatestNetDefinition in its own proposal before explaining, reviewing, interviewing about, or changing the model."
+    ? "No verified read of the current net exists in this conversation. Call read_petrinaut_net in its own proposal before explaining, reviewing, interviewing about, or changing the model."
     : `The net changed after your last verified read (${freshness.lastReadHash}${
         freshness.lastKnownHash === undefined
           ? "; the current state is unrecorded"
           : ` → ${freshness.lastKnownHash}`
-      }). Call getLatestNetDefinition in its own proposal before relying on the model.`;
+      }). Call read_petrinaut_net in its own proposal before relying on the model.`;

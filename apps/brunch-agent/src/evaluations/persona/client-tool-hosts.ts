@@ -13,7 +13,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { isReadPetrinautDocsToolName } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { readPetrinautDocToolInputSchema } from "@hashintel/petrinaut-core";
 
 import {
@@ -101,7 +101,7 @@ export const createRealHeadlessClientToolHost = (
   return {
     kind: "real-headless",
     async execute(call) {
-      if (call.toolName === READ_PETRINAUT_DOC_TOOL_NAME) {
+      if (isReadPetrinautDocsToolName(call.toolName)) {
         const { doc } = readPetrinautDocToolInputSchema.parse(call.input);
         const markdown = await readFile(
           new URL(`${doc}.md`, petrinautDocsRoot),
