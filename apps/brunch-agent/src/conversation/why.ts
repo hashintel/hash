@@ -23,7 +23,6 @@ import {
   rootArcWhyInputSchema,
   validateDeclaredBasis,
   verifyMutationAttempt,
-  verifyDefinitionObservation,
   parseClientToolResultMetadata,
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
@@ -35,10 +34,10 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { settleWorkpieceEvidence } from "@hashintel/brunch-agent/flue";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { diagnostics } from "../runtime-diagnostics.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { recordedBrowserObservation } from "./net-ledger.ts";
 import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
 import {
   retainedSettledRevision,
@@ -62,64 +61,6 @@ const resultMessages = (snapshot: FlueConversationSnapshot) =>
       message.purpose === "dispatch" &&
       message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
   );
-
-/** A model-selected ID selects a recorded browser observation, never a model-supplied hash. */
-export const recordedBrowserObservation = async (
-  snapshot: FlueConversationSnapshot,
-  browser: BrowserContext,
-  toolCallId: string,
-): Promise<DefinitionObservation> => {
-  const calls = snapshot.messages
-    .flatMap((message) =>
-      message.role === "assistant" && message.purpose === "assistant"
-        ? message.parts
-        : [],
-    )
-    .filter(
-      (part) => part.type === "dynamic-tool" && part.toolCallId === toolCallId,
-    );
-  const call = calls[0];
-  if (
-    calls.length !== 1 ||
-    call?.type !== "dynamic-tool" ||
-    call.toolName !== getLatestNetDefinitionToolName ||
-    call.state !== "output-available" ||
-    !isAwaitingClient(call.output)
-  )
-    throw new Error("Unknown admitted browser observation call.");
-  const results = clientToolHistoryFrom(
-    resultMessages(snapshot),
-  ).results.filter((result) => result.toolCallId === toolCallId);
-  const first = results[0];
-  const recorded = parseClientToolResultMetadata(first?.metadata)?.observation;
-  if (
-    !first ||
-    results.length !== 1 ||
-    results.some(
-      (result) => canonicalContent(result) !== canonicalContent(first),
-    ) ||
-    first.toolName !== call.toolName ||
-    recorded === undefined ||
-    !record(first.output)
-  )
-    throw new Error("Missing or conflicting correlated browser observation.");
-  if (
-    recorded.toolCallId !== toolCallId ||
-    canonicalContent(recorded.binding) !== canonicalContent(browser.binding)
-  )
-    throw new Error(
-      "Browser observation belongs to another conversation or document incarnation.",
-    );
-  const observation = await verifyDefinitionObservation(recorded.observed);
-  if (
-    canonicalContent(first.output.definition) !==
-    canonicalContent(observation.definition)
-  )
-    throw new Error(
-      "Browser read output differs from its independent observation.",
-    );
-  return observation;
-};
 
 export interface RootArcExplanation {
   disposition:

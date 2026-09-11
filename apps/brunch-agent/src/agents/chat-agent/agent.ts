@@ -49,14 +49,12 @@ import {
   NET_STALE_SIGNAL,
   netStaleSignalBody,
 } from "../../conversation/net-freshness.ts";
+import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
 import {
   verifyRootArcResults,
   assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
-import {
-  createRootArcWhyTool,
-  recordedBrowserObservation,
-} from "../../conversation/why.ts";
+import { createRootArcWhyTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
