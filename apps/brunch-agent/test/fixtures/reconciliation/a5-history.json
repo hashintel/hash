@@ -1,0 +1,2017 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M219YEEHR48X66RKV2J3Y164",
+  "offset": "0000000000000000_0000000000000167",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViX2lrX2Y3YTU0M2Y5YmI4MDAxMjBiNDk3ZGI3NmRhMzg4ZGUy",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_f7a543f9bb800120b497db76da388de2",
+      "signal": {
+        "tagName": "prepared-fixture",
+        "attributes": {
+          "fixtureId": "crew-reservation-v1",
+          "authorship": "test-authored",
+          "claimBoundary": "prepared-not-model-produced",
+          "rootArcContext": "{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"}"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Fixture authorship: test-authored preparation for Mission 6.\nNon-claims: not a Mission 4 candidate, not model-produced evidence, not capture-backed provenance, and not proof of automatic full-net projection.\n\n```runbook-ir\n# Final inspection and dispatch workpiece\n\n## Purpose and posture\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- The prepared topology returns the sole dispatch crew at sign-off.\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\n\n## Quantity and resource policy\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\n\n## Current Petrinaut correspondence\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\n\n## Explicit unknowns\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\n\n## Claim boundary\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\n```",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEEM1KY2HND3BXF7M0T4",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_f7a543f9bb800120b497db76da388de2",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":null}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEEN0572C4NH50H42CX1",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_f7a543f9bb800120b497db76da388de2",
+      "turnId": "turn_01M219YEEMPGZ581C3RFGXHV38",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST A5 prepared fixture acknowledged; no testimony supplied.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEJK7VD2XTHERBQVY2KK",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":null}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEJMQYE1AN9HR48XQ8TE",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724",
+      "turnId": "turn_01M219YEJKPMEQZK11W1FBPKD4",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_workpiece",
+          "toolCallId": "a5-declared-sources",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "currentWorkpiece": null,
+            "state": "unknown",
+            "sources": [
+              {
+                "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                "role": "user",
+                "purpose": "user",
+                "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off.",
+                "textTruncated": false,
+                "untrusted": true
+              }
+            ],
+            "earlierSourcesOmitted": 0,
+            "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "a5-declared-revision",
+          "state": "output-available",
+          "input": {
+            "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
+            "evidence": [
+              {
+                "locator": {
+                  "start": 181,
+                  "end": 253
+                },
+                "messageIds": [
+                  "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                ],
+                "kind": "elicited"
+              },
+              {
+                "locator": {
+                  "start": 277,
+                  "end": 365
+                },
+                "messageIds": [],
+                "kind": "inference"
+              },
+              {
+                "locator": {
+                  "start": 366,
+                  "end": 445
+                },
+                "messageIds": [],
+                "kind": "default"
+              },
+              {
+                "locator": {
+                  "start": 446,
+                  "end": 517
+                },
+                "messageIds": [],
+                "kind": "formalism-constraint"
+              }
+            ]
+          },
+          "output": {
+            "revisionId": "a5-declared-revision",
+            "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+            "ordinal": 1,
+            "evidence": [
+              {
+                "locator": {
+                  "start": 181,
+                  "end": 253
+                },
+                "messageIds": [
+                  "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                ],
+                "kind": "elicited"
+              },
+              {
+                "locator": {
+                  "start": 277,
+                  "end": 365
+                },
+                "messageIds": [],
+                "kind": "inference"
+              },
+              {
+                "locator": {
+                  "start": 366,
+                  "end": 445
+                },
+                "messageIds": [],
+                "kind": "default"
+              },
+              {
+                "locator": {
+                  "start": 446,
+                  "end": 517
+                },
+                "messageIds": [],
+                "kind": "formalism-constraint"
+              }
+            ],
+            "evidenceValidated": true
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_workpiece",
+          "toolCallId": "a5-declared-current",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "currentWorkpiece": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 1
+            },
+            "state": "current",
+            "sources": [
+              {
+                "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                "role": "user",
+                "purpose": "user",
+                "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off.",
+                "textTruncated": false,
+                "untrusted": true
+              }
+            ],
+            "earlierSourcesOmitted": 0,
+            "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+          },
+          "durationMs": 0
+        },
+        {
+          "type": "text",
+          "text": "TEST declared: authorized revision settled, relevance unassessed.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEJW191K700D3QG67GV5",
+      "role": "system",
+      "purpose": "advisory",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724",
+      "signal": {
+        "attributes": {
+          "resource": "tool"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "New tools available:\n- **getLatestNetDefinition** — Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"additionalProperties\":false,\"description\":\"Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\"}\n- **addArc** — Add an input or output arc to a transition.\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.\nAll available tools: task, activate_skill, read_skill_resource, brunch_mark_question, update_workpiece, readPetrinautDoc, getLatestNetDefinition, addArc, brunch_workpiece, brunch_why, ping",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzk1MmQ0ZTk3NzI1NjNlYWNkNGI5MTExOGE2ZTNkMmI0",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_952d4e9772563eacd4b91118a6e3d2b4",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST apply the one bound root arc with the settled basis and issued base.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEPXMWJK2TVEZEN67B43",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_952d4e9772563eacd4b91118a6e3d2b4",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEPZG49GCSJ34MY07APG",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_952d4e9772563eacd4b91118a6e3d2b4",
+      "turnId": "turn_01M219YEPYTZ9Q46KQBDXHVWTT",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "a5-declared-read-before",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzAwMmVlNzcyNmFjZmNjN2FlNzgzZTFiMTlkNmVmMDFl",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_002ee7726acfcc7ae783e1b19d6ef01e",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-read-before"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-read-before\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"a5-declared-read-before\",\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YET87F16FX7Q3H17DGXP",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_002ee7726acfcc7ae783e1b19d6ef01e",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YETAH4QF1BXZCYPS0ZQE",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_002ee7726acfcc7ae783e1b19d6ef01e",
+      "turnId": "turn_01M219YET8PHXGXY7PDTWZDYJG",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "a5-declared-arc",
+          "state": "output-available",
+          "input": {
+            "transitionId": "start-final-inspection",
+            "placeId": "dispatch-crew-available",
+            "arcDirection": "input",
+            "weight": "1",
+            "type": "standard",
+            "brunch": {
+              "requestedBaseHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "basis": {
+                "kind": "declared",
+                "revisionId": "a5-declared-revision",
+                "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+                "scope": "operation",
+                "rationale": "TEST declared representation: reserve one available crew via this standard input arc; surrounding topology is prepared external material.",
+                "locators": [
+                  {
+                    "start": 181,
+                    "end": 253
+                  },
+                  {
+                    "start": 277,
+                    "end": 365
+                  },
+                  {
+                    "start": 366,
+                    "end": 445
+                  },
+                  {
+                    "start": 446,
+                    "end": 517
+                  }
+                ]
+              }
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2FkN2UzZDhlM2Q1ZGJmNjFhYzQ5YTM4YmFjZDZlMGE3",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_ad7e3d8e3d5dbf61ac49a38bacd6e0a7",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-arc"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-arc\",\"toolName\":\"addArc\",\"output\":{\"title\":\"Added input arc\",\"detail\":\"Dispatch crew available <-> Start final inspection\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"arc\",\"id\":\"$A_place:dispatch-crew-available___start-final-inspection\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"a5-declared-arc\",\"toolName\":\"addArc\",\"input\":{\"transitionId\":\"start-final-inspection\",\"arcDirection\":\"input\",\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"},\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"path\":\"/transitions/0/inputArcs/1\",\"kind\":\"created\",\"after\":{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEV5NW7DQJ7GJDSSPT1V",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_ad7e3d8e3d5dbf61ac49a38bacd6e0a7",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEV7F2M1058QQSR159EY",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_ad7e3d8e3d5dbf61ac49a38bacd6e0a7",
+      "turnId": "turn_01M219YEV548FQKFXMNJAFXHCS",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST declared: verified browser result received once.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2YyOWZkNjMyODI2YTYzYzhhODg1MTQ1NWIxODQyYWVl",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_f29fd632826a63c8a8851455b1842aee",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST why does the crew input arc exist? Query declared-1.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEXDD2KT2WP41Q4NN4K1",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_f29fd632826a63c8a8851455b1842aee",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEXFJPVTJQV061JN0VSC",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_f29fd632826a63c8a8851455b1842aee",
+      "turnId": "turn_01M219YEXD0S2E577SFPR0XEA4",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "a5-declared-live-1",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2NkODY0NzYwYjRmYTJhZjYwMGQ3OWNiZTFmZjliNWE4",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_cd864760b4fa2af600d79cbe1ff9b5a8",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-live-1"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-live-1\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"a5-declared-live-1\",\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEZ8EACC0Q715R30N4JC",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_cd864760b4fa2af600d79cbe1ff9b5a8",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YEZBQX1ZDPPN8760PNWA",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_cd864760b4fa2af600d79cbe1ff9b5a8",
+      "turnId": "turn_01M219YEZ9RE8VXCV7W03E3645",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "a5-declared-why-1",
+          "state": "output-available",
+          "input": {
+            "transition": "Start final inspection",
+            "place": "Dispatch crew available",
+            "arcDirection": "input",
+            "field": "entity",
+            "observationToolCallId": "a5-declared-live-1"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5",
+              "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+              "incarnationId": "c1c10821-6573-42d2-9f48-d8eeef84a7a5"
+            },
+            "currentWorkpiece": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 1
+            },
+            "reconciliation": {
+              "status": "live-observed",
+              "sha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedToolCallId": "a5-declared-arc",
+              "observationToolCallId": "a5-declared-live-1",
+              "observationScope": "live-observed"
+            },
+            "attempts": [
+              {
+                "toolCallId": "a5-declared-arc",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "transitionId": "start-final-inspection",
+              "placeId": "dispatch-crew-available",
+              "arcDirection": "input",
+              "path": "/transitions/0/inputArcs/1",
+              "arcPath": "/transitions/0/inputArcs/1",
+              "value": {
+                "type": "standard",
+                "placeId": "dispatch-crew-available",
+                "weight": 1
+              },
+              "formalism": "An arc connects its place and transition. Weight is token multiplicity; input type selects canonical Petrinaut arc behavior. These are formalism semantics, not elicited operational facts."
+            },
+            "recordedChange": {
+              "toolCallId": "a5-declared-arc",
+              "preHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "postHash": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "effects": {
+                "created": [
+                  {
+                    "path": "/transitions/0/inputArcs/1",
+                    "kind": "created",
+                    "after": {
+                      "type": "standard",
+                      "placeId": "dispatch-crew-available",
+                      "weight": 1
+                    }
+                  }
+                ],
+                "updated": [],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "status": "current",
+              "rationale": "TEST declared representation: reserve one available crew via this standard input arc; surrounding topology is prepared external material.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "text": "When final inspection starts, reserve one available crew until sign-off.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "elicited",
+                      "messageIds": [
+                        "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                      ],
+                      "sources": [
+                        {
+                          "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                          "role": "user",
+                          "purpose": "user",
+                          "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "text": "Inference: represent that reservation with a standard input arc to the start transition.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "inference",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "text": "Default: no duration is supplied; timing remains unknown, not an invented rate.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "default",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "text": "Formalism constraint: arc weight denotes a positive token multiplicity.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "formalism-constraint",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "durationMs": 5
+        },
+        {
+          "type": "text",
+          "text": "TEST assistant interpretation declared-1: partially-supported; source relevance and template completeness remain unassessed.\nGoverning revision a5-declared-revision (current): When final inspection starts, reserve one available crew until sign-off.\nDeclared elicited support is distinct from the constructor inference, default and formalism constraint. Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzkwMDRhNjliNzE4MmE1ZDQxNDkyZTkzZGE0ODBhYzBk",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_9004a69b7182a5d41492e93da480ac0d",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST why does the crew input arc exist? Query declared-2.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFH0G700HP6DDZ2P6EVC",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_9004a69b7182a5d41492e93da480ac0d",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFH286EQZ7AC35KQYW76",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_9004a69b7182a5d41492e93da480ac0d",
+      "turnId": "turn_01M219YFH1Y2XTERKWSGN1J8K4",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "a5-declared-live-2",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzg5MWU5OWI0MzliZGM3MTI0OGI5OTYxMDQ5YzEyYThj",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_891e99b439bdc71248b9961049c12a8c",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-live-2"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-live-2\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"a5-declared-live-2\",\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"2b705b74a18df8e780ec7e28e0b4243fd0d1ff303b03ceaec114d251caec301d\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFJ9TDFTM7N2TP3XRAY8",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_891e99b439bdc71248b9961049c12a8c",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFJB8819W1CNT9ZN58A6",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_891e99b439bdc71248b9961049c12a8c",
+      "turnId": "turn_01M219YFJAXEVVGPNDGYW8J54H",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "a5-declared-why-2",
+          "state": "output-available",
+          "input": {
+            "transition": "Start final inspection",
+            "place": "Dispatch crew available",
+            "arcDirection": "input",
+            "field": "entity",
+            "observationToolCallId": "a5-declared-live-2"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5",
+              "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+              "incarnationId": "c1c10821-6573-42d2-9f48-d8eeef84a7a5"
+            },
+            "currentWorkpiece": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 1
+            },
+            "reconciliation": {
+              "status": "serialization-equivalent",
+              "sha256": "2b705b74a18df8e780ec7e28e0b4243fd0d1ff303b03ceaec114d251caec301d",
+              "recordedSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedToolCallId": "a5-declared-arc",
+              "observationToolCallId": "a5-declared-live-2",
+              "observationScope": "live-observed",
+              "equivalenceLimit": "Distinct independently verified raw hashes; full JSON definitions differ only in object-key insertion order. Array order, presence, values and types are unchanged. This identifies neither a reserialization actor nor an unchanged intervening history, and never relaxes mutation/base checks."
+            },
+            "attempts": [
+              {
+                "toolCallId": "a5-declared-arc",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "transitionId": "start-final-inspection",
+              "placeId": "dispatch-crew-available",
+              "arcDirection": "input",
+              "path": "/transitions/0/inputArcs/1",
+              "arcPath": "/transitions/0/inputArcs/1",
+              "value": {
+                "placeId": "dispatch-crew-available",
+                "weight": 1,
+                "type": "standard"
+              },
+              "formalism": "An arc connects its place and transition. Weight is token multiplicity; input type selects canonical Petrinaut arc behavior. These are formalism semantics, not elicited operational facts."
+            },
+            "recordedChange": {
+              "toolCallId": "a5-declared-arc",
+              "preHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "postHash": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "effects": {
+                "created": [
+                  {
+                    "path": "/transitions/0/inputArcs/1",
+                    "kind": "created",
+                    "after": {
+                      "type": "standard",
+                      "placeId": "dispatch-crew-available",
+                      "weight": 1
+                    }
+                  }
+                ],
+                "updated": [],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "status": "current",
+              "rationale": "TEST declared representation: reserve one available crew via this standard input arc; surrounding topology is prepared external material.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "text": "When final inspection starts, reserve one available crew until sign-off.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "elicited",
+                      "messageIds": [
+                        "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                      ],
+                      "sources": [
+                        {
+                          "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                          "role": "user",
+                          "purpose": "user",
+                          "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "text": "Inference: represent that reservation with a standard input arc to the start transition.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "inference",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "text": "Default: no duration is supplied; timing remains unknown, not an invented rate.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "default",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "text": "Formalism constraint: arc weight denotes a positive token multiplicity.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "formalism-constraint",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "durationMs": 3
+        },
+        {
+          "type": "text",
+          "text": "TEST assistant interpretation declared-2: partially-supported; source relevance and template completeness remain unassessed.\nGoverning revision a5-declared-revision (current): When final inspection starts, reserve one available crew until sign-off.\nDeclared elicited support is distinct from the constructor inference, default and formalism constraint. Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzUyZDQyYTA2MmY1MjBhYWViMGU2NjFjNWM0YjQ0ZjVl",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_52d42a062f520aaeb0e661c5c4b44f5e",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST why does the crew input arc exist? Query declared-3.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFQ8TPY3SX798BJ7WS4Y",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_52d42a062f520aaeb0e661c5c4b44f5e",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFQA97Y1R7HW6A4CKBGS",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_52d42a062f520aaeb0e661c5c4b44f5e",
+      "turnId": "turn_01M219YFQ90AYZWFT678WJDHEQ",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "a5-declared-why-3",
+          "state": "output-available",
+          "input": {
+            "transition": "Start final inspection",
+            "place": "Dispatch crew available",
+            "arcDirection": "input",
+            "field": "weight"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5",
+              "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+              "incarnationId": "c1c10821-6573-42d2-9f48-d8eeef84a7a5"
+            },
+            "currentWorkpiece": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 1
+            },
+            "reconciliation": {
+              "status": "as-of",
+              "sha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedToolCallId": "a5-declared-arc"
+            },
+            "attempts": [
+              {
+                "toolCallId": "a5-declared-arc",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "transitionId": "start-final-inspection",
+              "placeId": "dispatch-crew-available",
+              "arcDirection": "input",
+              "path": "/transitions/0/inputArcs/1/weight",
+              "arcPath": "/transitions/0/inputArcs/1",
+              "value": 1,
+              "formalism": "An arc connects its place and transition. Weight is token multiplicity; input type selects canonical Petrinaut arc behavior. These are formalism semantics, not elicited operational facts."
+            },
+            "recordedChange": {
+              "toolCallId": "a5-declared-arc",
+              "preHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "postHash": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "effects": {
+                "created": [
+                  {
+                    "path": "/transitions/0/inputArcs/1",
+                    "kind": "created",
+                    "after": {
+                      "type": "standard",
+                      "placeId": "dispatch-crew-available",
+                      "weight": 1
+                    }
+                  }
+                ],
+                "updated": [],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "status": "current",
+              "rationale": "TEST declared representation: reserve one available crew via this standard input arc; surrounding topology is prepared external material.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "text": "When final inspection starts, reserve one available crew until sign-off.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "elicited",
+                      "messageIds": [
+                        "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                      ],
+                      "sources": [
+                        {
+                          "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                          "role": "user",
+                          "purpose": "user",
+                          "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "text": "Inference: represent that reservation with a standard input arc to the start transition.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "inference",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "text": "Default: no duration is supplied; timing remains unknown, not an invented rate.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "default",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "text": "Formalism constraint: arc weight denotes a positive token multiplicity.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "formalism-constraint",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "text",
+          "text": "TEST assistant interpretation declared-3: partially-supported; source relevance and template completeness remain unassessed.\nGoverning revision a5-declared-revision (current): When final inspection starts, reserve one available crew until sign-off.\nDeclared elicited support is distinct from the constructor inference, default and formalism constraint. Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzMwYTMxNGJhZDFiM2VlMDY0MGFhNmY3OTE4ZWY3ODdk",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_30a314bad1b3ee0640aa6f7918ef787d",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST append unrelated context, carry unchanged passage relations only.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFTVN205C1B7Q70WRQBQ",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_30a314bad1b3ee0640aa6f7918ef787d",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-declared-revision\",\"sha256\":\"e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFTYQ9NPZBJ144WGS9NQ",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_30a314bad1b3ee0640aa6f7918ef787d",
+      "turnId": "turn_01M219YFTWYMEQFKKB49D4397D",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "a5-carried-revision",
+          "state": "output-available",
+          "input": {
+            "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\n\nUnrelated context remains unrelated."
+          },
+          "output": {
+            "revisionId": "a5-carried-revision",
+            "sha256": "adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59",
+            "ordinal": 2,
+            "evidence": [
+              {
+                "locator": {
+                  "start": 181,
+                  "end": 253
+                },
+                "messageIds": [
+                  "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                ],
+                "kind": "elicited"
+              },
+              {
+                "locator": {
+                  "start": 277,
+                  "end": 365
+                },
+                "messageIds": [],
+                "kind": "inference"
+              },
+              {
+                "locator": {
+                  "start": 366,
+                  "end": 445
+                },
+                "messageIds": [],
+                "kind": "default"
+              },
+              {
+                "locator": {
+                  "start": 446,
+                  "end": 517
+                },
+                "messageIds": [],
+                "kind": "formalism-constraint"
+              }
+            ],
+            "evidenceValidated": true
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "text",
+          "text": "TEST carried unchanged passage without new evidence.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzViNzJjY2QwNjJmMDc3NmU1MjMwOTRjNWZkOGQyZTli",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_5b72ccd062f0776e523094c5fd8d2e9b",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST why does the crew input arc exist? Query declared-4.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFWGB00WH8G55X2RSFNX",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_5b72ccd062f0776e523094c5fd8d2e9b",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-carried-revision\",\"sha256\":\"adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\\n\\nUnrelated context remains unrelated.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":2}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFWJB2CWJQKQ6RWS5D7J",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_5b72ccd062f0776e523094c5fd8d2e9b",
+      "turnId": "turn_01M219YFWG63R9Y2VMXHJVYP7E",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "a5-declared-live-4",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzExMjY1YTk0NzhjYjU2YTMwMTQ3YTUyZTY0NTIyOWFh",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_11265a9478cb56a30147a52e645229aa",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-live-4"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-live-4\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"a5-declared-live-4\",\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"2b705b74a18df8e780ec7e28e0b4243fd0d1ff303b03ceaec114d251caec301d\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFYYZ073FCGNRXYQRPV2",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_11265a9478cb56a30147a52e645229aa",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-carried-revision\",\"sha256\":\"adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\\n\\nUnrelated context remains unrelated.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":2}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YFZ19NTV81DRV69X2ZA8",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_11265a9478cb56a30147a52e645229aa",
+      "turnId": "turn_01M219YFYZTNZG0N28E0C758PV",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "a5-declared-why-4",
+          "state": "output-available",
+          "input": {
+            "transition": "Start final inspection",
+            "place": "Dispatch crew available",
+            "arcDirection": "input",
+            "field": "entity",
+            "observationToolCallId": "a5-declared-live-4"
+          },
+          "output": {
+            "disposition": "partially-supported",
+            "reason": "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+            "binding": {
+              "conversationId": "prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5",
+              "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+              "incarnationId": "c1c10821-6573-42d2-9f48-d8eeef84a7a5"
+            },
+            "currentWorkpiece": {
+              "revisionId": "a5-carried-revision",
+              "sha256": "adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\n\nUnrelated context remains unrelated.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 2
+            },
+            "reconciliation": {
+              "status": "serialization-equivalent",
+              "sha256": "2b705b74a18df8e780ec7e28e0b4243fd0d1ff303b03ceaec114d251caec301d",
+              "recordedSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedToolCallId": "a5-declared-arc",
+              "observationToolCallId": "a5-declared-live-4",
+              "observationScope": "live-observed",
+              "equivalenceLimit": "Distinct independently verified raw hashes; full JSON definitions differ only in object-key insertion order. Array order, presence, values and types are unchanged. This identifies neither a reserialization actor nor an unchanged intervening history, and never relaxes mutation/base checks."
+            },
+            "attempts": [
+              {
+                "toolCallId": "a5-declared-arc",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true,
+            "target": {
+              "transitionId": "start-final-inspection",
+              "placeId": "dispatch-crew-available",
+              "arcDirection": "input",
+              "path": "/transitions/0/inputArcs/1",
+              "arcPath": "/transitions/0/inputArcs/1",
+              "value": {
+                "placeId": "dispatch-crew-available",
+                "weight": 1,
+                "type": "standard"
+              },
+              "formalism": "An arc connects its place and transition. Weight is token multiplicity; input type selects canonical Petrinaut arc behavior. These are formalism semantics, not elicited operational facts."
+            },
+            "recordedChange": {
+              "toolCallId": "a5-declared-arc",
+              "preHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "postHash": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "effects": {
+                "created": [
+                  {
+                    "path": "/transitions/0/inputArcs/1",
+                    "kind": "created",
+                    "after": {
+                      "type": "standard",
+                      "placeId": "dispatch-crew-available",
+                      "weight": 1
+                    }
+                  }
+                ],
+                "updated": [],
+                "deleted": [],
+                "derived": []
+              }
+            },
+            "governing": {
+              "revisionId": "a5-declared-revision",
+              "sha256": "e7177215970ffb1ec0a382dc2727f8d6f1e51b8c0ec90aa9ba38239292cb6615",
+              "status": "superseded",
+              "rationale": "TEST declared representation: reserve one available crew via this standard input arc; surrounding topology is prepared external material.",
+              "scope": "operation",
+              "passages": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "text": "When final inspection starts, reserve one available crew until sign-off.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "elicited",
+                      "messageIds": [
+                        "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                      ],
+                      "sources": [
+                        {
+                          "id": "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0",
+                          "role": "user",
+                          "purpose": "user",
+                          "text": "TEST scripted user evidence: When final inspection starts, reserve one available crew until sign-off."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "text": "Inference: represent that reservation with a standard input arc to the start transition.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "inference",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "text": "Default: no duration is supplied; timing remains unknown, not an invented rate.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "default",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "text": "Formalism constraint: arc weight denotes a positive token multiplicity.",
+                  "standing": "declared-relations",
+                  "relations": [
+                    {
+                      "kind": "formalism-constraint",
+                      "messageIds": [],
+                      "sources": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "durationMs": 3
+        },
+        {
+          "type": "text",
+          "text": "TEST assistant interpretation declared-4: partially-supported; source relevance and template completeness remain unassessed.\nGoverning revision a5-declared-revision (superseded): When final inspection starts, reserve one available crew until sign-off.\nDeclared elicited support is distinct from the constructor inference, default and formalism constraint. Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzBlODg5ZDEyNjM2MDYwN2Q0ZDJhMDNkODBiY2YwZGY3",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_0e889d126360607d4d2a03d80bcf0df7",
+      "parts": [
+        {
+          "type": "text",
+          "text": "TEST why does the crew input arc exist? Query declared-5.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YGM62RPRZVYCHZK0FRV2",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_0e889d126360607d4d2a03d80bcf0df7",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-carried-revision\",\"sha256\":\"adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\\n\\nUnrelated context remains unrelated.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":2}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YGM8PE1G4MR5A4SW3T27",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_0e889d126360607d4d2a03d80bcf0df7",
+      "turnId": "turn_01M219YGM6MQ9T73XRYKA563NG",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "a5-declared-live-5",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzI4MjMxNzY3MmUzNDdkNzg1OTg3MTUzMmZjMmM0NTFj",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_282317672e347d7859871532fc2c451c",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a5-declared-live-5"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a5-declared-live-5\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":2,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}},\"metadata\":{\"observation\":{\"toolCallId\":\"a5-declared-live-5\",\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"observed\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"placeId\":\"dispatch-crew-available\",\"weight\":2,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"b148deeab857ee4ba339bdfef969b5a112b16cc41bd28ecd353410a7b1281967\"}}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YGNBKTQV0M4N8H9NSH7H",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_282317672e347d7859871532fc2c451c",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"c1c10821-6573-42d2-9f48-d8eeef84a7a5\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"a5-carried-revision\",\"sha256\":\"adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59\",\"markdown\":\"# TEST process workpiece\\n\\n## Purpose and posture\\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\\n\\n## Operational account\\nWhen final inspection starts, reserve one available crew until sign-off.\\n\\n## Construction notes\\nInference: represent that reservation with a standard input arc to the start transition.\\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\\nFormalism constraint: arc weight denotes a positive token multiplicity.\\n\\n## Delivery status\\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\\n\\nUnrelated context remains unrelated.\",\"evidence\":[{\"locator\":{\"start\":181,\"end\":253},\"messageIds\":[\"entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0\"],\"kind\":\"elicited\"},{\"locator\":{\"start\":277,\"end\":365},\"messageIds\":[],\"kind\":\"inference\"},{\"locator\":{\"start\":366,\"end\":445},\"messageIds\":[],\"kind\":\"default\"},{\"locator\":{\"start\":446,\"end\":517},\"messageIds\":[],\"kind\":\"formalism-constraint\"}],\"evidenceValidated\":true,\"ordinal\":2}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M219YGNEP4JAD1SQ0YH64RYX",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_282317672e347d7859871532fc2c451c",
+      "turnId": "turn_01M219YGNC9K3KPH9FYXW1875Z",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_why",
+          "toolCallId": "a5-declared-why-5",
+          "state": "output-available",
+          "input": {
+            "transition": "Start final inspection",
+            "place": "Dispatch crew available",
+            "arcDirection": "input",
+            "field": "entity",
+            "observationToolCallId": "a5-declared-live-5"
+          },
+          "output": {
+            "disposition": "external",
+            "reason": "Not attributable: the observed live document has no matching recorded transition. An unrecorded hand edit must not acquire conversation attribution.",
+            "binding": {
+              "conversationId": "prepared-root-arc:c1c10821-6573-42d2-9f48-d8eeef84a7a5",
+              "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+              "incarnationId": "c1c10821-6573-42d2-9f48-d8eeef84a7a5"
+            },
+            "currentWorkpiece": {
+              "revisionId": "a5-carried-revision",
+              "sha256": "adb4ca9a769114058e7778316331d4e9c1c9643348538c68cec77f748b8d6b59",
+              "markdown": "# TEST process workpiece\n\n## Purpose and posture\nTEST-authored synthetic control of one crew reservation. No real expert testimony or behavioral acceptance.\n\n## Operational account\nWhen final inspection starts, reserve one available crew until sign-off.\n\n## Construction notes\nInference: represent that reservation with a standard input arc to the start transition.\nDefault: no duration is supplied; timing remains unknown, not an invented rate.\nFormalism constraint: arc weight denotes a positive token multiplicity.\n\n## Delivery status\nOnly the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.\n\nUnrelated context remains unrelated.",
+              "evidence": [
+                {
+                  "locator": {
+                    "start": 181,
+                    "end": 253
+                  },
+                  "messageIds": [
+                    "entry_direct_c3ViX2lrXzJlMzFhZTY0MTBiNTQ4YjlmOTk0YmQ2Y2MyOWMyNzI0"
+                  ],
+                  "kind": "elicited"
+                },
+                {
+                  "locator": {
+                    "start": 277,
+                    "end": 365
+                  },
+                  "messageIds": [],
+                  "kind": "inference"
+                },
+                {
+                  "locator": {
+                    "start": 366,
+                    "end": 445
+                  },
+                  "messageIds": [],
+                  "kind": "default"
+                },
+                {
+                  "locator": {
+                    "start": 446,
+                    "end": 517
+                  },
+                  "messageIds": [],
+                  "kind": "formalism-constraint"
+                }
+              ],
+              "evidenceValidated": true,
+              "ordinal": 2
+            },
+            "reconciliation": {
+              "status": "external",
+              "sha256": "b148deeab857ee4ba339bdfef969b5a112b16cc41bd28ecd353410a7b1281967",
+              "recordedSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+              "recordedToolCallId": "a5-declared-arc",
+              "observationToolCallId": "a5-declared-live-5",
+              "observationScope": "live-observed"
+            },
+            "attempts": [
+              {
+                "toolCallId": "a5-declared-arc",
+                "outcome": "applied"
+              }
+            ],
+            "quality": {
+              "sourceRelevance": "unassessed",
+              "templateCompleteness": "unassessed",
+              "semanticUtility": "owner-adjudication-required",
+              "effectMapping": "operation-only"
+            },
+            "untrusted": true
+          },
+          "durationMs": 4
+        },
+        {
+          "type": "text",
+          "text": "TEST assistant interpretation declared-5: external; source relevance and template completeness remain unassessed.\nNot attributable: the observed live document has no matching recorded transition. An unrecorded hand edit must not acquire conversation attribution.",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_ik_f7a543f9bb800120b497db76da388de2",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_f7a543f9bb800120b497db76da388de2"
+    },
+    {
+      "submissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_2e31ae6410b548b9f994bd6cc29c2724"
+    },
+    {
+      "submissionId": "sub_ik_952d4e9772563eacd4b91118a6e3d2b4",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_952d4e9772563eacd4b91118a6e3d2b4"
+    },
+    {
+      "submissionId": "sub_ik_002ee7726acfcc7ae783e1b19d6ef01e",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_002ee7726acfcc7ae783e1b19d6ef01e"
+    },
+    {
+      "submissionId": "sub_ik_ad7e3d8e3d5dbf61ac49a38bacd6e0a7",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_ad7e3d8e3d5dbf61ac49a38bacd6e0a7"
+    },
+    {
+      "submissionId": "sub_ik_f29fd632826a63c8a8851455b1842aee",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_f29fd632826a63c8a8851455b1842aee"
+    },
+    {
+      "submissionId": "sub_ik_cd864760b4fa2af600d79cbe1ff9b5a8",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_cd864760b4fa2af600d79cbe1ff9b5a8"
+    },
+    {
+      "submissionId": "sub_ik_9004a69b7182a5d41492e93da480ac0d",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_9004a69b7182a5d41492e93da480ac0d"
+    },
+    {
+      "submissionId": "sub_ik_891e99b439bdc71248b9961049c12a8c",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_891e99b439bdc71248b9961049c12a8c"
+    },
+    {
+      "submissionId": "sub_ik_52d42a062f520aaeb0e661c5c4b44f5e",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_52d42a062f520aaeb0e661c5c4b44f5e"
+    },
+    {
+      "submissionId": "sub_ik_30a314bad1b3ee0640aa6f7918ef787d",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_30a314bad1b3ee0640aa6f7918ef787d"
+    },
+    {
+      "submissionId": "sub_ik_5b72ccd062f0776e523094c5fd8d2e9b",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_5b72ccd062f0776e523094c5fd8d2e9b"
+    },
+    {
+      "submissionId": "sub_ik_11265a9478cb56a30147a52e645229aa",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_11265a9478cb56a30147a52e645229aa"
+    },
+    {
+      "submissionId": "sub_ik_0e889d126360607d4d2a03d80bcf0df7",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_0e889d126360607d4d2a03d80bcf0df7"
+    },
+    {
+      "submissionId": "sub_ik_282317672e347d7859871532fc2c451c",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_282317672e347d7859871532fc2c451c"
+    }
+  ],
+  "incarnation": "inc_01M219YEEG88W83ZJDJBJ6CBC0"
+}

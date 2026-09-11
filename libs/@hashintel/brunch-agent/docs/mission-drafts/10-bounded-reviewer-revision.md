@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** [Mission 7b](7b-september-demo.md) requires ordinary PM exploration of a substantial broadly explainable flagship plus one correction family: saved workpiece revision → bounded net update without unrelated rebuilding → updated explanation distinguishing original support and correction. The live route is rehearsed but must tolerate ordinary rephrasing, follow-up and selection beyond one scripted element. This draft retains the general reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not implement a universal semantic gate to satisfy 7b; re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
+
 ## Cold-start reads
 
 - [FE-1394](https://linear.app/hash/issue/FE-1394/revise-one-traceable-net-region-through-targeted-reviewer-elicitation) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
@@ -19,7 +21,7 @@ A fresh builder must read these sources before cutting or implementing this clus
 - [`packages/core/src/prompts/SYSTEM.md`](../../packages/core/src/prompts/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md) — current foreground lifecycle and workpiece correction behavior.
 - [`apps/brunch-agent/test/petrinaut-chat.test.ts`](../../../../../apps/brunch-agent/test/petrinaut-chat.test.ts), [`apps/brunch-agent/test/headless-petrinaut-client.test.ts`](../../../../../apps/brunch-agent/test/headless-petrinaut-client.test.ts), and [`packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts) — current real door, bounded mutation subset, and its limits.
 - [`9-traceable-projection.md`](9-traceable-projection.md) — repeat, changed-input, retirement, and impact-boundary semantics this draft inherits. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
-- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — local application contract and the still-open infrastructure proof that any deployed durability claim must consume.
+- [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) — local application contract after #9495/#9487/#9573 and the still-open infrastructure proof that any deployed durability claim must consume. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`.
 
 ## Visible product advance
 
@@ -147,7 +149,7 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 - Upstream source exit: the genuine persona or human conversation, its settled workpiece revisions, and the adjudication accepted by Mission 7; Mission 4 itself supplies no full-run candidate and the Mission 6 prepared fixture is not promoted.
 - Mission 7: the constructed region, settled revisions, declared basis, transition records, identity epochs, passage policy, reconciliation, recorded roles, and the why operation with its gates.
 - Mission 9: the extended region, canonical mutation surface, repeat and changed-input identity evidence, retirement semantics, impact boundary, and accepted unsupported or partial behaviour.
-- Mission 8: consume the actual application contract—fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, content-free OTel, restricted routes, liveness, singleton ownership policy—but do not imply it is deployed. The infrastructure handoff, real RDS/Anthropic/collector/replacement/rollback proof, and owner acceptance remain required before an outer deployed claim.
+- Mission 8: consume the [current application contract](../../MISSION.next.md#mission-8-consumed-deployment-contract)—published ECS-startable image, fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, shared content-free OTel, `/agents/*` product door, private `/health`, singleton ownership policy—but do not imply it is deployed. SRE-1013, the remote proof matrix, and owner acceptance remain required before an outer deployed claim.
 - Mission 11: receives only an accepted final workpiece/net/evidence/derivation revision package and the six-beat real-path evidence; its consumer contract may not weaken Mission 10's revision-integrity closure.
 
 ## Risks and assumptions

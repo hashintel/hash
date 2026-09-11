@@ -17,11 +17,9 @@ import { observe } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
 
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  isAwaitingClient,
-} from "../../conversation/client-tools.ts";
+import { isAwaitingClient } from "../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -50,15 +48,14 @@ const MAX_CLIENT_ROUNDS = Number(
 
 const irPath = fileURLToPath(
   new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
+    "../../../../../libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/filled-runbook.ir.md",
     import.meta.url,
   ),
 );
-const defaultOutputDirectory = fileURLToPath(
-  new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/",
-    import.meta.url,
-  ),
+const appRoot = fileURLToPath(new URL("../../..", import.meta.url));
+const defaultOutputDirectory = join(
+  appRoot,
+  ".data-wipe-me/evaluations/vestera-runbook-headless",
 );
 const outputDirectory =
   process.env.BRUNCH_RUNBOOK_OUTPUT_DIR ?? defaultOutputDirectory;
@@ -215,12 +212,7 @@ try {
     }
 
     const admission = await client.send({
-      message: {
-        kind: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
-        body: JSON.stringify(results),
-      },
+      message: clientToolResultSignal(results),
     });
     await client.wait(admission);
     return serviceClientCalls(clientRound + 1);

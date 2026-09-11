@@ -2,6 +2,8 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
+**Demo allocation:** [Mission 7b](7b-september-demo.md) requires database-seeded substantial worked scenarios, broad flagship explanation readiness, ordinary correction/reopen and a persona-driven construction recording. A scenario-specific dynamics policy and meaningful simulation enter when the agreed flagship claim is executable; neither alone is optimisation. This draft's general optimisation support, accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions remain after 7b unless Lu explicitly adds that tier to the demo.
+
 ## Cold-start reads
 
 - [FE-1503](https://linear.app/hash/issue/FE-1503/hand-one-accepted-sdcpn-to-an-optimisation-experiment) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
@@ -14,7 +16,7 @@ A fresh builder must read these durable sources before deepening this cluster:
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
 - [`../../../petrinaut-core/src/file-format/serialize-sdcpn.ts`](../../../petrinaut-core/src/file-format/serialize-sdcpn.ts), [`../../../petrinaut-core/src/optimization.ts`](../../../petrinaut-core/src/optimization.ts), and [`../../../petrinaut/docs/optimization.md`](../../../petrinaut/docs/optimization.md) — existing Petrinaut terrain to inspect with the consumers, not a preselected handoff boundary.
-- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — locally verified application contract and explicit application-to-infrastructure stop.
+- [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) — locally verified application artifact after #9495/#9487/#9573 and explicit application-to-infrastructure stop; remote infrastructure, replacement, collector, rollback, and acceptance remain open. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`.
 - The written Chris/Yannis consumer contract and accepted fixture, once they exist. Their absence is the fog-line, not permission to infer topology from current source.
 
 ## Visible product advance
@@ -109,7 +111,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 - Existing Petrinaut serialization, scenario, optimization, and UI contracts are terrain to inspect with Chris and Yannis. Their tests establish only what the current product can represent or execute; they do not establish acceptance, package shape, or experiment credibility.
 - Accepted Missions 7, 9, and 10 artifacts must provide the exact conversation, bounded workpiece revisions, captures, derivations, mutation trace, revised region, revision disposition, and deployed witness from which Mission 11 broadens. Their eventual archive/evidence paths replace these draft joins.
-- The pinned Mission 8 handoff proves a local application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
+- The [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) proves a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
 - **ORACLE GAP — consumer contract:** record Chris and Yannis' acceptance of all six decisions and one concrete fixture before this draft is cut.
 - **ORACLE GAP — selected complete model:** the consumer question must expose what completeness and credibility mean for this SDCPN; name the exact human or executable oracle only after that question exists.
 - **ORACLE GAP — outer handoff:** the accepted contract must name the witnessed action and observation that distinguish “can begin the experiment” from receipt of an unusable artifact.
@@ -125,7 +127,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - Selected upstream source: the genuine conversation, settled workpiece revisions, and adjudication accepted by Mission 7; Mission 4 itself closed without a full-run candidate and the Mission 6 prepared fixture is not promoted.
 - Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, transition records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
 - Early consumer discovery: the non-binding record of one candidate question, minimum semantics, execution boundary, outputs, and credibility checks gathered before Mission 9's region selection.
-- Mission 8 actual contract: locally verified application artifact plus still-open infrastructure handoff; no remote deployment is assumed.
+- Mission 8 actual contract: published ECS-startable application artifact plus still-open SRE-1013 / remote-proof handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.
 - Petrinaut: current serialization, scenario, optimization, and host capabilities are inspected as existing terrain and used only where the consumer contract accepts them.
 

@@ -1,7 +1,7 @@
 # ADR-0008: Repertoire and plugin contract live in core
 
 Date: 2026-08-26
-Status: accepted 2026-08-26 (Lu)
+Status: historical; superseded for current implementation by the final [Mission 4 architecture](../mission-archive/4-core-plugin-elicitation-proof-of-life.md). The YAML repertoire/plugin-contract machinery was removed.
 Amends: [ADR-0007](0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
 decision 8 (`packages/repertoire` is replaced by a guarded core subpath)
 Preserves: ADR-0007 decisions 1–7 and 9; the repertoire remains harness-owned,

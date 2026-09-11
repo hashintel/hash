@@ -78,7 +78,10 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(
       `postgres(createPostgresRunner(config, shutdownBrunchTelemetry))`,
     );
-    expect(bundle).toContain("Production database configuration requires");
+    expect(bundle).toContain("Postgres database configuration requires");
+    expect(bundle).toContain(
+      String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,
+    );
     // SQLite remains available to local/test execution only.
     expect(bundle).toContain("BRUNCH_DEV_DB_PATH");
     expect(bundle).toContain(".data-wipe-me");

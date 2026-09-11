@@ -11,11 +11,12 @@ Close evidence:
 
 Proof items 1–5 and 8 are established through the real production agent path. Item 7 is established for the elicitation workpiece as an explicitly partial, epistemically marked artifact. Item 6 is not established for real-model construction: the construct-only paid run made nine malformed nested `addType.elements` calls and produced a vacuously parser-valid empty net. The hermetic non-empty fixture proves packaging and callback validation, not model semantic fidelity. Construction-discovered return to elicitation also remains unexercised.
 
-Required design input:
-[`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md).
-The specification defines the meaning and first architecture of the runbook; this mission decides
-what to build and prove. If the real path contradicts the design, stop and surface the evidence
-rather than satisfying the document by construction.
+Required design input at the time of this mission:
+`docs/specs/structurally-typed-elicitation-runbooks.md` (removed from the living tree on
+2026-09-07; last copy `69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/structurally-typed-elicitation-runbooks.md`).
+The specification defined the meaning and first architecture of the runbook; this mission decided
+what to build and prove. If the real path contradicted the design, the instruction was to stop
+and surface the evidence rather than satisfying the document by construction.
 
 Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is the canonical
 draft of upcoming work, not a mission; do not implement it. Host-continuity work, Petrinaut
@@ -102,8 +103,8 @@ runbook helped, failed, or created attention strain. A fluent conversation by it
 
 ## Constraints
 
-- Consume
-  [`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md):
+- Consume the historical runbook spec (last copy
+  `69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/structurally-typed-elicitation-runbooks.md`):
   broad runbook definition, structural-before-semantic typing, universal + target-formalism
   authorship, one-agent lifecycle, one skill, and lazy phase-specific reference.
 - Mission 1's chat door stays the door: Petrinaut panel → `transport-aisdk` → Flue `ChatAgent`.

@@ -12,9 +12,11 @@ export type PendingAffordanceDecision =
   | { readonly ok: true; readonly pending: FreeTextAffordance }
   | { readonly ok: false; readonly reason: string };
 
+export const REPLY_BOUND_SIGNAL_TAG = "affordance-reply-bound";
+
 export interface ReplyBindingSignalPayload {
-  readonly type: "affordance-reply-bound";
-  readonly tagName: "affordance-reply-bound";
+  readonly type: typeof REPLY_BOUND_SIGNAL_TAG;
+  readonly tagName: typeof REPLY_BOUND_SIGNAL_TAG;
   readonly body: string;
   readonly attributes: { readonly affordanceId: string };
 }
@@ -56,8 +58,8 @@ export function buildReplyBindingSignalPayload(
   pending: FreeTextAffordance,
 ): ReplyBindingSignalPayload {
   return {
-    type: "affordance-reply-bound",
-    tagName: "affordance-reply-bound",
+    type: REPLY_BOUND_SIGNAL_TAG,
+    tagName: REPLY_BOUND_SIGNAL_TAG,
     body: `The immediately preceding user message is mechanically bound as the reply to this pending affordance:\n\n${pending.markdown}`,
     attributes: { affordanceId: pending.id },
   };

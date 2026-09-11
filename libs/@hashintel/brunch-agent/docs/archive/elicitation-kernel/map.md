@@ -1,8 +1,12 @@
 # Map: Elicitation Kernel — carve-out spec
 
+> Historical 2026-08-10 wayfinder. The assembled kernel spec it points at was removed from
+> `docs/specs/` on 2026-09-07; last living copy
+> `69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/elicitation-kernel.md`.
+
 Label: wayfinder:map
-Status: closed — destination reached 2026-08-10 (the spec is assembled:
-[spec.md](../../specs/elicitation-kernel.md))
+Status: closed — destination reached 2026-08-10 (the spec was assembled, then later removed
+from the living tree)
 Created: 2026-08-06
 
 ## Destination

@@ -3,7 +3,8 @@
 Date: 2026-08-13
 Status: accepted
 Amended: 2026-08-20 by ADR-0004 / FE-1437 (HASH package namespace)
-Supersedes: spec [§12.3](../specs/elicitation-kernel.md#123-naming--tool-namespacing) in part
+Supersedes: historical kernel spec §12.3 in part (last living copy
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/elicitation-kernel.md`)
 Decided on: FE-1388
 
 ## Context

@@ -1,5 +1,11 @@
-import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import { canonicalJsonEquals } from "./canonical-json";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  parseClientToolResults,
+  type ClientToolResult,
+} from "./client-tool-result";
 
+import type { ClientToolProjectionOptions } from "./ui-stream";
 import type {
   FlueConversationMessage,
   FlueConversationPart,
@@ -10,28 +16,20 @@ import type { UIMessage } from "ai";
 type UiMessagePart = UIMessage["parts"][number];
 
 export interface UiHistoryMessageMetadata {
-  readonly source?: "voice";
+  readonly source?: ClientToolResult["source"];
   readonly voiceToolCallIds?: readonly string[];
   readonly stopped?: true;
 }
 
+/** A reopened transcript never carries `system` messages. */
 export type UiHistoryMessage = Omit<
   UIMessage<UiHistoryMessageMetadata>,
-  "metadata" | "parts" | "role"
+  "role"
 > & {
-  metadata?: UiHistoryMessageMetadata;
   role: Extract<UIMessage["role"], "assistant" | "user">;
-  parts: UiMessagePart[];
 };
 
-export interface SnapshotToUiMessagesOptions {
-  readonly clientToolNames: ReadonlySet<string>;
-  readonly mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-  }) => unknown;
-  readonly hiddenToolNames?: ReadonlySet<string>;
-}
+export type SnapshotToUiMessagesOptions = ClientToolProjectionOptions;
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -42,19 +40,17 @@ const isFlueDataPart = (
 ): part is Extract<FlueConversationPart, { type: `data-${string}` }> =>
   part.type.startsWith("data-");
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-interface ClientToolResult {
-  readonly output: unknown;
-  readonly source?: "voice";
-}
+/** The delivered result as history sees it, plus whether later deliveries disagreed. */
+type ReconciledClientToolResult = Pick<
+  ClientToolResult,
+  "output" | "source" | "metadata"
+> & { readonly conflict?: true };
 
 const clientToolResultsFrom = (
   snapshot: Pick<FlueConversationState, "messages">,
   signalName: string,
-): ReadonlyMap<string, ClientToolResult> => {
-  const resultsByCallId = new Map<string, ClientToolResult>();
+): ReadonlyMap<string, ReconciledClientToolResult> => {
+  const resultsByCallId = new Map<string, ReconciledClientToolResult>();
   for (const message of snapshot.messages) {
     if (message.purpose !== "dispatch") continue;
     if (message.signal?.tagName !== signalName) continue;
@@ -65,24 +61,20 @@ const clientToolResultsFrom = (
       )
       .map((part) => part.text)
       .join("");
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(text) as unknown;
-    } catch {
-      continue;
-    }
-    if (!Array.isArray(parsed)) continue;
-    for (const result of parsed) {
-      if (
-        !isRecord(result) ||
-        typeof result.toolCallId !== "string" ||
-        !("output" in result)
-      ) {
-        continue;
-      }
+    for (const result of parseClientToolResults(text)) {
+      const previous = resultsByCallId.get(result.toolCallId);
+      const conflict =
+        previous?.conflict === true ||
+        (previous !== undefined &&
+          (!canonicalJsonEquals(previous.output, result.output) ||
+            !canonicalJsonEquals(previous.metadata, result.metadata)));
       resultsByCallId.set(result.toolCallId, {
-        output: result.output,
-        ...(result.source === "voice" ? { source: "voice" } : {}),
+        output: previous === undefined ? result.output : previous.output,
+        metadata: previous === undefined ? result.metadata : previous.metadata,
+        ...(result.source === "voice" || previous?.source === "voice"
+          ? { source: "voice" }
+          : {}),
+        ...(conflict ? { conflict: true } : {}),
       });
     }
   }
@@ -92,17 +84,31 @@ const clientToolResultsFrom = (
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   options: SnapshotToUiMessagesOptions,
-  clientResults: ReadonlyMap<string, ClientToolResult>,
+  clientResults: ReadonlyMap<string, ReconciledClientToolResult>,
 ): UiMessagePart => {
   const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
   const input =
-    isClientTool && options.mapClientToolInput !== undefined
+    isClientTool &&
+    (!options.validatedClientToolNames?.has(part.toolName) ||
+      part.state === "output-available") &&
+    options.mapClientToolInput !== undefined
       ? options.mapClientToolInput({
           input: part.input,
           toolName: part.toolName,
+          toolCallId: part.toolCallId,
         })
       : part.input;
+  if (clientResults.get(part.toolCallId)?.conflict) {
+    return {
+      type: `tool-${part.toolName}`,
+      toolCallId: part.toolCallId,
+      state: "output-error",
+      input,
+      errorText:
+        "Conflicting browser result deliveries; the outcome is unknown. Do not reapply.",
+    };
+  }
   if (part.state === "output-error") {
     return {
       type: `tool-${part.toolName}`,
@@ -111,6 +117,19 @@ const toolPartFrom = (
       input,
       errorText: part.errorText,
       ...(isClientTool ? {} : { providerExecuted: true }),
+    };
+  }
+  if (
+    isClientTool &&
+    !hasClientOutput &&
+    part.state !== "output-available" &&
+    options.validatedClientToolNames?.has(part.toolName)
+  ) {
+    return {
+      type: `tool-${part.toolName}`,
+      toolCallId: part.toolCallId,
+      state: "input-streaming",
+      input,
     };
   }
   if (isClientTool && !hasClientOutput) {
@@ -148,7 +167,7 @@ const toolPartFrom = (
 const partsFrom = (
   message: FlueConversationMessage,
   options: SnapshotToUiMessagesOptions,
-  clientResults: ReadonlyMap<string, ClientToolResult>,
+  clientResults: ReadonlyMap<string, ReconciledClientToolResult>,
 ): UiMessagePart[] => {
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {
