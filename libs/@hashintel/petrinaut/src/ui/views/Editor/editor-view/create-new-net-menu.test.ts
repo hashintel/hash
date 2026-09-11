@@ -1,12 +1,36 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createNewNetMenuItem } from "./create-new-net-menu";
+import {
+  createNewNetMenuItem,
+  shouldShowBrunchCreateNew,
+} from "./create-new-net-menu";
 
 describe("createNewNetMenuItem", () => {
-  test("keeps a single New action when no assistant is mounted", () => {
+  test("requires both the Brunch demo flag and a mounted assistant", () => {
+    expect(
+      shouldShowBrunchCreateNew({
+        brunchDemoMode: false,
+        hasAiAssistant: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowBrunchCreateNew({
+        brunchDemoMode: true,
+        hasAiAssistant: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowBrunchCreateNew({
+        brunchDemoMode: true,
+        hasAiAssistant: true,
+      }),
+    ).toBe(true);
+  });
+
+  test("keeps a single New action when Brunch options are disabled", () => {
     const onStartBlank = vi.fn();
     const item = createNewNetMenuItem({
-      hasAiAssistant: false,
+      showBrunchOptions: false,
       onBuildWithBrunch: vi.fn(),
       onStartBlank,
     });
@@ -23,11 +47,11 @@ describe("createNewNetMenuItem", () => {
     expect(onStartBlank).toHaveBeenCalledOnce();
   });
 
-  test("offers Build with Brunch or Start blank when an assistant is mounted", () => {
+  test("offers Build with Brunch or Start blank when enabled", () => {
     const onBuildWithBrunch = vi.fn();
     const onStartBlank = vi.fn();
     const item = createNewNetMenuItem({
-      hasAiAssistant: true,
+      showBrunchOptions: true,
       onBuildWithBrunch,
       onStartBlank,
     });

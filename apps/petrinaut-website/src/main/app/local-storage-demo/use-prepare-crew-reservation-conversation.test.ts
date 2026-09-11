@@ -5,27 +5,35 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 import {
-  shouldPrepareCrewReservationConversation,
+  selectCrewReservationPreparationBrowser,
   usePrepareCrewReservationConversation,
 } from "./use-prepare-crew-reservation-conversation";
 
 import type { FlueClient } from "@flue/sdk";
 
 test("keeps ordinary batched construction off the prepared-fixture dispatch", () => {
+  const tracerBrowser = {
+    binding: "fixture",
+    requestedBaseHash: "abc",
+  };
+
   expect(
-    shouldPrepareCrewReservationConversation(true, {
+    selectCrewReservationPreparationBrowser(true, {
       requestedBaseHash: "abc",
     }),
-  ).toBe(false);
-  expect(shouldPrepareCrewReservationConversation(true, undefined)).toBe(false);
+  ).toBeUndefined();
   expect(
-    shouldPrepareCrewReservationConversation(false, {
-      requestedBaseHash: "abc",
-    }),
-  ).toBe(true);
-  expect(shouldPrepareCrewReservationConversation(false, undefined)).toBe(
-    false,
+    selectCrewReservationPreparationBrowser(true, undefined),
+  ).toBeUndefined();
+  expect(selectCrewReservationPreparationBrowser(false, tracerBrowser)).toBe(
+    tracerBrowser,
   );
+  expect(
+    selectCrewReservationPreparationBrowser(false, { construction: true }),
+  ).toBeUndefined();
+  expect(
+    selectCrewReservationPreparationBrowser(false, undefined),
+  ).toBeUndefined();
 });
 
 test("reports preparation failure without rejecting the shared client", async () => {

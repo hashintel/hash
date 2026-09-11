@@ -12,6 +12,7 @@ import {
   parseObservedStateInput,
   type BrowserBinding,
   type ConstructionMutationRequest,
+  type ObservedConstructionMutationName,
   type DefinitionObservation,
   reconcileMutationAttempts,
   verifyMutationAttempt,
@@ -237,7 +238,7 @@ export const verifyRootArcResults = async (input: {
         )
       )
         return;
-      const name = call.toolName as ConstructionMutationRequest["toolName"];
+      const name = call.toolName as ObservedConstructionMutationName;
       const { brunch, ...canonicalInput } = input.observationFor
         ? isObservedNodeMutation(name)
           ? parseObservedNodeInput(name, call.input)

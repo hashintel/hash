@@ -13,6 +13,7 @@ import {
   reconcileMutationAttempts,
   verifyMutationAttempt,
   type ConstructionMutationRequest,
+  type ObservedConstructionMutationName,
   isObservedNodeMutation,
   parseObservedNodeInput,
   expectedNodeDefinition,
@@ -355,7 +356,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
       )
     )
       return call.input;
-    const name = call.toolName as ConstructionMutationRequest["toolName"];
+    const name = call.toolName as ObservedConstructionMutationName;
     const { brunch, ...canonicalInput } = input.construction
       ? isObservedNodeMutation(name)
         ? parseObservedNodeInput(name, call.input)

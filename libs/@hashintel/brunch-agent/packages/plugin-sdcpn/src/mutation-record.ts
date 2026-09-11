@@ -10,13 +10,14 @@ import {
 import { sha256Pattern } from "./declared-basis";
 import {
   browserBindingSchema,
-  isObservedArcMutation,
+  type BatchedArcMutationName,
+  isBatchedArcMutation,
   type ObservedArcMutationName,
 } from "./root-arc";
 import {
   assertNodeIdentity,
   isBatchedNodeMutation,
-  isObservedNodeMutation,
+  type BatchedNodeMutationName,
   type ObservedNodeMutationName,
 } from "./root-node";
 import {
@@ -42,10 +43,14 @@ export type ArcMutationRequest = {
   observationToolCallId?: string;
 };
 
-export type ConstructionMutationName =
+export type ObservedConstructionMutationName =
   | ObservedArcMutationName
   | ObservedNodeMutationName
   | ObservedStateMutationName;
+export type ConstructionMutationName =
+  | ObservedConstructionMutationName
+  | BatchedArcMutationName
+  | BatchedNodeMutationName;
 
 export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
@@ -212,7 +217,8 @@ export const deriveMutationEffects = (
   const transitionIndex = pre.transitions.findIndex(
     (transition) => transition.id === input.transitionId,
   );
-  const transition = post.transitions[transitionIndex];
+  const arcSource = request.toolName === "removeArc" ? pre : post;
+  const transition = arcSource.transitions[transitionIndex];
   const direction = input.arcDirection === "input" ? "inputArcs" : "outputArcs";
   const arcIndex =
     transition !== undefined && transition.id === input.transitionId
@@ -322,6 +328,21 @@ export const expectedNodeDefinition = (
     case "updateScenario":
       actions.updateScenario(
         mutationActionInputSchemas.updateScenario.parse(request.input),
+      );
+      break;
+    case "removePlace":
+      actions.removePlace(
+        mutationActionInputSchemas.removePlace.parse(request.input),
+      );
+      break;
+    case "removeTransition":
+      actions.removeTransition(
+        mutationActionInputSchemas.removeTransition.parse(request.input),
+      );
+      break;
+    case "removeArc":
+      actions.removeArc(
+        mutationActionInputSchemas.removeArc.parse(request.input),
       );
       break;
     default:
@@ -436,11 +457,16 @@ const deriveNodeEffects = (
           ? undefined
           : (actualNode as unknown as Record<string, unknown>)[field];
       const direct =
-        (state !== undefined || index >= 0) &&
-        effect.path.startsWith(`${path}/`) &&
-        field !== undefined &&
-        Object.hasOwn(expected, field) &&
-        canonicalContent(expectedField) === canonicalContent(actualField);
+        (!creating &&
+          input !== undefined &&
+          !("update" in input) &&
+          effect.kind === "deleted" &&
+          effect.path === path) ||
+        ((state !== undefined || index >= 0) &&
+          effect.path.startsWith(`${path}/`) &&
+          field !== undefined &&
+          Object.hasOwn(expected, field) &&
+          canonicalContent(expectedField) === canonicalContent(actualField));
       effects[direct ? effect.kind : "derived"].push(effect);
     }
   }
@@ -500,7 +526,8 @@ export const classifyMutationOutcome = (
     return { outcome: unchanged ? "stale" : "unknown" };
   if (unchanged) return { outcome: "no-op" };
   if (
-    isObservedNodeMutation(attempt.request.toolName) ||
+    isBatchedNodeMutation(attempt.request.toolName) ||
+    attempt.request.toolName === "removeArc" ||
     isObservedStateMutation(attempt.request.toolName)
   ) {
     try {
@@ -634,8 +661,8 @@ export const verifyMutationAttempt = async <
   // Validate a detached delivery: callers cannot change the content while hashes settle.
   const attempt = structuredClone(delivery);
   if (
-    (!isObservedArcMutation(attempt.request.toolName) &&
-      !isObservedNodeMutation(attempt.request.toolName) &&
+    (!isBatchedArcMutation(attempt.request.toolName) &&
+      !isBatchedNodeMutation(attempt.request.toolName) &&
       !isObservedStateMutation(attempt.request.toolName)) ||
     !sha256Pattern.test(attempt.request.requestedBaseHash) ||
     [

@@ -178,6 +178,49 @@ describe("mutate_petrinet automatic host tool", () => {
       "applied",
       "applied",
     ]);
+    const removedPlace = output.outcomes.find(
+      ({ operationId }) => operationId === removePlace.operationId,
+    );
+    const removedTransition = output.outcomes.find(
+      ({ operationId }) => operationId === removeTransition.operationId,
+    );
+    if (removedPlace?.status !== "applied") {
+      throw new Error("Expected an applied place removal.");
+    }
+    if (removedTransition?.status !== "applied") {
+      throw new Error("Expected an applied transition removal.");
+    }
+    expect(
+      removedPlace.effects.map(({ classification, kind, path }) => ({
+        classification,
+        kind,
+        path,
+      })),
+    ).toEqual([
+      {
+        classification: "direct",
+        kind: "deleted",
+        path: "/places/0",
+      },
+      {
+        classification: "derived",
+        kind: "deleted",
+        path: "/transitions/0/inputArcs/0",
+      },
+    ]);
+    expect(
+      removedTransition.effects.map(({ classification, kind, path }) => ({
+        classification,
+        kind,
+        path,
+      })),
+    ).toEqual([
+      {
+        classification: "direct",
+        kind: "deleted",
+        path: "/transitions/0",
+      },
+    ]);
     expect(instance.definition.get()).toMatchObject({
       places: [],
       transitions: [],
@@ -203,6 +246,23 @@ describe("mutate_petrinet automatic host tool", () => {
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual(["applied"]);
+    const outcome = output.outcomes.at(0);
+    if (outcome?.status !== "applied") {
+      throw new Error("Expected an applied arc removal.");
+    }
+    expect(
+      outcome.effects.map(({ classification, kind, path }) => ({
+        classification,
+        kind,
+        path,
+      })),
+    ).toEqual([
+      {
+        classification: "direct",
+        kind: "deleted",
+        path: "/transitions/0/inputArcs/0",
+      },
+    ]);
     expect(instance.definition.get()).toMatchObject({
       places: [{ id: "queue" }],
       transitions: [{ id: "start", inputArcs: [], outputArcs: [] }],

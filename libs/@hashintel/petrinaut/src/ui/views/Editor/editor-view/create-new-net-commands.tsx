@@ -6,12 +6,12 @@ import { useCommand } from "../../../../react/commands/command-registry";
  */
 export const CreateNewNetCommands = ({
   enabled,
-  hasAiAssistant,
+  showBrunchOptions,
   onBuildWithBrunch,
   onStartBlank,
 }: {
   enabled: boolean;
-  hasAiAssistant: boolean;
+  showBrunchOptions: boolean;
   onBuildWithBrunch: () => void;
   onStartBlank: () => void;
 }) => {
@@ -23,7 +23,7 @@ export const CreateNewNetCommands = ({
       keywords: ["new", "file", "assistant", "empty"],
       run: onBuildWithBrunch,
     },
-    { when: enabled && hasAiAssistant },
+    { when: enabled && showBrunchOptions },
   );
   useCommand(
     {

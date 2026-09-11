@@ -1,15 +1,23 @@
 import type { MenuItem } from "@hashintel/ds-components";
 
-export const createNewNetMenuItem = ({
+export const shouldShowBrunchCreateNew = ({
+  brunchDemoMode,
   hasAiAssistant,
+}: {
+  brunchDemoMode: boolean;
+  hasAiAssistant: boolean;
+}): boolean => brunchDemoMode && hasAiAssistant;
+
+export const createNewNetMenuItem = ({
+  showBrunchOptions,
   onBuildWithBrunch,
   onStartBlank,
 }: {
-  hasAiAssistant: boolean;
+  showBrunchOptions: boolean;
   onBuildWithBrunch: () => void;
   onStartBlank: () => void;
 }): MenuItem => {
-  if (!hasAiAssistant) {
+  if (!showBrunchOptions) {
     return {
       id: "new",
       text: "New",

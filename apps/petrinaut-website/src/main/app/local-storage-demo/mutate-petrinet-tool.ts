@@ -118,8 +118,8 @@ const executeCanonicalMutation = (
       instance.mutations.removeArc(operation.input);
       break;
     default: {
-      const exhaustive: never = operation;
-      throw new Error(`Unsupported mutate_petrinet operation ${exhaustive}`);
+      operation satisfies never;
+      throw new Error("Unsupported mutate_petrinet operation");
     }
   }
 };

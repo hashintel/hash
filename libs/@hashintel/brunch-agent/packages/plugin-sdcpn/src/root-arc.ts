@@ -19,6 +19,15 @@ export const isObservedArcMutation = (
   name: string,
 ): name is ObservedArcMutationName =>
   observedArcMutationNames.some((entry) => entry === name);
+export const batchedArcMutationNames = [
+  ...observedArcMutationNames,
+  "removeArc",
+] as const;
+export type BatchedArcMutationName = (typeof batchedArcMutationNames)[number];
+export const isBatchedArcMutation = (
+  name: string,
+): name is BatchedArcMutationName =>
+  batchedArcMutationNames.some((entry) => entry === name);
 
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */
 export const rootArcWhyInputSchema = v.strictObject({

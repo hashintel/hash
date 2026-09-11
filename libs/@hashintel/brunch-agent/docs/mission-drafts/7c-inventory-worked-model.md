@@ -1,6 +1,6 @@
-# Draft Mission 7c — Inventory worked-model capability
+# Draft Mission 7c — Inventory worked-model capability and provenance (FE-1573 / FE-1478)
 
-> Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`. Lu has explicitly extended FE-1573's branch/PR exception to admit a third Mission 7 delivery; that exception does not make this draft live.
+> Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`. Lu has explicitly extended FE-1573's branch/PR exception to admit a third Mission 7 delivery; that exception does not make this draft live. The mission is also the next partial delivery against [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph), carrying reliable ordinary why traversal and Inventory-scale provenance without implying that one worked-model demonstration closes the broader requirements-graph outcome.
 
 ## Cold-start reads
 

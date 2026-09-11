@@ -51,7 +51,10 @@ import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
-import { createNewNetMenuItem } from "./editor-view/create-new-net-menu";
+import {
+  createNewNetMenuItem,
+  shouldShowBrunchCreateNew,
+} from "./editor-view/create-new-net-menu";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -174,10 +177,15 @@ export const EditorView = ({
   const [offerStartPosture, setOfferStartPosture] = useState(false);
 
   const {
+    brunchDemoMode,
     enableNotebookView,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
+  const showBrunchCreateNew = shouldShowBrunchCreateNew({
+    brunchDemoMode,
+    hasAiAssistant: aiAssistant !== undefined,
+  });
   const walkthrough = use(WalkthroughContext);
 
   // Shared with useReadOnlyReason so the rendered view and the mutation
@@ -301,7 +309,7 @@ export const EditorView = ({
     ...(showNetManagementMenuItems
       ? [
           createNewNetMenuItem({
-            hasAiAssistant: aiAssistant !== undefined,
+            showBrunchOptions: showBrunchCreateNew,
             onBuildWithBrunch: handleBuildWithBrunch,
             onStartBlank: handleStartBlank,
           }),
@@ -482,7 +490,7 @@ export const EditorView = ({
       <EditorCommands />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
-        hasAiAssistant={aiAssistant !== undefined}
+        showBrunchOptions={showBrunchCreateNew}
         onBuildWithBrunch={handleBuildWithBrunch}
         onStartBlank={handleStartBlank}
       />

@@ -29,6 +29,7 @@ export {
   type BrowserBinding,
   type ClientToolResultMetadata,
   type ConstructionMutationName,
+  type ObservedConstructionMutationName,
   type ConstructionMutationRequest,
   type ConstructionMutationAttempt,
   type ConstructionMutationRecord,
@@ -58,6 +59,7 @@ export {
   batchedConstructionMode,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
+  type MutatePetrinetOperation,
 } from "./mutate-petrinet";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {

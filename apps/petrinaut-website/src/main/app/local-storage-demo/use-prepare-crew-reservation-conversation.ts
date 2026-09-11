@@ -8,12 +8,26 @@ export type CrewReservationPreparationStatus =
   | { readonly state: "idle" | "preparing" | "ready" }
   | { readonly error: string; readonly state: "failed" };
 
+const hasRequestedBaseHash = <Browser extends object>(
+  browser: Browser,
+): browser is Browser & { readonly requestedBaseHash: string } =>
+  "requestedBaseHash" in browser &&
+  typeof browser.requestedBaseHash === "string";
+
 /** The joined prepared-fixture tracer only; ordinary batched construction must not inherit it. */
-export const shouldPrepareCrewReservationConversation = (
+export const selectCrewReservationPreparationBrowser = <Browser extends object>(
   batchedConstruction: boolean,
-  browser: { readonly requestedBaseHash?: string } | undefined,
-): boolean =>
-  !batchedConstruction && typeof browser?.requestedBaseHash === "string";
+  browser: Browser | undefined,
+): (Browser & { readonly requestedBaseHash: string }) | undefined => {
+  if (
+    batchedConstruction ||
+    browser === undefined ||
+    !hasRequestedBaseHash(browser)
+  ) {
+    return undefined;
+  }
+  return browser;
+};
 
 export const usePrepareCrewReservationConversation = (
   clientPromise: Promise<FlueClient> | null,

@@ -112,7 +112,7 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import {
-  shouldPrepareCrewReservationConversation,
+  selectCrewReservationPreparationBrowser,
   usePrepareCrewReservationConversation,
 } from "./use-prepare-crew-reservation-conversation";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
@@ -788,14 +788,15 @@ export const LocalStorageDemoApp = ({
         : undefined,
     [rootArcBrowser, activeHandle, reportBrunchFailure],
   );
-  const rootArcPreparation = shouldPrepareCrewReservationConversation(
+  const rootArcPreparationBrowser = selectCrewReservationPreparationBrowser(
     batchedConstructionSelected,
     rootArcBrowser,
   );
+  const rootArcPreparation = rootArcPreparationBrowser !== undefined;
   const tracerPreparation = usePrepareCrewReservationConversation(
     flueClientPromise,
     rootArcPreparation,
-    rootArcPreparation ? rootArcBrowser : undefined,
+    rootArcPreparationBrowser,
   );
   const constructionClientTools = batchedConstructionSelected
     ? batchedConstructionClientToolNames

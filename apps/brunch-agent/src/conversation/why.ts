@@ -15,6 +15,7 @@ import {
   parseObservedNodeInput,
   isObservedNodeMutation,
   type ConstructionMutationRequest,
+  type ObservedConstructionMutationName,
   parseJoinedRootArcInput,
   parseObservedArcInput,
   reconcileMutationAttempts,
@@ -248,7 +249,7 @@ export const explainRootArc = async (input: {
           });
           continue;
         }
-        const name = call.toolName as ConstructionMutationRequest["toolName"];
+        const name = call.toolName as ObservedConstructionMutationName;
         const { brunch, ...canonicalInput } = browser.construction
           ? isObservedNodeMutation(name)
             ? parseObservedNodeInput(name, call.input)

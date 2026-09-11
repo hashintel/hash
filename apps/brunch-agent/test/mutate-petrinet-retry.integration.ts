@@ -1,5 +1,4 @@
 /** Rejected mutate_petrinet must not execute; the accepted retry must land a client-tool-result. */
-/* eslint-disable no-await-in-loop -- Browser settlement is causally serial. */
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -306,13 +305,13 @@ try {
   assert.equal(stored.document.sdcpn.places[0]?.id, "queue");
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
-  console.log(
-    JSON.stringify({
+  process.stdout.write(
+    `${JSON.stringify({
       output,
       mode: batchedConstructionMode,
       rejectedExecuted: false,
       acceptedResult: accepted.toolCallId,
-    }),
+    })}\n`,
   );
 } finally {
   await browser.close();

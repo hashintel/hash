@@ -355,7 +355,9 @@ try {
   );
   assert.equal(batch.postHash, individual.postHash);
   save("comparison", { batch, individual });
-  console.log(JSON.stringify({ output, batch, individual }, null, 2));
+  process.stdout.write(
+    `${JSON.stringify({ output, batch, individual }, null, 2)}\n`,
+  );
 } finally {
   await app.stop();
 }

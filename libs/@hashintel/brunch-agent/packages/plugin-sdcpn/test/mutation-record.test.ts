@@ -18,6 +18,7 @@ import {
   type ArcMutationRequest,
   type ArcMutationAttempt,
   type ConstructionMutationAttempt,
+  type ConstructionMutationRequest,
 } from "../src/mutation-record";
 
 const pre: SDCPN = {
@@ -208,6 +209,54 @@ describe("root addArc transition semantics", () => {
     expect(observedMutationOutcome({ ...attempt, post: undefined })).toBe(
       "unknown",
     );
+  });
+
+  test("verifies a direct place removal and keeps its cascading arc deletion derived", async () => {
+    const before = applied().post!.definition;
+    const removePlaceInput = { placeId: "a3-place" };
+    const removeRequest: ConstructionMutationRequest = {
+      ...request,
+      toolCallId: "remove-place",
+      toolName: "removePlace",
+      requestedBaseHash: observe(before).sha256,
+      input: removePlaceInput,
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.removePlace(removePlaceInput);
+    const post = observe(instance.definition.get());
+    instance.dispose();
+    const attempt: ConstructionMutationAttempt = {
+      request: removeRequest,
+      binding: removeRequest.binding,
+      pre: observe(before),
+      post,
+      outcome: "applied",
+      effects: deriveMutationEffects(removeRequest, before, post.definition),
+    };
+
+    expect(
+      attempt.effects.deleted.map(({ kind, path }) => ({ kind, path })),
+    ).toEqual([
+      {
+        path: "/places/0",
+        kind: "deleted",
+      },
+    ]);
+    expect(
+      attempt.effects.derived.map(({ kind, path }) => ({ kind, path })),
+    ).toEqual([
+      {
+        path: "/transitions/0/inputArcs/0",
+        kind: "deleted",
+      },
+    ]);
+    expect(classifyMutationOutcome(attempt)).toEqual({ outcome: "applied" });
+    await verifyMutationAttempt(attempt);
   });
 
   test("the first verified delivery stands unless a conflicting outcome makes it unknown", () => {

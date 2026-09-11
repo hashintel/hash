@@ -1,12 +1,12 @@
-# Mission 7b — Ordinary batched construction and correction
+# Mission 7b — Ordinary batched construction, correction, and provenance (FE-1573 / FE-1478)
 
 ## Status
 
-**Live on `ln/fe-1573-mission-7b`, stacked on Mission 7a PR [#9562](https://github.com/hashintel/hash/pull/9562) under Lu's explicit FE-1573 multi-PR exception.** Mission 7a remains the workpiece, construction-record and explanation groundwork archived at [`docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md`](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md). Its pending review and merge do not become acceptance through this branch.
+**Live on `ln/fe-1573-mission-7b`, stacked on Mission 7a PR [#9562](https://github.com/hashintel/hash/pull/9562) under Lu's explicit FE-1573 multi-PR exception.** This mission also partially addresses [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph): the batch records declared workpiece basis and canonical direct/derived effects, while reliable ordinary why traversal and Inventory-scale provenance remain with Mission 7c. It does not close FE-1478. Mission 7a remains the workpiece, construction-record and explanation groundwork archived at [`docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md`](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md). Its pending review and merge do not become acceptance through this branch.
 
 Lu recut this mission on 2026-09-11 around the product path actually implemented and observed. Mission 7b no longer claims an Inventory-comparable flagship, worked-model catalogue, Postgres working-copy path, code-bearing SDCPN capability, automatic layout, reliable mechanical why invocation or complete September demo. Those obligations, including the decisions and evidence that led to the split, now have one planning home in [Draft Mission 7c](docs/mission-drafts/7c-inventory-worked-model.md).
 
-The current implementation mounts a selected ordered `mutate_petrinet` carrier on ordinary configured Brunch, constructs and corrects a small connected root net from a settled workpiece, records complete indexed outcomes and effects, attributes failures, reopens the same conversation, and offers an experimental create-new picker. CI is not green and the picker is not yet correctly gated by Petrinaut's `brunchDemoMode`; this mission remains live until those close-out items and external review are resolved.
+The current implementation mounts a selected ordered `mutate_petrinet` carrier on ordinary configured Brunch, constructs and corrects a small connected root net from a settled workpiece, records complete indexed outcomes and effects, attributes failures, reopens the same conversation, and offers a `brunchDemoMode`-gated experimental create-new picker. The four affected packages pass build, unit, TypeScript and ESLint gates in an isolated fresh worktree; both mutation-batch integrations and repository formatting also pass. The published PR checks predate these close-out fixes, so remote CI and external review remain unresolved.
 
 ## Imperative
 
@@ -91,8 +91,8 @@ The selected 7b operation set is root `addPlace`, `addTransition`, `addArc`, `re
 
 ## Fog-line
 
-- CI currently reports branch-owned TypeScript failures around the selected operation exports/types, plus a Petrinaut website lint failure that must be classified against the parent branch before attribution.
-- The picker exists but was unexpectedly exposed whenever any assistant was mounted. `brunchDemoMode` is the existing host-controlled experimental flag and is the selected gate.
+- The published PR checks still report the superseded selected-operation export/type and Petrinaut website lint failures. A fresh remote run after the close-out commit remains the external discriminator.
+- The picker was unexpectedly exposed whenever any assistant was mounted. It is now gated by the existing host-controlled `brunchDemoMode` flag as well as assistant availability; remote review remains.
 - The live ordinary evidence is local-only and not portable; tests prove mechanics, while Lu's observed browser run is the outer witness for this narrow seam.
 - The 25-operation generation proves only the six-operation selected structural schema used in that run. Broader provider/tool selection remains a 7c question.
 - Why remains fluent but mechanically uninvoked. Prompt placement follows 7c's tool-authority/topology decision rather than a 7b patch.
