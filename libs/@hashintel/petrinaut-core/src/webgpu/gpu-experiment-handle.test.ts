@@ -2,13 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { requestGpuExperimentBackend } from "./backend";
 import { createGpuMonteCarloExperiment } from "./gpu-experiment-handle";
+import {
+  outcome,
+  placeAt,
+  shaderAt,
+} from "./gpu-experiment-handle/calibration.test-helpers";
 import { runGpuExperiment } from "./runner";
 
 import type { HirArtifacts } from "../hir-runtime";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuBackend } from "./backend";
 import type { CompiledNetShader } from "./compile-net-shader";
-import type { GpuNetProfile } from "./eligibility";
 import type { GpuExperimentRequest, GpuExperimentResult } from "./runner";
 
 vi.mock("./backend", async (importOriginal) => ({
@@ -29,49 +33,6 @@ const emptyNet: SDCPN = {
   parameters: [],
 };
 
-/** A shader whose only relevant facts are its size and its derived places. */
-const shaderAt = (
-  capacities: ReadonlyMap<string, number>,
-): CompiledNetShader => {
-  const slabWords = [...capacities.values()].reduce(
-    (sum, capacity) => sum + capacity * 2,
-    0,
-  );
-  return {
-    wgsl: "",
-    stateWordsPerRun: 4 + slabWords,
-    summaryWordsPerRun: 2 + capacities.size,
-    placeCountOffsets: [0],
-    placeTokenOffsets: [4],
-    placeTokenStrides: [2],
-    summaryStatusOffset: 1,
-    rngOffset: 2,
-    statusOffset: 3,
-    derivedCapacityPlaceIndices: [...capacities.keys()].map(
-      (_, index) => index,
-    ),
-    metricIds: [],
-    histogramBins: 64,
-    runParameterIds: [],
-    compiledLambdas: [],
-  };
-};
-
-const placeAt = ([id, capacity]: [
-  string,
-  number,
-]): GpuNetProfile["places"][number] => ({
-  id,
-  name: id.toUpperCase(),
-  capacity,
-  capacitySource: "derived",
-  declaredCapacity: 0xffffffff,
-  realFields: ["x", "y"],
-  discreteFields: [],
-  colored: true,
-  pairConsumed: false,
-});
-
 /** A backend with a derived-capacity place per slab and no device behind it. */
 const fakeBackend = (capacities: Record<string, number>): GpuBackend => {
   const derived = new Map(Object.entries(capacities));
@@ -81,36 +42,23 @@ const fakeBackend = (capacities: Record<string, number>): GpuBackend => {
       device: { destroy: () => {}, lost: new Promise(() => {}) },
       info: "fake adapter",
     } as unknown as GpuBackend["handle"],
-    shader: shaderAt(derived),
+    shader: shaderAt(derived, { metricIds: [] }),
     profile: {
-      places: [...derived].map(placeAt),
+      places: [...derived].map((entry) => placeAt(entry)),
       uncolouredOnly: derived.size === 0,
       bytesPerRun: 16,
     },
     derivedCapacities: derived,
-    recompile: (next) => ({ ok: true, shader: shaderAt(next) }),
+    recompile: (next) => ({
+      ok: true,
+      shader: shaderAt(next, { metricIds: [] }),
+    }),
     calibration: new Map(),
     calibrating: new Map(),
     framesPerDispatch: 16,
     warnings: [],
   };
 };
-
-const outcome = (
-  overrides: Partial<GpuExperimentResult> = {},
-): GpuExperimentResult => ({
-  cancelled: false,
-  frames: [],
-  finalPlaceCounts: new Uint32Array(0),
-  deadlockedRuns: 0,
-  completedRuns: 0,
-  overflowRuns: 0,
-  derivedPlaceMaxes: [],
-  dispatchMs: 0,
-  metricRanges: [],
-  metricErrors: [],
-  ...overrides,
-});
 
 type PendingRun = {
   shader: CompiledNetShader;
