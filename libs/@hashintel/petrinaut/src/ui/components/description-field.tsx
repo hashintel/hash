@@ -40,6 +40,7 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
   const canonicalValue = sourceValue ?? "";
   const field = useDraftField({ sourceId, sourceValue: canonicalValue });
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const isReadOnly = useIsReadOnly();
 
   useLayoutEffect(() => {
     const textArea = textAreaRef.current;
@@ -53,7 +54,9 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
     const borderHeight = box.offsetHeight - box.clientHeight;
     const contentHeight = textArea.scrollHeight + borderHeight;
     box.style.height = `${Math.min(Math.max(contentHeight, minHeight), initialMaxHeight)}px`;
-  }, [sourceId]);
+    // A read-only net renders the value as text instead, so the box is
+    // remounted when editing resumes and has to be measured again.
+  }, [sourceId, isReadOnly]);
 
   return (
     <PropertyValue text={sourceValue} emptyText="No description">

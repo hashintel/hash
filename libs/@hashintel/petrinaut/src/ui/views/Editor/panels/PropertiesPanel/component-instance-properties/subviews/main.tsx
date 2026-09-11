@@ -81,7 +81,9 @@ const ComponentInstanceMainContent: React.FC = () => {
         <Form.Field
           label="Name"
           size="sm"
-          errors={nameField.error ? [nameField.error] : undefined}
+          errors={
+            !isDisabled && nameField.error ? [nameField.error] : undefined
+          }
         >
           <PropertyValue text={instance.name}>
             <Tooltip

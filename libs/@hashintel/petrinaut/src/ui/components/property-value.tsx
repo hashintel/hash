@@ -50,10 +50,10 @@ export const PropertyValue = ({
     return children;
   }
 
-  const value = text?.trim();
-
-  return value ? (
-    <div className={valueStyle}>{value}</div>
+  // Trimmed only to decide whether anything is there: the value renders as
+  // authored, because `pre-wrap` is here to keep the author's own formatting.
+  return text?.trim() ? (
+    <div className={valueStyle}>{text}</div>
   ) : (
     <div className={emptyValueStyle}>{emptyText}</div>
   );

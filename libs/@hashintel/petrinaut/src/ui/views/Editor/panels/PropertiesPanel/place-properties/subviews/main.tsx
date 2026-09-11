@@ -154,7 +154,7 @@ const PlaceMainContent: React.FC = () => {
               />
             </Tooltip>
           </PropertyValue>
-          {nameField.error && (
+          {!isReadOnly && nameField.error && (
             <div className={errorMessageStyle}>{nameField.error}</div>
           )}
         </Section>

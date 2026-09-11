@@ -62,7 +62,9 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
       // A read-only field is not a disabled one: its label describes a value
       // the reader can read, so it keeps full contrast.
       disabled={disabled && !isReadOnly}
-      errors={field.error ? [field.error] : undefined}
+      // The error belongs to a draft the reader cannot see; showing it beside
+      // the canonical value would contradict the value itself.
+      errors={!isReadOnly && field.error ? [field.error] : undefined}
     >
       <PropertyValue text={sourceValue}>
         <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
