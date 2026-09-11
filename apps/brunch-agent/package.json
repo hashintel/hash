@@ -10,6 +10,7 @@
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "fixture:worked-model": "node --experimental-strip-types src/evaluations/persona/create-worked-model-fixture.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "persona": "node --experimental-strip-types src/evaluations/persona/launch.ts",

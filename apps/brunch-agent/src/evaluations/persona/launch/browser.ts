@@ -17,9 +17,15 @@ export const openPersonaConversation = async (
   page: Page,
   origin: string,
   opening: string,
-  options: { sessionPath?: string; signal?: AbortSignal } = {},
+  options: {
+    route?: string;
+    sessionPath?: string;
+    signal?: AbortSignal;
+  } = {},
 ) => {
-  await page.goto(`${origin}/?brunchTracer=root-creation`);
+  await page.goto(
+    new URL(options.route ?? "/?brunchTracer=root-creation", origin).href,
+  );
   const skipTour = page.getByRole("button", { name: "Skip tour" });
   await skipTour.waitFor();
   await skipTour.click();
