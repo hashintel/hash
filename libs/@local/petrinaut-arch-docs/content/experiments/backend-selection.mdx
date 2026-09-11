@@ -27,12 +27,12 @@ device that will not allocate is not the net's fault.
 A backend may be a **subset** engine, so declining a net is ordinary operation,
 not an exception. Blockers carry a `code`, an optional `itemId`, and an `origin`:
 
-| origin          | Who acts                   | Example                                 |
-| --------------- | -------------------------- | --------------------------------------- |
-| `model`         | edit the net               | a typed place with no capacity          |
-| `configuration` | edit the experiment        | a metric shape the backend cannot serve |
-| `environment`   | nobody, so hide the option | no WebGPU in this browser               |
-| `capacity`      | retry, or use fewer runs   | device out of memory                    |
+| origin          | Who acts                   | Example                                                                              |
+| --------------- | -------------------------- | ------------------------------------------------------------------------------------ |
+| `model`         | edit the net               | a `string` attribute on a typed place                                                |
+| `configuration` | edit the experiment        | a metric the shader cannot translate (`.concat` over two places, a time aggregation) |
+| `environment`   | nobody, so hide the option | no WebGPU in this browser                                                            |
+| `capacity`      | retry, or use fewer runs   | device out of memory                                                                 |
 
 `capacity` is separate from `environment` because it is transient: "use fewer
 runs" is right where "hide the option" would be wrong.

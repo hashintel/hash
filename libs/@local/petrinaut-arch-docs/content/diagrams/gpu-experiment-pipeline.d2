@@ -7,11 +7,11 @@ wgsl: "WGSL generation\n(compile-net-shader)" {style.fill: "#dcecff"; style.stro
 device: "GPU device" {
   style.stroke-dash: 4
   shader: "shader\n(one invocation per run)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
-  histogram: "per-frame histogram\n(workgroup atomics)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  histogram: "per-frame histogram\n(workgroup atomics,\nsampled before each step)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
   summary: "per-run summary\n(~16 bytes per run)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
 }
 
-frames: "metric frames\n(aggregates only)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+frames: "metric frames\n(histograms, frame 0 included)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 hir -> wgsl
 wgsl -> device.shader: compile + dispatch\na chunk of frames

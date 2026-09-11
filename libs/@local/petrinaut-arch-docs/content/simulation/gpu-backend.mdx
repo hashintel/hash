@@ -34,9 +34,14 @@ Two consequences of that shape:
 
 The backend is asked, not told: it reports whether it can run a net before the
 experiment starts, and one it declines runs on the CPU with the reason recorded.
-It needs typed places to declare a capacity (buffer sizes must be known up front),
-arcs consuming at most two typed tokens per place, no `string` or `uuid`
-attributes, and metrics that measure place token counts.
+It needs arcs consuming at most two typed tokens per place, no `string` or
+`uuid` attributes (a typed place without a declared capacity is probed and
+sized empirically), and metrics the shader can compute: place token counts, and
+expression metrics over counts, parameters, arithmetic, conditionals,
+`tokens.length` and a single place's `tokens.reduce` with a numeric accumulator.
+Metrics using `.concat`, positional token indexing, strings or uuids, and
+metrics with a time aggregation, keep the experiment on the CPU with the reason
+recorded per metric.
 
 A weight-2 pairwise condition is scanned over every pair by combinatorial
 unranking, which preserves the CPU's lexicographic firing order. The pair that
@@ -46,5 +51,7 @@ fires is the lowest-indexed passing one, not the one with the largest rate.
 
 WebGPU cannot reproduce the CPU generator, so trajectories differ while
 distributions agree. Continuous dynamics integrate with RK4, which is more
-accurate than the CPU's Euler rather than merely different. Which backend ran an
-experiment is therefore recorded alongside its results.
+accurate than the CPU's Euler rather than merely different. Metric bodies
+evaluate in f32 on the device and f64 on the CPU; integer-valued metrics are
+exact below 2^24. Which backend ran an experiment is therefore recorded
+alongside its results.

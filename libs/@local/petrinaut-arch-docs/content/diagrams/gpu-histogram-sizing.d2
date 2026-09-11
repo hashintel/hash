@@ -8,7 +8,7 @@ inputs: "shader inputs" {
 }
 
 sizing: "histogramBinCount\nbins = min(1024, 16 KB / (4 × metrics))\nthen min(bins, ceiling + 1)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-window: "metric window (uniforms)\nbin i = lo + i × stride\nfirst attempt anchors on the\ninitial count" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+window: "metric window (f32 uniforms)\nbin i = lo + i × stride\nexact for a ceiling-bounded count,\nblind and probed otherwise" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 device: "GPU device" {
   style.stroke-dash: 4
@@ -16,7 +16,7 @@ device: "GPU device" {
   global: "histogram buffer\n+ observed range and\nescape counters" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
 }
 
-decode: "host decode\nvalue = lo + bin × stride" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+decode: "host decode\nlabel = lo + bin × stride\n(bin centre for real metrics)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 calibrate: "escapes?\nreplan window from the\nobserved range and re-run\n(same seeds — converges once)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 inputs.metrics -> sizing
