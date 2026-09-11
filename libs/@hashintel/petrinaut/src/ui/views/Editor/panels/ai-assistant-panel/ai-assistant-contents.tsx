@@ -731,9 +731,14 @@ export const AiAssistantContents = ({
 
   useEffect(() => {
     if (isOpen) {
-      inputRef.current?.focus({ preventScroll: true });
+      const target = inputRef.current;
+      if (target && !target.disabled && !isVoiceDockCollapsed) {
+        target.focus({ preventScroll: true });
+      } else {
+        panelRef.current?.focus({ preventScroll: true });
+      }
     }
-  }, [composerFocusRequest, isOpen]);
+  }, [composerFocusRequest, isOpen, isVoiceDockCollapsed, panelRef]);
 
   // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
   // after which it scrolls internally). Resetting to `auto` before measuring
@@ -788,6 +793,7 @@ export const AiAssistantContents = ({
         ref={panelRef}
         aria-hidden={!isOpen ? true : undefined}
         aria-label="AI assistant"
+        tabIndex={-1}
         inert={!isOpen}
         className={shellStyle({
           collapsed: isVoiceDockCollapsed,

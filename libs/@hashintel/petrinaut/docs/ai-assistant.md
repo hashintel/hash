@@ -4,11 +4,12 @@ Petrinaut has an in-app AI assistant that can build a net from a natural-languag
 
 ## Opening the panel
 
-There are two entry points:
+Open the assistant in any of these ways:
 
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
 2. **File → New → Build with Brunch**. When the host enables its experimental Brunch demo mode, shows net-management controls, and provides an assistant, this creates a fresh empty net, opens the assistant, and offers two chips before the first message: **Interview first** (elicit before inventing missing detail or drawing the net) or **Quick preview** (fill reasonable gaps, mark them as provisional, and wait for assent). **Start blank** creates the same empty net without opening the assistant or showing the first-run prompt. Without that host flag, **New** retains its ordinary direct blank-net behavior.
 3. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
+4. **Command palette**. Choose **Open AI assistant**, or press **Cmd/Ctrl+Shift+K** directly. This opens the assistant and focuses the message field. If it is already open, the command focuses it again. A compact Voice panel expands, and an active Voice session receives focus without ending the session. From Simulate or Notebook mode, the command returns to Edit mode to show the assistant. This command is available when the host provides an AI assistant.
 
 The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 

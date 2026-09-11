@@ -351,6 +351,50 @@ describe("AiAssistantContents", () => {
       expect(screen.queryByText("Not applied")).toBeNull();
     },
   );
+  test("refocuses an open assistant on request and focuses the panel while Voice is compact", () => {
+    const props = {
+      input: "Keep this draft",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents {...props} composerFocusRequest={0} />
+      </>,
+    );
+    const input = screen.getByRole("textbox", { name: "Message AI assistant" });
+    expect(document.activeElement).toBe(input);
+    screen.getByRole("textbox", { name: "Other input" }).focus();
+    rerender(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents {...props} composerFocusRequest={1} />
+      </>,
+    );
+    expect(document.activeElement).toBe(input);
+    expect((input as HTMLTextAreaElement).value).toBe("Keep this draft");
+    rerender(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents
+          {...props}
+          composerFocusRequest={2}
+          inputMode="voice"
+          voiceDockCollapsed
+          voiceMode={<div>Voice setup</div>}
+        />
+      </>,
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "AI assistant" }),
+    );
+  });
+
   test("keeps the draft, transcript, and host controls mounted through docking and closing", () => {
     const mount = vi.fn();
     const unmount = vi.fn();

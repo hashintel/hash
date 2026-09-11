@@ -166,6 +166,7 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
+    setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
@@ -178,6 +179,7 @@ export const EditorView = ({
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [offerStartPosture, setOfferStartPosture] = useState(false);
+  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   const {
     brunchDemoMode,
@@ -194,6 +196,15 @@ export const EditorView = ({
   // Shared with useReadOnlyReason so the rendered view and the mutation
   // rules never disagree.
   const effectiveMode = useEffectiveGlobalMode();
+
+  const openAiAssistant = () => {
+    if (effectiveMode !== "edit" && effectiveMode !== "actual") {
+      setGlobalMode("edit");
+    }
+    setAiAssistantCollapsed(false);
+    setAiAssistantOpen(true);
+    setAiAssistantFocusRequest((request) => request + 1);
+  };
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -490,7 +501,9 @@ export const EditorView = ({
 
   return (
     <>
-      <EditorCommands />
+      <EditorCommands
+        onOpenAiAssistant={aiAssistant ? openAiAssistant : undefined}
+      />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}
@@ -581,6 +594,7 @@ export const EditorView = ({
                 /** Reset state (e.g. initial messages) when the active net changes */
                 key={petriNetId ?? "no-net"}
                 aiAssistant={aiAssistant}
+                focusRequest={aiAssistantFocusRequest}
                 initialMessage={pendingAiAssistantMessage}
                 initialInteractionMode={pendingAiInteractionMode}
                 offerStartPosture={offerStartPosture}

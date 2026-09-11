@@ -509,6 +509,7 @@ const applyPetrinautAiCommand = async ({
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  focusRequest?: number;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   offerStartPosture?: boolean;
@@ -518,6 +519,7 @@ interface AiAssistantPanelProps {
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  focusRequest = 0,
   initialInteractionMode,
   initialMessage,
   offerStartPosture = false,
@@ -2066,7 +2068,7 @@ const ConversationAiAssistantPanel = ({
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
-      composerFocusRequest={composerFocusRequest}
+      composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
       input={input}
