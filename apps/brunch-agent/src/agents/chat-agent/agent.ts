@@ -233,6 +233,12 @@ A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }
 A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${getLatestNetDefinitionToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${getLatestNetDefinitionToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
+  if (browserContext)
+    useInstruction(
+      `
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call getLatestNetDefinition and nothing else, then end your response; brunch_why is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call brunch_why citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+`.replace(/^\s+|\s+$/gu, ""),
+    );
   useTool(ping);
 
   return coreSystemPrompt;
