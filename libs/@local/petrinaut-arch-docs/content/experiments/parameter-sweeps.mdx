@@ -114,10 +114,12 @@ backend-agnostic — it consumes an injected `instantiateBatch` returning a
 `MonteCarloExperiment`, so the CPU worker pool and the WebGPU backend behave
 identically. The provider wires that seam: a sweep's first batch runs the same
 [backend-selection walk](doc:experiments/backend-selection) as a plain
-experiment, and later batches re-assess the chosen backend with each batch's
-request — which is where the GPU backend regenerates its shader for the new
-parameter values. Scenario compilation also happens per batch, because a
-cell's swept values change the compiled initial state.
+experiment, and later batches re-assess the chosen backend with their own
+request. The swept net parameters ride the per-run plan for every batch — a
+point selection as a constant plan — so the GPU backend keeps one compiled
+setup and its calibration across selections. Scenario compilation still
+happens per batch, because a cell's swept values change the compiled initial
+state.
 
 The navigator (`sweep-navigator.tsx`) renders one range slider per parameter
 in the drawer section's sticky band, so the controls stay pinned while the

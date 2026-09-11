@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { CACHED_RUN_POLICY, rememberCalibration } from "./calibration";
+import { outcome as emptyOutcome, session } from "./calibration.test-helpers";
 import { runCalibratedExperiment } from "./run-phase";
 
 import type { GpuCalibration } from "../backend";
-import type { CompiledNetShader } from "../compile-net-shader";
-import type { GpuNetProfile } from "../eligibility";
 import type { GpuExperimentResult } from "../runner";
 import type {
   AttemptResult,
@@ -13,81 +12,15 @@ import type {
   ExecuteAttempt,
 } from "./calibration";
 
-/** A shader whose only relevant facts are its size and its derived places. */
-const shaderAt = (
-  capacities: ReadonlyMap<string, number>,
-): CompiledNetShader => {
-  const slabWords = [...capacities.values()].reduce(
-    (sum, capacity) => sum + capacity * 2,
-    0,
-  );
-  return {
-    wgsl: "",
-    stateWordsPerRun: 4 + slabWords,
-    summaryWordsPerRun: 2 + capacities.size,
-    placeCountOffsets: [0],
-    placeTokenOffsets: [4],
-    placeTokenStrides: [2],
-    summaryStatusOffset: 1,
-    rngOffset: 2,
-    statusOffset: 3,
-    derivedCapacityPlaceIndices: [...capacities.keys()].map(
-      (_, index) => index,
-    ),
-    metricIds: ["m0"],
-    histogramBins: 64,
-    runParameterIds: [],
-    compiledLambdas: [],
-  };
-};
-
-/** A derived-capacity place per slab, in slab order. */
-const placeAt = ([id, capacity]: [
-  string,
-  number,
-]): GpuNetProfile["places"][number] => ({
-  id,
-  name: id.toUpperCase(),
-  capacity,
-  capacitySource: "derived",
-  declaredCapacity: 0xffffffff,
-  realFields: ["x", "y"],
-  discreteFields: [],
-  colored: true,
-  pairConsumed: false,
-});
-
-const session = (capacities: Record<string, number>): CalibrationSession => {
-  const initial = new Map(Object.entries(capacities));
-  return {
-    backend: {
-      recompile: (next) => ({ ok: true, shader: shaderAt(next) }),
-      profile: {
-        places: [...initial].map(placeAt),
-        uncolouredOnly: false,
-        bytesPerRun: 16,
-      },
-    },
-    shader: shaderAt(initial),
-    capacities: initial,
-  };
-};
-
+/** A runner result whose probe observed one derived place and one metric. */
 const outcome = (
   overrides: Partial<GpuExperimentResult> = {},
-): GpuExperimentResult => ({
-  cancelled: false,
-  frames: [],
-  finalPlaceCounts: new Uint32Array(0),
-  deadlockedRuns: 0,
-  completedRuns: 0,
-  overflowRuns: 0,
-  derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
-  dispatchMs: 0,
-  metricRanges: [{ min: 20, max: 40, below: 0, above: 0 }],
-  metricErrors: [],
-  ...overrides,
-});
+): GpuExperimentResult =>
+  emptyOutcome({
+    derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
+    metricRanges: [{ min: 20, max: 40, below: 0, above: 0 }],
+    ...overrides,
+  });
 
 /** Replays scripted results and records what each attempt asked for. */
 const scripted = (results: AttemptResult[]) => {
