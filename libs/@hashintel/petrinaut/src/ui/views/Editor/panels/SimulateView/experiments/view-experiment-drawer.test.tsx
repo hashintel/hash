@@ -20,8 +20,7 @@ import {
   makeOptimizationRecord,
   makeOptimizationsContextValue,
 } from "../optimizations/optimizations-story-fixtures";
-import { frameLayoutSignature } from "../shared/drawer-frame-test-helpers";
-import { describeExperiment } from "./experiment-results";
+import { frameLayoutSignature } from "../shared/drawer-frame.test-helpers";
 import {
   makeExperiment,
   makeParameterSweepExperiment,
@@ -250,7 +249,9 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     expect(
-      screen.getByRole("dialog", { name: describeExperiment(sweep) }),
+      screen.getByRole("dialog", {
+        name: "SIR transmission sweep · Seasonal Flu · 100 runs",
+      }),
     ).toBeTruthy();
   });
 

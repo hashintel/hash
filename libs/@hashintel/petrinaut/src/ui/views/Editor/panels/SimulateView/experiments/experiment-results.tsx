@@ -39,7 +39,7 @@ import type {
   ResultsModel,
   ResultsStat,
   ResultsStatus,
-} from "../shared/results/results-model";
+} from "../shared/results-model";
 
 /** The record's status, or the study's while one drives the sweep. */
 type ExperimentDisplayStatus = ExperimentRecord["status"] | "optimizing";

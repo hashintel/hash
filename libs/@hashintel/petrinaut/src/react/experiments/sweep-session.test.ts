@@ -536,6 +536,27 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
+  it("ignores a stale rung's error once the selection has moved on", async () => {
+    const { session, batches, updates, onError, settle } = makeHarness(
+      25,
+      point(0, 0),
+    );
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    // No settle: the pipelined second rung is still starting when the
+    // selection moves, so the first rung's events reach a stale loop.
+    const arrival = session.navigateTo(point(1, 0));
+    batches[0]!.error("device lost");
+    await settle();
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(updates.at(-1)).toMatchObject({ computing: true, failed: false });
+    // The new selection's ladder is the one computing.
+    expect(batches.at(-1)!.request.parameterValues).toEqual({ x: 1, y: 10 });
+    session.dispose();
+    expect(await arrival).toBeNull();
+  });
+
   it("ends a session idle on dispose, whatever was computing", async () => {
     const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
     await settle();

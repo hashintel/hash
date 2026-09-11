@@ -24,7 +24,7 @@ import {
   frameHeader as header,
   frameStats,
   scrollFrameBody as scrollBodyTo,
-} from "./drawer-frame-test-helpers";
+} from "./drawer-frame.test-helpers";
 
 import type { ReactNode } from "react";
 

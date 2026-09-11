@@ -8,10 +8,10 @@ import {
   finishedTrialCount,
   type OptimizationBatchStatus,
   type OptimizationRecord,
-} from "../../../../../../../../react/optimizations/context";
-import { formatParameters } from "../../../shared/format-value";
+} from "../../../../../../../react/optimizations/context";
+import { formatParameters } from "../../shared/format-value";
 
-import type { ComputeBatch } from "../../../shared/drawer-frame";
+import type { ComputeBatch } from "../../shared/drawer-frame";
 
 /** The header bar: steps finished over steps requested, 0 to 100. */
 export const stepsProgressPercent = (

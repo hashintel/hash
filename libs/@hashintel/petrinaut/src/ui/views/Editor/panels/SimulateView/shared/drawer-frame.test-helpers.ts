@@ -10,7 +10,7 @@ export const frameHeader = (): HTMLElement =>
   document.querySelector<HTMLElement>("[data-frame-header]")!;
 
 /** The frame body's scroll container. */
-export const frameBody = (): HTMLElement =>
+const frameBody = (): HTMLElement =>
   document.querySelector<HTMLElement>("[data-frame-body]")!;
 
 /** The header's stat strip, the one copy of the stats a reader sees. */

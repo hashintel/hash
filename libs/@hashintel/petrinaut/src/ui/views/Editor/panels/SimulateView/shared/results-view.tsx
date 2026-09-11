@@ -10,7 +10,7 @@
  */
 import { Tooltip } from "@hashintel/ds-components";
 
-import { ComputeBackendBadge } from "../compute-backend-badge";
+import { ComputeBackendBadge } from "./compute-backend-badge";
 import {
   ComputeBatchesChip,
   DrawerFrame,
@@ -19,8 +19,8 @@ import {
   FrameColumns,
   FrameStat,
   FrameStatusPill,
-} from "../drawer-frame";
-import { MetricTiles } from "../metric-tiles";
+} from "./drawer-frame";
+import { MetricTiles } from "./metric-tiles";
 
 import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";
 import type { ReactNode } from "react";

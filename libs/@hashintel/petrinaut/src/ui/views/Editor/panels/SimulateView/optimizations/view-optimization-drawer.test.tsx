@@ -22,7 +22,7 @@ import {
   frameHeader,
   frameLayoutSignature,
   scrollFrameBody,
-} from "../shared/drawer-frame-test-helpers";
+} from "../shared/drawer-frame.test-helpers";
 import { formatNumber } from "../shared/format-value";
 import {
   fakeConstrainedStudyInput,
