@@ -18,6 +18,7 @@ import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/re
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { assistantSelectionStorageKey } from "./assistant-selection";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
@@ -36,7 +37,10 @@ import type {
   FlueClient,
 } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
-import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiMessage,
+} from "@hashintel/petrinaut/ui";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -760,5 +764,144 @@ describe("local storage demo prepared fixture", () => {
     expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
       "mutate_petrinet",
     ]);
+  });
+});
+
+describe("assistant selection", () => {
+  const flueHistoryClient = (incarnationId: string) => ({
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  });
+  const switchAssistant = (label: RegExp) => {
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(screen.getByRole("button", { name: label }));
+  };
+  const currentAssistant = () =>
+    editorProps.current?.aiAssistant as PetrinautAiAssistant;
+
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+    brunchPanelTransportOptions.current = null;
+    brunchPreviewConfig.isBrunchConfigured = true;
+  });
+
+  test("Brunch is the default when configured; the stock assistant is the selectable alternate and mounts nothing of Brunch", async () => {
+    const incarnationId = "selection-incarnation";
+    seedStoredNet(incarnationId);
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeDefined(),
+    );
+    expect(localStorage.getItem(assistantSelectionStorageKey)).not.toBe(
+      "stock",
+    );
+    const brunchTransport = currentAssistant().transport;
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeUndefined(),
+    );
+    const stock = currentAssistant();
+    // The stock assistant's own transport and endpoint, not Brunch's.
+    expect(stock.transport).not.toBe(brunchTransport);
+    expect((defaultTransportOptions.current as { api: string }).api).toBe(
+      "/api/chat",
+    );
+    // Nothing Brunch-owned is mounted: no batch executor, no client tools,
+    // no Workpiece pane, no Voice, no durable Stop; messages are the local
+    // store's and can be cleared locally.
+    expect(stock.automaticTools).toEqual([]);
+    expect(stock.additionalTab).toBeUndefined();
+    expect(stock.renderVoiceMode).toBeUndefined();
+    expect(stock.requestStop).toBeUndefined();
+    expect(stock.followMessages).toBeUndefined();
+    expect(stock.canClearMessages).toBe(true);
+    // The preference persists as the host's own key.
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+    // Brunch demo affordances are gone with it.
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(
+      screen.queryByRole("button", { name: /Toggle Brunch demo mode/ }),
+    ).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+  });
+
+  test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
+    const incarnationId = "history-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => expect(currentAssistant()).toBeDefined());
+    const stock = currentAssistant();
+    expect(stock.executeMutation).toBeUndefined();
+
+    const stockMessage = {
+      id: "stock-1",
+      role: "user",
+      parts: [{ type: "text", text: "Stock assistant turn" }],
+    } as PetrinautAiMessage;
+    act(() => stock.onMessages?.([stockMessage]));
+    await waitFor(() =>
+      expect(currentAssistant().messages).toEqual([stockMessage]),
+    );
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
+    ).toEqual({ "net-1": [stockMessage] });
+
+    switchAssistant(/Use Brunch \(default assistant\)/);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeDefined(),
+    );
+    const brunch = currentAssistant();
+    // Brunch reads Flue history, which holds none of the stock turn; and a
+    // Brunch-side message write never reaches the local store.
+    expect(brunch.messages).not.toContainEqual(stockMessage);
+    act(() =>
+      brunch.onMessages?.([
+        { id: "brunch-1", role: "user", parts: [] } as PetrinautAiMessage,
+      ]),
+    );
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
+    ).toEqual({ "net-1": [stockMessage] });
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() =>
+      expect(currentAssistant().executeMutation).toBeUndefined(),
+    );
+    // The stock history is exactly as it was left.
+    expect(currentAssistant().messages).toEqual([stockMessage]);
+  });
+
+  test("without a configured Brunch endpoint there is no choice to make", () => {
+    brunchPreviewConfig.isBrunchConfigured = false;
+    seedStoredNet();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const stock = currentAssistant();
+    expect(stock.executeMutation).toBeUndefined();
+    expect(stock.automaticTools).toEqual([]);
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(
+      screen.queryByRole("button", {
+        name: /stock Petrinaut assistant|Use Brunch/,
+      }),
+    ).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
   });
 });

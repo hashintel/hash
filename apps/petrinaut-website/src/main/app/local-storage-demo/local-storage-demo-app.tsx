@@ -66,6 +66,11 @@ import {
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
 import {
+  isBrunchSelected,
+  stockChatEndpoint,
+  useAssistantSelection,
+} from "./assistant-selection";
+import {
   getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
 } from "./brunch-conversation-id";
@@ -219,8 +224,10 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
+// The stock assistant's transport is the same whether or not Brunch is
+// configured: selecting the stock assistant must not route it through Brunch.
 const stockChatTransport = new DefaultChatTransport({
-  api: brunchPreviewConfig.chatEndpoint,
+  api: stockChatEndpoint,
   headers: () => ({
     [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
   }),
@@ -307,13 +314,18 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
 
 /**
  * The demo's own palette commands, registered beside Petrinaut's: one starts
- * a fresh net, one toggles Brunch demo mode, the persisted user setting that
- * shows the prepared-fixture selector.
+ * a fresh net, one switches between Brunch and the stock assistant, one
+ * toggles Brunch demo mode, the persisted user setting that shows the
+ * prepared-fixture selector.
  */
 const DemoCommands = ({
   createNewNet,
+  brunchSelected,
+  selectAssistant,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
+  brunchSelected: boolean;
+  selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
   const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
   useCommand({
@@ -324,6 +336,20 @@ const DemoCommands = ({
     run: () =>
       createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
   });
+  // Only offered when there is a Brunch to select; without an endpoint the
+  // stock assistant is the only one and the choice would be a fiction.
+  useCommand(
+    {
+      id: "demo.assistant.switch",
+      label: brunchSelected
+        ? "Use the stock Petrinaut assistant"
+        : "Use Brunch (default assistant)",
+      category: "Demo",
+      keywords: ["assistant", "brunch", "stock", "ai"],
+      run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
+    },
+    { when: brunchPreviewConfig.isBrunchConfigured },
+  );
   useCommand(
     {
       id: "demo.brunch.toggle-demo-mode",
@@ -332,7 +358,7 @@ const DemoCommands = ({
       keywords: ["fixture", "prepared", "crew reservation"],
       run: () => setBrunchDemoMode(!brunchDemoMode),
     },
-    { when: brunchPreviewConfig.isBrunchConfigured },
+    { when: brunchSelected },
   );
   return null;
 };
@@ -365,9 +391,18 @@ export const LocalStorageDemoApp = ({
   search: LocalStorageDemoSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  // Brunch is the default assistant; the stock assistant is the host-selected
+  // alternate. Every Brunch-specific branch below keys off this, never off the
+  // bare configuration, so selecting stock leaves no Brunch dependency behind.
+  const { selection: assistantSelection, setSelection: selectAssistant } =
+    useAssistantSelection();
+  const brunchSelected = isBrunchSelected(
+    brunchPreviewConfig.isBrunchConfigured,
+    assistantSelection,
+  );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
-  >(() => (brunchPreviewConfig.isBrunchConfigured ? undefined : null));
+  >(() => (brunchSelected ? undefined : null));
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -404,13 +439,11 @@ export const LocalStorageDemoApp = ({
    * endpoint there is no Flue client to prepare the conversation, so the URL
    * falls back to the ordinary demo rather than a banner stuck on preparing.
    */
-  const constructionSelected =
-    brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
+  const constructionSelected = brunchSelected && isConstructionSelected(search);
   const rootCreationSelected =
     constructionSelected && search.brunchTracer === "root-creation";
   const productConstructionSelected =
-    brunchPreviewConfig.isBrunchConfigured &&
-    localStorageDemoRouteIdentity(search) === "ordinary";
+    brunchSelected && localStorageDemoRouteIdentity(search) === "ordinary";
   const batchedConstructionSelected =
     rootCreationSelected || productConstructionSelected;
   const constructionDocumentId = rootCreationSelected
@@ -420,7 +453,7 @@ export const LocalStorageDemoApp = ({
     ? constructionDocumentId
     : rootArcTracerDocumentId;
   const crewReservationFixtureSelected =
-    brunchPreviewConfig.isBrunchConfigured &&
+    brunchSelected &&
     (isCrewReservationFixtureSelected(search) || constructionSelected);
   const rootArcTracerSelected =
     crewReservationFixtureSelected &&
@@ -497,7 +530,9 @@ export const LocalStorageDemoApp = ({
   );
 
   useEffect(() => {
-    if (!brunchPreviewConfig.isBrunchConfigured) {
+    if (!brunchSelected) {
+      // Voice is a Brunch feature; the stock assistant never shows it.
+      setOpenAIVoiceConfig(null);
       return;
     }
 
@@ -512,7 +547,7 @@ export const LocalStorageDemoApp = ({
     });
 
     return () => abortController.abort();
-  }, []);
+  }, [brunchSelected]);
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -702,10 +737,10 @@ export const LocalStorageDemoApp = ({
             getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
-      brunchPreviewConfig.isBrunchConfigured && conversationId !== null
+      brunchSelected && conversationId !== null
         ? createBrunchFlueClient(conversationId)
         : null,
-    [conversationId],
+    [brunchSelected, conversationId],
   );
   const conversationTracker = useMemo(
     // Correlation state belongs to one conversation and must not cross a net switch.
@@ -1057,7 +1092,7 @@ export const LocalStorageDemoApp = ({
       {/* The settings are mounted here, above the editor, so the demo's own
           command and selector read the same persisted state the editor does. */}
       <UserSettingsProvider>
-        {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent ? (
+        {brunchSelected && !preparedFixtureIsCurrent ? (
           <DemoModeFixtureSelector />
         ) : null}
         <CommandRegistryProvider>
@@ -1075,7 +1110,11 @@ export const LocalStorageDemoApp = ({
               viewportActions={[sentryFeedbackAction]}
             />
           </WalkthroughProvider>
-          <DemoCommands createNewNet={createNewNet} />
+          <DemoCommands
+            createNewNet={createNewNet}
+            brunchSelected={brunchSelected}
+            selectAssistant={selectAssistant}
+          />
           <CommandPalette />
         </CommandRegistryProvider>
       </UserSettingsProvider>
