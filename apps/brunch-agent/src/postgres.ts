@@ -7,6 +7,7 @@ import {
   type PostgresDatabaseConfig,
   POSTGRES_ENV,
 } from "./database-config.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
 import { errorCode, recordOperationalFailure } from "./telemetry.ts";
 
 import type { PostgresParameter, PostgresRunner } from "@flue/postgres";
@@ -49,6 +50,7 @@ const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
 ) => new Signer(config);
 
 const reportDatabaseFailure = async (error: unknown): Promise<void> => {
+  diagnostics.report("database.operation", error);
   try {
     await recordOperationalFailure("database_operation", error);
   } catch {
@@ -129,12 +131,8 @@ export const createPostgresPool = (
       return;
     }
     // Idle clients fail outside any request, so nothing else reports this;
-    // stderr keeps it visible even while the collector is unreachable.
-    // eslint-disable-next-line no-console
-    console.error(
-      "[brunch] postgres pool error:",
-      errorCode(error) ?? error.name,
-    );
+    // the diagnostic sink's console transport keeps it visible even while
+    // the collector is unreachable.
     void reportDatabaseFailure(error);
   });
   return pool;

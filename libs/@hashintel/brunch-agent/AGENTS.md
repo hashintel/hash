@@ -101,7 +101,7 @@ A delegated task returns its result in the PR or chat. It does not create a file
 ## Correctives
 
 - Before adding structure, name the production pressure that requires it.
-- **Safeguards must earn their friction.** Before adding or defending a limit, gate or refusal, identify the observed failure, concrete external constraint or explicit owner requirement it protects. Inherited code, a safety label and passing enforcement tests do not establish necessity. When a safeguard blocks real use, question its justification before tuning or instrumenting it; preserve the actual data/security contract with the least mechanism.
+- **Safeguards must earn their friction.** Before adding, preserving, or adapting product behaviour around a limit, gate, or refusal, run the least guarded/unguarded contrast the real boundary permits and identify the observed failure, external constraint, or owner requirement it protects. Inherited code, a safety label, and passing enforcement tests prove enforcement—not necessity or reasonable scope. When a safeguard blocks real use, test whether the platform now carries the obligation, then remove or narrow the safeguard; retain it only at the smallest boundary that prevents the evidenced failure.
 - Work the first unproven boundary; do not build toward the imagined end.
 - Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
 - A ticket is a projection; the mission is the authority. If the ticket stops serving the

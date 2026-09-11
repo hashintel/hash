@@ -1,4 +1,6 @@
-/** Isolated diagnostic load-time instrumentation; never writes installed runtime or canonical records. */
+/** Isolated process-local fault/observe hook for history-retention Vitest suites.
+ * Spawned through `--import`; never writes installed runtime or canonical records.
+ */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {

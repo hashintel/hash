@@ -18,12 +18,14 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { sha256Pattern } from "./declared-basis";
+import { batchedConstructionMode } from "./mutate-petrinet";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { browserBindingSchema, conversationConstructionMode } from "./root-arc";
 import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnModellingSkill,
 } from "./skills/sdcpn-modelling/skill";
+import { createMutatePetrinetTool } from "./tools/mutate-petrinet";
 import {
   createJoinedRootArcTool,
   createObservedArcTool,
@@ -42,6 +44,10 @@ import {
 
 export { conversationConstructionMode } from "./root-arc";
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
+export {
+  batchedConstructionMode,
+  mutatePetrinetToolName,
+} from "./mutate-petrinet";
 export const validatedFixtureMutationMode = preparedWorkpieceInitialDataMode;
 
 /** Signal appended at agent start carrying the conversation-bound construction binding. */
@@ -56,6 +62,7 @@ export const sdcpnInitialDataSchema = v.optional(
         VALIDATED_CONSTRUCTION_MODE,
         validatedFixtureMutationMode,
         conversationConstructionMode,
+        batchedConstructionMode,
       ]),
       construction: v.optional(
         v.strictObject({ binding: browserBindingSchema }),
@@ -75,7 +82,8 @@ export const sdcpnInitialDataSchema = v.optional(
     ),
     v.check(
       (data) =>
-        data.mode === conversationConstructionMode
+        data.mode === conversationConstructionMode ||
+        data.mode === batchedConstructionMode
           ? data.construction !== undefined && data.browser === undefined
           : data.construction === undefined,
       "Construction requires a distinct immutable binding and mode.",
@@ -112,7 +120,20 @@ export function useSdcpnPlugin(
   useSkill(sdcpnModellingSkill);
   useTool(readPetrinautDoc);
 
-  if (initialData?.mode === conversationConstructionMode) {
+  if (initialData?.mode === batchedConstructionMode) {
+    if (!initialData.construction || !options?.observationFor)
+      throw new Error("Batched construction requires authorized observations.");
+    useInstruction(
+      "Construction uses three strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only getLatestNetDefinition; wait for its browser result. Proposal 3 contains only mutate_petrinet; wait for its browser result. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. Only root addPlace, addTransition, addArc, removePlace, removeTransition, and removeArc are available in this candidate mode. removePlace also removes connected arcs. Operations commit in order; failure leaves the later suffix unattempted.",
+    );
+    useTool(observedDefinitionReadTool);
+    useTool(
+      createMutatePetrinetTool({
+        ...options,
+        observationFor: options.observationFor,
+      }),
+    );
+  } else if (initialData?.mode === conversationConstructionMode) {
     if (!initialData.construction || !options?.observationFor)
       throw new Error(
         "Conversation construction requires authorized observations.",

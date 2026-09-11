@@ -11,30 +11,33 @@
  */
 
 export {
-  assertArcEffects,
+  assertMutationEffects,
   canonicalContent,
+  classifyMutationOutcome,
   clientToolResultMetadataSchema,
-  deriveArcEffects,
+  deriveMutationEffects,
   expectedNodeDefinition,
-  observedArcOutcome,
+  observedMutationOutcome,
+  type ClassifiedMutationOutcome,
   parseClientToolResultMetadata,
-  reconcileArcTransitionAttempts,
-  verifyArcTransitionAttempt,
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
   verifyDefinitionObservation,
   reconcileDefinitionObservations,
-  type ArcEffects,
+  type MutationEffects,
   type ArcMutationRequest,
   type BrowserBinding,
   type ClientToolResultMetadata,
   type ConstructionMutationName,
+  type ObservedConstructionMutationName,
   type ConstructionMutationRequest,
-  type ConstructionTransitionAttempt,
-  type ConstructionTransitionRecord,
-  type ArcTransitionAttempt,
-  type ArcTransitionRecord,
+  type ConstructionMutationAttempt,
+  type ConstructionMutationRecord,
+  type ArcMutationAttempt,
+  type ArcMutationRecord,
   type DefinitionObservation,
   type UnverifiedDefinitionObservation,
-} from "./transition-record";
+} from "./mutation-record";
 
 export {
   conversationConstructionMode,
@@ -52,6 +55,15 @@ export {
   type RootArcWhyInput,
 } from "./root-arc";
 export { observedConstructionBrowserToolNames } from "./construction-tool-names";
+export {
+  batchedConstructionMode,
+  mutatePetrinetAttemptCallId,
+  mutatePetrinetAttemptOperationId,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+  type MutatePetrinetInput,
+  type MutatePetrinetOperation,
+} from "./mutate-petrinet";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,

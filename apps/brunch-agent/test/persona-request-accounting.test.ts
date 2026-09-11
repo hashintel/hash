@@ -12,6 +12,7 @@ import {
   type PersonaAccountingApi,
   type PersonaAccountingContext,
 } from "../src/evaluations/persona/request-accounting.ts";
+import { diagnostics } from "../src/runtime-diagnostics.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -179,6 +180,73 @@ test("registered native provider accounts separate requests with real Pi identit
       sessionId: "TEST-actual-pi-session",
       requestId: call.identity.requestId,
     });
+});
+
+test("a user Stop raises no provider-accounting failure diagnostic", async () => {
+  const fixture = setup();
+  await fixture.start(undefined, fixture.context);
+  const note = vi.spyOn(diagnostics, "note").mockImplementation(() => {});
+  const report = vi.spyOn(diagnostics, "report").mockImplementation(() => {});
+  const controller = new AbortController();
+  const fetch: typeof globalThis.fetch = async (_input, init) => {
+    const frame = {
+      type: "message_start",
+      message: {
+        id: "msg_TEST_abort",
+        type: "message",
+        role: "assistant",
+        model: "claude-sonnet-4-6",
+        content: [],
+        usage: { input_tokens: 1, output_tokens: 0 },
+      },
+    };
+    // Never completes: the Stop below is what ends it.
+    const body = new ReadableStream<Uint8Array>({
+      start(stream) {
+        stream.enqueue(
+          new TextEncoder().encode(
+            `event: message_start\ndata: ${JSON.stringify(frame)}\n\n`,
+          ),
+        );
+        init?.signal?.addEventListener("abort", () => {
+          stream.error(
+            Object.assign(new Error("aborted"), { name: "AbortError" }),
+          );
+        });
+      },
+    });
+    return new Response(body, {
+      headers: { "content-type": "text/event-stream" },
+    });
+  };
+  try {
+    const stream = fixture.provider.streamSimple(
+      fixture.model,
+      { messages: [{ role: "user", content: "TEST synthetic", timestamp: 0 }] },
+      { apiKey: "TEST-accounting-key", fetch, signal: controller.signal },
+    );
+    const settled = stream.result().then(
+      () => "resolved" as const,
+      () => "rejected" as const,
+    );
+    controller.abort();
+    // Pi settles an aborted stream as a result (stop reason aborted), so the
+    // terminal observer records it and no failure diagnostic is raised.
+    expect(await settled).toBe("resolved");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(report).not.toHaveBeenCalledWith(
+      "provider.accounting",
+      expect.anything(),
+      expect.objectContaining({ event: "stream-failed" }),
+    );
+    expect(note).not.toHaveBeenCalledWith(
+      "provider.accounting",
+      expect.objectContaining({ event: "stream-failed" }),
+    );
+  } finally {
+    note.mockRestore();
+    report.mockRestore();
+  }
 });
 
 test("wrong resolved key, uninitialized session and wrong model refuse before dispatch or ledger mutation", async () => {

@@ -5,9 +5,9 @@ import { expect, test } from "vitest";
 
 import {
   reconcileDefinitionObservations,
-  type ArcTransitionAttempt,
+  type ArcMutationAttempt,
   type DefinitionObservation,
-} from "../src/transition-record";
+} from "../src/mutation-record";
 
 const load = (name: string): unknown =>
   JSON.parse(
@@ -17,9 +17,9 @@ const load = (name: string): unknown =>
     ),
   );
 const result = load("record") as {
-  metadata: { transitionRecord: { attempts: ArcTransitionAttempt[] } };
+  metadata: { mutationRecord: { attempts: ArcMutationAttempt[] } };
 };
-const recorded = result.metadata.transitionRecord.attempts[0]?.post;
+const recorded = result.metadata.mutationRecord.attempts[0]?.post;
 if (!recorded) throw new Error("Actual recorded full observation missing.");
 const observed = load("observation") as DefinitionObservation;
 const rehash = (

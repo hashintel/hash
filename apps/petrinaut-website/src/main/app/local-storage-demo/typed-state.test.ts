@@ -8,9 +8,9 @@ import {
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
-  createBrowserTransitionRecorder,
+  createBrowserMutationRecorder,
   observeBrowserDefinition,
-} from "./transition-record";
+} from "./mutation-record";
 
 const setup = () => {
   const handle = createJsonDocHandle({
@@ -54,7 +54,7 @@ describe("typed browser execution projection", () => {
       initialState: { type: "per_place" as const, content: {} },
     };
     const request = fixture.request("addScenario", raw);
-    const recorder = createBrowserTransitionRecorder({
+    const recorder = createBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.binding,
       requestFor: () => request,
@@ -94,7 +94,7 @@ describe("typed browser execution projection", () => {
       initialState: { type: "per_place" as const, content: {} },
     };
     const request = fixture.request("addScenario", raw);
-    const recorder = createBrowserTransitionRecorder({
+    const recorder = createBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.binding,
       requestFor: () => request,
@@ -154,7 +154,7 @@ describe("typed browser execution projection", () => {
       weight: 1,
     };
     const request = fixture.request("addArc", input);
-    const recorder = createBrowserTransitionRecorder({
+    const recorder = createBrowserMutationRecorder({
       handle: fixture.handle,
       binding: fixture.binding,
       requestFor: () => request,

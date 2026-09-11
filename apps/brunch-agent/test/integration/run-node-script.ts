@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 
-interface NodeScriptResult {
+export interface NodeScriptResult {
   readonly exitCode: number | null;
+  readonly signal: NodeJS.Signals | null;
   readonly stderr: string;
   readonly stdout: string;
 }
@@ -31,7 +32,7 @@ export const runNodeScript = async (
       stdout += chunk;
     });
     child.once("error", reject);
-    child.once("close", (exitCode) => {
-      resolve({ exitCode, stderr, stdout });
+    child.once("close", (exitCode, signal) => {
+      resolve({ exitCode, signal, stderr, stdout });
     });
   });

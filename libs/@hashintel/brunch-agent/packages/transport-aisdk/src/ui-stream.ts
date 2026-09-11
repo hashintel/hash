@@ -6,6 +6,8 @@ import type { UIMessageChunk } from "ai";
 /** How client-executed and hidden tools project into the AI SDK UI, live or from history. */
 export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  /** Host-defined tools that are not part of the AI SDK's static tool registry. */
+  readonly dynamicClientToolNames?: ReadonlySet<string>;
   /** These client calls are not executable until their server tool has succeeded. */
   readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly mapClientToolInput?: (
@@ -17,9 +19,25 @@ export interface ClientToolProjectionOptions {
   readonly hiddenToolNames?: ReadonlySet<string>;
 }
 
+/**
+ * A server tool that failed on this submission. Reported before projection
+ * decides whether the UI sees it, so hidden and pending-client tools are
+ * included; `errorText` is the server's text and may quote content, so hosts
+ * classify it before it leaves the browser.
+ */
+export interface FlueUiToolOutputError {
+  readonly submissionId: AgentSendResult["submissionId"];
+  readonly toolCallId: string;
+  /** Undefined when the failing call's input was never seen on this stream. */
+  readonly toolName: string | undefined;
+  readonly errorText: string;
+  readonly hidden: boolean;
+}
+
 export interface FlueUiStreamOptions extends ClientToolProjectionOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly write: (chunk: UIMessageChunk) => void;
+  readonly onToolOutputError?: (event: FlueUiToolOutputError) => void;
 }
 
 type StreamingPart = {
@@ -45,6 +63,7 @@ export const createFlueUiStream = (
   let partOrdinal = 0;
   let streamingPart: StreamingPart | undefined;
   const hiddenToolCallIds = new Set<string>();
+  const toolNamesByCallId = new Map<string, string>();
   const pendingClientToolCallIds = new Set<string>();
   const awaitingValidation = new Map<
     string,
@@ -65,6 +84,9 @@ export const createFlueUiStream = (
               toolName: chunk.toolName,
               toolCallId: chunk.toolCallId,
             }),
+      ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+        ? { dynamic: true }
+        : {}),
     });
   };
 
@@ -170,6 +192,7 @@ export const createFlueUiStream = (
           if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== messageId) return;
           finishPart();
+          toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
           if (options.hiddenToolNames?.has(chunk.toolName) === true) {
             hiddenToolCallIds.add(chunk.toolCallId);
             return;
@@ -185,6 +208,9 @@ export const createFlueUiStream = (
               type: "tool-input-start",
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
+              ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+                ? { dynamic: true }
+                : {}),
             });
             return;
           }
@@ -201,6 +227,9 @@ export const createFlueUiStream = (
                   })
                 : chunk.input,
             ...(isClientTool ? {} : { providerExecuted: true }),
+            ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+              ? { dynamic: true }
+              : {}),
           });
           return;
         }
@@ -224,6 +253,13 @@ export const createFlueUiStream = (
         }
         case "tool-output-error": {
           if (!accepting || messageId === undefined) return;
+          options.onToolOutputError?.({
+            submissionId: options.submissionId,
+            toolCallId: chunk.toolCallId,
+            toolName: toolNamesByCallId.get(chunk.toolCallId),
+            errorText: chunk.errorText,
+            hidden: hiddenToolCallIds.has(chunk.toolCallId),
+          });
           if (hiddenToolCallIds.has(chunk.toolCallId)) return;
           if (awaitingValidation.delete(chunk.toolCallId)) {
             pendingClientToolCallIds.delete(chunk.toolCallId);

@@ -21,7 +21,8 @@ import type {
   DefinitionObservation,
   BrowserBinding,
   ConstructionMutationRequest,
-} from "../transition-record";
+  ObservedConstructionMutationName,
+} from "../mutation-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export { joinedRootArcInputSchema } from "../root-arc";
@@ -93,7 +94,7 @@ export interface ObservedConstructionOptions extends WorkpieceAuthorityOptions {
 }
 
 export const createObservedArcTool = (
-  name: ConstructionMutationRequest["toolName"],
+  name: ObservedConstructionMutationName,
   options: ObservedConstructionOptions,
 ) =>
   defineTool({

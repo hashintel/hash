@@ -8,7 +8,7 @@ From the repository root, make `ANTHROPIC_API_KEY` available in the environment 
 yarn dev:brunch
 ```
 
-The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. The typed panel and Voice mode talk to one Flue chat agent composed from the context-independent core prompt in `@hashintel/brunch-agent/flue`, the SDCPN/Petrinaut instructions, modelling runbook skill, and `readPetrinautDoc` client tool in `@hashintel/brunch-agent-plugin-sdcpn`, and app-owned deployment material. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; the app's only model-facing diagnostic tool is `ping`. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled range of Flue history is applied into a JSON store beside the conversation database, not by the interviewer.
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. The typed panel and Voice mode talk to one Flue chat agent composed from the context-independent core prompt in `@hashintel/brunch-agent/flue`, the SDCPN/Petrinaut instructions, modelling runbook skill, and the SDCPN plugin's client tools in `@hashintel/brunch-agent-plugin-sdcpn` (`readPetrinautDoc` plus, on ordinary configured Brunch and the empty-net tracer, `getLatestNetDefinition` and `mutate_petrinet`), and app-owned deployment material. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; the app's only model-facing diagnostic tool is `ping`. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled range of Flue history is applied into a JSON store beside the conversation database, not by the interviewer.
 
 A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
 
@@ -27,6 +27,20 @@ Print a human-readable transcript of one conversation from that same Flue histor
 ```sh
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
+
+## Browser tracer scripts
+
+`test:browser-tracer` (`test/browser-tracer.ts`) drives an actual local Chrome against the **built** Brunch server (`dist/`) and the **built** Petrinaut website (`../petrinaut-website/dist`, or `M7_WEBSITE_DIST`), then reopens that original SQLite store in two later Node processes (`test/history-retention-new-records.integration.ts`). `test:reopened-why` (`M7_A5=1 test/mutation-records.integration.ts`) is the Chrome why-after-restart witness only. They use synthetic native SDK responses and a loopback-only listener; no provider key or external request is involved.
+
+The website build must be told where Brunch is mounted, or the prepared-fixture routes (`?brunch-fixture=…&brunchTracer=…`) never activate and the tracer times out waiting for "Bound conversation ready" with no browser or HTTP error:
+
+```sh
+turbo run build --filter '@apps/brunch-agent'
+VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/petrinaut-website build
+yarn workspace @apps/brunch-agent test:browser-tracer
+```
+
+`VITE_BRUNCH_CHAT_ENDPOINT` is a build-time Vite variable; a website built without it (for example by a plain `turbo run build`) has Brunch disabled and must be rebuilt. `M7_CHROME_PATH` selects the Chrome executable and `M7_BROWSER_OUTPUT` a fresh evidence directory (the script prints its output path). `M7_A5=1` additionally runs the reopened-why witness. Crash-boundary recovery is a `test:integration` suite (`history-retention-crash.test.ts`), not a Python/shell replay. `test:reopened-why-retention` is the opt-in three-process Chrome seed / fold / reopen Vitest (`A5_RETENTION=1`); it needs the same website build and Chrome. `test:history-retention-new-records` re-runs only the fold/reopen half against an existing `M7_BROWSER_OUTPUT`.
 
 ## Local Postgres for fixture-producing development
 

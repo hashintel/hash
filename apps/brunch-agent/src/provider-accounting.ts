@@ -7,6 +7,7 @@ import {
   RequestLedger,
   type RequestIdentity,
 } from "./provider-accounting/request-ledger.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
 
 import type {
   Api,
@@ -18,6 +19,9 @@ import type {
   FlueExecutionContext,
   FlueExecutionInterceptor,
 } from "@flue/runtime";
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === "AbortError";
 
 const configSchema = v.strictObject({
   ledgerPath: v.pipe(v.string(), v.check(isAbsolute)),
@@ -138,7 +142,15 @@ export const createStepARequestAccounting = (
             return (options?.fetch ?? globalThis.fetch)(input, init);
           },
         });
-      } catch {
+      } catch (error) {
+        // The wrapper below hides the native cause from the caller by design;
+        // the diagnostic sink is where that cause remains visible.
+        diagnostics.report("provider.accounting", error, {
+          event: "native-invocation",
+          dispatched: dispatch.started,
+          turnId: execution?.context.turnId,
+          submissionId: execution?.context.submissionId,
+        });
         if (dispatch.started) attempt.unknown();
         else attempt.notStarted();
         throw new Error(
@@ -148,7 +160,13 @@ export const createStepARequestAccounting = (
       const onAbort = () => {
         try {
           attempt.unknown();
-        } catch {
+        } catch (error) {
+          diagnostics.report("provider.accounting", error, {
+            event: "ledger-poisoned",
+            reason: "abort",
+            turnId: execution?.context.turnId,
+            submissionId: execution?.context.submissionId,
+          });
           ledger.poison();
         }
       };
@@ -160,9 +178,37 @@ export const createStepARequestAccounting = (
         .result()
         .then(
           (message) => attempt.terminal(message),
-          () => (dispatch.started ? attempt.unknown() : attempt.notStarted()),
+          (error: unknown) => {
+            const correlation = {
+              dispatched: dispatch.started,
+              turnId: execution?.context.turnId,
+              submissionId: execution?.context.submissionId,
+            };
+            // A user Stop rejects the stream too; that is an unknown outcome to
+            // account for, not a failure to alarm on.
+            if (options?.signal?.aborted || isAbortError(error)) {
+              diagnostics.note("provider.accounting", {
+                event: "stream-aborted",
+                ...correlation,
+              });
+            } else {
+              diagnostics.report("provider.accounting", error, {
+                event: "stream-failed",
+                ...correlation,
+              });
+            }
+            return dispatch.started ? attempt.unknown() : attempt.notStarted();
+          },
         )
-        .catch(() => ledger.poison())
+        .catch((error: unknown) => {
+          diagnostics.report("provider.accounting", error, {
+            event: "ledger-poisoned",
+            reason: "terminal-record",
+            turnId: execution?.context.turnId,
+            submissionId: execution?.context.submissionId,
+          });
+          ledger.poison();
+        })
         .finally(() => options?.signal?.removeEventListener("abort", onAbort));
       const iterator = stream[Symbol.asyncIterator].bind(stream);
       stream[Symbol.asyncIterator] = async function* observeProgress() {

@@ -282,6 +282,120 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
   });
 });
 
+test("withholds a rejected mutate_petrinet until server validation and marks both start and release dynamic", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["mutate_petrinet"]),
+    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    validatedClientToolNames: new Set(["mutate_petrinet"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  const rejected = {
+    type: "tool-input" as const,
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "batch-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    position: position(1),
+  };
+  projector.accept(rejected);
+  expect(written).toContainEqual({
+    type: "tool-input-start",
+    toolCallId: "batch-1",
+    toolName: "mutate_petrinet",
+    dynamic: true,
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "batch-1",
+    errorText: "Invalid mutate_petrinet arguments",
+    position: position(2),
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  expect(written).toContainEqual({
+    type: "tool-output-error",
+    toolCallId: "batch-1",
+    errorText: "Invalid mutate_petrinet arguments",
+    providerExecuted: true,
+  });
+  projector.accept({
+    ...rejected,
+    toolCallId: "batch-2",
+    input: { operations: [{ operationId: "add-queue" }] },
+    position: position(3),
+  });
+  projector.accept({
+    type: "tool-output",
+    conversationId: "conversation-1",
+    toolCallId: "batch-2",
+    output: { awaiting: "client" },
+    position: position(4),
+  });
+  const available = written.filter(
+    (chunk) => chunk.type === "tool-input-available",
+  );
+  expect(available).toEqual([
+    {
+      type: "tool-input-available",
+      toolCallId: "batch-2",
+      toolName: "mutate_petrinet",
+      input: { operations: [{ operationId: "add-queue" }] },
+      dynamic: true,
+    },
+  ]);
+});
+
+test("marks host-defined client tools as dynamic for the AI SDK", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["mutate_petrinet"]),
+    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "call-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    position: position(1),
+  });
+
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "call-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    dynamic: true,
+  });
+});
+
 test("keeps a pending client tool in the final projected step", () => {
   const written = project([
     {
@@ -418,4 +532,118 @@ test("bounds cyclic failed-submission objects", () => {
   const failure = written.find((chunk) => chunk.type === "error");
   expect(failure?.errorText).toContain('"self":"[Circular]"');
   expect(failure?.errorText.length).toBeLessThanOrEqual(10_000);
+});
+
+test("reports server tool failures to the diagnostic callback, hidden tools included, before projection drops them", () => {
+  const written: UIMessageChunk[] = [];
+  const reported: Parameters<
+    NonNullable<Parameters<typeof createFlueUiStream>[0]["onToolOutputError"]>
+  >[0][] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["readPetrinautDoc"]),
+    hiddenToolNames: new Set(["brunch_question"]),
+    onToolOutputError: (event) => reported.push(event),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "visible-1",
+    toolName: "brunch_why",
+    input: {},
+    position: position(1),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "hidden-1",
+    toolName: "brunch_question",
+    input: {},
+    position: position(2),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "visible-1",
+    errorText: "Unknown governing revision",
+    position: position(3),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "hidden-1",
+    errorText: "Question marker rejected",
+    position: position(4),
+  });
+
+  expect(reported).toEqual([
+    {
+      submissionId: "submission-1",
+      toolCallId: "visible-1",
+      toolName: "brunch_why",
+      errorText: "Unknown governing revision",
+      hidden: false,
+    },
+    {
+      submissionId: "submission-1",
+      toolCallId: "hidden-1",
+      toolName: "brunch_question",
+      errorText: "Question marker rejected",
+      hidden: true,
+    },
+  ]);
+  // The UI projection is unchanged: the hidden tool still never reaches it.
+  const errorChunks = written.filter(
+    (chunk) => chunk.type === "tool-output-error",
+  );
+  expect(errorChunks).toEqual([
+    {
+      type: "tool-output-error",
+      toolCallId: "visible-1",
+      errorText: "Unknown governing revision",
+      providerExecuted: true,
+    },
+  ]);
+  expect(
+    written.some(
+      (chunk) => "toolCallId" in chunk && chunk.toolCallId === "hidden-1",
+    ),
+  ).toBe(false);
+});
+
+test("does not report tool failures from another submission", () => {
+  const reported: unknown[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    onToolOutputError: (event) => reported.push(event),
+    write: () => {},
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-9",
+    submissionId: "submission-other",
+    turnId: "turn-9",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "other-1",
+    errorText: "not ours",
+    position: position(1),
+  });
+  expect(reported).toEqual([]);
 });

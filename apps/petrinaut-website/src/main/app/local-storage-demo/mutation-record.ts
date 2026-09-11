@@ -2,15 +2,18 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 
 import {
-  assertArcEffects,
+  assertMutationEffects,
   canonicalContent,
-  deriveArcEffects,
-  observedArcOutcome,
+  classifyMutationOutcome,
+  deriveMutationEffects,
+  mutatePetrinetToolName,
+  observedMutationOutcome,
   parseJoinedRootArcInput,
   parseObservedArcInput,
-  reconcileArcTransitionAttempts,
-  verifyArcTransitionAttempt,
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
   type ConstructionMutationRequest,
+  type ObservedConstructionMutationName,
   isObservedNodeMutation,
   parseObservedNodeInput,
   expectedNodeDefinition,
@@ -20,7 +23,7 @@ import {
   parseObservedStateInput,
   observedStateMutationNames,
   type ClientToolResultMetadata,
-  type ConstructionTransitionAttempt as ArcTransitionAttempt,
+  type ConstructionMutationAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
@@ -51,21 +54,34 @@ export const observeBrowserDefinition = (
  * One handle incarnation and conversation. No persistence, transport, or basis join.
  * The synchronous executor must mutate this handle; asynchronous commands are excluded.
  */
-export const createBrowserTransitionRecorder = ({
+/**
+ * A failure the recorder contained while recording a failed mutation: the
+ * retained attempt already reflects it as an unknown outcome, so nothing
+ * else surfaces the thrown value.
+ */
+export interface MutationRecordContainedFailure {
+  readonly toolCallId: string;
+  readonly kind: "post-observation" | "effect-derivation";
+  readonly error: unknown;
+}
+
+export const createBrowserMutationRecorder = ({
   handle,
   binding: suppliedBinding,
   requestFor,
-  deriveEffects = deriveArcEffects,
+  deriveEffects = deriveMutationEffects,
+  onContainedFailure,
 }: {
   handle: PetrinautDocHandle;
   binding: ConstructionMutationRequest["binding"];
   requestFor: (toolCallId: string) => ConstructionMutationRequest;
-  deriveEffects?: typeof deriveArcEffects;
+  deriveEffects?: typeof deriveMutationEffects;
+  onContainedFailure?: (failure: MutationRecordContainedFailure) => void;
 }) => {
   const binding = structuredClone(suppliedBinding);
   if (binding.documentId !== handle.id)
     throw new Error("The transition binding does not match the live handle.");
-  const attemptsByCall = new Map<string, ArcTransitionAttempt[]>();
+  const attemptsByCall = new Map<string, ConstructionMutationAttempt[]>();
   const results = new Map<
     string,
     {
@@ -76,14 +92,14 @@ export const createBrowserTransitionRecorder = ({
   >();
 
   const retain = (
-    attempt: ArcTransitionAttempt,
+    attempt: ConstructionMutationAttempt,
     { verifyEffects = true }: { verifyEffects?: boolean } = {},
   ) => {
-    if (verifyEffects) assertArcEffects(attempt);
+    if (verifyEffects) assertMutationEffects(attempt);
     const attempts = attemptsByCall.get(attempt.request.toolCallId) ?? [];
     attempts.push(structuredClone(attempt));
     attemptsByCall.set(attempt.request.toolCallId, attempts);
-    return reconcileArcTransitionAttempts(attempts);
+    return reconcileMutationAttempts(attempts);
   };
 
   const executeMutation: MutationExecutor = (call) => {
@@ -108,7 +124,7 @@ export const createBrowserTransitionRecorder = ({
       const priorAttempts = attemptsByCall.get(call.toolCallId);
       if (
         priorAttempts &&
-        reconcileArcTransitionAttempts(priorAttempts).outcome === "unknown"
+        reconcileMutationAttempts(priorAttempts).outcome === "unknown"
       )
         throw new Error(
           "The browser outcome is unknown or conflicting; do not retry.",
@@ -130,7 +146,7 @@ export const createBrowserTransitionRecorder = ({
     // Reject unearned scope before reserving this executor.
     deriveEffects(request, pre.definition, pre.definition);
     results.set(call.toolCallId, { request });
-    const attempt: ArcTransitionAttempt = {
+    const attempt: ConstructionMutationAttempt = {
       request,
       binding: structuredClone(binding),
       pre,
@@ -198,10 +214,15 @@ export const createBrowserTransitionRecorder = ({
         pre.definition,
         attempt.post.definition,
       );
-      attempt.outcome = observedArcOutcome(attempt);
+      const classified = classifyMutationOutcome(attempt);
+      attempt.outcome = classified.outcome;
+      // The catch below records this message as `attempt.error`, so the reason
+      // an outcome is unknown survives in the retained record.
       if (attempt.outcome === "unknown")
         throw new Error(
-          "Unmapped browser effects require review; do not retry.",
+          `Unmapped browser effects require review; do not retry.${
+            classified.reason === undefined ? "" : ` (${classified.reason})`
+          }`,
         );
       retain(attempt);
       const observedOutput: MutationOutput =
@@ -224,17 +245,27 @@ export const createBrowserTransitionRecorder = ({
       if (!attempt.post) {
         try {
           attempt.post = observeBrowserDefinition(handle);
-        } catch {
+        } catch (observationError) {
           // The post state is unavailable, not inferred equal to the pre state.
+          onContainedFailure?.({
+            toolCallId: call.toolCallId,
+            kind: "post-observation",
+            error: observationError,
+          });
         }
       }
       try {
         attempt.effects = attempt.post
           ? deriveEffects(request, pre.definition, attempt.post.definition)
           : { created: [], updated: [], deleted: [], derived: [] };
-        attempt.outcome = observedArcOutcome(attempt);
+        attempt.outcome = observedMutationOutcome(attempt);
         retain(attempt);
       } catch (derivationError) {
+        onContainedFailure?.({
+          toolCallId: call.toolCallId,
+          kind: "effect-derivation",
+          error: derivationError,
+        });
         attempt.error = `${attempt.error}; effect derivation failed: ${
           derivationError instanceof Error
             ? derivationError.message
@@ -256,11 +287,11 @@ export const createBrowserTransitionRecorder = ({
 
   return {
     executeMutation,
-    records: () =>
-      [...attemptsByCall.values()].map(reconcileArcTransitionAttempts),
+    records: () => [...attemptsByCall.values()].map(reconcileMutationAttempts),
+    retainAttempt: retain,
     /** External deliveries are verified before they can alter the first outcome. */
-    acceptDelivery: async (attempt: ArcTransitionAttempt) => {
-      const verified = await verifyArcTransitionAttempt(attempt);
+    acceptDelivery: async (attempt: ConstructionMutationAttempt) => {
+      const verified = await verifyMutationAttempt(attempt);
       const expected = requestFor(verified.request.toolCallId);
       if (canonicalContent(verified.request) !== canonicalContent(expected))
         throw new Error(
@@ -274,11 +305,12 @@ export const createBrowserTransitionRecorder = ({
 };
 
 /** Production adapter for the opt-in prepared root-arc lane; issued identities are immutable. */
-export const createJoinedBrowserTransitionRecorder = (input: {
+export const createJoinedBrowserMutationRecorder = (input: {
   handle: PetrinautDocHandle;
   binding: ConstructionMutationRequest["binding"];
   requestedBaseHash?: string;
   construction?: true;
+  onContainedFailure?: (failure: MutationRecordContainedFailure) => void;
 }) => {
   if (!input.construction && !input.requestedBaseHash)
     throw new Error("Legacy recorder requires its immutable original base.");
@@ -290,9 +322,10 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     string,
     { request: ConstructionMutationRequest; envelope: unknown }
   >();
-  const recorder = createBrowserTransitionRecorder({
+  const recorder = createBrowserMutationRecorder({
     handle: input.handle,
     binding,
+    onContainedFailure: input.onContainedFailure,
     requestFor: (toolCallId) => {
       const request = issued.get(toolCallId);
       if (!request) throw new Error("Unknown issued root arc request.");
@@ -324,7 +357,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       )
     )
       return call.input;
-    const name = call.toolName as ConstructionMutationRequest["toolName"];
+    const name = call.toolName as ObservedConstructionMutationName;
     const { brunch, ...canonicalInput } = input.construction
       ? isObservedNodeMutation(name)
         ? parseObservedNodeInput(name, call.input)
@@ -374,6 +407,31 @@ export const createJoinedBrowserTransitionRecorder = (input: {
         observation: { toolCallId: result.toolCallId, binding, observed },
       } satisfies ClientToolResultMetadata;
     }
+    if (result.toolName === mutatePetrinetToolName) {
+      const prefix = `${result.toolCallId}:`;
+      const attempts = recorder
+        .records()
+        .filter((record) =>
+          record.attempts[0]?.request.toolCallId.startsWith(prefix),
+        )
+        .flatMap((record) => record.attempts);
+      if (attempts.length === 0)
+        throw new Error(
+          "A mutate_petrinet result requires observed browser mutation records.",
+        );
+      const outcome = attempts.some((attempt) => attempt.outcome === "unknown")
+        ? "unknown"
+        : attempts.some((attempt) => attempt.outcome === "failed")
+          ? "failed"
+          : attempts.some((attempt) => attempt.outcome === "stale")
+            ? "stale"
+            : attempts.some((attempt) => attempt.outcome === "applied")
+              ? "applied"
+              : "no-op";
+      return {
+        mutationRecord: { attempts, outcome },
+      } satisfies ClientToolResultMetadata;
+    }
     if (
       result.toolName !== "addArc" &&
       !(
@@ -384,17 +442,17 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       )
     )
       return undefined;
-    const transitionRecord = recorder
+    const mutationRecord = recorder
       .records()
       .find(
         (record) =>
           record.attempts[0]?.request.toolCallId === result.toolCallId,
       );
-    if (!transitionRecord)
+    if (!mutationRecord)
       throw new Error(
-        "A root arc result requires an observed browser transition record.",
+        "A root arc result requires an observed browser mutation record.",
       );
-    return { transitionRecord } satisfies ClientToolResultMetadata;
+    return { mutationRecord } satisfies ClientToolResultMetadata;
   };
   return {
     ...recorder,
@@ -409,6 +467,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
             "updatePlace",
             "addTransition",
             "updateTransition",
+            mutatePetrinetToolName,
             ...observedStateMutationNames,
           ]
         : ["addArc"],

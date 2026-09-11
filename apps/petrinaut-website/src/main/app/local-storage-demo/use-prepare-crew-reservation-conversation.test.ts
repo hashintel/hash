@@ -4,9 +4,37 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
-import { usePrepareCrewReservationConversation } from "./use-prepare-crew-reservation-conversation";
+import {
+  selectCrewReservationPreparationBrowser,
+  usePrepareCrewReservationConversation,
+} from "./use-prepare-crew-reservation-conversation";
 
 import type { FlueClient } from "@flue/sdk";
+
+test("keeps ordinary batched construction off the prepared-fixture dispatch", () => {
+  const tracerBrowser = {
+    binding: "fixture",
+    requestedBaseHash: "abc",
+  };
+
+  expect(
+    selectCrewReservationPreparationBrowser(true, {
+      requestedBaseHash: "abc",
+    }),
+  ).toBeUndefined();
+  expect(
+    selectCrewReservationPreparationBrowser(true, undefined),
+  ).toBeUndefined();
+  expect(selectCrewReservationPreparationBrowser(false, tracerBrowser)).toBe(
+    tracerBrowser,
+  );
+  expect(
+    selectCrewReservationPreparationBrowser(false, { construction: true }),
+  ).toBeUndefined();
+  expect(
+    selectCrewReservationPreparationBrowser(false, undefined),
+  ).toBeUndefined();
+});
 
 test("reports preparation failure without rejecting the shared client", async () => {
   const client = {

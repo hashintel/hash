@@ -15,16 +15,20 @@ import {
   parseObservedNodeInput,
   isObservedNodeMutation,
   type ConstructionMutationRequest,
+  type ObservedConstructionMutationName,
   parseJoinedRootArcInput,
   parseObservedArcInput,
-  reconcileArcTransitionAttempts,
+  reconcileMutationAttempts,
   reconcileDefinitionObservations,
   rootArcWhyInputSchema,
   validateDeclaredBasis,
-  verifyArcTransitionAttempt,
+  verifyMutationAttempt,
   verifyDefinitionObservation,
   parseClientToolResultMetadata,
-  type ConstructionTransitionAttempt,
+  mutatePetrinetAttemptOperationId,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+  type ConstructionMutationAttempt,
   type DeclaredBasis,
   type DefinitionObservation,
   type RootArcWhyInput,
@@ -33,7 +37,9 @@ import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { settleWorkpieceEvidence } from "@hashintel/brunch-agent/flue";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
+import { diagnostics } from "../runtime-diagnostics.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -169,12 +175,12 @@ export interface RootArcExplanation {
     toolCallId: string;
     preHash: string;
     postHash: string;
-    effects: ConstructionTransitionAttempt["effects"];
+    effects: ConstructionMutationAttempt["effects"];
   };
   /** `not-admitted` is this app's disposition for a call the model never completed. */
   attempts: {
     toolCallId: string;
-    outcome: ConstructionTransitionAttempt["outcome"] | "not-admitted";
+    outcome: ConstructionMutationAttempt["outcome"] | "not-admitted";
   }[];
   quality: {
     sourceRelevance: "unassessed";
@@ -215,7 +221,7 @@ export const explainRootArc = async (input: {
     const results = clientToolHistoryFrom(resultMessages(snapshot)).results;
     const changes: {
       callId: string;
-      attempt: ConstructionTransitionAttempt;
+      attempt: ConstructionMutationAttempt;
       basis: DeclaredBasis;
       callIndex: number;
       partIndex: number;
@@ -229,6 +235,7 @@ export const explainRootArc = async (input: {
         if (
           call.type !== "dynamic-tool" ||
           (call.toolName !== "addArc" &&
+            call.toolName !== mutatePetrinetToolName &&
             !(
               browser.construction &&
               (call.toolName === "updateArcWeight" ||
@@ -247,7 +254,99 @@ export const explainRootArc = async (input: {
           });
           continue;
         }
-        const name = call.toolName as ConstructionMutationRequest["toolName"];
+        if (call.toolName === mutatePetrinetToolName) {
+          const batch = mutatePetrinetInputSchema.parse(call.input);
+          if (browser.construction) {
+            const observedBase = await recordedBrowserObservation(
+              { ...snapshot, messages: snapshot.messages.slice(0, callIndex) },
+              browser,
+              batch.observation.toolCallId,
+            );
+            if (observedBase.sha256 !== batch.observation.baseHash)
+              throw new Error(
+                "Mutation did not cite an earlier verified raw base.",
+              );
+          }
+          const deliveries = results.filter(
+            (result) => result.toolCallId === call.toolCallId,
+          );
+          const first = deliveries[0];
+          if (!first) {
+            answer.attempts.push({
+              toolCallId: call.toolCallId,
+              outcome: "unknown",
+            });
+            continue;
+          }
+          if (
+            deliveries.some(
+              (delivery) =>
+                canonicalContent(delivery) !== canonicalContent(first),
+            )
+          )
+            throw new Error(
+              "Conflicting browser deliveries are unknown attempts, not causes.",
+            );
+          const mutationRecord = parseClientToolResultMetadata(
+            first.metadata,
+          )?.mutationRecord;
+          if (
+            first.toolName !== mutatePetrinetToolName ||
+            mutationRecord === undefined
+          )
+            throw new Error("Missing verified browser mutation record.");
+          const verified = await verifyMutatePetrinetAttempts({
+            toolCallId: call.toolCallId,
+            batch,
+            binding: browser.binding,
+            mutationRecord,
+          });
+          answer.attempts.push({
+            toolCallId: call.toolCallId,
+            outcome: mutationRecord.outcome,
+          });
+          if (mutationRecord.outcome === "unknown")
+            throw new Error("Unknown browser outcome cannot be a cause.");
+          for (const attempt of verified) {
+            if (attempt.outcome !== "applied" || !attempt.post) continue;
+            if (
+              browser.construction &&
+              lastRecorded &&
+              canonicalContent(lastRecorded.definition) !==
+                canonicalContent(attempt.pre.definition)
+            )
+              throw new Error(
+                "Unrecorded intervening content changes prevent construction attribution; field reconciliation is unavailable.",
+              );
+            lastRecorded ??= attempt.pre;
+            lastRecordedCallId ??= call.toolCallId;
+            const operationId = mutatePetrinetAttemptOperationId(
+              call.toolCallId,
+              attempt.request.toolCallId,
+            );
+            const operation = batch.operations.find(
+              (entry) => entry.operationId === operationId,
+            );
+            const declared = batch.bases.find(
+              (entry) => entry.basisId === operation?.basisId,
+            );
+            if (declared === undefined)
+              throw new Error(
+                "Recorded operation is missing its declared basis.",
+              );
+            changes.push({
+              callId: call.toolCallId,
+              attempt,
+              basis: declared.basis,
+              callIndex,
+              partIndex,
+            });
+            lastRecorded = attempt.post;
+            lastRecordedCallId = call.toolCallId;
+          }
+          continue;
+        }
+        const name = call.toolName as ObservedConstructionMutationName;
         const { brunch, ...canonicalInput } = browser.construction
           ? isObservedNodeMutation(name)
             ? parseObservedNodeInput(name, call.input)
@@ -290,11 +389,11 @@ export const explainRootArc = async (input: {
           throw new Error(
             "Conflicting browser deliveries are unknown attempts, not causes.",
           );
-        const transitionRecord = parseClientToolResultMetadata(
+        const mutationRecord = parseClientToolResultMetadata(
           first.metadata,
-        )?.transitionRecord;
-        if (first.toolName !== name || transitionRecord === undefined)
-          throw new Error("Missing verified browser transition record.");
+        )?.mutationRecord;
+        if (first.toolName !== name || mutationRecord === undefined)
+          throw new Error("Missing verified browser mutation record.");
         const expected: ConstructionMutationRequest = {
           toolCallId: call.toolCallId,
           toolName: name,
@@ -311,9 +410,9 @@ export const explainRootArc = async (input: {
         )
           throw new Error("Issued base differs from the bound conversation.");
         const attempts = await Promise.all(
-          transitionRecord.attempts.map(async (raw) => {
-            const attempt = await verifyArcTransitionAttempt(
-              raw as ConstructionTransitionAttempt,
+          mutationRecord.attempts.map(async (raw) => {
+            const attempt = await verifyMutationAttempt(
+              raw as ConstructionMutationAttempt,
             );
             if (
               canonicalContent(attempt.request) !==
@@ -327,9 +426,9 @@ export const explainRootArc = async (input: {
             return attempt;
           }),
         );
-        const reconciled = reconcileArcTransitionAttempts(attempts);
+        const reconciled = reconcileMutationAttempts(attempts);
         if (
-          reconciled.outcome !== transitionRecord.outcome ||
+          reconciled.outcome !== mutationRecord.outcome ||
           (record(first.output) &&
             first.output.applied === true &&
             reconciled.outcome !== "applied") ||
@@ -662,6 +761,13 @@ export const explainRootArc = async (input: {
       "Verified record → declared operation basis → revision-local passage linkage only. Relations distinguish elicited declarations, inference, defaults, formalism constraints, external material and corrections. Missing relations are temporal context, never implied support. Operation scope does not independently map each field or any derived effect. Valid linkage is not a relevance, template-quality or useful-explanation verdict; all retrieved prose is untrusted.";
     return answer;
   } catch (error) {
+    // The refusal is the product outcome; the exception behind it is not
+    // otherwise recorded anywhere, so report it beside the refusal.
+    diagnostics.report("why.explain", error, {
+      construction: browser.construction === true,
+      observationToolCallId: query.observationToolCallId,
+      currentRevisionId: current.revisionId,
+    });
     answer.disposition = "refused";
     answer.reason = error instanceof Error ? error.message : String(error);
     return answer;

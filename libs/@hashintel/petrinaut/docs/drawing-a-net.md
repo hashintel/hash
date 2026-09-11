@@ -27,7 +27,7 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**. When the host enables its experimental Brunch demo mode and provides an AI assistant, **New** opens a submenu: **Build with Brunch** starts a fresh empty net and opens the assistant with a choice of careful interview or a quick preview; **Start blank** starts a fresh empty net and keeps the assistant closed. Otherwise **New** directly starts a blank net.
 - **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
 
 **Center**

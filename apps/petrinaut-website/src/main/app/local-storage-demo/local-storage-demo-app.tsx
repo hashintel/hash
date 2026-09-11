@@ -16,7 +16,9 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  batchedConstructionMode,
   conversationConstructionMode,
+  mutatePetrinetToolName,
   observedConstructionBrowserToolNames,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -25,6 +27,7 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
+  getLatestNetDefinitionToolName,
   readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
@@ -33,6 +36,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import {
   CommandRegistryProvider,
+  ErrorTrackerContext,
   useCommand,
   UserSettingsContext,
   UserSettingsProvider,
@@ -59,7 +63,10 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
+import {
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+} from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -73,7 +80,13 @@ import {
   isCrewReservationFixtureSelected,
   isRootArcTracerSelected,
   isConstructionSelected,
+  localStorageDemoRouteIdentity,
 } from "./local-storage-demo-search";
+import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
+import {
+  createJoinedBrowserMutationRecorder,
+  observeBrowserDefinition,
+} from "./mutation-record";
 import {
   crewReservationDocumentId,
   preparedCrewReservationNet,
@@ -84,10 +97,6 @@ import {
   RootArcTracerBanner,
 } from "./prepared-fixture-banner";
 import { resolveCrewReservationBundle } from "./resolve-crew-reservation-bundle";
-import {
-  createJoinedBrowserTransitionRecorder,
-  observeBrowserDefinition,
-} from "./transition-record";
 import {
   crewReservationFixtureConfiguration,
   useCrewReservationFixtureSession,
@@ -102,7 +111,10 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
-import { usePrepareCrewReservationConversation } from "./use-prepare-crew-reservation-conversation";
+import {
+  selectCrewReservationPreparationBrowser,
+  usePrepareCrewReservationConversation,
+} from "./use-prepare-crew-reservation-conversation";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -126,6 +138,14 @@ const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
 const constructionClientToolNames: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
   ...observedConstructionBrowserToolNames,
+]);
+const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
+  readPetrinautDocToolName,
+  getLatestNetDefinitionToolName,
+  mutatePetrinetToolName,
+]);
+const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([
+  mutatePetrinetToolName,
 ]);
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
@@ -263,17 +283,21 @@ type ActiveHandle = {
 
 const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
   const handle = createHandle(net);
+  const fallbackNet: SDCPNInLocalStorage =
+    net.incarnationId === undefined
+      ? { ...net, incarnationId: crypto.randomUUID() }
+      : net;
   return {
     handle,
-    netId: net.id,
+    netId: fallbackNet.id,
     fallbackNet:
-      net.id === rootArcTracerDocumentId &&
-      net.rootArcRequestedBaseHash === undefined
+      fallbackNet.id === rootArcTracerDocumentId &&
+      fallbackNet.rootArcRequestedBaseHash === undefined
         ? {
-            ...net,
+            ...fallbackNet,
             rootArcRequestedBaseHash: observeBrowserDefinition(handle).sha256,
           }
-        : net,
+        : fallbackNet,
   };
 };
 
@@ -380,6 +404,11 @@ export const LocalStorageDemoApp = ({
     brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
   const rootCreationSelected =
     constructionSelected && search.brunchTracer === "root-creation";
+  const productConstructionSelected =
+    brunchPreviewConfig.isBrunchConfigured &&
+    localStorageDemoRouteIdentity(search) === "ordinary";
+  const batchedConstructionSelected =
+    rootCreationSelected || productConstructionSelected;
   const constructionDocumentId = rootCreationSelected
     ? "synthetic-root-creation-v1"
     : legacyConstructionDocumentId;
@@ -512,15 +541,26 @@ export const LocalStorageDemoApp = ({
     }
 
     const { fallbackNet, handle, netId } = activeHandle;
-    if (netId === rootArcTracerDocumentId || netId === constructionDocumentId) {
-      setStoredSDCPNs((previous) => ({
-        ...previous,
-        [netId]: {
-          ...(previous[netId] ?? fallbackNet),
-          incarnationId: fallbackNet.incarnationId,
-          rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
-        },
-      }));
+    const isTracerDocument =
+      netId === rootArcTracerDocumentId || netId === constructionDocumentId;
+    if (isTracerDocument || fallbackNet.incarnationId !== undefined) {
+      setStoredSDCPNs((previous) => {
+        const stored = previous[netId];
+        if (
+          !isTracerDocument &&
+          stored?.incarnationId === fallbackNet.incarnationId
+        ) {
+          return previous;
+        }
+        return {
+          ...previous,
+          [netId]: {
+            ...(stored ?? fallbackNet),
+            incarnationId: fallbackNet.incarnationId,
+            rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
+          },
+        };
+      });
     }
 
     return handle.subscribe((event) => {
@@ -647,10 +687,15 @@ export const LocalStorageDemoApp = ({
   const conversationId =
     currentNetId === null
       ? null
-      : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-        ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
-        : (fixtureConfiguration?.conversationId ??
-          getOrCreateBrunchConversationId(currentNetId));
+      : productConstructionSelected &&
+          activeHandle?.fallbackNet.incarnationId !== undefined
+        ? ordinaryConstructionConversationIdFrom(
+            activeHandle.fallbackNet.incarnationId,
+          )
+        : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
+          ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
+          : (fixtureConfiguration?.conversationId ??
+            getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
       brunchPreviewConfig.isBrunchConfigured && conversationId !== null
@@ -663,13 +708,38 @@ export const LocalStorageDemoApp = ({
     () => createConversationTrackerFor(conversationId),
     [conversationId],
   );
+  // Failures the host contains — a stopped batch operation, an unrecordable
+  // transition, a lost history observation, a failed server tool — resolve
+  // normally for the panel and the model; this is where they become visible.
+  const { captureException } = use(ErrorTrackerContext);
+  const reportBrunchFailure = useCallback(
+    (
+      source: string,
+      error: unknown,
+      tags?: Readonly<Record<string, string | number | boolean>>,
+    ) =>
+      captureException(error, {
+        source: `brunch.${source}`,
+        ...(tags === undefined ? {} : { tags }),
+      }),
+    [captureException],
+  );
   const rootArcBrowser = useMemo(() => {
     const net = activeHandle?.fallbackNet;
+    if (!activeHandle || !conversationId || !net?.incarnationId)
+      return undefined;
+    if (productConstructionSelected) {
+      return {
+        binding: {
+          conversationId,
+          documentId: activeHandle.netId,
+          incarnationId: net.incarnationId,
+        },
+        construction: true as const,
+      };
+    }
     if (
       !tracerIsCurrent ||
-      !activeHandle ||
-      !conversationId ||
-      !net?.incarnationId ||
       (!constructionSelected && !net.rootArcRequestedBaseHash)
     )
       return undefined;
@@ -683,7 +753,13 @@ export const LocalStorageDemoApp = ({
         ? { construction: true as const }
         : { requestedBaseHash: net.rootArcRequestedBaseHash! }),
     };
-  }, [tracerIsCurrent, activeHandle, conversationId, constructionSelected]);
+  }, [
+    tracerIsCurrent,
+    activeHandle,
+    conversationId,
+    constructionSelected,
+    productConstructionSelected,
+  ]);
   // The handle mutates behind a stable identity. Subscribe to its real snapshot;
   // a render-time read alone can be memoized by React Compiler across hand edits.
   const observedLiveHash = useSyncExternalStore(
@@ -697,33 +773,53 @@ export const LocalStorageDemoApp = ({
         : undefined,
     () => undefined,
   );
-  const transitionRecorder = useMemo(
+  const mutationRecorder = useMemo(
     () =>
       rootArcBrowser && activeHandle
-        ? createJoinedBrowserTransitionRecorder({
+        ? createJoinedBrowserMutationRecorder({
             handle: activeHandle.handle,
             ...rootArcBrowser,
+            onContainedFailure: (failure) =>
+              reportBrunchFailure("mutation-record", failure.error, {
+                kind: failure.kind,
+                toolCallId: failure.toolCallId,
+              }),
           })
         : undefined,
-    [rootArcBrowser, activeHandle],
+    [rootArcBrowser, activeHandle, reportBrunchFailure],
   );
+  const rootArcPreparationBrowser = selectCrewReservationPreparationBrowser(
+    batchedConstructionSelected,
+    rootArcBrowser,
+  );
+  const rootArcPreparation = rootArcPreparationBrowser !== undefined;
   const tracerPreparation = usePrepareCrewReservationConversation(
     flueClientPromise,
-    rootArcBrowser !== undefined && !constructionSelected,
-    rootArcBrowser && "requestedBaseHash" in rootArcBrowser
-      ? rootArcBrowser
-      : undefined,
+    rootArcPreparation,
+    rootArcPreparationBrowser,
   );
+  const constructionClientTools = batchedConstructionSelected
+    ? batchedConstructionClientToolNames
+    : constructionSelected
+      ? constructionClientToolNames
+      : fixtureConfiguration?.clientToolNames;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionSelected
-      ? constructionClientToolNames
-      : fixtureConfiguration?.clientToolNames,
-    transitionRecorder?.mapClientToolInput ??
+    constructionClientTools,
+    mutationRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
-    transitionRecorder?.validatedClientToolNames,
+    mutationRecorder?.validatedClientToolNames,
+    batchedConstructionSelected
+      ? batchedConstructionDynamicToolNames
+      : undefined,
   );
+  useEffect(() => {
+    if (flueHistory.error === undefined) return;
+    reportBrunchFailure("history", flueHistory.error, {
+      phase: flueHistory.phase ?? "unknown",
+    });
+  }, [flueHistory.error, flueHistory.phase, reportBrunchFailure]);
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
@@ -758,29 +854,42 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          ...(constructionSelected && rootArcBrowser
+          ...((constructionSelected || productConstructionSelected) &&
+          rootArcBrowser
             ? {
                 initialData: {
-                  mode: conversationConstructionMode,
+                  mode: batchedConstructionSelected
+                    ? batchedConstructionMode
+                    : conversationConstructionMode,
                   construction: { binding: rootArcBrowser.binding },
                 },
               }
             : {}),
-          ...(fixtureConfiguration === undefined
+          ...(batchedConstructionSelected
+            ? {
+                dynamicClientToolNames: batchedConstructionDynamicToolNames,
+              }
+            : {}),
+          ...(constructionClientTools === undefined
             ? {}
             : {
-                clientToolNames: constructionSelected
-                  ? constructionClientToolNames
-                  : fixtureConfiguration.clientToolNames,
+                clientToolNames: constructionClientTools,
                 mapClientToolInput:
-                  transitionRecorder?.mapClientToolInput ??
-                  fixtureConfiguration.mapClientToolInput,
+                  mutationRecorder?.mapClientToolInput ??
+                  fixtureConfiguration?.mapClientToolInput,
                 validatedClientToolNames:
-                  transitionRecorder?.validatedClientToolNames,
+                  mutationRecorder?.validatedClientToolNames,
                 clientToolResultMetadata:
-                  transitionRecorder?.clientToolResultMetadata,
+                  mutationRecorder?.clientToolResultMetadata,
               }),
           onAdmission: flueHistory.refresh,
+          onToolOutputError: (event) =>
+            reportBrunchFailure("server-tool", new Error(event.errorText), {
+              submissionId: event.submissionId,
+              toolCallId: event.toolCallId,
+              toolName: event.toolName ?? "unknown",
+              hidden: event.hidden,
+            }),
         },
       );
     }
@@ -791,38 +900,58 @@ export const LocalStorageDemoApp = ({
       : stockChatTransport;
   }, [
     conversationTracker,
+    constructionClientTools,
     constructionSelected,
+    batchedConstructionSelected,
+    productConstructionSelected,
     rootArcBrowser,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
     flueHistory.refresh,
+    reportBrunchFailure,
     transportClientPromise,
-    transitionRecorder,
+    mutationRecorder,
   ]);
 
   const aiAssistant = useMemo(
     () => ({
-      additionalTab:
-        tracerIsCurrent && rootArcBrowser
-          ? {
-              label: "Workpiece",
-              content: (
-                <BrunchWorkpiecePane
-                  messages={flueHistory.snapshot?.messages ?? []}
-                  construction={constructionSelected}
-                  binding={rootArcBrowser.binding}
-                  liveHash={observedLiveHash}
-                />
-              ),
-            }
-          : undefined,
+      additionalTab: rootArcBrowser
+        ? {
+            label: "Workpiece",
+            content: (
+              <BrunchWorkpiecePane
+                messages={flueHistory.snapshot?.messages ?? []}
+                construction={
+                  constructionSelected || productConstructionSelected
+                }
+                binding={rootArcBrowser.binding}
+                liveHash={observedLiveHash}
+              />
+            ),
+          }
+        : undefined,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
+      automaticTools:
+        batchedConstructionSelected && rootArcBrowser
+          ? [
+              createMutatePetrinetAutomaticTool(rootArcBrowser.binding, {
+                retainAttempt: mutationRecorder?.retainAttempt,
+                onOperationFailure: (failure) =>
+                  reportBrunchFailure("mutate-petrinet", failure.error, {
+                    toolCallId: failure.toolCallId,
+                    operationId: failure.operationId,
+                    operationType: failure.operationType,
+                    status: failure.status,
+                  }),
+              }),
+            ]
+          : [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
-      ...(transitionRecorder === undefined
+      ...(mutationRecorder === undefined
         ? {}
-        : { executeMutation: transitionRecorder.executeMutation }),
+        : { executeMutation: mutationRecorder.executeMutation }),
       ...(flueClientPromise === null
         ? {}
         : {
@@ -871,10 +1000,11 @@ export const LocalStorageDemoApp = ({
     [
       aiMessagesByNetId,
       brunchVoiceMode,
+      batchedConstructionSelected,
       constructionSelected,
       observedLiveHash,
+      productConstructionSelected,
       rootArcBrowser,
-      tracerIsCurrent,
       conversationTracker,
       conversationId,
       currentNetId,
@@ -882,7 +1012,8 @@ export const LocalStorageDemoApp = ({
       flueHistory.messages,
       flueHistory.snapshot,
       petrinautAiChatTransport,
-      transitionRecorder,
+      reportBrunchFailure,
+      mutationRecorder,
       setAiMessagesByNetId,
     ],
   );

@@ -21,6 +21,10 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  type ErrorTracker,
+  ErrorTrackerContext,
+} from "../../../../react/error-tracker-context";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
 import { notificationsToaster } from "../../../../react/notifications/toaster";
@@ -218,6 +222,7 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
+  errorTracker = { captureException: () => {} },
   initialInteractionMode,
   initialMessage,
   onInitialInteractionModeConsumed,
@@ -226,6 +231,7 @@ const renderTestPanel = ({
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
+  errorTracker?: ErrorTracker;
   initialInteractionMode?: PetrinautAiInputMode;
   initialMessage?: string;
   onInitialInteractionModeConsumed?: () => void;
@@ -258,20 +264,22 @@ const renderTestPanel = ({
     nextInitialMessage = initialMessage,
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
-      <NotificationsProvider>
-        <EditorContext.Provider value={nextEditorContext}>
-          <SDCPNContext.Provider value={sdcpnContext}>
-            <AiAssistantPanel
-              aiAssistant={nextAiAssistant}
-              initialInteractionMode={nextInitialInteractionMode}
-              initialMessage={nextInitialMessage}
-              onInitialInteractionModeConsumed={
-                onInitialInteractionModeConsumed
-              }
-            />
-          </SDCPNContext.Provider>
-        </EditorContext.Provider>
-      </NotificationsProvider>
+      <ErrorTrackerContext.Provider value={errorTracker}>
+        <NotificationsProvider>
+          <EditorContext.Provider value={nextEditorContext}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={nextAiAssistant}
+                initialInteractionMode={nextInitialInteractionMode}
+                initialMessage={nextInitialMessage}
+                onInitialInteractionModeConsumed={
+                  onInitialInteractionModeConsumed
+                }
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </NotificationsProvider>
+      </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
   const rendered = render(
@@ -349,6 +357,60 @@ describe("AiAssistantPanel composer submissions", () => {
       screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
     ).toBe("true");
     expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("reports a failed submission stream to the host error tracker at its source", async () => {
+    const captureException = vi.fn<ErrorTracker["captureException"]>();
+    const failure = new Error("Brunch rejected the message before admission.");
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () => {
+            throw failure;
+          },
+        },
+      },
+      errorTracker: { captureException },
+    });
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText("Brunch rejected the message before admission."),
+    ).not.toBeNull();
+    await waitFor(() => expect(captureException).toHaveBeenCalledOnce());
+    expect(captureException).toHaveBeenCalledWith(failure, {
+      source: "ai-assistant.stream",
+    });
+  });
+
+  test("keeps an expected composer refusal as UI state without capturing it", async () => {
+    const captureException = vi.fn<ErrorTracker["captureException"]>();
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    let latest: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+      errorTracker: { captureException },
+    });
+
+    await expect(
+      act(async () => {
+        await latest?.submitText({ text: "   " });
+      }),
+    ).rejects.toThrow("AI assistant text must not be empty.");
+
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   test("runs the host mutation boundary once before matching output insertion and continuation in StrictMode", async () => {
@@ -4963,6 +5025,199 @@ describe("AiAssistantPanel host interactive tools", () => {
         toolCallId: "host-tool-call-1",
         toolName: "confirmRelease",
       });
+    } finally {
+      instance.dispose();
+    }
+  });
+
+  test("executes a host automatic dynamic tool and resumes once", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "automatic-call-1",
+                    toolName: "hostAutomatic",
+                    input: { value: 2 },
+                  },
+                ]
+              : [
+                  { type: "start-step" },
+                  { type: "text-start", id: "automatic-follow-up" },
+                  {
+                    type: "text-delta",
+                    id: "automatic-follow-up",
+                    delta: "Automatic result received.",
+                  },
+                  { type: "text-end", id: "automatic-follow-up" },
+                ],
+          ),
+        );
+      }),
+    };
+    const execute = vi.fn(({ input }: { input: unknown }) => ({
+      doubled: (input as { value: number }).value * 2,
+    }));
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+    const sdcpnContext: SDCPNContextValue = {
+      createNewNet: () => {},
+      existingNets: [],
+      loadPetriNet: () => {},
+      petriNetId: "automatic-tool-test",
+      petriNetDefinition: emptySDCPN,
+      readonly: false,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      setTitle: () => {},
+      title: "Automatic tool test",
+      getItemType: () => null,
+    };
+
+    try {
+      render(
+        <PetrinautInstanceContext.Provider value={instance}>
+          <EditorContext.Provider value={editorContextValue}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={{
+                  automaticTools: [
+                    {
+                      toolName: "hostAutomatic",
+                      inputSchema: {
+                        parse: (raw: unknown) => raw as { value: number },
+                      },
+                      outputSchema: {
+                        parse: (raw: unknown) => raw as { doubled: number },
+                      },
+                      execute,
+                    },
+                  ],
+                  transport,
+                }}
+                initialMessage="Run the automatic tool"
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </PetrinautInstanceContext.Provider>,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+      );
+      await screen.findByText("Automatic result received.");
+      expect(execute).toHaveBeenCalledWith({
+        input: { value: 2 },
+        mutations: instance.mutations,
+        handle: instance.handle,
+        toolCallId: "automatic-call-1",
+        signal: expect.any(AbortSignal) as AbortSignal,
+      });
+      expect(requestMessages[1]?.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          type: "dynamic-tool",
+          toolCallId: "automatic-call-1",
+          toolName: "hostAutomatic",
+          state: "output-available",
+          output: { doubled: 4 },
+        }),
+      );
+    } finally {
+      instance.dispose();
+    }
+  });
+
+  test("aborts an in-flight automatic tool when the panel unmounts", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "automatic-call-unmount",
+              toolName: "hostAutomatic",
+              input: { value: 2 },
+            },
+          ]),
+        ),
+      ),
+    };
+    let executeSignal: AbortSignal | undefined;
+    const execute = vi.fn(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise<{ doubled: number }>((_resolve, reject) => {
+          executeSignal = signal;
+          signal.addEventListener("abort", () => {
+            reject(
+              new DOMException("The automatic tool was aborted.", "AbortError"),
+            );
+          });
+        }),
+    );
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-unmount-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+    const sdcpnContext: SDCPNContextValue = {
+      createNewNet: () => {},
+      existingNets: [],
+      loadPetriNet: () => {},
+      petriNetId: "automatic-tool-unmount-test",
+      petriNetDefinition: emptySDCPN,
+      readonly: false,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      setTitle: () => {},
+      title: "Automatic tool unmount test",
+      getItemType: () => null,
+    };
+
+    try {
+      const mounted = render(
+        <PetrinautInstanceContext.Provider value={instance}>
+          <EditorContext.Provider value={editorContextValue}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={{
+                  automaticTools: [
+                    {
+                      toolName: "hostAutomatic",
+                      inputSchema: {
+                        parse: (raw: unknown) => raw as { value: number },
+                      },
+                      outputSchema: {
+                        parse: (raw: unknown) => raw as { doubled: number },
+                      },
+                      execute,
+                    },
+                  ],
+                  transport,
+                }}
+                initialMessage="Run the automatic tool"
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </PetrinautInstanceContext.Provider>,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      expect(executeSignal?.aborted).toBe(false);
+      mounted.unmount();
+      expect(executeSignal?.aborted).toBe(true);
     } finally {
       instance.dispose();
     }

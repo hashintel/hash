@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7b](7b-september-demo.md) requires ordinary PM exploration of a substantial broadly explainable flagship plus one correction family: saved workpiece revision → bounded net update without unrelated rebuilding → updated explanation distinguishing original support and correction. The live route is rehearsed but must tolerate ordinary rephrasing, follow-up and selection beyond one scripted element. This draft retains the general reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not implement a universal semantic gate to satisfy 7b; re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
+**Demo allocation:** [Mission 7b](../../MISSION.md) owns the ordinary structural batch/correction seam. [Draft Mission 7c](7c-inventory-worked-model.md) requires ordinary PM exploration of a substantial broadly explainable flagship plus one correction family: saved workpiece revision → bounded net update without unrelated rebuilding → updated explanation distinguishing original support and correction. The route must tolerate ordinary rephrasing, follow-up and selection beyond one scripted element. This draft retains the general reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not implement a universal semantic gate to satisfy 7c; re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
 
 ## Cold-start reads
 
@@ -11,7 +11,7 @@
 A fresh builder must read these sources before cutting or implementing this cluster:
 
 - [`MISSION.md`](../../MISSION.md) — the current branch's live authority; it supplies no Mission 10 execution authority or workpiece candidate. Consume only the genuine conversation, settled workpiece revisions, and constructed region accepted by Missions 7 and 9.
-- [`7-explainable-construction.md`](7-explainable-construction.md) and [`../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md`](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md) — the 2026-09-04 recut: settled-revision protocol, declared basis, transition records, identity epochs, passage identity policy, document reconciliation, and recorded roles replace the former capture-envelope and derivation-fixture seam this draft once assumed.
+- [`7-explainable-construction.md`](7-explainable-construction.md) and [`../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md`](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md) — the 2026-09-04 recut: settled-revision protocol, declared basis, mutation records, identity epochs, passage identity policy, document reconciliation, and recorded roles replace the former capture-envelope and derivation-fixture seam this draft once assumed.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
 - [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling. Historical: capture envelopes and sweep semantics are rejected for provenance since 2026-09-04; reviewer evidence is retained as canonical Flue history and cited through the revision-time evidence relation.
@@ -68,7 +68,7 @@ scenario declares reviewer authority + selected region + base revisions
 → foreground Brunch agent conducts 3–5 focused operational-language turns
 → Flue history retains the canonical reviewer turns under the compaction posture Mission 7 established
 → one bounded foreground phase-boundary synthesis reads:
-   prior settled workpiece revision + current region lineage (basis, transition records, epochs) + the reviewer's message ids
+   prior settled workpiece revision + current region lineage (basis, mutation records, epochs) + the reviewer's message ids
 → synthesis classifies correction | qualification | coexistence | conflict | refusal
 → `update_workpiece` settles the attributed next revision, citing reviewer message ids through the revision-time evidence relation, with semantic diff + impact declaration
 → authority, base-revision, evidence, and impact gates admit or refuse commit
@@ -99,7 +99,7 @@ The default tracer should be a correction because it proves canonical change. It
 
 This cluster may start only after the prior missions have supplied and accepted:
 
-- Mission 7's genuine conversation and constructed region with the settled-revision protocol, declared basis, independently verifiable transition records, identity epochs, passage identity policy, live-document reconciliation, recorded roles, compaction posture, fixture materialization route, and the safety and utility gates for why;
+- Mission 7's genuine conversation and constructed region with the settled-revision protocol, declared basis, independently verifiable mutation records, identity epochs, passage identity policy, live-document reconciliation, recorded roles, compaction posture, fixture materialization route, and the safety and utility gates for why;
 - Mission 9's repeat idempotence, changed-input identity, retirement, concurrent-change refusal, impact-boundary semantics, and explicit partial or unsupported failure;
 - the current settled workpiece revision and the exact source Flue conversation selected at the prior handoff;
 - a deployment posture named honestly: local unless a Mission 8 successor has landed, with every persisted state this path consumes surviving the replacement behaviour actually claimed.
@@ -141,13 +141,13 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 ## Verification approach
 
 - **Inner mechanism:** deterministic tests for authority checks, base-revision refusal, exact evidence references, semantic-diff representation, class disposition, idempotent commit, impact calculation, and canonical mutation validation. Use the frozen class fixtures and revision oracle; parser success cannot substitute for semantic review.
-- **Middle integration/contract:** drive the production `ChatAgent` through the Mission 5 browser transport on the accepted Mission 9 conversation, perform the foreground synthesis into a settled `update_workpiece` revision citing reviewer message ids, apply the patch through the actual browser client-tool callbacks with declared basis, and compare persisted before/after workpiece revisions, transition records, epochs, and net definitions. Exercise a stale-base attempt and one explicit refusal.
+- **Middle integration/contract:** drive the production `ChatAgent` through the Mission 5 browser transport on the accepted Mission 9 conversation, perform the foreground synthesis into a settled `update_workpiece` revision citing reviewer message ids, apply the patch through the actual browser client-tool callbacks with declared basis, and compare persisted before/after workpiece revisions, mutation records, epochs, and net definitions. Exercise a stale-base attempt and one explicit refusal.
 - **Outer deployed/user-visible:** a named human witness performs each accepted peer class through the deployed panel, including the 3–5-turn correction tracer, and verifies visible attribution, semantic diff, changed region, stable unrelated ids/behavior, updated why answer, and comprehensible refusal/failure. The live mission owns this outer proof; it cannot be delegated to Mission 11.
 
 ## Inputs and joins
 
 - Upstream source exit: the genuine persona or human conversation, its settled workpiece revisions, and the adjudication accepted by Mission 7; Mission 4 itself supplies no full-run candidate and the Mission 6 prepared fixture is not promoted.
-- Mission 7: the constructed region, settled revisions, declared basis, transition records, identity epochs, passage policy, reconciliation, recorded roles, and the why operation with its gates.
+- Mission 7: the constructed region, settled revisions, declared basis, mutation records, identity epochs, passage policy, reconciliation, recorded roles, and the why operation with its gates.
 - Mission 9: the extended region, canonical mutation surface, repeat and changed-input identity evidence, retirement semantics, impact boundary, and accepted unsupported or partial behaviour.
 - Mission 8: consume the [current application contract](../../MISSION.next.md#mission-8-consumed-deployment-contract)—published ECS-startable image, fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, shared content-free OTel, `/agents/*` product door, private `/health`, singleton ownership policy—but do not imply it is deployed. SRE-1013, the remote proof matrix, and owner acceptance remain required before an outer deployed claim.
 - Mission 11: receives only an accepted final workpiece/net/evidence/derivation revision package and the six-beat real-path evidence; its consumer contract may not weaken Mission 10's revision-integrity closure.
@@ -220,7 +220,7 @@ No path is permission to edit before the cluster is cut. Prefer existing generic
 - The smallest linked neighborhood sufficient for synthesis and impact analysis.
 - What counts as unchanged behavior outside the region and when simulation is a useful discriminator.
 - How legitimate impact widening is previewed, authorized, and either committed or refused.
-- The exact durable storage and reconciliation boundary across settled workpiece revisions, transition records, epochs, and net commit; Mission 7's operation protocol is the starting point, not a transaction.
+- The exact durable storage and reconciliation boundary across settled workpiece revisions, mutation records, epochs, and net commit; Mission 7's operation protocol is the starting point, not a transaction.
 - Whether the short path crosses Flue compaction; if not, which limitation must remain visible in the handoff.
 - Whether the chat answer alone makes prior/current meaning and patch impact inspectable or a generic linked detail surface is required.
 - Exact latency and usage ceilings must come from the accepted scenario and deployment budget, not invention.

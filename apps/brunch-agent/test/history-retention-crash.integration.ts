@@ -1,4 +1,6 @@
-/** Revision recovery safety through the built mount and original local store. Fault injection is process-local only. */
+/** Revision recovery safety through the built mount and original local store.
+ * Spawned by `test/integration/history-retention-crash.test.ts`. Fault injection is process-local only.
+ */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -132,6 +134,7 @@ const assertRevision = (
     revisionId,
     sha256: createHash("sha256").update(content).digest("hex"),
     ordinal,
+    markdown: content,
   };
   const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
   assert(tool?.state === "output-available");
@@ -143,7 +146,7 @@ const assertRevision = (
   assert.deepEqual(
     tool.output,
     pointer,
-    "Stable call/result identity and ordinal",
+    "Stable call/result identity, ordinal, and exact markdown",
   );
   const signal = snapshot.messages.findLast(
     (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
@@ -156,7 +159,7 @@ const assertRevision = (
   ) as { currentWorkpiece: unknown };
   assert.deepEqual(
     context.currentWorkpiece,
-    { ...pointer, markdown: content },
+    pointer,
     "A successful result must retain its exact current state, not only historical JSON",
   );
 };

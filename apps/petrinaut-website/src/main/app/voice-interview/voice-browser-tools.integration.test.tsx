@@ -31,6 +31,12 @@ vi.hoisted(() => {
     removeEventListener() {},
     dispatchEvent: () => true,
   });
+  // Monaco's clipboard contrib reads this at import time; jsdom does not
+  // implement it, and the lazy singleton can finish loading mid-suite.
+  Object.defineProperty(document, "queryCommandSupported", {
+    configurable: true,
+    value: () => false,
+  });
 });
 
 const VoiceObserver = ({

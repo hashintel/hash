@@ -50,6 +50,12 @@ import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
+import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
+import {
+  createNewNetMenuItem,
+  shouldShowBrunchCreateNew,
+} from "./editor-view/create-new-net-menu";
+import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -168,12 +174,18 @@ export const EditorView = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
+  const [offerStartPosture, setOfferStartPosture] = useState(false);
 
   const {
+    brunchDemoMode,
     enableNotebookView,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
+  const showBrunchCreateNew = shouldShowBrunchCreateNew({
+    brunchDemoMode,
+    hasAiAssistant: aiAssistant !== undefined,
+  });
   const walkthrough = use(WalkthroughContext);
 
   // Shared with useReadOnlyReason so the rendered view and the mutation
@@ -203,21 +215,25 @@ export const EditorView = ({
   function handleCreateEmpty() {
     createNewNet({
       title: "Untitled",
-      petriNetDefinition: {
-        places: [],
-        transitions: [],
-        types: [],
-        differentialEquations: [],
-        parameters: [],
-        subnets: [],
-        componentInstances: [],
-      },
+      petriNetDefinition: emptyPetriNetDefinition,
     });
     clearSelection();
   }
 
-  function handleNew() {
+  function handleStartBlank() {
+    setOfferStartPosture(false);
+    setIsAiCtaDismissed(true);
     handleCreateEmpty();
+    if (aiAssistant !== undefined) {
+      setAiAssistantOpen(false);
+    }
+  }
+
+  function handleBuildWithBrunch() {
+    setIsAiCtaDismissed(true);
+    setOfferStartPosture(true);
+    handleCreateEmpty();
+    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -292,11 +308,11 @@ export const EditorView = ({
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "new",
-            text: "New",
-            onClick: handleNew,
-          },
+          createNewNetMenuItem({
+            showBrunchOptions: showBrunchCreateNew,
+            onBuildWithBrunch: handleBuildWithBrunch,
+            onStartBlank: handleStartBlank,
+          }),
         ]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
@@ -472,6 +488,12 @@ export const EditorView = ({
   return (
     <>
       <EditorCommands />
+      <CreateNewNetCommands
+        enabled={showNetManagementMenuItems}
+        showBrunchOptions={showBrunchCreateNew}
+        onBuildWithBrunch={handleBuildWithBrunch}
+        onStartBlank={handleStartBlank}
+      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -556,6 +578,7 @@ export const EditorView = ({
                   aiAssistant={aiAssistant}
                   initialMessage={pendingAiAssistantMessage}
                   initialInteractionMode={pendingAiInteractionMode}
+                  offerStartPosture={offerStartPosture}
                   onInitialMessageConsumed={() =>
                     setPendingAiAssistantMessage(null)
                   }

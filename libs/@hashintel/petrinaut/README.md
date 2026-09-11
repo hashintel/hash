@@ -130,6 +130,8 @@ an example and is not required by Petrinaut. The input schema is checked when
 the dynamic call arrives and again before rendering. The output schema is
 checked before Petrinaut calls the AI SDK's `addToolOutput`.
 
+A host can instead register a non-interactive dynamic tool in `aiAssistant.automaticTools`. Each registration names the tool, supplies input and output parsers, and implements `execute({ input, mutations, handle, toolCallId, signal })`. Petrinaut validates the input, passes the mounted mutation surface and document handle plus an `AbortSignal` (aborted on Stop or conversation switch), validates the returned output, inserts that one outer result, and continues the turn automatically.
+
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`
 includes the validated `submittedOutput`. While a submission is in flight,

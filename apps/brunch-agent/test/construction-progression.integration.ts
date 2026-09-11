@@ -31,8 +31,8 @@ import { chromium } from "@playwright/test";
 
 import {
   observedArcInputSchema,
-  verifyArcTransitionAttempt,
-  type ArcTransitionRecord,
+  verifyMutationAttempt,
+  type ArcMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
@@ -449,12 +449,10 @@ try {
   );
   assert.equal(records.length, 2);
   for (const result of records) {
-    const record = (
-      result.metadata as { transitionRecord: ArcTransitionRecord }
-    ).transitionRecord;
+    const record = (result.metadata as { mutationRecord: ArcMutationRecord })
+      .mutationRecord;
     assert.equal(record.outcome, "applied");
-    for (const attempt of record.attempts)
-      await verifyArcTransitionAttempt(attempt);
+    for (const attempt of record.attempts) await verifyMutationAttempt(attempt);
   }
   save("records", records);
   save("raw-calls", { firstCall, secondCall });
@@ -628,12 +626,11 @@ try {
     (entry) => entry.toolCallId === "construction-stale",
   );
   assert(stale);
-  const staleRecord = (
-    stale.metadata as { transitionRecord: ArcTransitionRecord }
-  ).transitionRecord;
+  const staleRecord = (stale.metadata as { mutationRecord: ArcMutationRecord })
+    .mutationRecord;
   assert.equal(staleRecord.outcome, "stale");
   for (const attempt of staleRecord.attempts)
-    await verifyArcTransitionAttempt(attempt);
+    await verifyMutationAttempt(attempt);
   faux.setResponses([
     tool("getLatestNetDefinition", {}, "hand-edit-why-read"),
     (context) => {
@@ -720,8 +717,8 @@ try {
   const original = records[1];
   assert(original);
   const originalRecord = (
-    original.metadata as { transitionRecord: ArcTransitionRecord }
-  ).transitionRecord;
+    original.metadata as { mutationRecord: ArcMutationRecord }
+  ).mutationRecord;
   const foreign = structuredClone(originalRecord);
   for (const attempt of foreign.attempts) {
     attempt.binding.incarnationId = "foreign-incarnation";
@@ -737,7 +734,7 @@ try {
             type: CLIENT_TOOL_RESULT_SIGNAL,
             tagName: CLIENT_TOOL_RESULT_SIGNAL,
             body: JSON.stringify([
-              { ...original, metadata: { transitionRecord: foreign } },
+              { ...original, metadata: { mutationRecord: foreign } },
             ]),
           },
         }),
@@ -759,7 +756,7 @@ try {
             type: CLIENT_TOOL_RESULT_SIGNAL,
             tagName: CLIENT_TOOL_RESULT_SIGNAL,
             body: JSON.stringify([
-              { ...original, metadata: { transitionRecord: conflicting } },
+              { ...original, metadata: { mutationRecord: conflicting } },
             ]),
           },
         }),

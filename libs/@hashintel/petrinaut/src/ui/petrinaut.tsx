@@ -40,6 +40,7 @@ import type {
   PetrinautAiComposerControl,
   PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
+import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
 import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
   PetrinautAiMessage,
@@ -69,6 +70,8 @@ export type PetrinautAiAssistant = {
    * Not called for read-only refusals, schema failures, title changes or commands.
    */
   executeMutation?: PetrinautAiMutationExecutor;
+  /** Host-owned dynamic tools executed automatically against the mounted editor. */
+  automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];

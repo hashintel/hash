@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  createLocalStorageNetRecord,
   emptySDCPN,
   type SDCPNInLocalStorage,
   startEmptyNetInStorage,
@@ -52,6 +53,19 @@ const storedNet = (id: string, sdcpn: SDCPN): [string, SDCPNInLocalStorage] => [
   id,
   { id, title: id, sdcpn, lastUpdated: new Date(0).toISOString() },
 ];
+
+describe("createLocalStorageNetRecord", () => {
+  test("assigns an incarnation id once at creation", () => {
+    const net = createLocalStorageNetRecord({
+      petriNetDefinition: emptySDCPN,
+      title: "New Process",
+    });
+
+    expect(net.incarnationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
+    );
+  });
+});
 
 describe("startEmptyNetInStorage", () => {
   test("writes an empty net into an untouched store", () => {

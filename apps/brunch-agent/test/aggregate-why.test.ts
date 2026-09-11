@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 
 import {
   parseConstructionWhyInput,
-  type ConstructionTransitionRecord,
+  type ConstructionMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
@@ -33,8 +33,8 @@ const first = clientToolHistoryFrom(snapshot.messages).results.find(
 );
 if (!first) throw new Error("Missing actual typed browser record");
 const binding = (
-  first.metadata as { transitionRecord: ConstructionTransitionRecord }
-).transitionRecord.attempts[0]?.binding;
+  first.metadata as { mutationRecord: ConstructionMutationRecord }
+).mutationRecord.attempts[0]?.binding;
 if (!binding) throw new Error("Missing actual document binding");
 const browser = { binding, construction: true as const };
 const explain = (query: unknown) =>

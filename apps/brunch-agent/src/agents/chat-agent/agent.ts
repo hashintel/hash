@@ -41,6 +41,7 @@ import {
   ACTIVATE_SKILL_TOOL_NAME,
   isClientToolResultDelivery,
 } from "../../conversation/client-tools.ts";
+import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
 import {
@@ -89,7 +90,14 @@ export function ChatAgent({ id }: AgentProps) {
   const suppliedObservationCallIds: string[] = [];
   const isClientResultDelivery = isClientToolResultDelivery(delivery);
   if (isClientResultDelivery) {
-    for (const result of parseClientToolResults(delivery.body)) {
+    // Dropped members stay dropped; the drop itself must not be silent.
+    const results = parseClientToolResults(delivery.body, (issue) =>
+      diagnostics.note("client-tool-result.parse", {
+        ...issue,
+        instanceId: id,
+      }),
+    );
+    for (const result of results) {
       if (result.toolName !== getLatestNetDefinitionToolName) continue;
       activeObservationCallIds.push(result.toolCallId);
       if (parseClientToolResultMetadata(result.metadata)?.observation)
@@ -199,7 +207,7 @@ export function ChatAgent({ id }: AgentProps) {
     `
 Call ping when you need to confirm the server tool path.
 Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
-A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.transitionRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
+A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useTool(ping);
