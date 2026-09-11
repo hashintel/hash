@@ -17,7 +17,12 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { joinedRootArcInputSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  batchedConstructionMode,
+  joinedRootArcInputSchema,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   validatedFixtureMutationMode,
   VALIDATED_CONSTRUCTION_MODE,
@@ -266,16 +271,55 @@ try {
       assert.equal(issuedType.state, "output-available");
       assert.deepEqual(issuedType.input, nested);
       assert.deepEqual(issuedType.output, { awaiting: "client" });
+
+      const batchIdentity = {
+        ...identity,
+        conversationId: `${identity.conversationId}-batch`,
+      };
+      const batchClient = createFlueClient({
+        url: `http://brunch.local/agents/chat/${flueConversationIdFrom(batchIdentity)}`,
+        headers: agentOwnershipHeaders(batchIdentity),
+        fetch: async (input, init) =>
+          mounted.fetch(
+            input instanceof Request ? input : new Request(input, init),
+          ),
+      });
+      faux.setResponses([
+        fauxAssistantMessage([
+          fauxText("Synthetic batched schema carriage control."),
+        ]),
+      ]);
+      await batchClient.wait(
+        await batchClient.send({
+          initialData: {
+            mode: batchedConstructionMode,
+            construction: {
+              binding: {
+                conversationId: batchIdentity.conversationId,
+                documentId: "synthetic-document",
+                incarnationId: "synthetic-incarnation",
+              },
+            },
+          },
+          message: {
+            kind: "user",
+            body: "Synthetic batched schema carriage control.",
+          },
+        }),
+      );
+      histories.push(await batchClient.history());
     }
   }
   for (const method of ["stream", "streamSimple"] as const) {
     const requests = captures.filter((capture) => capture.method === method);
     assert(requests.length > 0);
-    for (const name of ["addArc", "addType"] as const) {
+    for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
       const expected = (
         name === "addArc"
           ? joinedRootArcInputSchema
-          : petrinautAiTools.addType.inputSchema
+          : name === "addType"
+            ? petrinautAiTools.addType.inputSchema
+            : mutatePetrinetInputSchema
       )["~standard"].jsonSchema.input({ target: "draft-2020-12" });
       const tools = requests.flatMap((request) =>
         request.serialized.tools.filter((tool) => tool.name === name),
