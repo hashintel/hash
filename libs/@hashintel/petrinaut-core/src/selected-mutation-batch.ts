@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { mutationActionInputSchemas } from "./action-schemas";
 
+import type { AbortSignalLike } from "./environment";
+
 export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
     operationId: z.string().min(1),
@@ -101,7 +103,7 @@ export const executeSelectedMutationBatch = async (
     operation: SelectedMutationOperation,
     index: number,
   ) => Promise<SelectedMutationAttempt> | SelectedMutationAttempt,
-  options?: { readonly signal?: AbortSignal },
+  options?: { readonly signal?: AbortSignalLike },
 ): Promise<SelectedMutationOutcome[]> => {
   const parsed = selectedMutationBatchSchema.parse(operations);
   const outcomes: SelectedMutationOutcome[] = [];

@@ -11,6 +11,7 @@ import {
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
+  type MutatePetrinetInput,
   parseClientToolResultMetadata,
   parseObservedStateInput,
   type BrowserBinding,
@@ -216,6 +217,94 @@ export const assertConstructionIdentity = async (
   );
 };
 
+const batchRecordOutcome = (
+  attempts: readonly {
+    readonly outcome: ConstructionMutationAttempt["outcome"];
+  }[],
+): ConstructionMutationAttempt["outcome"] => {
+  if (attempts.some((attempt) => attempt.outcome === "unknown"))
+    return "unknown";
+  if (attempts.some((attempt) => attempt.outcome === "failed")) return "failed";
+  if (attempts.some((attempt) => attempt.outcome === "stale")) return "stale";
+  if (attempts.some((attempt) => attempt.outcome === "applied"))
+    return "applied";
+  return "no-op";
+};
+
+/** Verify per-operation records against the issued batch; reconcile stays per call. */
+export const verifyMutatePetrinetAttempts = async (input: {
+  toolCallId: string;
+  batch: MutatePetrinetInput;
+  binding: BrowserBinding;
+  mutationRecord: {
+    readonly attempts: readonly unknown[];
+    readonly outcome: ConstructionMutationAttempt["outcome"];
+  };
+}): Promise<ConstructionMutationAttempt[]> => {
+  if (input.mutationRecord.attempts.length === 0)
+    throw new Error("The root arc result requires a browser mutation record.");
+  const verified = await Promise.all(
+    input.mutationRecord.attempts.map((attempt) =>
+      verifyMutationAttempt(attempt as ConstructionMutationAttempt),
+    ),
+  );
+  const issuedIds = input.batch.operations.map(
+    (operation) => operation.operationId,
+  );
+  const recordedIds: string[] = [];
+  const groups = new Map<string, ConstructionMutationAttempt[]>();
+  for (const attempt of verified) {
+    if (canonicalContent(attempt.binding) !== canonicalContent(input.binding))
+      throw new Error(
+        "The browser record does not match the issued call or document incarnation.",
+      );
+    const operationId = mutatePetrinetAttemptOperationId(
+      input.toolCallId,
+      attempt.request.toolCallId,
+    );
+    const operation = input.batch.operations.find(
+      (entry) => entry.operationId === operationId,
+    );
+    if (
+      operationId === undefined ||
+      operation === undefined ||
+      attempt.request.toolName !== operation.type ||
+      canonicalContent(attempt.request.input) !==
+        canonicalContent(operation.input) ||
+      attempt.request.observationToolCallId !==
+        input.batch.observation.toolCallId
+    )
+      throw new Error(
+        "The browser record does not match the issued call or document incarnation.",
+      );
+    if (recordedIds.at(-1) !== operationId) {
+      if (recordedIds.includes(operationId))
+        throw new Error(
+          "The browser record does not match the issued call or document incarnation.",
+        );
+      recordedIds.push(operationId);
+    }
+    const group = groups.get(attempt.request.toolCallId) ?? [];
+    group.push(attempt);
+    groups.set(attempt.request.toolCallId, group);
+  }
+  if (
+    recordedIds.some((operationId, index) => operationId !== issuedIds[index])
+  )
+    throw new Error(
+      "The browser record does not match the issued call or document incarnation.",
+    );
+  const groupOutcomes = [...groups.values()].map(
+    (group) => reconcileMutationAttempts(group).outcome,
+  );
+  const outcome = batchRecordOutcome(
+    groupOutcomes.map((groupOutcome) => ({ outcome: groupOutcome })),
+  );
+  if (outcome !== input.mutationRecord.outcome)
+    throw new Error("The browser aggregate outcome is inconsistent.");
+  return verified;
+};
+
 const verifyMutatePetrinetDelivery = async (input: {
   delivery: ReturnType<typeof parseBrowserResults>[number];
   call: {
@@ -246,41 +335,12 @@ const verifyMutatePetrinetDelivery = async (input: {
   )?.mutationRecord;
   if (mutationRecord === undefined)
     throw new Error("The root arc result requires a browser mutation record.");
-  const verified = await Promise.all(
-    mutationRecord.attempts.map((attempt) =>
-      verifyMutationAttempt(attempt as ConstructionMutationAttempt),
-    ),
-  );
-  const groups = new Map<string, ConstructionMutationAttempt[]>();
-  for (const attempt of verified) {
-    if (canonicalContent(attempt.binding) !== canonicalContent(input.binding))
-      throw new Error(
-        "The browser record does not match the issued call or document incarnation.",
-      );
-    const operationId = mutatePetrinetAttemptOperationId(
-      input.call.toolCallId,
-      attempt.request.toolCallId,
-    );
-    const operation = batch.operations.find(
-      (entry) => entry.operationId === operationId,
-    );
-    if (
-      operation === undefined ||
-      attempt.request.toolName !== operation.type ||
-      canonicalContent(attempt.request.input) !==
-        canonicalContent(operation.input) ||
-      attempt.request.observationToolCallId !== batch.observation.toolCallId
-    )
-      throw new Error(
-        "The browser record does not match the issued call or document incarnation.",
-      );
-    const group = groups.get(attempt.request.toolCallId) ?? [];
-    group.push(attempt);
-    groups.set(attempt.request.toolCallId, group);
-  }
-  for (const group of groups.values()) {
-    reconcileMutationAttempts(group);
-  }
+  await verifyMutatePetrinetAttempts({
+    toolCallId: input.call.toolCallId,
+    batch,
+    binding: input.binding,
+    mutationRecord,
+  });
   const earlier = input.history.results.filter(
     (result) => result.toolCallId === input.call.toolCallId,
   );

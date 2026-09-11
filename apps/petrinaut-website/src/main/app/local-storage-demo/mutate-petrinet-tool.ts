@@ -14,14 +14,13 @@ import {
 import {
   executeSelectedMutationBatch,
   selectedMutationBatchSchema,
+  type PetrinautDocHandle,
   type PetrinautMutations,
   type SelectedMutationEffect,
   type SelectedMutationOperation,
 } from "@hashintel/petrinaut-core";
 
 import { observeBrowserDefinition } from "./mutation-record";
-
-import type { PetrinautAiAutomaticTool } from "@hashintel/petrinaut/ui";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 const effectSchema = z.intersection(
@@ -181,11 +180,23 @@ export const createMutatePetrinetAutomaticTool = (
       retainOptions?: { verifyEffects?: boolean },
     ) => void;
   },
-): PetrinautAiAutomaticTool => ({
+) => ({
   toolName: mutatePetrinetToolName,
   inputSchema: mutatePetrinetInputSchema,
   outputSchema: mutatePetrinetOutputSchema,
-  async execute({ input, mutations, handle, toolCallId, signal }) {
+  async execute({
+    input,
+    mutations,
+    handle,
+    toolCallId,
+    signal,
+  }: {
+    input: unknown;
+    mutations: PetrinautMutations;
+    handle: PetrinautDocHandle;
+    toolCallId: string;
+    signal: AbortSignal;
+  }) {
     const request = mutatePetrinetInputSchema.parse(input);
     const beforeBatch = observeBrowserDefinition(handle);
     if (request.observation.baseHash !== beforeBatch.sha256)

@@ -5,6 +5,8 @@ import {
   selectedMutationBatchSchema,
 } from "./selected-mutation-batch";
 
+import type { AbortSignalLike } from "./environment";
+
 const place = {
   id: "p1",
   name: "Queue",
@@ -129,9 +131,16 @@ describe("selected mutation batch", () => {
   });
 
   test("marks the remaining operations unattempted when the signal is aborted", async () => {
-    const controller = new AbortController();
+    let aborted = false;
+    const signal: AbortSignalLike = {
+      get aborted() {
+        return aborted;
+      },
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    };
     const apply = vi.fn().mockImplementation(() => {
-      controller.abort();
+      aborted = true;
       return {
         status: "applied" as const,
         preHash: "before",
@@ -142,7 +151,7 @@ describe("selected mutation batch", () => {
     const result = await executeSelectedMutationBatch(
       [operation("add-p1", "p1"), operation("add-p2", "p2")],
       apply,
-      { signal: controller.signal },
+      { signal },
     );
     expect(result.map(({ status }) => status)).toEqual([
       "applied",

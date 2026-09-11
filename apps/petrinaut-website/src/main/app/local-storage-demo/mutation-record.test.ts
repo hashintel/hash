@@ -6,8 +6,10 @@ import {
   assertMutationEffects,
   deriveMutationEffects,
   mutatePetrinetToolName,
+  parseClientToolResultMetadata,
   verifyMutationAttempt,
   type ArcMutationRequest,
+  type ConstructionMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   createJsonDocHandle,
@@ -498,17 +500,21 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       toolCallId: "batch-sidecar",
       signal: new AbortController().signal,
     });
-    const metadata = recorder.clientToolResultMetadata({
-      toolCallId: "batch-sidecar",
-      toolName: mutatePetrinetToolName,
-      output: { execution: "ordered-stop" },
-    });
+    const metadata = parseClientToolResultMetadata(
+      recorder.clientToolResultMetadata({
+        toolCallId: "batch-sidecar",
+        toolName: mutatePetrinetToolName,
+        output: { execution: "ordered-stop" },
+      }),
+    );
     expect(metadata).toMatchObject({
       mutationRecord: { outcome: "applied" },
     });
     const attempt = metadata?.mutationRecord?.attempts[0];
     if (!attempt) throw new Error("Expected a retained batch attempt.");
-    await expect(verifyMutationAttempt(attempt)).resolves.toMatchObject({
+    await expect(
+      verifyMutationAttempt(attempt as ConstructionMutationAttempt),
+    ).resolves.toMatchObject({
       outcome: "applied",
       request: { toolName: "addPlace" },
     });

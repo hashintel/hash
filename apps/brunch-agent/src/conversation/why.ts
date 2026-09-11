@@ -39,6 +39,7 @@ import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { diagnostics } from "../runtime-diagnostics.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -294,47 +295,12 @@ export const explainRootArc = async (input: {
             mutationRecord === undefined
           )
             throw new Error("Missing verified browser mutation record.");
-          const verified = await Promise.all(
-            mutationRecord.attempts.map((raw) =>
-              verifyMutationAttempt(raw as ConstructionMutationAttempt),
-            ),
-          );
-          for (const attempt of verified) {
-            if (
-              canonicalContent(attempt.binding) !==
-              canonicalContent(browser.binding)
-            )
-              throw new Error(
-                "Transition belongs to another conversation or document incarnation.",
-              );
-            const operationId = mutatePetrinetAttemptOperationId(
-              call.toolCallId,
-              attempt.request.toolCallId,
-            );
-            const operation = batch.operations.find(
-              (entry) => entry.operationId === operationId,
-            );
-            if (
-              operation === undefined ||
-              attempt.request.toolName !== operation.type ||
-              canonicalContent(attempt.request.input) !==
-                canonicalContent(operation.input) ||
-              attempt.request.observationToolCallId !==
-                batch.observation.toolCallId
-            )
-              throw new Error(
-                "Transition belongs to another conversation or document incarnation.",
-              );
-          }
-          const groups = new Map<string, ConstructionMutationAttempt[]>();
-          for (const attempt of verified) {
-            const group = groups.get(attempt.request.toolCallId) ?? [];
-            group.push(attempt);
-            groups.set(attempt.request.toolCallId, group);
-          }
-          for (const group of groups.values()) {
-            reconcileMutationAttempts(group);
-          }
+          const verified = await verifyMutatePetrinetAttempts({
+            toolCallId: call.toolCallId,
+            batch,
+            binding: browser.binding,
+            mutationRecord,
+          });
           answer.attempts.push({
             toolCallId: call.toolCallId,
             outcome: mutationRecord.outcome,

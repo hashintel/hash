@@ -61,6 +61,7 @@ export {
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
+  type MutatePetrinetInput,
   type MutatePetrinetOperation,
 } from "./mutate-petrinet";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";

@@ -917,7 +917,12 @@ const ConversationAiAssistantPanel = ({
           throw error;
         }
         automaticToolAbortsRef.current.delete(abortController);
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) {
+          pendingAutomaticToolCallExecutionsRef.current.delete(
+            `${executionConversationId}:${toolCall.toolCallId}`,
+          );
+          return;
+        }
         await addAutomaticToolOutput({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,

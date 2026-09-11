@@ -335,13 +335,21 @@ export const createRuntimeDiagnostics = (
   };
 };
 
-/** Console-only verbose details; never attached to the shared remote logger. */
+/** Process-local verbose details; never attached to the shared remote logger. */
+const writeLocal = (
+  stream: NodeJS.WriteStream,
+  message: string,
+  meta: Record<string, unknown>,
+) => {
+  stream.write(`${message} ${JSON.stringify(meta)}\n`);
+};
+
 const localDiagnostics: DiagnosticSink = {
   error: (message, meta) => {
-    console.error(message, meta);
+    writeLocal(process.stderr, message, meta);
   },
   warn: (message, meta) => {
-    console.warn(message, meta);
+    writeLocal(process.stderr, message, meta);
   },
 };
 
