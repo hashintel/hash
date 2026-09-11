@@ -54,7 +54,7 @@ export const ordinaryBrunchToolCatalogue: readonly OrdinaryBrunchToolCatalogueEn
       role: "workpiece",
     },
     {
-      name: "update_workpiece",
+      name: "mutate_workpiece",
       definitionOwner: "brunch-core",
       executionOwner: "brunch-app",
       role: "workpiece",
@@ -90,7 +90,7 @@ export const ordinaryBrunchToolCatalogue: readonly OrdinaryBrunchToolCatalogueEn
       role: "petrinaut-mutation",
     },
     {
-      name: "brunch_workpiece",
+      name: "read_workpiece",
       definitionOwner: "brunch-core",
       executionOwner: "brunch-app",
       role: "workpiece",

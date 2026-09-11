@@ -128,7 +128,7 @@ const makeCall = (name: string) =>
     name,
     name === "addType"
       ? typeInput
-      : name === "update_workpiece"
+      : name === "mutate_workpiece"
         ? { markdown: privateMarkdown }
         : { question },
     { id: `${caseId}-${name}` },
@@ -154,18 +154,18 @@ const run = async () => {
     for (const names of [
       [BRUNCH_QUESTION_TOOL_NAME, "addType"],
       ["addType", BRUNCH_QUESTION_TOOL_NAME],
-      ["update_workpiece", "addType"],
-      ["addType", "update_workpiece"],
-      [BRUNCH_QUESTION_TOOL_NAME, "update_workpiece", "addType"],
-      [BRUNCH_QUESTION_TOOL_NAME, "addType", "update_workpiece"],
-      ["update_workpiece", BRUNCH_QUESTION_TOOL_NAME, "addType"],
-      ["update_workpiece", "addType", BRUNCH_QUESTION_TOOL_NAME],
-      ["addType", BRUNCH_QUESTION_TOOL_NAME, "update_workpiece"],
-      ["addType", "update_workpiece", BRUNCH_QUESTION_TOOL_NAME],
+      ["mutate_workpiece", "addType"],
+      ["addType", "mutate_workpiece"],
+      [BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece", "addType"],
+      [BRUNCH_QUESTION_TOOL_NAME, "addType", "mutate_workpiece"],
+      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME, "addType"],
+      ["mutate_workpiece", "addType", BRUNCH_QUESTION_TOOL_NAME],
+      ["addType", BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece"],
+      ["addType", "mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
       ["addType", "unmounted_admission_probe"],
       ["addType"],
       [BRUNCH_QUESTION_TOOL_NAME],
-      ["update_workpiece", BRUNCH_QUESTION_TOOL_NAME],
+      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
     ]) {
       caseId = names.join("-");
       const client = clientFor();
@@ -190,7 +190,7 @@ const run = async () => {
         fauxAssistantMessage(
           [
             fauxToolCall(
-              "update_workpiece",
+              "mutate_workpiece",
               { markdown: "# Synthetic settled account\nUnknown timing." },
               { id: `${caseId}-old-revision` },
             ),
@@ -309,7 +309,7 @@ const run = async () => {
           ...(abort
             ? [makeCall("addType")]
             : [
-                makeCall("update_workpiece"),
+                makeCall("mutate_workpiece"),
                 makeCall(BRUNCH_QUESTION_TOOL_NAME),
               ]),
         ],

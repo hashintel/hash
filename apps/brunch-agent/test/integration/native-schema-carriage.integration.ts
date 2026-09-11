@@ -127,7 +127,7 @@ try {
         fauxAssistantMessage(
           [
             fauxToolCall(
-              "update_workpiece",
+              "mutate_workpiece",
               {
                 markdown:
                   "# Synthetic native validation controls\n\nNo operational testimony or construction claim.",

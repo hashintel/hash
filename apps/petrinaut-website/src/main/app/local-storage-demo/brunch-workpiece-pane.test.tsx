@@ -63,13 +63,17 @@ test("shows actual recorded tool output and refuses to call a hand-edited docume
   expect(html).toContain("Temporal context is not support.");
 });
 
-const settlementMessage = (revisionId: string, markdown?: string) => ({
+const settlementMessage = (
+  revisionId: string,
+  markdown?: string,
+  mutation?: unknown,
+) => ({
   role: "assistant",
   purpose: "assistant",
   parts: [
     {
       type: "dynamic-tool",
-      toolName: "update_workpiece",
+      toolName: "mutate_workpiece",
       toolCallId: revisionId,
       state: "output-available",
       input: { markdown: "Unvalidated input must not be displayed" },
@@ -78,9 +82,38 @@ const settlementMessage = (revisionId: string, markdown?: string) => ({
         sha256: "d".repeat(64),
         ordinal: 2,
         ...(markdown === undefined ? {} : { markdown }),
+        ...(mutation === undefined ? {} : { mutation }),
       },
     },
   ],
+});
+
+test("shows the verified full-replacement mutation window", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        settlementMessage("settled-call", "# Changed account", {
+          baseRevisionId: "prior-call",
+          beforeSha256: "a".repeat(64),
+          afterSha256: "b".repeat(64),
+          commonPrefixUtf16: 2,
+          commonSuffixUtf16: 3,
+          removed: { start: 2, end: 8, utf16Length: 6, sha256: "c".repeat(64) },
+          inserted: {
+            start: 2,
+            end: 11,
+            utf16Length: 9,
+            sha256: "d".repeat(64),
+          },
+        }),
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("Changed from revision prior-call");
+  expect(html).toContain("removed 6 UTF-16 units [2, 8)");
+  expect(html).toContain("inserted 9 [2, 11)");
 });
 
 test("shows successful settlement output without requiring a model-chosen query", () => {
@@ -158,7 +191,7 @@ test("does not reconstruct current state from historical revision input", () => 
           parts: [
             {
               type: "dynamic-tool",
-              toolName: "update_workpiece",
+              toolName: "mutate_workpiece",
               state: "output-available",
               input: { markdown: "History is not state" },
               output: { revisionId: "recovered" },

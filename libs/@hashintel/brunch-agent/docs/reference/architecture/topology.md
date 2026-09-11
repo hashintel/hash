@@ -104,7 +104,7 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 
 ## Ordinary browser-bound Brunch tools
 
-[`apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts`](../../../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts)
+[`apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts`](../../../../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts)
 is the checked name/ownership map. The native-provider carriage probe compares
 the live mounted names against it through both provider entrypoints and fails
 on duplicates, additions, removals or ordering drift. It records no schemas;
@@ -116,13 +116,13 @@ those remain with their definition owners.
 | `activate_skill` | Flue | Flue | skill activation |
 | `read_skill_resource` | Flue | Flue | skill resource read |
 | `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
-| `update_workpiece` | Brunch core | Brunch app | durable workpiece write |
+| `mutate_workpiece` | Brunch core | Brunch app | durable full-revision write with recorded delta |
 | `readPetrinautDoc` | Petrinaut canonical contract | Petrinaut website | guide read |
 | `getLatestNetDefinition` | Petrinaut Core | Petrinaut website | current document read |
 | `getNetCompilationErrors` | Petrinaut Core | Petrinaut website | diagnostics read |
 | `applyAutoLayout` | Petrinaut Core | Petrinaut website | recorded layout mutation |
 | `mutate_petrinet` | SDCPN plugin over Petrinaut actions | Petrinaut website | selected root-net mutation carrier |
-| `brunch_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
+| `read_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
 | `brunch_why` | Brunch app today; split under Mission 7c review | Brunch app | current-model explanation |
 | `ping` | Brunch app | Brunch app | server diagnostic |
 

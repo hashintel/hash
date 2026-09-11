@@ -50,7 +50,7 @@ test("app registration classifies mutate_petrinet as a browser tool", async () =
   faux.setResponses([
     fauxAssistantMessage(
       [
-        fauxToolCall("update_workpiece", {}),
+        fauxToolCall("mutate_workpiece", {}),
         fauxToolCall("mutate_petrinet", {}),
       ],
       { stopReason: "toolUse" },
@@ -82,7 +82,7 @@ test("app registration scopes admission to ChatAgent execution, isolating concur
   expect(provider.getModels()).toEqual(faux.provider.getModels());
   const model = provider.getModels()[0]!;
   const response = fauxAssistantMessage(
-    [fauxToolCall("update_workpiece", {}), fauxToolCall("addType", {})],
+    [fauxToolCall("mutate_workpiece", {}), fauxToolCall("addType", {})],
     { stopReason: "toolUse" },
   );
   faux.setResponses([response, response, response]);

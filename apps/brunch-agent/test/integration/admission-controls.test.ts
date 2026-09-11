@@ -145,7 +145,7 @@ test("production still settles revisions and noninteractive markers without brow
       .flatMap((message) => message.parts)
       .find(
         (part) =>
-          part.type === "dynamic-tool" && part.toolName === "update_workpiece",
+          part.type === "dynamic-tool" && part.toolName === "mutate_workpiece",
       );
     expect(revision).toMatchObject({
       output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
@@ -153,7 +153,7 @@ test("production still settles revisions and noninteractive markers without brow
   }
   for (const caseId of [
     "brunch_mark_question",
-    "update_workpiece-brunch_mark_question",
+    "mutate_workpiece-brunch_mark_question",
   ]) {
     const observation = result.observations.find(
       (entry) => entry.caseId === caseId,

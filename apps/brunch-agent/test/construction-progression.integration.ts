@@ -234,21 +234,21 @@ const corrected =
   "TEST synthetic correction: the same operation must reserve two available resources; timing remains unknown.";
 const settle = (content: string, revisionId: string) => [
   tool(
-    "update_workpiece",
+    "mutate_workpiece",
     { markdown: `# Synthetic workpiece\n\n${content}` },
     revisionId,
   ),
   (context: Context) => {
-    const result = toolOutput(context, "update_workpiece");
+    const result = toolOutput(context, "mutate_workpiece");
     assert.equal(result.revisionId, revisionId);
     return tool(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: [content] },
       `${revisionId}-locate`,
     );
   },
   (context: Context) => {
-    const result = toolOutput(context, "brunch_workpiece");
+    const result = toolOutput(context, "read_workpiece");
     const current = result.currentWorkpiece as {
       revisionId: string;
       sha256: string;
@@ -493,7 +493,7 @@ try {
       [
         fauxToolCall("updateArcWeight", secondCall, { id: "mixed-weight" }),
         fauxToolCall(
-          "update_workpiece",
+          "mutate_workpiece",
           { markdown: "TEST forbidden sibling settlement" },
           { id: "mixed-revision" },
         ),

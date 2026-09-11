@@ -176,7 +176,7 @@ globalThis.fetch = async (input, init) => {
         if (scenario === "partial") return;
         if (scenario === "rejected") {
           for (const [index, name] of [
-            "update_workpiece",
+            "mutate_workpiece",
             "addType",
           ].entries()) {
             controller.enqueue(

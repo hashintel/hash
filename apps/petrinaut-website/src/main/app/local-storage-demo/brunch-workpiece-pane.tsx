@@ -40,6 +40,14 @@ const noticeStyle = css({
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+const workpieceMutationToolNames: ReadonlySet<string> = new Set([
+  "mutate_workpiece",
+  "update_workpiece",
+]);
+const workpieceReadToolNames: ReadonlySet<string> = new Set([
+  "read_workpiece",
+  "brunch_workpiece",
+]);
 
 /** A view of actual model-facing results, never a second current-state authority. */
 export const BrunchWorkpiecePane = ({
@@ -79,10 +87,11 @@ export const BrunchWorkpiecePane = ({
         !record(part) ||
         part.type !== "dynamic-tool" ||
         part.state !== "output-available" ||
-        typeof part.toolCallId !== "string"
+        typeof part.toolCallId !== "string" ||
+        typeof part.toolName !== "string"
       )
         continue;
-      if (part.toolName === "update_workpiece") {
+      if (workpieceMutationToolNames.has(part.toolName)) {
         stateChangedSinceReport = true;
         if (why) whyPredatesSettlement = true;
         if (
@@ -101,7 +110,7 @@ export const BrunchWorkpiecePane = ({
         }
       }
       if (
-        (part.toolName === "brunch_workpiece" ||
+        (workpieceReadToolNames.has(part.toolName) ||
           part.toolName === "brunch_why") &&
         record(part.output)
       ) {
@@ -126,6 +135,12 @@ export const BrunchWorkpiecePane = ({
     }
   }
   const workpiece = report?.workpiece;
+  const mutation =
+    workpiece && record(workpiece.mutation) ? workpiece.mutation : undefined;
+  const removed =
+    mutation && record(mutation.removed) ? mutation.removed : undefined;
+  const inserted =
+    mutation && record(mutation.inserted) ? mutation.inserted : undefined;
   const reconciliation =
     why && record(why.output.reconciliation)
       ? why.output.reconciliation
@@ -149,6 +164,22 @@ export const BrunchWorkpiecePane = ({
           : "Your account will appear here as Brunch saves it."}
         {!construction && " Test-authored prepared fixture."}
       </p>
+      {mutation &&
+        removed &&
+        inserted &&
+        typeof removed.start === "number" &&
+        typeof removed.end === "number" &&
+        typeof removed.utf16Length === "number" &&
+        typeof inserted.start === "number" &&
+        typeof inserted.end === "number" &&
+        typeof inserted.utf16Length === "number" && (
+          <p role="status" className={noticeStyle}>
+            {mutation.baseRevisionId === null
+              ? "Created from no prior revision"
+              : `Changed from revision ${String(mutation.baseRevisionId)}`}
+            {`: removed ${removed.utf16Length} UTF-16 units [${removed.start}, ${removed.end}); inserted ${inserted.utf16Length} [${inserted.start}, ${inserted.end}).`}
+          </p>
+        )}
       {stateChangedSinceReport && (
         <p role="status" className={noticeStyle}>
           A later settlement exists. Query again before treating this workpiece

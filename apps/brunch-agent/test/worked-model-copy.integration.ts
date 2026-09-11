@@ -114,7 +114,7 @@ const operation: MutatePetrinetOperation = {
 const locateBasis = (context: Context) => {
   const result = context.messages.findLast(
     (message) =>
-      message.role === "toolResult" && message.toolName === "brunch_workpiece",
+      message.role === "toolResult" && message.toolName === "read_workpiece",
   );
   assert(result?.role === "toolResult" && !result.isError);
   const content =
@@ -143,10 +143,10 @@ const locateBasis = (context: Context) => {
 
 try {
   faux.setResponses([
-    tool("update_workpiece", { markdown }, "revision-1"),
+    tool("mutate_workpiece", { markdown }, "revision-1"),
     () =>
       tool(
-        "brunch_workpiece",
+        "read_workpiece",
         { locateTexts: ["One receiving place."] },
         "locate-1",
       ),

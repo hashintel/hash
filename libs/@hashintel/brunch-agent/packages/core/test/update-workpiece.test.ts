@@ -5,14 +5,15 @@ import * as v from "valibot";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import {
-  UPDATE_WORKPIECE_TOOL_NAME,
+  MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceOutputSchema,
   useBrunchAgent,
-  createUpdateWorkpieceTool,
+  createMutateWorkpieceTool,
   createWorkpieceReadTool,
   elicitationSkill,
   workpieceMarkdownByteCeiling,
 } from "../src/flue";
+import { deriveWorkpieceMutation } from "../src/update-workpiece";
 import {
   workpieceRevisionStateKey,
   type WorkpieceRevision,
@@ -31,14 +32,19 @@ let current: WorkpieceRevision | null;
 const setRevision: StateSetter<WorkpieceRevision | null> = (next) => {
   current = typeof next === "function" ? next(current) : next;
 };
-const tool = createUpdateWorkpieceTool(setRevision);
+const tool = createMutateWorkpieceTool(setRevision);
 const run = (
   markdown: string,
   toolCallId = "actual-tool-call",
   evidence?: unknown,
+  baseRevisionId?: string | null,
 ) =>
   tool.run({
-    data: { markdown, evidence } as Parameters<typeof tool.run>[0]["data"],
+    data: {
+      markdown,
+      evidence,
+      ...(baseRevisionId === undefined ? {} : { baseRevisionId }),
+    } as Parameters<typeof tool.run>[0]["data"],
     toolCallId,
     log: { info: () => {}, warn: () => {}, error: () => {} },
     step: {
@@ -62,10 +68,12 @@ test("returns revisionId equal to toolCallId and sha256 of the Markdown", async 
       sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
       ordinal: 1,
       markdown,
+      mutation: deriveWorkpieceMutation(null, markdown),
     },
     terminate: false,
   });
-  expect(current).toEqual(result.output);
+  const { mutation: _mutation, ...settled } = result.output;
+  expect(current).toEqual(settled);
 });
 
 test("accepts retained pointer-only update output", () => {
@@ -87,16 +95,39 @@ test("persists Markdown with the pointer", async () => {
   const evidence = [
     { locator: { start: 0, end: 8 }, messageIds: [], kind: "default" },
   ];
-  const result = await run("# Second", "second", evidence);
+  const result = await run("# Second", "second", evidence, "first");
+  const { mutation: _mutation, ...settled } = result.output;
   expect(current).toEqual({
-    ...result.output,
+    ...settled,
     markdown: "# Second",
     evidence,
     evidenceValidated: true,
   });
   expect(result.output.ordinal).toBe(2);
   expect(tool.durable).toBe(true);
-  expect((await run("# Second", "second")).output.ordinal).toBe(2);
+  expect(
+    (await run("# Second", "second", undefined, "second")).output.ordinal,
+  ).toBe(2);
+});
+
+test("records the exact changed window and refuses a stale cited base", async () => {
+  const first = await run("# Account\n\nOne fact.", "first", undefined, null);
+  const second = await run(
+    "# Account\n\nOne changed fact.",
+    "second",
+    undefined,
+    "first",
+  );
+  expect(second.output.mutation).toMatchObject({
+    baseRevisionId: "first",
+    beforeSha256: first.output.sha256,
+    afterSha256: second.output.sha256,
+    removed: { utf16Length: 0 },
+    inserted: { utf16Length: "changed ".length },
+  });
+  await expect(
+    run("# Account\n\nStale change.", "third", undefined, "first"),
+  ).rejects.toThrow(/baseRevisionId/u);
 });
 
 test("refuses empty Markdown", async () => {
@@ -144,16 +175,16 @@ test("captures the persistent-state setter at render and writes from run", async
     "brunch_mark_question",
   );
   const revisionTool = mounted.find(
-    (definition) => definition.name === UPDATE_WORKPIECE_TOOL_NAME,
+    (definition) => definition.name === MUTATE_WORKPIECE_TOOL_NAME,
   );
   expect(revisionTool).toBeDefined();
   expect(prompt).toContain(
-    "Call `update_workpiece` with the full current Markdown account",
+    "Call `mutate_workpiece` with the full next Markdown account",
   );
   expect(prompt).toContain("as soon as one consequential distinction exists");
   expect(prompt).toContain("after each useful stretch or correction");
   expect(prompt).toContain(
-    "After settlement, call `brunch_workpiece` when available",
+    "After settlement, call `read_workpiece` when available",
   );
   const cadence =
     "Create a first partial workpiece as soon as one consequential distinction exists, then update after each useful stretch or correction and before delivery.";
@@ -255,7 +286,7 @@ test.each([
     current = previous;
     let expectedState = previous;
     const controller = new AbortController();
-    const guarded = createUpdateWorkpieceTool(setRevision, {
+    const guarded = createMutateWorkpieceTool(setRevision, {
       currentRevision: previous,
       readSources: async () => {
         if (failure === "cancellation") controller.abort();
@@ -317,7 +348,7 @@ test("refuses an evidence-absent revision when another update wins first", async
     markdown: "# Previous",
   };
   current = previous;
-  const guarded = createUpdateWorkpieceTool(setRevision, {
+  const guarded = createMutateWorkpieceTool(setRevision, {
     currentRevision: previous,
     readSources: async () => {
       current = { ...previous, revisionId: "concurrent", ordinal: 2 };
@@ -341,7 +372,7 @@ test("refuses an evidence-absent revision when another update wins first", async
 
 test("an acquisition refusal or cancellation cannot settle even an evidence-absent revision", async () => {
   const controller = new AbortController();
-  const cancelled = createUpdateWorkpieceTool(setRevision, {
+  const cancelled = createMutateWorkpieceTool(setRevision, {
     currentRevision: null,
     readSources: async () => {
       controller.abort();
@@ -361,7 +392,7 @@ test("an acquisition refusal or cancellation cannot settle even an evidence-abse
   };
   await expect(cancelled.run(context)).rejects.toThrow(/abort/iu);
   expect(current).toBeNull();
-  const refused = createUpdateWorkpieceTool(setRevision, {
+  const refused = createMutateWorkpieceTool(setRevision, {
     currentRevision: null,
     readSources: async () => {
       throw new Error("Current state missing");

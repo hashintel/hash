@@ -223,17 +223,13 @@ const browserResult = (context: Context, name: string): BrowserResult =>
   );
 let basis: Record<string, unknown> | undefined;
 const settle = (markdown: string, id: string) => [
-  tool("update_workpiece", { markdown }, id),
+  tool("mutate_workpiece", { markdown }, id),
   checked((context) => {
-    assert.equal(toolOutput(context, "update_workpiece").revisionId, id);
-    return tool(
-      "brunch_workpiece",
-      { locateTexts: [markdown] },
-      `${id}-locate`,
-    );
+    assert.equal(toolOutput(context, "mutate_workpiece").revisionId, id);
+    return tool("read_workpiece", { locateTexts: [markdown] }, `${id}-locate`);
   }),
   checked((context) => {
-    const result = toolOutput(context, "brunch_workpiece");
+    const result = toolOutput(context, "read_workpiece");
     const current = result.currentWorkpiece as {
       revisionId: string;
       sha256: string;
@@ -1004,7 +1000,7 @@ try {
         [
           fauxToolCall(name, {}, { id: `typed-mixed-${name}` }),
           fauxToolCall(
-            "update_workpiece",
+            "mutate_workpiece",
             { markdown: "TEST forbidden sibling" },
             { id: `typed-mixed-revision-${name}` },
           ),
