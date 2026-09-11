@@ -16,7 +16,7 @@ A fresh builder must read these durable sources before deepening this cluster:
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
 - [`../../../petrinaut-core/src/file-format/serialize-sdcpn.ts`](../../../petrinaut-core/src/file-format/serialize-sdcpn.ts), [`../../../petrinaut-core/src/optimization/index.ts`](../../../petrinaut-core/src/optimization/index.ts), and [`../../../petrinaut/docs/optimization.md`](../../../petrinaut/docs/optimization.md) — existing Petrinaut terrain to inspect with the consumers, not a preselected handoff boundary.
-- [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) — locally verified application artifact after #9495/#9487/#9573 and explicit application-to-infrastructure stop; remote infrastructure, replacement, collector, rollback, and acceptance remain open. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`.
+- [Mission 8 successor](../../MISSION.next.md#mission-8-successor) — locally verified application artifact after #9495/#9487/#9573 and explicit application-to-infrastructure stop; remote infrastructure, replacement, collector, rollback, and acceptance remain open. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`.
 - The written Chris/Yannis consumer contract and accepted fixture, once they exist. Their absence is the fog-line, not permission to infer topology from current source.
 
 ## Visible product advance
@@ -33,7 +33,7 @@ The known semantic artifact floor is:
 
 - revised workpiece;
 - final selected SDCPN;
-- capture-backed evidence and projection/revision derivation;
+- canonical Flue evidence, settled workpiece revisions, declared basis, and observed projection/revision records;
 - selected scenario and parameters;
 - assumptions;
 - omissions;
@@ -69,7 +69,7 @@ Only the evidence-backed prefix and consumer-visible outcome are currently earne
 accepted Mission 10 bounded projection/revision path
 → Chris and Yannis define “complete” for one optimisation question
 → broaden the proven traceable path only across that accepted scenario
-→ selected complete SDCPN + revised workpiece + evidence/derivation
+→ selected complete SDCPN + revised workpiece + evidence/basis/observed records
 → scenario/parameters + assumptions/omissions/losses/limits
 → ORACLE GAP: consumer-accepted handoff boundary
 → Chris and Yannis can begin one agreed experiment
@@ -110,8 +110,8 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 ## Candidate evidence and oracles
 
 - Existing Petrinaut serialization, scenario, optimization, and UI contracts are terrain to inspect with Chris and Yannis. Their tests establish only what the current product can represent or execute; they do not establish acceptance, package shape, or experiment credibility.
-- Accepted Missions 7, 9, and 10 artifacts must provide the exact conversation, bounded workpiece revisions, captures, derivations, mutation trace, revised region, revision disposition, and deployed witness from which Mission 11 broadens. Their eventual archive/evidence paths replace these draft joins.
-- The [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) proves a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
+- Accepted Missions 7, 9, and 10 artifacts must provide the exact conversation, bounded workpiece revisions, canonical evidence citations, declared basis, observed mutation trace, revised region, revision disposition, and deployed witness from which Mission 11 broadens. Their eventual archive/evidence paths replace these draft joins.
+- The [Mission 8 successor](../../MISSION.next.md#mission-8-successor) inherits a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
 - **ORACLE GAP — consumer contract:** record Chris and Yannis' acceptance of all six decisions and one concrete fixture before this draft is cut.
 - **ORACLE GAP — selected complete model:** the consumer question must expose what completeness and credibility mean for this SDCPN; name the exact human or executable oracle only after that question exists.
 - **ORACLE GAP — outer handoff:** the accepted contract must name the witnessed action and observation that distinguish “can begin the experiment” from receipt of an unusable artifact.
@@ -137,7 +137,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - **RISK:** Mission 10's bounded result is mistaken for the complete selected model. **Impact:** required scenario breadth is skipped or silently hand-built at handoff. **Cheapest validation:** after consumer acceptance, inventory the accepted scenario against the bounded region and name only the missing projection/revision breadth Mission 11 must traverse.
 - **RISK:** package design precedes consumer acceptance. **Impact:** speculative topology becomes accidental infrastructure. **Cheapest validation:** make the six decisions and fixture the hard re-entry gate.
 - **RISK:** “complete” degrades into non-empty or parser-valid. **Impact:** the experiment may be meaningless. **Cheapest validation:** derive completeness and credibility from the accepted question before cutting the mission.
-- **RISK:** rehearsal substitutes curated artifacts for the real path. **Impact:** it proves staging rather than the product. **Cheapest validation:** inspect stable artifact identities and derivations across the witnessed six beats.
+- **RISK:** rehearsal substitutes curated artifacts for the real path. **Impact:** it proves staging rather than the product. **Cheapest validation:** inspect stable artifact identities, declared basis, and observed records across the witnessed six beats.
 - **RISK:** local Mission 8 evidence is mistaken for deployment. **Impact:** the outer handoff cannot honestly run. **Cheapest validation:** inspect the remote proof matrix and owner acceptance before scheduling the witness.
 
 ## Accepted constraints and guarded invariants
@@ -148,7 +148,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - **STOP-THE-LINE — semantic credibility:** non-empty and parser-valid are not synonyms for complete or optimisation-ready.
 - Preserve the known semantic artifact floor and honest assumptions, omissions, losses, and limits.
 - Use Petrinaut's current contracts only where accepted; do not copy their shapes into Brunch or couple directly to an optimizer speculatively.
-- Keep Brunch as a second assistant with separate stock behavior and histories.
+- Keep Brunch as the default `process-sdcpn` assistant and stock Petrinaut AI as a feature-flagged alternate with canonical tools and separate history.
 - Do not represent Mission 8's local application evidence as remote deployment.
 - Do not invent a generic export platform, graph database, ontology, regeneration engine, TUI, or generalized runtime.
 
@@ -176,7 +176,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - Stop if rehearsal becomes the sole output or curated staging replaces real-path artifacts.
 - Stop if Mission 10's bounded region is relabelled complete without consumer-defined breadth, or if missing breadth is filled outside the proven projection/revision path.
 - Stop if the selected net is called complete because it is non-empty, renders, or parses.
-- Stop if consumers must reconstruct intent, evidence, assumptions, or derivation from the original transcript.
+- Stop if consumers must reconstruct intent, evidence, assumptions, declared basis, or projection/revision history from the original transcript.
 - Stop if a defect in Missions 7, 9, and 10 is scripted around rather than returned to its owner.
 - Stop if current Petrinaut contracts are copied into Brunch or direct optimizer coupling is introduced speculatively.
 - Stop if local application evidence is called deployment or the chosen handoff bypasses applicable identity, durability, telemetry, access, and recovery gates.
