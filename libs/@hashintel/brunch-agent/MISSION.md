@@ -1,117 +1,148 @@
-# Mission 7b — Ordinary batched construction, correction, and provenance (FE-1573 / FE-1478)
+# Mission 7c — Inventory worked-model capability and provenance (FE-1573 / FE-1478)
 
 ## Status
 
-**Live on `ln/fe-1573-mission-7b`, stacked on Mission 7a PR [#9562](https://github.com/hashintel/hash/pull/9562) under Lu's explicit FE-1573 multi-PR exception.** This mission also partially addresses [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph): the batch records declared workpiece basis and canonical direct/derived effects, while reliable ordinary why traversal and Inventory-scale provenance remain with Mission 7c. It does not close FE-1478. Mission 7a remains the workpiece, construction-record and explanation groundwork archived at [`docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md`](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md). Its pending review and merge do not become acceptance through this branch.
+**Live on `ln/fe-1573-mission-7c`, stacked on Mission 7b PR [#9649](https://github.com/hashintel/hash/pull/9649) under Lu's explicit third FE-1573 PR exception.** This mission also partially addresses [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph): it must make ordinary why questions use the recorded explanation path and carry Inventory-scale provenance. It does not close FE-1478. Mission 7a has landed on `main` as [#9562](https://github.com/hashintel/hash/pull/9562). Mission 7b remains the ordinary structural-batch close-out archived at [`docs/mission-archive/7b-ordinary-batched-construction-provenance.md`](docs/mission-archive/7b-ordinary-batched-construction-provenance.md); its review and merge do not become acceptance through this branch.
 
-Lu recut this mission on 2026-09-11 around the product path actually implemented and observed. Mission 7b no longer claims an Inventory-comparable flagship, worked-model catalogue, Postgres working-copy path, code-bearing SDCPN capability, automatic layout, reliable mechanical why invocation or complete September demo. Those obligations, including the decisions and evidence that led to the split, now have one planning home in [Draft Mission 7c](docs/mission-drafts/7c-inventory-worked-model.md).
-
-The current implementation mounts a selected ordered `mutate_petrinet` carrier on ordinary configured Brunch, constructs and corrects a small connected root net from a settled workpiece, records complete indexed outcomes and effects, attributes failures, reopens the same conversation, and offers a `brunchDemoMode`-gated experimental create-new picker. The four affected packages pass build, unit, TypeScript and ESLint gates in an isolated fresh worktree; both mutation-batch integrations and repository formatting also pass. The published PR checks predate these close-out fixes, so remote CI and external review remain unresolved.
+Lu accepted the 7b/7c recut on 2026-09-11 and directed this branch to take the Inventory worked-model, compiler, layout, why-routing, tool-topology and Postgres-copy obligations. Petrinaut simulation scenarios and metrics stay out unless PM later admits them. This commit only cuts authority. Implementation starts after it.
 
 ## Imperative
 
-Ship the smallest honest ordinary-product construction seam that Mission 7a made possible: a person can start with Brunch on a Petrinaut net, settle a workpiece, construct a connected structural region through one bounded ordered mutation call, correct that region in ordinary language through a remove/add batch, and reopen the same conversation and workpiece without fixture query parameters or operator-authored net changes.
+Make a product manager able to open a stable Inventory purchasing worked-model bundle, receive or resume an independently owned copy, inspect a legible sophisticated SDCPN with its retained Brunch conversation and workpiece, ask why consequential content exists, correct it in ordinary language, see compiler-clean model changes and coherent layout, close/reopen, and obtain a clean copy without altering the template or another user's copy.
 
-Make the carrier and its failures legible enough that Mission 7c can safely deepen it. Do not disguise the observed explanation, compiler, layout, catalogue or model-quality gaps as completion, and do not implement their future architecture on this branch.
+Before this mission, ordinary Brunch can batch a small structural region and correct it, but cannot safely construct code-bearing Inventory dynamics, guarantee readable layout, reliably invoke the recorded explanation path, or open a Postgres-backed worked-model bundle.
+
+Do not treat a structurally applied mutation as a type-checked model, a timeout as clean, or a secret URL as authentication.
 
 ## Throughline
 
 ```text
-ordinary configured Petrinaut
-or experimental File → New → Build with Brunch under brunchDemoMode
-→ incarnation-scoped Brunch construction conversation
-→ user account → settled workpiece revision
-→ separate getLatestNetDefinition observation
-→ one selected mutate_petrinet proposal
-→ browser executes canonical operations in order
-→ committed prefix + failed/unknown stop + explicit unattempted suffix
-→ complete direct/derived effects and pre/post hashes return once
-→ ordinary correction settles a new workpiece revision
-→ fresh observation → remove/add mutation batch
-→ close/reopen restores the conversation and current workpiece
+Petrinaut ?bundle=inventory-purchasing
+→ authenticated principal or explicitly configured demo principal
+→ Brunch app resolves Postgres template / owned working copy
+→ existing chat + workpiece + SDCPN binding resume coherently
+→ Brunch recognizes explanation, construction or correction intent
+→ getLatestNetDefinition observation
+→ canonical selected mutate_petrinet batch
+→ browser applies the committed prefix and derives complete effects
+→ diagnostics refresh reaches complete | errors | pending
+→ Brunch repairs errors against a fresh observation, if needed
+→ ELK layout under fresh/preserved-layout policy
+→ final observed hash and derived position effects
+→ brunch_why reconciles visible content with retained history
+→ close/reopen or clean-copy leaves template and sibling copies unchanged
 ```
 
-The selected 7b operation set is root `addPlace`, `addTransition`, `addArc`, `removePlace`, `removeTransition`, and `removeArc`. Petrinaut Core defines the individual canonical actions; ordinary Brunch exposes them only as variants inside `mutate_petrinet`. The historical headless construction subset remains a separate proof surface, not product policy.
+The first implementation observation is not a full Inventory generation. It is a dependency-affecting batch with deliberately invalid dynamics that reaches Brunch as a correlated compiler error, is repaired, and remains hash/effect coherent after ELK layout. That path determines the diagnostics and layout carrier before catalogue materialization depends on them.
+
+### Cold-start reads
+
+- [`docs/mission-archive/7b-ordinary-batched-construction-provenance.md`](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) — accepted ordinary batch departure base.
+- [`docs/reference/architecture/topology.md`](docs/reference/architecture/topology.md) — stale for the batch carrier and history-backed why tool; reconcile it with code before renaming or moving tools.
+- [`packages/plugin-sdcpn/src/mutate-petrinet.ts`](packages/plugin-sdcpn/src/mutate-petrinet.ts), [`packages/plugin-sdcpn/src/tools/mutate-petrinet.ts`](packages/plugin-sdcpn/src/tools/mutate-petrinet.ts), [`packages/plugin-sdcpn/src/mutation-record.ts`](packages/plugin-sdcpn/src/mutation-record.ts) — current selected carrier.
+- [`../petrinaut-core/src/action-schemas.ts`](../petrinaut-core/src/action-schemas.ts), [`../petrinaut-core/src/ai.ts`](../petrinaut-core/src/ai.ts), [`../petrinaut-core/src/commands.ts`](../petrinaut-core/src/commands.ts) — canonical mutation, compilation-read and ELK authorities.
+- [`../../../apps/brunch-agent/src/conversation/why.ts`](../../../apps/brunch-agent/src/conversation/why.ts) and [`../../../apps/brunch-agent/src/database-config.ts`](../../../apps/brunch-agent/src/database-config.ts) — history-backed explanation and SQLite/Postgres selection.
+- Website `local-storage-demo` host, `mutate-petrinet-tool.ts`, and `local-storage-demo-search.ts` — browser execution and URL ownership.
 
 ## Proof
 
 ### Visible product advance
 
-**Release-note sentence:** Brunch can now construct and correct a small connected Petrinaut region from an ordinary saved workpiece through one auditable mutation batch, without a prepared fixture or a catalogue of one-operation model tools.
+**Release-note sentence:** Brunch can open an owned Inventory purchasing model, keep it compiler-clean and legible, answer why a visible part exists from recorded history, and let a second person take a clean copy without disturbing the template.
 
-**Product-manager script:** open an empty Petrinaut net with ordinary Brunch, describe a small receiving process, let Brunch save its workpiece and construct the connected region, ask for one routing correction in ordinary language, observe the bounded net change, close the assistant, and reopen it to the same revision. With `brunchDemoMode` enabled, the same experiment can start from File → New → Build with Brunch; without the flag, Petrinaut retains its ordinary New action.
+**Product-manager script:** open `?bundle=inventory-purchasing`, inspect the connected model and workpiece, ask why two consequential elements exist, correct one operational fact in ordinary language, see a compiler-clean bounded net change and coherent layout, close and reopen the same copy, then open a second principal's copy and confirm the first is untouched.
 
-**Previously impossible:** ordinary configured Brunch did not mount the batch carrier, first contact could be poisoned by the prepared crew-reservation fixture, and a correction requiring removal could not be expressed without dead parallel structure or manual editing.
+**Previously impossible:** ordinary Brunch could only construct and correct a small structural region on disposable SQLite, without reliable compilation feedback, layout, mechanical why, or a hosted worked-model catalogue.
 
-### Acceptance leaves
+### Throughline proof floor
+
+This is the first internal milestone, not completion.
 
 | Result | Required oracle |
 | --- | --- |
-| The batch carrier preserves canonical mutation semantics | `libs/@hashintel/petrinaut-core/src/selected-mutation-batch.test.ts` and `libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/mutate-petrinet.test.ts`: canonical selected schemas, unique operation IDs, ordered stop, committed prefix and explicit unattempted suffix. |
-| Invalid server arguments never become executable browser calls | `apps/brunch-agent/test/mutate-petrinet-retry.integration.ts`: wrapped-dialect rejection is withheld; an accepted flat retry crosses the client boundary once. |
-| Batched and one-operation execution reach the same structural state | `apps/brunch-agent/test/mutate-petrinet-comparison.integration.ts`: the fixed 25-operation target has equal final hashes and complete outcomes through one batch and 25 one-operation calls. The observed 5.8× settlement difference is local/faux-provider evidence, not a universal performance claim. |
-| A real provider can produce the selected flat carrier | Retained local-only native history for the 2026-09-10 Sonnet root-creation turn: one 25-operation `mutate_petrinet` call applied all operations. It is not portable campaign evidence or proof for a broader schema. |
-| Ordinary Brunch uses the carrier without fixture preparation | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx` and `use-prepare-crew-reservation-conversation.test.ts`: ordinary construction mounts the gated dynamic tool and does not inject the crew-reservation prepared fixture. |
-| Ordinary construction and correction work on one real net | Retained local-only browser/Flue records for conversation `brunch-construction-v1:24407d82-c62e-490c-8c33-225cbd47dfb4`: an 11-operation start constructed the receiving-dock region; a fresh-observation remove/add correction committed 9 operations, recorded 2 cascade no-ops and preserved the upstream path. |
-| Reopen restores the same local session | Browser inspection on that conversation: closing and reopening the assistant restored revision 3 and the corrected topology without a new turn. This proves same-store local continuity, not exported or Postgres-backed copies. |
-| The create-new affordance is experimental and contained | `libs/@hashintel/petrinaut/src/ui/views/Editor/editor-view/create-new-net-menu.test.ts` and editor command tests: with `brunchDemoMode` and a mounted assistant, File → New offers Build with Brunch / Start blank and posture chips; otherwise Petrinaut retains its ordinary single New action. One non-paid browser click-through verifies both branches before close. |
-| Failures are attributable at their source | `apps/brunch-agent/test/runtime-diagnostics.test.ts`, provider-accounting tests and Petrinaut error-tracker tests: server, transport and browser mutation failures retain useful development diagnostics while production reporting remains content-safe. |
+| A minimal Inventory-derived code-bearing slice can be expressed on the selected carrier | Canonical schema projection and selected-operation tests in `libs/@hashintel/petrinaut-core` and `libs/@hashintel/brunch-agent/packages/plugin-sdcpn` for the admitted type/parameter/dynamics operations, plus a frozen fixture naming one coloured type, parameters, places/arcs, a stochastic transition, and one differential equation. |
+| A structurally applied batch can be compiler-dirty | Integration test with a known invalid dynamics or kernel surface: mutation outcome is applied, diagnostics independently report `errors` or `pending`, and timeout never becomes clean. Inspect that the exact Flue continuation delivered the diagnostics, not only a React render. |
+| A repair batch can reach a version-correlated clean result | The same test's follow-up observation and mutation; diagnostics version matches the post-repair definition hash. |
+| Dependency changes trigger checks | Tests covering type-element, parameter, place-name and arc/type changes that invalidate transition or dynamics code without directly editing that code. |
+| ELK layout is observable and does not stale the next base | Petrinaut `applyAutoLayout` command tests plus a browser/integration assertion that the reported final hash equals a fresh `getLatestNetDefinition` after layout, including derived position effects. Fresh construction may lay out without confirmation; existing user-arranged content requires confirmation. Type/parameter/dynamics-only batches do not relayout. |
+| Ordinary why uses the mounted explanation path | Ordinary-language why cases with no tool names in the user prompt; native history shows `getLatestNetDefinition` then `brunch_why`, and the pane renders that structured result. |
+
+### Readiness gate
+
+The mission completes when Lu can perform the product-manager script without IDs, tool vocabulary or developer repair, and these leaves hold:
+
+| Result | Required oracle |
+| --- | --- |
+| Inventory is connected and operationally coherent | Lu's review of the visible model against procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions. Exact historical node counts are not an answer key. Structure and compilation alone cannot pass. |
+| Code-bearing construction is compiler-clean or visibly unresolved | The compiler-feedback tests above plus the live Inventory copy; no timeout reported as success. |
+| Consequential visible elements have recorded basis or an explicit absent/incomplete disposition | Sampled ordinary why questions on the live copy; mechanical path used without user tool vocabulary. |
+| Two principals have independent copies | Postgres integration and two-browser/principal product proof: `?bundle=inventory-purchasing` resume, clean copy, template update, sibling isolation, retained workpiece/mutation/why history. A startup template revision affects new copies without duplicating catalogue entries or rewriting existing sessions. |
+| The intended deployment store/route is exercised locally | Local Postgres on the production store contract. SQLite remains only for lightweight tests and explicitly disposable local work. |
+| Broader schema is provider-usable | Count actual input tokens, submit representative Inventory-derived tool schemas and calls through the selected provider/product route, and compare acceptance, tool selection, repair and latency. No byte threshold substitutes for this probe. |
+| Tool authority/topology is coherent | Updated living topology, import/mount tests and a generated or checked catalogue that fails on duplicate names, ownerless tools, schema copies or unrecorded mount modes. |
 
 ### Explicit non-claims
 
-- The live receiving-dock model is a small structural witness, not an Inventory-quality or PM-explorable flagship.
-- Fluent ordinary answers to the two why questions did not call `brunch_why` or populate the mechanical why pane.
-- Types, parameters and differential equations are not admitted on the ordinary 7b batch. Their schema-only admission was retracted because ordinary Brunch has no reliable compilation-feedback continuation.
-- No ELK layout command is mounted on ordinary Brunch; overlapping nodes remain a known product limitation.
-- `?scenario=` remains Petrinaut's location for a simulation scenario inside the current document. No worked-model catalogue route exists.
-- Local conversations use disposable SQLite. No Postgres template, owned working-copy or hosted-access claim is made.
-- File → New picker tests and click-through do not prove a paid workpiece-and-net construction initiated through its posture chips.
+- This cut does not yet implement Inventory generation, Postgres copies, tool renaming, or deployment.
+- Petrinaut simulation scenarios and metrics are outside the default completion claim pending PM confirmation. A second worked-model bundle is a portfolio decision, not implied by the word “scenario.”
+- Semantic fidelity, reviewer utility and genuine testimony remain unassessed until Lu's readiness review.
+- Mission 7b's small receiving-dock witness is not an Inventory-quality flagship.
+- FE-1478 remains open after this mission's partial provenance delivery.
 
 ## Constraints
 
-- **Canonical authority:** Petrinaut Core owns mutation schemas, actions and the selected generic ordered executor. Brunch selects and projects canonical operations; it does not copy their field contracts.
-- **One ordinary mutation interface:** ordinary construction mounts `mutate_petrinet`, not a parallel catalogue of individual mutations. One logical operation has one `operationId`; retries, when legal, have distinct attempt identity.
-- **Gate then flatten:** server validation and declared-basis checks occur before the browser sees a dynamic call. Operations are flat `{ operationId, basisId, type, input }`.
-- **Observed base:** every batch cites the exact preceding browser observation call and hash. Stale, unknown, failed and no-op attempts are not causes and are not silently replayed.
-- **Ordered stop:** operations commit individually. The first failed or unknown outcome stops execution; successful prefix operations remain committed and every suffix operation is returned as unattempted.
-- **Complete accounting:** direct and derived effects are mechanically derived from canonical pre/post definitions. Cascaded arc deletion does not inherit a separate user basis merely because it is an effect of `removePlace`.
-- **Earned safeguards:** a limit, gate or refusal remains only when an observed failure, external constraint or explicit owner requirement earns its friction. The former 64 KiB schema threshold is not a provider limit. The current 30-operation maximum remains a provisional 7b carrier bound, not a product invariant; 7c must test or remove it.
-- **Identity and storage:** one conversation remains bound to one document incarnation and principal. Production still fails closed to Postgres; Mission 7b local development deliberately uses disposable SQLite.
-- **Experimental picker:** Build with Brunch / Start blank is shown only when the host enables `brunchDemoMode` and mounts an assistant. Stock/default Petrinaut behavior is unchanged otherwise.
-- **Scope:** no simulation scenarios/metrics, compiler-feedback architecture, auto-layout integration, tool renaming/topology refactor, bundle persistence/copying, remote write, deployment or Linear write on this mission without another accepted recut.
+- **Canonical authority:** Petrinaut Core owns mutation and command schemas, including `getNetCompilationErrors` and `applyAutoLayout`. Brunch may select or project them but must not copy their field contracts.
+- **One ordinary mutation interface:** ordinary construction mounts `mutate_petrinet`, not a parallel catalogue of individual mutations. Historical headless and fixture catalogues are distinct proof surfaces.
+- **Separate claims:** structural mutation success, compiler cleanliness, semantic correspondence and simulation behavior are different results.
+- **Diagnostics:** every batch that writes code or changes a dependency of code reaches a version-correlated Petrinaut diagnostics result before Brunch relies on it. A bounded wait may return `pending`; it never becomes clean by timeout. Failed, stale, no-op and unknown attempts are never causes.
+- **Layout:** Petrinaut's existing asynchronous ELK layered layout is the authority. Fresh construction may lay out without confirmation; existing user-arranged content uses the existing confirmation policy. Type/parameter/dynamics-only batches do not relayout. Layout is a document mutation: record its effects and final hash; do not inherit operational basis as if coordinates were user testimony; do not mutate after the reported final hash.
+- **Why routing:** a why question about model content uses the mounted recorded explanation capability when that capability is available. Always-on SDCPN guidance owns recognition and routing; the activated job skill owns the detailed read-then-why protocol; the tool description owns its input/refusal contract.
+- **Earned safeguards:** a limit, gate or refusal remains only when an observed failure, external constraint or explicit owner requirement earns its friction. Record owner, enforcement point, prevented failure, evidence and reconsideration condition. The former 64 KiB schema threshold is not a provider limit. The current 30-operation maximum is provisional, not a product invariant. Explicit paid-spend authorization remains a legitimate budget.
+- **Persistence:** production and worked-bundle paths use Postgres through the existing adapter and migrations. Do not create a second persistence system. SQLite remains for lightweight tests and explicitly disposable local work only.
+- **Identity:** a URL key identifies a bundle; it does not authenticate a user by obscurity. Hosted access uses actual authentication or an explicitly configured server-side demo principal. If a secret URL is proposed as a bearer capability, entropy, logging, sharing, revocation and authorization require explicit review.
+- **No second stores:** the workpiece remains the recoverable operational account; Flue history remains canonical conversation history; Petrinaut remains the model authority.
+- **Scope:** no simulation-scenario/metric work, remote write, deployment, unrelated Linear write, or Mission 9–11 breadth without another accepted recut.
 
-### Ownership at the 7b boundary
+### Ownership at the 7c boundary
 
 - Brunch core owns universal workpiece tools and formalism-independent guidance.
 - Petrinaut Core owns canonical model actions, commands and schemas.
 - The SDCPN plugin owns the selected model-facing carrier, formalism-specific operation policy, basis/effect interpretation and construction guidance.
-- The Brunch app owns composition, authorized history, browser/document reconciliation, history-backed why execution and operational diagnostics.
-- The Petrinaut website owns browser execution and local product integration.
-- `docs/reference/architecture/topology.md` is known stale for the batch/why surface. Its authority, naming and file-layout reconciliation belongs to 7c.
+- The Brunch app owns composition, authorized history, browser/document reconciliation, history-backed why execution, operational diagnostics and the Postgres catalogue/copy path.
+- The Petrinaut website owns browser execution, diagnostics/layout host integration and bundle URL routing.
+- Reconcile naming, definition homes, mounts, execution hosts, display consumers and persistence before renaming or moving tools. Preserve stock Petrinaut assistant behavior and canonical Petrinaut names. Brunch-owned names follow `brunch_<operation>`; canonical Petrinaut action/command names remain camelCase; Flue built-ins remain substrate-owned.
 
 ## Fog-line
 
-- The published PR checks still report the superseded selected-operation export/type and Petrinaut website lint failures. A fresh remote run after the close-out commit remains the external discriminator.
-- The picker was unexpectedly exposed whenever any assistant was mounted. It is now gated by the existing host-controlled `brunchDemoMode` flag as well as assistant availability; remote review remains.
-- The live ordinary evidence is local-only and not portable; tests prove mechanics, while Lu's observed browser run is the outer witness for this narrow seam.
-- The 25-operation generation proves only the six-operation selected structural schema used in that run. Broader provider/tool selection remains a 7c question.
-- Why remains fluent but mechanically uninvoked. Prompt placement follows 7c's tool-authority/topology decision rather than a 7b patch.
-- Mission 7a is mergeable but still requires review; 7b remains stacked and cannot merge first.
+- Exact Inventory operation classes, and whether one full union, capability-grouped carriers or provider-supported deferred loading is the simplest reliable model-facing shape.
+- Whether diagnostics should be returned in `mutate_petrinet`, exposed as an explicit read, or use a hybrid pending/result protocol. The selected design must preserve version correlation.
+- Whether ELK runs inside the mutation result boundary or as a separately recorded command. It must not create a hidden hash change.
+- Final model-facing Brunch names and any migration/reset policy for persisted histories.
+- Exact home of the tool catalogue and whether it is generated from mount declarations or checked as a manually curated authority map.
+- Native Flue/Postgres clone/materialization contract and the minimum safe clean-copy UX.
+- Hosted identity for the demo and whether a secret link is merely a selector or an explicitly reviewed bearer capability.
+- PM decision on Petrinaut simulation scenarios/metrics and a second worked-model bundle.
 
 ## Stop or reorient
 
-- Stop close-out if the six-operation batch cannot pass canonical schema, type, unit and integration checks on a fresh checkout.
-- Stop if invalid server arguments can reach browser execution, a duplicate result can reapply a mutation, or an unknown/partial outcome is represented as success.
-- Stop if removing the unproved type/parameter/dynamics variants damages the already observed structural construction/correction path.
-- Stop if the feature-flag repair changes ordinary Petrinaut's single New action or shows Brunch-labelled choices for a stock assistant.
-- Stop if the mission or PR implies Inventory quality, compiler cleanliness, legible layout, mechanical why coverage, Postgres copies or deployment.
-- Do not spend further paid turns to make 7b appear broader. The next paid construction belongs to a cut 7c mission with its diagnostics and layout contracts selected.
+- Stop schema expansion if the provider/product route cannot reliably select and populate the representative Inventory operations; compare a smaller or deferred catalogue instead of installing an arbitrary byte cap.
+- Stop code-bearing construction if diagnostics cannot be correlated to the exact post-mutation definition.
+- Stop automatic layout if it can silently move user-arranged content, escape effect accounting or change the document after the reported final hash.
+- Stop tool renaming if retained sessions cannot continue under an accepted migration/reset policy.
+- Stop bundle promotion if native identities cannot be copied or materialized coherently, one copy can change another, or URL obscurity is being used as accidental authorization.
+- Stop Inventory acceptance for an inert, flattened, visually illegible, compiler-broken or operator-authored model.
+- Stop simulation-scenario/metric work unless PM explicitly makes it part of the sophisticated-Petri-net objective.
 
 ## Deferred
 
-- [Draft Mission 7c — Inventory worked-model capability](docs/mission-drafts/7c-inventory-worked-model.md): Inventory-scale SDCPN construction, operation admission, compiler feedback/repair, ELK layout, reliable why routing, tool naming/homing/topology, Postgres templates and owned bundle copies.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md): broader semantic, behavioral, provenance and lifecycle evaluation after a useful worked model exists.
 - [Mission 9](docs/mission-drafts/9-traceable-projection.md): repeat/change/retirement/concurrency breadth beyond the selected worked-model seam.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md): general reviewer authority and revision.
 - [Mission 11](docs/mission-drafts/11-optimisation-handoff.md): consumer-accepted optimization handoff.
-- [Future spine](MISSION.next.md): deployment, provider migration and unallocated product concerns not consumed by Draft 7c.
+- [Future spine](MISSION.next.md): deployment, provider migration, assumption-based preview and unallocated product concerns not consumed here.
+
+## Owner decisions
+
+- **2026-09-11 — 7b/7c split.** Lu accepted the narrower 7b close-out and authorized this third FE-1573 PR for Inventory capability, compiler feedback, ELK layout, reliable why routing, tool topology and Postgres copies. Consumed by this cut.
+- **2026-09-11 — scenarios out by default.** Petrinaut simulation scenarios and metrics are not part of the sophisticated-net objective unless PM later admits them.
+- **2026-09-11 — first observation is the compiler/layout carrier.** Do not generate the full Inventory model, promote bundles, or rename tools until a dependency-affecting invalid dynamics batch reaches Brunch as a correlated compiler error, is repaired, and stays hash/effect coherent after ELK.
