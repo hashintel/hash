@@ -33,6 +33,8 @@ use super::error::StorageError;
 mod metadata;
 mod multipart;
 pub(crate) mod path;
+#[cfg(feature = "test-utils")]
+pub(crate) mod test_utils;
 #[cfg(test)]
 mod tests;
 
@@ -67,7 +69,7 @@ impl WriteCondition<'_> {
     }
 }
 
-/// A loaded S3 backend, holding the SDK client its object requests use.
+/// Access to storage locations implementing the S3 protocol.
 #[derive(Debug)]
 pub(crate) struct S3 {
     client: Client,

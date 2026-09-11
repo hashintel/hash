@@ -139,6 +139,7 @@
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]
+#![cfg_attr(feature = "test-utils", feature(async_fn_track_caller))]
 #![expect(
     unsafe_code,
     clippy::float_arithmetic,

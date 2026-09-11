@@ -1,7 +1,4 @@
-use aws_sdk_s3::{
-    primitives::{ByteStream, ByteStreamError, Length},
-    types::CompletedPart,
-};
+use aws_sdk_s3::primitives::{ByteStream, ByteStreamError, Length};
 use camino::Utf8Path;
 
 use crate::file::storage::error::StorageError;
@@ -39,26 +36,6 @@ impl Part {
     pub(crate) fn copy_range(&self) -> String {
         let end = self.offset + self.length - 1;
         format!("bytes={}-{end}", self.offset)
-    }
-
-    /// Associates required completion metadata with this part's number.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`StorageError`] if the response omitted its `ETag` or checksum.
-    pub(crate) fn complete(
-        self,
-        etag: Option<String>,
-        checksum: Option<String>,
-    ) -> Result<CompletedPart, StorageError> {
-        let etag = etag.ok_or(StorageError::MissingEntityTag)?;
-        let checksum = checksum.ok_or(StorageError::MissingChecksum)?;
-
-        Ok(CompletedPart::builder()
-            .part_number(self.number)
-            .e_tag(etag)
-            .checksum_crc32(checksum)
-            .build())
     }
 }
 

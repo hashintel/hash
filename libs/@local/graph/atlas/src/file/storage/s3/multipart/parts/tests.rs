@@ -96,62 +96,6 @@ fn copy_range_final_byte() {
     );
 }
 
-/// Completion associates each checksum and entity tag with its original part number.
-#[test]
-fn complete_part_metadata() {
-    let parts =
-        Parts::new(Parts::MIN_PART_BYTES + 1).expect("should partition a full part and one byte");
-    let completed: Vec<_> = parts
-        .iter()
-        .zip([("first-etag", "AQIDBA=="), ("second-etag", "BQYHCA==")])
-        .map(|(part, (etag, checksum))| {
-            part.complete(Some(etag.to_owned()), Some(checksum.to_owned()))
-                .expect("should accept complete part metadata")
-        })
-        .collect();
-    assert_eq!(completed.len(), 2, "should retain both completed parts");
-    for (part, number, etag, checksum) in [
-        (&completed[0], 1, "first-etag", "AQIDBA=="),
-        (&completed[1], 2, "second-etag", "BQYHCA=="),
-    ] {
-        assert_eq!(
-            part.part_number(),
-            Some(number),
-            "should retain the part number"
-        );
-        assert_eq!(part.e_tag(), Some(etag), "should retain the part's ETag");
-        assert_eq!(
-            part.checksum_crc32(),
-            Some(checksum),
-            "should retain the returned checksum"
-        );
-    }
-}
-
-/// Completion requires both an entity tag and a checksum.
-#[test]
-fn complete_missing_metadata() {
-    for (etag, checksum, missing_etag) in [
-        (None, None, true),
-        (None, Some("AQIDBA=="), true),
-        (Some("etag"), None, false),
-    ] {
-        let part = Parts::new(1)
-            .expect("should represent one byte")
-            .iter()
-            .next()
-            .expect("should contain one part");
-        let error = part
-            .complete(etag.map(str::to_owned), checksum.map(str::to_owned))
-            .expect_err("should require both metadata fields");
-        if missing_etag {
-            core::assert_matches!(error, StorageError::MissingEntityTag);
-        } else {
-            core::assert_matches!(error, StorageError::MissingChecksum);
-        }
-    }
-}
-
 /// An object exceeding the combined multipart capacity fails during planning.
 #[test]
 fn parts_oversized() {

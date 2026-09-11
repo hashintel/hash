@@ -276,3 +276,39 @@ pub struct ServeArgs {
     )]
     pub(super) secret: ServeSecret,
 }
+
+/// Supplies fixed serving parameters without reading CLI or environment configuration.
+#[cfg(feature = "test-utils")]
+pub(super) const fn integration_args(secret: ServeSecret) -> ServeArgs {
+    use crate::math::nz;
+
+    ServeArgs {
+        limits: LimitsArgs {
+            colored_type_ids: 4,
+            edges_tiles: 16,
+            edges: 256,
+            translate_entity_ids: 64,
+            locate_edges: 64,
+            locate_properties: 16,
+            locate_link_type_ids: 4,
+            locate_link_properties: 16,
+        },
+        delta: DeltaArgs {
+            delta_poll_interval: nz!(1),
+            delta_safety_lag: 0,
+            delta_retry_polls: 1,
+            delta_placement_backlog: nz!(16),
+            delta_minimum_projection_interval: 1,
+            no_delta: true,
+        },
+        manager: ManagerArgs {
+            generation_poll_interval: nz!(1),
+            unlink_expired_generations: false,
+        },
+        download: DownloadArgs {
+            download: None,
+            download_poll_interval: nz!(1),
+        },
+        secret,
+    }
+}

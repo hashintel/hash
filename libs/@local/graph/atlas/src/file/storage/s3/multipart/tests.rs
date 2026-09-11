@@ -78,10 +78,12 @@ impl Backend for &Fixture {
                 "fixture part failure",
             ))));
         }
-        ready(part.complete(
-            Some(format!("etag-{number}")),
-            Some(format!("checksum-{number}")),
-        ))
+
+        ready(Ok(CompletedPart::builder()
+            .part_number(number)
+            .e_tag(format!("etag-{number}"))
+            .checksum_crc32(format!("checksum-{number}"))
+            .build()))
     }
 
     fn complete(

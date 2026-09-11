@@ -146,6 +146,18 @@ pub struct ServeCommand {
 }
 
 impl ServeCommand {
+    /// Constructs a local-only serving invocation with fixed integration-test parameters.
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn for_integration(root: GenerationRoot, secret: ServeSecret) -> Self {
+        Self::new(
+            RootArgs {
+                root,
+                device: PinnedDevice::host(),
+            },
+            args::integration_args(secret),
+        )
+    }
+
     /// Resolves parsed flags into one serving invocation.
     #[must_use]
     pub fn new(root: RootArgs, args: ServeArgs) -> Self {
