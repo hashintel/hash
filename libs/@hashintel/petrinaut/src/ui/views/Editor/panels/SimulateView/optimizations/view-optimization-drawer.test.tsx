@@ -530,7 +530,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       connected: {
         ...following,
         computeBackendFallbackReason:
-          "the GPU cannot compute expression metrics",
+          'Metric "Fleet size" cannot be translated to WGSL: `.concat` joins the tokens of two places, which the shader reads one place at a time.',
       },
     });
 

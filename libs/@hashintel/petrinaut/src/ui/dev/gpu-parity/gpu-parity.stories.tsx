@@ -15,7 +15,9 @@ import { useEffect, useState } from "react";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  getOwn,
   type InitialMarking,
+  type MonteCarloMetricSpec,
   type MonteCarloUserDefinedMetricFrame,
 } from "@hashintel/petrinaut-core";
 import {
@@ -41,13 +43,22 @@ const meta = {
 
 export default meta;
 
+/** One metric both backends measure, with a label for the report. */
+type ParityMeasure =
+  /** A place's token count, the shader's `counts[]` sample. */
+  | { kind: "placeCount"; placeId: string; label: string }
+  /**
+   * One of the model's expression metrics, compiled with its HIR so the shader
+   * samples the same body the CPU evaluates.
+   */
+  | { kind: "expression"; metricId: string; label: string };
+
 type ParityModel = {
   id: string;
   title: string;
   sdcpn: (typeof sirModel)["petriNetDefinition"];
   initialMarking: InitialMarking;
-  /** Place to measure, with a label for the report. */
-  measure: { placeId: string; label: string };
+  measures: ParityMeasure[];
 };
 
 const MODELS: ParityModel[] = [
@@ -60,7 +71,14 @@ const MODELS: ParityModel[] = [
       place__infected: 10,
       place__recovered: 0,
     },
-    measure: { placeId: "place__infected", label: "Infected" },
+    measures: [
+      { kind: "placeCount", placeId: "place__infected", label: "Infected" },
+      {
+        kind: "expression",
+        metricId: "metric__infected_fraction",
+        label: "Infected Fraction",
+      },
+    ],
   },
   {
     id: "cafe-queue",
@@ -72,7 +90,9 @@ const MODELS: ParityModel[] = [
       place__serving: 0,
       place__served: 0,
     },
-    measure: { placeId: "place__served", label: "Served" },
+    measures: [
+      { kind: "placeCount", placeId: "place__served", label: "Served" },
+    ],
   },
   {
     id: "drone-patrol",
@@ -85,7 +105,9 @@ const MODELS: ParityModel[] = [
       })),
       place__airborne: [],
     },
-    measure: { placeId: "place__airborne", label: "Airborne" },
+    measures: [
+      { kind: "placeCount", placeId: "place__airborne", label: "Airborne" },
+    ],
   },
 ];
 
@@ -95,6 +117,7 @@ type BackendReport = {
 };
 
 type ParityReport = {
+  /** `<model> · <measure>`, one row per measured metric. */
   model: string;
   runCount: number;
   frames: number;
@@ -200,14 +223,52 @@ async function runBackend(
   return { frames, ms };
 }
 
-function compare(
+/** The spec both backends run for a measure; the model metric's id doubles as the spec's. */
+function measureSpec(
   model: ParityModel,
+  measure: ParityMeasure,
+  artifacts: ReturnType<typeof compileHirArtifacts>["artifacts"],
+): MonteCarloMetricSpec {
+  if (measure.kind === "placeCount") {
+    return {
+      kind: "placeTokenCountMean",
+      id: `parity-${measure.placeId}`,
+      label: measure.label,
+      placeId: measure.placeId,
+      runOutput: { type: "distribution", binning: "exact" },
+    };
+  }
+  const metric = model.sdcpn.metrics?.find(({ id }) => id === measure.metricId);
+  const artifact = getOwn(artifacts.metrics, measure.metricId);
+  if (metric === undefined || artifact === undefined) {
+    throw new Error(
+      `model metric ${measure.metricId} is missing from ${model.title} or did not compile`,
+    );
+  }
+  return {
+    kind: "expression",
+    id: measure.metricId,
+    label: measure.label,
+    code: metric.code,
+    artifact,
+    sampleRuns: "all",
+    runOutput: { type: "distribution", binning: "exact" },
+  };
+}
+
+function compare(
+  rowLabel: string,
+  metricId: string,
   runCount: number,
   cpu: BackendReport,
   gpu: BackendReport,
 ): ParityReport {
   const byFrame = (frames: MonteCarloUserDefinedMetricFrame[]) =>
-    new Map(frames.map((frame) => [frame.frameNumber, frame]));
+    new Map(
+      frames
+        .filter((frame) => frame.metricId === metricId)
+        .map((frame) => [frame.frameNumber, frame]),
+    );
   const cpuFrames = byFrame(cpu.frames);
   const gpuFrames = byFrame(gpu.frames);
   const common = [...cpuFrames.keys()]
@@ -231,7 +292,7 @@ function compare(
   }
   const lastCommon = common.at(-1);
   return {
-    model: model.title,
+    model: rowLabel,
     runCount,
     frames: common.length,
     cpuMs: Math.round(cpu.ms),
@@ -295,15 +356,9 @@ const ParityStory = ({
           dt,
           maxTime,
           runCount,
-          metricSpecs: [
-            {
-              kind: "placeTokenCountMean",
-              id: "parity",
-              label: model.measure.label,
-              placeId: model.measure.placeId,
-              runOutput: { type: "distribution", binning: "exact" },
-            },
-          ],
+          metricSpecs: model.measures.map((measure) =>
+            measureSpec(model, measure, artifacts),
+          ),
           hirArtifacts: artifacts,
         };
         const cpuBackend = createWorkerPoolExperimentBackend({
@@ -320,7 +375,17 @@ const ParityStory = ({
         } else if ("error" in gpu) {
           results.push({ model: model.title, error: `GPU: ${gpu.error}` });
         } else {
-          results.push(compare(model, runCount, cpu, gpu));
+          for (const spec of request.metricSpecs) {
+            results.push(
+              compare(
+                `${model.title} · ${spec.label}`,
+                spec.id,
+                runCount,
+                cpu,
+                gpu,
+              ),
+            );
+          }
         }
         setRows([...results]);
       }
@@ -343,7 +408,7 @@ const ParityStory = ({
         <thead>
           <tr>
             {[
-              "model",
+              "measure",
               "frames",
               "cpu ms",
               "gpu ms",

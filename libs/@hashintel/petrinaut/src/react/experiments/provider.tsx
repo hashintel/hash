@@ -40,13 +40,13 @@ import {
   isExperimentActive,
   isTerminalExperimentStatus,
 } from "./context";
+import { experimentSdcpnWithMetrics } from "./experiment-sdcpn-with-metrics";
 import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
   createExperimentRequestBuilder,
   experimentBackendRegistrations,
-  experimentSdcpnWithMetrics,
   newExperimentRecord,
 } from "./provider/create-experiment";
 import {
