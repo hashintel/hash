@@ -17,12 +17,7 @@ import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import {
   type ObjectiveHistoryPoint,
   toObjectiveHistoryData,
-} from "./objective-history-chart/objective-history-data";
-
-export {
-  buildObjectiveHistory,
-  type ObjectiveHistoryPoint,
-} from "./objective-history-chart/objective-history-data";
+} from "./objective-history-data";
 
 const UPlot = uPlot;
 

@@ -3,10 +3,8 @@
  * after the objective metric, the points built from the study's own trials.
  */
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
-import {
-  buildObjectiveHistory,
-  ObjectiveHistoryChart,
-} from "../../shared/objective-history-chart";
+import { ObjectiveHistoryChart } from "../../shared/objective-history-chart";
+import { buildObjectiveHistory } from "../../shared/objective-history-data";
 import { objectiveMetricName } from "../../shared/study-labels";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
