@@ -14,6 +14,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
@@ -36,6 +37,7 @@ import type {
   AgentConversationObservationSnapshot,
   FlueClient,
 } from "@flue/sdk";
+import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type {
   PetrinautAiAssistant,
@@ -49,6 +51,7 @@ const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
+const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
 const workedModelHook = vi.hoisted(() => ({
   current: {
@@ -69,6 +72,7 @@ const workedModelHook = vi.hoisted(() => ({
         differentialEquations: unknown[];
       };
       definitionSha256: string;
+      revisionId: string;
     },
     error: null as Error | null,
     loading: false,
@@ -78,7 +82,10 @@ const workedModelHook = vi.hoisted(() => ({
 }));
 
 vi.mock("@flue/sdk", () => ({
-  createFlueClient: () => flueClientMock.current,
+  createFlueClient: (options: unknown) => {
+    flueClientOptions.current = options;
+    return flueClientMock.current;
+  },
 }));
 
 const brunchPreviewConfig = vi.hoisted(() => ({
@@ -160,7 +167,7 @@ const stubStorage = () => {
   } satisfies Storage);
 };
 
-const seedStoredNet = (incarnationId?: string) => {
+const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   stubStorage();
   localStorage.setItem(
     "petrinaut-sdcpn",
@@ -170,6 +177,7 @@ const seedStoredNet = (incarnationId?: string) => {
         title: "Seeded net",
         lastUpdated: "2020-01-01T00:00:00.000Z",
         ...(incarnationId === undefined ? {} : { incarnationId }),
+        ...(revisionId === undefined ? {} : { revisionId }),
         sdcpn: {
           places: [],
           transitions: [],
@@ -630,6 +638,58 @@ describe("local storage demo URL navigation", () => {
   });
 });
 
+describe("local document revision persistence", () => {
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+  });
+
+  test("retains direct document changes across handle reopen", async () => {
+    flueClientOptions.current = null;
+    seedStoredNet("local-incarnation", "local-revision-1");
+    const firstView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
+    await waitFor(() => expect(flueClientOptions.current).not.toBeNull());
+    const headers = (
+      flueClientOptions.current as {
+        headers: () => Record<string, string>;
+      }
+    ).headers;
+    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe("local-revision-1");
+
+    act(() => {
+      firstHandle.change((draft) => {
+        draft.places.push({
+          id: "direct-place",
+          name: "Direct place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    const changedRevisionId = firstHandle.revisionId.get();
+    expect(changedRevisionId).not.toBe("local-revision-1");
+    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe(changedRevisionId);
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<string, { revisionId?: string }>;
+      expect(stored["net-1"]?.revisionId).toBe(changedRevisionId);
+    });
+
+    firstView.unmount();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+  });
+});
+
 describe("local storage demo prepared fixture", () => {
   afterEach(() => {
     cleanup();
@@ -809,6 +869,7 @@ describe("worked-model bundle selection", () => {
   test("opens the server-owned document and conversation selected by bundle", async () => {
     stubStorage();
     workedModelHook.current.createCleanCopy.mockClear();
+    workedModelHook.current.persistDefinition.mockClear();
     workedModelHook.current.copy = {
       bundleKey: "inventory-purchasing",
       copyId: "copy-1",
@@ -826,6 +887,7 @@ describe("worked-model bundle selection", () => {
         differentialEquations: [],
       },
       definitionSha256: "a".repeat(64),
+      revisionId: "bundle-revision",
     };
     flueClientMock.current = {
       history: async () => ({
@@ -859,6 +921,8 @@ describe("worked-model bundle selection", () => {
       | undefined;
     expect(assistant?.conversationId).toBe("bundle-conversation");
     expect(assistant?.executeMutation).toBeDefined();
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.revisionId.get()).toBe("bundle-revision");
     expect(editorProps.current?.existingNets).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -867,6 +931,26 @@ describe("worked-model bundle selection", () => {
         }),
       ]),
     );
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "bundle-place",
+          name: "Bundle place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    expect(workedModelHook.current.persistDefinition).toHaveBeenCalledWith({
+      definition: expect.objectContaining({
+        places: [expect.objectContaining({ id: "bundle-place" })],
+      }),
+      previousRevisionId: "bundle-revision",
+      revisionId: handle.revisionId.get(),
+    });
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     fireEvent.click(
       screen.getByRole("button", {

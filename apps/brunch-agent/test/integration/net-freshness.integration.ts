@@ -19,6 +19,7 @@ import {
   clientToolResultSignal,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import {
@@ -55,9 +56,13 @@ const binding = {
   documentId: "net-freshness-document",
   incarnationId: crypto.randomUUID(),
 };
+const host = createHeadlessPetrinautClient("Freshness net");
 const client = createFlueClient({
   url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
-  headers: agentOwnershipHeaders(identity),
+  headers: () => ({
+    ...agentOwnershipHeaders(identity),
+    [BRUNCH_DOCUMENT_REVISION_HEADER]: host.revisionId(),
+  }),
   fetch: async (input, init) =>
     application.fetch(
       input instanceof Request ? input : new Request(input, init),
@@ -74,7 +79,6 @@ const capturing =
 const staleMarkersIn = (text: string): number =>
   text.split(`<${NET_STALE_SIGNAL}`).length - 1;
 
-const host = createHeadlessPetrinautClient("Freshness net");
 try {
   // Turn 1: the conversation has never read the net.
   faux.setResponses([
@@ -127,6 +131,7 @@ try {
     sha256: createHash("sha256")
       .update(JSON.stringify(definition))
       .digest("hex"),
+    revisionId: host.revisionId(),
   };
   faux.setResponses([
     capturing(fauxAssistantMessage([fauxText("GROUNDED_FROM_READ")])),
@@ -185,6 +190,43 @@ try {
     projected.filter((message) => message.role === "user").length,
     2,
   );
+
+  // A direct host edit has a Petrinaut revision but no Brunch mutation record.
+  const revisionBeforeDirectEdit = host.revisionId();
+  await host.execute({
+    toolName: "addPlace",
+    toolCallId: "direct-edit",
+    input: {
+      id: "direct-place",
+      name: "DirectPlace",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  });
+  assert.notEqual(host.revisionId(), revisionBeforeDirectEdit);
+  faux.setResponses([
+    capturing(fauxAssistantMessage([fauxText("REQUESTED_FRESH_READ")])),
+  ]);
+  await client.wait(
+    await client.send({
+      message: {
+        kind: "user",
+        body: "Now explain the directly edited model.",
+      },
+    }),
+  );
+  const afterDirectEdit = await client.history();
+  assert.equal(
+    afterDirectEdit.messages.filter(
+      (message) => message.signal?.tagName === NET_STALE_SIGNAL,
+    ).length,
+    2,
+    "a direct Petrinaut revision adds a new stale marker before the model turn",
+  );
+  assert.equal(staleMarkersIn(contexts[3]!), 2);
   process.stdout.write(`NET_FRESHNESS_PASS ${directory}\n`);
 } finally {
   host.dispose();

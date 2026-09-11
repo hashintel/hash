@@ -29,21 +29,26 @@ const parseSnapshot = (value: unknown): FlueConversationSnapshot => {
   return value as FlueConversationSnapshot;
 };
 
-const parseDefinition = (value: unknown) => {
+const parseDocument = (value: unknown) => {
   if (
     typeof value !== "object" ||
     value === null ||
     Array.isArray(value) ||
-    !("sdcpn" in value)
+    !("sdcpn" in value) ||
+    !("revisionId" in value) ||
+    typeof value.revisionId !== "string" ||
+    value.revisionId.length === 0
   )
-    throw new Error("Persona net artifact has no SDCPN document.");
+    throw new Error(
+      "Persona net artifact has no revision-identified SDCPN document.",
+    );
   const parsed = parseSDCPNFile({
     ...(value.sdcpn as object),
     title: "Worked-model fixture",
   });
   if (!parsed.ok) throw new Error(parsed.error);
   const { title: _title, ...definition } = parsed.sdcpn;
-  return definition;
+  return { definition, revisionId: value.revisionId };
 };
 
 const atomicWrite = async (path: string, content: string): Promise<void> => {
@@ -78,6 +83,7 @@ export const createWorkedModelFixture = async (input: {
   );
   if (workpiece.trim().length === 0)
     throw new Error("Persona workpiece must not be blank.");
+  const document = parseDocument(JSON.parse(netBytes.toString("utf8")));
   const fixture: WorkedModelFixture = {
     bundleKey: input.bundleKey,
     fixtureVersion: input.fixtureVersion,
@@ -87,7 +93,8 @@ export const createWorkedModelFixture = async (input: {
     title: input.title.trim(),
     session: parseSnapshot(JSON.parse(snapshotBytes.toString("utf8"))),
     workpiece,
-    definition: parseDefinition(JSON.parse(netBytes.toString("utf8"))),
+    definition: document.definition,
+    revisionId: document.revisionId,
   };
   await atomicWrite(input.outputPath, `${JSON.stringify(fixture, null, 2)}\n`);
   return fixture;

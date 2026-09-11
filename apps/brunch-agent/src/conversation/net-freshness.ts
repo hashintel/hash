@@ -22,29 +22,43 @@ export type NetFreshness =
       readonly lastReadHash: string;
       /** Undefined when a browser change left the current net unrecorded. */
       readonly lastKnownHash: string | undefined;
+      readonly lastReadRevisionId?: string;
+      readonly lastKnownRevisionId?: string;
+      readonly reportedRevisionId?: string;
     }
-  | { readonly kind: "current"; readonly hash: string };
+  | {
+      readonly kind: "current";
+      readonly hash: string;
+      readonly revisionId?: string;
+    };
 
 export const deriveNetFreshness = async (
   snapshot: FlueConversationSnapshot,
   browser: BrowserContext,
+  reportedRevisionId?: string,
 ): Promise<NetFreshness> => {
   let lastReadHash: string | undefined;
   let lastKnownHash: string | undefined;
+  let lastReadRevisionId: string | undefined;
+  let lastKnownRevisionId: string | undefined;
   let unrecordedChange = false;
   for (const event of await deriveNetLedger(snapshot, browser)) {
     switch (event.kind) {
       case "read":
         lastReadHash = event.observation.sha256;
         lastKnownHash = event.observation.sha256;
+        lastReadRevisionId = event.observation.revisionId;
+        lastKnownRevisionId = event.observation.revisionId;
         unrecordedChange = false;
         break;
       case "mutation":
         lastKnownHash = event.postHash;
+        lastKnownRevisionId = event.postRevisionId;
         unrecordedChange = false;
         break;
       case "layout":
         lastKnownHash = event.post.sha256;
+        lastKnownRevisionId = event.post.revisionId;
         unrecordedChange = false;
         break;
       case "unrecorded":
@@ -53,15 +67,44 @@ export const deriveNetFreshness = async (
         if (event.toolName !== getLatestNetDefinitionToolName) {
           unrecordedChange = true;
           lastKnownHash = undefined;
+          lastKnownRevisionId = undefined;
         }
         break;
     }
   }
   if (lastReadHash === undefined) return { kind: "never-read" };
-  if (unrecordedChange) return { kind: "stale", lastReadHash, lastKnownHash };
-  if (lastKnownHash !== undefined && lastKnownHash !== lastReadHash)
-    return { kind: "stale", lastReadHash, lastKnownHash };
-  return { kind: "current", hash: lastReadHash };
+  const revisionChanged =
+    lastReadRevisionId !== undefined &&
+    lastKnownRevisionId !== undefined &&
+    lastKnownRevisionId !== lastReadRevisionId;
+  const reportedRevisionChanged =
+    reportedRevisionId !== undefined &&
+    (lastReadRevisionId !== reportedRevisionId ||
+      lastKnownRevisionId !== reportedRevisionId);
+  const currentRevisionUnconfirmed =
+    lastReadRevisionId !== undefined && reportedRevisionId === undefined;
+  if (
+    unrecordedChange ||
+    revisionChanged ||
+    reportedRevisionChanged ||
+    currentRevisionUnconfirmed ||
+    (lastKnownHash !== undefined && lastKnownHash !== lastReadHash)
+  )
+    return {
+      kind: "stale",
+      lastReadHash,
+      lastKnownHash,
+      ...(lastReadRevisionId === undefined ? {} : { lastReadRevisionId }),
+      ...(lastKnownRevisionId === undefined ? {} : { lastKnownRevisionId }),
+      ...(reportedRevisionId === undefined ? {} : { reportedRevisionId }),
+    };
+  return {
+    kind: "current",
+    hash: lastReadHash,
+    ...(reportedRevisionId === undefined && lastReadRevisionId === undefined
+      ? {}
+      : { revisionId: reportedRevisionId ?? lastReadRevisionId }),
+  };
 };
 
 /** The one-line body the model reads; hashes only, never a definition. */

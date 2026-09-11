@@ -36,6 +36,7 @@ const fixture = (
   },
   workpiece: "# Inventory purchasing\n",
   definition: emptyDefinition,
+  revisionId: `${fixtureVersion}-revision`,
 });
 
 postgresTest(
@@ -87,7 +88,9 @@ postgresTest(
         copyId: first.copyId,
         principalKey: "principal-a",
         expectedSha256: first.definitionSha256,
+        expectedRevisionId: first.revisionId,
         definition: changedDefinition,
+        revisionId: "changed-revision",
       });
       const clean = await store.createCleanCopy({
         bundleKey: "inventory-purchasing",
@@ -106,6 +109,7 @@ postgresTest(
       expect(resumed).toEqual(first);
       expect(sibling.copyId).not.toBe(first.copyId);
       expect(changed?.definition).toMatchObject(changedDefinition);
+      expect(changed?.revisionId).toBe("changed-revision");
       expect(clean?.definition).toMatchObject(emptyDefinition);
       expect(clean?.copyId).not.toBe(first.copyId);
       expect(siblingAfter).toEqual(sibling);

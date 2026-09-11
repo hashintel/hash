@@ -7,7 +7,7 @@ import {
   type WorkedModelCopy,
 } from "./worked-model-client";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
 interface WorkedModelCopyState {
   readonly copy: WorkedModelCopy | null;
@@ -77,7 +77,11 @@ export const useWorkedModelCopy = (input: {
   ]);
 
   const persistDefinition = useCallback(
-    (definition: SDCPN): Promise<void> => {
+    (change: {
+      readonly definition: SDCPN;
+      readonly previousRevisionId: DocumentRevisionId;
+      readonly revisionId: DocumentRevisionId;
+    }): Promise<void> => {
       const write = writeQueueRef.current.then(async () => {
         const copy = copyRef.current;
         if (copy === null)
@@ -88,7 +92,9 @@ export const useWorkedModelCopy = (input: {
           principalKey: input.principalKey,
           copyId: copy.copyId,
           expectedSha256: copy.definitionSha256,
-          definition,
+          expectedRevisionId: change.previousRevisionId,
+          definition: change.definition,
+          revisionId: change.revisionId,
         });
         acceptCopy(updated);
       });

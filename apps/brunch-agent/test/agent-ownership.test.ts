@@ -8,12 +8,14 @@ import { Hono } from "hono";
 import { expect, test } from "vitest";
 
 import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import {
   agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { takeReportedDocumentRevision } from "../src/conversation/reported-document-revision.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
@@ -96,4 +98,22 @@ test("a blank conversation header is unauthorized, not a hash mismatch", async (
     }),
   );
   expect(response.status).toBe(401);
+});
+
+test("retains the authorized browser revision reported with an admission", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        [BRUNCH_DOCUMENT_REVISION_HEADER]: "browser-revision-2",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ kind: "user", body: "test" }),
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(takeReportedDocumentRevision(instanceId)).toBe("browser-revision-2");
+  expect(takeReportedDocumentRevision(instanceId)).toBeUndefined();
 });

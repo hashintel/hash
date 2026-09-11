@@ -50,6 +50,7 @@ import {
   netStaleSignalBody,
 } from "../../conversation/net-freshness.ts";
 import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
+import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
 import {
   verifyRootArcResults,
   assertConstructionIdentity,
@@ -175,6 +176,7 @@ export function ChatAgent({ id }: AgentProps) {
       const freshness = await deriveNetFreshness(
         await history(),
         browserContext,
+        takeReportedDocumentRevision(id),
       );
       if (freshness.kind !== "current")
         append({

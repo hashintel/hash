@@ -111,8 +111,10 @@ export interface RootArcExplanation {
     }[];
   };
   originToolCallId?: string;
-  /** Existing per-operation attempt identities, never a second revision ID. */
-  targetMutationRevisionIds?: string[];
+  /** Existing per-operation attempt identities, never document revisions. */
+  targetMutationAttemptIds?: string[];
+  /** Petrinaut-owned document revisions produced by those attempts when recorded. */
+  targetPetrinautRevisionIds?: string[];
   workpieceRevisionTurns?: {
     revisionId: string;
     startTurn: number;
@@ -121,6 +123,8 @@ export interface RootArcExplanation {
   };
   appliedChanges?: {
     toolCallId: string;
+    mutationAttemptId?: string;
+    petrinautRevisionId?: string;
     operation: string;
     basis: DeclaredBasis;
   }[];
@@ -621,12 +625,23 @@ export const queryWorkpiece = async (input: {
     )?.callId;
     answer.appliedChanges = targetChanges.map((change) => ({
       toolCallId: change.callId,
+      mutationAttemptId: change.attempt.request.toolCallId,
+      ...(change.attempt.post?.revisionId === undefined
+        ? {}
+        : { petrinautRevisionId: change.attempt.post.revisionId }),
       operation: change.attempt.request.toolName,
       basis: change.basis,
     }));
-    answer.targetMutationRevisionIds = targetChanges.map(
+    answer.targetMutationAttemptIds = targetChanges.map(
       (change) => change.attempt.request.toolCallId,
     );
+    const targetPetrinautRevisionIds = targetChanges.flatMap((change) =>
+      change.attempt.post?.revisionId === undefined
+        ? []
+        : [change.attempt.post.revisionId],
+    );
+    if (targetPetrinautRevisionIds.length > 0)
+      answer.targetPetrinautRevisionIds = targetPetrinautRevisionIds;
     const governing = targetChanges.findLast((change) =>
       query.field === "entity"
         ? change.callId === answer.originToolCallId

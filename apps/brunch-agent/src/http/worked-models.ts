@@ -71,11 +71,26 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
       "expectedSha256" in body && typeof body.expectedSha256 === "string"
         ? body.expectedSha256
         : undefined;
+    const expectedRevisionId =
+      "expectedRevisionId" in body &&
+      typeof body.expectedRevisionId === "string" &&
+      body.expectedRevisionId.length > 0
+        ? body.expectedRevisionId
+        : undefined;
+    const revisionId =
+      "revisionId" in body &&
+      typeof body.revisionId === "string" &&
+      body.revisionId.length > 0
+        ? body.revisionId
+        : undefined;
     const definition =
       "definition" in body ? definitionFrom(body.definition) : undefined;
     if (
       expectedSha256 === undefined ||
       !sha256Pattern.test(expectedSha256) ||
+      expectedRevisionId === undefined ||
+      revisionId === undefined ||
+      revisionId === expectedRevisionId ||
       definition === undefined
     )
       return context.json({ error: "invalid-definition-update" }, 400);
@@ -84,7 +99,9 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
         copyId: context.req.param("copyId"),
         principalKey,
         expectedSha256,
+        expectedRevisionId,
         definition,
+        revisionId,
       });
       return copy === undefined
         ? context.json({ error: "copy-not-found" }, 404)

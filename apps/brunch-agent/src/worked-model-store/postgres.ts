@@ -38,6 +38,7 @@ const copyFromRow = (row: Record<string, unknown>): WorkedModelCopy => ({
   title: stringField(row, "title"),
   definition: jsonField(row, "definition") as WorkedModelCopy["definition"],
   definitionSha256: stringField(row, "definitionSha256"),
+  revisionId: stringField(row, "revisionId"),
 });
 
 const copySelection = `
@@ -51,7 +52,8 @@ const copySelection = `
     principal_key AS "principalKey",
     title,
     definition AS "definition",
-    definition_sha256 AS "definitionSha256"
+    definition_sha256 AS "definitionSha256",
+    revision_id AS "revisionId"
   FROM brunch_worked_model_copies
 `;
 
@@ -77,8 +79,22 @@ const createTables = async (query: Query): Promise<void> => {
       seed_fixture JSONB NOT NULL,
       definition JSONB NOT NULL,
       definition_sha256 TEXT NOT NULL,
+      revision_id TEXT NOT NULL,
       active BOOLEAN NOT NULL DEFAULT TRUE
     )
+  `);
+  await query(`
+    ALTER TABLE brunch_worked_model_copies
+    ADD COLUMN IF NOT EXISTS revision_id TEXT
+  `);
+  await query(`
+    UPDATE brunch_worked_model_copies
+    SET revision_id = incarnation_id
+    WHERE revision_id IS NULL
+  `);
+  await query(`
+    ALTER TABLE brunch_worked_model_copies
+    ALTER COLUMN revision_id SET NOT NULL
   `);
   await query(`
     CREATE UNIQUE INDEX IF NOT EXISTS brunch_worked_model_active_copy
@@ -116,6 +132,7 @@ export const createPostgresWorkedModelStore = (
       title: fixture.title,
       definition,
       definitionSha256: definitionSha256(definition),
+      revisionId: fixture.revisionId,
     };
   };
 
@@ -139,9 +156,10 @@ export const createPostgresWorkedModelStore = (
           seed_fixture,
           definition,
           definition_sha256,
+          revision_id,
           active
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, TRUE)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, TRUE)
         ${onConflict}
         RETURNING
           bundle_key AS "bundleKey",
@@ -153,7 +171,8 @@ export const createPostgresWorkedModelStore = (
           principal_key AS "principalKey",
           title,
           definition AS "definition",
-          definition_sha256 AS "definitionSha256"
+          definition_sha256 AS "definitionSha256",
+          revision_id AS "revisionId"
       `,
       [
         copy.copyId,
@@ -167,6 +186,7 @@ export const createPostgresWorkedModelStore = (
         JSON.stringify(fixture),
         JSON.stringify(copy.definition),
         copy.definitionSha256,
+        copy.revisionId,
       ],
     );
     const row = rows[0];
@@ -297,8 +317,12 @@ export const createPostgresWorkedModelStore = (
       copyId,
       principalKey,
       expectedSha256,
+      expectedRevisionId,
       definition,
+      revisionId,
     }) => {
+      if (revisionId === expectedRevisionId)
+        throw new Error("Worked-model copy revision did not advance.");
       await ensureTables();
       return runner.transaction(async ({ query }) => {
         const currentRows = await query(
@@ -310,12 +334,15 @@ export const createPostgresWorkedModelStore = (
         const currentRow = currentRows[0];
         if (currentRow === undefined) return undefined;
         const current = copyFromRow(currentRow);
-        if (current.definitionSha256 !== expectedSha256)
+        if (
+          current.definitionSha256 !== expectedSha256 ||
+          current.revisionId !== expectedRevisionId
+        )
           throw new Error("Worked-model copy changed before this update.");
         const updatedRows = await query(
           `
             UPDATE brunch_worked_model_copies
-            SET definition = $3::jsonb, definition_sha256 = $4
+            SET definition = $3::jsonb, definition_sha256 = $4, revision_id = $5
             WHERE copy_id = $1 AND principal_key = $2
             RETURNING
               bundle_key AS "bundleKey",
@@ -327,13 +354,15 @@ export const createPostgresWorkedModelStore = (
               principal_key AS "principalKey",
               title,
               definition AS "definition",
-              definition_sha256 AS "definitionSha256"
+              definition_sha256 AS "definitionSha256",
+              revision_id AS "revisionId"
           `,
           [
             copyId,
             principalKey,
             JSON.stringify(definition),
             definitionSha256(definition),
+            revisionId,
           ],
         );
         const updated = updatedRows[0];

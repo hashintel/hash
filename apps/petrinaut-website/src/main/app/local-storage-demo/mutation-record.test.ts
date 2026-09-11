@@ -332,9 +332,13 @@ describe("browser transition adapter (canonical handle, not a real browser witne
 
   test("derives disjoint created, updated, deleted, derived sets from pre and post definitions", async () => {
     const fixture = setup();
+    const initialRevisionId = fixture.handle.revisionId.get();
     fixture.run();
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     expect(attempt.outcome).toBe("applied");
+    expect(attempt.pre.revisionId).toBe(initialRevisionId);
+    expect(attempt.post?.revisionId).toBe(fixture.handle.revisionId.get());
+    expect(attempt.post?.revisionId).not.toBe(initialRevisionId);
     expect(attempt.effects).toEqual({
       created: [
         {

@@ -1,5 +1,9 @@
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
-import { parseSDCPNFile, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  parseSDCPNFile,
+  type DocumentRevisionId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 export interface WorkedModelCopy {
   readonly bundleKey: string;
@@ -12,6 +16,7 @@ export interface WorkedModelCopy {
   readonly title: string;
   readonly definition: SDCPN;
   readonly definitionSha256: string;
+  readonly revisionId: DocumentRevisionId;
 }
 
 const nonBlankString = (value: unknown, field: string): string => {
@@ -44,6 +49,7 @@ export const parseWorkedModelCopy = (value: unknown): WorkedModelCopy => {
     title: nonBlankString(copy.title, "title"),
     definition: definitionFrom(copy.definition),
     definitionSha256: nonBlankString(copy.definitionSha256, "definitionSha256"),
+    revisionId: nonBlankString(copy.revisionId, "revisionId"),
   };
 };
 
@@ -132,7 +138,9 @@ export const updateWorkedModelDefinition = (
     readonly principalKey: string;
     readonly copyId: string;
     readonly expectedSha256: string;
+    readonly expectedRevisionId: DocumentRevisionId;
     readonly definition: SDCPN;
+    readonly revisionId: DocumentRevisionId;
   },
   fetcher: typeof fetch = globalThis.fetch,
 ): Promise<WorkedModelCopy> =>
@@ -143,7 +151,9 @@ export const updateWorkedModelDefinition = (
       method: "PUT",
       body: {
         expectedSha256: input.expectedSha256,
+        expectedRevisionId: input.expectedRevisionId,
         definition: input.definition,
+        revisionId: input.revisionId,
       },
     },
     fetcher,

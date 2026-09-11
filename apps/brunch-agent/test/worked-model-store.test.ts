@@ -33,6 +33,7 @@ const fixture = (
   },
   workpiece: "# Inventory purchasing\n",
   definition: emptyDefinition,
+  revisionId: `${fixtureVersion}-revision`,
 });
 
 const sequentialIds = () => {
@@ -61,6 +62,12 @@ describe("worked-model store", () => {
         session: { messages: [] },
       }),
     ).toThrow(/session/u);
+    expect(() =>
+      parseWorkedModelFixture({
+        ...fixture(),
+        revisionId: "",
+      }),
+    ).toThrow(/revisionId/u);
   });
 
   test("seeds idempotently and refuses changed bytes under one version", async () => {
@@ -122,7 +129,9 @@ describe("worked-model store", () => {
       copyId: first.copyId,
       principalKey: "principal-a",
       expectedSha256: first.definitionSha256,
+      expectedRevisionId: first.revisionId,
       definition: changedDefinition,
+      revisionId: "changed-revision",
     });
     const clean = await store.createCleanCopy({
       bundleKey: "inventory-purchasing",
@@ -134,6 +143,7 @@ describe("worked-model store", () => {
     });
 
     expect(changed?.definition).toEqual(changedDefinition);
+    expect(changed?.revisionId).toBe("changed-revision");
     expect(clean?.copyId).not.toBe(first.copyId);
     expect(clean?.definition).toMatchObject(emptyDefinition);
     expect(clean?.definitionSha256).toBe(
@@ -178,8 +188,30 @@ describe("worked-model store", () => {
       store.updateCopyDefinition({
         copyId: copy.copyId,
         principalKey: "principal-a",
-        expectedSha256: "0".repeat(64),
+        expectedSha256: copy.definitionSha256,
+        expectedRevisionId: copy.revisionId,
         definition: emptyDefinition,
+        revisionId: copy.revisionId,
+      }),
+    ).rejects.toThrow(/did not advance/u);
+    await expect(
+      store.updateCopyDefinition({
+        copyId: copy.copyId,
+        principalKey: "principal-a",
+        expectedSha256: "0".repeat(64),
+        expectedRevisionId: copy.revisionId,
+        definition: emptyDefinition,
+        revisionId: "rejected-hash-revision",
+      }),
+    ).rejects.toThrow(/changed before/u);
+    await expect(
+      store.updateCopyDefinition({
+        copyId: copy.copyId,
+        principalKey: "principal-a",
+        expectedSha256: copy.definitionSha256,
+        expectedRevisionId: "stale-revision",
+        definition: emptyDefinition,
+        revisionId: "rejected-chain-revision",
       }),
     ).rejects.toThrow(/changed before/u);
     await expect(
@@ -187,7 +219,9 @@ describe("worked-model store", () => {
         copyId: copy.copyId,
         principalKey: "principal-b",
         expectedSha256: copy.definitionSha256,
+        expectedRevisionId: copy.revisionId,
         definition: emptyDefinition,
+        revisionId: "foreign-revision",
       }),
     ).resolves.toBeUndefined();
     await expect(
