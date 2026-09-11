@@ -71,6 +71,7 @@ const verifiedMutationPostHash = async (
       toolCallId: call.toolCallId,
       batch: mutatePetrinetInputSchema.parse(call.input),
       binding: browser.binding,
+      output: first.output,
       mutationRecord,
     });
     return attempts.at(-1)?.post?.sha256;

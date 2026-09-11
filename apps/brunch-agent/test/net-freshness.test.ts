@@ -126,6 +126,7 @@ const mutationTurn = (
   outcome: ConstructionMutationAttempt["outcome"] = post === undefined
     ? "unknown"
     : "applied",
+  omittedOperationStatus?: "applied" | "unattempted",
 ): FlueConversationMessage[] => {
   const operationId = "add-place";
   const batch = mutatePetrinetInputSchema.parse({
@@ -143,6 +144,16 @@ const mutationTurn = (
         type: "addPlace",
         input: oneHopPlace,
       },
+      ...(omittedOperationStatus
+        ? [
+            {
+              operationId: "add-omitted-place",
+              basisId: "absent-basis",
+              type: "addPlace" as const,
+              input: { ...oneHopPlace, id: "place-2", name: "Omitted" },
+            },
+          ]
+        : []),
     ],
   });
   const attempts: ConstructionMutationAttempt[] = [];
@@ -170,7 +181,64 @@ const mutationTurn = (
     resultDelivery(
       toolCallId,
       mutatePetrinetToolName,
-      { outcome },
+      {
+        execution: "ordered-stop",
+        toolCallId,
+        observationToolCallId: batch.observation.toolCallId,
+        preHash: sha256Of(pre),
+        postHash: sha256Of(post ?? pre),
+        outcomes: [
+          outcome === "applied" || outcome === "no-op"
+            ? {
+                index: 0,
+                operationId,
+                basisId: "absent-basis",
+                status: outcome,
+                preHash: sha256Of(pre),
+                postHash: sha256Of(post ?? pre),
+                effects: [],
+              }
+            : outcome === "failed"
+              ? {
+                  index: 0,
+                  operationId,
+                  basisId: "absent-basis",
+                  status: outcome,
+                  preHash: sha256Of(pre),
+                  postHash: sha256Of(post ?? pre),
+                  error: "Browser rejected the mutation.",
+                }
+              : {
+                  index: 0,
+                  operationId,
+                  basisId: "absent-basis",
+                  status: "unknown",
+                  preHash: sha256Of(pre),
+                  ...(post === undefined ? {} : { postHash: sha256Of(post) }),
+                  error: "The final browser state is unknown.",
+                },
+          ...(omittedOperationStatus
+            ? [
+                omittedOperationStatus === "applied"
+                  ? {
+                      index: 1,
+                      operationId: "add-omitted-place",
+                      basisId: "absent-basis",
+                      status: "applied" as const,
+                      preHash: sha256Of(post ?? pre),
+                      postHash: sha256Of(post ?? pre),
+                      effects: [],
+                    }
+                  : {
+                      index: 1,
+                      operationId: "add-omitted-place",
+                      basisId: "absent-basis",
+                      status: "unattempted" as const,
+                    },
+              ]
+            : []),
+        ],
+      },
       {
         mutationRecord: {
           outcome,
@@ -279,16 +347,6 @@ test.each([
       error: "Browser rejected the mutation.",
     }),
   },
-  {
-    outcome: "stale" as const,
-    alterAttempt: (attempt: ConstructionMutationAttempt) => ({
-      ...attempt,
-      request: {
-        ...attempt.request,
-        requestedBaseHash: "f".repeat(64),
-      },
-    }),
-  },
 ])(
   "a verified $outcome mutation retains its unchanged post as the current net",
   async ({ outcome, alterAttempt }) => {
@@ -310,6 +368,34 @@ test.each([
   },
 );
 
+test("an impossible stale batch record leaves the current net unrecorded", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn(
+          "mutate-1",
+          emptyNet,
+          emptyNet,
+          (attempt) => ({
+            ...attempt,
+            request: {
+              ...attempt.request,
+              requestedBaseHash: "f".repeat(64),
+            },
+          }),
+          "stale",
+        ),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: undefined,
+  });
+});
+
 test("a mutation record for another document incarnation leaves the current net unrecorded", async () => {
   expect(
     await deriveNetFreshness(
@@ -326,6 +412,52 @@ test("a mutation record for another document incarnation leaves the current net 
     kind: "stale",
     lastReadHash: sha256Of(emptyNet),
     lastKnownHash: undefined,
+  });
+});
+
+test("a mutation record that omits an issued operation leaves the current net unrecorded", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn(
+          "mutate-1",
+          emptyNet,
+          oneHopNet,
+          undefined,
+          "applied",
+          "applied",
+        ),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: undefined,
+  });
+});
+
+test("an explicitly unattempted suffix retains the committed prefix hash", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn(
+          "mutate-1",
+          emptyNet,
+          oneHopNet,
+          undefined,
+          "applied",
+          "unattempted",
+        ),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: sha256Of(oneHopNet),
   });
 });
 

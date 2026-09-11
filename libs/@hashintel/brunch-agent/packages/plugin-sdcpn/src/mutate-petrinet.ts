@@ -189,3 +189,83 @@ export const mutatePetrinetInputSchema = z
 
 export type MutatePetrinetInput = z.output<typeof mutatePetrinetInputSchema>;
 export type MutatePetrinetOperation = MutatePetrinetInput["operations"][number];
+
+const mutationEffectSchema = z.intersection(
+  z.strictObject({
+    classification: z.enum(["direct", "derived"]),
+    path: z.string(),
+  }),
+  z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("created"), after: z.unknown() }),
+    z.strictObject({
+      kind: z.literal("updated"),
+      before: z.unknown(),
+      after: z.unknown(),
+    }),
+    z.strictObject({ kind: z.literal("deleted"), before: z.unknown() }),
+  ]),
+);
+
+const completedOutcomeFields = {
+  index: z.number().int().nonnegative(),
+  operationId: operationIdSchema,
+  basisId: basisIdSchema,
+  preHash: sha256Schema,
+  postHash: sha256Schema,
+};
+
+const mutationOutcomeSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    ...completedOutcomeFields,
+    status: z.literal("applied"),
+    effects: z.array(mutationEffectSchema),
+  }),
+  z.strictObject({
+    ...completedOutcomeFields,
+    status: z.literal("no-op"),
+    effects: z.array(mutationEffectSchema),
+  }),
+  z.strictObject({
+    ...completedOutcomeFields,
+    status: z.literal("failed"),
+    error: z.string(),
+  }),
+  z.strictObject({
+    index: z.number().int().nonnegative(),
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    status: z.literal("unknown"),
+    preHash: sha256Schema,
+    postHash: sha256Schema.optional(),
+    error: z.string(),
+  }),
+  z.strictObject({
+    index: z.number().int().nonnegative(),
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    status: z.literal("unattempted"),
+  }),
+]);
+
+/** Complete indexed browser result for one ordered mutation batch. */
+export const mutatePetrinetOutputSchema = z
+  .strictObject({
+    execution: z.literal("ordered-stop"),
+    toolCallId: z.string().min(1),
+    observationToolCallId: z.string().min(1),
+    preHash: sha256Schema,
+    postHash: sha256Schema,
+    outcomes: z.array(mutationOutcomeSchema).min(1),
+  })
+  .superRefine(({ outcomes }, context) => {
+    outcomes.forEach(({ index }, position) => {
+      if (index !== position)
+        context.addIssue({
+          code: "custom",
+          path: ["outcomes", position, "index"],
+          message: "outcome indices must be complete and ordered",
+        });
+    });
+  });
+
+export type MutatePetrinetOutput = z.output<typeof mutatePetrinetOutputSchema>;

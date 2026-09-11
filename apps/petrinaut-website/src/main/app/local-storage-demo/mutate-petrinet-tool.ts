@@ -1,9 +1,8 @@
-import { z } from "zod";
-
 import {
   deriveMutationEffects,
   mutatePetrinetAttemptCallId,
   mutatePetrinetInputSchema,
+  mutatePetrinetOutputSchema,
   mutatePetrinetToolName,
   observedMutationOutcome,
   type MutationEffects,
@@ -22,81 +21,7 @@ import {
 
 import { observeBrowserDefinition } from "./mutation-record";
 
-const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
-const effectSchema = z.intersection(
-  z.strictObject({
-    classification: z.enum(["direct", "derived"]),
-    path: z.string(),
-  }),
-  z.discriminatedUnion("kind", [
-    z.strictObject({ kind: z.literal("created"), after: z.unknown() }),
-    z.strictObject({
-      kind: z.literal("updated"),
-      before: z.unknown(),
-      after: z.unknown(),
-    }),
-    z.strictObject({ kind: z.literal("deleted"), before: z.unknown() }),
-  ]),
-);
-const completedOutcomeFields = {
-  index: z.number().int().nonnegative(),
-  operationId: z.string().min(1),
-  basisId: z.string().min(1),
-  preHash: hashSchema,
-  postHash: hashSchema,
-};
-const mutationOutcomeSchema = z.discriminatedUnion("status", [
-  z.strictObject({
-    ...completedOutcomeFields,
-    status: z.literal("applied"),
-    effects: z.array(effectSchema),
-  }),
-  z.strictObject({
-    ...completedOutcomeFields,
-    status: z.literal("no-op"),
-    effects: z.array(effectSchema),
-  }),
-  z.strictObject({
-    ...completedOutcomeFields,
-    status: z.literal("failed"),
-    error: z.string(),
-  }),
-  z.strictObject({
-    index: z.number().int().nonnegative(),
-    operationId: z.string().min(1),
-    basisId: z.string().min(1),
-    status: z.literal("unknown"),
-    preHash: hashSchema,
-    postHash: hashSchema.optional(),
-    error: z.string(),
-  }),
-  z.strictObject({
-    index: z.number().int().nonnegative(),
-    operationId: z.string().min(1),
-    basisId: z.string().min(1),
-    status: z.literal("unattempted"),
-  }),
-]);
-
-export const mutatePetrinetOutputSchema = z
-  .strictObject({
-    execution: z.literal("ordered-stop"),
-    toolCallId: z.string().min(1),
-    observationToolCallId: z.string().min(1),
-    preHash: hashSchema,
-    postHash: hashSchema,
-    outcomes: z.array(mutationOutcomeSchema).min(1),
-  })
-  .superRefine(({ outcomes }, context) => {
-    outcomes.forEach(({ index }, position) => {
-      if (index !== position)
-        context.addIssue({
-          code: "custom",
-          path: ["outcomes", position, "index"],
-          message: "outcome indices must be complete and ordered",
-        });
-    });
-  });
+export { mutatePetrinetOutputSchema };
 
 const executeCanonicalMutation = (
   mutations: Pick<
