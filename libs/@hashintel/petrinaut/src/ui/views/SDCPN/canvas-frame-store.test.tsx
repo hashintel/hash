@@ -107,17 +107,26 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("CanvasFrameStoreProvider", () => {
-  it("shows the initial marking before a run, and no badge outside simulate mode", () => {
+  it("shows the initial marking before a run, from the first paint", () => {
     const marking: InitialMarking = { p1: 3, p2: [{ value: 1 }, { value: 2 }] };
-    const { rerender } = render(
-      canvas({ globalMode: "edit", initialMarking: marking }),
-    );
-    expect(shown("p1")).toBe("none");
-    expect(shown("t1")).toBe("none");
+    render(canvas({ globalMode: "simulate", initialMarking: marking }));
 
-    rerender(canvas({ globalMode: "simulate", initialMarking: marking }));
     expect(shown("p1")).toBe("3");
     expect(shown("p2")).toBe("2");
+    expect(shown("t1")).toBe("none");
+    // The first render already read the marking, so the store's first
+    // publication changed nothing and caused no second render.
+    expect(renders.get("p1")).toBe(1);
+  });
+
+  it("shows no badge outside simulate mode", () => {
+    const { rerender } = render(
+      canvas({ globalMode: "simulate", initialMarking: { p1: 3 } }),
+    );
+    expect(shown("p1")).toBe("3");
+
+    rerender(canvas({ globalMode: "edit", initialMarking: { p1: 3 } }));
+    expect(shown("p1")).toBe("none");
   });
 
   it("follows the viewed frame", () => {

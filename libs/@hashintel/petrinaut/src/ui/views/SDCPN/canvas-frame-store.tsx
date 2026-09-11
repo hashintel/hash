@@ -36,14 +36,6 @@ type FrameSnapshot = {
   framesAvailable: boolean;
 };
 
-const EMPTY_SNAPSHOT: FrameSnapshot = {
-  reader: null,
-  viewedFrame: null,
-  initialMarking: {},
-  simulateMode: false,
-  framesAvailable: false,
-};
-
 type CanvasFrameStore = {
   subscribe: (listener: () => void) => () => void;
   /** Tokens to show on a place, or null for no badge. */
@@ -84,7 +76,15 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   const { initialMarking } = use(SimulationContext);
   const { globalMode } = use(EditorContext);
 
-  const snapshot = useRef<FrameSnapshot>(EMPTY_SNAPSHOT);
+  // Filled on the first render, so the first paint already carries the
+  // marking and the viewed frame rather than gaining them a frame later.
+  const snapshot = useRef<FrameSnapshot>({
+    reader: currentFrameReader,
+    viewedFrame: currentViewedFrame,
+    initialMarking,
+    simulateMode: globalMode === "simulate",
+    framesAvailable: totalFrames > 0,
+  });
   const listeners = useRef(new Set<() => void>());
   /**
    * Read through on demand, so a frame costs the transitions actually
