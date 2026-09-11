@@ -91,8 +91,28 @@ describe("selected mutation batch", () => {
           type: "updateParameter",
           input: { parameterId: "rate", update: { variableName: "demand" } },
         },
+        {
+          operationId: "drop-type",
+          type: "removeType",
+          input: { typeId: "item" },
+        },
+        {
+          operationId: "drop-field",
+          type: "removeTypeElement",
+          input: { typeId: "item", elementId: "age" },
+        },
+        {
+          operationId: "drop-parameter",
+          type: "removeParameter",
+          input: { parameterId: "rate" },
+        },
+        {
+          operationId: "drop-dynamics",
+          type: "removeDifferentialEquation",
+          input: { equationId: "decay" },
+        },
       ]),
-    ).toHaveLength(8);
+    ).toHaveLength(12);
     for (const type of ["updatePlacePosition", "updateTransitionPosition"]) {
       expect(() =>
         selectedMutationBatchSchema.parse([

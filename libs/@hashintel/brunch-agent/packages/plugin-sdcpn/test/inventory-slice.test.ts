@@ -69,6 +69,14 @@ const applyOperation = (
       return mutations.updateTypeElement(operation.input);
     case "updateParameter":
       return mutations.updateParameter(operation.input);
+    case "removeType":
+      return mutations.removeType(operation.input);
+    case "removeTypeElement":
+      return mutations.removeTypeElement(operation.input);
+    case "removeParameter":
+      return mutations.removeParameter(operation.input);
+    case "removeDifferentialEquation":
+      return mutations.removeDifferentialEquation(operation.input);
   }
 };
 

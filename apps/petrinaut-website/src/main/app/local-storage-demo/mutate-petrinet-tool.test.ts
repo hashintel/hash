@@ -216,6 +216,35 @@ const edits = [
   },
 ];
 
+const colouredPlace = {
+  ...place,
+  input: { ...place.input, colorId: "item" as string | null },
+};
+
+/** Removals of net-level state; ordered so each still names an existing part. */
+const stateRemovals = [
+  {
+    operationId: "drop-age",
+    type: "removeTypeElement" as const,
+    input: { typeId: "item", elementId: "age" },
+  },
+  {
+    operationId: "drop-rate",
+    type: "removeParameter" as const,
+    input: { parameterId: "rate" },
+  },
+  {
+    operationId: "drop-decay",
+    type: "removeDifferentialEquation" as const,
+    input: { equationId: "decay" },
+  },
+  {
+    operationId: "drop-item",
+    type: "removeType" as const,
+    input: { typeId: "item" },
+  },
+];
+
 const run = (
   tool: ReturnType<typeof createMutatePetrinetAutomaticTool>,
   instance: ReturnType<typeof createInstance>,
@@ -246,6 +275,8 @@ const inputFor = (
     | typeof invalidDynamics
     | typeof repairedDynamics
     | (typeof edits)[number]
+    | typeof colouredPlace
+    | (typeof stateRemovals)[number]
   )[],
 ) => {
   const observed = observeBrowserDefinition(instance.handle);
@@ -386,6 +417,71 @@ describe("mutate_petrinet automatic host tool", () => {
     );
     expect(verified.map(({ outcome }) => outcome)).toEqual(
       edits.map(() => "applied"),
+    );
+    instance.dispose();
+  });
+
+  test("removes net-level state by ID, clears what referenced it, and every removal verifies as applied", async () => {
+    const instance = createInstance();
+    const recorder = createBrowserMutationRecorder({
+      handle: instance.handle,
+      binding,
+      requestFor: (toolCallId) => {
+        throw new Error(`Unexpected requestFor(${toolCallId})`);
+      },
+    });
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    const addAge = edits.find(({ operationId }) => operationId === "add-age");
+    if (!addAge) throw new Error("Missing add-age edit");
+    await run(
+      tool,
+      instance,
+      inputFor(instance, [
+        tokenType,
+        parameter,
+        dynamics,
+        colouredPlace,
+        addAge,
+      ]),
+      "batch-draft",
+    );
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await run(
+        tool,
+        instance,
+        inputFor(instance, stateRemovals),
+        "batch-removals",
+      ),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual(
+      stateRemovals.map(() => "applied"),
+    );
+    expect(instance.definition.get()).toMatchObject({
+      places: [{ id: "queue", colorId: null }],
+      types: [],
+      parameters: [],
+      differentialEquations: [],
+    });
+
+    const removalRecords = recorder
+      .records()
+      .filter((record) =>
+        record.attempts.some((attempt) =>
+          attempt.request.toolCallId.startsWith("batch-removals:"),
+        ),
+      );
+    expect(removalRecords).toHaveLength(stateRemovals.length);
+    const verified = await Promise.all(
+      removalRecords.flatMap((record) =>
+        record.attempts.map((attempt) => verifyMutationAttempt(attempt)),
+      ),
+    );
+    expect(verified.map(({ outcome }) => outcome)).toEqual(
+      stateRemovals.map(() => "applied"),
     );
     instance.dispose();
   });
