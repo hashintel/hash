@@ -41,7 +41,7 @@ The selected scenario's initial marking appears on the shared canvas before a
 run starts. Press **Play** in the compact bar at the bottom to start the run;
 the preview never starts it automatically. The same bar lets you pause, reset,
 choose from the playback speeds allowed by the embed, and scrub through the
-frames that have been produced.
+run. It reads out the elapsed time and the run's total time.
 
 As soon as frames arrive, the compact bar expands upward to show a small
 timeline. The timeline follows playback, lets you hover to inspect a series,
