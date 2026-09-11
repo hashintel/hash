@@ -21,6 +21,7 @@ import { DraftFieldInput } from "../../../../../../components/draft-field-input"
 import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { CodeLink } from "../../../../../shared/code-view/code-link";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { useDiffEqPropertiesContext } from "../context";
 
@@ -183,6 +184,8 @@ const DiffEqMainContent: React.FC = () => {
             </Tooltip>
           </PropertyValue>
         </Form.Field>
+
+        <CodeLink title="Equation" code={differentialEquation.code} />
 
         {presentation.showSourceCode && (
           <Suspense fallback={null}>

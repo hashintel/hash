@@ -23,6 +23,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
+import { CodeLink } from "../../../../../shared/code-view/code-link";
 import { usePlacePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -116,6 +117,11 @@ const PlaceMainContent: React.FC = () => {
       });
     }
   };
+
+  const placeDiffEq =
+    differentialEquations.find(
+      (candidate) => candidate.id === place.differentialEquationId,
+    ) ?? null;
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
@@ -322,29 +328,35 @@ const PlaceMainContent: React.FC = () => {
             ) : (
               place.dynamicsEnabled && (
                 <>
-                  <Tooltip
-                    content={UI_MESSAGES.READ_ONLY_MODE}
-                    disableTooltip={!isReadOnly}
-                  >
-                    <Select
-                      required
-                      value={place.differentialEquationId ?? ""}
-                      size="sm"
-                      onChange={(differentialEquationId) => {
-                        if (differentialEquationId) {
-                          updatePlace({
-                            placeId: place.id,
-                            update: { differentialEquationId },
-                          });
-                        }
-                      }}
-                      items={availableDiffEqs.map((eq) => ({
-                        value: eq.id,
-                        text: eq.name,
-                      }))}
-                      disabled={isReadOnly}
-                    />
-                  </Tooltip>
+                  <PropertyValue text={placeDiffEq?.name}>
+                    <Tooltip
+                      content={UI_MESSAGES.READ_ONLY_MODE}
+                      disableTooltip={!isReadOnly}
+                    >
+                      <Select
+                        required
+                        value={place.differentialEquationId ?? ""}
+                        size="sm"
+                        onChange={(differentialEquationId) => {
+                          if (differentialEquationId) {
+                            updatePlace({
+                              placeId: place.id,
+                              update: { differentialEquationId },
+                            });
+                          }
+                        }}
+                        items={availableDiffEqs.map((eq) => ({
+                          value: eq.id,
+                          text: eq.name,
+                        }))}
+                        disabled={isReadOnly}
+                      />
+                    </Tooltip>
+                  </PropertyValue>
+
+                  {placeDiffEq && (
+                    <CodeLink title="Equation" code={placeDiffEq.code} />
+                  )}
 
                   {place.differentialEquationId && (
                     <div className={jumpButtonContainerStyle}>

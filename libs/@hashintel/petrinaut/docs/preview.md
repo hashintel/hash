@@ -27,6 +27,15 @@ are still rendered, and simply do nothing. On a wide embed the
 inspector docks to the right of the canvas. On a narrow embed it sits under
 the canvas so the canvas remains usable.
 
+Where the selected item is driven by code, the inspector links to it: a
+transition's rate or lambda function and its transition kernel, and the
+equation body behind a differential equation or a place with dynamics. The link
+opens the code in the inspector, read-only and unhighlighted, with a back
+button to the properties. Code is selectable, so you can copy it.
+
+Drag the inspector's inner edge to resize it. It animates open and closed, so
+the canvas resizes smoothly rather than jumping by the panel's width.
+
 Use the compact net selector to move between the root net and its subnets. The
 canvas, selection, and inspector update together when you change nets.
 
