@@ -23,16 +23,19 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     items,
     onChange,
     value,
+    disabled,
     "aria-label": ariaLabel,
   }: {
     items: readonly { value: string; text: string }[];
     onChange: (value: string | null) => void;
     value: string | null;
+    disabled?: boolean;
     "aria-label"?: string;
   }) => (
     <select
       aria-label={ariaLabel}
       value={value ?? ""}
+      disabled={disabled}
       onChange={(event) => onChange(event.target.value || null)}
     >
       {items.map((item) => (
@@ -54,14 +57,17 @@ vi.mock("../../../../../components/contour-surface", async (importOriginal) => {
     >();
   const ContourSurface = ({
     onPickFraction,
+    readOnly = false,
     "aria-label": ariaLabel,
   }: {
     onPickFraction?: (fraction: ContourSurfaceFraction) => void;
+    readOnly?: boolean;
     "aria-label"?: string;
   }) => (
     <button
       type="button"
       aria-label={ariaLabel}
+      aria-disabled={readOnly || undefined}
       data-interactive={onPickFraction ? "" : undefined}
       onClick={() => onPickFraction?.({ x: 0.5, y: 1 })}
     />
@@ -152,6 +158,46 @@ describe("SweepSurface picks", () => {
     expect(setSweepSelection).not.toHaveBeenCalled();
   });
 
+  it("locks the pickers and marks the card read-only while an optimizer drives the sweep", () => {
+    renderSurface(twoAxes, { following: true });
+
+    for (const name of [
+      "Surface X parameter",
+      "Surface Y parameter",
+      "Surface metric",
+    ]) {
+      expect(
+        (screen.getByRole("combobox", { name }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+    }
+    const mark = document.querySelector("[data-surface-read-only]");
+    expect(mark?.getAttribute("data-surface-read-only")).toBe("following");
+    expect(mark?.textContent).toContain("Read-only");
+    expect(
+      screen
+        .getByRole("button", { name: "Sweep surface" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
+  });
+
+  it("keeps the pickers live and shows no mark while the user drives the sweep", () => {
+    renderSurface(twoAxes);
+
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Surface metric",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(document.querySelector("[data-surface-read-only]")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Sweep surface" })
+        .getAttribute("aria-disabled"),
+    ).toBeNull();
+  });
+
   it("only displays once the sweep is cancelled", () => {
     const setSweepSelection = renderSurface(twoAxes, { disabled: true });
     const plot = screen.getByRole("button", { name: "Sweep surface" });
@@ -159,5 +205,10 @@ describe("SweepSurface picks", () => {
     expect(plot.dataset.interactive).toBeUndefined();
     fireEvent.click(plot);
     expect(setSweepSelection).not.toHaveBeenCalled();
+    expect(
+      document
+        .querySelector("[data-surface-read-only]")
+        ?.getAttribute("data-surface-read-only"),
+    ).toBe("disabled");
   });
 });

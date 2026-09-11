@@ -34,6 +34,7 @@ import {
   SurfaceAxisControls,
   surfaceCaption,
   SurfaceControlLabel,
+  SurfaceReadOnlyMark,
 } from "../shared/surface-frame";
 import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
@@ -155,6 +156,7 @@ export const SweepSurface = ({
           yAxisId={yAxisId}
           onXAxisIdChange={setXAxisId}
           onYAxisIdChange={setYAxisId}
+          disabled={readOnly}
         >
           <SurfaceControlLabel>Metric</SurfaceControlLabel>
           <Select
@@ -166,7 +168,13 @@ export const SweepSurface = ({
             }))}
             value={metricId}
             onChange={(value) => setMetricId(value ?? "")}
+            disabled={readOnly}
           />
+          {readOnly ? (
+            <SurfaceReadOnlyMark
+              reason={following ? "following" : "disabled"}
+            />
+          ) : null}
         </SurfaceAxisControls>
       }
       tone={tone}
@@ -196,6 +204,7 @@ export const SweepSurface = ({
           ]}
           onPickFraction={readOnly ? undefined : handlePickFraction}
           onPreviewFraction={readOnly ? undefined : setPreview}
+          readOnly={readOnly}
           aria-label="Sweep surface"
         />
       ) : null}

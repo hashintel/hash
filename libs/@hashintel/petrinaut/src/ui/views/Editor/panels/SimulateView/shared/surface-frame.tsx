@@ -7,7 +7,7 @@
  * overflowing, and a view with further controls reserves its second row at
  * all times.
  */
-import { Select } from "@hashintel/ds-components";
+import { Chip, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { ReactNode } from "react";
@@ -51,6 +51,7 @@ export const SurfaceAxisControls = ({
   yAxisId,
   onXAxisIdChange,
   onYAxisIdChange,
+  disabled = false,
   children,
 }: {
   /** `label` is the name shown for a generated identifier. */
@@ -59,6 +60,8 @@ export const SurfaceAxisControls = ({
   yAxisId: string;
   onXAxisIdChange: (axisId: string) => void;
   onYAxisIdChange: (axisId: string) => void;
+  /** Both selects lock: the view is read-only for now. */
+  disabled?: boolean;
   children?: ReactNode;
 }) => {
   const options = axes.map((axis) => ({
@@ -74,6 +77,7 @@ export const SurfaceAxisControls = ({
         items={options.filter((option) => option.value !== yAxisId)}
         value={xAxisId}
         onChange={(value) => onXAxisIdChange(value ?? "")}
+        disabled={disabled}
       />
       <SurfaceControlLabel>Y</SurfaceControlLabel>
       <Select
@@ -82,11 +86,48 @@ export const SurfaceAxisControls = ({
         items={options.filter((option) => option.value !== xAxisId)}
         value={yAxisId}
         onChange={(value) => onYAxisIdChange(value ?? "")}
+        disabled={disabled}
       />
       {children}
     </div>
   );
 };
+
+const readOnlyMarkStyle = css({
+  gridColumn: "[3 / -1]",
+  justifySelf: "end",
+});
+
+/**
+ * The footer's read-only mark, in the free cells of a control row: a lock
+ * and the word, purple while an optimizer drives the view, grey when the
+ * view is over. Takes no room the controls would otherwise have, so locking
+ * shifts nothing.
+ */
+export const SurfaceReadOnlyMark = ({
+  reason,
+}: {
+  reason: "following" | "disabled";
+}) => (
+  <span
+    className={readOnlyMarkStyle}
+    title={
+      reason === "following"
+        ? "The optimizer drives the selection; the pickers unlock when it stops."
+        : "The sweep is over; nothing computes for a new pick."
+    }
+    data-surface-read-only={reason}
+  >
+    <Chip
+      size="xs"
+      color={reason === "following" ? "purple" : "grey"}
+      variant="soft"
+      prefix={{ iconName: "lockClosed" }}
+    >
+      Read-only
+    </Chip>
+  </span>
+);
 
 /** The state line of a view that samples its grid locally. */
 export const describeSurfaceSampling = ({
