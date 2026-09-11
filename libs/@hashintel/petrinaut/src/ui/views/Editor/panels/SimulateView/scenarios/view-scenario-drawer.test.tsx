@@ -11,6 +11,7 @@ import {
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { codeScenarioNotice } from "./ad-hoc-scenario-authoring";
 import {
   perPlaceMigrationNote,
   ViewScenarioDrawer,
@@ -151,7 +152,12 @@ const perPlaceScenario: Scenario = {
   id: "scenario-per-place",
   name: "Morning rush",
   scenarioParameters: [{ type: "real", identifier: "rate", default: 10 }],
-  parameterOverrides: { "param-rate": "scenario.rate * 2" },
+  // "param-gone" names a parameter the net no longer has: it ran fine
+  // (compilation skips it) and must neither block Save nor survive it.
+  parameterOverrides: {
+    "param-rate": "scenario.rate * 2",
+    "param-gone": "3",
+  },
   initialState: {
     type: "per_place",
     content: { "place-queue": "scenario.rate" },
@@ -287,11 +293,7 @@ describe("ViewScenarioDrawer", () => {
     renderDrawer(codeScenario);
 
     expect(screen.getByLabelText("Code").textContent).toBe(codeBody);
-    expect(
-      screen.getByText(
-        /defines its initial state as code, shown here read-only/,
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText(codeScenarioNotice)).toBeTruthy();
     expect(screen.queryByText("Define as code")).toBe(null);
     expect(screen.queryByText("Queue")).toBe(null);
 

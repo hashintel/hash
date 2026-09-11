@@ -188,4 +188,63 @@ describe("useAdHocScenarioAuthoring", () => {
     );
     expect(authoring.current.buildScenario("scenario-1")).toBeNull();
   });
+
+  it("refuses to save a code scenario with a Variable that is not exposed", () => {
+    const code = {
+      body: "return { Queue: range(scenario.base_load).map(() => ({})) };",
+      parameters: [
+        { type: "integer" as const, identifier: "base_load", default: 6 },
+      ],
+    };
+    const authoring = renderAuthoring(new Set(), code);
+    act(() => {
+      authoring.current.setName("Constellation");
+      authoring.current.setState({
+        ...draftState,
+        places: {},
+        variables: [
+          ...draftState.variables,
+          {
+            name: "spare",
+            type: "integer",
+            expression: "2",
+            optimize: null,
+            exposed: false,
+          },
+        ],
+      });
+    });
+
+    // A code scenario stores no form state, so an unexposed Variable would
+    // be inlined into the overrides and lost on the next open.
+    expect(authoring.current.canSave).toBe(false);
+    expect(authoring.current.firstError).toBe(
+      'Variable "spare" cannot be kept with code-defined initial state; turn Scenario Parameter on or delete it.',
+    );
+    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+
+    act(() => {
+      authoring.current.setState({
+        ...draftState,
+        places: {},
+        variables: [
+          ...draftState.variables,
+          {
+            name: "spare",
+            type: "integer",
+            expression: "2",
+            optimize: null,
+            exposed: true,
+          },
+        ],
+      });
+    });
+    expect(authoring.current.canSave).toBe(true);
+    expect(
+      authoring.current.buildScenario("scenario-1")?.scenarioParameters,
+    ).toEqual([
+      { type: "integer", identifier: "base_load", default: 6 },
+      { type: "integer", identifier: "spare", default: 2 },
+    ]);
+  });
 });

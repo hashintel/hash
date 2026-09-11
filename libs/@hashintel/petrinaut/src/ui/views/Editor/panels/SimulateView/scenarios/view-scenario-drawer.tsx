@@ -52,7 +52,12 @@ const ViewScenarioContent = ({
   // no-op click; surface it in the footer instead.
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // The same context the authoring hook synthesizes against, so an
+  // override the form could not show (a parameter the net no longer has,
+  // or any parameter while the extension is off) is dropped on open rather
+  // than blocking Save.
   const source = adHocStateFromScenario(scenario, {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
     places: petriNetDefinition.places,
     types: extensions.colors ? petriNetDefinition.types : [],
   });
