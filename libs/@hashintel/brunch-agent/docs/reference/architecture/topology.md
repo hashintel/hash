@@ -66,9 +66,13 @@ packages/plugin-sdcpn              TARGET POLICY + Flue-native production contri
 ├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append
 ├─ skills/sdcpn-modelling/ ✓ `SKILL.md` + `references/{profile,pn-construction,checks}.md`
 │                        + `templates/workpiece.md`; activates core `elicitation` for human knowledge
-├─ flue.ts            ✓  `useSdcpnPlugin()`: append, job skill, doc tool, conditional construction tools
+├─ flue.ts            ✓  `useSdcpnPlugin()`: append, job skill, doc tool, ordinary batched
+│                        construction, and retained legacy/headless fixture modes
 └─ tools/
-   ├─ petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
+   ├─ mutate-petrinet.ts ✓ one ordinary model-facing root-net carrier over the selected
+   │                        canonical Petrinaut actions
+   ├─ petrinaut-construction.ts ✓ bounded individual realization tools retained for
+   │                              headless and legacy test modes
    └─ read-petrinaut-doc.ts     ✓ Petrinaut editor guidance exposed as a client-executed tool
 
 apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
@@ -81,8 +85,12 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 │  └─ tools/ping.ts   ✓  app-only server-path diagnostic
 ├─ src/http/          ✓  HTTP authority: assets, mounted route names, ownership guard, and local origins;
 │                        `/agents/chat/:instanceId` is the sole Brunch conversation door
-├─ src/conversation/  ✓  server identity verification, client-tool catalog, and operator transcript;
-│                        browser AI SDK projection lives in `transport-aisdk`
+├─ src/conversation/  ✓  server identity verification, client-tool results, current-net
+│                        freshness, candidate history projection, current-revision explanation,
+│                        and operator transcript; browser AI SDK projection lives in `transport-aisdk`
+├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and principal-copy contract;
+│                              Postgres implementation stays beside it in its private subtree
+├─ src/http/worked-models.ts ✓ principal-owned bundle resolution, clean-copy and definition-update API
 ├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
 │                        no elicitation policy
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
@@ -93,6 +101,34 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
 ```
+
+## Ordinary browser-bound Brunch tools
+
+[`apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts`](../../../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts)
+is the checked name/ownership map. The native-provider carriage probe compares
+the live mounted names against it through both provider entrypoints and fails
+on duplicates, additions, removals or ordering drift. It records no schemas;
+those remain with their definition owners.
+
+| Name | Definition owner | Execution owner | Role |
+| --- | --- | --- | --- |
+| `task` | Flue | Flue | substrate delegation |
+| `activate_skill` | Flue | Flue | skill activation |
+| `read_skill_resource` | Flue | Flue | skill resource read |
+| `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
+| `update_workpiece` | Brunch core | Brunch app | durable workpiece write |
+| `readPetrinautDoc` | Petrinaut canonical contract | Petrinaut website | guide read |
+| `getLatestNetDefinition` | Petrinaut Core | Petrinaut website | current document read |
+| `getNetCompilationErrors` | Petrinaut Core | Petrinaut website | diagnostics read |
+| `applyAutoLayout` | Petrinaut Core | Petrinaut website | recorded layout mutation |
+| `mutate_petrinet` | SDCPN plugin over Petrinaut actions | Petrinaut website | selected root-net mutation carrier |
+| `brunch_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
+| `brunch_why` | Brunch app today; split under Mission 7c review | Brunch app | current-model explanation |
+| `ping` | Brunch app | Brunch app | server diagnostic |
+
+Stock Petrinaut has its own canonical individual AI-tool surface and history.
+Legacy/headless Brunch modes still mount individual construction tools for
+their bounded tests; they are not the ordinary product surface.
 
 ## Current placement locks
 
