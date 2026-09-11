@@ -89,9 +89,25 @@ export const createOpenAILiveSessionHandler =
       signal.throwIfAborted();
       if (Number(request.headers.get("content-length")) > 65_536)
         return respond("SDP too large.", 413);
-      const body = await request.arrayBuffer();
-      if (body.byteLength > 65_536) return respond("SDP too large.", 413);
-      const sdp = new TextDecoder().decode(body);
+      const body = new Uint8Array(65_536);
+      let length = 0;
+      try {
+        // Bound memory while reading, including chunked offers, and cancel stalled uploads.
+        await request.body?.pipeTo(
+          new WritableStream<Uint8Array>({
+            write(chunk) {
+              length += chunk.byteLength;
+              if (length > body.byteLength) throw new Error("SDP too large");
+              body.set(chunk, length - chunk.byteLength);
+            },
+          }),
+          { signal },
+        );
+      } catch (error) {
+        if (length > body.byteLength) return respond("SDP too large.", 413);
+        throw error;
+      }
+      const sdp = new TextDecoder().decode(body.subarray(0, length));
       if (!sdp.trimStart().startsWith("v=0"))
         return respond("Invalid SDP.", 400);
       signal.throwIfAborted();

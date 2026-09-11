@@ -10,7 +10,7 @@ const setup = () => {
     send: (data: string) => sent.push(data),
     close: vi.fn(),
   });
-  const input = { stop: vi.fn() };
+  const input = Object.assign(new EventTarget(), { stop: vi.fn() });
   const output = { stop: vi.fn() };
   const stream = { getTracks: () => [input] };
   const peer = Object.assign(new EventTarget(), {
@@ -184,6 +184,29 @@ test("provider errors stop both media directions without exposing payloads", asy
   expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
   expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
 });
+
+test.each([false, true])(
+  "microphone loss stops playback and closes without restarting (session started: %s)",
+  async (ready) => {
+    const fixture = setup();
+    await fixture.conversation.start();
+    if (ready) fixture.emit({ type: "session.started" });
+    fixture.input.dispatchEvent(new Event("ended"));
+    expect(fixture.audio.pause).toHaveBeenCalled();
+    expect(fixture.audio.muted).toBe(true);
+    expect(fixture.output.stop).toHaveBeenCalled();
+    expect(fixture.sent).toEqual(ready ? ['{"type":"session.close"}'] : []);
+    if (ready) fixture.emit({ type: "session.closed" });
+    await fixture.conversation.stop();
+    expect(fixture.peer.close).toHaveBeenCalledOnce();
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+    expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+      "Microphone disconnected",
+    );
+    expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+    expect(fixture.fetch).toHaveBeenCalledOnce();
+  },
+);
 
 test("Stop before session.started never sends application commands", async () => {
   vi.useFakeTimers();
