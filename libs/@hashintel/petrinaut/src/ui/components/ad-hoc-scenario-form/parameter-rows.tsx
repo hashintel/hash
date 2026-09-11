@@ -12,6 +12,7 @@ import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import {
   AdHocFormContext,
+  adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
@@ -116,13 +117,12 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
                 />
               </td>
-              {/* Optimize and Sweep only, and never in run mode: a net
+              {/* Interval selections only, and never in run mode: a net
                   parameter cannot be exposed (the Scenario Parameter toggle
                   belongs to Variables alone), and a run's computed
                   parameters are a preview the host derives, not slots to
                   select. */}
-              {(selection === "optimize" || selection === "sweep") &&
-              mode !== "run" ? (
+              {adHocIntervalSelection(selection) && mode !== "run" ? (
                 <td
                   className={cx(
                     cellStyle,

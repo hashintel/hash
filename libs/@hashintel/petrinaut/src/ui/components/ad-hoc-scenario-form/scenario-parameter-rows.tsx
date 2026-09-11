@@ -2,9 +2,10 @@
  * The scenario-parameters table of the form's run mode: one row per exposed
  * top-level Variable — a static name, a static type, and the one thing a
  * run may change, the value. No gutter, no phantom line, no rename: the
- * scenario's structure belongs to its author, values belong to the run. In
- * sweep mode each numeric row also carries a Sweep toggle, so an experiment
- * can range the parameter instead of fixing it.
+ * scenario's structure belongs to its author, values belong to the run.
+ * With an interval selection each numeric row also carries its toggle —
+ * Optimize or Sweep — so an experiment can range the parameter instead of
+ * fixing it.
  */
 
 import { use } from "react";
@@ -15,6 +16,7 @@ import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
   AdHocFormContext,
+  adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
@@ -51,7 +53,7 @@ export const ScenarioParameterRows: React.FC<ScenarioParameterRowsProps> = ({
   const { highlight, selection, setFocusedValue, dispatch } =
     use(AdHocFormContext);
   const { register, onKeyDown, attach } = useFocusGrid();
-  const withToggles = selection === "sweep";
+  const withToggles = adHocIntervalSelection(selection);
 
   const exposed = variables.flatMap((variable, index) =>
     variable.exposed ? [{ variable, index }] : [],
