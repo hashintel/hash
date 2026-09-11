@@ -97,7 +97,7 @@ impl Serve {
     /// Separates HTTP routing from maintenance retained until shutdown completes.
     pub fn into_parts<S>(
         self,
-        shutdown: impl FnMut() -> S,
+        mut shutdown: impl FnMut() -> S,
     ) -> (
         Router,
         impl Future<Output = ()> + Send,
