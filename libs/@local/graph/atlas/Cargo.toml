@@ -13,7 +13,7 @@ type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 aws-credential-types   = { workspace = true, public = true }
-aws-sdk-s3             = { workspace = true, public = true, features = ["default-https-client", "rt-tokio", "rustls"] }
+aws-sdk-s3             = { workspace = true, public = true, features = ["default-https-client", "rt-tokio"] }
 aws-smithy-runtime-api = { workspace = true, public = true, features = ["client"] }
 aws-smithy-types       = { workspace = true, public = true }
 axum                   = { workspace = true, public = true }
