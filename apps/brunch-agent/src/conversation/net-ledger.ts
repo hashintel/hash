@@ -16,6 +16,8 @@
 import {
   applyAutoLayoutToolName,
   canonicalContent,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
   parseClientToolResultMetadata,
   verifyDefinitionObservation,
   type DefinitionObservation,
@@ -28,6 +30,7 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -284,6 +287,39 @@ export const deriveNetLedger = async (
         events.push(
           unrecorded("The mutation result carries no mutation record."),
         );
+        continue;
+      }
+      if (toolName === mutatePetrinetToolName) {
+        try {
+          const batch = mutatePetrinetInputSchema.parse(call.input);
+          // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
+          const attempts = await verifyMutatePetrinetAttempts({
+            toolCallId,
+            batch,
+            binding: browser.binding,
+            output: first.output,
+            mutationRecord: record,
+          });
+          const postHash = attempts.at(-1)?.post?.sha256;
+          if (postHash === undefined)
+            throw new Error(
+              "The mutation record cannot vouch for a verified post observation.",
+            );
+          events.push({
+            kind: "mutation",
+            toolCallId,
+            toolName,
+            position,
+            outcome: record.outcome,
+            postHash,
+          });
+        } catch (error) {
+          events.push(
+            unrecorded(
+              `The mutation record cannot vouch for a verified post observation: ${reasonOf(error)}`,
+            ),
+          );
+        }
         continue;
       }
       // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
