@@ -26,21 +26,30 @@ export const playbackTimes = ({
   total: Math.max(0, totalFrames - 1) * dt,
 });
 
+/** Most decimals a readout will print, whatever the step needs. */
+const MAX_DECIMALS = 3;
+
 /**
  * Decimals worth printing for a run of this step size: every time in the run
- * is a multiple of `dt`, so more digits than the step carries are always zero.
+ * is a multiple of `dt`, so more digits than the step itself carries are
+ * always zero.
+ *
+ * Read off the step rather than from its magnitude. A step of 0.25 carries two
+ * decimals while a step of 0.5 carries one, so bucketing by powers of ten
+ * rounds a time the run actually visited into one it never did.
  */
 const decimalsForStep = (dt: number): number => {
   if (!Number.isFinite(dt) || dt <= 0) {
-    return 3;
+    return MAX_DECIMALS;
   }
-  if (dt >= 0.1) {
-    return 1;
+
+  for (let decimals = 0; decimals < MAX_DECIMALS; decimals += 1) {
+    if (Number(dt.toFixed(decimals)) === dt) {
+      return decimals;
+    }
   }
-  if (dt >= 0.01) {
-    return 2;
-  }
-  return 3;
+
+  return MAX_DECIMALS;
 };
 
 /** `elapsed / total` for one run, in seconds, at the run's own precision. */

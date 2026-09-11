@@ -30,13 +30,49 @@ describe("playbackTimes", () => {
 
 describe("formatPlaybackTimes", () => {
   it.each([
-    { dt: 0.5, elapsed: "1.5", total: "4.5s" },
-    { dt: 0.01, elapsed: "1.50", total: "4.50s" },
-    { dt: 0.001, elapsed: "1.500", total: "4.500s" },
-  ])("prints a run of step $dt at its own precision", ({ dt, ...expected }) => {
-    expect(formatPlaybackTimes({ elapsed: 1.5, total: 4.5 }, dt)).toEqual(
-      expected,
-    );
+    {
+      dt: 1,
+      times: { elapsed: 2, total: 5 },
+      printed: { elapsed: "2", total: "5s" },
+    },
+    {
+      dt: 0.5,
+      times: { elapsed: 1.5, total: 4.5 },
+      printed: { elapsed: "1.5", total: "4.5s" },
+    },
+    // Not a power of ten: bucketing by magnitude printed "1.8" for 1.75.
+    {
+      dt: 0.25,
+      times: { elapsed: 1.75, total: 4.75 },
+      printed: { elapsed: "1.75", total: "4.75s" },
+    },
+    {
+      dt: 0.01,
+      times: { elapsed: 1.75, total: 4.75 },
+      printed: { elapsed: "1.75", total: "4.75s" },
+    },
+    {
+      dt: 0.025,
+      times: { elapsed: 1.75, total: 4.75 },
+      printed: { elapsed: "1.750", total: "4.750s" },
+    },
+    {
+      dt: 0.001,
+      times: { elapsed: 1.75, total: 4.75 },
+      printed: { elapsed: "1.750", total: "4.750s" },
+    },
+  ])(
+    "prints a run of step $dt at its own precision",
+    ({ dt, times, printed }) => {
+      expect(formatPlaybackTimes(times, dt)).toEqual(printed);
+    },
+  );
+
+  it("never prints more than milliseconds, however fine the step", () => {
+    // A step of 0.0025 carries four decimals; the readout stops at three.
+    expect(
+      formatPlaybackTimes({ elapsed: 0.005, total: 0.01 }, 0.0025),
+    ).toEqual({ elapsed: "0.005", total: "0.010s" });
   });
 
   it("falls back to milliseconds for a step it cannot read", () => {
