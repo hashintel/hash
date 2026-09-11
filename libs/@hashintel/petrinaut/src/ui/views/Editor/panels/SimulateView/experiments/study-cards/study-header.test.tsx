@@ -12,7 +12,7 @@ import {
   makeOptimizationRecord,
   makeTrials,
   optimizedBindingSets,
-} from "../optimizations-story-fixtures";
+} from "../study-fixtures";
 import { StudyHeader } from "./study-header";
 
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";

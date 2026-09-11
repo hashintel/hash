@@ -15,7 +15,7 @@ import {
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   useFakeConnectedStudy,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

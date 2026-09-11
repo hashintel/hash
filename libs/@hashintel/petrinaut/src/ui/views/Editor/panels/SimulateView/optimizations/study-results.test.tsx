@@ -2,7 +2,6 @@ import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 
 import { partitionParameterBindings } from "../../../../../../react/optimizations/surface-grid";
-import { formatNumber } from "../shared/format-value";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
@@ -14,10 +13,11 @@ import {
   makeSelectionStream,
   navigationAtTrial,
   optimizedBindingSets,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
+import { describeStepProgress } from "../shared/describe-study-progress";
+import { formatNumber } from "../shared/format-value";
 import {
   describeParameterCounts,
-  describeStepProgress,
   OBJECTIVE_PLOT_HEIGHT,
   type StudyResultsDependencies,
   studyResultsModel,

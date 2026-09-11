@@ -20,12 +20,6 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
-  frameHeader,
-  frameLayoutSignature,
-  scrollFrameBody,
-} from "../shared/drawer-frame.test-helpers";
-import { formatNumber } from "../shared/format-value";
-import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
   fakeLongStudyInput,
@@ -41,7 +35,13 @@ import {
   makeSelectionStream,
   makeTrials,
   navigationAtTrial,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
+import {
+  frameHeader,
+  frameLayoutSignature,
+  scrollFrameBody,
+} from "../shared/drawer-frame.test-helpers";
+import { formatNumber } from "../shared/format-value";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
 import type { ReactNode } from "react";

@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
 import {
-  NavigatedOptimizationSurface,
-  OptimizationSurface,
-} from "./optimization-surface";
-import {
   makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
@@ -15,7 +11,11 @@ import {
   navigationAtTrial,
   optimizedBindingSets,
   useFakeStudyClock,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
+import {
+  NavigatedOptimizationSurface,
+  OptimizationSurface,
+} from "./optimization-surface";
 
 import type {
   OptimizationNavigation,

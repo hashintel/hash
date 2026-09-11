@@ -13,8 +13,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { frameStats } from "../shared/drawer-frame.test-helpers";
-import { OptimizationFullView } from "./optimization-full-view";
 import {
   fakeShortStudyInput,
   fakeShortStudyNavigation,
@@ -23,7 +21,9 @@ import {
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   makeSelectionStream,
-} from "./optimizations-story-fixtures";
+} from "../experiments/study-fixtures";
+import { frameStats } from "../shared/drawer-frame.test-helpers";
+import { OptimizationFullView } from "./optimization-full-view";
 
 import type { ReactNode } from "react";
 

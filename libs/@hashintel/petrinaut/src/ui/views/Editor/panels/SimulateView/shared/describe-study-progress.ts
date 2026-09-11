@@ -60,3 +60,24 @@ export const describeStudyProgress = (
       return `Failed after ${finished} of ${requested} steps · ${best}`;
   }
 };
+
+/** "4 / 30 · 3 runs each · 2 at once", with the parts that are 1 left out. */
+export const describeStepProgress = (
+  optimization: Pick<
+    OptimizationRecord,
+    | "completedTrials"
+    | "prunedTrials"
+    | "failedTrials"
+    | "requestedTrials"
+    | "connected"
+    | "input"
+  >,
+): string => {
+  const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
+  const parallelism = optimization.connected?.parallelism ?? 1;
+  return [
+    `${finishedTrialCount(optimization)} / ${optimization.requestedTrials}`,
+    ...(runsPerStep > 1 ? [`${runsPerStep} runs each`] : []),
+    ...(parallelism > 1 ? [`${parallelism} at once`] : []),
+  ].join(" · ");
+};

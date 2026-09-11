@@ -9,7 +9,7 @@ import { buildOptimizationSurfaceAxes } from "../../../../../../../react/optimiz
 import {
   makeOptimizationInput,
   optimizedBindingSets,
-} from "../optimizations-story-fixtures";
+} from "../../experiments/study-fixtures";
 import {
   describeSelection,
   OptimizationNavigator,

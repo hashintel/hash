@@ -17,7 +17,7 @@ import {
 import type {
   DetachedObjectiveAuxiliaryMetric,
   DetachedObjectiveRunResult,
-} from "../../../experiments/context";
+} from "../../experiments/context";
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationTrialConstraints,

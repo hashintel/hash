@@ -7,7 +7,7 @@ import {
 import {
   makeOptimizationInput,
   optimizedBindingSets,
-} from "../optimizations-story-fixtures";
+} from "../../experiments/study-fixtures";
 import { sampleStudyCell, type StudyCellCache } from "./sample-study-cell";
 
 import type { ExperimentsContextValue } from "../../../../../../../react/experiments/context";

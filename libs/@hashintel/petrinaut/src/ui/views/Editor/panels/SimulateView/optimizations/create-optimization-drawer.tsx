@@ -43,6 +43,11 @@ import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import {
+  type ConstraintDraft,
+  describeConstraint,
+  summarizeConstraintLspErrors,
+} from "../experiments/create-experiment-drawer/constraints/constraint-lsp";
+import {
   type MetricFormInstance,
   useMetricForm,
   useMetricLspSession,
@@ -58,11 +63,6 @@ import {
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { ConstraintDraftList } from "./create-optimization-drawer/constraint-draft-list";
-import {
-  type ConstraintDraft,
-  describeConstraint,
-  summarizeConstraintLspErrors,
-} from "./create-optimization-drawer/constraint-lsp";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,

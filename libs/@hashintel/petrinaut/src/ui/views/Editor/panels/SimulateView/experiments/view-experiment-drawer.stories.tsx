@@ -17,12 +17,6 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import {
-  fakeStudyInput,
-  fakeStudyTrials,
-  makeOptimizationRecord,
-  makeOptimizationsContextValue,
-} from "../optimizations/optimizations-story-fixtures";
 import { WithUserSettings } from "../simulate-view-story-harness";
 import {
   FakeExperimentsProvider,
@@ -30,6 +24,12 @@ import {
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
+import {
+  fakeStudyInput,
+  fakeStudyTrials,
+  makeOptimizationRecord,
+  makeOptimizationsContextValue,
+} from "./study-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
