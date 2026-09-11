@@ -498,11 +498,12 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(screen.queryByText("GPU")).toBeNull();
+    // The header may draw the badge more than once; every copy carries the reason.
     expect(
-      screen.getByRole("tooltip", {
+      screen.getAllByRole("tooltip", {
         name: /could not run this net: the GPU cannot compute expression metrics/,
-      }),
-    ).toBeTruthy();
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   it("badges a study that ran on the GPU", () => {
