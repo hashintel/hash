@@ -10,6 +10,7 @@ import {
   isObservedStateMutation,
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
+  mutatePetrinetOutputSchema,
   mutatePetrinetToolName,
   type MutatePetrinetInput,
   parseClientToolResultMetadata,
@@ -236,6 +237,7 @@ export const verifyMutatePetrinetAttempts = async (input: {
   toolCallId: string;
   batch: MutatePetrinetInput;
   binding: BrowserBinding;
+  output: unknown;
   mutationRecord: {
     readonly attempts: readonly unknown[];
     readonly outcome: ConstructionMutationAttempt["outcome"];
@@ -243,6 +245,16 @@ export const verifyMutatePetrinetAttempts = async (input: {
 }): Promise<ConstructionMutationAttempt[]> => {
   if (input.mutationRecord.attempts.length === 0)
     throw new Error("The root arc result requires a browser mutation record.");
+  const output = mutatePetrinetOutputSchema.parse(input.output);
+  if (
+    output.toolCallId !== input.toolCallId ||
+    output.observationToolCallId !== input.batch.observation.toolCallId ||
+    output.preHash !== input.batch.observation.baseHash ||
+    output.outcomes.length !== input.batch.operations.length
+  )
+    throw new Error(
+      "The browser output does not match the complete issued mutation batch.",
+    );
   const verified = await Promise.all(
     input.mutationRecord.attempts.map((attempt) =>
       verifyMutationAttempt(attempt as ConstructionMutationAttempt),
@@ -284,19 +296,61 @@ export const verifyMutatePetrinetAttempts = async (input: {
         );
       recordedIds.push(operationId);
     }
-    const group = groups.get(attempt.request.toolCallId) ?? [];
+    const group = groups.get(operationId) ?? [];
     group.push(attempt);
-    groups.set(attempt.request.toolCallId, group);
+    groups.set(operationId, group);
   }
+  const attemptedOutcomes = output.outcomes.filter(
+    (outcome) => outcome.status !== "unattempted",
+  );
   if (
-    recordedIds.some((operationId, index) => operationId !== issuedIds[index])
+    output.outcomes.some((outcome, index) => {
+      const operation = input.batch.operations[index];
+      return (
+        operation === undefined ||
+        outcome.operationId !== operation.operationId ||
+        outcome.basisId !== operation.basisId
+      );
+    }) ||
+    recordedIds.length !== attemptedOutcomes.length ||
+    recordedIds.some(
+      (operationId, index) =>
+        operationId !== issuedIds[index] ||
+        operationId !== attemptedOutcomes[index]?.operationId,
+    )
   )
     throw new Error(
-      "The browser record does not match the issued call or document incarnation.",
+      "The browser record does not account for the complete canonical output.",
     );
-  const groupOutcomes = [...groups.values()].map(
-    (group) => reconcileMutationAttempts(group).outcome,
-  );
+  let previousPostHash = output.preHash;
+  const groupOutcomes = recordedIds.map((operationId, index) => {
+    const group = groups.get(operationId);
+    const deliveredOutcome = attemptedOutcomes[index];
+    if (!group || !deliveredOutcome)
+      throw new Error(
+        "The browser record does not account for the complete canonical output.",
+      );
+    const reconciled = reconcileMutationAttempts(group);
+    const attempt = reconciled.attempts.at(-1);
+    const deliveredPostHash =
+      "postHash" in deliveredOutcome ? deliveredOutcome.postHash : undefined;
+    if (
+      attempt === undefined ||
+      deliveredOutcome.status !== reconciled.outcome ||
+      deliveredOutcome.preHash !== attempt.pre.sha256 ||
+      deliveredOutcome.preHash !== previousPostHash ||
+      deliveredPostHash !== attempt.post?.sha256
+    )
+      throw new Error(
+        "The browser record does not account for the complete canonical output.",
+      );
+    previousPostHash = attempt.post?.sha256 ?? previousPostHash;
+    return reconciled.outcome;
+  });
+  if (previousPostHash !== output.postHash)
+    throw new Error(
+      "The browser record does not account for the complete canonical output.",
+    );
   const outcome = batchRecordOutcome(
     groupOutcomes.map((groupOutcome) => ({ outcome: groupOutcome })),
   );
@@ -339,6 +393,7 @@ const verifyMutatePetrinetDelivery = async (input: {
     toolCallId: input.call.toolCallId,
     batch,
     binding: input.binding,
+    output: input.delivery.output,
     mutationRecord,
   });
   const earlier = input.history.results.filter(

@@ -299,6 +299,7 @@ export const explainRootArc = async (input: {
             toolCallId: call.toolCallId,
             batch,
             binding: browser.binding,
+            output: first.output,
             mutationRecord,
           });
           answer.attempts.push({
