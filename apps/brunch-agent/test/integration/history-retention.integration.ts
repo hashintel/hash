@@ -687,12 +687,22 @@ try {
       );
       const after = await client.history();
       const compactions = events.filter((event) => event.type === "compaction");
+      const silentOverflow = overflowProbe && !explicitOverflow;
       assert(
-        compactions.some(
-          (event) =>
-            !event.isError && event.messagesAfter < event.messagesBefore,
-        ),
-        "Actual successful folding must reduce runtime context messages",
+        silentOverflow
+          ? compactions.some(
+              (event) =>
+                !event.isError &&
+                event.messagesBefore === 20 &&
+                event.messagesAfter === 3,
+            )
+          : compactions.some(
+              (event) =>
+                !event.isError && event.messagesAfter < event.messagesBefore,
+            ),
+        silentOverflow
+          ? "Silent overflow must fold the known 20-message window to 3"
+          : "Actual successful folding must reduce runtime context messages",
       );
       assert(
         events.some(

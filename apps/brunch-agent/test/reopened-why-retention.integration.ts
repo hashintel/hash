@@ -1,4 +1,5 @@
 /** Opt-in A5 proof: create actual browser records, then fold/reopen the SAME store in separate Node processes.
+ * Spawned by `test/integration/reopened-why-retention.test.ts` (`yarn test:reopened-why-retention`).
  * Run each phase serially. Saved observations are equality oracles/identity pointers only, never imported into state.
  */
 /* eslint-disable no-await-in-loop -- One original store, one owner, one synthetic response queue. */

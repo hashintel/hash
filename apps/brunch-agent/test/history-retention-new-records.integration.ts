@@ -1,5 +1,6 @@
 /** Reopen ONLY the disposable store freshly produced by mutation-records.integration.ts.
- * Saved history is an equality oracle, never input/import authority. Synthetic-model records, not testimony.
+ * Spawned by `test/browser-tracer.ts` after the Chrome witness. Saved history is an
+ * equality oracle, never input/import authority. Synthetic-model records, not testimony.
  */
 /* eslint-disable no-await-in-loop -- The original store has exactly one sequential owner and folding is observed between turns. */
 import assert from "node:assert/strict";
