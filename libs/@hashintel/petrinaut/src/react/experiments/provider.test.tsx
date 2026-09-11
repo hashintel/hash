@@ -402,6 +402,129 @@ describe("buildSweepAxes", () => {
 });
 
 describe("ExperimentsProvider", () => {
+  it("keeps user navigation from changing a host-controlled sweep", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const controller = new AbortController();
+    const finished = Promise.withResolvers<void>();
+    let experimentId = "";
+    try {
+      await act(async () => {
+        experimentId = await getValue().createExperiment(
+          {
+            name: "Owned sweep",
+            scenarioId: "scenario",
+            scenarioParameterValues: {
+              rate: { mode: "range", min: 0, max: 1 },
+            },
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+          },
+          {
+            definition: {
+              ...EMPTY_SDCPN,
+              scenarios: [
+                {
+                  id: "scenario",
+                  name: "Scenario",
+                  scenarioParameters: [
+                    { identifier: "rate", type: "real", default: 0.5 },
+                  ],
+                  parameterOverrides: {},
+                  initialState: { type: "per_place", content: {} },
+                },
+              ],
+            },
+            ownership: {
+              signal: controller.signal,
+              finished: finished.promise,
+              cancel: () => controller.abort(),
+            },
+          },
+        );
+      });
+      const selection = { rate: { from: 10, to: 10 } };
+      await act(async () => {
+        getValue().setSweepSelection(experimentId, selection);
+      });
+      expect(getValue().experiments[0]?.sweep?.selection).toEqual({
+        rate: { from: 0, to: 50 },
+      });
+      expect(worker.sent).toHaveLength(0);
+      await act(async () => {
+        finished.resolve();
+      });
+      await act(async () => {
+        getValue().setSweepSelection(experimentId, selection);
+        await flushWorkerSetup();
+      });
+      expect(getValue().experiments[0]?.sweep?.selection).toEqual(selection);
+    } finally {
+      finished.resolve();
+      renderResult.unmount();
+    }
+  });
+
+  it("protects a host request until capture, while keeping its cancel action available", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, getNavigationState, renderResult } =
+      renderExperimentsProvider(worker);
+    const controller = new AbortController();
+    const finished = Promise.withResolvers<void>();
+    const cancel = vi.fn(() => controller.abort());
+    let experimentId = "";
+    try {
+      await act(async () => {
+        experimentId = await getValue().createExperiment(
+          {
+            name: "Owned experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+          },
+          {
+            select: false,
+            ownership: {
+              signal: controller.signal,
+              finished: finished.promise,
+              cancel,
+            },
+          },
+        );
+        await flushWorkerSetup();
+      });
+      expect(getNavigationState().simulateResource).toBeNull();
+      expect(getValue().experiments[0]?.requestActive).toBe(true);
+      await act(async () => {
+        getValue().removeExperiment(experimentId);
+      });
+      expect(getValue().experiments).toHaveLength(1);
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+      });
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(getValue().experiments[0]?.status).toBe("cancelled");
+      await act(async () => {
+        finished.resolve();
+      });
+      expect(getValue().experiments[0]?.requestActive).toBe(false);
+      await act(async () => {
+        getValue().removeExperiment(experimentId);
+      });
+      expect(getValue().experiments).toHaveLength(0);
+    } finally {
+      finished.resolve();
+      renderResult.unmount();
+    }
+  });
+
   it("replaces the creation overlay with the created experiment location", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getNavigationState, getValue, renderResult } =

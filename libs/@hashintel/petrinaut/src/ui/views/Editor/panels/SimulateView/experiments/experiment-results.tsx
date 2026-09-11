@@ -216,7 +216,9 @@ export const experimentResultsModel = (
 ): ResultsModel => {
   const { sweep } = experiment;
   const canCancel =
-    experiment.status === "initializing" || experiment.status === "running";
+    experiment.requestActive ||
+    experiment.status === "initializing" ||
+    experiment.status === "running";
   const tiles = experimentMetricTiles(experiment);
   const driving = optimizer.driving && optimizer.study !== null;
   const tone: ChartCardTone = driving ? "optimizing" : "default";
@@ -242,14 +244,16 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            trailing: optimizer.available ? (
-              <SweepOptimizeControl
-                experiment={experiment}
-                optimizer={optimizer}
-              />
-            ) : null,
+            trailing:
+              optimizer.available && !experiment.requestActive ? (
+                <SweepOptimizeControl
+                  experiment={experiment}
+                  optimizer={optimizer}
+                />
+              ) : null,
             content: (
               <SweepNavigator
+                disabled={experiment.requestActive}
                 axes={experiment.parameterAxes}
                 selection={sweep.selection}
                 status={{
@@ -280,7 +284,7 @@ export const experimentResultsModel = (
         <SweepSurface
           key={experiment.id}
           experiment={experiment}
-          following={driving}
+          following={driving || experiment.requestActive}
           tone={tone}
         />
       ) : null,
@@ -309,6 +313,7 @@ export const experimentResultsModel = (
           tone="neutral"
           size="sm"
           prefix={<Icon name="trash" size="sm" />}
+          disabled={experiment.requestActive}
           onClick={() => {
             optimizer.discard();
             actions.removeExperiment(experiment.id);

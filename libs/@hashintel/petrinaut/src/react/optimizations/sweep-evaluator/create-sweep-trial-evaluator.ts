@@ -62,6 +62,7 @@ export const createSweepTrialEvaluator = ({
   axes,
   metricId,
   runCap = SWEEP_TRIAL_RUNS,
+  refineOnSettle = true,
   navigateSweep,
 }: {
   experimentId: string;
@@ -71,6 +72,7 @@ export const createSweepTrialEvaluator = ({
   metricId: string;
   /** Runs a trial's point computes before its value is read. */
   runCap?: number;
+  refineOnSettle?: boolean;
   navigateSweep: ExperimentsActionsValue["navigateSweep"];
 }): SweepTrialEvaluator => {
   let settled = false;
@@ -116,7 +118,7 @@ export const createSweepTrialEvaluator = ({
     settle: (best) => {
       settled = true;
       const point = best ? sweepPointFor(axes, best.parameters) : lastPoint;
-      if (point !== null) {
+      if (refineOnSettle && point !== null) {
         void navigateSweep(experimentId, point);
       }
     },

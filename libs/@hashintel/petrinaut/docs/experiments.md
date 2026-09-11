@@ -11,6 +11,18 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 3. Fill in the configuration (see below).
 4. Click **Run**.
 
+### Experiments started by an integration
+
+An application embedding Petrinaut can start an experiment with a saved
+scenario and metrics, including a search over numeric parameter ranges.
+These experiments appear in the Experiments list.
+
+While the request runs, parameter changes and removal are locked. You can
+inspect the charts. Controls become available when the request finishes.
+Later exploration leaves the result returned to the application unchanged.
+An optimization finishes after its search and the final runs at its best
+parameter values. Keep the browser page open until the request finishes.
+
 ### Configuration
 
 | Setting                 | Default                           | Notes                                                                                                                                                                                                                          |

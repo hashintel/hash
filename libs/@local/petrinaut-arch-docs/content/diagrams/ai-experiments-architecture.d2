@@ -1,0 +1,13 @@
+direction: down
+vars: {d2-config: {theme-id: 0}}
+caller: "Host caller"
+contract: "Zod contract"
+host: "Browser host"
+validate: "Snapshot checks"
+runtime: "Experiments + optimizer"
+workers: "CPU workers"
+caller <-> host: "request / result"
+contract -> host: "schema" {style.stroke-dash: 4}
+host -> validate: "prepare"
+host <-> runtime: "run / cancel / progress"
+runtime -> workers: "batches"

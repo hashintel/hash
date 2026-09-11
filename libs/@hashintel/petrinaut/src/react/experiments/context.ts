@@ -27,6 +27,7 @@ import type {
   MonteCarloUserDefinedMetricTimeAggregation,
   MonteCarloWorkerProgress,
   ReadableStore,
+  PetrinautExtensionSettings,
 } from "@hashintel/petrinaut-core";
 
 export type ExperimentStatus =
@@ -99,8 +100,22 @@ export type CreateExperimentInput = {
   computeBackend?: ExperimentComputeBackend;
 };
 
+export type CreateExperimentOptions = {
+  definition?: SDCPN;
+  extensions?: PetrinautExtensionSettings;
+  select?: boolean;
+  ownership?: {
+    signal: AbortSignal;
+    finished: Promise<void>;
+    cancel: () => void;
+    onError?: (message: string) => void;
+  };
+};
+
 export type ExperimentRecord = {
   id: string;
+  /** Compute controls are held until a host request captures its result. */
+  requestActive?: boolean;
   name: string;
   createdAt: number;
   scenarioId: string | null;
@@ -217,7 +232,10 @@ export type ExperimentsContextValue = {
   selectedExperimentId: string | null;
   selectedExperiment: ExperimentRecord | null;
   setSelectedExperimentId: (experimentId: string | null) => void;
-  createExperiment: (input: CreateExperimentInput) => Promise<string>;
+  createExperiment: (
+    input: CreateExperimentInput,
+    options?: CreateExperimentOptions,
+  ) => Promise<string>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection up to the run count. */

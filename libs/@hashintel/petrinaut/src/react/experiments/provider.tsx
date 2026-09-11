@@ -32,6 +32,7 @@ import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
   type ExperimentComputeBackend,
+  type CreateExperimentOptions,
   type ExperimentRecord,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
@@ -147,6 +148,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
+  const ownershipRef = useRef(
+    new Map<string, NonNullable<CreateExperimentOptions["ownership"]>>(),
+  );
   /** Backends an experiment chose, disposed with the experiment. */
   const backendsRef = useRef(new Map<string, ExperimentBackend[]>());
   const detachedObjectiveSamplerRef = useRef<DetachedObjectiveSampler | null>(
@@ -218,6 +222,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experimentId: string,
     patch: Partial<ExperimentRecord>,
   ) => {
+    if (patch.error) {
+      ownershipRef.current.get(experimentId)?.onError?.(patch.error);
+    }
     // Stamped here rather than at each call site, so no path — completion, a
     // worker error, cancellation — can finish an experiment without
     // recording when it stopped.
@@ -295,15 +302,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           error: event.message,
           status: "error",
         });
-        addNotification({
-          message: `${experimentName} failed: ${event.message}`,
-          tone: "error",
-        });
+        if (!ownershipRef.current.has(experimentId)) {
+          addNotification({
+            message: `${experimentName} failed: ${event.message}`,
+            tone: "error",
+          });
+        }
       } else {
         sync();
       }
 
-      if (event.type === "complete") {
+      if (
+        event.type === "complete" &&
+        !ownershipRef.current.has(experimentId)
+      ) {
         addNotification({
           message: `${experimentName} complete`,
           tone: "success",
@@ -356,6 +368,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       seed: experiment.seed,
       // Nothing computes until a control moves or an optimizer navigates.
       startComputing: false,
+      requireSuccessfulRuns: experiment.requestActive === true,
       // Leading-edge, so the first frames publish instantly; while a
       // batch streams, ~10 re-renders a second read as live on a chart
       // and leave the rest of the UI most of each frame's budget.
@@ -410,22 +423,51 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           error: message,
           status: "error",
         });
-        addNotification({
-          message: `${experiment.name} failed: ${message}`,
-          tone: "error",
-        });
+        if (!ownershipRef.current.has(experimentId)) {
+          addNotification({
+            message: `${experiment.name} failed: ${message}`,
+            tone: "error",
+          });
+        }
       },
     });
     sweepSessionsRef.current.set(experimentId, session);
   };
 
+  const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
+    experimentId,
+  ) => {
+    const ownership = ownershipRef.current.get(experimentId);
+    if (ownership && !ownership.signal.aborted) {
+      ownership.cancel();
+      return;
+    }
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistrationsRef.current.delete(experimentId);
+      pendingRegistration.abortController.abort();
+      patchExperiment(experimentId, { status: "cancelled" });
+      return;
+    }
+
+    if (sweepSessionsRef.current.has(experimentId)) {
+      disposeSweepSession(experimentId);
+      patchExperiment(experimentId, { status: "cancelled" });
+      return;
+    }
+
+    registrationsRef.current.get(experimentId)?.handle.cancel();
+  };
+
   const createExperiment: ExperimentsContextValue["createExperiment"] = async (
     input,
+    options,
   ) => {
     assertExperimentInput(input);
 
-    const sdcpn = petriNetDefinitionRef.current;
-    const experimentExtensions = extensionsRef.current;
+    const sdcpn = options?.definition ?? petriNetDefinitionRef.current;
+    const experimentExtensions = options?.extensions ?? extensionsRef.current;
     const scenario = input.scenarioId
       ? ((sdcpn.scenarios ?? []).find(({ id }) => id === input.scenarioId) ??
         null)
@@ -449,6 +491,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       sdcpn: experimentSdcpn,
       requestScenarioHir: languageClientRef.current.requestScenarioHir,
     });
+    options?.ownership?.signal.throwIfAborted();
 
     const experimentId = generateUuid();
     const experiment = newExperimentRecord({
@@ -458,8 +501,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
     });
+    const ownership = options?.ownership;
+    if (ownership) {
+      experiment.requestActive = true;
+      ownershipRef.current.set(experimentId, ownership);
+      const cancel = () => cancelExperiment(experimentId);
+      ownership.signal.addEventListener("abort", cancel, { once: true });
+      void ownership.finished.finally(() => {
+        ownership.signal.removeEventListener("abort", cancel);
+        ownershipRef.current.delete(experimentId);
+        patchExperiment(experimentId, { requestActive: false });
+      });
+    }
     setExperiments((prev) => [experiment, ...prev]);
-    setSelectedExperimentId(experimentId);
+    if (options?.select !== false) {
+      setSelectedExperimentId(experimentId);
+    }
 
     const abortController = new AbortController();
     pendingRegistrationsRef.current.set(experimentId, { abortController });
@@ -572,10 +629,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         const message = errorMessage(error);
         patchExperiment(experimentId, { error: message, status: "error" });
-        addNotification({
-          message: `${experiment.name} failed: ${message}`,
-          tone: "error",
-        });
+        if (!ownershipRef.current.has(experimentId)) {
+          addNotification({
+            message: `${experiment.name} failed: ${message}`,
+            tone: "error",
+          });
+        }
       }
     };
 
@@ -584,30 +643,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     return experimentId;
   };
 
-  const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
-    experimentId,
-  ) => {
-    const pendingRegistration =
-      pendingRegistrationsRef.current.get(experimentId);
-    if (pendingRegistration) {
-      pendingRegistrationsRef.current.delete(experimentId);
-      pendingRegistration.abortController.abort();
-      patchExperiment(experimentId, { status: "cancelled" });
-      return;
-    }
-
-    if (sweepSessionsRef.current.has(experimentId)) {
-      disposeSweepSession(experimentId);
-      patchExperiment(experimentId, { status: "cancelled" });
-      return;
-    }
-
-    registrationsRef.current.get(experimentId)?.handle.cancel();
-  };
-
   const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
     experimentId,
   ) => {
+    if (ownershipRef.current.has(experimentId)) {
+      return;
+    }
     disposeSweepSession(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
@@ -625,6 +666,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experimentId,
     selection,
   ) => {
+    if (ownershipRef.current.has(experimentId)) {
+      return;
+    }
     sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
