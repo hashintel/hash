@@ -73,7 +73,10 @@ async fn validate_s3_unavailable_object() {
             .endpoint_url("http://127.0.0.1:0")
             .build(),
     );
-    let storage = Storage::in_temp_dir().with_s3(client);
+    let storage = Storage::in_temp_dir()
+        .await
+        .expect("should create temporary storage")
+        .with_s3(client);
     let source: FilePath = "s3://unavailable-bucket/source"
         .parse()
         .expect("should parse the source");

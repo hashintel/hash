@@ -131,7 +131,7 @@ struct Fixture {
 
 impl Fixture {
     /// Creates a source directory holding no objects and no triggers.
-    fn new() -> Self {
+    async fn new() -> Self {
         let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
             .expect("the temporary directory should have a UTF-8 path")
             .join(format!("atlas-download-fixture-{}", Uuid::now_v7()));
@@ -140,7 +140,9 @@ impl Fixture {
         Self {
             _scratch: ScratchDirectory::new(path.clone()),
             path,
-            storage: Storage::in_temp_dir(),
+            storage: Storage::in_temp_dir()
+                .await
+                .expect("should create temporary storage"),
             triggers: Mutex::new(HashMap::new()),
             reads: Mutex::new(Vec::new()),
         }
@@ -338,7 +340,7 @@ async fn poll_once<F: Future>(mut future: Pin<&mut F>) -> Poll<F::Output> {
 async fn synchronize_fresh_source() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -434,7 +436,7 @@ async fn synchronize_source_pointer_absent() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
 
     let result = download
@@ -461,7 +463,7 @@ async fn synchronize_source_pointer_absent() {
 async fn synchronize_artifact_absent() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let first = repository
@@ -525,7 +527,7 @@ async fn synchronize_artifact_absent() {
 async fn synchronize_artifact_corrupt() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let first = repository
@@ -577,7 +579,7 @@ async fn synchronize_artifact_corrupt() {
 async fn synchronize_metadata_mismatch() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     // appending whitespace changes the identity while preserving valid JSON.
@@ -628,7 +630,7 @@ async fn synchronize_metadata_mismatch() {
 async fn synchronize_body_truncated() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let first = repository
@@ -680,7 +682,7 @@ async fn synchronize_publication_complete() {
     let (_repository, id) = publish(&target, 7);
 
     // the source pointer names a generation with no metadata or artifacts at the source.
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed(&current_path(&fixture.path), id.to_string());
 
     let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
@@ -708,7 +710,7 @@ async fn synchronize_publication_complete() {
 async fn synchronize_publication_incomplete() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     // the source contains the missing target artifact. The existing publication must remain
@@ -764,7 +766,7 @@ async fn synchronize_publication_incomplete() {
 async fn synchronize_publication_metadata_absent() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -807,7 +809,7 @@ async fn synchronize_publication_metadata_absent() {
 async fn synchronize_publication_corrupt() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -862,7 +864,7 @@ async fn synchronize_publication_corrupt() {
 async fn synchronize_repeat_unchanged() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -892,7 +894,7 @@ async fn synchronize_repeat_unchanged() {
 async fn synchronize_repeat_pointer_moved() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -933,7 +935,7 @@ async fn synchronize_repeat_pointer_moved() {
 async fn synchronize_repeat_directory_removed() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
@@ -967,7 +969,7 @@ async fn synchronize_source_advances_during_read() {
     let (_source_scratch, source) = root();
     let (sampled_repository, sampled) = publish(&source, 7);
     let (successor_repository, successor) = publish(&source, 8);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, sampled, &sampled_repository);
 
     let first = sampled_repository
@@ -1041,7 +1043,7 @@ async fn synchronize_source_advances_during_read() {
 async fn run_shutdown_during_read() {
     let (_source_scratch, source) = root();
     let (repository, id) = publish(&source, 7);
-    let fixture = Arc::new(Fixture::new());
+    let fixture = Arc::new(Fixture::new().await);
     seed_source(&fixture, &source, id, &repository);
 
     let first = repository

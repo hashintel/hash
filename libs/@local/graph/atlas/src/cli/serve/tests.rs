@@ -133,7 +133,9 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
             hard: Duration::from_secs(10),
         },
         workflow: None,
-        storage: Storage::in_temp_dir(),
+        storage: Storage::in_temp_dir()
+            .await
+            .expect("should create temporary storage"),
     });
 
     (scratch, serving)
