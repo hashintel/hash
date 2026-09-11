@@ -112,7 +112,10 @@ const marginOf = (
       return expr.value ? 1 : -1;
     case "unary":
       if (expr.op === "!") {
-        return -marginOf(expr.operand, locals, bindings);
+        // A zero margin means the operand holds exactly at its boundary, so
+        // its negation fails there (`0 === -0` catches both signs of zero).
+        const inner = marginOf(expr.operand, locals, bindings);
+        return inner === 0 ? BOUNDARY_FAILURE : -inner;
       }
       break;
     case "binary": {
@@ -172,9 +175,10 @@ const marginOf = (
 /**
  * The signed slack of a boolean HIR function at `bindings`: comparisons give
  * their slack, `&&` the minimum of its sides, `||` the maximum, `!` flips
- * the sign, a `cond` takes its chosen branch, a `let` scopes its bindings,
- * and a bare boolean is +1 or -1. `margin >= 0` exactly when the condition
- * holds. Throws `HirInterpretError` where interpretation would.
+ * the sign (a zero margin becomes the boundary failure), a `cond` takes its
+ * chosen branch, a `let` scopes its bindings, and a bare boolean is +1 or
+ * -1. `margin >= 0` exactly when the condition holds. Throws
+ * `HirInterpretError` where interpretation would.
  */
 export const constraintMargin = (
   fn: HirFunction,

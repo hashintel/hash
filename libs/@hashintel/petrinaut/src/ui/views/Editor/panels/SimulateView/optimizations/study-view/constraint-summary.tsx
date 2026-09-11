@@ -168,23 +168,40 @@ export const describedStep = (
   );
 };
 
+/** The step line in two parts: the verdict head the card colours, and the detail tail after it. */
+export type StepLine = {
+  /** "Step 12: limited" */
+  verdict: string;
+  /** " · 51 / 60 runs passed · Queue under 10", the infeasible draw's constraint, or "" when there is nothing to add. */
+  detail: string;
+};
+
 /** "Step 12: limited · 51 / 60 runs passed · Queue under 10", or the infeasible draw's constraint. */
 export const describeStep = (
   optimization: Pick<OptimizationRecord, "input">,
   trial: OptimizationRecord["trials"][number],
   alpha: number,
-): string => {
+): StepLine => {
   const verdict = stepVerdict(trial, alpha);
   const { input } = optimization;
   const head = `Step ${trial.trial + 1}: ${VERDICT_WORD[verdict]}`;
   if (verdict === "infeasible") {
-    return `${head} · ${constraintNameIn(input, trial.constraints?.infeasible ?? "")}`;
+    return {
+      verdict: head,
+      detail: ` · ${constraintNameIn(input, trial.constraints?.infeasible ?? "")}`,
+    };
   }
   const binding = bindingStepRate(trial, alpha);
   if (binding === null) {
-    return trial.state === "complete" ? head : `${head} · ${trial.state}`;
+    return {
+      verdict: head,
+      detail: trial.state === "complete" ? "" : ` · ${trial.state}`,
+    };
   }
-  return `${head} · ${formatRate(binding.runsPassed, binding.runsTotal).replace(" · ", " runs passed · ")} · ${constraintNameIn(input, binding.constraintId)}`;
+  return {
+    verdict: head,
+    detail: ` · ${formatRate(binding.runsPassed, binding.runsTotal).replace(" · ", " runs passed · ")} · ${constraintNameIn(input, binding.constraintId)}`,
+  };
 };
 
 export const ConstraintSummaryCard = ({
@@ -206,6 +223,7 @@ export const ConstraintSummaryCard = ({
     (constraint) => constraint.space === "state",
   );
   const step = describedStep(trials, selection);
+  const line = step === null ? null : describeStep(optimization, step, alpha);
   const infeasibleNote =
     rates.infeasibleDraws === 0
       ? ""
@@ -228,7 +246,7 @@ export const ConstraintSummaryCard = ({
           </span>
         </div>
         <span className={stepLineStyle}>
-          {step === null ? (
+          {step === null || line === null ? (
             "No step reported yet"
           ) : (
             <>
@@ -236,11 +254,9 @@ export const ConstraintSummaryCard = ({
                 className={verdictStyle}
                 data-verdict={stepVerdict(step, alpha)}
               >
-                {describeStep(optimization, step, alpha).split(" · ")[0]}
+                {line.verdict}
               </span>
-              {describeStep(optimization, step, alpha).slice(
-                describeStep(optimization, step, alpha).indexOf(" · "),
-              )}
+              {line.detail}
             </>
           )}
         </span>

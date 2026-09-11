@@ -53,6 +53,14 @@ describe("constraintMargin", () => {
     expect(margin("!(scenario.min_load > 10)")).toBe(8);
   });
 
+  it("fails a negated comparison that holds exactly at its boundary", () => {
+    expect(margin("!(scenario.min_load <= 2)")).toBeLessThan(0);
+    expect(margin("!(scenario.min_load >= 2)")).toBeLessThan(0);
+    expect(margin("!(scenario.min_load == 2)")).toBeLessThan(0);
+    expect(margin("!(scenario.min_load < 2)")).toBeGreaterThan(0);
+    expect(margin("!!(scenario.min_load <= 2)")).toBeGreaterThan(0);
+  });
+
   it("gives a bare boolean one unit on the side of its verdict", () => {
     expect(margin("true")).toBe(1);
     expect(margin("false")).toBe(-1);

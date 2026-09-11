@@ -580,6 +580,43 @@ describe("ViewOptimizationDrawer for a connected study with constraints", () => 
     );
   });
 
+  it("ends the step line at the verdict for a parameter-only study whose step completed", () => {
+    const parameterOnlyInput = {
+      ...constrainedInput,
+      constraints: constrainedInput.constraints?.filter(
+        (constraint) => constraint.space === "parameters",
+      ),
+    };
+    const parameterOnlyTrials = constrainedTrials.map((trial) => ({
+      ...trial,
+      state: "complete" as const,
+      objective: trial.objective ?? 1,
+      constraints: {
+        parameters: [{ constraintId: "rate-cap", margin: 1 }],
+        state: [],
+      },
+    }));
+    renderDrawer(
+      makeOptimizationRecord({
+        input: parameterOnlyInput,
+        trials: parameterOnlyTrials,
+        best: fakeConstrainedStudyTrials.best,
+        status: "complete",
+        connected: makeConnectedStudyState(parameterOnlyInput, {
+          navigation,
+          resumable: true,
+        }),
+      }),
+    );
+
+    const card = screen
+      .getByText("Constraints")
+      .closest<HTMLElement>("[data-chart-card]")!;
+    expect(card.textContent).toContain("Step 30: clear");
+    expect(card.textContent).not.toContain("clearr");
+    expect(card.querySelectorAll("[data-constraint-row]")).toHaveLength(0);
+  });
+
   it("shows none of it for a study without constraints", () => {
     renderDrawer(
       makeOptimizationRecord({
