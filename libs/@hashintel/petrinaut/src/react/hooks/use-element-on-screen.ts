@@ -43,8 +43,7 @@ export function useElementOnScreen(ref: RefObject<Element | null>): boolean {
     observedRef.current = element;
 
     // With no element, or no observer to watch it with, the last answer
-    // stands — as in `useElementSize`, callers gate on the element's presence
-    // anyway and the next observation corrects any drift.
+    // stands; the next observation corrects any drift.
     if (!element || typeof IntersectionObserver === "undefined") {
       return;
     }

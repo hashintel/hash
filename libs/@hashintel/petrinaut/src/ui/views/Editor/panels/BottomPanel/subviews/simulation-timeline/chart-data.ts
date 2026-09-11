@@ -2,13 +2,10 @@
  * The columns uPlot draws, extended as frames arrive rather than rebuilt.
  *
  * A run appends one row per frame, and the chart is asked for its data again
- * on every one of them. Building that data from scratch each time costs a
- * pass over the whole run: on a net with five hundred series, a thousand
- * frames in, moving the chart on by one column meant half a million
- * additions and five hundred fresh arrays. Rows are only ever appended, so
- * both builders keep what they made and extend it, and start over only when
- * the shape they were built from changes — a different series list, a
- * different hidden set, or a new run.
+ * on every one of them. Rows are only ever appended, so both builders keep
+ * what they made and extend it, and start over only when the shape they were
+ * built from changes — a different series list, a different hidden set, or a
+ * new run.
  *
  * Each builder holds the state for one chart, so a chart makes its own.
  */
@@ -22,11 +19,18 @@ type Source = {
   hidden: Set<string>;
 };
 
+/** The data for one chart, extended from what the builder last returned. */
+type ChartDataBuilder = (
+  store: StreamingStore,
+  hiddenSeries: Set<string>,
+  length?: number,
+) => uPlot.AlignedData;
+
 const sameSource = (
   previous: Source | null,
   store: StreamingStore,
   hidden: Set<string>,
-): previous is Source =>
+): boolean =>
   previous !== null &&
   previous.time === store.columns[0] &&
   previous.series === store.series &&
@@ -37,11 +41,7 @@ const sameSource = (
  * series. A hidden series is plotted as gaps, and every hidden series shares
  * one column of them.
  */
-export const createRunDataBuilder = (): ((
-  store: StreamingStore,
-  hiddenSeries: Set<string>,
-  length?: number,
-) => uPlot.AlignedData) => {
+export const createRunDataBuilder = (): ChartDataBuilder => {
   let source: Source | null = null;
   let gaps: null[] = [];
   let data: uPlot.AlignedData = [[]];
@@ -74,11 +74,7 @@ export const createRunDataBuilder = (): ((
  * Builds the stacked data: each band is its series plus everything below it,
  * ordered from the top down, which is the order uPlot fills bands in.
  */
-export const createStackedDataBuilder = (): ((
-  store: StreamingStore,
-  hiddenSeries: Set<string>,
-  length?: number,
-) => uPlot.AlignedData) => {
+export const createStackedDataBuilder = (): ChartDataBuilder => {
   let source: Source | null = null;
   let built = 0;
   let visibleColumns: number[] = [];

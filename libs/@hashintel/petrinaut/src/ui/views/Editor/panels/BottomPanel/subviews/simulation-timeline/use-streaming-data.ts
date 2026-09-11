@@ -322,27 +322,26 @@ export function useStreamingData(
 
   // Stream new frames into the store.
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchData = async () => {
-      if (paused) {
-        return;
-      }
-
-      if (totalFrames === 0) {
-        if (storeController.getLength() > 0) {
-          storeController.resetCurrentSeries();
-          processedRef.current = 0;
-        }
-        return;
-      }
-
-      // Handle simulation restart
-      if (totalFrames < processedRef.current) {
+    // A reset is noticed while paused too, so resuming does not append a new
+    // run to the old one's rows.
+    if (totalFrames === 0) {
+      if (storeController.getLength() > 0) {
         storeController.resetCurrentSeries();
         processedRef.current = 0;
       }
+      return;
+    }
+    if (totalFrames < processedRef.current) {
+      storeController.resetCurrentSeries();
+      processedRef.current = 0;
+    }
+    if (paused) {
+      return;
+    }
 
+    let cancelled = false;
+
+    const fetchData = async () => {
       const startIndex = processedRef.current;
       if (startIndex >= totalFrames) {
         return;
