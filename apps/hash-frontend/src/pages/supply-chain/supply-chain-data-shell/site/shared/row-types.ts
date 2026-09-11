@@ -27,7 +27,21 @@ export type SortKey =
   | "otif"
   | "meanLate"
   | "meanLateWhenLate"
-  | "maxLate";
+  | "maxLate"
+  // Menu-only sorts (no column): derived step metrics…
+  | "tailRatio"
+  | "variability"
+  | "changeDays"
+  | "bufferReleasable"
+  // …opportunity extras…
+  | "stepType"
+  | "sampleSize"
+  // …and supplier extras.
+  | "nLate"
+  | "lateShare"
+  | "inFullGap"
+  | "severeLate"
+  | "materialsCount";
 
 export type SortDir = "asc" | "desc";
 

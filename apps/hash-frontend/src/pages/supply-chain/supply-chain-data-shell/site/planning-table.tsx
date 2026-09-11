@@ -1,3 +1,4 @@
+import { SortMenu } from "@hashintel/ds-components";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
@@ -27,6 +28,11 @@ import {
   type SortKey,
   type SortDir,
 } from "./shared/row-types";
+import {
+  PLANNING_SORTERS,
+  sortFromMenu,
+  sortMenuValueOf,
+} from "./shared/sort-menus";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
@@ -82,6 +88,7 @@ export const PlanningTable = ({
   onRowClick,
   statusHistory = {},
   onStatus,
+  filterBar,
 }: {
   rows: PlanningRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -91,279 +98,296 @@ export const PlanningTable = ({
   onRowClick: (node: SiteNode) => void;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
+  /** Filter controls rendered in the card's pinned header band. */
+  filterBar?: React.ReactNode;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const { displayedRows, toggleSort } = useStepTableView<PlanningRow>({
-    rows,
-    siteId,
-    sort,
-    onSort,
-    statusHistory,
-    sortRows: sortPlanningRows,
-    source: "planning_table",
-  });
+  const { displayedRows, toggleSort, applySort } =
+    useStepTableView<PlanningRow>({
+      rows,
+      siteId,
+      sort,
+      onSort,
+      statusHistory,
+      sortRows: sortPlanningRows,
+      source: "planning_table",
+    });
 
   return (
     <div
-      className={threshold.tableContainer}
+      className={threshold.tableCard}
       style={{ maxHeight: threshold.TABLE_MAX_HEIGHT }}
     >
-      <table className={threshold.table}>
-        <thead>
-          <tr className={threshold.theadRow}>
-            <th className={threshold.th}>
-              <ColumnHeader
-                label="Step"
-                sort={{
-                  active: sort.key === "material",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("material"),
-                }}
-              />
-            </th>
-            <th className={threshold.th}>
-              <ColumnHeader
-                label="Supplier"
-                sort={{
-                  active: sort.key === "supplier",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("supplier"),
-                }}
-              />
-            </th>
-            <th className={threshold.th}>
-              <ColumnHeader
-                label="Basis"
-                sort={{
-                  active: sort.key === "basis",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("basis"),
-                }}
-              />
-            </th>
-            <th className={threshold.th}>
-              <ColumnHeader label="Products" />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Value"
-                sort={{
-                  active: sort.key === "materialValue",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("materialValue"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Planned"
-                sort={{
-                  active: sort.key === "planned",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("planned"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label={measureLabel}
-                sort={{
-                  active: sort.key === "median",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("median"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Deviation"
-                sort={{
-                  active: sort.key === "deviation",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("deviation"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Trend"
-                sort={{
-                  active: sort.key === "trend",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("trend"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Exceeding"
-                sort={{
-                  active: sort.key === "exceeding",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("exceeding"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Status"
-                sort={{
-                  active: sort.key === "status",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("status"),
-                }}
-              />
-            </th>
-          </tr>
-        </thead>
-        <tbody className={threshold.tbodyDivide}>
-          {displayedRows.map((row) => {
-            const deviationPct = row.deviationPct;
-            const hasDeviation = deviationPct != null;
-            const isOver = deviationPct != null && deviationPct > 0;
-            const sampleLevel = combinedSampleTier(
-              row.stats.n,
-              row.previousTrendN,
-            );
-            return (
-              <tr
-                key={siteNodeKey(row)}
-                onClick={() => onRowClick(row)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    onRowClick(row);
-                  }
-                }}
-                tabIndex={0}
-                className={threshold.bodyRow}
-              >
-                <td className={threshold.td}>
-                  <div className={threshold.cellFlex}>
-                    <span className={threshold.stepMarker}>
-                      <span
-                        className={cx(threshold.catDot, threshold.stepDot)}
-                        style={{ backgroundColor: getCategoryColor(row.type) }}
-                      />
-                      {row.type === "procurement" && (
-                        <PlanningWarningIndicator
-                          warnings={row.planning_warnings}
-                        />
-                      )}
-                    </span>
-                    <span className={threshold.stepLabel}>
-                      {planningStepLabel(row)}
-                    </span>
-                  </div>
-                </td>
-                <td className={threshold.td}>{supplierLabel(row)}</td>
-                <td className={threshold.td}>{basisLabel(row)}</td>
-                <td className={threshold.td}>
-                  <ProductTags products={row.products} maxVisible={12} />
-                </td>
-                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
-                  {formatCost(
-                    row.periodMaterialValue,
-                    row.material_value?.currency ?? null,
-                    { compact: true },
-                  )}
-                </td>
-                <td className={cx(threshold.tdRight, threshold.valueMuted)}>
-                  {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
-                </td>
-                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
-                  {formatNumber(selectStat(row.stats, measure) ?? 0, {
-                    maximumFractionDigits: 1,
-                  })}
-                  d
-                </td>
-                <td
-                  className={cx(
-                    threshold.tdRight,
-                    !hasDeviation
-                      ? threshold.valueMuted
-                      : isOver
-                        ? threshold.trendDanger
-                        : threshold.trendSuccess,
-                  )}
+      <div className={threshold.filterHeader}>
+        <div className={threshold.filterHeaderBar}>{filterBar}</div>
+        <SortMenu
+          items={PLANNING_SORTERS}
+          value={sortMenuValueOf(sort)}
+          onChange={(key, direction) => applySort(sortFromMenu(key, direction))}
+          variant="ghost"
+          size="sm"
+        />
+      </div>
+      <div className={threshold.tableScroll}>
+        <table className={threshold.table}>
+          <thead>
+            <tr className={threshold.theadRow}>
+              <th className={threshold.th}>
+                <ColumnHeader
+                  label="Step"
+                  sort={{
+                    active: sort.key === "material",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("material"),
+                  }}
+                />
+              </th>
+              <th className={threshold.th}>
+                <ColumnHeader
+                  label="Supplier"
+                  sort={{
+                    active: sort.key === "supplier",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("supplier"),
+                  }}
+                />
+              </th>
+              <th className={threshold.th}>
+                <ColumnHeader
+                  label="Basis"
+                  sort={{
+                    active: sort.key === "basis",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("basis"),
+                  }}
+                />
+              </th>
+              <th className={threshold.th}>
+                <ColumnHeader label="Products" />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Value"
+                  sort={{
+                    active: sort.key === "materialValue",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("materialValue"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Planned"
+                  sort={{
+                    active: sort.key === "planned",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("planned"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label={measureLabel}
+                  sort={{
+                    active: sort.key === "median",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("median"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Deviation"
+                  sort={{
+                    active: sort.key === "deviation",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("deviation"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Trend"
+                  sort={{
+                    active: sort.key === "trend",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("trend"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Exceeding"
+                  sort={{
+                    active: sort.key === "exceeding",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("exceeding"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Status"
+                  sort={{
+                    active: sort.key === "status",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("status"),
+                  }}
+                />
+              </th>
+            </tr>
+          </thead>
+          <tbody className={threshold.tbodyDivide}>
+            {displayedRows.map((row) => {
+              const deviationPct = row.deviationPct;
+              const hasDeviation = deviationPct != null;
+              const isOver = deviationPct != null && deviationPct > 0;
+              const sampleLevel = combinedSampleTier(
+                row.stats.n,
+                row.previousTrendN,
+              );
+              return (
+                <tr
+                  key={siteNodeKey(row)}
+                  onClick={() => onRowClick(row)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      onRowClick(row);
+                    }
+                  }}
+                  tabIndex={0}
+                  className={threshold.bodyRow}
                 >
-                  {hasDeviation ? (
-                    <>
-                      {isOver ? "+" : ""}
-                      {formatNumber(deviationPct, {
-                        maximumFractionDigits: 0,
-                      })}
-                      %
-                    </>
-                  ) : (
-                    "–"
-                  )}
-                </td>
-                <td
-                  className={threshold.tdRight}
-                  title={
-                    row.previousValue != null
-                      ? `Previous period ${measureLabel}: ${formatNumber(
-                          row.previousValue,
-                          { maximumFractionDigits: 1 },
-                        )}d`
-                      : undefined
-                  }
-                >
-                  <span className={threshold.stackedCell}>
-                    <TrendIndicator pctChange={row.trendPct} />
-                    {(sampleLevel === "low" || sampleLevel === "limited") && (
-                      <span className={threshold.badgeWrap}>
-                        <LowSampleBadge
-                          label={`${sampleLevel} sample`}
-                          title={
-                            <PlanningSampleTooltip
-                              currentN={row.stats.n}
-                              previousN={row.previousTrendN}
-                            />
-                          }
+                  <td className={threshold.td}>
+                    <div className={threshold.cellFlex}>
+                      <span className={threshold.stepMarker}>
+                        <span
+                          className={cx(threshold.catDot, threshold.stepDot)}
+                          style={{
+                            backgroundColor: getCategoryColor(row.type),
+                          }}
                         />
+                        {row.type === "procurement" && (
+                          <PlanningWarningIndicator
+                            warnings={row.planning_warnings}
+                          />
+                        )}
                       </span>
+                      <span className={threshold.stepLabel}>
+                        {planningStepLabel(row)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className={threshold.td}>{supplierLabel(row)}</td>
+                  <td className={threshold.td}>{basisLabel(row)}</td>
+                  <td className={threshold.td}>
+                    <ProductTags products={row.products} maxVisible={12} />
+                  </td>
+                  <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                    {formatCost(
+                      row.periodMaterialValue,
+                      row.material_value?.currency ?? null,
+                      { compact: true },
                     )}
-                  </span>
-                </td>
-                <td className={cx(threshold.tdRight, threshold.valueMuted)}>
-                  {row.pct_exceeding_plan != null
-                    ? `${formatNumber(row.pct_exceeding_plan, {
-                        maximumFractionDigits: 0,
-                      })}%`
-                    : "–"}
-                </td>
-                <td className={cx(threshold.td, threshold.tdRight)}>
-                  <div className={threshold.briefActionStack}>
-                    {/* Brief button commented out; still reachable via the step slide-over. */}
-                    {/* <BriefLink href={briefHref(row)} onClick={(event) => event.stopPropagation()} /> */}
-                    <StatusActionButton
-                      state={deriveStatusActionState(
-                        statusHistory[statusKey(siteId, row)],
+                  </td>
+                  <td className={cx(threshold.tdRight, threshold.valueMuted)}>
+                    {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
+                  </td>
+                  <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                    {formatNumber(selectStat(row.stats, measure) ?? 0, {
+                      maximumFractionDigits: 1,
+                    })}
+                    d
+                  </td>
+                  <td
+                    className={cx(
+                      threshold.tdRight,
+                      !hasDeviation
+                        ? threshold.valueMuted
+                        : isOver
+                          ? threshold.trendDanger
+                          : threshold.trendSuccess,
+                    )}
+                  >
+                    {hasDeviation ? (
+                      <>
+                        {isOver ? "+" : ""}
+                        {formatNumber(deviationPct, {
+                          maximumFractionDigits: 0,
+                        })}
+                        %
+                      </>
+                    ) : (
+                      "–"
+                    )}
+                  </td>
+                  <td
+                    className={threshold.tdRight}
+                    title={
+                      row.previousValue != null
+                        ? `Previous period ${measureLabel}: ${formatNumber(
+                            row.previousValue,
+                            { maximumFractionDigits: 1 },
+                          )}d`
+                        : undefined
+                    }
+                  >
+                    <span className={threshold.stackedCell}>
+                      <TrendIndicator pctChange={row.trendPct} />
+                      {(sampleLevel === "low" || sampleLevel === "limited") && (
+                        <span className={threshold.badgeWrap}>
+                          <LowSampleBadge
+                            label={`${sampleLevel} sample`}
+                            title={
+                              <PlanningSampleTooltip
+                                currentN={row.stats.n}
+                                previousN={row.previousTrendN}
+                              />
+                            }
+                          />
+                        </span>
                       )}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onStatus(row, row.label);
-                      }}
-                    />
-                  </div>
+                    </span>
+                  </td>
+                  <td className={cx(threshold.tdRight, threshold.valueMuted)}>
+                    {row.pct_exceeding_plan != null
+                      ? `${formatNumber(row.pct_exceeding_plan, {
+                          maximumFractionDigits: 0,
+                        })}%`
+                      : "–"}
+                  </td>
+                  <td className={cx(threshold.td, threshold.tdRight)}>
+                    <div className={threshold.briefActionStack}>
+                      {/* Brief button commented out; still reachable via the step slide-over. */}
+                      {/* <BriefLink href={briefHref(row)} onClick={(event) => event.stopPropagation()} /> */}
+                      <StatusActionButton
+                        state={deriveStatusActionState(
+                          statusHistory[statusKey(siteId, row)],
+                        )}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onStatus(row, row.label);
+                        }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {displayedRows.length === 0 && (
+              <tr>
+                <td colSpan={11} className={threshold.emptyCell}>
+                  {rows.length === 0
+                    ? "No planning parameter data for this site."
+                    : "No planning parameter data matches the current filters."}
                 </td>
               </tr>
-            );
-          })}
-          {displayedRows.length === 0 && (
-            <tr>
-              <td colSpan={11} className={threshold.emptyCell}>
-                {rows.length === 0
-                  ? "No planning parameter data for this site."
-                  : "No planning parameter data matches the current filters."}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { Icon } from "@hashintel/ds-components";
+import { Icon, SortMenu } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
@@ -25,6 +25,11 @@ import { siteNodeDisplayLabel, sortTrendRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import { type SortDir, type SortKey, type TrendRow } from "./shared/row-types";
+import {
+  sortFromMenu,
+  sortMenuValueOf,
+  TREND_SORTERS,
+} from "./shared/sort-menus";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
@@ -120,6 +125,7 @@ export const TrendTable = ({
   onRowClick,
   statusHistory = {},
   onStatus,
+  filterBar,
 }: {
   rows: TrendRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -129,11 +135,13 @@ export const TrendTable = ({
   onRowClick: (node: SiteNode) => void;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
+  /** Filter controls rendered in the card's pinned header band. */
+  filterBar?: React.ReactNode;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const { displayedRows, toggleSort } = useStepTableView<TrendRow>({
+  const { displayedRows, toggleSort, applySort } = useStepTableView<TrendRow>({
     rows,
     siteId,
     sort,
@@ -145,164 +153,176 @@ export const TrendTable = ({
 
   return (
     <div
-      className={threshold.tableContainer}
+      className={threshold.tableCard}
       style={{ maxHeight: threshold.TABLE_MAX_HEIGHT }}
     >
-      <table className={threshold.table}>
-        <thead>
-          <tr className={threshold.theadRow}>
-            <th className={threshold.th}>
-              <ColumnHeader
-                label="Step"
-                sort={{
-                  active: sort.key === "material",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("material"),
-                }}
-              />
-            </th>
-            <th className={threshold.th}>
-              <ColumnHeader label="Products" />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label={`Current ${measureLabel}`}
-                sort={{
-                  active: sort.key === "median",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("median"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label={`Previous ${measureLabel}`}
-                sort={{
-                  active: sort.key === "previous",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("previous"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Trend"
-                sort={{
-                  active: sort.key === "trend",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("trend"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Samples"
-                sort={{
-                  active: sort.key === "sample",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("sample"),
-                }}
-              />
-            </th>
-            <th className={threshold.thRight}>
-              <ColumnHeader
-                label="Status"
-                sort={{
-                  active: sort.key === "status",
-                  dir: sort.dir,
-                  onToggle: () => toggleSort("status"),
-                }}
-              />
-            </th>
-          </tr>
-        </thead>
-        <tbody className={threshold.tbodyDivide}>
-          {displayedRows.map((row) => (
-            <tr
-              key={siteNodeKey(row)}
-              onClick={() => onRowClick(row)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  onRowClick(row);
-                }
-              }}
-              tabIndex={0}
-              className={threshold.bodyRow}
-            >
-              <td className={threshold.td}>
-                <div className={threshold.cellFlex}>
-                  <span
-                    className={cx(threshold.catDot, threshold.stepDot)}
-                    style={{ backgroundColor: getCategoryColor(row.type) }}
-                  />
-
-                  <span className={threshold.stepLabel}>
-                    {siteNodeDisplayLabel(row)}
-                  </span>
-                </div>
-              </td>
-              <td className={threshold.td}>
-                <ProductTags products={row.products} maxVisible={12} />
-              </td>
-              <td className={cx(threshold.tdRight, threshold.valueStrong)}>
-                {formatNumber(selectStat(row.stats, measure), {
-                  maximumFractionDigits: 1,
-                })}
-                d
-              </td>
-              <td className={cx(threshold.tdRight, prevValue)}>
-                {row.previousValue != null
-                  ? `${formatNumber(row.previousValue, {
-                      maximumFractionDigits: 1,
-                    })}d`
-                  : "-"}
-              </td>
-              <td className={threshold.tdRight}>
-                <TrendValue pctChange={row.trendPct} />
-              </td>
-              <td className={cx(threshold.tdRight, threshold.valueMuted)}>
-                <span className={threshold.sampleCell}>
-                  {(rowSampleTier(row) === "low" ||
-                    rowSampleTier(row) === "limited") && (
-                    <span className={threshold.badgeWrap}>
-                      <LowSampleBadge
-                        label={rowSampleTier(row)}
-                        title={
-                          <TrendSampleTooltip
-                            currentN={row.stats.n}
-                            previousN={row.previousTrendN}
-                          />
-                        }
-                      />
-                    </span>
-                  )}
-                  <span>{formatNumber(row.stats.n)}</span>
-                </span>
-              </td>
-              <td className={cx(threshold.td, threshold.tdRight)}>
-                <StatusActionButton
-                  state={deriveStatusActionState(
-                    statusHistory[statusKey(siteId, row)],
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onStatus(row, row.label);
+      <div className={threshold.filterHeader}>
+        <div className={threshold.filterHeaderBar}>{filterBar}</div>
+        <SortMenu
+          items={TREND_SORTERS}
+          value={sortMenuValueOf(sort)}
+          onChange={(key, direction) => applySort(sortFromMenu(key, direction))}
+          variant="ghost"
+          size="sm"
+        />
+      </div>
+      <div className={threshold.tableScroll}>
+        <table className={threshold.table}>
+          <thead>
+            <tr className={threshold.theadRow}>
+              <th className={threshold.th}>
+                <ColumnHeader
+                  label="Step"
+                  sort={{
+                    active: sort.key === "material",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("material"),
                   }}
                 />
-              </td>
+              </th>
+              <th className={threshold.th}>
+                <ColumnHeader label="Products" />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label={`Current ${measureLabel}`}
+                  sort={{
+                    active: sort.key === "median",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("median"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label={`Previous ${measureLabel}`}
+                  sort={{
+                    active: sort.key === "previous",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("previous"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Trend"
+                  sort={{
+                    active: sort.key === "trend",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("trend"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Samples"
+                  sort={{
+                    active: sort.key === "sample",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("sample"),
+                  }}
+                />
+              </th>
+              <th className={threshold.thRight}>
+                <ColumnHeader
+                  label="Status"
+                  sort={{
+                    active: sort.key === "status",
+                    dir: sort.dir,
+                    onToggle: () => toggleSort("status"),
+                  }}
+                />
+              </th>
             </tr>
-          ))}
-          {displayedRows.length === 0 && (
-            <tr>
-              <td colSpan={7} className={threshold.emptyCell}>
-                {rows.length === 0
-                  ? "No trend data for this site."
-                  : "No trend data matches the current filters."}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className={threshold.tbodyDivide}>
+            {displayedRows.map((row) => (
+              <tr
+                key={siteNodeKey(row)}
+                onClick={() => onRowClick(row)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onRowClick(row);
+                  }
+                }}
+                tabIndex={0}
+                className={threshold.bodyRow}
+              >
+                <td className={threshold.td}>
+                  <div className={threshold.cellFlex}>
+                    <span
+                      className={cx(threshold.catDot, threshold.stepDot)}
+                      style={{ backgroundColor: getCategoryColor(row.type) }}
+                    />
+
+                    <span className={threshold.stepLabel}>
+                      {siteNodeDisplayLabel(row)}
+                    </span>
+                  </div>
+                </td>
+                <td className={threshold.td}>
+                  <ProductTags products={row.products} maxVisible={12} />
+                </td>
+                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                  {formatNumber(selectStat(row.stats, measure), {
+                    maximumFractionDigits: 1,
+                  })}
+                  d
+                </td>
+                <td className={cx(threshold.tdRight, prevValue)}>
+                  {row.previousValue != null
+                    ? `${formatNumber(row.previousValue, {
+                        maximumFractionDigits: 1,
+                      })}d`
+                    : "-"}
+                </td>
+                <td className={threshold.tdRight}>
+                  <TrendValue pctChange={row.trendPct} />
+                </td>
+                <td className={cx(threshold.tdRight, threshold.valueMuted)}>
+                  <span className={threshold.sampleCell}>
+                    {(rowSampleTier(row) === "low" ||
+                      rowSampleTier(row) === "limited") && (
+                      <span className={threshold.badgeWrap}>
+                        <LowSampleBadge
+                          label={rowSampleTier(row)}
+                          title={
+                            <TrendSampleTooltip
+                              currentN={row.stats.n}
+                              previousN={row.previousTrendN}
+                            />
+                          }
+                        />
+                      </span>
+                    )}
+                    <span>{formatNumber(row.stats.n)}</span>
+                  </span>
+                </td>
+                <td className={cx(threshold.td, threshold.tdRight)}>
+                  <StatusActionButton
+                    state={deriveStatusActionState(
+                      statusHistory[statusKey(siteId, row)],
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onStatus(row, row.label);
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+            {displayedRows.length === 0 && (
+              <tr>
+                <td colSpan={7} className={threshold.emptyCell}>
+                  {rows.length === 0
+                    ? "No trend data for this site."
+                    : "No trend data matches the current filters."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

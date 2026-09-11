@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Tooltip } from "@hashintel/ds-components";
+import { SortMenu, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
+import { STEP_TYPE_ORDER } from "../../shared/categories";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
@@ -16,6 +17,11 @@ import {
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { ColumnHeader } from "./shared/column-header";
 import { ProductTags } from "./shared/product-tags";
+import {
+  OPPORTUNITY_SORTERS,
+  sortFromMenu,
+  sortMenuValueOf,
+} from "./shared/sort-menus";
 import * as threshold from "./shared/table-styles";
 
 import type { SiteNode } from "../../shared/types";
@@ -43,13 +49,28 @@ const header = css({
   borderBottomWidth: "1px",
   borderColor: "bd.subtle",
   display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+});
+const titleRow = css({
+  display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "3",
-  flexWrap: "wrap",
+});
+const headerActions = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: "0",
 });
 const tableScroll = css({ flex: "1", minH: "0", overflow: "auto" });
-const titleWrap = css({ display: "flex", flexDirection: "column", gap: "0.5" });
+const titleWrap = css({
+  display: "flex",
+  alignItems: "baseline",
+  gap: "2",
+  flexWrap: "wrap",
+});
 const title = css({
   textStyle: "base",
   fontWeight: "semibold",
@@ -221,6 +242,13 @@ interface OpportunitiesTableProps {
   onStatus: (node: SiteNode, title: string) => void;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (next: { key: SortKey; dir: SortDir }) => void;
+  /**
+   * Filter controls for the card header: inline right of the title while no
+   * filter is active, on their own row beneath it once one is.
+   */
+  filterBar?: React.ReactNode;
+  /** Whether any filter chip is active (drives the filter bar's placement). */
+  filtersActive?: boolean;
   revealSectionRequest?: {
     kind: OpportunityKind;
     requestId: number;
@@ -328,6 +356,21 @@ function sortOpportunities(
       sort.dir === "desc" ? right.score - left.score : left.score - right.score,
     );
   }
+  if (sort.key === "stepType") {
+    return [...items].sort((left, right) => {
+      const cmp =
+        STEP_TYPE_ORDER.indexOf(left.node.type) -
+        STEP_TYPE_ORDER.indexOf(right.node.type);
+      return sort.dir === "desc" ? -cmp : cmp;
+    });
+  }
+  if (sort.key === "sampleSize") {
+    return [...items].sort((left, right) =>
+      sort.dir === "desc"
+        ? right.currentSampleN - left.currentSampleN
+        : left.currentSampleN - right.currentSampleN,
+    );
+  }
   return items;
 }
 
@@ -339,6 +382,8 @@ export const OpportunitiesTable = ({
   onStatus,
   sort,
   onSort,
+  filterBar,
+  filtersActive = false,
   revealSectionRequest,
 }: OpportunitiesTableProps) => {
   const [collapsedSections, setCollapsedSections] = useState<
@@ -433,13 +478,28 @@ export const OpportunitiesTable = ({
         }
       `}</style>
       <div className={header}>
-        <div className={titleWrap}>
-          <h2 className={title}>Opportunities</h2>
-          <p className={subtitle}>
-            {visibleCount} visible of {opportunities.length} generated from
-            dwell cost and planning variance.
-          </p>
+        <div className={titleRow}>
+          <div className={titleWrap}>
+            <h2 className={title}>Opportunities</h2>
+            <p className={subtitle}>
+              {visibleCount} visible of {opportunities.length} generated from
+              dwell cost and planning variance.
+            </p>
+          </div>
+          <div className={headerActions}>
+            {!filtersActive && filterBar}
+            <SortMenu
+              items={OPPORTUNITY_SORTERS}
+              value={sortMenuValueOf(sort)}
+              onChange={(key, direction) =>
+                onSort(sortFromMenu(key, direction))
+              }
+              variant="ghost"
+              size="sm"
+            />
+          </div>
         </div>
+        {filtersActive && filterBar}
       </div>
       <div className={tableScroll}>
         <table className={threshold.table}>

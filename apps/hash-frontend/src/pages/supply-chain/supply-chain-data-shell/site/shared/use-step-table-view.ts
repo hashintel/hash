@@ -54,6 +54,8 @@ export function useStepTableView<Row extends SiteNode>({
   statusOf: (node: SiteNode) => StatusActionLabel;
   displayedRows: Row[];
   toggleSort: (key: SortKey) => void;
+  /** Tracked sort setter for controls that pick key and direction directly. */
+  applySort: (next: { key: SortKey; dir: SortDir }) => void;
 } {
   const { measure } = useBaseMeasure();
 
@@ -73,25 +75,33 @@ export function useStepTableView<Row extends SiteNode>({
     return sortRows(rows, sort, measure);
   }, [rows, statusOf, sort, measure, sortRows]);
 
-  const toggleSort = useCallback(
-    (key: SortKey) => {
+  const applySort = useCallback(
+    (next: { key: SortKey; dir: SortDir }) => {
       trackSupplyChainInteraction({
         interaction: "table_sort_changed",
         siteId,
         source,
       });
+      onSort(next);
+    },
+    [onSort, siteId, source],
+  );
+
+  const toggleSort = useCallback(
+    (key: SortKey) => {
       if (sort.key === key) {
-        onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
+        applySort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
       } else {
-        onSort({ key, dir: key === "status" ? "asc" : "desc" });
+        applySort({ key, dir: key === "status" ? "asc" : "desc" });
       }
     },
-    [sort, onSort, siteId, source],
+    [sort, applySort],
   );
 
   return {
     statusOf,
     displayedRows,
     toggleSort,
+    applySort,
   };
 }

@@ -14,6 +14,32 @@ export const tableContainer = css({
   bg: "bgSolid.min",
   overflow: "auto",
 });
+// Card variant hosting a pinned filter band above the scrolling table,
+// matching the Opportunities card: the band keeps the card's white background
+// and the table scrolls beneath it in its own pane.
+export const tableCard = css({
+  display: "flex",
+  flexDirection: "column",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "lg",
+  bg: "bgSolid.min",
+  overflow: "hidden",
+});
+export const filterHeader = css({
+  flexShrink: "0",
+  px: "4",
+  py: "3",
+  borderBottomWidth: "1px",
+  borderColor: "bd.subtle",
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "3",
+});
+/** Grows the filter bar so the sort menu stays pinned to the band's right edge. */
+export const filterHeaderBar = css({ flex: "1", minW: "0" });
+export const tableScroll = css({ flex: "1", minH: "0", overflow: "auto" });
 export const table = css({ w: "full", textStyle: "sm", lineHeight: "normal" });
 export const theadRow = css({
   textAlign: "left",
