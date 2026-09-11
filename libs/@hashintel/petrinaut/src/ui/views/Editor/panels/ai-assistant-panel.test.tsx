@@ -276,20 +276,31 @@ const renderTestPanel = ({
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
-        <NotificationsProvider>
-          <EditorContext.Provider value={nextEditorContext}>
-            <SDCPNContext.Provider value={sdcpnContext}>
-              <AiAssistantPanel
-                aiAssistant={nextAiAssistant}
-                initialInteractionMode={nextInitialInteractionMode}
-                initialMessage={nextInitialMessage}
-                onInitialInteractionModeConsumed={
-                  onInitialInteractionModeConsumed
-                }
-              />
-            </SDCPNContext.Provider>
-          </EditorContext.Provider>
-        </NotificationsProvider>
+        <LanguageClientContext
+          value={{
+            ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+            requestDiagnostics: async () => ({
+              byUri: new Map(),
+              total: 0,
+              errorCount: 0,
+            }),
+          }}
+        >
+          <NotificationsProvider>
+            <EditorContext.Provider value={nextEditorContext}>
+              <SDCPNContext.Provider value={sdcpnContext}>
+                <AiAssistantPanel
+                  aiAssistant={nextAiAssistant}
+                  initialInteractionMode={nextInitialInteractionMode}
+                  initialMessage={nextInitialMessage}
+                  onInitialInteractionModeConsumed={
+                    onInitialInteractionModeConsumed
+                  }
+                />
+              </SDCPNContext.Provider>
+            </EditorContext.Provider>
+          </NotificationsProvider>
+        </LanguageClientContext>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
