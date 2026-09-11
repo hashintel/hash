@@ -18,7 +18,9 @@ closure, so work already done (a compiled shader, a shard plan) flows into the
 run and the verdict can never be about a different thing.
 
 Instantiation can still fail, but only for `environment` or `capacity` reasons. A
-device that will not allocate is not the net's fault.
+device that will not allocate is not the net's fault. What only a run can tell —
+a derived token slab the GPU's probe cannot size — surfaces as that run's error,
+not as a refusal: the probe runs after `start()`, so its frames stream.
 
 ![Choosing a backend for one experiment](@diagrams/backend-selection.svg)
 

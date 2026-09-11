@@ -30,14 +30,15 @@ never blocks a firing over it.
 
 ![Probe, decide, grow](@diagrams/gpu-capacity-calibration.svg)
 
-1. **Probe.** Before the experiment handle exists, a small prefix of the runs
-   executes at generous slabs (four times each place's initial tokens). Few
-   runs afford big slabs, the probe's frames stream to the charts, and its
-   shader tracks each derived place's **per-run maximum count** (a register
-   per place, folded into the summary). A probe that overflows quadruples the
-   slabs, recompiles, and probes again — shedding runs to stay inside a
-   128 MB probe budget, so seven growth attempts reach counts past a million
-   (64 × 4⁷) before conceding to the CPU.
+1. **Probe.** As the first phase of the run — after `start()`, so its
+   chunks stream to the charts like every other attempt's — a small prefix of
+   the runs executes at generous slabs (four times each place's initial
+   tokens). Few runs afford big slabs, and the probe's shader tracks each
+   derived place's **per-run maximum count** (a register per place, folded
+   into the summary). A probe that overflows quadruples the slabs,
+   recompiles, and probes again — shedding runs to stay inside a 128 MB
+   probe budget, so seven growth attempts reach counts past a million
+   (64 × 4⁷) before conceding.
 2. **Decide, per place.** The probe yields the largest per-run maximum and
    the mean of the per-run maxima. When the largest is close to typical, the
    slab becomes 1.5 × the observed maximum plus headroom — recompile, run in
@@ -45,10 +46,9 @@ never blocks a firing over it.
    the outlier-sized slab would be big, that heavy-tailed shape is the
    planned **per-run token arena**'s case — shared place-tagged slots sized
    by the simultaneous total, paying indirection only where nothing else
-   works. Until the arena exists, that branch refuses cleanly during
-   creation, so the backend-selection walk falls back to the CPU, which
-   sizes its buffers dynamically. The experiment runs on the other backend,
-   with the reason surfaced only as the backend indicator's tooltip.
+   works. Until the arena exists, that branch ends the run with a reason
+   that asks the user to switch the experiment to the CPU, which sizes its
+   buffers dynamically.
 3. **Detect and grow, in a loop.** The full run can still outgrow the probe's
    estimate. A frame whose post-fold count exceeds a derived slab sets the
    run's status to _overflowed_ — an exact check, since the highest slot a
@@ -57,13 +57,12 @@ never blocks a firing over it.
    discards the attempt. The handle doubles the slabs, recompiles, and
    re-runs. Seeds derive from absolute run indices, so a re-run reproduces
    the same trajectories and each retry strictly grows — the loop converges
-   or hands the experiment to the CPU. A run a non-finite metric sample
-   halted would halt again on the same seeds, so an attempt with one is
-   handed back at once and the handle reports the metric, ahead of any
-   overflow the attempt also carries. A probe a metric halted is handed back
-   before its slabs are sized, so neither an overflow nor the arena case
-   pre-empts the halt, and its calibration is not kept for the next batch on
-   the marking.
+   or ends the run with its reason. A run a non-finite metric sample halted
+   would halt again on the same seeds, so an attempt with one is handed back
+   at once and the handle reports the metric, ahead of any overflow the
+   attempt also carries. A probe a metric halted is handed back before its
+   slabs are sized, so neither an overflow nor the arena case pre-empts the
+   halt, and its calibration is not kept for the next batch on the marking.
 
 Derived and declared capacities keep distinct semantics, recorded as
 `capacitySource` on the profile: declared blocks firings (CPU parity),

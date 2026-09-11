@@ -12,8 +12,8 @@
  * once.
  *
  * A slab stops growing at its place's `derivedSlabCeiling`; an attempt that
- * still overflows there is handed back as it stands, and the caller sends the
- * experiment to the CPU.
+ * still overflows there is handed back as it stands, and the caller reports
+ * why.
  */
 import { derivedSlabCeiling, tokenWordCount } from "../eligibility";
 import {
@@ -42,8 +42,8 @@ export const GPU_PROBE_MEMORY_BYTES = 128 * 1024 * 1024;
  * its probe shows a heavy tail — outlier runs far past the typical maximum.
  * Below it, sizing for the outlier is cheap enough to just do; past it, the
  * right structure is a per-run token arena (shared place-tagged slots sized
- * by the simultaneous total), and until that exists the experiment runs on
- * the CPU, which sizes its buffers dynamically.
+ * by the simultaneous total), and until that exists the run is refused with
+ * a reason that points at the CPU, which sizes its buffers dynamically.
  */
 export const GPU_ARENA_SLAB_BYTES = 64 * 1024;
 
@@ -281,7 +281,7 @@ export const slabsFromProbe = (
     ) {
       return {
         ok: false,
-        reason: `Probing \`${place.name}\` saw outlier runs reach ${stats.max} tokens against a typical per-run maximum of ${Math.round(stats.meanRunMax)}. Sizing every run for the outlier would take ${Math.round(slabBytes / 1024)} KB per run — that heavy-tailed shape needs a per-run token arena, so this experiment runs on the CPU.`,
+        reason: `Probing \`${place.name}\` saw outlier runs reach ${stats.max} tokens against a typical per-run maximum of ${Math.round(stats.meanRunMax)}. Sizing every run for the outlier would take ${Math.round(slabBytes / 1024)} KB per run — that heavy-tailed shape needs a per-run token arena. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
       };
     }
     capacities.set(place.id, capacity);
@@ -290,16 +290,16 @@ export const slabsFromProbe = (
 };
 
 /**
- * Calibrates derived capacities before the handle exists, so the arena case
- * can refuse cleanly and the caller falls back to the CPU: probes a small
+ * Calibrates derived capacities as a run's first attempts: probes a small
  * prefix of the runs at generous slabs (growing on overflow), sizes each
  * place's slab from the observed maxima, and recompiles at those. The same
  * probe observes the metric ranges, seeding the histogram windows, and counts
- * the runs a non-finite metric sample halted, which the handle reports as the
+ * the runs a non-finite metric sample halted, which the caller reports as the
  * full run would. A halted probe is handed back before its slabs are sized:
  * the CPU would fail on the same sample, so neither an overflow nor the arena
  * case the same probe shows pre-empts the halt, and nothing is recompiled for
- * a run the handle will not start.
+ * a run the caller will not start. The arena case refuses with a reason the
+ * caller reports.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -367,7 +367,7 @@ export const probeDerivedCapacities = async (options: {
     const largest = Math.max(0, ...session.capacities.values());
     return {
       ok: false,
-      reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place; running on the CPU, which sizes its buffers dynamically.`,
+      reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
     };
   }
   const slabs = slabsFromProbe(session, probe.result, placeCounts);
