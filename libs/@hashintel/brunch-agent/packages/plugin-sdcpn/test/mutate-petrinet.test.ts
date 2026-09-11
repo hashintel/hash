@@ -238,6 +238,114 @@ describe("mutate_petrinet tool", () => {
     ]);
   });
 
+  test("admits edits to existing parts by ID, but not canvas positions or subnet targets", () => {
+    const edits = [
+      {
+        operationId: "rename-queue",
+        basisId: "queue-basis",
+        type: "updatePlace",
+        input: { placeId: "queue", update: { name: "Backlog" } },
+      },
+      {
+        operationId: "start-rate",
+        basisId: "queue-basis",
+        type: "updateTransition",
+        input: {
+          transitionId: "start",
+          update: { lambdaType: "stochastic", lambdaCode: "return 2;" },
+        },
+      },
+      {
+        operationId: "double-weight",
+        basisId: "queue-basis",
+        type: "updateArcWeight",
+        input: {
+          transitionId: "start",
+          arcDirection: "input",
+          placeId: "queue",
+          weight: 2,
+        },
+      },
+      {
+        operationId: "read-only",
+        basisId: "queue-basis",
+        type: "updateArcType",
+        input: { transitionId: "start", placeId: "queue", type: "read" },
+      },
+      {
+        operationId: "rename-item",
+        basisId: "queue-basis",
+        type: "updateType",
+        input: { typeId: "item", update: { name: "Lot" } },
+      },
+      {
+        operationId: "add-age",
+        basisId: "queue-basis",
+        type: "addTypeElement",
+        input: {
+          typeId: "item",
+          element: { elementId: "age", name: "age", type: "real" },
+        },
+      },
+      {
+        operationId: "rename-age",
+        basisId: "queue-basis",
+        type: "updateTypeElement",
+        input: {
+          typeId: "item",
+          elementId: "age",
+          update: { name: "age_days" },
+        },
+      },
+      {
+        operationId: "rename-rate",
+        basisId: "queue-basis",
+        type: "updateParameter",
+        input: {
+          parameterId: "rate",
+          update: { variableName: "daily_demand", defaultValue: "12" },
+        },
+      },
+    ];
+    expect(
+      mutatePetrinetInputSchema
+        .parse({ ...input, operations: edits })
+        .operations.map(({ type }) => type),
+    ).toEqual(edits.map(({ type }) => type));
+    for (const type of ["updatePlacePosition", "updateTransitionPosition"]) {
+      expect(() =>
+        mutatePetrinetInputSchema.parse({
+          ...input,
+          operations: [
+            {
+              operationId: "move",
+              basisId: "queue-basis",
+              type,
+              input: { placeId: "queue", position: { x: 1, y: 1 } },
+            },
+          ],
+        }),
+      ).toThrow(/type|invalid/iu);
+    }
+    expect(() =>
+      mutatePetrinetInputSchema.parse({
+        ...input,
+        operations: [
+          {
+            operationId: "nested",
+            basisId: "queue-basis",
+            type: "updatePlace",
+            input: {
+              placeId: "queue",
+              update: { name: "Backlog" },
+              targetSubnetId: "nested",
+            },
+          },
+        ],
+      }),
+    ).toThrow(/unrecognized|targetSubnetId/iu);
+  });
+
   test("refuses the wrapped operation dialect and addArc endpoint shorthand", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
@@ -309,7 +417,7 @@ describe("mutate_petrinet tool", () => {
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(10);
+    expect(variants.length).toBe(18);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),
@@ -347,6 +455,15 @@ describe("mutate_petrinet tool", () => {
     expect(requiredOf(removeArcInput)).toContain("placeId");
     expect(property(removeArcInput, "endpoint", root)).toBeUndefined();
     expect(asRecord(removeArcInput.properties)?.endpoint).toBeUndefined();
+    for (const name of ["updateArcWeight", "updateArcType"]) {
+      const variant = variants.find(
+        (candidate) => property(candidate, "type", root)?.const === name,
+      );
+      const arcInput = property(variant, "input", root);
+      if (!arcInput) throw new Error(`Missing ${name} input schema`);
+      expect(requiredOf(arcInput)).toContain("placeId");
+      expect(asRecord(arcInput.properties)?.endpoint).toBeUndefined();
+    }
   });
 
   test("validates the workpiece and exact prior observation before deferring", async () => {

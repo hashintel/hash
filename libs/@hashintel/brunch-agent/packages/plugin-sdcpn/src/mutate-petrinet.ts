@@ -113,6 +113,64 @@ const rootRemoveArcInputSchema = z
   })
   .meta({ description: "Remove an input or output arc from a transition." });
 
+// Edits to existing parts of the net. Each names the part by ID and carries
+// only the fields to change; canvas positions stay with layout.
+const rootUpdatePlaceInputSchema = mutationActionInputSchemas.updatePlace.omit({
+  targetSubnetId: true,
+});
+
+const rootUpdateTransitionInputSchema =
+  mutationActionInputSchemas.updateTransition.omit({
+    targetSubnetId: true,
+  });
+
+// Both arc updates carry the single-endpoint `.check()`; rebuild from `.shape`
+// as addArc does and keep the root-place endpoint only.
+const updateArcWeightShape = mutationActionInputSchemas.updateArcWeight.shape;
+const rootUpdateArcWeightInputSchema = z
+  .strictObject({
+    transitionId: updateArcWeightShape.transitionId,
+    arcDirection: updateArcWeightShape.arcDirection,
+    placeId: z.string().min(1).meta({
+      description: "ID of a place in the root net.",
+    }),
+    weight: updateArcWeightShape.weight,
+  })
+  .meta({ description: "Update the token weight on an existing arc." });
+
+const updateArcTypeShape = mutationActionInputSchemas.updateArcType.shape;
+const rootUpdateArcTypeInputSchema = z
+  .strictObject({
+    transitionId: updateArcTypeShape.transitionId,
+    placeId: z.string().min(1).meta({
+      description: "ID of a place in the root net.",
+    }),
+    type: updateArcTypeShape.type,
+  })
+  .meta({
+    description:
+      "Update an existing input arc's type (standard, read or inhibitor).",
+  });
+
+const rootUpdateTypeInputSchema = mutationActionInputSchemas.updateType.omit({
+  targetSubnetId: true,
+});
+
+const rootAddTypeElementInputSchema =
+  mutationActionInputSchemas.addTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootUpdateTypeElementInputSchema =
+  mutationActionInputSchemas.updateTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootUpdateParameterInputSchema =
+  mutationActionInputSchemas.updateParameter.omit({
+    targetSubnetId: true,
+  });
+
 const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
     operationId: operationIdSchema,
@@ -173,6 +231,54 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     basisId: basisIdSchema,
     type: z.literal("updateDifferentialEquation"),
     input: rootUpdateDifferentialEquationInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updatePlace"),
+    input: rootUpdatePlaceInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateTransition"),
+    input: rootUpdateTransitionInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateArcWeight"),
+    input: rootUpdateArcWeightInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateArcType"),
+    input: rootUpdateArcTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateType"),
+    input: rootUpdateTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addTypeElement"),
+    input: rootAddTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateTypeElement"),
+    input: rootUpdateTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateParameter"),
+    input: rootUpdateParameterInputSchema,
   }),
 ]);
 

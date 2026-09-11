@@ -321,6 +321,103 @@ describe("root addArc transition semantics", () => {
     ).toEqual({ outcome: "applied" });
   });
 
+  test("derives a parameter edit as a direct field change on the located parameter", () => {
+    const before: SDCPN = {
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [
+        {
+          id: "lead-time",
+          name: "Lead time",
+          variableName: "lead_time",
+          type: "real",
+          defaultValue: "3",
+        },
+      ],
+    };
+    const editInput = {
+      parameterId: "lead-time",
+      update: { variableName: "lead_time_days", defaultValue: "5" },
+    };
+    const editRequest: ConstructionMutationRequest = {
+      toolCallId: "edit-lead-time",
+      toolName: "updateParameter",
+      binding: request.binding,
+      requestedBaseHash: observe(before).sha256,
+      input: editInput,
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.updateParameter(editInput);
+    const after = instance.definition.get();
+    instance.dispose();
+    const effects = deriveMutationEffects(editRequest, before, after);
+    expect(effects.updated.map((change) => change.path).sort()).toEqual([
+      "/parameters/0/defaultValue",
+      "/parameters/0/variableName",
+    ]);
+    expect(effects.derived).toEqual([]);
+    expect(
+      classifyMutationOutcome({
+        request: editRequest,
+        binding: editRequest.binding,
+        pre: observe(before),
+        post: observe(after),
+        effects,
+      }),
+    ).toEqual({ outcome: "applied" });
+  });
+
+  test("derives an input arc type change as one direct arc field update", () => {
+    const before = applied().post!.definition;
+    const typeInput = {
+      transitionId: "a3-transition",
+      placeId: "a3-place",
+      type: "inhibitor" as const,
+    };
+    const typeRequest: ConstructionMutationRequest = {
+      toolCallId: "inhibit",
+      toolName: "updateArcType",
+      binding: request.binding,
+      requestedBaseHash: observe(before).sha256,
+      input: typeInput,
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.updateArcType(typeInput);
+    const after = instance.definition.get();
+    instance.dispose();
+    const effects = deriveMutationEffects(typeRequest, before, after);
+    expect(effects.updated).toEqual([
+      {
+        path: "/transitions/0/inputArcs/0/type",
+        kind: "updated",
+        before: "standard",
+        after: "inhibitor",
+      },
+    ]);
+    expect(effects.derived).toEqual([]);
+    expect(
+      classifyMutationOutcome({
+        request: typeRequest,
+        binding: typeRequest.binding,
+        pre: observe(before),
+        post: observe(after),
+        effects,
+      }),
+    ).toEqual({ outcome: "applied" });
+  });
+
   test("the first verified delivery stands unless a conflicting outcome makes it unknown", () => {
     const attempt = applied();
     expect(reconcileMutationAttempts([attempt, attempt]).outcome).toBe(
