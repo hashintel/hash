@@ -32,6 +32,10 @@ cannot make a second net and Back skips the route. Empty nets earlier visits
 left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
+## Choosing the assistant
+
+With `VITE_BRUNCH_CHAT_ENDPOINT` configured, Brunch is the AI panel's default assistant and Petrinaut's stock assistant is the alternate. The command palette (⌘K) offers **Use the stock Petrinaut assistant** and, once switched, **Use Brunch (default assistant)**. The choice is this website's own browser-local preference (`petrinaut-website:assistant`), not a Petrinaut setting. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.
+
 ## Prepared root-arc tracer
 
 With Brunch configured, the prepared-fixture selector offers **Open the prepared root-arc mechanical tracer** at `/?brunch-fixture=crew-reservation-v1&brunchTracer=root-arc`. It opens a separate prepared document and a conversation bound to that document's persisted incarnation and original base. The **legacy crew-reservation fixture** retains its existing conversation, manifest, and fenced-workpiece reads; selecting the tracer does not migrate or overwrite that fixture.
