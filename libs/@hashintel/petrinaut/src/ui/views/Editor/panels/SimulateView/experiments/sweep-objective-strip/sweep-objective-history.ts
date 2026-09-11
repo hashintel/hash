@@ -1,3 +1,7 @@
+import {
+  isOptimizationActive,
+  type OptimizationRecord,
+} from "../../../../../../../react/optimizations/context";
 /**
  * The objective history of every study a sweep ran, end to end: what the
  * strip under the sliders draws and what its row says.
@@ -7,11 +11,6 @@ import {
   type ObjectiveHistoryPoint,
 } from "../../shared/objective-history-data";
 import { objectiveMetricName } from "../../shared/study-labels";
-
-import {
-  isOptimizationActive,
-  type OptimizationRecord,
-} from "../../../../../../../react/optimizations/context";
 
 export type SweepObjectiveHistory = {
   /** Every study's steps end to end, numbered from 1 across studies. */
@@ -25,10 +24,18 @@ export type SweepObjectiveHistory = {
   dividers: readonly number[];
   /** The studies that drew a step or are about to, for the row's count. */
   studyCount: number;
-  /** The last study's metric name and best, for the row's summary. */
+  /**
+   * The metric name and best of the last study that drew a step or is about
+   * to, for the row's summary; a study that failed at start never names it.
+   */
   metricName: string;
   best: number | null;
 };
+
+type SweepStudy = Pick<
+  OptimizationRecord,
+  "trials" | "input" | "requestedTrials" | "best" | "status"
+>;
 
 /**
  * Concatenates the studies' objective histories: each study's steps are
@@ -38,14 +45,12 @@ export type SweepObjectiveHistory = {
  * without a step, failed at start, adds no divider and no count.
  */
 export const buildSweepObjectiveHistory = (
-  studies: readonly Pick<
-    OptimizationRecord,
-    "trials" | "input" | "requestedTrials" | "best" | "status"
-  >[],
+  studies: readonly SweepStudy[],
 ): SweepObjectiveHistory => {
   const points: ObjectiveHistoryPoint[] = [];
   const dividers: number[] = [];
   let studyCount = 0;
+  let lastCounted: SweepStudy | null = null;
   let offset = 0;
   for (const study of studies) {
     if (study.trials.length === 0 && !isOptimizationActive(study)) {
@@ -55,6 +60,7 @@ export const buildSweepObjectiveHistory = (
       dividers.push(offset + 1);
     }
     studyCount += 1;
+    lastCounted = study;
     for (const point of buildObjectiveHistory(
       study.trials,
       study.input.objective.direction,
@@ -74,6 +80,7 @@ export const buildSweepObjectiveHistory = (
       best: null,
     };
   }
+  const summarised = lastCounted ?? last;
   return {
     points,
     xMax: isOptimizationActive(last)
@@ -84,7 +91,7 @@ export const buildSweepObjectiveHistory = (
       : points.length,
     dividers,
     studyCount,
-    metricName: objectiveMetricName(last.input),
-    best: last.best?.objective ?? null,
+    metricName: objectiveMetricName(summarised.input),
+    best: summarised.best?.objective ?? null,
   };
 };

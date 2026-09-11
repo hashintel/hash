@@ -29,11 +29,13 @@ const study = (
     requestedTrials = objectives.length,
     best = null,
     status = "complete",
+    metricName = "Infected peak",
   }: {
     direction?: PetrinautOptimizationDirection;
     requestedTrials?: number;
     best?: number | null;
     status?: OptimizationRecord["status"];
+    metricName?: string;
   } = {},
 ): Pick<
   OptimizationRecord,
@@ -46,7 +48,7 @@ const study = (
     model: {
       title: "SIR",
       definition: {
-        metrics: [{ id: "infected", name: "Infected peak", code: "" }],
+        metrics: [{ id: "infected", name: metricName, code: "" }],
       },
     },
   } as OptimizationRecord["input"],
@@ -128,7 +130,7 @@ describe("buildSweepObjectiveHistory", () => {
     ).toBe(3);
   });
 
-  it("leaves a study that failed before its first step out of the axis, the dividers and the count", () => {
+  it("leaves a study that failed before its first step out of the axis, the dividers, the count and the summary", () => {
     const history = buildSweepObjectiveHistory([
       study([1, 2]),
       study([], { requestedTrials: 30, status: "error" }),
@@ -140,10 +142,20 @@ describe("buildSweepObjectiveHistory", () => {
     expect(history.xMax).toBe(2 + 30);
     expect(
       buildSweepObjectiveHistory([
-        study([1, 2]),
-        study([], { requestedTrials: 30, status: "error" }),
+        study([1, 2], { best: 2 }),
+        study([], {
+          requestedTrials: 30,
+          status: "error",
+          metricName: "Recovered peak",
+        }),
       ]),
-    ).toMatchObject({ dividers: [], studyCount: 1, xMax: 2 });
+    ).toMatchObject({
+      dividers: [],
+      studyCount: 1,
+      xMax: 2,
+      metricName: "Infected peak",
+      best: 2,
+    });
   });
 
   it("divides before a study that has just started, where its first step will land", () => {

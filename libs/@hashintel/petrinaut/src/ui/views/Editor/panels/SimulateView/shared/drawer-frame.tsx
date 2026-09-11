@@ -18,7 +18,7 @@ export {
 } from "./drawer-frame/frame-header";
 export { FrameColumns } from "./drawer-frame/frame-columns";
 export { FrameCard, type FrameCardMore } from "./drawer-frame/frame-card";
-export { Fold, type FoldProps } from "./drawer-frame/fold";
+export { Fold } from "./drawer-frame/fold";
 export {
   type ComputeBatch,
   ComputeBatchesChip,
