@@ -8,6 +8,8 @@ export const voiceSessionStatusLabel = (
   phase: PetrinautAiVoiceSessionPhase,
 ): string => {
   switch (phase) {
+    case "connected":
+      return "Connected";
     case "connecting":
       return "Connecting";
     case "error":
