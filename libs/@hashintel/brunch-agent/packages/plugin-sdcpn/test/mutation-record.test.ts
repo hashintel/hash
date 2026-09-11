@@ -11,6 +11,7 @@ import {
 import {
   assertMutationEffects,
   classifyMutationOutcome,
+  deriveLayoutEffects,
   deriveMutationEffects,
   observedMutationOutcome,
   reconcileMutationAttempts,
@@ -282,15 +283,16 @@ describe("root addArc transition semantics", () => {
       ],
       parameters: [],
     };
+    const repairInput = {
+      equationId: "decay",
+      update: { code: "return tokens.map(() => ({}));" },
+    };
     const updateRequest: ConstructionMutationRequest = {
       toolCallId: "repair-decay",
       toolName: "updateDifferentialEquation",
       binding: request.binding,
       requestedBaseHash: observe(before).sha256,
-      input: {
-        equationId: "decay",
-        update: { code: "return tokens.map(() => ({}));" },
-      },
+      input: repairInput,
     };
     const instance = createPetrinaut({
       document: createJsonDocHandle({
@@ -298,7 +300,7 @@ describe("root addArc transition semantics", () => {
         capabilities: { disabledExtensions: [] },
       }),
     });
-    instance.mutations.updateDifferentialEquation(updateRequest.input);
+    instance.mutations.updateDifferentialEquation(repairInput);
     const after = instance.definition.get();
     instance.dispose();
     const effects = deriveMutationEffects(updateRequest, before, after);
@@ -337,5 +339,34 @@ describe("root addArc transition semantics", () => {
         { ...attempt, request: { ...request, toolCallId: "another-call" } },
       ]),
     ).toThrow(/different tool calls/u);
+  });
+});
+
+describe("applyAutoLayout record semantics", () => {
+  test("derives only position updates and records the actual moved coordinates", () => {
+    const post = structuredClone(pre);
+    post.places[0]!.x = 40;
+    post.places[0]!.y = 60;
+    post.transitions[0]!.y = 60;
+    expect(deriveLayoutEffects(pre, post)).toEqual([
+      { path: "/places/0/x", kind: "updated", before: 0, after: 40 },
+      { path: "/places/0/y", kind: "updated", before: 0, after: 60 },
+      { path: "/transitions/0/y", kind: "updated", before: 0, after: 60 },
+    ]);
+    expect(deriveLayoutEffects(pre, structuredClone(pre))).toEqual([]);
+  });
+
+  test("refuses to absorb a non-position change as layout", () => {
+    const renamed = structuredClone(pre);
+    renamed.places[0]!.x = 40;
+    renamed.places[0]!.name = "Renamed";
+    expect(() => deriveLayoutEffects(pre, renamed)).toThrow(
+      "Layout changed more than positions: /places/0/name",
+    );
+    const removed = structuredClone(pre);
+    removed.transitions = [];
+    expect(() => deriveLayoutEffects(pre, removed)).toThrow(
+      "Layout changed more than positions: /transitions/0",
+    );
   });
 });

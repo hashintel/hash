@@ -15,6 +15,7 @@ export {
   canonicalContent,
   classifyMutationOutcome,
   clientToolResultMetadataSchema,
+  deriveLayoutEffects,
   deriveMutationEffects,
   expectedNodeDefinition,
   observedMutationOutcome,
@@ -54,7 +55,10 @@ export {
   type ObservedArcMutationName,
   type RootArcWhyInput,
 } from "./root-arc";
-export { observedConstructionBrowserToolNames } from "./construction-tool-names";
+export {
+  applyAutoLayoutToolName,
+  observedConstructionBrowserToolNames,
+} from "./construction-tool-names";
 export {
   batchedConstructionMode,
   mutatePetrinetAttemptCallId,

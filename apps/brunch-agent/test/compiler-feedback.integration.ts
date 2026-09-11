@@ -14,8 +14,10 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  applyAutoLayoutToolName,
   batchedConstructionMode,
   mutatePetrinetToolName,
+  parseClientToolResultMetadata,
   type MutatePetrinetOperation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
@@ -111,6 +113,35 @@ const dirtyOperations: MutatePetrinetOperation[] = [
       differentialEquationId: "broken-decay",
       x: 0,
       y: 0,
+    },
+  },
+  {
+    operationId: "add-consume",
+    basisId: "decay-basis",
+    type: "addTransition",
+    input: {
+      id: "consume",
+      name: "Consume",
+      metadata: {},
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  },
+  {
+    operationId: "add-store-consume",
+    basisId: "decay-basis",
+    type: "addArc",
+    input: {
+      transitionId: "consume",
+      arcDirection: "input",
+      placeId: "store",
+      weight: 1,
+      type: "standard",
     },
   },
 ];
@@ -236,6 +267,27 @@ try {
     },
     (context: Context) => mutateCall(context, repairOperations, "batch-repair"),
     () => tool("getNetCompilationErrors", {}, "check-clean"),
+    (context: Context) => {
+      const clean = browserResultFrom(
+        textsFrom(context),
+        "getNetCompilationErrors",
+        "Missing clean compilation",
+      );
+      assert.equal(clean.output, cleanCompilation);
+      return tool(
+        applyAutoLayoutToolName,
+        { askUserFirst: false },
+        "layout-after-repair",
+      );
+    },
+    (context: Context) => {
+      browserResultFrom(
+        textsFrom(context),
+        applyAutoLayoutToolName,
+        "Missing layout result",
+      );
+      return tool("getLatestNetDefinition", {}, "read-after-layout");
+    },
     fauxAssistantMessage([
       fauxText("Compiler-feedback dirty-then-repair completed."),
     ]),
@@ -333,6 +385,59 @@ try {
     "The repair observation must cite the dirty batch's reported hash",
   );
   assert.match(repairHash, /^[a-f0-9]{64}$/u);
+
+  // ELK layout is a separately recorded command: its pre hash is the repaired
+  // batch's reported final hash, its post hash is the next fresh observation,
+  // and its effects are position updates only.
+  const layout = results.find(
+    (result) => result.toolCallId === "layout-after-repair",
+  );
+  const readAfterLayout = results.find(
+    (result) => result.toolCallId === "read-after-layout",
+  );
+  assert(layout, "Flue history must carry the layout command result");
+  assert(readAfterLayout, "Flue history must carry the post-layout read");
+  assert.equal(layout.toolName, applyAutoLayoutToolName);
+  assert.deepEqual(
+    (layout.output as { applied?: unknown }).applied,
+    true,
+    "Fresh construction lays out without confirmation",
+  );
+  const layoutRecord = parseClientToolResultMetadata(
+    layout.metadata,
+  )?.layoutRecord;
+  assert(layoutRecord, "The layout result must carry metadata.layoutRecord");
+  assert.equal(
+    layoutRecord.pre.sha256,
+    repairHash,
+    "Layout starts from the repaired batch's reported final hash",
+  );
+  const observedAfterLayout = parseClientToolResultMetadata(
+    readAfterLayout.metadata,
+  )?.observation?.observed.sha256;
+  assert.equal(
+    layoutRecord.post.sha256,
+    observedAfterLayout,
+    "The layout's reported final hash equals a fresh getLatestNetDefinition",
+  );
+  assert.notEqual(layoutRecord.post.sha256, layoutRecord.pre.sha256);
+  const positionEffects = layoutRecord.effects as {
+    kind: string;
+    path: string;
+  }[];
+  assert(positionEffects.length > 0, "Layout must record position effects");
+  for (const effect of positionEffects) {
+    assert.equal(effect.kind, "updated");
+    assert.match(effect.path, /^\/(places|transitions)\/\d+\/(x|y)$/u);
+  }
+  const layoutPaths = new Set(positionEffects.map((effect) => effect.path));
+  assert(
+    layoutPaths.has("/places/0/x") ||
+      layoutPaths.has("/places/0/y") ||
+      layoutPaths.has("/transitions/0/x") ||
+      layoutPaths.has("/transitions/0/y"),
+    "Two co-located nodes cannot both stay at the origin",
+  );
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
   process.stdout.write(
@@ -342,6 +447,8 @@ try {
       dirtyCompilation: dirty.output,
       cleanCompilation: clean.output,
       repairHash,
+      layoutHash: layoutRecord.post.sha256,
+      positionEffects: positionEffects.length,
     })}\n`,
   );
 } finally {

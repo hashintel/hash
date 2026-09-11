@@ -16,6 +16,7 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  applyAutoLayoutToolName,
   batchedConstructionMode,
   conversationConstructionMode,
   mutatePetrinetToolName,
@@ -145,6 +146,7 @@ const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutatePetrinetToolName,
+  applyAutoLayoutToolName,
 ]);
 const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([
   mutatePetrinetToolName,

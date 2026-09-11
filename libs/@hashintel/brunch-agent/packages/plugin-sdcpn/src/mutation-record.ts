@@ -106,6 +106,26 @@ export const clientToolResultMetadataSchema = v.object({
       outcome: v.picklist(mutationOutcomes),
     }),
   ),
+  /**
+   * A separately recorded `applyAutoLayout` command: layout is a document
+   * mutation with its own observed pre/post hashes and position effects, not
+   * part of a `mutate_petrinet` result and never a hidden hash change.
+   */
+  layoutRecord: v.optional(
+    v.object({
+      toolCallId: v.pipe(v.string(), v.minLength(1)),
+      binding: browserBindingSchema,
+      pre: v.object({
+        definition: v.unknown(),
+        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+      }),
+      post: v.object({
+        definition: v.unknown(),
+        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+      }),
+      effects: v.array(v.unknown()),
+    }),
+  ),
 });
 export type ClientToolResultMetadata = v.InferOutput<
   typeof clientToolResultMetadataSchema
@@ -202,6 +222,32 @@ const definitionChanges = (
       );
   }
   return [{ path, kind: "updated", before, after }];
+};
+
+const layoutPositionPath =
+  /^\/(?:places|transitions|componentInstances)\/\d+\/(?:x|y)$/u;
+
+/**
+ * Position effects of one ELK layout run between two observations. Layout may
+ * move root places, transitions and component instances and nothing else; any
+ * other difference is a hidden change the layout record refuses to absorb.
+ */
+export const deriveLayoutEffects = (
+  pre: SDCPN,
+  post: SDCPN,
+): DefinitionChange[] => {
+  const changes = definitionChanges(pre, post);
+  const foreign = changes.filter(
+    (change) =>
+      change.kind !== "updated" || !layoutPositionPath.test(change.path),
+  );
+  if (foreign.length > 0)
+    throw new Error(
+      `Layout changed more than positions: ${foreign
+        .map((change) => change.path)
+        .join(", ")}`,
+    );
+  return changes;
 };
 
 /** Partition the named root operation; unrequested fields remain derived, never inherited basis. */

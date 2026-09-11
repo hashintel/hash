@@ -31,6 +31,7 @@ import {
   createObservedArcTool,
   observedDefinitionReadTool,
   observedCompilationReadTool,
+  observedLayoutCommandTool,
   observedConstructionBrowserToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
@@ -124,10 +125,11 @@ export function useSdcpnPlugin(
     if (!initialData.construction || !options?.observationFor)
       throw new Error("Batched construction requires authorized observations.");
     useInstruction(
-      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only getLatestNetDefinition; wait for its browser result. Proposal 3 contains only mutate_petrinet; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain getNetCompilationErrors in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. Only root addPlace, addTransition, addArc, removePlace, removeTransition, removeArc, addType, addParameter, addDifferentialEquation, and updateDifferentialEquation are available in this candidate mode. removePlace also removes connected arcs. Operations commit in order; failure leaves the later suffix unattempted.",
+      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only getLatestNetDefinition; wait for its browser result. Proposal 3 contains only mutate_petrinet; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain getNetCompilationErrors in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. Only root addPlace, addTransition, addArc, removePlace, removeTransition, removeArc, addType, addParameter, addDifferentialEquation, and updateDifferentialEquation are available in this candidate mode. removePlace also removes connected arcs. Operations commit in order; failure leaves the later suffix unattempted. After a batch that added or restructured places or transitions, and once diagnostics are settled, call applyAutoLayout in its own proposal; pass askUserFirst false only when this conversation built the net from an empty canvas, otherwise true so the user can decline. Do not lay out after a batch that only changed types, parameters or dynamics. Layout is recorded separately with its own pre and post hash; the post hash is the base for any later observation.",
     );
     useTool(observedDefinitionReadTool);
     useTool(observedCompilationReadTool);
+    useTool(observedLayoutCommandTool);
     useTool(
       createMutatePetrinetTool({
         ...options,
