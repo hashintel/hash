@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import {
-  createReadableStore,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  deriveDefaultParameterValues,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
-  type DetachedObjectiveRunOutcome,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   ExperimentsContext,
@@ -29,11 +24,7 @@ import {
 } from "../../../../../../react/state/editor-context";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type {
-  Constraint,
-  MonteCarloUserDefinedMetricFrame,
-  MonteCarloWorkerProgress,
-} from "@hashintel/petrinaut-core";
+import type { Constraint } from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
@@ -547,85 +538,6 @@ const createFakeExperiment = (
   constraintPolicy: input.constraintPolicy ?? null,
 });
 
-/**
- * The fake of a streaming objective batch: ten frames of the synthetic bump
- * at the request's parameter values, one every 60 ms, then the result.
- */
-export const fakeRunDetachedObjective: ExperimentsActionsValue["runDetachedObjective"] =
-  (request) => {
-    const values = Object.values(request.scenarioParameterValues).filter(
-      (entry): entry is number => typeof entry === "number",
-    );
-    const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-    const frames = createReadableStore<
-      readonly MonteCarloUserDefinedMetricFrame[]
-    >([]);
-    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
-    let cancelled = false;
-    const completion = new Promise<DetachedObjectiveRunOutcome>((resolve) => {
-      const totalTicks = 10;
-      let tick = 0;
-      const step = () => {
-        if (cancelled) {
-          resolve({ ok: false, cancelled: true, reason: "cancelled" });
-          return;
-        }
-        tick += 1;
-        const fraction = tick / totalTicks;
-        const time = request.maxTime * fraction;
-        frames.set([
-          ...frames.get(),
-          {
-            metricId: request.metric.id,
-            label: request.metric.label,
-            outputType: "distribution",
-            frameNumber: Math.round(time / request.dt),
-            time,
-            bins: [
-              [Math.round(objective * fraction * 100) / 100, request.runCount],
-            ],
-            value: null,
-            frameValue: null,
-            timeValue: null,
-            runSampleCount: request.runCount,
-            timeSampleCount: request.runCount,
-          },
-        ]);
-        progress.set({
-          activeRuns: tick < totalTicks ? request.runCount : 0,
-          advancedRuns: request.runCount,
-          allFinished: tick >= totalTicks,
-          completedRuns: tick < totalTicks ? 0 : request.runCount,
-          erroredRuns: 0,
-          frameNumber: Math.round(time / request.dt),
-          runCount: request.runCount,
-          time,
-        });
-        if (tick < totalTicks) {
-          setTimeout(step, 60);
-          return;
-        }
-        resolve({
-          ok: true,
-          runsCompleted: request.runCount,
-          metricFrames: frames.get(),
-          runResults: new Map(),
-          computeBackend: request.computeBackend,
-          computeBackendFallbackReason: null,
-        });
-      };
-      setTimeout(step, 60);
-    });
-    return {
-      frames,
-      progress,
-      completion,
-      cancel: () => {
-        cancelled = true;
-      },
-    };
-  };
-
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
@@ -639,12 +551,7 @@ export function FakeExperimentsProvider({
    * sampler to watch a surface fill in, or one that resolves null to show
    * the empty state.
    */
-  overrides?: Partial<
-    Pick<
-      ExperimentsContextValue,
-      "navigateSweep" | "sampleDetachedObjective" | "runDetachedObjective"
-    >
-  >;
+  overrides?: Partial<Pick<ExperimentsContextValue, "navigateSweep">>;
   /**
    * Simulates what the real sweep session does on a selection change:
    * frames clear immediately, then the new selection's distribution streams
@@ -882,44 +789,6 @@ export function FakeExperimentsProvider({
           resolve(cell);
         }, 700);
       }),
-    sampleDetachedObjective: (request) => {
-      // The synthetic bump over the study's real parameter values, so the
-      // optimization surface story fills live.
-      const values = Object.values(request.scenarioParameterValues).filter(
-        (entry): entry is number => typeof entry === "number",
-      );
-      const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-      const frame = {
-        metricId: request.metric.id,
-        label: request.metric.label,
-        outputType: "distribution" as const,
-        frameNumber: 45,
-        time: 45,
-        bins: [
-          [Math.round(objective * 100) / 100, request.runCount],
-        ] as (readonly [number, number])[],
-        value: null,
-        frameValue: null,
-        timeValue: null,
-        runSampleCount: request.runCount,
-        timeSampleCount: request.runCount,
-      };
-      return new Promise((resolve) => {
-        setTimeout(
-          () =>
-            resolve({
-              runsCompleted: request.runCount,
-              metricFrames: [frame],
-            }),
-          100,
-        );
-      });
-    },
-    runDetachedObjective: fakeRunDetachedObjective,
-    resolveDetachedObjectiveParameters: (request) =>
-      Promise.resolve(
-        deriveDefaultParameterValues(request.definition.parameters),
-      ),
     ...overrides,
   }));
 

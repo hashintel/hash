@@ -250,9 +250,7 @@ export const useSweepOptimizer = (
   // The provider prepends; the strip reads oldest first.
   const studies = optimizations
     .filter(
-      (optimization) =>
-        optimization.origin?.kind === "sweep" &&
-        optimization.origin.experimentId === experiment.id,
+      (optimization) => optimization.origin.experimentId === experiment.id,
     )
     .toSorted((left, right) => left.createdAt - right.createdAt);
   const study = studies.at(-1) ?? null;

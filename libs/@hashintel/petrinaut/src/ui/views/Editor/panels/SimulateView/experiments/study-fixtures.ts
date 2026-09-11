@@ -1,44 +1,24 @@
 /**
- * Fixtures for the optimization stories: a real study manifest over the
- * supply-chain example, deterministic fake trials, and the synthetic
- * objective the trials, the selection streams and the remote surface's fake
- * local compute all share — so a step's mark lands on the contour a real
- * study would give. For a connected study, a navigation at a trial's point,
- * the selection stream the provider would publish there, and a clock that
- * lands one step after another.
+ * Fixtures for the study displays in the experiment drawer's stories and
+ * tests: a real study manifest over the supply-chain example, deterministic
+ * fake trials with the synthetic objective they share, the constrained
+ * variant with its verdicts, and the importance estimate the optimizer would
+ * report.
  */
-import { useEffect, useState } from "react";
-
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { supplyChainProfit } from "@hashintel/petrinaut-core/examples";
 
-import {
-  buildOptimizationSurfaceAxes,
-  optimizationAxisPositionFor,
-  optimizationBooleanIdentifiers,
-  optimizationNavigationKey,
-  optimizationNavigationValues,
-  partitionParameterBindings,
-} from "../../../../../../react/optimizations/surface-grid";
+import { partitionParameterBindings } from "../../../../../../react/optimizations/parameter-bindings";
 
 import type {
-  DetachedObjectiveRequest,
-  ExperimentComputeBackend,
-} from "../../../../../../react/experiments/context";
-import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
-import type {
-  ConnectedStudyState,
   OptimizationBest,
   OptimizationImportance,
-  OptimizationNavigation,
   OptimizationRecord,
   OptimizationsContextValue,
-  OptimizationSelectionStream,
   OptimizationStatus,
 } from "../../../../../../react/optimizations/context";
 import type {
   Constraint,
-  MonteCarloUserDefinedMetricFrame,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   PetrinautOptimizationTrialEvent,
@@ -238,76 +218,33 @@ export function makeTrials(
   return { trials, best };
 }
 
-/** The navigation a connected study starts with: every axis at its midpoint, following. */
-export function initialNavigation(
-  input: PetrinautOptimizationInput,
-): OptimizationNavigation {
-  return {
-    positions: Object.fromEntries(
-      buildOptimizationSurfaceAxes(input).map((axis) => [
-        axis.identifier,
-        Math.round(axis.stepCount / 2),
-      ]),
-    ),
-    booleans: Object.fromEntries(
-      optimizationBooleanIdentifiers(input).map((identifier) => [
-        identifier,
-        false,
-      ]),
-    ),
-    followTrials: true,
-  };
-}
-
-/** A connected study's local state: idle at the initial navigation unless overridden. */
-export function makeConnectedStudyState(
-  input: PetrinautOptimizationInput,
-  overrides: Partial<ConnectedStudyState> = {},
-): ConnectedStudyState {
-  return {
-    navigation: initialNavigation(input),
-    selection: null,
-    activity: [],
-    inFlight: [],
-    resumable: false,
-    parallelism: 1,
-    computeBackendFallbackReason: null,
-    ...overrides,
-  };
-}
-
+/** A study driving the sweep experiment the stories mount, `experiment-1` unless overridden. */
 export function makeOptimizationRecord(options: {
   input: PetrinautOptimizationInput;
   trials?: readonly PetrinautOptimizationTrialEvent[];
   best?: OptimizationBest | null;
   status?: OptimizationStatus;
-  computeBackend?: ExperimentComputeBackend;
-  /** The local state of a connected study; a remote study has none. */
-  connected?: ConnectedStudyState | null;
   /** The latest importance estimate the study reported; none by default. */
   importance?: OptimizationImportance | null;
+  experimentId?: string;
 }): OptimizationRecord {
   const {
     input,
     trials = [],
     best = null,
     status = "running",
-    computeBackend = "cpu",
-    connected = null,
     importance = null,
+    experimentId = "experiment-1",
   } = options;
   return {
     id: "optimization-story-1",
     input,
     createdAt: Date.now() - 90_000,
-    origin: null,
+    origin: { kind: "sweep", experimentId },
     status,
     error: null,
-    errorCategory: null,
-    errorDiagnostics: null,
     runId: "story-run-1",
     lastSeq: trials.at(-1)?.seq ?? 1,
-    connectionState: status === "running" ? "streaming" : null,
     requestedTrials: input.study.trials,
     completedTrials: trials.filter((trial) => trial.state === "complete")
       .length,
@@ -316,221 +253,24 @@ export function makeOptimizationRecord(options: {
     trials,
     best,
     importance,
-    computeBackend,
-    axes: buildOptimizationSurfaceAxes(input),
-    connected,
   };
 }
 
-/** An optimizations context holding one selected record, with inert actions unless overridden. */
+/** An optimizations context holding one record, with inert actions unless overridden. */
 export function makeOptimizationsContextValue(
   optimization: OptimizationRecord,
   overrides: Partial<OptimizationsContextValue> = {},
 ): OptimizationsContextValue {
   return {
     optimizations: [optimization],
-    selectedOptimizationId: optimization.id,
-    selectedOptimization: optimization,
-    setSelectedOptimizationId: () => {},
     createOptimization: () => Promise.resolve(optimization.id),
     cancelOptimization: () => {},
-    pauseOptimization: () => {},
-    resumeOptimization: () => Promise.resolve(),
-    refineOptimizationBest: () => {},
     removeOptimization: () => {},
-    extendOptimization: () => Promise.resolve(),
-    setOptimizationNavigation: () => {},
-    retryOptimization: () => Promise.resolve(null),
     ...overrides,
   };
 }
 
-/** The navigation at a trial's parameters, following steps while running. */
-export function navigationAtTrial(
-  input: PetrinautOptimizationInput,
-  trial: PetrinautOptimizationTrialEvent,
-  followTrials = true,
-): OptimizationNavigation {
-  const positions: Record<string, number> = {};
-  for (const axis of buildOptimizationSurfaceAxes(input)) {
-    const value = trial.parameters[axis.identifier];
-    positions[axis.identifier] =
-      typeof value === "number"
-        ? optimizationAxisPositionFor(axis, value)
-        : Math.round(axis.stepCount / 2);
-  }
-  const booleans: Record<string, boolean> = {};
-  for (const identifier of optimizationBooleanIdentifiers(input)) {
-    booleans[identifier] = trial.parameters[identifier] === true;
-  }
-  return { positions, booleans, followTrials };
-}
-
-/** The provider's key for a navigated point. */
-export function navigationKey(
-  input: PetrinautOptimizationInput,
-  navigation: OptimizationNavigation,
-): string {
-  return optimizationNavigationKey(
-    buildOptimizationSurfaceAxes(input),
-    optimizationBooleanIdentifiers(input),
-    navigation,
-  );
-}
-
-/**
- * Distribution frames of the objective at one point, streamed up to
- * `frameCount` of the study's time steps: the synthetic profit accrues
- * linearly over the year, spread across `runs` runs with a jitter that
- * shrinks as runs accumulate — so a refinement visibly sharpens the band.
- */
-export function makeObjectiveFrames(
-  input: PetrinautOptimizationInput,
-  values: Readonly<Record<string, number | boolean>>,
-  runs: number,
-  frameCount = 40,
-): MonteCarloUserDefinedMetricFrame[] {
-  const metric = input.model.definition.metrics?.[0];
-  if (!metric) {
-    throw new Error("The study manifest carries no objective metric");
-  }
-  const final = syntheticObjective(values);
-  const { maxTime } = input.execution;
-  const frames: MonteCarloUserDefinedMetricFrame[] = [];
-  for (let index = 0; index <= frameCount; index++) {
-    const fraction = index / frameCount;
-    const time = maxTime * fraction;
-    const mean = final * fraction;
-    const spread = Math.max(1, Math.abs(final) * 0.08 * (0.3 + fraction));
-    const binCount = Math.min(9, 2 + Math.floor(Math.sqrt(runs)));
-    const bins: (readonly [number, number])[] = [];
-    let assigned = 0;
-    for (let bin = 0; bin < binCount; bin++) {
-      const offset = ((bin - (binCount - 1) / 2) / (binCount - 1)) * 2;
-      const weight = Math.exp(-(offset ** 2) * 1.5);
-      const frequency =
-        bin === binCount - 1
-          ? runs - assigned
-          : Math.max(0, Math.round((weight * runs) / binCount));
-      assigned += frequency;
-      if (frequency > 0) {
-        bins.push([
-          Math.round((mean + offset * spread) * 100) / 100,
-          frequency,
-        ]);
-      }
-    }
-    frames.push({
-      metricId: metric.id,
-      label: metric.name,
-      outputType: "distribution",
-      frameNumber: Math.round(time / input.execution.dt),
-      time,
-      bins,
-      value: null,
-      frameValue: null,
-      timeValue: null,
-      runSampleCount: runs,
-      timeSampleCount: runs,
-    });
-  }
-  return frames;
-}
-
-/** The selection stream a connected study publishes at a navigated point. */
-export function makeSelectionStream(options: {
-  input: PetrinautOptimizationInput;
-  navigation: OptimizationNavigation;
-  /** Set while following that step: the key becomes the trial's. */
-  followedTrial?: number;
-  runsCompleted: number;
-  runTarget?: number | null;
-  computing?: boolean;
-  frameCount?: number;
-  /**
-   * How far through the simulated time the frames have streamed, 0..1: the
-   * frames stop there, so the running objective reads part-way to its final
-   * value. Complete when omitted.
-   */
-  progress?: number;
-  /** Why the point could not compute; the stream then stops at `runsCompleted`. */
-  error?: string | null;
-  /** Why the ladder stopped short, e.g. "8 runs · cannot beat the best". */
-  note?: string | null;
-}): OptimizationSelectionStream {
-  const {
-    input,
-    navigation,
-    followedTrial,
-    runsCompleted,
-    runTarget = null,
-    computing = false,
-    frameCount,
-    progress,
-    error = null,
-    note = null,
-  } = options;
-  const axes = buildOptimizationSurfaceAxes(input);
-  const booleanIdentifiers = optimizationBooleanIdentifiers(input);
-  const values = optimizationNavigationValues(
-    input,
-    axes,
-    booleanIdentifiers,
-    navigation,
-  );
-  const frames = makeObjectiveFrames(
-    input,
-    values,
-    Math.max(1, runsCompleted),
-    frameCount,
-  );
-  return {
-    key:
-      followedTrial === undefined
-        ? optimizationNavigationKey(axes, booleanIdentifiers, navigation)
-        : `trial:${followedTrial}`,
-    metricFrames:
-      progress === undefined
-        ? frames
-        : frames.slice(0, Math.max(1, Math.ceil(frames.length * progress))),
-    runsCompleted,
-    runTarget,
-    computing,
-    error,
-    note,
-  };
-}
-
-/**
- * The stories' clock for a study in flight: `landed` steps have reported and
- * the next one is `progress` of the way through its runs. Advances every
- * `tickMs`, `ticksPerStep` ticks per step, until all `steps` have landed.
- */
-export function useFakeStudyClock({
-  steps,
-  ticksPerStep,
-  tickMs,
-}: {
-  steps: number;
-  ticksPerStep: number;
-  tickMs: number;
-}): { landed: number; progress: number } {
-  const [tick, setTick] = useState(0);
-  const total = steps * ticksPerStep;
-  useEffect(() => {
-    if (tick >= total) {
-      return;
-    }
-    const timer = setTimeout(() => setTick((previous) => previous + 1), tickMs);
-    return () => clearTimeout(timer);
-  }, [tick, tickMs, total]);
-  return {
-    landed: Math.min(steps, Math.floor(tick / ticksPerStep)),
-    progress: (tick % ticksPerStep) / ticksPerStep,
-  };
-}
-
-/** The study the drawer and full-view stories share: three optimized parameters, one on a log scale. */
+/** The study the drawer stories share: three optimized parameters, one on a log scale. */
 export const fakeStudyInput = makeOptimizationInput(
   optimizedBindingSets.logScale,
 );
@@ -543,16 +283,11 @@ export const fakeLongStudyInput = makeOptimizationInput(
 );
 export const fakeLongStudyTrials = makeTrials(fakeLongStudyInput, 60);
 
-/** The study the results model, drawer and full-view tests share: the base bindings, five steps landed, following the third. */
+/** The study the results model and drawer tests share: the base bindings, five steps landed. */
 export const fakeShortStudyInput = makeOptimizationInput(
   optimizedBindingSets.base,
 );
 export const fakeShortStudyTrials = makeTrials(fakeShortStudyInput, 5);
-export const fakeShortStudyNavigation = navigationAtTrial(
-  fakeShortStudyInput,
-  fakeShortStudyTrials.trials[2]!,
-  true,
-);
 
 /**
  * How much of the synthetic objective's variance each parameter moves, by
@@ -763,189 +498,3 @@ export const fakeConstrainedStudyTrials = makeConstrainedTrials(
   fakeConstrainedStudyInput,
   30,
 );
-
-/** The refinement ladder a navigated point climbs in the stories, one rung per 900 ms. */
-const REFINEMENT_LADDER = [8, 25, 100];
-
-/** How many steps the paused stories have landed before the pause. */
-export const PAUSED_LANDED_STEPS = 12;
-
-/**
- * A connected study for the drawer and full-view stories: while `running`,
- * one step lands every 1.2 s and the navigation follows the next; otherwise
- * the complete study. Picking a point by hand stops following, and the
- * selection stream is faked from the synthetic objective, refining in three
- * batches after every move. Returns the record and the context value the
- * story mounts.
- */
-/** Which fake study the connected stories mount. */
-export type FakeStudyKind = "base" | "constrained" | "long";
-
-const FAKE_STUDIES: Record<
-  FakeStudyKind,
-  {
-    input: PetrinautOptimizationInput;
-    trials: ReturnType<typeof makeTrials>;
-  }
-> = {
-  base: { input: fakeStudyInput, trials: fakeStudyTrials },
-  constrained: {
-    input: fakeConstrainedStudyInput,
-    trials: fakeConstrainedStudyTrials,
-  },
-  long: { input: fakeLongStudyInput, trials: fakeLongStudyTrials },
-};
-
-export function useFakeConnectedStudy({
-  running,
-  paused = false,
-  study = "base",
-  importance = false,
-  fallbackReason = null,
-  refinementError = null,
-}: {
-  running: boolean;
-  /**
-   * The study paused after `PAUSED_LANDED_STEPS` steps: drained, resumable,
-   * parked at its best step with nothing computed there.
-   */
-  paused?: boolean;
-  /** The fake study to mount. */
-  study?: FakeStudyKind;
-  /** Attach the PED-ANOVA estimate the optimizer would report once the study is over. */
-  importance?: boolean;
-  fallbackReason?: string | null;
-  /** Set to have every navigated point fail with this reason instead of refining. */
-  refinementError?: string | null;
-}): { optimization: OptimizationRecord; value: OptimizationsContextValue } {
-  const { input, trials: allTrials } = FAKE_STUDIES[study];
-  const clock = useFakeStudyClock({
-    steps: running ? allTrials.trials.length : 0,
-    ticksPerStep: 8,
-    tickMs: 150,
-  });
-  const landed = running
-    ? clock.landed
-    : paused
-      ? PAUSED_LANDED_STEPS
-      : allTrials.trials.length;
-  const trials = allTrials.trials.slice(0, landed);
-  const inFlight = running ? allTrials.trials[landed] : undefined;
-  const best = trials.at(-1)?.best ?? null;
-
-  const [chosen, setChosen] = useState<OptimizationNavigation>(() =>
-    navigationAtTrial(input, allTrials.trials[0]!, true),
-  );
-  // While following, the navigation is wherever the optimizer is evaluating;
-  // once every step has landed it holds at the last one. A paused study is
-  // parked at its best step, not following, until a control is moved.
-  const parkedAtBest = paused && chosen.followTrials;
-  const navigation = parkedAtBest
-    ? navigationAtTrial(
-        input,
-        allTrials.trials[best?.trial ?? 0] ?? allTrials.trials[0]!,
-        false,
-      )
-    : chosen.followTrials
-      ? navigationAtTrial(input, inFlight ?? allTrials.trials.at(-1)!, true)
-      : chosen;
-  const key = navigationKey(input, navigation);
-
-  const [refinement, setRefinement] = useState({ key, rung: 0 });
-  if (refinement.key !== key) {
-    setRefinement({ key, rung: 0 });
-  }
-  useEffect(() => {
-    if (refinement.rung >= REFINEMENT_LADDER.length - 1) {
-      return;
-    }
-    const timer = setTimeout(
-      () =>
-        setRefinement((previous) =>
-          previous.key === key ? { key, rung: previous.rung + 1 } : previous,
-        ),
-      900,
-    );
-    return () => clearTimeout(timer);
-  }, [key, refinement.rung]);
-
-  const rung = refinement.key === key ? refinement.rung : 0;
-  const selection = parkedAtBest
-    ? null
-    : inFlight && navigation.followTrials
-      ? makeSelectionStream({
-          input,
-          navigation,
-          followedTrial: inFlight.trial,
-          runsCompleted: 1,
-          computing: true,
-          progress: clock.progress,
-        })
-      : refinementError !== null
-        ? makeSelectionStream({
-            input,
-            navigation,
-            runsCompleted: 0,
-            error: refinementError,
-          })
-        : makeSelectionStream({
-            input,
-            navigation,
-            runsCompleted: REFINEMENT_LADDER[rung]!,
-            runTarget: REFINEMENT_LADDER[rung + 1] ?? null,
-            computing: rung < REFINEMENT_LADDER.length - 1,
-          });
-
-  const optimization = makeOptimizationRecord({
-    input,
-    trials,
-    best,
-    status: inFlight ? "running" : paused ? "paused" : "complete",
-    importance: importance && !inFlight ? makeImportance(input, trials) : null,
-    connected: makeConnectedStudyState(input, {
-      navigation,
-      selection,
-      resumable: !inFlight,
-      computeBackendFallbackReason: fallbackReason,
-    }),
-  });
-
-  const value = makeOptimizationsContextValue(optimization, {
-    setOptimizationNavigation: (_optimizationId, patch) =>
-      setChosen({ ...navigation, ...patch }),
-  });
-
-  return { optimization, value };
-}
-
-/**
- * The remote surface stories' local compute: the same synthetic objective
- * the fake trials used, returned as a single-bin distribution frame after
- * `delayFor` the batch — so the walked contour fills in progressively and
- * the trial rings land on it, at whatever pace the story simulates.
- */
-export const makeSyntheticObjectiveSampler =
-  (delayFor: (runCount: number) => number) =>
-  (request: DetachedObjectiveRequest): Promise<SweepCellSnapshot | null> => {
-    const objective = syntheticObjective(request.scenarioParameterValues);
-    const frame: MonteCarloUserDefinedMetricFrame = {
-      metricId: request.metric.id,
-      label: request.metric.label,
-      outputType: "distribution",
-      frameNumber: 365,
-      time: 365,
-      bins: [[Math.round(objective * 100) / 100, request.runCount]],
-      value: null,
-      frameValue: null,
-      timeValue: null,
-      runSampleCount: request.runCount,
-      timeSampleCount: request.runCount,
-    };
-    return new Promise((resolve) => {
-      setTimeout(
-        () =>
-          resolve({ runsCompleted: request.runCount, metricFrames: [frame] }),
-        delayFor(request.runCount),
-      );
-    });
-  };

@@ -33,6 +33,8 @@ import {
 } from "./experiments/experiments-story-fixtures";
 import { SimulateView } from "./simulate-view";
 import {
+  AutoSweepStudy,
+  type AutoSweepStudyDescription,
   RunnableSimulateViewStory,
   SimulateViewStoryStage,
 } from "./simulate-view-story-harness";
@@ -48,27 +50,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-const wait = (durationMs: number, signal?: AbortSignalLike) =>
-  new Promise<void>((resolve) => {
-    if (signal?.aborted) {
-      resolve();
-      return;
-    }
-
-    let timeout: number | undefined;
-    const handleAbort = () => {
-      if (timeout !== undefined) {
-        window.clearTimeout(timeout);
-      }
-      resolve();
-    };
-    timeout = window.setTimeout(() => {
-      signal?.removeEventListener("abort", handleAbort);
-      resolve();
-    }, durationMs);
-    signal?.addEventListener("abort", handleAbort, { once: true });
-  });
 
 const sampleBinding = (
   binding: Extract<PetrinautOptimizationParameterBinding, { kind: "optimize" }>,
@@ -109,13 +90,6 @@ type FakeTrialState = Extract<
   { type: "trial" }
 >["state"];
 
-const getFakeTrialState = (trial: number, seed: number): FakeTrialState => {
-  // A deterministic weighted roll keeps stories reproducible while producing
-  // approximately 82% complete, 12% pruned, and 6% failed steps.
-  const roll = (((trial * 73 + seed) % 100) + 100) % 100;
-  return roll < 82 ? "complete" : roll < 94 ? "pruned" : "failed";
-};
-
 type FakeTrialEvaluation = { objective: number | null; state: FakeTrialState };
 
 /** How the fake optimizer obtains one trial's outcome. */
@@ -126,22 +100,6 @@ type FakeTrialEvaluator = (trial: {
   parameters: Record<string, OptimizationScalar>;
   signal: AbortSignalLike | undefined;
 }) => Promise<FakeTrialEvaluation>;
-
-/** Synthetic objectives after a short delay: no simulation runs. */
-const syntheticTrialEvaluator: FakeTrialEvaluator = async ({
-  input,
-  trial,
-  signal,
-}) => {
-  await wait(250, signal);
-  const state = getFakeTrialState(trial, input.execution.seed);
-  const requestedTrials = input.study.trials;
-  const objective =
-    input.objective.direction === "maximize"
-      ? trial + 1 / (trial + 1)
-      : requestedTrials - trial + 1 / (trial + 1);
-  return { objective: state === "complete" ? objective : null, state };
-};
 
 /** Trials evaluated by the host's experiments backend through the channel. */
 const channelTrialEvaluator =
@@ -171,7 +129,7 @@ const channelTrialEvaluator =
       : { objective: null, state: "pruned" };
   };
 
-/** Inputs of the fake detached runs created in this story session. */
+/** Inputs of the fake runs created in this story session. */
 const fakeRuns = new Map<string, PetrinautOptimizationInput>();
 let nextFakeRunId = 1;
 
@@ -283,12 +241,10 @@ const createFakeOptimization = (
   },
 });
 
-const fakeOptimization = createFakeOptimization(syntheticTrialEvaluator);
-
 /**
  * A connected source: the fake optimizer suggests parameters while the
- * host's experiments backend simulates every trial through the channel, so
- * the study drawer follows each step's metrics as it is evaluated.
+ * host's experiments backend simulates every trial through the sweep, so
+ * the experiment drawer follows each step as it is evaluated.
  */
 const fakeConnectedOptimization: PetrinautConnectedOptimization = {
   kind: "connected",
@@ -435,32 +391,37 @@ export const RunSatellitesLauncherExperiment: Story = {
   ),
 };
 
-export const RunSupplyChainOptimization: Story = {
-  name: "Run Supply Chain optimization",
-  render: () => (
-    <RunnableSimulateViewStory
-      example={supplyChainProfit}
-      initialSimulateViewMode="optimizations"
-      optimization={fakeOptimization}
-    />
-  ),
+/** The supply chain's Rich stock scenario swept over production rate and selling price, maximizing Adjusted profit. */
+const richStockSweep: AutoSweepStudyDescription = {
+  scenarioName: "Rich stock",
+  name: "Adjusted profit",
+  steps: 6,
+  runCount: 24,
+  dt: 1,
+  maxTime: 120,
+  sweep: {
+    production_rate: { min: 50, max: 400 },
+    selling_price: { min: 20, max: 60 },
+  },
+  objective: { metricName: "Adjusted profit", direction: "maximize" },
 };
 
-export const RunSupplyChainOptimizationSyntheticOptimizer: Story = {
+export const RunSupplyChainOptimization: Story = {
   name: "Run Supply Chain optimization (synthetic optimizer)",
   parameters: {
     docs: {
       description: {
         story:
-          "A synthetic sampler suggests each step's parameters through the real connected channel, and the real experiments backend simulates them, so the drawer follows the steps as it would with the real optimizer. Fast, deterministic, no download. For the real Pyodide/Optuna optimizer see Simulate / Browser optimizer (real).",
+          "A sweep over two supply-chain parameters is created and optimized from its Parameters card: a synthetic sampler suggests each step's point and the real experiments backend simulates it through the sweep, so the drawer follows the steps as it would with the real optimizer — the headline, the Steps column, the Objective by step strip under the sliders, the Sensitivity card and the steps table. Fast, deterministic, no download. For the real Pyodide/Optuna optimizer see Simulate / Browser optimizer (real).",
       },
     },
   },
   render: () => (
     <RunnableSimulateViewStory
       example={supplyChainProfit}
-      initialSimulateViewMode="optimizations"
       optimization={fakeConnectedOptimization}
-    />
+    >
+      <AutoSweepStudy study={richStockSweep} />
+    </RunnableSimulateViewStory>
   ),
 };

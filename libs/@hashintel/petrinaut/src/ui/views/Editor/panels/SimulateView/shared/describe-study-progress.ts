@@ -40,8 +40,6 @@ export const describeStudyProgress = (
       return `Starting · ${best}`;
     case "running":
       return `Step ${currentTrialNumber(optimization)} of ${requested} · ${best}`;
-    case "paused":
-      return `Paused at ${finished} of ${requested} steps · ${best}`;
     case "complete":
       return finished === requested
         ? `Finished ${requested} steps · ${best}`

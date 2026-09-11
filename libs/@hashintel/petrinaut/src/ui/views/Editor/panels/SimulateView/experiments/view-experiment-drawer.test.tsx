@@ -209,8 +209,6 @@ const renderDrawerWithStudies = (
           <OptimizationsContext
             value={makeOptimizationsContextValue(first, {
               optimizations: [first, ...rest],
-              selectedOptimization: null,
-              selectedOptimizationId: null,
               ...overrides,
             })}
           >
@@ -324,6 +322,29 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBeTruthy();
     // Nothing else of the frame knows about the constraints before a study.
     expect(screen.queryByText("Steps clear")).toBeNull();
+  });
+
+  it("opens the next experiment's constraints folded when the drawer swaps records in place", () => {
+    const constrained = makeConstrainedSweepExperiment();
+    const view = renderDrawer(constrained);
+    fireEvent.click(screen.getByRole("button", { name: /Show 2 constraints/ }));
+    expect(
+      screen.getByRole("button", { name: /Hide constraints/ }),
+    ).toBeTruthy();
+
+    view.rerender(
+      <ViewExperimentDrawer
+        open
+        onClose={() => {}}
+        experiment={{ ...constrained, id: `${constrained.id}-next` }}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: /Show 2 constraints/ })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
   it("shows the error in the reserved note row without adding a row", () => {

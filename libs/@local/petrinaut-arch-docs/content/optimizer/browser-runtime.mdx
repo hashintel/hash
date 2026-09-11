@@ -70,37 +70,29 @@ unchanged.
    resolves the trial's scenario parameter values
    (`resolveTrialScenarioParameterValues`) and calls `channel.evaluateTrial`
    with the run's seeds and the segment's abort signal.
-5. **Channel → experiments.** The [channel](layer:react.optimizations.channel)
-   turns the trial into one detached objective run: `runDetachedObjective` on
-   the [experiments provider](layer:react.experiments), with `cacheKey` set to
-   the run id, so the study compiles its snapshot once, and `queueKey` set to
-   `${runId}:trial:${n}`, so the trials in flight overlap. The request carries
-   the trial's values, `runCount = seeds.length`, the seeds pinned per run
-   (`runSeeds`) and the study's requested backend. The first run of a study on
-   a backend walks the registrations (`selectExperimentBackend`, GPU first,
-   the CPU pool last, at a third of the pool's shards so the user's own
-   experiments keep workers) and keeps the winner for the study's later runs.
-   Pinned seeds go to the CPU pool only; the GPU backend derives run seeds
-   from the base seed. The channel calls the study's `trialStarted` when the
-   run begins and `trialSettled` when it settles, so the
-   [connected study](doc:optimizer/connected-study) can follow it. The trial's
-   objective is the mean of the per-run finals the CPU reports (`runResults`)
-   or, where the backend reports no run axis, the objective metric's last
-   sampled frame reduced to a mean. Optuna is told that mean; the replicates
-   stop at the channel. A batch that does not complete settles with a reason
-   (the metric's compile diagnostics, each backend's refusal, the terminal
-   error, or the count of errored runs), and the channel prunes the trial with
-   that reason; a cancelled batch is pruned as `cancelled`, and a non-finite
-   objective names the metric. Every failure reaches Optuna as a pruned trial
-   carrying the reason.
+5. **Channel → sweep.** The
+   [sweep evaluator](layer:react.optimizations.sweep-evaluator) behind the
+   run turns the trial into one point of the parameter sweep the study
+   drives: it snaps the suggestion to the sweep's axes, judges the
+   experiment's parameter constraints at the snapped point — an infeasible
+   draw is pruned naming the constraint and nothing simulates — and asks the
+   [experiments provider](layer:react.experiments) to `navigateSweep` there
+   with `runCap = seeds.length`, so the point computes the study's runs per
+   step before its value is read. The runs use the sweep's common random
+   numbers, and the experiment's backend — chosen at its creation — is the
+   study's. The trial's objective is the visited cell's mean of the objective
+   metric; a state constraint's indicator mean at the cell is its share of
+   runs passed. Optuna is told that mean; the replicates stop at the
+   evaluator. A point that fails settles the study with the reason; a
+   navigation another move superseded is pruned as "the sweep moved on".
 6. **Events → drawer.** Each told trial produces a `trial { runId, event }`
    message carrying the running best, which the capability appends to the run
    log as a `trial` event; the segment's summary produces `complete`. The
    provider consumes the log through `attachOptimizationRun`, which replays it
    from a cursor and then tails it, so a re-attach delivers each event once.
-   The record's `connected` field carries the local side: where the drawer
-   points and the objective's live stream there
-   ([connected study](doc:optimizer/connected-study)).
+   The sweep the study drives carries the local side: its navigator follows
+   each step and its Surface gains a dot per step
+   ([sweep orchestration](doc:experiments/sweep-orchestration)).
 
 ## Stop, Continue and Remove
 
@@ -163,10 +155,10 @@ run, drops every study and terminates the worker.
 - **The experiments provider** owns simulation: compilation cached per
   `cacheKey`, the backend choice per study, seeding, frames and progress
   streamed on a 100 ms throttle, and the per-`queueKey` queue.
-- **The connected study** owns the drawer's local state: navigation,
-  following, the refinement ladder at the navigated point and the activity
-  list ([connected study](doc:optimizer/connected-study)); the
-  [Optimizations tab](doc:ui/optimizations-tab) renders it.
+- **The sweep evaluator** owns the drawer's local state through the sweep it
+  drives: the navigator follows each step, the Surface gains a dot per step,
+  and the experiment drawer shows the study
+  ([sweep orchestration](doc:experiments/sweep-orchestration)).
 
 ## Parity with the service
 

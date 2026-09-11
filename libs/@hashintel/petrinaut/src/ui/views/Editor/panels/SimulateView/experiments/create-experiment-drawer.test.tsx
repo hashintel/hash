@@ -216,7 +216,6 @@ const TestProviders = ({
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
     setEnableParameterSweeps: () => {},
-    setEnableOptimizationSurface: () => {},
     setCanvasViewport: () => {},
     setEnableInBrowserOptimization: () => {},
     setBrunchDemoMode: () => {},
@@ -234,18 +233,6 @@ const TestProviders = ({
             removeExperiment: () => {},
             setSweepSelection: () => {},
             navigateSweep: () => Promise.resolve(null),
-            sampleDetachedObjective: () => Promise.resolve(null),
-            runDetachedObjective: () => ({
-              frames: { get: () => [], subscribe: () => () => {} },
-              progress: { get: () => null, subscribe: () => () => {} },
-              completion: Promise.resolve({
-                ok: false,
-                cancelled: false,
-                reason: "unused",
-              }),
-              cancel: () => {},
-            }),
-            resolveDetachedObjectiveParameters: () => Promise.resolve({}),
           }}
         >
           <SDCPNContext value={sdcpnContextValue}>
