@@ -226,6 +226,8 @@ const observedFailure = (
           }
         : undefined;
     case "submission_settled":
+      // Flue's abort is a distinct terminal outcome, not a failure. A user
+      // Stop settles `aborted`; treat it like provider-accounting's abort note.
       return observation.outcome === "completed"
         ? undefined
         : {
@@ -298,6 +300,10 @@ export const createRuntimeDiagnostics = (
       const failure = observedFailure(observation, verbose);
       if (!failure) return;
       if (failure.error === undefined && failure.stage === "flue.log") {
+        note(failure.stage, failure.fields);
+        return;
+      }
+      if (failure.fields.outcome === "aborted") {
         note(failure.stage, failure.fields);
         return;
       }

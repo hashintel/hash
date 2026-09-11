@@ -289,6 +289,29 @@ describe("runtime diagnostics observer", () => {
     });
   });
 
+  test("aborted submissions are noted rather than reported as failures", () => {
+    const sink = createSink();
+    const diagnostics = createRuntimeDiagnostics(sink, "development");
+    void diagnostics.observe(
+      {
+        ...envelope,
+        type: "submission_settled",
+        submissionId: "submission-stop",
+        outcome: "aborted",
+        error: { type: "aborted", message: SENTINEL },
+      },
+      undefined as never,
+    );
+    expect(sink.error).not.toHaveBeenCalled();
+    expect(sink.warn).toHaveBeenCalledTimes(1);
+    expect(sink.warn.mock.calls[0]![1]).toMatchObject({
+      stage: "flue.submission",
+      outcome: "aborted",
+      submissionId: "submission-stop",
+    });
+    expect(JSON.stringify(sink.warn.mock.calls[0]![1])).not.toContain(SENTINEL);
+  });
+
   test("agent error logs are noted without a thrown value", () => {
     const sink = createSink();
     const diagnostics = createRuntimeDiagnostics(sink, "production");
