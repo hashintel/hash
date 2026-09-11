@@ -10861,6 +10861,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "problematic"
+version = "0.0.0-reserved"
+dependencies = [
+ "http 1.4.2",
+ "insta",
+ "schemars 1.2.1",
+ "serde",
+ "serde_core",
+ "serde_json",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

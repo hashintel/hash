@@ -1,0 +1,35 @@
+[package]
+name              = "problematic"
+version           = "0.0.0-reserved"
+authors.workspace = true
+edition.workspace = true
+description       = "HTTP Problem Details with typed extensions and JSON Schema support"
+license           = "MIT OR Apache-2.0"
+documentation     = "https://docs.rs/problematic"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/problematic/rust"
+exclude           = ["package.json", "turbo.json", "docs/task-dependencies.json"]
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+http       = { workspace = true, public = true, features = ["std"] }
+serde_core = { workspace = true, public = true }
+
+# Public third-party dependencies (optional)
+schemars = { workspace = true, public = true, optional = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+serde = { workspace = true, features = ["alloc", "derive"] }
+
+[dev-dependencies]
+insta      = { workspace = true, features = ["json"] }
+serde_json = { workspace = true }
+
+[features]
+schemars = ["dep:schemars"]
+
+[lints]
+workspace = true

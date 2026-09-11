@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Problem Details",
+  "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nResponses always include `type`, `title`, and `status`. `detail` and `instance` are included\nonly when supplied.",
+  "type": "object",
+  "properties": {
+    "detail": {
+      "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nClients should use extension members for structured information.",
+      "type": "string",
+      "examples": [
+        "This operation requires a machine actor."
+      ]
+    },
+    "instance": {
+      "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+      "type": "string",
+      "format": "uri-reference",
+      "examples": [
+        "https://example.com/problem-occurrences/01J8M6Y7P9"
+      ]
+    },
+    "status": {
+      "description": "The HTTP status code sent by the origin server for this occurrence.",
+      "type": "integer",
+      "format": "uint16",
+      "examples": [
+        403
+      ],
+      "maximum": 599,
+      "minimum": 100
+    },
+    "title": {
+      "description": "A short, human-readable summary of the problem type. It should remain the same across\noccurrences, except for localization.",
+      "type": "string",
+      "examples": [
+        "Wrong actor type"
+      ]
+    },
+    "type": {
+      "description": "A URI reference identifying the problem type. `about:blank` means the problem has no\nadditional semantics beyond its HTTP status code.",
+      "type": "string",
+      "format": "uri-reference",
+      "default": "about:blank",
+      "examples": [
+        "https://example.com/problems/wrong-actor-type"
+      ]
+    }
+  },
+  "required": [
+    "type",
+    "title",
+    "status"
+  ]
+}
