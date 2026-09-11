@@ -3,9 +3,15 @@ import { VoiceError, type VoiceErrorCode } from "../../../voice-diagnostics";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type {
+  CancelPendingSpeechOptions,
   RealtimeBridgeErrorCode,
   RealtimeBrunchBridgeEvent,
+  VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 export type VoiceConnectionState =
   | "idle"
@@ -14,13 +20,23 @@ export type VoiceConnectionState =
   | "error";
 export type VoiceInputState = "listening" | "paused" | "submitting";
 export type VoiceOutputState =
+  | "cancelling"
   | "idle"
   | "waiting-for-tool"
   | "speaking"
   | "interrupted";
 export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
+export type VoiceInputNotice =
+  | "none"
+  | "not-heard"
+  | "too-long"
+  | "answer-pending"
+  | "answer-already-pending";
 
 export interface VoiceTurnSnapshot {
+  readonly canReadFullResponse: boolean;
+  readonly canRepeatQuestion: boolean;
+  readonly canTakeTurn: boolean;
   readonly canReviseLastAnswer: boolean;
   readonly connection: VoiceConnectionState;
   readonly currentQuestion: string;
@@ -28,6 +44,8 @@ export interface VoiceTurnSnapshot {
   readonly errorMessage: string;
   readonly errorRequestId: string;
   readonly input: VoiceInputState;
+  readonly inputNotice: VoiceInputNotice;
+  readonly interruptionBySpeaking: boolean;
   readonly lastAnswerDelivery: VoiceAnswerDelivery;
   readonly lastCommittedText: string;
   readonly microphoneEnabled: boolean;
@@ -37,35 +55,45 @@ export interface VoiceTurnSnapshot {
 }
 
 export interface VoiceLatencyEvent {
+  readonly correlationId: string;
   readonly elapsedMs: number;
   readonly name:
+    | "submission-admitted"
+    | "submission-settled"
+    | "first-canonical-text"
+    | "first-tts-request"
+    | "first-tts-audio"
     | "question-visible"
     | "question-spoken-started"
     | "question-spoken"
     | "answer-ready";
-  readonly questionId: string;
 }
 
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
-
 interface RealtimeSession {
-  cancelOutput(): void;
+  cancelOutput(): Promise<void>;
   connect(): Promise<number>;
   disconnect(): Promise<void>;
+  setInterruptionBySpeaking(enabled: boolean): void;
   setMicrophoneEnabled(enabled: boolean): void;
+  speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
 interface RealtimeBridge {
+  cancelPendingSpeech(options?: CancelPendingSpeechOptions): void;
+  completeTurnHandoff(): void;
   start(connectionEpoch: number): void;
   stop(): void;
   subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
   updateChat(update: ChatUpdate): void;
 }
 
-interface SubmitTextInput {
+type ComposerSubmitTextInput = Parameters<
+  PetrinautAiComposerControlContext["submitText"]
+>[0];
+
+interface SubmitTextInput extends Pick<ComposerSubmitTextInput, "text"> {
   readonly target: "message";
-  readonly text: string;
 }
 
 interface VoiceTurnControllerDependencies {
@@ -79,12 +107,24 @@ interface VoiceTurnControllerDependencies {
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly status: ChatStatus;
+  readonly questionSegment?: CanonicalSpeechSegment;
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly stopped?: boolean;
+  readonly status: PetrinautAiVoiceModeContext["status"];
+}
+
+interface PendingSubmissionSettlement {
+  readonly deliveryId: string;
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
 }
 
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
 
 const initialSnapshot: VoiceTurnSnapshot = {
+  canReadFullResponse: false,
+  canRepeatQuestion: false,
+  canTakeTurn: false,
   canReviseLastAnswer: false,
   connection: "idle",
   currentQuestion: "",
@@ -92,6 +132,8 @@ const initialSnapshot: VoiceTurnSnapshot = {
   errorMessage: "",
   errorRequestId: "",
   input: "paused",
+  inputNotice: "none",
+  interruptionBySpeaking: false,
   lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: false,
@@ -99,11 +141,6 @@ const initialSnapshot: VoiceTurnSnapshot = {
   output: "idle",
   partialText: "",
 };
-
-const latestQuestion = (
-  segments: CanonicalSpeechSegment[],
-): CanonicalSpeechSegment | undefined =>
-  segments.findLast(({ source }) => source === "brunch-ask");
 
 export class VoiceTurnController {
   readonly #bridge: RealtimeBridge;
@@ -113,18 +150,32 @@ export class VoiceTurnController {
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
   #activeEpoch: number | null = null;
+  #activeSpeechOutputEnded = false;
+  #activeSpeechResponseId: string | null = null;
+  #activeSpeechResponseTerminal = false;
   #answerFinalizedAt: number | null = null;
   #answeredQuestionId: string | null = null;
   #bridgeStarted = false;
   #currentQuestionId: string | null = null;
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
+  #inputTurnPending = false;
+  #latencyCorrelationId: string | null = null;
+  #lastResponseQuestion: CanonicalSpeechSegment | null = null;
+  #lastResponseSegments: CanonicalSpeechSegment[] = [];
+  #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
+  readonly #pendingSpeechRequestIds = new Set<string>();
+  #pendingSubmissionSettlement: PendingSubmissionSettlement | null = null;
+  readonly #recordedLatencyEvents = new Set<string>();
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
+  #takingTurnPromise: Promise<void> | null = null;
   #teardownPromise: Promise<void> | null = null;
+  readonly #terminalSpeechRequestIds = new Set<string>();
   #transcriptItemId: string | null = null;
   #transcriptKey: string | null = null;
+  #ttsSpeechRequestId: string | null = null;
 
   public constructor({
     bridge,
@@ -140,6 +191,19 @@ export class VoiceTurnController {
     this.#submitText = submitText;
     session.subscribe((event) => this.#handleSessionEvent(event));
     bridge.subscribe((event) => this.#handleBridgeEvent(event));
+  }
+
+  public setInterruptionBySpeaking(enabled: boolean): void {
+    this.#session.setInterruptionBySpeaking(enabled);
+    this.#update({ interruptionBySpeaking: enabled });
+    if (
+      this.#snapshot.connection === "connected" &&
+      this.#snapshot.input !== "paused" &&
+      !this.#takingTurnPromise &&
+      !this.#outputCancellationPromise
+    ) {
+      this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+    }
   }
 
   public getSnapshot(): VoiceTurnSnapshot {
@@ -180,8 +244,16 @@ export class VoiceTurnController {
     }
 
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
+    this.#outputCancellationPromise = null;
     this.#pauseRequested = false;
+    this.#pendingSpeechRequestIds.clear();
+    this.#terminalSpeechRequestIds.clear();
+    this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
+    this.#activeSpeechOutputEnded = false;
+    this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -219,20 +291,37 @@ export class VoiceTurnController {
   public async end(): Promise<void> {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechOutputEnded = false;
+    this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
     this.#bridgeStarted = false;
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
+    this.#latencyCorrelationId = null;
+    this.#lastResponseQuestion = null;
+    this.#lastResponseSegments = [];
+    this.#outputCancellationPromise = null;
+    this.#pendingSpeechRequestIds.clear();
+    this.#recordedLatencyEvents.clear();
     this.#submittingQuestionId = null;
+    this.#takingTurnPromise = null;
+    this.#terminalSpeechRequestIds.clear();
+    this.#completeSubmissionSettlement();
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
+    this.#ttsSpeechRequestId = null;
     this.#bridge.stop();
     this.#session.setMicrophoneEnabled(false);
     const teardownPromise = this.#teardownPromise ?? this.#session.disconnect();
     this.#teardownPromise = teardownPromise;
-    this.#update({ ...initialSnapshot });
+    this.#update({
+      ...initialSnapshot,
+      interruptionBySpeaking: this.#snapshot.interruptionBySpeaking,
+    });
     try {
       await teardownPromise;
     } finally {
@@ -274,7 +363,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = this.#snapshot.input;
     this.#pauseRequested = true;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
-    this.#session.cancelOutput();
+    this.cancelPendingSpeech();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
       input: "paused",
@@ -297,16 +386,51 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    this.#session.setMicrophoneEnabled(!muted);
+    if (
+      this.#takingTurnPromise === null &&
+      this.#outputCancellationPromise === null &&
+      (this.#snapshot.interruptionBySpeaking ||
+        (this.#activeSpeechResponseId === null &&
+          (this.#snapshot.output === "idle" ||
+            this.#snapshot.output === "interrupted")))
+    ) {
+      this.#session.setMicrophoneEnabled(!muted);
+    }
     this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
   }
 
-  public resume(): void {
+  public async resume(): Promise<void> {
     if (
       this.#snapshot.connection !== "connected" ||
       this.#snapshot.input !== "paused"
     ) {
       return;
+    }
+    const generation = this.#generation;
+    while (this.#outputCancellationPromise || this.#takingTurnPromise) {
+      try {
+        await (this.#outputCancellationPromise ?? this.#takingTurnPromise);
+      } catch (error) {
+        if (generation !== this.#generation) return;
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("speech", "network", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+        return;
+      }
+      const snapshotAfterCancellation = this.getSnapshot();
+      if (
+        generation !== this.#generation ||
+        snapshotAfterCancellation.connection !== "connected" ||
+        snapshotAfterCancellation.input !== "paused"
+      ) {
+        return;
+      }
     }
     const input = this.#inputStateOnResume ?? "listening";
     this.#inputStateOnResume = null;
@@ -330,6 +454,11 @@ export class VoiceTurnController {
       }
     }
     this.#update({ input, microphoneEnabled: true });
+  }
+
+  public cancelPendingSpeech(): void {
+    this.#bridge.cancelPendingSpeech();
+    void this.#cancelOutput();
   }
 
   public async submitCorrection(correction: string): Promise<boolean> {
@@ -364,39 +493,185 @@ export class VoiceTurnController {
     }
   }
 
+  public readFullResponse(): void {
+    if (!this.#snapshot.canReadFullResponse) return;
+    this.#update({ output: "waiting-for-tool" });
+    this.#session.speakCanonical([...this.#lastResponseSegments]);
+  }
+
+  public repeatQuestion(): void {
+    if (!this.#snapshot.canRepeatQuestion || !this.#lastResponseQuestion)
+      return;
+    this.#update({ output: "waiting-for-tool" });
+    this.#session.speakCanonical([this.#lastResponseQuestion]);
+  }
+
+  /**
+   * Hands the turn to the user only after provider cancellation has cleared
+   * input and output and the active response has reached a terminal state.
+   */
+  public takeTurn(): Promise<void> {
+    if (this.#takingTurnPromise) return this.#takingTurnPromise;
+    if (this.#snapshot.interruptionBySpeaking || !this.#snapshot.canTakeTurn)
+      return Promise.resolve();
+
+    const generation = this.#generation;
+    this.#bridge.cancelPendingSpeech({ discardPendingInterruption: true });
+    this.#session.setMicrophoneEnabled(false);
+    this.#inputTurnPending = false;
+    this.#transcriptItemId = null;
+    this.#transcriptKey = null;
+    this.#update({ output: "cancelling", partialText: "" });
+
+    const submissionSettlement =
+      this.#pendingSubmissionSettlement?.promise ?? Promise.resolve();
+    const takingTurnPromise = Promise.all([
+      this.#session.cancelOutput(),
+      submissionSettlement,
+    ])
+      .then(() => {
+        if (
+          generation !== this.#generation ||
+          this.#snapshot.connection !== "connected" ||
+          this.#snapshot.input === "paused"
+        ) {
+          return;
+        }
+        this.#activeSpeechOutputEnded = false;
+        this.#activeSpeechResponseId = null;
+        this.#activeSpeechResponseTerminal = false;
+        this.#pendingSpeechRequestIds.clear();
+        this.#terminalSpeechRequestIds.clear();
+        this.#bridge.completeTurnHandoff();
+        this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+        this.#update({ output: "interrupted" });
+      })
+      .catch((error: unknown) => {
+        if (generation !== this.#generation) return;
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("speech", "network", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+      })
+      .finally(() => {
+        if (this.#takingTurnPromise === takingTurnPromise) {
+          this.#takingTurnPromise = null;
+          this.#update({});
+        }
+      });
+    this.#takingTurnPromise = takingTurnPromise;
+    this.#update({});
+    return takingTurnPromise;
+  }
+
   public updateChat(update: ChatUpdate): void {
-    const question = latestQuestion(update.canonicalSegments);
+    const question = update.questionSegment;
     if (question && question.id !== this.#currentQuestionId) {
       this.#currentQuestionId = question.id;
       this.#update({ currentQuestion: question.text });
       this.#recordLatency("question-visible", question.id);
     }
     this.#bridge.updateChat(update);
-    if (this.#snapshot.input === "paused") {
-      this.#session.cancelOutput();
+    if (
+      this.#snapshot.input === "paused" &&
+      (this.#activeSpeechResponseId !== null ||
+        this.#pendingSpeechRequestIds.size > 0)
+    ) {
+      void this.#cancelOutput();
     }
   }
 
   #handleBridgeEvent(event: RealtimeBrunchBridgeEvent): void {
     if (this.#snapshot.connection !== "connected") return;
     if (event.type === "error") {
+      this.#completeSubmissionSettlement();
       this.#setError(event.message, event.code);
       return;
     }
     if (event.type === "submission-started") {
+      this.#beginSubmissionSettlement(event.deliveryId);
       const paused = this.#snapshot.input === "paused";
+      const preservePendingInput =
+        this.#transcriptItemId !== null &&
+        this.#transcriptItemId !== event.itemId;
       if (paused) {
         this.#inputStateOnResume = "submitting";
       }
+      if (!preservePendingInput) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+      }
       this.#answerFinalizedAt = this.#now();
+      this.#latencyCorrelationId = event.deliveryId;
+      this.#recordedLatencyEvents.clear();
       this.#submittingQuestionId = this.#currentQuestionId;
-      this.#transcriptItemId = null;
-      this.#transcriptKey = null;
+      this.#ttsSpeechRequestId = null;
+      if (!preservePendingInput) {
+        this.#session.setMicrophoneEnabled(false);
+      }
       this.#update({
         input: paused ? "paused" : "submitting",
+        inputNotice: preservePendingInput ? this.#snapshot.inputNotice : "none",
         lastAnswerDelivery: "pending",
         lastCommittedText: event.answer,
         output: "waiting-for-tool",
+        partialText: preservePendingInput ? this.#snapshot.partialText : "",
+      });
+      return;
+    }
+    if (event.type === "transcript-retained") {
+      this.#update({
+        inputNotice: "answer-pending",
+        partialText: event.answer,
+      });
+      return;
+    }
+    if (event.type === "transcript-rejected") {
+      if (event.itemId !== this.#transcriptItemId) {
+        return;
+      }
+      if (event.reason === "duplicate" || event.reason === "unavailable") {
+        return;
+      }
+      if (
+        this.#snapshot.inputNotice === "answer-pending" &&
+        event.reason !== "pending"
+      ) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+        this.#update({});
+        return;
+      }
+      if (
+        event.reason === "prompt-regurgitation" ||
+        event.reason === "self-echo"
+      ) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+        this.#update(
+          this.#snapshot.inputNotice === "answer-pending"
+            ? {}
+            : { inputNotice: "none", partialText: "" },
+        );
+        return;
+      }
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
+      this.#update({
+        inputNotice:
+          event.reason === "pending"
+            ? "answer-already-pending"
+            : event.reason === "over-limit"
+              ? "too-long"
+              : "not-heard",
         partialText: "",
       });
       return;
@@ -407,19 +682,73 @@ export class VoiceTurnController {
       this.#update({ lastAnswerDelivery: "delivered" });
       return;
     }
+    if (event.type === "submission-admitted") {
+      this.#recordLatency("submission-admitted", event.deliveryId);
+      return;
+    }
+    if (event.type === "canonical-text-ready") {
+      this.#recordLatency("first-canonical-text", event.deliveryId);
+      return;
+    }
+    if (event.type === "submission-settled") {
+      this.#completeSubmissionSettlement(event.deliveryId);
+      this.#recordLatency("submission-settled", event.deliveryId);
+      return;
+    }
+    if (event.type === "submission-stopped") {
+      this.#completeSubmissionSettlement(event.deliveryId);
+      // Brunch was stopped before it replied: nothing to speak, and the
+      // interviewer is free to listen again.
+      const pausedWhileStopped = this.#snapshot.input === "paused";
+      if (pausedWhileStopped) {
+        this.#inputStateOnResume = "listening";
+      }
+      this.#update({
+        input: pausedWhileStopped ? "paused" : "listening",
+        output: "idle",
+      });
+      this.#restoreMicrophoneIfCaptureAvailable();
+      return;
+    }
+    this.#completeSubmissionSettlement(event.deliveryId);
+    this.#lastResponseQuestion = event.questionSegment ?? null;
+    this.#lastResponseSegments = [...event.segments];
+    const responseEnd = event.segments.at(-1);
+    if (event.speechCancelled) {
+      const paused = this.#snapshot.input === "paused";
+      if (paused) {
+        this.#inputStateOnResume = "listening";
+      }
+      this.#update({
+        input: paused ? "paused" : "listening",
+        output: "interrupted",
+      });
+      this.#restoreMicrophoneIfCaptureAvailable();
+      if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
+      return;
+    }
     const paused = this.#snapshot.input === "paused";
     if (paused) {
       this.#inputStateOnResume = "listening";
-      this.#session.cancelOutput();
+      void this.#cancelOutput();
     }
+    const preserveSettledOutput =
+      this.#snapshot.output === "speaking" ||
+      this.#snapshot.output === "waiting-for-tool" ||
+      (this.#snapshot.output === "idle" &&
+        this.#snapshot.input === "submitting");
     this.#update({
       input: paused ? "paused" : "listening",
-      output: paused ? "interrupted" : "waiting-for-tool",
+      output: paused
+        ? "interrupted"
+        : event.segments.length === 0
+          ? "idle"
+          : preserveSettledOutput
+            ? this.#snapshot.output
+            : "waiting-for-tool",
     });
-    const question = event.segments.findLast(
-      ({ source }) => source === "brunch-ask",
-    );
-    if (question) this.#recordLatency("answer-ready", question.id);
+    this.#restoreMicrophoneIfCaptureAvailable();
+    if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
@@ -439,45 +768,171 @@ export class VoiceTurnController {
     ) {
       return;
     }
+    if (event.type === "canonical-speech-requested") {
+      this.#pendingSpeechRequestIds.add(event.speechRequestId);
+      if (
+        this.#snapshot.interruptionBySpeaking &&
+        this.#snapshot.input !== "paused" &&
+        !this.#takingTurnPromise &&
+        !this.#outputCancellationPromise
+      ) {
+        this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+      }
+      if (!this.#snapshot.interruptionBySpeaking) {
+        this.#session.setMicrophoneEnabled(false);
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+      }
+      this.#update({
+        output: "waiting-for-tool",
+        partialText:
+          this.#snapshot.interruptionBySpeaking && this.#inputTurnPending
+            ? this.#snapshot.partialText
+            : "",
+      });
+      if (
+        this.#latencyCorrelationId !== null &&
+        this.#ttsSpeechRequestId === null
+      ) {
+        this.#ttsSpeechRequestId = event.speechRequestId;
+        this.#recordLatency("first-tts-request", this.#latencyCorrelationId);
+      }
+      return;
+    }
     if (event.type === "output-started") {
+      this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      this.#activeSpeechOutputEnded = false;
+      this.#activeSpeechResponseId = event.responseId;
+      this.#activeSpeechResponseTerminal =
+        this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+      if (!this.#snapshot.interruptionBySpeaking) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+      }
       if (this.#snapshot.input === "paused") {
-        this.#session.cancelOutput();
-        this.#update({ output: "interrupted" });
+        void this.#cancelOutput();
+        this.#update({ output: "interrupted", partialText: "" });
         return;
       }
-      this.#update({ output: "speaking" });
+      this.#update({
+        output: "speaking",
+        partialText:
+          this.#snapshot.interruptionBySpeaking && this.#inputTurnPending
+            ? this.#snapshot.partialText
+            : "",
+      });
+      if (
+        this.#latencyCorrelationId !== null &&
+        event.speechRequestId === this.#ttsSpeechRequestId
+      ) {
+        this.#recordLatency("first-tts-audio", this.#latencyCorrelationId);
+      }
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken-started", this.#currentQuestionId);
       }
       return;
     }
     if (event.type === "output-stopped") {
-      this.#update({ output: "idle" });
+      if (event.responseId !== this.#activeSpeechResponseId) return;
+      this.#activeSpeechOutputEnded = true;
+      if (this.#activeSpeechResponseTerminal) {
+        this.#clearSettledSpeech();
+      }
+      this.#update({
+        output: this.#outputAfterPlaybackEnds("idle"),
+      });
+      this.#restoreMicrophoneIfCaptureAvailable();
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken", this.#currentQuestionId);
       }
       return;
     }
     if (event.type === "output-interrupted") {
-      this.#update({ output: "interrupted" });
+      const interruptedPendingSpeech =
+        event.speechRequestId !== undefined &&
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      if (event.speechRequestId !== undefined) {
+        this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+      }
+      if (event.responseId !== this.#activeSpeechResponseId) {
+        if (interruptedPendingSpeech) {
+          this.#update({
+            output: this.#outputAfterPlaybackEnds("interrupted"),
+          });
+          this.#restoreMicrophoneIfCaptureAvailable();
+        }
+        return;
+      }
+      this.#activeSpeechOutputEnded = true;
+      if (this.#activeSpeechResponseTerminal) {
+        this.#clearSettledSpeech();
+      }
+      this.#update({
+        output: this.#outputAfterPlaybackEnds("interrupted"),
+      });
+      this.#restoreMicrophoneIfCaptureAvailable();
       return;
     }
     if (event.type === "input-speech-started") {
+      if (
+        this.#takingTurnPromise ||
+        this.#snapshot.input === "paused" ||
+        (!event.interruptionBySpeaking &&
+          this.#snapshot.output === "speaking") ||
+        this.#snapshot.output === "cancelling"
+      ) {
+        return;
+      }
+      if (event.interruptionBySpeaking) {
+        this.#activeSpeechResponseId = null;
+        this.#activeSpeechOutputEnded = false;
+        this.#activeSpeechResponseTerminal = false;
+        this.#update({ output: "interrupted" });
+      }
+      this.#inputTurnPending = true;
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
-      if (this.#snapshot.output === "speaking") {
-        this.#update({ output: "interrupted", partialText: "" });
-      } else {
-        this.#update({ partialText: "" });
+      this.#update(
+        this.#snapshot.inputNotice === "answer-pending"
+          ? {}
+          : { inputNotice: "none", partialText: "" },
+      );
+      return;
+    }
+    if (event.type === "response-terminal") {
+      if (event.responseId === this.#activeSpeechResponseId) {
+        if (
+          this.#activeSpeechOutputEnded ||
+          (event.status !== "completed" && !event.playbackExpected)
+        ) {
+          this.#clearSettledSpeech();
+        } else {
+          this.#activeSpeechResponseTerminal = true;
+        }
+        this.#update({});
+        this.#restoreMicrophoneIfCaptureAvailable();
+      } else if (
+        event.speechRequestId !== undefined &&
+        this.#pendingSpeechRequestIds.has(event.speechRequestId)
+      ) {
+        if (event.status === "completed" && event.playbackExpected) {
+          this.#terminalSpeechRequestIds.add(event.speechRequestId);
+        } else {
+          this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+          this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+          if (this.#activeSpeechResponseId === null) {
+            this.#update({
+              output: this.#outputAfterPlaybackEnds("idle"),
+            });
+            this.#restoreMicrophoneIfCaptureAvailable();
+          }
+        }
       }
       return;
     }
-    if (
-      event.type === "input-speech-stopped" ||
-      event.type === "response-terminal" ||
-      event.type === "tool-arguments-delta" ||
-      event.type === "tool-arguments-done"
-    ) {
+    if (event.type === "input-speech-stopped") {
       return;
     }
 
@@ -485,24 +940,33 @@ export class VoiceTurnController {
     if (event.key.connectionEpoch !== this.#activeEpoch) return;
     if (event.key.itemId !== this.#transcriptItemId) return;
     if (event.type === "transcription-failed") {
+      this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
-      this.#update({ partialText: "" });
+      this.#update(
+        this.#snapshot.inputNotice === "answer-pending"
+          ? {}
+          : { partialText: "" },
+      );
       return;
     }
     if (this.#transcriptKey !== null && this.#transcriptKey !== key) return;
     this.#transcriptKey = key;
     if (event.type === "partial") {
+      if (this.#snapshot.inputNotice === "answer-pending") return;
       this.#update({
         partialText: `${this.#snapshot.partialText}${event.text}`,
       });
       return;
     }
+    this.#inputTurnPending = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
-    this.#update({
-      partialText: event.text.trim() || this.#snapshot.partialText,
-    });
+    this.#update(
+      this.#snapshot.inputNotice === "answer-pending"
+        ? {}
+        : { partialText: event.text.trim() || this.#snapshot.partialText },
+    );
   }
 
   #setError(
@@ -512,10 +976,22 @@ export class VoiceTurnController {
   ): void {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechOutputEnded = false;
+    this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
+    this.#latencyCorrelationId = null;
+    this.#outputCancellationPromise = null;
+    this.#pendingSpeechRequestIds.clear();
+    this.#recordedLatencyEvents.clear();
+    this.#takingTurnPromise = null;
+    this.#terminalSpeechRequestIds.clear();
+    this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
+    this.#ttsSpeechRequestId = null;
     this.#bridge.stop();
     this.#session.setMicrophoneEnabled(false);
     void this.#session.disconnect();
@@ -536,12 +1012,108 @@ export class VoiceTurnController {
     });
   }
 
-  #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {
+  #cancelOutput(): Promise<void> {
+    if (this.#outputCancellationPromise) {
+      return this.#outputCancellationPromise;
+    }
+    const cancellationPromise = this.#session.cancelOutput();
+    this.#outputCancellationPromise = cancellationPromise;
+    this.#update({});
+    void cancellationPromise.then(
+      () => {
+        if (this.#outputCancellationPromise === cancellationPromise) {
+          this.#outputCancellationPromise = null;
+          this.#pendingSpeechRequestIds.clear();
+          this.#terminalSpeechRequestIds.clear();
+          this.#clearSettledSpeech();
+          this.#bridge.completeTurnHandoff();
+          const output =
+            this.#snapshot.output === "waiting-for-tool" ||
+            this.#snapshot.output === "speaking"
+              ? "interrupted"
+              : this.#snapshot.output;
+          this.#update({ output });
+          this.#restoreMicrophoneIfCaptureAvailable();
+        }
+      },
+      () => {
+        if (this.#outputCancellationPromise === cancellationPromise) {
+          this.#outputCancellationPromise = null;
+          this.#update({});
+          this.#restoreMicrophoneIfCaptureAvailable();
+        }
+      },
+    );
+    return cancellationPromise;
+  }
+
+  #beginSubmissionSettlement(deliveryId: string): void {
+    this.#completeSubmissionSettlement();
+    let resolve = () => {};
+    const promise = new Promise<void>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    this.#pendingSubmissionSettlement = { deliveryId, promise, resolve };
+  }
+
+  #completeSubmissionSettlement(deliveryId?: string): void {
+    const pending = this.#pendingSubmissionSettlement;
+    if (
+      pending === null ||
+      (deliveryId !== undefined && deliveryId !== pending.deliveryId)
+    ) {
+      return;
+    }
+    this.#pendingSubmissionSettlement = null;
+    pending.resolve();
+  }
+
+  #clearSettledSpeech(): void {
+    this.#activeSpeechOutputEnded = false;
+    this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
+  }
+
+  #outputAfterPlaybackEnds(
+    settledOutput: Extract<VoiceOutputState, "idle" | "interrupted">,
+  ): VoiceOutputState {
+    if (this.#takingTurnPromise) {
+      return "cancelling";
+    }
+    if (
+      this.#pendingSpeechRequestIds.size > 0 &&
+      this.#outputCancellationPromise === null &&
+      this.#snapshot.input !== "paused"
+    ) {
+      return "waiting-for-tool";
+    }
+    return settledOutput;
+  }
+
+  #restoreMicrophoneIfCaptureAvailable(): void {
+    if (
+      this.#snapshot.connection === "connected" &&
+      this.#snapshot.input === "listening" &&
+      this.#activeSpeechResponseId === null &&
+      this.#pendingSpeechRequestIds.size === 0 &&
+      this.#takingTurnPromise === null &&
+      this.#outputCancellationPromise === null &&
+      (this.#snapshot.output === "idle" ||
+        this.#snapshot.output === "interrupted")
+    ) {
+      this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+    }
+  }
+
+  #recordLatency(name: VoiceLatencyEvent["name"], correlationId: string): void {
     if (this.#answerFinalizedAt === null) return;
+    const eventKey = `${correlationId}:${name}`;
+    if (this.#recordedLatencyEvents.has(eventKey)) return;
+    this.#recordedLatencyEvents.add(eventKey);
     this.#onLatencyEvent?.({
+      correlationId,
       elapsedMs: Math.max(0, this.#now() - this.#answerFinalizedAt),
       name,
-      questionId,
     });
   }
 
@@ -555,14 +1127,41 @@ export class VoiceTurnController {
     );
   }
 
+  #canReplay(snapshot: VoiceTurnSnapshot): boolean {
+    return (
+      snapshot.connection === "connected" &&
+      snapshot.input === "listening" &&
+      !this.#inputTurnPending &&
+      this.#activeSpeechResponseId === null &&
+      this.#pendingSpeechRequestIds.size === 0 &&
+      this.#outputCancellationPromise === null &&
+      this.#takingTurnPromise === null &&
+      (snapshot.output === "idle" || snapshot.output === "interrupted")
+    );
+  }
+
+  #canTakeTurn(snapshot: VoiceTurnSnapshot): boolean {
+    return (
+      snapshot.connection === "connected" &&
+      snapshot.input !== "paused" &&
+      (snapshot.output === "waiting-for-tool" ||
+        snapshot.output === "speaking") &&
+      this.#takingTurnPromise === null
+    );
+  }
+
   #isPauseRequested(): boolean {
     return this.#pauseRequested;
   }
 
   #update(update: Partial<VoiceTurnSnapshot>): void {
     const snapshot = { ...this.#snapshot, ...update };
+    const canReplay = this.#canReplay(snapshot);
     this.#snapshot = {
       ...snapshot,
+      canReadFullResponse: canReplay && this.#lastResponseSegments.length > 0,
+      canRepeatQuestion: canReplay && this.#lastResponseQuestion !== null,
+      canTakeTurn: this.#canTakeTurn(snapshot),
       canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
     };
     for (const listener of this.#listeners) listener(this.#snapshot);

@@ -5,17 +5,29 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@local/eslint#build"
-    ],
-    "test:unit": [
-      "@local/eslint#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

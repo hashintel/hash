@@ -1,0 +1,11 @@
+---
+source: libs/@local/graph/atlas/src/postgres/card/prose.rs
+expression: prose_statement(&types).sql
+---
+SELECT "ids"."base_url", "types"."schema"->>'$id', "types"."schema"->>'title', "types"."schema"->>'description', "types"."schema"->'inverse'->>'title'
+FROM UNNEST(($1::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
+INNER JOIN "entity_types" AS "types"
+  ON "types"."ontology_id" = "mapping"."ontology_id"
+INNER JOIN "ontology_ids" AS "ids"
+  ON "ids"."ontology_id" = "mapping"."ontology_id"
+ORDER BY "mapping"."ordinality" ASC

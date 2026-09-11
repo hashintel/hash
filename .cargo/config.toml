@@ -1,6 +1,12 @@
 [registries.crates-io]
 protocol = "sparse"
 
+# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): this makes sure that `std::simd`
+# doesn't fall back to scalar operations, and it allows us to omit much of the multiversion complexity.
+# x86-64-v3 can also be seen as a sane default, as it has been available since 2013.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-Ctarget-cpu=x86-64-v3"]
+
 [unstable]
 cargo-lints       = true
 codegen-backend   = true

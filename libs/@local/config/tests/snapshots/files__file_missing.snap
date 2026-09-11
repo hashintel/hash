@@ -1,0 +1,9 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration file `missing.toml` could not be read
+├╴at libs/@local/config/src/file.rs:[line]:[column]
+│
+╰─▶ No such file or directory (os error 2)
+    ╰╴at libs/@local/config/src/file.rs:[line]:[column]

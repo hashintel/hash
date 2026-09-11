@@ -1,19 +1,36 @@
 import {
   compileScenario,
+  createReadableStore,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getOwn,
   runExperimentToCompletion,
+  type MonteCarloExperiment,
+  type MonteCarloUserDefinedMetricFrame,
+  type MonteCarloWorkerProgress,
   type Scenario,
 } from "@hashintel/petrinaut-core";
-import { createWorkerPoolExperimentBackend } from "@hashintel/petrinaut-core/experiments";
+import {
+  selectExperimentBackend,
+  WORKER_POOL_BACKEND_ID,
+} from "@hashintel/petrinaut-core/experiments";
 
+import { errorMessage } from "../shared/error-message";
+import { createThrottle } from "../shared/throttle";
+import { experimentBackendRegistrations } from "./create-experiment";
 import { instantiateOnBackend } from "./shared/instantiate-on-backend";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
-import type { DetachedObjectiveRequest } from "../context";
+import type {
+  DetachedObjectiveRequest,
+  DetachedObjectiveRun,
+  DetachedObjectiveRunOutcome,
+  DetachedObjectiveRunRequest,
+  ExperimentComputeBackend,
+} from "../context";
 import type { SweepCellSnapshot } from "../sweep-session";
 import type {
   ExperimentBackend,
+  ExperimentRequest,
   ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 
@@ -31,26 +48,66 @@ type CompiledStudy = {
   metricArtifact: NonNullable<CompiledStudy["artifacts"]["metrics"][string]>;
 };
 
+/** The backend a study's runs settled on for one requested backend. */
+type ChosenBackend = {
+  backend: ExperimentBackend;
+  backendId: ExperimentComputeBackend;
+  fallbackReason: string | null;
+};
+
 export type DetachedObjectiveSampler = {
   /**
-   * Computes one objective sample against a study's frozen model snapshot.
-   * Batches are serialized on one background worker; compilation is cached
-   * per `cacheKey`. Resolves null when the batch is refused or fails — a
-   * hole in the surface, not an error.
+   * Computes one objective sample against a study's frozen model snapshot:
+   * a CPU run on the surface queue, so samples run one after another beside
+   * the studies' own runs. Resolves null when the batch is refused or fails
+   * — a hole in the surface, not an error.
    */
   sample: (
     request: DetachedObjectiveRequest,
   ) => Promise<SweepCellSnapshot | null>;
+  /**
+   * Streams one batch on the requested backend. The first run of a study on
+   * a backend walks the registrations and keeps the winner for the study's
+   * later runs. Runs queue per `queueKey` (the `cacheKey` when unset);
+   * studies run side by side. A batch that cannot run settles with the
+   * reason: the compile diagnostics, each backend's refusal, the terminal
+   * error, or the count of errored runs.
+   */
+  run: (request: DetachedObjectiveRunRequest) => DetachedObjectiveRun;
+  /** Cancels every run in flight and releases the backends runs chose. */
+  dispose: () => void;
 };
+
+/** How often a run republishes its frames and progress while streaming. */
+const RUN_PUBLISH_WINDOW_MS = 100;
+
+/** The queue every surface sample joins, whichever study it samples. */
+const SURFACE_QUEUE_KEY = "surface";
+
+type WritableStore<T> = ReturnType<typeof createReadableStore<T>>;
+
+const cancelledOutcome: DetachedObjectiveRunOutcome = {
+  ok: false,
+  cancelled: true,
+  reason: "cancelled",
+};
+
+const failedOutcome = (reason: string): DetachedObjectiveRunOutcome => ({
+  ok: false,
+  cancelled: false,
+  reason,
+});
 
 /**
  * The frozen definition, its scenario HIR and its HIR artifacts never change
- * for a given `cacheKey`, so they compile once per study. A failed compile
- * is retried on the next sample rather than cached.
+ * for a given `cacheKey`, so they compile once per study and per artifact
+ * shape (with or without the HIR trees the GPU backend reads). A failed
+ * compile is retried on the next batch rather than cached.
  */
 const compileStudy = async (
   languageClient: LanguageClient,
   request: DetachedObjectiveRequest,
+  includeHir: boolean,
 ): Promise<CompiledStudy> => {
   const scenario = (request.definition.scenarios ?? []).find(
     (candidate: Scenario) => candidate.id === request.scenarioId,
@@ -65,14 +122,17 @@ const compileStudy = async (
   const { artifacts, failures } = await languageClient.requestHirArtifacts(
     request.definition,
     DEFAULT_PETRINAUT_EXTENSIONS,
-    { includeHir: false },
+    { includeHir },
   );
   const metricArtifact = getOwn(artifacts.metrics, request.metric.id);
   if (!metricArtifact) {
     throw new Error(
       failures
-        .map((failure) => failure.diagnostics[0]?.message)
-        .filter(Boolean)
+        .flatMap((failure) =>
+          failure.diagnostics.map(
+            (diagnostic) => `${failure.itemId}: ${diagnostic.message}`,
+          ),
+        )
         .join("; ") || "The objective metric did not compile",
     );
   }
@@ -80,106 +140,396 @@ const compileStudy = async (
   return { scenario, scenarioHir, artifacts, metricArtifact };
 };
 
+/**
+ * Scenario compilation is numeric; boolean bindings arrive as their 0/1
+ * encoding, matching how the engine stores them.
+ */
+const numericScenarioValues = (
+  values: DetachedObjectiveRequest["scenarioParameterValues"],
+): Record<string, number> =>
+  Object.fromEntries(
+    Object.entries(values).map(([identifier, value]) => [
+      identifier,
+      typeof value === "boolean" ? (value ? 1 : 0) : value,
+    ]),
+  );
+
 export const createDetachedObjectiveSampler = ({
   languageClient,
   createWorker,
+  shardCount,
+  backendRegistrations = experimentBackendRegistrations,
 }: {
   /** Read per call, so a replaced language client is picked up. */
   languageClient: { readonly current: LanguageClient };
   createWorker: ReusableWorkerFactory;
+  /** The full pool's width; runs take a third of it. */
+  shardCount: number;
+  backendRegistrations?: typeof experimentBackendRegistrations;
 }): DetachedObjectiveSampler => {
   const compileCache = new Map<string, Promise<CompiledStudy>>();
-  let backend: ExperimentBackend | null = null;
-  let chain: Promise<unknown> = Promise.resolve();
+  const chosenBackends = new Map<string, ChosenBackend>();
+  /** Walks in progress, so runs that overlap wait for one choice. */
+  const pendingChoices = new Map<string, Promise<ChosenBackend>>();
+  const runQueues = new Map<string, Promise<void>>();
+  const runsInFlight = new Set<AbortController>();
+  // The wide CPU lane of a sweep: a third of the pool, so a study's runs
+  // leave room for the surface walk and the user's own experiments.
+  const runShards = Math.max(1, Math.floor(shardCount / 3));
 
   const compiledFor = (
     request: DetachedObjectiveRequest,
+    includeHir: boolean,
   ): Promise<CompiledStudy> => {
-    let compiled = compileCache.get(request.cacheKey);
+    const key = `${request.cacheKey}|${includeHir ? "hir" : "flat"}`;
+    let compiled = compileCache.get(key);
     if (!compiled) {
-      compiled = compileStudy(languageClient.current, request);
-      compileCache.set(request.cacheKey, compiled);
+      compiled = compileStudy(languageClient.current, request, includeHir);
+      compileCache.set(key, compiled);
       compiled.catch(() => {
-        compileCache.delete(request.cacheKey);
+        compileCache.delete(key);
       });
     }
     return compiled;
   };
 
-  const runBatch = async (
+  /**
+   * The request for one batch: the compiled snapshot with its scenario
+   * compiled at the batch's parameter point. Throws when the scenario does
+   * not compile there.
+   */
+  const buildRequest = async (
     request: DetachedObjectiveRequest,
-  ): Promise<SweepCellSnapshot | null> => {
-    try {
-      const { scenario, scenarioHir, artifacts, metricArtifact } =
-        await compiledFor(request);
-      const compiledScenario = compileScenario(
-        scenario,
-        scenarioHir,
-        request.definition.parameters,
-        request.definition.places,
-        request.definition.types,
-        {
-          // Scenario compilation is numeric; boolean bindings arrive as
-          // their 0/1 encoding, matching how the engine stores them.
-          scenarioParameterValues: Object.fromEntries(
-            Object.entries(request.scenarioParameterValues).map(
-              ([identifier, value]) => [
-                identifier,
-                typeof value === "boolean" ? (value ? 1 : 0) : value,
-              ],
-            ),
-          ),
-        },
+    options: { includeHir: boolean; runSeeds?: readonly number[] },
+  ): Promise<ExperimentRequest> => {
+    const { scenario, scenarioHir, artifacts, metricArtifact } =
+      await compiledFor(request, options.includeHir);
+    const compiledScenario = compileScenario(
+      scenario,
+      scenarioHir,
+      request.definition.parameters,
+      request.definition.places,
+      request.definition.types,
+      {
+        scenarioParameterValues: numericScenarioValues(
+          request.scenarioParameterValues,
+        ),
+      },
+    );
+    if (!compiledScenario.ok) {
+      throw new Error(
+        compiledScenario.errors.map((error) => error.message).join("; ") ||
+          `Scenario "${scenario.name}" did not compile at this point`,
       );
-      if (!compiledScenario.ok) {
-        return null;
-      }
+    }
+    return {
+      sdcpn: request.definition,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      initialMarking: compiledScenario.result.initialState,
+      parameterValues: compiledScenario.result.parameterValues,
+      seed: request.seed,
+      dt: request.dt,
+      maxTime: request.maxTime,
+      runCount: request.runCount,
+      metricSpecs: [
+        {
+          kind: "expression",
+          id: request.metric.id,
+          label: request.metric.label,
+          code: request.metric.code,
+          sampleRuns: "all",
+          runOutput: { type: "distribution" },
+          artifact: metricArtifact,
+        },
+      ],
+      hirArtifacts: artifacts,
+      ...(options.runSeeds === undefined
+        ? {}
+        : { runs: options.runSeeds.map((seed) => ({ seed })) }),
+    };
+  };
 
-      backend ??= createWorkerPoolExperimentBackend({
-        createWorker,
-        shardCount: 1,
+  /** A run's handle on the backend its study settled on. */
+  const instantiateOnChosen = async (
+    request: DetachedObjectiveRunRequest,
+    chosen: ChosenBackend,
+    signal: AbortSignal,
+  ): Promise<MonteCarloExperiment> => {
+    const experimentRequest = await buildRequest(request, {
+      includeHir: chosen.backend.needsHirTrees,
+      runSeeds:
+        chosen.backendId === WORKER_POOL_BACKEND_ID
+          ? request.runSeeds
+          : undefined,
+    });
+    try {
+      return await instantiateOnBackend(chosen.backend, experimentRequest, {
+        signal,
       });
-      const handle = await instantiateOnBackend(
-        backend,
-        {
-          sdcpn: request.definition,
-          extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-          initialMarking: compiledScenario.result.initialState,
-          parameterValues: compiledScenario.result.parameterValues,
-          seed: request.seed,
-          dt: request.dt,
-          maxTime: request.maxTime,
-          runCount: request.runCount,
-          metricSpecs: [
-            {
-              kind: "expression",
-              id: request.metric.id,
-              label: request.metric.label,
-              code: request.metric.code,
-              sampleRuns: "all",
-              runOutput: { type: "distribution" },
-              artifact: metricArtifact,
-            },
-          ],
-          hirArtifacts: artifacts,
-        },
-        {},
-      );
-      const { event, frames } = await runExperimentToCompletion(handle);
-      if (event.type !== "complete") {
-        return null;
-      }
-      return { runsCompleted: request.runCount, metricFrames: frames };
-    } catch {
-      return null;
+    } catch (error) {
+      // A refusal reads as the walk's declines do: the backend, then why.
+      throw new Error(`${chosen.backendId}: ${errorMessage(error)}`);
     }
   };
 
+  /** Walks the registrations for a study's first run on a requested backend. */
+  const walkBackends = async (
+    request: DetachedObjectiveRunRequest,
+    signal: AbortSignal,
+  ): Promise<{
+    handle: MonteCarloExperiment;
+    chosen: ChosenBackend;
+  }> => {
+    // The walk reports a request it cannot build as the first candidate's
+    // refusal; building it here first keeps a compile failure's diagnostics
+    // as the reason. The compile is cached for the candidate that needs it.
+    await buildRequest(request, {
+      includeHir: request.computeBackend === "webgpu",
+    });
+    // The GPU backend refuses pinned seeds, and a refusal on the walk would
+    // read as a fallback. The seeds ride along only when every candidate is
+    // the CPU pool.
+    const pinSeedsOnWalk = request.computeBackend === "cpu";
+    const selection = await selectExperimentBackend({
+      registrations: backendRegistrations({
+        computeBackend: request.computeBackend,
+        createWorker,
+        shardCount: runShards,
+      }),
+      buildRequest: ({ needsHirTrees }) =>
+        buildRequest(request, {
+          includeHir: needsHirTrees,
+          runSeeds: pinSeedsOnWalk ? request.runSeeds : undefined,
+        }),
+      instantiateOptions: { signal },
+    });
+    if (!selection.ok) {
+      throw new Error(
+        selection.declined
+          .map((entry) => `${entry.backendId}: ${entry.reason}`)
+          .join("; ") || "Every backend declined the batch",
+      );
+    }
+    const won: ChosenBackend = {
+      backend: selection.backend,
+      backendId: selection.backendId as ExperimentComputeBackend,
+      fallbackReason: selection.declined[0]?.reason ?? null,
+    };
+    if (
+      pinSeedsOnWalk ||
+      won.backendId !== WORKER_POOL_BACKEND_ID ||
+      request.runSeeds === undefined
+    ) {
+      return { handle: selection.handle, chosen: won };
+    }
+    // The walk fell back to the CPU pool without the seeds. The pool takes
+    // them, so its handle is replaced by one that pins them.
+    selection.handle.dispose();
+    const handle = await instantiateOnBackend(
+      won.backend,
+      await buildRequest(request, {
+        includeHir: false,
+        runSeeds: request.runSeeds,
+      }),
+      { signal },
+    );
+    return { handle, chosen: won };
+  };
+
+  /**
+   * The handle for one run. The first run of a study on a requested backend
+   * walks the registrations and keeps the winner; later runs instantiate on
+   * it directly, and runs that begin while the walk is out wait for its
+   * choice. Throws when the kept backend or every candidate refuses, naming
+   * each and why.
+   */
+  const acquireHandle = async (
+    request: DetachedObjectiveRunRequest,
+    signal: AbortSignal,
+  ): Promise<{
+    handle: MonteCarloExperiment;
+    chosen: ChosenBackend;
+  }> => {
+    const key = `${request.cacheKey}|${request.computeBackend}`;
+    const chosen = chosenBackends.get(key);
+    if (chosen) {
+      return {
+        handle: await instantiateOnChosen(request, chosen, signal),
+        chosen,
+      };
+    }
+    const pending = pendingChoices.get(key);
+    if (pending) {
+      // A walk that failed leaves this run to walk for itself, so its own
+      // refusal, or its own cancellation, is what it reports.
+      const settled = await pending.catch(() => null);
+      if (settled) {
+        return {
+          handle: await instantiateOnChosen(request, settled, signal),
+          chosen: settled,
+        };
+      }
+    }
+    const walk = walkBackends(request, signal);
+    const choice = walk.then(({ chosen: won }) => won);
+    choice.catch(() => undefined);
+    pendingChoices.set(key, choice);
+    try {
+      const result = await walk;
+      chosenBackends.set(key, result.chosen);
+      return result;
+    } finally {
+      if (pendingChoices.get(key) === choice) {
+        pendingChoices.delete(key);
+      }
+    }
+  };
+
+  const streamRun = async (
+    request: DetachedObjectiveRunRequest,
+    signal: AbortSignal,
+    frames: WritableStore<readonly MonteCarloUserDefinedMetricFrame[]>,
+    progress: WritableStore<MonteCarloWorkerProgress | null>,
+  ): Promise<DetachedObjectiveRunOutcome> => {
+    let handle: MonteCarloExperiment | null = null;
+    const cancelHandle = () => handle?.cancel();
+    signal.addEventListener("abort", cancelHandle, { once: true });
+    // The backend keeps listening to the signal it was instantiated with and
+    // tears the handle down when it fires, before the shards can answer the
+    // cancel with the terminal event this run waits for. Instantiation gets a
+    // signal of its own that dies once the handle is ready.
+    const instantiation = new AbortController();
+    const abortInstantiation = () => instantiation.abort();
+    signal.addEventListener("abort", abortInstantiation, { once: true });
+    // Read through a call so the abort flag is re-checked after the await (a
+    // plain property read would be control-flow-narrowed to `false`).
+    const isCancelled = () => signal.aborted;
+    try {
+      if (isCancelled()) {
+        return cancelledOutcome;
+      }
+      let acquired: Awaited<ReturnType<typeof acquireHandle>>;
+      try {
+        acquired = await acquireHandle(request, instantiation.signal);
+      } finally {
+        signal.removeEventListener("abort", abortInstantiation);
+      }
+      if (isCancelled()) {
+        acquired.handle.dispose();
+        return cancelledOutcome;
+      }
+      handle = acquired.handle;
+      const live = acquired.handle;
+      const publish = createThrottle(() => {
+        frames.set(live.metrics.get().frames);
+        progress.set(live.progress.get());
+      }, RUN_PUBLISH_WINDOW_MS);
+      const offMetrics = live.metrics.subscribe(publish.call);
+      const offProgress = live.progress.subscribe(publish.call);
+      let completion: Awaited<ReturnType<typeof runExperimentToCompletion>>;
+      try {
+        completion = await runExperimentToCompletion(live);
+      } finally {
+        offMetrics();
+        offProgress();
+        publish.cancel();
+      }
+      const { event, frames: finalFrames, runResults } = completion;
+      frames.set(finalFrames);
+      if (event.type === "error") {
+        return failedOutcome(event.message);
+      }
+      if (event.progress !== null) {
+        progress.set(event.progress);
+      }
+      if (event.type === "cancelled") {
+        return cancelledOutcome;
+      }
+      const { erroredRuns, runCount } = event.progress;
+      if (erroredRuns > 0) {
+        return failedOutcome(`${erroredRuns} of ${runCount} runs failed`);
+      }
+      return {
+        ok: true,
+        runsCompleted: event.progress.completedRuns,
+        metricFrames: finalFrames,
+        runResults,
+        computeBackend: acquired.chosen.backendId,
+        computeBackendFallbackReason: acquired.chosen.fallbackReason,
+      };
+    } catch (error) {
+      return isCancelled()
+        ? cancelledOutcome
+        : failedOutcome(errorMessage(error));
+    } finally {
+      signal.removeEventListener("abort", cancelHandle);
+    }
+  };
+
+  const run: DetachedObjectiveSampler["run"] = (request) => {
+    const frames = createReadableStore<
+      readonly MonteCarloUserDefinedMetricFrame[]
+    >([]);
+    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
+    const controller = new AbortController();
+    const forwardAbort = () => controller.abort();
+    if (request.signal?.aborted) {
+      controller.abort();
+    } else {
+      request.signal?.addEventListener("abort", forwardAbort, { once: true });
+    }
+    runsInFlight.add(controller);
+
+    const queueKey = request.queueKey ?? request.cacheKey;
+    const previous = runQueues.get(queueKey) ?? Promise.resolve();
+    const completion = previous.then(() =>
+      streamRun(request, controller.signal, frames, progress),
+    );
+    const settled = completion.then(
+      () => undefined,
+      () => undefined,
+    );
+    runQueues.set(queueKey, settled);
+    void settled.then(() => {
+      runsInFlight.delete(controller);
+      request.signal?.removeEventListener("abort", forwardAbort);
+      if (runQueues.get(queueKey) === settled) {
+        runQueues.delete(queueKey);
+      }
+    });
+
+    return {
+      frames,
+      progress,
+      completion,
+      cancel: () => controller.abort(),
+    };
+  };
+
   return {
-    sample: (request) => {
-      const next = chain.then(() => runBatch(request));
-      chain = next.catch(() => null);
-      return next;
+    sample: async (request) => {
+      const outcome = await run({
+        ...request,
+        computeBackend: "cpu",
+        queueKey: SURFACE_QUEUE_KEY,
+      }).completion;
+      return outcome.ok
+        ? {
+            runsCompleted: outcome.runsCompleted,
+            metricFrames: outcome.metricFrames,
+          }
+        : null;
+    },
+    run,
+    dispose: () => {
+      for (const controller of runsInFlight) {
+        controller.abort();
+      }
+      runsInFlight.clear();
+      for (const chosen of chosenBackends.values()) {
+        chosen.backend.dispose?.();
+      }
+      chosenBackends.clear();
     },
   };
 };

@@ -6,11 +6,12 @@ import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
 type SelectProps = React.ComponentProps<typeof Select>;
+type SingleSelectProps = Extract<SelectProps, { multiple?: false }>;
 type Variant = NonNullable<SelectProps["variant"]>;
 type Align = NonNullable<SelectProps["align"]>;
 
@@ -34,6 +35,26 @@ const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "banana", text: "Banana" },
   { value: "cherry", text: "Cherry" },
   { value: "date", text: "Date" },
+];
+
+const groupedItemsForRow = (label: string): Array<ItemOrGroup<SelectItem>> => [
+  {
+    id: "group-one",
+    label: "Group one",
+    items: [
+      { value: label, text: label },
+      { value: "apple", text: "Apple" },
+      { value: "banana", text: "Banana" },
+    ],
+  },
+  {
+    id: "group-two",
+    label: "Group two",
+    items: [
+      { value: "cherry", text: "Cherry" },
+      { value: "date", text: "Date" },
+    ],
+  },
 ];
 
 type RowVariant = {
@@ -68,7 +89,9 @@ const findItemText = (
 };
 
 const Controlled = (
-  props: Omit<SelectProps, "items"> & { items?: SelectProps["items"] },
+  props: Omit<SingleSelectProps, "items"> & {
+    items?: SingleSelectProps["items"];
+  },
 ) => {
   const { required: _required, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
@@ -78,7 +101,7 @@ const Controlled = (
     return (
       <Select
         {...(rest as Omit<
-          SelectProps,
+          SingleSelectProps,
           "value" | "onChange" | "items" | "required"
         >)}
         required
@@ -99,8 +122,8 @@ const Controlled = (
 };
 
 const ClearableSelect = (
-  props: Omit<SelectProps, "clearable" | "onChange" | "items"> & {
-    items?: SelectProps["items"];
+  props: Omit<SingleSelectProps, "clearable" | "onChange" | "items"> & {
+    items?: SingleSelectProps["items"];
   },
 ) => {
   const { required: _required, ...rest } = props;
@@ -113,7 +136,7 @@ const ClearableSelect = (
       items={props.items ?? sampleItems}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={{ clearable: true, onClear: () => setValue(null) }}
+      clearable
     />
   );
 };
@@ -192,7 +215,8 @@ const stateRows: Array<{
   key: string;
   label: string;
   clearable?: boolean;
-  extraProps: Partial<SelectProps>;
+  grouped?: boolean;
+  extraProps: Partial<SingleSelectProps>;
 }> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
   { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
@@ -204,7 +228,7 @@ const stateRows: Array<{
     extraProps: {
       placeholder: "Placeholder text...",
       required: true,
-    } as Partial<SelectProps>,
+    } as Partial<SingleSelectProps>,
   },
   {
     key: "placeholder-not-required",
@@ -214,7 +238,12 @@ const stateRows: Array<{
   {
     key: "required",
     label: "Required",
-    extraProps: { required: true } as Partial<SelectProps>,
+    extraProps: { required: true } as Partial<SingleSelectProps>,
+  },
+  {
+    key: "searchable",
+    label: "Searchable",
+    extraProps: { searchable: true },
   },
   {
     key: "hide-arrow",
@@ -241,6 +270,12 @@ const stateRows: Array<{
         ),
       },
     },
+  },
+  {
+    key: "item-groups",
+    label: "Item groups",
+    grouped: true,
+    extraProps: { required: true },
   },
 ];
 
@@ -308,9 +343,9 @@ export default {
     size: "md",
     hideArrow: false,
   },
-} satisfies StoryDefault<SelectProps>;
+} satisfies StoryDefault<SingleSelectProps>;
 
-export const Default: Story<SelectProps> = (args) => (
+export const Default: Story<SingleSelectProps> = (args) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
       <div key={variant} className={groupStyle}>
@@ -334,7 +369,9 @@ export const Default: Story<SelectProps> = (args) => (
             const itemsForRow: Array<ItemOrGroup<SelectItem>> =
               row.key === "loading"
                 ? []
-                : [{ value: row.label, text: row.label }, ...sampleItems];
+                : row.grouped
+                  ? groupedItemsForRow(row.label)
+                  : [{ value: row.label, text: row.label }, ...sampleItems];
             return stateColumns.map((col) => {
               const value =
                 row.key === "loading"
@@ -372,7 +409,7 @@ export const Default: Story<SelectProps> = (args) => (
   </div>
 );
 
-export const Alignment: Story<SelectProps> = (args) => (
+export const Alignment: Story<SingleSelectProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -394,7 +431,7 @@ export const Alignment: Story<SelectProps> = (args) => (
   </div>
 );
 
-export const Size: Story<SelectProps> = (args) => (
+export const Size: Story<SingleSelectProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -497,15 +534,22 @@ const renderColorHalfHeight = (value: string): React.ReactNode => (
   </span>
 );
 
-export const CustomRender: Story<SelectProps> = (args) => {
+export const CustomRender: Story<SingleSelectProps> = (args) => {
   const [valueA, setValueA] = useState<ColorValue | null>("red");
   const [valueB, setValueB] = useState<ColorValue | null>("green");
   const [valueC, setValueC] = useState<ColorValue | null>("blue");
   const [valueD, setValueD] = useState<ColorValue | null>("orange");
   const [valueE, setValueE] = useState<ColorValue | null>("red");
   const [valueF, setValueF] = useState<ColorValue | null>("green");
+  const [nakedPlain, setNakedPlain] = useState<string | null | undefined>(
+    "apple",
+  );
+  const [nakedStyled, setNakedStyled] = useState<string | null | undefined>(
+    "banana",
+  );
+  const [nakedValues, setNakedValues] = useState<string[]>(["apple", "cherry"]);
   const spreadArgs = args as Omit<
-    SelectProps,
+    SingleSelectProps,
     "items" | "value" | "onChange" | "required"
   >;
 
@@ -605,6 +649,56 @@ export const CustomRender: Story<SelectProps> = (args) => {
           readonly
         />
       </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          variant="naked" — no input chrome; the host supplies any hover/focus
+          affordance
+        </span>
+        <Select
+          variant="naked"
+          width="fitContent"
+          items={sampleItems}
+          value={nakedPlain}
+          onChange={setNakedPlain}
+          aria-label="Fruit (naked)"
+        />
+        <span style={subheadingStyle}>
+          variant="naked" inherits the surrounding text styles regardless of
+          `size`, which still sizes the dropdown list
+        </span>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            fontStyle: "italic",
+            color: "#3b4a6b",
+          }}
+        >
+          I would like{" "}
+          <Select
+            variant="naked"
+            width="fitContent"
+            size="md"
+            items={sampleItems}
+            value={nakedStyled}
+            onChange={setNakedStyled}
+            aria-label="Fruit"
+          />
+        </span>
+        <span style={{ fontSize: 11, color: "#667788" }}>
+          size=lg inside 11px text still inherits:{" "}
+          <Select
+            variant="naked"
+            width="fitContent"
+            size="lg"
+            multiple
+            items={sampleItems}
+            value={nakedValues}
+            onChange={setNakedValues}
+            aria-label="Fruits"
+          />
+        </span>
+      </div>
       <div style={{ display: "none" }}>
         <Select
           items={colorItems}
@@ -617,7 +711,7 @@ export const CustomRender: Story<SelectProps> = (args) => {
   );
 };
 
-export const Widths: Story<SelectProps> = (args) => (
+export const Widths: Story<SingleSelectProps> = (args) => (
   <div className={sectionStyle}>
     {rowVariants.map((rv) => (
       <div key={rv.label} className={groupStyle}>

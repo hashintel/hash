@@ -6,19 +6,22 @@ import {
 } from "@tanstack/react-router";
 
 import { validateSharedExampleSearch } from "../examples/example-search";
-import { OptimizationDemoApp } from "../main/app/optimization-demo/optimization-demo-app";
+import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
+import { PetrinautOptOptimizationProvider } from "../main/app/optimization-demo/petrinaut-opt-optimization-provider";
 
 function OptimizationRoute() {
   const navigate = useNavigate({ from: "/optimization" });
   const search = useSearch({ from: "/optimization" });
 
   return (
-    <OptimizationDemoApp
-      onSearchChange={(nextSearch, history) => {
-        void navigate({ replace: history === "replace", search: nextSearch });
-      }}
-      search={search}
-    />
+    <PetrinautOptOptimizationProvider>
+      <LocalStorageDemoApp
+        onSearchChange={(nextSearch, history) => {
+          void navigate({ replace: history === "replace", search: nextSearch });
+        }}
+        search={search}
+      />
+    </PetrinautOptOptimizationProvider>
   );
 }
 

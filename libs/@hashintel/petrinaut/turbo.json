@@ -5,6 +5,13 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": false
+    },
+    "test:unit": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["PORT"]
     }
   }
 }

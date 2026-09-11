@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { deriveTrialSeeds } from "../runtime/optimization";
+import { deriveOptimizationTrialSeeds } from "@hashintel/petrinaut-core/optimization";
+
 import { createOptimizationManifest } from "./optimization-manifest.fixtures";
 
 const distCliPath = fileURLToPath(
@@ -57,7 +58,7 @@ describe.skipIf(!existsSync(distCliPath))("built CLI", () => {
         .split("\n")
         .filter(Boolean)
         .map((line) => JSON.parse(line) as unknown);
-      const seeds = deriveTrialSeeds(42, 2);
+      const seeds = deriveOptimizationTrialSeeds(42, 2);
       expect(responses).toEqual([
         {
           id: 1,

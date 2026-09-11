@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "test:integration": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["^manifest"]
     }
   }
 }

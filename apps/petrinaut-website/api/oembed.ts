@@ -9,11 +9,11 @@ import {
   isExampleSlug,
   PETRINAUT_DEMO_ORIGIN,
   type ExampleSlug,
-} from "../src/examples/catalog-metadata";
+} from "../src/examples/catalog-metadata.js";
 import {
   canonicalSearchString,
   validateSharedExampleSearch,
-} from "../src/examples/example-search";
+} from "../src/examples/example-search.js";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 450;
@@ -235,7 +235,7 @@ const respond = async (request: Request): Promise<Response> => {
     provider_url: PETRINAUT_DEMO_ORIGIN,
     width,
     height,
-    html: `<iframe src="${escapeHtmlAttribute(embedUrl.href)}" title="${escapeHtmlAttribute(catalogEntry.title)}" width="${width}" height="${height}" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" allowfullscreen></iframe>`,
+    html: `<iframe src="${escapeHtmlAttribute(embedUrl.href)}" title="${escapeHtmlAttribute(catalogEntry.title)}" width="${width}" height="${height}" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" allowfullscreen></iframe>`,
   };
 
   return jsonResponse(response, { cacheable: true });

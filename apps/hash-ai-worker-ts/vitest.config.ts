@@ -1,5 +1,4 @@
 /// <reference types="vitest" />
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 

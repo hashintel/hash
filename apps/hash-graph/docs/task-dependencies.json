@@ -7,6 +7,7 @@
     "@rust/harpc-server",
     "@rust/hash-codec",
     "@rust/hash-graph-api",
+    "@rust/hash-graph-atlas",
     "@rust/hash-graph-authorization",
     "@rust/hash-graph-embeddings",
     "@rust/hash-graph-postgres-store",
@@ -16,34 +17,88 @@
     "@rust/hash-temporal-client"
   ],
   "tasks": {
-    "build:docker": [],
-    "compile": [],
-    "compile:release": [],
-    "doc:dependency-diagram": [
-      "@rust/hash-repo-chores#build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "start": [
-      "@apps/hash-graph#start:migrate"
-    ],
-    "start:healthcheck": [
-      "@apps/hash-graph#compile:release"
-    ],
-    "start:migrate": [
-      "@apps/hash-graph#compile:release"
-    ],
-    "start:test": [
-      "@apps/hash-graph#start:test:migrate"
-    ],
-    "start:test:healthcheck": [
-      "@apps/hash-graph#compile"
-    ],
-    "start:test:migrate": [
-      "@apps/hash-graph#compile"
-    ],
-    "test:unit": [
-      "@local/status#build"
-    ]
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "compile": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "compile:release": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "@rust/hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "start:migrate"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start:healthcheck": {
+      "dependsOn": [
+        "compile:release"
+      ],
+      "cache": false
+    },
+    "start:migrate": {
+      "dependsOn": [
+        "compile:release"
+      ],
+      "cache": false
+    },
+    "start:test": {
+      "dependsOn": [
+        "start:test:migrate"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start:test:healthcheck": {
+      "dependsOn": [
+        "compile"
+      ],
+      "cache": false
+    },
+    "start:test:migrate": {
+      "dependsOn": [
+        "compile"
+      ],
+      "cache": false
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

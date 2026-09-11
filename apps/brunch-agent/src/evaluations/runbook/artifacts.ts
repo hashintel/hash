@@ -2,55 +2,24 @@
 
 import { basename } from "node:path";
 
-import { sha256 } from "./campaign-integrity.ts";
+import { PETRINAUT_CONSTRUCTION_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  ASK_TOOL_NAME,
+  SWEEP_TOOL_NAME,
+} from "@hashintel/brunch-agent/client-tools";
+import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
 
-import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  READ_SKILL_RESOURCE_TOOL_NAME,
+} from "../../conversation/client-tools.ts";
+import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
-export const RUNBOOK_IR_FENCE = "runbook-ir";
-
-const runbookIrFencePattern = /```runbook-ir\s*\n([\s\S]*?)```/g;
-
-export const latestRunbookIrBlock = (text: string): string | undefined => {
-  const matches = [...text.matchAll(runbookIrFencePattern)];
-  const last = matches.at(-1)?.[1];
-  return last === undefined ? undefined : last.trim();
-};
+import type { FlueConversationSnapshot } from "@flue/sdk";
 
 export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
 ): string | undefined => recoverRunbookWorkpiece(snapshot)?.content;
-
-export interface RecoveredRunbookWorkpiece {
-  readonly content: string;
-  readonly sha256: string;
-  readonly sourceMessageId: string;
-  readonly sourceMessageSha256: string;
-}
-
-export const recoverRunbookWorkpiece = (
-  snapshot: FlueConversationSnapshot,
-): RecoveredRunbookWorkpiece | undefined => {
-  let recovered: RecoveredRunbookWorkpiece | undefined;
-  for (const message of snapshot.messages) {
-    if (message.purpose !== "assistant") continue;
-    const text = message.parts
-      .filter(
-        (part): part is Extract<FlueConversationPart, { type: "text" }> =>
-          part.type === "text",
-      )
-      .map((part) => part.text)
-      .join("\n");
-    const content = latestRunbookIrBlock(text);
-    if (content === undefined) continue;
-    recovered = {
-      content,
-      sha256: sha256(content),
-      sourceMessageId: message.id,
-      sourceMessageSha256: sha256(JSON.stringify(message)),
-    };
-  }
-  return recovered;
-};
 
 export const interviewerToolNamesFrom = (
   snapshot: FlueConversationSnapshot,
@@ -70,7 +39,7 @@ export const skillResourcePathsFrom = (
   snapshot.messages.flatMap((message) =>
     message.parts.flatMap((part) => {
       if (part.type !== "dynamic-tool") return [];
-      if (part.toolName !== "read_skill_resource") return [];
+      if (part.toolName !== READ_SKILL_RESOURCE_TOOL_NAME) return [];
       if (part.state !== "output-available") return [];
       if (
         typeof part.input !== "object" ||
@@ -98,24 +67,26 @@ export interface OrdinaryElicitationViolation {
   readonly detail: string;
 }
 
-const ORDINARY_TOOL_NAMES = new Set(["activate_skill", "read_skill_resource"]);
-const CONSTRUCTION_TOOL_NAMES = new Set([
-  "getLatestNetDefinition",
-  "addType",
-  "addParameter",
-  "addPlace",
-  "addTransition",
-  "addArc",
+const ORDINARY_TOOL_NAMES = new Set<string>([
+  ACTIVATE_SKILL_TOOL_NAME,
+  READ_SKILL_RESOURCE_TOOL_NAME,
 ]);
-const CAPTURE_TOOL_NAMES = new Set(["brunch_ask", "brunch_sweep"]);
+const CONSTRUCTION_TOOL_NAMES = new Set<string>(
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+);
+const CAPTURE_TOOL_NAMES = new Set<string>([ASK_TOOL_NAME, SWEEP_TOOL_NAME]);
 const ORDINARY_RESOURCE_NAMES = new Set(["profile.md", "workpiece.md"]);
 const CONSTRUCTION_RESOURCE_NAMES = new Set([
   "pn-construction.md",
   "checks.md",
 ]);
 
+const fencedRunbookIrBlocks = new RegExp(
+  `\`\`\`${runbookIrFence}\\s*\\n[\\s\\S]*?\`\`\``,
+  "gu",
+);
 const interactiveTextFrom = (text: string): string =>
-  text.replace(/```runbook-ir\s*\n[\s\S]*?```/gu, "");
+  text.replace(fencedRunbookIrBlocks, "");
 
 export const ordinaryElicitationViolationsFrom = (
   snapshot: FlueConversationSnapshot,
@@ -153,7 +124,7 @@ export const ordinaryElicitationViolationsFrom = (
         }
         if (
           firstWorkpiecePosition === undefined &&
-          part.text.includes(`\`\`\`${RUNBOOK_IR_FENCE}`)
+          part.text.includes(`\`\`\`${runbookIrFence}`)
         ) {
           firstWorkpiecePosition = position;
         }
@@ -161,7 +132,7 @@ export const ordinaryElicitationViolationsFrom = (
       }
       if (
         part.type !== "dynamic-tool" ||
-        part.toolName !== "read_skill_resource" ||
+        part.toolName !== READ_SKILL_RESOURCE_TOOL_NAME ||
         part.state !== "output-available" ||
         typeof part.input !== "object" ||
         part.input === null ||

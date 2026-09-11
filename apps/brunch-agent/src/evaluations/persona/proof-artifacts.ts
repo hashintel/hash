@@ -2,14 +2,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import {
-  type FlueConversationPart,
-  type FlueConversationSnapshot,
-} from "@flue/sdk";
+import { type FlueConversationSnapshot } from "@flue/sdk";
 
-import { isAwaitingClient } from "../../conversation/client-tools.ts";
+import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
+
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  isAwaitingClient,
+  READ_SKILL_RESOURCE_TOOL_NAME,
+  type DynamicToolPart,
+} from "../../conversation/client-tools.ts";
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
-import { recoverRunbookWorkpiece } from "../runbook/artifacts.ts";
+import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
+
+import type { ToolExecution } from "@hashintel/brunch-agent";
 
 interface ProofEventBase {
   readonly sequence: number;
@@ -38,7 +44,7 @@ export type ProofTraceEvent =
       readonly type: "tool";
       readonly toolCallId: string;
       readonly name: string;
-      readonly executor: "client" | "server";
+      readonly executor: ToolExecution;
       readonly outcome: "ok" | "error";
     })
   | (ProofEventBase & {
@@ -56,7 +62,6 @@ export interface ProofTrace {
   };
 }
 
-type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 type UnsequencedProofTraceEvent = ProofTraceEvent extends infer Event
   ? Event extends ProofTraceEvent
     ? Omit<Event, "sequence">
@@ -86,8 +91,12 @@ const traceResourcePath = (path: string): string => {
     : path;
 };
 
+const openingRunbookIrFence = new RegExp(
+  `\`\`\`${runbookIrFence}(?:\\s|$)`,
+  "u",
+);
 const hasRunbookWorkpiece = (text: string): boolean =>
-  /```runbook-ir(?:\s|$)/u.test(text);
+  openingRunbookIrFence.test(text);
 
 const toolOutcome = (part: DynamicToolPart): "ok" | "error" =>
   part.state === "output-available" ? "ok" : "error";
@@ -144,7 +153,7 @@ export const deriveProofTrace = (
       }
       if (part.type !== "dynamic-tool") continue;
 
-      if (part.toolName === "activate_skill") {
+      if (part.toolName === ACTIVATE_SKILL_TOOL_NAME) {
         append({
           type: "activate",
           turn,
@@ -155,7 +164,7 @@ export const deriveProofTrace = (
         });
         continue;
       }
-      if (part.toolName === "read_skill_resource") {
+      if (part.toolName === READ_SKILL_RESOURCE_TOOL_NAME) {
         const path = stringInputField(part, "path");
         append({
           type: "read",

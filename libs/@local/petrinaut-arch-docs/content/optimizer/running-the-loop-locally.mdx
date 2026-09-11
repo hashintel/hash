@@ -69,14 +69,19 @@ same `/api/petrinaut-opt/*` proxy as the website's, and the story explains
 how to launch when the environment is missing. Remaining arguments go to
 Storybook (`turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service --port 6007`).
 
-## Why plain `yarn dev` shows no Optimizations view
+## Which optimizer plain `yarn dev` offers
 
-The editor renders the Optimizations tab only when a
-`PetrinautOptimizationContext` is mounted, and the website mounts one only on
-the `/optimization` route with `VITE_PETRINAUT_OPT_PROVIDER=service` set. A
-plain `turbo run dev` in `@apps/petrinaut-website` leaves the context null:
-the tab is hidden and nothing optimization-related is reachable. Storybook
-provides a fake optimizer for isolated UI work on the drawers.
+The editor renders the Optimizations tab only when `useOptimizationSource()`
+yields a source. The main demo (`/`) mounts the
+[browser runtime](layer:core.optimization.browser) as a connected source, which
+the hook returns only while the experimental **In-browser optimization**
+setting is on: a plain `turbo run dev` in `@apps/petrinaut-website` shows the
+tab once that setting is on, and the studies created there run in the tab with
+no service involved ([the browser runtime](doc:optimizer/browser-runtime)
+covers that path). The `/optimization` route mounts the service capability, and
+only with `VITE_PETRINAUT_OPT_PROVIDER=service` set; without it the route is
+not found. Storybook provides a fake optimizer for isolated UI work on the
+drawers.
 
 ## The request path
 

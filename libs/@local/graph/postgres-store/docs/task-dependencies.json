@@ -17,16 +17,46 @@
     "@rust/hash-temporal-client"
   ],
   "tasks": {
-    "doc:dependency-diagram": [
-      "@rust/hash-repo-chores#build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:integration": [
-      "@rust/hash-graph-migrations#start:migrate:up"
-    ],
-    "test:unit": [
-      "@local/status#build"
-    ]
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "@rust/hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@rust/hash-graph-migrations#start:migrate:up"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

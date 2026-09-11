@@ -15,17 +15,37 @@
     "@rust/hash-telemetry"
   ],
   "tasks": {
-    "bench:integration": [
-      "@apps/hash-graph#start:healthcheck",
-      "@local/status#build",
-      "@rust/hash-repo-chores#build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck",
-      "@local/status#build",
-      "@rust/hash-repo-chores#build"
-    ]
+    "bench:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:healthcheck"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

@@ -1,10 +1,11 @@
 import {
-  ASK_TOOL_NAME,
-  parseBrunchAskInput,
-} from "@hashintel/brunch-agent/client-tools";
+  BRUNCH_QUESTION_DATA_NAME,
+  parseBrunchQuestionData,
+} from "@hashintel/brunch-agent/question-marker";
 
 import { hashCanonicalSpeechText } from "../../../canonical-speech-fingerprint";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 export { hashCanonicalSpeechText };
@@ -14,7 +15,12 @@ export interface CanonicalSpeechSegment {
   readonly id: string;
   readonly messageId: string;
   readonly partId: string;
-  readonly source: "assistant-text" | "brunch-ask";
+  readonly source: "assistant-question" | "assistant-text";
+  /**
+   * Every Flue submission that wrote to this segment's message: the one that
+   * started it plus any client-tool continuation projected back onto it.
+   */
+  readonly submissionIds?: readonly AgentSendResult["submissionId"][];
   readonly text: string;
 }
 
@@ -40,15 +46,27 @@ const createSegment = (
   };
 };
 
-export const selectCanonicalSpeechSegments = (
+export interface CanonicalSpeechSelection {
+  readonly questionSegment?: CanonicalSpeechSegment;
+  readonly segments: CanonicalSpeechSegment[];
+}
+
+export const selectCanonicalSpeech = (
   messages: PetrinautAiMessage[],
-): CanonicalSpeechSegment[] => {
+): CanonicalSpeechSelection => {
   const segments: CanonicalSpeechSegment[] = [];
+  let questionSegment: CanonicalSpeechSegment | undefined;
 
   for (const message of messages) {
     if (message.role !== "assistant") {
       continue;
     }
+
+    const finalizedTexts = message.parts.flatMap((part) =>
+      part.type === "text" && part.state !== "streaming" && part.text.trim()
+        ? [part.text]
+        : [],
+    );
 
     for (const [partIndex, part] of message.parts.entries()) {
       if (
@@ -64,32 +82,36 @@ export const selectCanonicalSpeechSegments = (
             part.text,
           ),
         );
-        continue;
+      }
+    }
+
+    const questionMarkers = message.parts.flatMap((part) => {
+      if (part.type !== `data-${BRUNCH_QUESTION_DATA_NAME}`) {
+        return [];
       }
 
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== ASK_TOOL_NAME ||
-        part.state !== "input-available"
-      ) {
-        continue;
-      }
+      const marker = parseBrunchQuestionData(part.data);
 
-      try {
-        const input = parseBrunchAskInput(part.input);
-        segments.push(
-          createSegment(
-            message.id,
-            part.toolCallId,
-            "brunch-ask",
-            input.question,
-          ),
-        );
-      } catch {
-        // Malformed tool inputs remain visible as tool errors; they are not spoken.
-      }
+      return marker &&
+        finalizedTexts.some((text) => text.includes(marker.question))
+        ? [marker]
+        : [];
+    });
+    const latestQuestionMarker = questionMarkers.at(-1);
+
+    if (latestQuestionMarker) {
+      questionSegment = createSegment(
+        message.id,
+        `question:${latestQuestionMarker.toolCallId}`,
+        "assistant-question",
+        latestQuestionMarker.question,
+      );
     }
   }
 
-  return segments;
+  return { questionSegment, segments };
 };
+
+export const selectCanonicalSpeechSegments = (
+  messages: PetrinautAiMessage[],
+): CanonicalSpeechSegment[] => selectCanonicalSpeech(messages).segments;

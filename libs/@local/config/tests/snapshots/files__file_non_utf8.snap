@@ -1,0 +1,9 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration file `config.toml` could not be read
+├╴at libs/@local/config/src/file.rs:[line]:[column]
+│
+╰─▶ stream did not contain valid UTF-8
+    ╰╴at libs/@local/config/src/file.rs:[line]:[column]

@@ -2,6 +2,7 @@
   "package": "@apps/petrinaut-website",
   "dependencies": [
     "@hashintel/brunch-agent",
+    "@hashintel/brunch-agent-plugin-sdcpn",
     "@hashintel/brunch-agent-transport-aisdk",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
@@ -10,62 +11,188 @@
     "@local/petrinaut-optimizer-client"
   ],
   "tasks": {
-    "build": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "codegen": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "dev": [
-      "@apps/petrinaut-website#codegen"
-    ],
-    "examples:generate": [
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "fix:eslint": [
-      "@apps/petrinaut-website#codegen",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@apps/petrinaut-website#codegen",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "test:unit": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
-      "@hashintel/brunch-agent#build",
-      "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "env": [
+        "SENTRY_DSN",
+        "VITE_BRUNCH_CHAT_ENDPOINT",
+        "VITE_PETRINAUT_OPT_PROVIDER",
+        "VITE_VERCEL_ENV"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "dev": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "examples:generate": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@apps/brunch-agent#build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@apps/brunch-agent",
+        "@blockprotocol/graph",
+        "@blockprotocol/type-system",
+        "@blockprotocol/type-system-rs",
+        "@hashintel/brunch-agent-binding-flue",
+        "@local/advanced-types",
+        "@local/harpc-client",
+        "@local/hash-backend-utils",
+        "@local/hash-codec",
+        "@local/hash-graph-authorization",
+        "@local/hash-graph-client",
+        "@local/hash-graph-sdk",
+        "@local/hash-graph-store",
+        "@local/hash-isomorphic-utils",
+        "@local/internal-api-client",
+        "@local/status",
+        "@rust/darwin-kperf",
+        "@rust/darwin-kperf-codegen",
+        "@rust/darwin-kperf-criterion",
+        "@rust/darwin-kperf-events",
+        "@rust/darwin-kperf-sys",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-client",
+        "@rust/harpc-codec",
+        "@rust/harpc-net",
+        "@rust/harpc-server",
+        "@rust/harpc-system",
+        "@rust/harpc-tower",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-api",
+        "@rust/hash-graph-authentication",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-embeddings",
+        "@rust/hash-graph-migrations",
+        "@rust/hash-graph-migrations-macros",
+        "@rust/hash-graph-postgres-store",
+        "@rust/hash-graph-store",
+        "@rust/hash-graph-temporal-versioning",
+        "@rust/hash-graph-test-data",
+        "@rust/hash-graph-type-fetcher",
+        "@rust/hash-graph-types",
+        "@rust/hash-graph-validation",
+        "@rust/hash-middleware",
+        "@rust/hash-status",
+        "@rust/hash-telemetry",
+        "@rust/hash-temporal-client",
+        "@rust/hashql-ast",
+        "@rust/hashql-core",
+        "@rust/hashql-diagnostics",
+        "@rust/hashql-eval",
+        "@rust/hashql-hir",
+        "@rust/hashql-macros",
+        "@rust/hashql-mir",
+        "@rust/hashql-syntax-jexpr"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build",
+        "@hashintel/brunch-agent-transport-aisdk#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build",
+        "codegen",
+        "examples:generate"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

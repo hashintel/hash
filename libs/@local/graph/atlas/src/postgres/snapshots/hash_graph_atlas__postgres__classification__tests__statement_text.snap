@@ -1,0 +1,32 @@
+---
+source: libs/@local/graph/atlas/src/postgres/classification.rs
+expression: statement.sql
+---
+WITH "requests" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id"
+FROM UNNEST(($7::uuid[]), ($8::uuid[])) AS "request"("web_id", "entity_uuid")
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "request"."web_id"
+ AND "meta"."entity_uuid" = "request"."entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived"))
+SELECT "requests"."web_id", "requests"."entity_uuid", EXISTS (SELECT 
+FROM "entity_is_of_type" AS "is_link"
+INNER JOIN "ontology_ids" AS "link_type"
+  ON "link_type"."ontology_id" = "is_link"."entity_type_ontology_id"
+ AND "link_type"."base_url" = $3
+WHERE "is_link"."entity_edition_id" = "requests"."entity_edition_id"), "left_edge"."target_web_id", "left_edge"."target_entity_uuid", "right_edge"."target_web_id", "right_edge"."target_entity_uuid"
+FROM "requests"
+LEFT OUTER JOIN "entity_edge" AS "left_edge"
+  ON "left_edge"."source_web_id" = "requests"."web_id"
+ AND "left_edge"."source_entity_uuid" = "requests"."entity_uuid"
+ AND "left_edge"."kind" = $4
+ AND "left_edge"."direction" = $6
+LEFT OUTER JOIN "entity_edge" AS "right_edge"
+  ON "right_edge"."source_web_id" = "requests"."web_id"
+ AND "right_edge"."source_entity_uuid" = "requests"."entity_uuid"
+ AND "right_edge"."kind" = $5
+ AND "right_edge"."direction" = $6

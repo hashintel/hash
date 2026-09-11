@@ -42,6 +42,7 @@ export const filterRecipe = sva({
     "triggerLabel",
     "inputSlot",
     "input",
+    "selectSlot",
     "separator",
     "remove",
     "errorTooltip",
@@ -65,6 +66,7 @@ export const filterRecipe = sva({
       "--filter-remove-divider": "var(--colors-neutral-s40)",
       "--filter-hover-border": "var(--colors-neutral-s80)",
       "--filter-pressed-border": "var(--colors-neutral-s70)",
+      "--filter-pressed-shadow": "inset 0 1px 2px rgba(0,0,0,0.03)",
       "--filter-input-hover-bg": "var(--colors-neutral-s10)",
       "--filter-ring": "var(--colors-neutral-a80)",
       "--filter-property-padding-x": "var(--filter-padding-x)",
@@ -122,6 +124,13 @@ export const filterRecipe = sva({
       position: "relative",
       flexShrink: "2",
       minWidth: "[5ch]",
+      "@supports (min-width: calc-size(max-content, min(size, 1ch)))": {
+        minWidth: "[calc-size(max-content, min(size, 5ch))]",
+      },
+      "@supports (min-width: fit-content(1ch)) and (not (min-width: calc-size(max-content, min(size, 1ch))))":
+        {
+          minWidth: "[fit-content(5ch)]",
+        },
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--form-padding-y)",
       cursor: "pointer",
@@ -140,7 +149,7 @@ export const filterRecipe = sva({
         background: "neutral.s25",
       },
       "&[data-state=open], &[data-state=open]:hover": {
-        boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
+        boxShadow: "[var(--filter-pressed-shadow)]",
       },
       "&[data-state=open]": {
         background: "neutral.s20",
@@ -247,6 +256,39 @@ export const filterRecipe = sva({
       },
       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
         display: "none",
+      },
+    },
+    selectSlot: {
+      position: "relative",
+      "&:has(:focus-visible)": {
+        zIndex: "[1]",
+      },
+      "&:has(:focus-visible)::after": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        borderRadius: "[3px]",
+        boxShadow: "[0 0 0 2px var(--filter-ring)]",
+        pointerEvents: "none",
+      },
+      "&:has([data-part=trigger][data-state=open])": {
+        background: "neutral.s20",
+        boxShadow: "[var(--filter-pressed-shadow)]",
+      },
+      "&:has([data-part=trigger][data-state=open]):hover": {
+        background: "neutral.s25",
+      },
+      "&:has([data-part=trigger][data-state=open]):not(:hover)": {
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-outer-border": "var(--filter-pressed-border)",
+      },
+      "&:has([data-part=trigger][data-state=open]):not(:hover) + *": {
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-remove-divider": "var(--filter-pressed-border)",
+      },
+      "& [data-part=trigger]": {
+        paddingInline: "[var(--filter-input-padding-x)]",
+        paddingBlock: "[var(--form-padding-y)]",
       },
     },
     separator: {
@@ -446,6 +488,7 @@ export const filterRecipe = sva({
           "&[data-placeholder]": { color: "neutral.s80" },
         },
         input: { color: "neutral.s90" },
+        selectSlot: { color: "neutral.s90" },
         separator: { color: "neutral.s80" },
         remove: { background: "white" },
       },

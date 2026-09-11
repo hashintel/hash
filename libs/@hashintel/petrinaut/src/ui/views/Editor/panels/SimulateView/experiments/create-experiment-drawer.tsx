@@ -10,25 +10,22 @@ import {
   Select,
   TextInput,
   Toggle,
-  Tooltip,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   isWebGpuAvailable,
+  synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
-import {
-  analyzeCompilation,
-  summarizeGpuUnavailability,
-  toGpuMetricSpecs,
-} from "@hashintel/petrinaut-core/webgpu";
 
 import {
   ExperimentsActionsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
+  axisDisplayName,
+  buildAdHocSweepAxes,
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
@@ -50,6 +47,8 @@ import {
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
+import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { useGpuAvailability } from "../shared/use-gpu-availability";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -61,7 +60,6 @@ import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
-  PetrinautExtensionSettings,
   Scenario,
   ScenarioParameter,
   SDCPN,
@@ -79,64 +77,6 @@ const labelStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
-});
-
-const backendControlStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  flexShrink: "[0]",
-  // Matches the height the sibling inputs occupy, so the grid row's baselines
-  // line up rather than the control floating in a shorter cell.
-  minHeight: "[34px]",
-});
-
-const backendSideLabelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[1]",
-  // Muted until selected, so the toggle's position reads as a choice between two
-  // named backends rather than an unlabelled on/off.
-  color: "neutral.s100",
-  transition: "[color 0.15s ease]",
-  "&[data-selected=true]": {
-    color: "neutral.s120",
-  },
-});
-
-/**
- * The GPU side is purple rather than neutral, so the accelerated path is visibly
- * a different thing and not merely the toggle in its other position.
- */
-const gpuSideLabelStyle = css({
-  "&[data-selected=true]": {
-    color: "purple.s90",
-  },
-});
-
-/*
- * The design system's toggle has no purple tone, and adding one there would change
- * a shared component for one screen's sake. These reach into its parts from
- * outside instead: `&[data-state='checked'] [data-part='control']` is one
- * selector more specific than the recipe's own `&[data-state='checked']`, so it
- * wins without `!important`.
- */
-const gpuToggleStyle = css({
-  "&[data-state='checked'] [data-part='control']": {
-    backgroundColor: "purple.s80",
-  },
-  "&[data-state='checked']:hover:not([data-disabled]) [data-part='control']": {
-    backgroundColor: "purple.s70",
-  },
-});
-
-const gpuToggleGlowStyle = css({
-  "&[data-state='checked'] [data-part='control']": {
-    animationName: "[petrinautGpuGlow]",
-    animationDuration: "[2.4s]",
-    animationIterationCount: "[infinite]",
-    animationTimingFunction: "ease-in-out",
-  },
 });
 
 const gridStyle = css({
@@ -959,109 +899,6 @@ interface CreateExperimentDrawerProps {
   onClose: () => void;
 }
 
-/**
- * Whether the GPU backend could run this experiment, and the reason when it
- * could not.
- *
- * The net is analysed asynchronously (lowering user code happens in the language
- * worker) but the metric gate is evaluated synchronously from the drafts, so
- * editing a metric updates the answer without another round-trip.
- */
-function useGpuAvailability({
-  enabled,
-  sdcpn,
-  extensions,
-  metricSpecs,
-}: {
-  enabled: boolean;
-  sdcpn: SDCPN;
-  extensions: PetrinautExtensionSettings;
-  metricSpecs: readonly ExperimentMetricSpecInput[] | null;
-}): { available: boolean; reason: string | null; pending: boolean } {
-  const { requestHirArtifacts } = use(LanguageClientContext);
-  const [netReason, setNetReason] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
-    let cancelled = false;
-    setPending(true);
-
-    const analyze = async () => {
-      try {
-        const { artifacts } = await requestHirArtifacts(sdcpn, extensions, {
-          includeHir: true,
-        });
-        if (cancelled) {
-          return;
-        }
-        setNetReason(
-          summarizeGpuUnavailability(
-            analyzeCompilation({ sdcpn, artifacts, extensions }),
-          ),
-        );
-      } catch (caught) {
-        if (!cancelled) {
-          setNetReason(
-            caught instanceof Error
-              ? `The net could not be compiled: ${caught.message}`
-              : "The net could not be compiled.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setPending(false);
-        }
-      }
-    };
-
-    void analyze();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, sdcpn, extensions, requestHirArtifacts]);
-
-  if (!enabled) {
-    return { available: false, reason: null, pending: false };
-  }
-  if (pending) {
-    return { available: false, reason: null, pending: true };
-  }
-  if (netReason !== null) {
-    return { available: false, reason: netReason, pending: false };
-  }
-
-  // Expression metrics are computed from full simulation state, which the GPU
-  // path never materialises on the host, so they rule the backend out before the
-  // histogram gate is worth consulting. Narrowing as we go also gives
-  // `toGpuMetricSpecs` the compiled-spec type it wants without a cast: only
-  // expression specs lack an `artifact`.
-  const histogramSpecs: MonteCarloMetricSpec[] = [];
-  for (const spec of metricSpecs ?? []) {
-    if (spec.kind === "expression") {
-      return {
-        available: false,
-        reason: `Metric "${spec.label}" is an expression metric, which the GPU backend cannot compute. Use place token-count metrics to run on the GPU.`,
-        pending: false,
-      };
-    }
-    histogramSpecs.push(spec);
-  }
-
-  if (histogramSpecs.length > 0) {
-    const gpuMetrics = toGpuMetricSpecs(histogramSpecs);
-    if (!gpuMetrics.ok) {
-      return { available: false, reason: gpuMetrics.reason, pending: false };
-    }
-  }
-
-  return { available: true, reason: null, pending: false };
-}
-
 export const CreateExperimentDrawer = ({
   open,
   onClose,
@@ -1069,12 +906,8 @@ export const CreateExperimentDrawer = ({
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
-  const {
-    webGpuEnabled,
-    showAnimations,
-    enableAdHocScenarios,
-    enableParameterSweeps,
-  } = use(UserSettingsContext);
+  const { webGpuEnabled, enableAdHocScenarios, enableParameterSweeps } =
+    use(UserSettingsContext);
   const { createExperiment } = use(ExperimentsActionsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
@@ -1115,20 +948,24 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
+
+  // The net the ad-hoc form resolves names and types against, shared by the
+  // form and by the sweep summary that reads its selections.
+  const adHocFormContext = {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+    places: petriNetDefinition.places,
+    types: extensions.colors ? petriNetDefinition.types : [],
+  };
+  const adHocSweeping =
+    enableAdHocScenarios &&
+    enableParameterSweeps &&
+    effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+
   /**
    * The sweep the current interval inputs define. `error` carries the first
    * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
    * single-combination experiment.
    */
-  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
-  // range and shows as blank there.
-  const fixedParamValues: Record<string, string> = {};
-  for (const [identifier, input] of Object.entries(paramInputs)) {
-    if (input.mode === "fixed") {
-      fixedParamValues[identifier] = input.value;
-    }
-  }
-
   const sweepSummary = ((): {
     text: string;
     tone: "neutral" | "warning" | "error";
@@ -1146,16 +983,39 @@ export const CreateExperimentDrawer = ({
       }
       axes.push(outcome.axis);
     }
+    if (adHocSweeping && adHocState) {
+      // A definition that does not synthesize reports at its slots and
+      // refuses to run on submit; the summary only speaks for its sweeps.
+      const synthesized = synthesizeAdHocOptimization(
+        adHocState,
+        adHocFormContext,
+      );
+      if (synthesized.ok) {
+        const outcome = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+        if (!outcome.ok) {
+          return { text: outcome.error, tone: "error", error: true };
+        }
+        axes.push(...outcome.axes);
+      }
+    }
     if (axes.length === 0) {
       return null;
     }
-    const names = axes.map((axis) => axis.identifier).join(", ");
+    const names = axes.map(axisDisplayName).join(", ");
     return {
       text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
       tone: "neutral",
       error: false,
     };
   })();
+
+  // Shown under whichever scenario body is on screen: the classic rows, the
+  // ad-hoc form, or a saved scenario shown through it.
+  const sweepSummaryLine = sweepSummary ? (
+    <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
+      {sweepSummary.text}
+    </span>
+  ) : null;
 
   const footerError = error ?? metricFormError;
   const canRun =
@@ -1293,6 +1153,7 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? adHocState
             : null,
+        adHocSweeps: adHocSweeping,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1382,51 +1243,13 @@ export const CreateExperimentDrawer = ({
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
               {webGpuEnabled && webGpuAvailable && (
-                <div
-                  className={fieldStyle}
-                  // `pending` and `unavailable` both disable the toggle, so which
-                  // one it is gets published for tests to distinguish.
-                  data-backend-state={
-                    gpu.pending
-                      ? "pending"
-                      : gpu.available
-                        ? "available"
-                        : "unavailable"
-                  }
-                >
+                <div className={fieldStyle}>
                   <span className={labelStyle}>Backend</span>
-                  <Tooltip
-                    content={gpu.reason ?? ""}
-                    disableTooltip={gpu.reason === null}
-                    position="top-start"
-                  >
-                    {/* Wrapped so the tooltip still opens while the control is
-                        disabled — a disabled control fires no pointer events. */}
-                    <span className={backendControlStyle}>
-                      <span
-                        className={backendSideLabelStyle}
-                        data-selected={!gpuSelected}
-                      >
-                        CPU
-                      </span>
-                      <Toggle
-                        size="sm"
-                        value={gpuSelected}
-                        onChange={setGpuRequested}
-                        disabled={!gpu.available}
-                        className={cx(
-                          gpuToggleStyle,
-                          showAnimations && gpuToggleGlowStyle,
-                        )}
-                      />
-                      <span
-                        className={cx(backendSideLabelStyle, gpuSideLabelStyle)}
-                        data-selected={gpuSelected}
-                      >
-                        GPU
-                      </span>
-                    </span>
-                  </Tooltip>
+                  <ComputeBackendToggle
+                    gpu={gpu}
+                    selected={gpuSelected}
+                    onSelectedChange={setGpuRequested}
+                  />
                 </div>
               )}
             </div>
@@ -1474,29 +1297,24 @@ export const CreateExperimentDrawer = ({
                 // mode: scenario parameters editable in worksheet style, and
                 // a collapsed "Computed state" preview of the exact values
                 // and tokens each run starts with.
-                <ExperimentScenarioRun
-                  scenario={selectedScenario}
-                  context={{
-                    netParameters: extensions.parameters
-                      ? petriNetDefinition.parameters
-                      : [],
-                    places: petriNetDefinition.places,
-                    types: extensions.colors ? petriNetDefinition.types : [],
-                  }}
-                  values={fixedParamValues}
-                  onValuesChange={(updates) =>
-                    setParamInputs((prev) => {
-                      const next = { ...prev };
-                      for (const update of updates) {
-                        next[update.identifier] = {
-                          mode: "fixed",
-                          value: update.value,
-                        };
-                      }
-                      return next;
-                    })
-                  }
-                />
+                <>
+                  <ExperimentScenarioRun
+                    scenario={selectedScenario}
+                    context={adHocFormContext}
+                    inputs={paramInputs}
+                    sweepable={enableParameterSweeps}
+                    onInputsChange={(updates) =>
+                      setParamInputs((prev) => {
+                        const next = { ...prev };
+                        for (const update of updates) {
+                          next[update.identifier] = update.input;
+                        }
+                        return next;
+                      })
+                    }
+                  />
+                  {sweepSummaryLine}
+                </>
               ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
@@ -1520,14 +1338,7 @@ export const CreateExperimentDrawer = ({
                       }
                     />
                   ))}
-                  {sweepSummary ? (
-                    <span
-                      className={sweepSummaryStyle}
-                      data-tone={sweepSummary.tone}
-                    >
-                      {sweepSummary.text}
-                    </span>
-                  ) : null}
+                  {sweepSummaryLine}
                 </>
               )
             ) : enableAdHocScenarios ? (
@@ -1537,18 +1348,15 @@ export const CreateExperimentDrawer = ({
               // experiment runs exactly as before. Behind the Ad-hoc
               // scenarios setting; off, no scenario means the model's own
               // initial marking, as before the feature.
-              <AdHocScenarioForm
-                state={adHocState ?? EMPTY_AD_HOC_STATE}
-                onChange={setAdHocState}
-                context={{
-                  netParameters: extensions.parameters
-                    ? petriNetDefinition.parameters
-                    : [],
-                  places: petriNetDefinition.places,
-                  types: extensions.colors ? petriNetDefinition.types : [],
-                }}
-                selection="none"
-              />
+              <>
+                <AdHocScenarioForm
+                  state={adHocState ?? EMPTY_AD_HOC_STATE}
+                  onChange={setAdHocState}
+                  context={adHocFormContext}
+                  selection={enableParameterSweeps ? "sweep" : "none"}
+                />
+                {sweepSummaryLine}
+              </>
             ) : null}
           </Section>
 

@@ -18,6 +18,7 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
+import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
@@ -139,40 +140,48 @@ const DiffEqMainContent: React.FC = () => {
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
-        <Form.Field label="Associated Type" size="sm" disabled={isReadOnly}>
-          <Tooltip
-            content={UI_MESSAGES.READ_ONLY_MODE}
-            disableTooltip={!isReadOnly}
+        <Form.Field label="Associated Type" size="sm">
+          <PropertyValue
+            text={
+              types.find(
+                (candidate) => candidate.id === differentialEquation.colorId,
+              )?.name
+            }
           >
-            <Select
-              required
-              value={differentialEquation.colorId ?? ""}
-              onChange={(colorId) => {
-                if (colorId) {
-                  handleTypeChange(colorId);
-                }
-              }}
-              items={types.map((type) => ({
-                value: type.id,
-                text: type.name,
-              }))}
-              placeholder="Select a type"
-              size="sm"
-              disabled={isReadOnly}
-              renderItem={(value) => {
-                const type = types.find((tp) => tp.id === value);
-                return (
-                  <div className={arcStyle}>
-                    <div
-                      className={colorDotStyle}
-                      style={{ backgroundColor: type?.displayColor }}
-                    />
-                    {type?.name ?? value}
-                  </div>
-                );
-              }}
-            />
-          </Tooltip>
+            <Tooltip
+              content={UI_MESSAGES.READ_ONLY_MODE}
+              disableTooltip={!isReadOnly}
+            >
+              <Select
+                required
+                value={differentialEquation.colorId ?? ""}
+                onChange={(colorId) => {
+                  if (colorId) {
+                    handleTypeChange(colorId);
+                  }
+                }}
+                items={types.map((type) => ({
+                  value: type.id,
+                  text: type.name,
+                }))}
+                placeholder="Select a type"
+                size="sm"
+                disabled={isReadOnly}
+                renderItem={(value) => {
+                  const type = types.find((tp) => tp.id === value);
+                  return (
+                    <div className={arcStyle}>
+                      <div
+                        className={colorDotStyle}
+                        style={{ backgroundColor: type?.displayColor }}
+                      />
+                      {type?.name ?? value}
+                    </div>
+                  );
+                }}
+              />
+            </Tooltip>
+          </PropertyValue>
         </Form.Field>
 
         {presentation.showSourceCode && (

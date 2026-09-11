@@ -3,7 +3,9 @@ import { use } from "react";
 import { Button, Chip, Dialog, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
+import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
@@ -100,8 +102,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setSnapToGrid,
     partialSelection,
     setPartialSelection,
-    useEntitiesTreeView,
-    setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
     enableNotebookView,
@@ -116,8 +116,15 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setEnableParameterSweeps,
     enableOptimizationSurface,
     setEnableOptimizationSurface,
+    enableInBrowserOptimization,
+    setEnableInBrowserOptimization,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
+  // The setting only means something where the host supplies an optimizer
+  // that runs here; a remote capability never sees it.
+  const optimizationSource = use(PetrinautOptimizationContext);
+  const inBrowserOptimizationOffered =
+    optimizationSource !== null && isConnectedOptimization(optimizationSource);
   // Gated on runtime availability rather than a build flag, so the control is
   // only offered where it can actually do something.
   const webGpuAvailable = isWebGpuAvailable();
@@ -193,23 +200,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Toggle
             value={keepPanelsMounted}
             onChange={setKeepPanelsMounted}
-            size="sm"
-          />
-        </SettingRow>
-        <SettingRow
-          label={
-            <>
-              Entities tree view{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Show a unified tree of all entities in the left sidebar"
-        >
-          <Toggle
-            value={useEntitiesTreeView}
-            onChange={setUseEntitiesTreeView}
             size="sm"
           />
         </SettingRow>
@@ -340,6 +330,25 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
+        {inBrowserOptimizationOffered && (
+          <SettingRow
+            label={
+              <>
+                In-browser optimization{" "}
+                <Chip size="xs" color="orange" variant="outline" shape="round">
+                  Experimental
+                </Chip>
+              </>
+            }
+            description="Run optimization studies in this browser through the experiments backend, streaming each step's metrics as it is evaluated"
+          >
+            <Toggle
+              value={enableInBrowserOptimization}
+              onChange={setEnableInBrowserOptimization}
+              size="sm"
+            />
+          </SettingRow>
+        )}
       </Dialog.Body>
       <Dialog.Footer
         actions={

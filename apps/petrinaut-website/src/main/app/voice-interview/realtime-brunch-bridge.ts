@@ -1,77 +1,197 @@
-import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
+import {
+  createVoiceRequestId,
+  reportVoiceDiagnostic,
+  voiceDurationMs,
+  type VoiceDiagnosticReporter,
+} from "../../../voice-diagnostics";
+import { classifyInterruption } from "./realtime-brunch-bridge/classify-interruption";
+
+import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type {
+  OpenAIRealtimeSessionEvent,
+  OpenAIRealtimeTranscriptKey,
+} from "./openai-realtime-session";
+import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
+import type {
+  FlueChatAdmissionFailure,
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+  FlueChatTransportOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
+import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
+
+export type VoiceSubmissionSettlement = Pick<
+  FlueConversationSettlement,
+  "outcome" | "submissionId"
+>;
+
+export interface CancelPendingSpeechOptions {
+  readonly discardPendingInterruption?: boolean;
+}
 
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly status: ChatStatus;
+  readonly questionSegment?: CanonicalSpeechSegment;
+  /** Local logical termination when the panel withheld a continuation. */
+  readonly stopped?: boolean;
+  /** Flue's settlement index remains the durable outcome authority. */
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
 interface RealtimeBridgeSession {
-  completeFunctionCall(
-    callId: string,
-    segments: CanonicalSpeechSegment[],
-  ): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
-interface SubmitInterviewAnswerInput {
+type SubmitVoiceInput = Parameters<
+  PetrinautAiVoiceModeContext["submitVoiceInput"]
+>[0];
+type FlueChatAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type RealtimeBrunchAdmissionTarget = Pick<
+  FlueChatAdmission,
+  "kind" | "messageId"
+>;
+
+type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
+  readonly admissionTarget: RealtimeBrunchAdmissionTarget;
   readonly id: string;
-  readonly text: string;
-}
+  readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
+  readonly signal: AbortSignal;
+};
 
 type SubmitInterviewAnswerResult =
-  | { readonly kind: "interactive-tool"; readonly toolCallId: string }
-  | { readonly kind: "message"; readonly messageId: string };
+  | Extract<PetrinautAiComposerSubmitTextResult, { kind: "interactive-tool" }>
+  | (Extract<PetrinautAiComposerSubmitTextResult, { kind: "message" }> & {
+      readonly submissionId?: AgentSendResult["submissionId"];
+    });
 
 interface RealtimeBrunchBridgeDependencies {
+  readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly session: RealtimeBridgeSession;
   readonly submitInterviewAnswer: (
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
 }
 
+interface CompletedResponseMessage extends FlueChatResponseMessageCompletedEvent {
+  consumed: boolean;
+}
+
+type TerminalTranscriptEvent =
+  | {
+      readonly key: OpenAIRealtimeTranscriptKey;
+      readonly text: string;
+      readonly type: "completed";
+    }
+  | {
+      readonly key: OpenAIRealtimeTranscriptKey;
+      readonly type: "transcription-failed";
+    };
+
+interface PendingInputItem {
+  readonly ordinaryAcceptedWhileReady: boolean;
+  stopped: boolean;
+}
+
 interface ActiveSubmission {
+  readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
-  readonly callId: string;
-  readonly epoch: number;
-  readonly pendingQuestionId: string | null;
+  readonly completedResponseMessages: CompletedResponseMessage[];
+  readonly deliveryId: string;
   correlated: boolean;
+  firstTextEmitted: boolean;
   sawBusyChatStatus: boolean;
+  speechCancelled: boolean;
+  submissionId: AgentSendResult["submissionId"] | null;
 }
 
-interface ArgumentStream {
-  readonly chunks: string[];
-  readonly itemId: string;
-  readonly responseId: string;
-}
+type RealtimeAdmissionErrorCode =
+  | "admission-aborted"
+  | "admission-ambiguous"
+  | "admission-conflict"
+  | "admission-rejected";
 
-export type RealtimeBridgeErrorCode =
+type RealtimeInterviewErrorCode =
   | "interview-correlation"
   | "interview-response"
   | "interview-submission";
 
+export type RealtimeBridgeErrorCode =
+  | RealtimeAdmissionErrorCode
+  | RealtimeInterviewErrorCode;
+
+export type RealtimeTranscriptRejectionReason =
+  | "duplicate"
+  | "empty"
+  | "failed"
+  | "over-limit"
+  | "pending"
+  | "prompt-regurgitation"
+  | "self-echo"
+  | "unavailable";
+
 export type RealtimeBrunchBridgeEvent =
+  | { readonly answer: string; readonly type: "transcript-retained" }
   | {
       readonly answer: string;
-      readonly callId: string;
+      readonly deliveryId: string;
+      readonly itemId: string;
       readonly type: "submission-started";
     }
   | {
       readonly answer: string;
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly type: "submission-accepted";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
+      readonly submissionId: AgentSendResult["submissionId"];
+      readonly type: "submission-admitted";
+    }
+  | {
+      readonly deliveryId: string;
+      readonly questionSegment?: CanonicalSpeechSegment;
       readonly segments: CanonicalSpeechSegment[];
+      readonly speechCancelled?: true;
       readonly type: "canonical-response-ready";
     }
   | {
-      readonly code: RealtimeBridgeErrorCode;
+      readonly deliveryId: string;
+      readonly type: "canonical-text-ready";
+    }
+  | {
+      readonly deliveryId: string;
+      readonly type: "submission-settled";
+    }
+  | {
+      readonly deliveryId: string;
+      readonly outcome:
+        | Exclude<VoiceSubmissionSettlement["outcome"], "completed">
+        | "withheld";
+      readonly type: "submission-stopped";
+    }
+  | {
+      readonly itemId: string;
+      readonly reason: RealtimeTranscriptRejectionReason;
+      readonly type: "transcript-rejected";
+    }
+  | {
+      readonly code: RealtimeInterviewErrorCode;
+      readonly message: string;
+      readonly type: "error";
+    }
+  | {
+      readonly code: RealtimeAdmissionErrorCode;
+      readonly failure: FlueChatAdmissionFailure;
       readonly message: string;
       readonly type: "error";
     };
@@ -82,45 +202,67 @@ const INVALID_BRIDGE_EVENT =
   "The voice response could not be matched to the interview. Reconnect voice or use text instead.";
 const ANSWER_LIMIT = 32_000;
 
-export const createRealtimeSubmissionId = (
-  connectionEpoch: number,
-  callId: string,
-): string => `voice-realtime:${connectionEpoch}:${encodeURIComponent(callId)}`;
+export const createRealtimeSubmissionId = ({
+  connectionEpoch,
+  contentIndex,
+  itemId,
+}: OpenAIRealtimeTranscriptKey): string =>
+  `voice-realtime:${connectionEpoch}:${encodeURIComponent(itemId)}:${contentIndex}`;
 
-const latestPendingQuestion = (
-  segments: CanonicalSpeechSegment[],
-): CanonicalSpeechSegment | undefined =>
-  segments.findLast(({ source }) => source === "brunch-ask");
+const transcriptKeyId = (key: OpenAIRealtimeTranscriptKey): string =>
+  createRealtimeSubmissionId(key);
 
-const parseContinueInterviewArguments = (
-  argumentsJson: string,
-): string | null => {
-  try {
-    const value: unknown = JSON.parse(argumentsJson);
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      return null;
-    }
-    const record = value as Record<string, unknown>;
-    if (Object.keys(record).length !== 1 || typeof record.answer !== "string") {
-      return null;
-    }
-    const answer = record.answer.trim();
-    return answer && Array.from(answer).length <= ANSWER_LIMIT ? answer : null;
-  } catch {
-    return null;
+const normalizeTranscript = (transcript: string): string =>
+  transcript.trim().replace(/\s+/gu, " ");
+
+const positionPrecedes = (
+  first: FlueChatResponseMessageCompletedEvent["position"],
+  second: FlueChatResponseMessageStartedEvent["position"],
+): boolean =>
+  first.batch < second.batch ||
+  (first.batch === second.batch && first.index < second.index);
+
+const admissionErrorCode = (
+  failure: FlueChatAdmissionFailure,
+): RealtimeAdmissionErrorCode => {
+  switch (failure.kind) {
+    case "aborted":
+      return "admission-aborted";
+    case "ambiguous":
+      return "admission-ambiguous";
+    case "rejected":
+      return "admission-rejected";
+    case "submission-conflict":
+      return "admission-conflict";
   }
 };
 
 export class RealtimeBrunchBridge {
-  readonly #argumentDeltas = new Map<string, ArgumentStream>();
+  readonly #acceptedInputItemIds = new Set<string>();
+  readonly #activePlaybackText = new Map<string, readonly string[]>();
+  readonly #completedInputEvents = new Map<string, TerminalTranscriptEvent>();
+  readonly #inputItemOrder: string[] = [];
   readonly #listeners = new Set<BridgeListener>();
-  readonly #processedCalls = new Set<string>();
+  readonly #pendingInputItems = new Map<string, PendingInputItem>();
+  readonly #pendingSpeechRequestIds = new Set<string>();
+  readonly #playbackOverlappingInputItemIds = new Set<string>();
+  readonly #processedTranscripts = new Set<string>();
+  readonly #reportDiagnostic: VoiceDiagnosticReporter;
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
   readonly #seenSegmentIds = new Set<string>();
-  readonly #terminalResponseIds = new Set<string>();
+  // null preserves enabled-mode admission without classifying ordinary capture.
+  readonly #interruptionPlaybackText = new Map<
+    string,
+    readonly string[] | null
+  >();
+  #pendingInterruption: {
+    answer: string;
+    deliveryId: string;
+    itemId: string;
+  } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -129,11 +271,14 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
+  #outputCancellationPending = false;
 
   public constructor({
+    reportDiagnostic = reportVoiceDiagnostic,
     session,
     submitInterviewAnswer,
   }: RealtimeBrunchBridgeDependencies) {
+    this.#reportDiagnostic = reportDiagnostic;
     this.#session = session;
     this.#submitInterviewAnswer = submitInterviewAnswer;
     session.subscribe((event) => this.#handleSessionEvent(event));
@@ -144,34 +289,107 @@ export class RealtimeBrunchBridge {
     return () => this.#listeners.delete(listener);
   }
 
+  public cancelPendingSpeech({
+    discardPendingInterruption = false,
+  }: CancelPendingSpeechOptions = {}): void {
+    this.#outputCancellationPending = true;
+    this.#retirePendingInputItems(discardPendingInterruption);
+    this.#interruptionPlaybackText.clear();
+    for (const responseId of this.#activePlaybackText.keys()) {
+      this.#activePlaybackText.set(responseId, []);
+    }
+    if (discardPendingInterruption) {
+      this.#pendingInterruption = null;
+    }
+    if (this.#activeSubmission) {
+      this.#activeSubmission.speechCancelled = true;
+    }
+  }
+
+  public completeTurnHandoff(): void {
+    this.#activePlaybackText.clear();
+    this.#outputCancellationPending = false;
+    this.#pendingSpeechRequestIds.clear();
+    this.#drainPendingInterruption();
+  }
+
+  public notifyResponseMessageCompleted(
+    event: FlueChatResponseMessageCompletedEvent,
+  ): void {
+    const active = this.#activeSubmission;
+    if (
+      active === null ||
+      active.completedResponseMessages.some(
+        ({ position }) =>
+          position.batch === event.position.batch &&
+          position.index === event.position.index,
+      )
+    ) {
+      return;
+    }
+    active.completedResponseMessages.push({
+      ...event,
+      consumed: false,
+    });
+    this.#completeCorrelatedSubmission();
+  }
+
+  public notifyResponseMessageStarted(
+    event: FlueChatResponseMessageStartedEvent,
+  ): void {
+    const active = this.#activeSubmission;
+    if (active === null) {
+      return;
+    }
+    for (const completion of active.completedResponseMessages) {
+      if (
+        !completion.consumed &&
+        completion.messageId === event.messageId &&
+        positionPrecedes(completion.position, event.position)
+      ) {
+        completion.consumed = true;
+      }
+    }
+  }
+
   public start(connectionEpoch: number): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
-    this.#processedCalls.clear();
+    this.#acceptedInputItemIds.clear();
+    this.#completedInputEvents.clear();
+    this.#inputItemOrder.length = 0;
+    this.#interruptionPlaybackText.clear();
+    this.#pendingInputItems.clear();
+    this.#pendingInterruption = null;
+    this.#playbackOverlappingInputItemIds.clear();
+    this.#processedTranscripts.clear();
+    this.#activePlaybackText.clear();
+    this.#outputCancellationPending = false;
+    this.#pendingSpeechRequestIds.clear();
     this.#seenSegmentIds.clear();
-    this.#terminalResponseIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
-    }
-
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (question) {
-      this.#session.speakCanonical(
-        this.#chat.canonicalSegments.filter(
-          ({ messageId }) => messageId === question.messageId,
-        ),
-      );
     }
   }
 
   public stop(): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = null;
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
-    this.#terminalResponseIds.clear();
+    this.#acceptedInputItemIds.clear();
+    this.#completedInputEvents.clear();
+    this.#inputItemOrder.length = 0;
+    this.#interruptionPlaybackText.clear();
+    this.#pendingInputItems.clear();
+    this.#pendingInterruption = null;
+    this.#playbackOverlappingInputItemIds.clear();
+    this.#processedTranscripts.clear();
+    this.#activePlaybackText.clear();
+    this.#outputCancellationPending = false;
+    this.#pendingSpeechRequestIds.clear();
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -193,9 +411,16 @@ export class RealtimeBrunchBridge {
       this.#completeCorrelatedSubmission();
       return;
     }
-    if (update.status !== "ready") {
+    if (this.#outputCancellationPending || update.stopped) {
+      for (const segment of update.canonicalSegments) {
+        this.#seenSegmentIds.add(segment.id);
+      }
+    }
+    if (this.#outputCancellationPending) {
       return;
     }
+    if (this.#drainPendingInterruption()) return;
+    if (update.stopped || update.status !== "ready") return;
 
     const newSegments = update.canonicalSegments.filter(
       ({ id }) => !this.#seenSegmentIds.has(id),
@@ -219,209 +444,600 @@ export class RealtimeBrunchBridge {
     }
   }
 
+  #rejectTranscript(
+    itemId: string,
+    reason: RealtimeTranscriptRejectionReason,
+  ): void {
+    this.#emit({ itemId, reason, type: "transcript-rejected" });
+  }
+
   #fail(
     message: string,
-    code: RealtimeBridgeErrorCode = "interview-correlation",
+    code: RealtimeInterviewErrorCode = "interview-correlation",
   ): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
+    this.#pendingInterruption = null;
+    this.#interruptionPlaybackText.clear();
+    this.#activePlaybackText.clear();
     this.#emit({ code, message, type: "error" });
+  }
+
+  #failAdmission(error: FlueChatAdmissionError): void {
+    ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
+    this.#activeSubmission = null;
+    this.#pendingInterruption = null;
+    this.#interruptionPlaybackText.clear();
+    this.#activePlaybackText.clear();
+    this.#emit({
+      code: admissionErrorCode(error.failure),
+      failure: error.failure,
+      message: error.message,
+      type: "error",
+    });
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
     if (
-      !("connectionEpoch" in event) ||
+      "connectionEpoch" in event &&
       event.connectionEpoch !== this.#activeEpoch
     ) {
       return;
     }
-    if (event.type === "response-terminal") {
-      this.#handleResponseTerminal(event);
-      return;
-    }
-    if (
-      event.type !== "tool-arguments-delta" &&
-      event.type !== "tool-arguments-done"
-    ) {
-      return;
-    }
-
-    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
-    if (this.#terminalResponseIds.has(responseKey)) {
-      return;
-    }
-    const callKey = `${event.connectionEpoch}:${event.callId}`;
-    if (this.#processedCalls.has(callKey)) {
-      return;
-    }
-    if (event.type === "tool-arguments-delta") {
-      const stream = this.#argumentDeltas.get(callKey);
-      if (!stream && this.#argumentDeltas.size > 0) {
-        this.#processedCalls.add(callKey);
-        this.#fail(INVALID_BRIDGE_EVENT);
-        return;
+    if (event.type === "input-speech-started") {
+      if (event.interruptionBySpeaking) {
+        // The session has already sent output cancellation. Snapshot only text
+        // whose playback started, not queued speech or canonical chat history.
+        if (!this.#interruptionPlaybackText.has(event.itemId)) {
+          const activePlaybackText = Array.from(
+            this.#activePlaybackText.values(),
+          ).flat();
+          this.#interruptionPlaybackText.set(
+            event.itemId,
+            activePlaybackText.length > 0 ? activePlaybackText : null,
+          );
+        }
+        if (this.#activeSubmission) {
+          this.#activeSubmission.speechCancelled = true;
+        }
       }
-      if (
-        stream &&
-        (stream.itemId !== event.itemId ||
-          stream.responseId !== event.responseId)
-      ) {
-        this.#processedCalls.add(callKey);
-        this.#fail(INVALID_BRIDGE_EVENT);
-        return;
-      }
-      if (stream) {
-        stream.chunks.push(event.delta);
+      if (!event.interruptionBySpeaking && this.#ownsOutputTurn()) {
+        this.#playbackOverlappingInputItemIds.add(event.itemId);
       } else {
-        this.#argumentDeltas.set(callKey, {
-          chunks: [event.delta],
-          itemId: event.itemId,
-          responseId: event.responseId,
-        });
+        this.#acceptedInputItemIds.add(event.itemId);
+        if (!this.#pendingInputItems.has(event.itemId)) {
+          this.#pendingInputItems.set(event.itemId, {
+            ordinaryAcceptedWhileReady:
+              !event.interruptionBySpeaking && this.#canSubmitAnswerNow(),
+            stopped: false,
+          });
+          this.#inputItemOrder.push(event.itemId);
+        }
       }
       return;
     }
-
-    this.#processedCalls.add(callKey);
-    const stream = this.#argumentDeltas.get(callKey);
-    if (!stream && this.#argumentDeltas.size > 0) {
-      this.#fail(INVALID_BRIDGE_EVENT);
+    if (event.type === "input-speech-stopped") {
+      const pendingInput = this.#pendingInputItems.get(event.itemId);
+      if (this.#acceptedInputItemIds.has(event.itemId) && pendingInput) {
+        pendingInput.stopped = true;
+      }
       return;
     }
-    this.#argumentDeltas.delete(callKey);
+    if (event.type === "canonical-speech-requested") {
+      this.#pendingSpeechRequestIds.add(event.speechRequestId);
+      this.#markPlaybackOverlappingInputItems();
+      return;
+    }
+    if (event.type === "output-started") {
+      this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      this.#activePlaybackText.set(event.responseId, event.canonicalText ?? []);
+      this.#markPlaybackOverlappingInputItems();
+      return;
+    }
     if (
-      this.#activeSubmission ||
-      event.name !== "continue_interview" ||
-      (stream !== undefined &&
-        (stream.itemId !== event.itemId ||
-          stream.responseId !== event.responseId ||
-          stream.chunks.join("") !== event.arguments))
+      event.type === "output-stopped" ||
+      event.type === "output-interrupted"
     ) {
-      this.#fail(INVALID_BRIDGE_EVENT);
+      if (
+        event.type === "output-interrupted" &&
+        event.speechRequestId !== undefined
+      ) {
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      }
+      this.#activePlaybackText.delete(event.responseId);
+      return;
+    }
+    if (event.type === "response-terminal") {
+      if (
+        event.speechRequestId !== undefined &&
+        (event.status !== "completed" || !event.playbackExpected)
+      ) {
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      }
+      return;
+    }
+    if (event.type !== "completed" && event.type !== "transcription-failed") {
+      return;
+    }
+    if (event.key.connectionEpoch !== this.#activeEpoch) {
+      return;
+    }
+    const terminalEvent: TerminalTranscriptEvent =
+      event.type === "transcription-failed"
+        ? { key: event.key, type: "transcription-failed" }
+        : { key: event.key, text: event.text, type: "completed" };
+
+    const keyId = transcriptKeyId(event.key);
+    if (this.#processedTranscripts.has(keyId)) {
+      this.#rejectTranscript(event.key.itemId, "duplicate");
+      return;
+    }
+    this.#processedTranscripts.add(keyId);
+    if (this.#pendingInputItems.has(event.key.itemId)) {
+      this.#completedInputEvents.set(event.key.itemId, terminalEvent);
+      this.#drainCompletedInputEvents();
+      return;
+    }
+    this.#processCompletedInputEvent(terminalEvent);
+  }
+
+  #drainCompletedInputEvents(): void {
+    let itemId = this.#inputItemOrder.at(0);
+    let event =
+      itemId === undefined ? undefined : this.#completedInputEvents.get(itemId);
+    while (itemId !== undefined && event !== undefined) {
+      this.#inputItemOrder.shift();
+      this.#completedInputEvents.delete(itemId);
+      this.#processCompletedInputEvent(event);
+      itemId = this.#inputItemOrder.at(0);
+      event =
+        itemId === undefined
+          ? undefined
+          : this.#completedInputEvents.get(itemId);
+    }
+  }
+
+  #processCompletedInputEvent(event: TerminalTranscriptEvent): void {
+    this.#acceptedInputItemIds.delete(event.key.itemId);
+    const ordinaryInputWasAcceptedWhileReady = Boolean(
+      this.#pendingInputItems.get(event.key.itemId)?.ordinaryAcceptedWhileReady,
+    );
+    this.#pendingInputItems.delete(event.key.itemId);
+    const interruptionPlaybackText = this.#interruptionPlaybackText.get(
+      event.key.itemId,
+    );
+    this.#interruptionPlaybackText.delete(event.key.itemId);
+
+    if (this.#playbackOverlappingInputItemIds.has(event.key.itemId)) {
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
-    const answer = parseContinueInterviewArguments(event.arguments);
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
+    if (event.type === "transcription-failed") {
+      this.#rejectTranscript(event.key.itemId, "failed");
+      return;
+    }
+
+    // An interruption, or ordinary speech that finished while admission was
+    // open, waits for an earlier spoken answer rather than losing speech-order
+    // authority to asynchronous transcription completion.
     if (
-      !answer ||
-      !this.#chat.canAcceptInterviewAnswer ||
-      (!question && this.#chat.status !== "ready")
+      interruptionPlaybackText === undefined &&
+      !ordinaryInputWasAcceptedWhileReady &&
+      !this.#canSubmitAnswerNow()
     ) {
-      this.#fail(INVALID_BRIDGE_EVENT);
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
+    const answer = normalizeTranscript(event.text);
+    if (answer.length === 0) {
+      this.#rejectTranscript(event.key.itemId, "empty");
+      return;
+    }
+    if (Array.from(answer).length > ANSWER_LIMIT) {
+      this.#rejectTranscript(event.key.itemId, "over-limit");
+      return;
+    }
+
+    if (
+      interruptionPlaybackText !== undefined &&
+      interruptionPlaybackText !== null
+    ) {
+      const startedAt = performance.now();
+      const rejectionReason = classifyInterruption(
+        answer,
+        interruptionPlaybackText,
+      );
+      if (rejectionReason !== null) {
+        this.#reportDiagnostic({
+          durationMs: voiceDurationMs(startedAt, performance.now()),
+          operation: "transcription",
+          outcome: "rejected",
+          rejectionReason,
+          requestId: createVoiceRequestId(),
+          stage: "browser",
+        });
+        this.#rejectTranscript(event.key.itemId, rejectionReason);
+        return;
+      }
+    }
+
+    const deliveryId = createRealtimeSubmissionId(event.key);
+    if (this.#pendingInterruption) {
+      this.#rejectTranscript(event.key.itemId, "pending");
+      return;
+    }
+    if (!this.#canSubmitAnswerNow()) {
+      this.#pendingInterruption = {
+        answer,
+        deliveryId,
+        itemId: event.key.itemId,
+      };
+      this.#emit({ answer, type: "transcript-retained" });
+      return;
+    }
+    this.#submitAnswer(answer, deliveryId, event.key.itemId);
+  }
+
+  #ordinaryInputFinishedWhileReady(itemId: string): boolean {
+    const pendingInput = this.#pendingInputItems.get(itemId);
+    return Boolean(
+      pendingInput?.ordinaryAcceptedWhileReady &&
+      (pendingInput.stopped || this.#completedInputEvents.has(itemId)),
+    );
+  }
+
+  #retirePendingInputItems(discardCompletedInput: boolean): void {
+    for (const itemId of this.#pendingInputItems.keys()) {
+      if (!discardCompletedInput && this.#completedInputEvents.has(itemId)) {
+        continue;
+      }
+      this.#acceptedInputItemIds.delete(itemId);
+      this.#playbackOverlappingInputItemIds.add(itemId);
+      this.#pendingInputItems.delete(itemId);
+      const orderIndex = this.#inputItemOrder.indexOf(itemId);
+      if (orderIndex >= 0) {
+        this.#inputItemOrder.splice(orderIndex, 1);
+      }
+      if (this.#completedInputEvents.delete(itemId)) {
+        this.#rejectTranscript(itemId, "unavailable");
+      }
+    }
+    this.#drainCompletedInputEvents();
+  }
+
+  #markPlaybackOverlappingInputItems(): void {
+    for (const itemId of this.#acceptedInputItemIds) {
+      if (
+        this.#interruptionPlaybackText.has(itemId) ||
+        this.#ordinaryInputFinishedWhileReady(itemId)
+      ) {
+        continue;
+      }
+      this.#playbackOverlappingInputItemIds.add(itemId);
+      this.#acceptedInputItemIds.delete(itemId);
+      this.#pendingInputItems.delete(itemId);
+      const orderIndex = this.#inputItemOrder.indexOf(itemId);
+      if (orderIndex >= 0) {
+        this.#inputItemOrder.splice(orderIndex, 1);
+      }
+      if (this.#completedInputEvents.delete(itemId)) {
+        this.#rejectTranscript(itemId, "unavailable");
+      }
+    }
+    this.#drainCompletedInputEvents();
+  }
+
+  #canSubmitAnswerNow(): boolean {
+    return (
+      !this.#activeSubmission &&
+      !this.#outputCancellationPending &&
+      this.#chat.canAcceptInterviewAnswer &&
+      this.#chat.status === "ready"
+    );
+  }
+
+  #drainPendingInterruption(): boolean {
+    const pending = this.#pendingInterruption;
+    if (!pending) return false;
+    if (
+      this.#activeEpoch === null ||
+      this.#outputCancellationPending ||
+      !this.#canSubmitAnswerNow()
+    ) {
+      return true;
+    }
+    this.#pendingInterruption = null;
+    this.#submitAnswer(pending.answer, pending.deliveryId, pending.itemId);
+    return true;
+  }
+
+  #submitAnswer(answer: string, deliveryId: string, itemId: string): void {
     const generation = this.#generation;
     this.#activeSubmission = {
+      abortController: new AbortController(),
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
       ),
-      callId: event.callId,
+      completedResponseMessages: [],
       correlated: false,
-      epoch: event.connectionEpoch,
-      pendingQuestionId: question?.partId ?? null,
+      deliveryId,
+      firstTextEmitted: false,
       sawBusyChatStatus: false,
+      speechCancelled: false,
+      submissionId: null,
     };
-    this.#emit({ answer, callId: event.callId, type: "submission-started" });
-    void this.#submit(event, answer, generation);
+    this.#emit({ answer, deliveryId, itemId, type: "submission-started" });
+    void this.#submit(answer, deliveryId, generation);
   }
 
-  #handleResponseTerminal(
-    event: Extract<OpenAIRealtimeSessionEvent, { type: "response-terminal" }>,
-  ): void {
-    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
-    const matchingStreams = [...this.#argumentDeltas].filter(
-      ([, stream]) => stream.responseId === event.responseId,
+  #ownsOutputTurn(): boolean {
+    return (
+      this.#activePlaybackText.size > 0 ||
+      this.#pendingSpeechRequestIds.size > 0
     );
-    if (event.status === "completed" && matchingStreams.length > 0) {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
-    }
-
-    for (const [callKey] of matchingStreams) {
-      this.#argumentDeltas.delete(callKey);
-      this.#processedCalls.add(callKey);
-    }
-    this.#terminalResponseIds.add(responseKey);
   }
 
   async #submit(
-    event: Extract<OpenAIRealtimeSessionEvent, { type: "tool-arguments-done" }>,
     answer: string,
+    deliveryId: string,
     generation: number,
   ): Promise<void> {
     try {
+      const activeAtSubmission = this.#activeSubmission;
+      if (!activeAtSubmission) return;
       const result = await this.#submitInterviewAnswer({
-        id: createRealtimeSubmissionId(event.connectionEpoch, event.callId),
+        admissionTarget: { kind: "user", messageId: deliveryId },
+        id: deliveryId,
+        onAdmission: (submissionId) => {
+          const active = this.#activeSubmission;
+          if (
+            generation !== this.#generation ||
+            !active ||
+            active.deliveryId !== deliveryId
+          ) {
+            return;
+          }
+          if (active.submissionId !== null) {
+            if (active.submissionId !== submissionId) {
+              this.#fail(INVALID_BRIDGE_EVENT);
+            }
+            return;
+          }
+          active.submissionId = submissionId;
+          this.#emit({
+            deliveryId,
+            submissionId,
+            type: "submission-admitted",
+          });
+        },
+        signal: activeAtSubmission.abortController.signal,
         text: answer,
       });
       const active = this.#activeSubmission;
       if (
         generation !== this.#generation ||
         !active ||
-        active.callId !== event.callId ||
-        active.epoch !== event.connectionEpoch
+        active.deliveryId !== deliveryId
       ) {
         return;
       }
-      const resultMatchesSubmission =
-        active.pendingQuestionId === null
-          ? result.kind === "message"
-          : result.kind === "interactive-tool" &&
-            result.toolCallId === active.pendingQuestionId;
-      if (!resultMatchesSubmission) {
+      if (result.kind !== "message" || result.messageId !== deliveryId) {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
+      const resultSubmissionId = result.submissionId ?? null;
+      if (
+        active.submissionId !== null &&
+        resultSubmissionId !== null &&
+        active.submissionId !== resultSubmissionId
+      ) {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      active.submissionId ??= resultSubmissionId;
       active.correlated = true;
-      this.#emit({
-        answer,
-        callId: event.callId,
-        type: "submission-accepted",
-      });
+      this.#emit({ answer, deliveryId, type: "submission-accepted" });
       this.#completeCorrelatedSubmission();
-    } catch {
+    } catch (error) {
       if (generation === this.#generation) {
-        this.#fail(
-          "The interview could not accept that answer. Use the composer to retry.",
-          "interview-submission",
-        );
+        if (error instanceof FlueChatAdmissionError) {
+          this.#failAdmission(error);
+        } else {
+          this.#fail(
+            "The interview could not accept that answer. Use the composer to retry.",
+            "interview-submission",
+          );
+        }
       }
     }
   }
 
   #completeCorrelatedSubmission(): void {
     const active = this.#activeSubmission;
-    if (
-      !active?.correlated ||
-      !active.sawBusyChatStatus ||
-      this.#chat.status !== "ready"
-    ) {
+    if (!active?.correlated || !active.sawBusyChatStatus) {
       return;
     }
+    if (this.#chat.stopped && this.#chat.status === "ready") {
+      // Cancellation can finish before this step commits its final prose.
+      // Retire it now so a later render cannot restart the withheld speech.
+      for (const segment of this.#chat.canonicalSegments) {
+        this.#seenSegmentIds.add(segment.id);
+      }
+      const settlement = this.#chat.settlements?.find(
+        ({ submissionId }) => submissionId === active.submissionId,
+      );
+      this.#emit({ deliveryId: active.deliveryId, type: "submission-settled" });
+      this.#activeSubmission = null;
+      this.#emit({
+        deliveryId: active.deliveryId,
+        outcome:
+          settlement && settlement.outcome !== "completed"
+            ? settlement.outcome
+            : "withheld",
+        type: "submission-stopped",
+      });
+      this.#drainPendingInterruption();
+      return;
+    }
+    // A reply may be written by the admitted submission itself or by a
+    // client-tool continuation projected onto the same message, and an ask
+    // follow-up writes into the message that asked; so match membership and
+    // exclude only what was already there when this answer was submitted.
     const responseSegments = this.#chat.canonicalSegments.filter(
-      ({ id }) => !active.baselineSegmentIds.has(id),
+      (segment) =>
+        !active.baselineSegmentIds.has(segment.id) &&
+        (active.submissionId === null ||
+          (segment.submissionIds?.includes(active.submissionId) ?? false)),
     );
+    if (responseSegments.length > 0 && !active.firstTextEmitted) {
+      // Completed canonical text can land while the turn is still streaming;
+      // record that instant separately from settlement.
+      active.firstTextEmitted = true;
+      this.#emit({
+        deliveryId: active.deliveryId,
+        type: "canonical-text-ready",
+      });
+    }
+    const stoppedSettlement =
+      active.submissionId === null
+        ? undefined
+        : this.#chat.settlements?.find(
+            ({ submissionId }) => submissionId === active.submissionId,
+          );
+    if (stoppedSettlement && stoppedSettlement.outcome !== "completed") {
+      if (this.#chat.status === "ready") {
+        this.#completeStoppedSubmission(active);
+      }
+      return;
+    }
+    const completionMatchesSegment = (
+      completion: CompletedResponseMessage,
+      segment: CanonicalSpeechSegment,
+    ): boolean =>
+      completion.messageId === segment.messageId &&
+      (segment.submissionIds?.includes(completion.submissionId) ?? false);
+    const pendingCompletions = active.completedResponseMessages.filter(
+      ({ consumed }) => !consumed,
+    );
+    const eligibleCompletions = pendingCompletions.filter((completion) =>
+      responseSegments.some(
+        (segment) =>
+          !this.#seenSegmentIds.has(segment.id) &&
+          completionMatchesSegment(completion, segment),
+      ),
+    );
+    const completedSegments = responseSegments.filter(
+      (segment) =>
+        !this.#seenSegmentIds.has(segment.id) &&
+        eligibleCompletions.some((completion) =>
+          completionMatchesSegment(completion, segment),
+        ),
+    );
+    if (!active.speechCancelled) {
+      if (completedSegments.length > 0) {
+        try {
+          this.#session.speakCanonical(completedSegments);
+          for (const segment of completedSegments) {
+            this.#seenSegmentIds.add(segment.id);
+          }
+        } catch {
+          this.#fail(INVALID_BRIDGE_EVENT);
+          return;
+        }
+      }
+    }
+    for (const completion of eligibleCompletions) {
+      completion.consumed = true;
+    }
+    if (this.#chat.status !== "ready") {
+      return;
+    }
     if (responseSegments.length === 0) {
+      if (stoppedSettlement?.outcome === "completed") {
+        this.#emit({
+          deliveryId: active.deliveryId,
+          type: "submission-settled",
+        });
+        this.#activeSubmission = null;
+        this.#emit({
+          deliveryId: active.deliveryId,
+          segments: [],
+          type: "canonical-response-ready",
+        });
+        this.#drainPendingInterruption();
+      }
       return;
     }
 
-    try {
-      this.#session.completeFunctionCall(active.callId, responseSegments);
-    } catch {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
+    this.#emit({
+      deliveryId: active.deliveryId,
+      type: "submission-settled",
+    });
+    if (!active.speechCancelled) {
+      const unscheduledSegments = responseSegments.filter(
+        ({ id }) => !this.#seenSegmentIds.has(id),
+      );
+      if (unscheduledSegments.length > 0) {
+        try {
+          this.#session.speakCanonical(unscheduledSegments);
+        } catch {
+          this.#fail(INVALID_BRIDGE_EVENT);
+          return;
+        }
+      }
     }
     for (const segment of responseSegments) {
       this.#seenSegmentIds.add(segment.id);
     }
+    const questionSegment = this.#chat.questionSegment;
+    const correlatedQuestion =
+      questionSegment &&
+      responseSegments.some(
+        ({ messageId }) => messageId === questionSegment.messageId,
+      ) &&
+      (active.submissionId === null ||
+        (questionSegment.submissionIds?.includes(active.submissionId) ?? false))
+        ? questionSegment
+        : undefined;
     this.#activeSubmission = null;
     this.#emit({
-      callId: active.callId,
+      deliveryId: active.deliveryId,
+      ...(correlatedQuestion ? { questionSegment: correlatedQuestion } : {}),
       segments: responseSegments,
+      ...(active.speechCancelled ? { speechCancelled: true as const } : {}),
       type: "canonical-response-ready",
     });
+    this.#drainPendingInterruption();
+  }
+
+  /**
+   * A turn that settled short of a reply leaves no canonical text behind. Only
+   * Flue's settlement index distinguishes it from a turn still in progress or
+   * a completed step whose client-tool follow-up the panel is about to send,
+   * so wait for that record and never treat silence alone as a stop.
+   */
+  #completeStoppedSubmission(active: ActiveSubmission): void {
+    if (active.submissionId === null) return;
+    const settlement = this.#chat.settlements?.find(
+      ({ submissionId }) => submissionId === active.submissionId,
+    );
+    if (settlement === undefined || settlement.outcome === "completed") {
+      return;
+    }
+    this.#emit({
+      deliveryId: active.deliveryId,
+      type: "submission-settled",
+    });
+    this.#activeSubmission = null;
+    this.#emit({
+      deliveryId: active.deliveryId,
+      outcome: settlement.outcome,
+      type: "submission-stopped",
+    });
+    this.#drainPendingInterruption();
   }
 }

@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc edade7c6c8a8c5878749f35e63d2608484e5cc942f5e43671820a400168779db # shrinks to ResolutionIsAFunctionOfTheCountProfileArgs = ResolutionIsAFunctionOfTheCountProfileArgs { bits: [0, 1] }

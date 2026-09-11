@@ -1,0 +1,72 @@
+{
+  "package": "@rust/hash-graph-atlas",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/darwin-kperf-criterion",
+    "@rust/darwin-kperf-events",
+    "@rust/error-stack",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-embeddings",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-temporal-versioning",
+    "@rust/hash-graph-types",
+    "@rust/hash-middleware",
+    "@rust/hash-temporal-client",
+    "@rust/hashql-core"
+  ],
+  "tasks": {
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "@rust/hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:miri": {
+      "dependsOn": [],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
+  }
+}

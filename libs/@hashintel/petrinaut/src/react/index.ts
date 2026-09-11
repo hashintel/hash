@@ -69,7 +69,14 @@ export {
   type NetManagement,
 } from "./net-management-context";
 export { PetrinautOptimizationContext } from "./optimization-context";
-export type { PetrinautOptimization } from "./optimization-context";
+export type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
+  PetrinautOptimization,
+  PetrinautOptimizationChannel,
+  PetrinautOptimizationSource,
+} from "./optimization-context";
 export {
   isOptimizationActive,
   OptimizationsContext,
@@ -105,6 +112,16 @@ export type {
   SimulationCompiler,
   SimulationProviderProps,
 } from "./simulation/provider";
+
+// --- User settings ---
+// A host mounts the provider above `Petrinaut` to read and change the
+// persisted settings from its own components; the editor reuses that instance.
+export { UserSettingsContext } from "./state/user-settings-context";
+export type {
+  UserSettings,
+  UserSettingsContextValue,
+} from "./state/user-settings-context";
+export { UserSettingsProvider } from "./state/user-settings-provider";
 
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";

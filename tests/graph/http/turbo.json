@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test:integration": {
+      "dependsOn": ["^manifest", "@apps/hash-graph#start:test:healthcheck"]
+    }
+  }
+}

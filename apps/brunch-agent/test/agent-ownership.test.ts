@@ -7,11 +7,13 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
+import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import {
   agentOwnershipHeaders,
+  BRUNCH_CONVERSATION_HEADER,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
-import { BRUNCH_CONVERSATION_HEADER } from "../src/conversation/payload.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
@@ -54,6 +56,34 @@ test("the mounted agent route admits a principal and conversation that hash to t
   );
   expect(response.status).toBe(200);
   expect(await response.text()).toBe("admitted");
+});
+
+test("refuses a joined initial binding for another authenticated conversation", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        initialData: {
+          mode: validatedFixtureMutationMode,
+          browser: {
+            binding: {
+              conversationId: "another",
+              documentId: "document",
+              incarnationId: "incarnation",
+            },
+            requestedBaseHash: "a".repeat(64),
+          },
+        },
+        kind: "user",
+        body: "test",
+      }),
+    }),
+  );
+  expect(response.status).toBe(403);
 });
 
 test("a blank conversation header is unauthorized, not a hash mismatch", async () => {

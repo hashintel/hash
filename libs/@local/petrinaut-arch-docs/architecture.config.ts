@@ -39,7 +39,7 @@ export const config: ArchitectureConfig = {
       name: "@hashintel/petrinaut-core",
       path: "libs/@hashintel/petrinaut-core",
       description:
-        "Headless SDCPN engine: document model, HIR compiler, simulation runtimes, LSP. No React, no DOM.",
+        "Headless SDCPN engine: document model, HIR compiler, simulation runtimes, LSP, and an in-browser optimization runtime (Optuna under Pyodide in a worker). No React, no DOM.",
       language: "typescript",
     },
     {
@@ -61,6 +61,13 @@ export const config: ArchitectureConfig = {
       path: "libs/@local/petrinaut-python",
       description:
         "Python bindings for the CLI's JSON-lines protocol: sessions, run requests, optimization studies. POSIX-only; pydantic validates protocol responses.",
+      language: "python",
+    },
+    {
+      name: "@local/petrinaut-optimizer-core",
+      path: "libs/@local/petrinaut-optimizer-core",
+      description:
+        "Optuna study construction, suggestion and ask/tell loop shared by the optimizer service and the browser worker. Pure Python; runs under CPython and Pyodide.",
       language: "python",
     },
     {
@@ -125,6 +132,29 @@ export const config: ArchitectureConfig = {
       reason:
         "the engine must not depend on its packaging: the CLI is one consumer of the core, never the reverse",
     },
+    {
+      from: "react.experiments",
+      to: "react.optimizations",
+      reason:
+        "the experiments backend evaluates trials through the channel and never learns who asked",
+    },
+    {
+      from: "cli",
+      to: "core.optimization.browser",
+      reason:
+        "the CLI is driven by the service across the subprocess boundary, never by Pyodide",
+    },
+    {
+      from: "optimizer-core",
+      to: "optimizer",
+      reason: "the study library runs under Pyodide and cannot see the service",
+    },
+    {
+      from: "optimizer-core",
+      to: "python-bindings",
+      reason:
+        "the core runs under Pyodide, where the bindings' subprocesses do not exist",
+    },
   ],
 
   ignoredDirectories: [
@@ -141,12 +171,12 @@ export const config: ArchitectureConfig = {
   ],
 
   /**
-   * Tests, stories and ambient declarations are excluded: they describe the
-   * architecture's *use*, not its shape, and including them inflates every
-   * layer's file count with fixtures.
+   * Tests, stories, fixtures and ambient declarations are excluded: they
+   * describe the architecture's *use*, not its shape, and including them
+   * inflates every layer's file count with fixtures.
    */
   ignoredFilePattern:
-    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
+    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.fixtures\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
 
   /**
    * The bundle is the product; the Starlight site in `apps/petrinaut-docs` and

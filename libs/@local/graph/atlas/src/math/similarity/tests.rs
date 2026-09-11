@@ -1,0 +1,978 @@
+#![expect(
+    clippy::float_cmp,
+    reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
+)]
+
+use core::num::NonZero;
+
+use hashql_core::id::IdSlice;
+use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
+
+use super::Similarity;
+use crate::math::{
+    DNonNegative, FinitePointField, Positive, Rotation, Vec2, Vec2x4T, positive,
+    tests::{POINTS, assert_vec2_close},
+    transform::Transform,
+};
+
+hashql_core::id::newtype! {
+    /// The fit tests' row domain.
+    #[id(const)]
+    struct PairId(u32)
+}
+
+/// Proves a fixture's points finite over the tests' row domain.
+#[track_caller]
+fn field(points: &[Vec2]) -> &FinitePointField<PairId> {
+    FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
+}
+
+/// A similarity mixing all three components with inexact rotation angles.
+fn mixed_similarity() -> Similarity {
+    Similarity::new(
+        positive!(2.0),
+        Rotation::from_radians(0.3),
+        Vec2::new(1.0, 2.0),
+    )
+    .expect("scale 2.0 is normal and positive")
+}
+
+/// Six well-spread, non-degenerate sample points for fitting.
+const FIT_POINTS: [Vec2; 6] = [
+    Vec2::new(0.0, 0.0),
+    Vec2::new(4.0, 1.0),
+    Vec2::new(-2.0, 3.0),
+    Vec2::new(1.5, -2.5),
+    Vec2::new(-3.0, -4.0),
+    Vec2::new(5.0, 5.0),
+];
+
+/// Twelve spread-out, non-symmetric sample points for the fit certificates.
+const CERT_POINTS: [Vec2; 12] = [
+    Vec2::new(0.0, 0.0),
+    Vec2::new(4.0, 1.0),
+    Vec2::new(-2.0, 3.0),
+    Vec2::new(1.5, -2.5),
+    Vec2::new(-3.0, -4.0),
+    Vec2::new(5.0, 5.0),
+    Vec2::new(6.5, -1.75),
+    Vec2::new(-5.25, 2.0),
+    Vec2::new(2.25, 6.0),
+    Vec2::new(-1.0, -6.5),
+    Vec2::new(7.0, 3.5),
+    Vec2::new(-6.0, -0.5),
+];
+
+/// Varied positive weights for the certificate points.
+const CERT_WEIGHTS: [f32; 12] = [
+    1.0, 2.0, 0.5, 1.5, 3.0, 0.25, 1.25, 0.75, 2.5, 0.125, 1.75, 0.375,
+];
+
+/// Small asymmetric offsets keeping the fitted residual nonzero.
+///
+/// The error surface then has a strict minimum away from the exact-recovery case.
+const CERT_NOISE: [Vec2; 12] = [
+    Vec2::new(0.02, -0.03),
+    Vec2::new(-0.04, 0.01),
+    Vec2::new(0.03, 0.05),
+    Vec2::new(-0.01, -0.02),
+    Vec2::new(0.05, 0.02),
+    Vec2::new(-0.03, 0.04),
+    Vec2::new(0.01, -0.05),
+    Vec2::new(-0.05, -0.01),
+    Vec2::new(0.04, 0.03),
+    Vec2::new(-0.02, 0.05),
+    Vec2::new(0.05, -0.04),
+    Vec2::new(0.03, 0.01),
+];
+
+/// The certificate target.
+///
+/// A known similarity image of [`CERT_POINTS`] plus the asymmetric [`CERT_NOISE`].
+fn noisy_certificate_target() -> [Vec2; 12] {
+    let known = Similarity::new(
+        positive!(1.75),
+        Rotation::from_radians(0.55),
+        Vec2::new(2.5, -1.25),
+    )
+    .expect("scale 1.75 is normal and positive");
+
+    core::array::from_fn(|index| known.apply(CERT_POINTS[index]) + CERT_NOISE[index])
+}
+
+/// Weighted squared alignment error of `similarity` over the pairs.
+///
+/// Computed in plain double precision, independent of the fit's fused accumulation, so it can
+/// referee the optimality certificate.
+#[expect(
+    clippy::suboptimal_flops,
+    reason = "the reference error deliberately uses plain arithmetic, independent of the FMA path \
+              under test"
+)]
+fn weighted_error(
+    similarity: Similarity,
+    source: &[Vec2],
+    target: &[Vec2],
+    weights: &[f32],
+) -> f64 {
+    let [scale, cos, sin, translation_x, translation_y] = similarity.to_array().map(f64::from);
+
+    source
+        .iter()
+        .zip(target)
+        .zip(weights)
+        .map(|((&source, &target), &weight)| {
+            let mapped_x =
+                scale * (cos * f64::from(source.x()) - sin * f64::from(source.y())) + translation_x;
+            let mapped_y =
+                scale * (sin * f64::from(source.x()) + cos * f64::from(source.y())) + translation_y;
+            let error_x = mapped_x - f64::from(target.x());
+            let error_y = mapped_y - f64::from(target.y());
+
+            f64::from(weight) * (error_x * error_x + error_y * error_y)
+        })
+        .sum()
+}
+
+/// Asserts two scalars agree up to a magnitude-scaled tolerance.
+///
+/// The fit narrows double-precision sums built from `f32`-rounded inputs, so its coefficients carry
+/// a few ulps of working-precision error.
+#[track_caller]
+fn assert_scalar_close(actual: f32, expected: f32) {
+    let tolerance = 32.0 * f32::EPSILON * expected.abs().max(1.0);
+
+    assert!(
+        (actual - expected).abs() < tolerance,
+        "expected {expected}, got {actual}"
+    );
+}
+
+#[test]
+fn identity_maps_points_to_themselves() {
+    for point in POINTS {
+        assert_eq!(Similarity::IDENTITY.apply(point), point);
+    }
+
+    // The identity coefficients match salt's persistence default.
+    assert_eq!(Similarity::IDENTITY.to_array(), [1.0, 1.0, 0.0, 0.0, 0.0]);
+}
+
+#[test]
+fn new_stores_components_unchanged() {
+    let rotation = Rotation::from_cos_sin(0.0, 1.0);
+    let similarity = Similarity::new(positive!(4.0), rotation, Vec2::new(0.5, -8.0))
+        .expect("scale 4.0 is normal and positive");
+
+    assert_eq!(similarity.scale(), 4.0);
+    assert_eq!(similarity.rotation(), rotation);
+    assert_eq!(similarity.translation(), Vec2::new(0.5, -8.0));
+}
+
+#[test]
+fn apply_matches_hand_computed_values() {
+    // Quarter turn with exact coefficients, power-of-two scale and offsets:
+    // every intermediate is exactly representable.
+    let similarity = Similarity::new(
+        positive!(2.0),
+        Rotation::from_cos_sin(0.0, 1.0),
+        Vec2::new(0.5, -4.0),
+    )
+    .expect("scale 2.0 is normal and positive");
+
+    // (1, 2) rotates to (-2, 1), scales to (-4, 2), moves to (-3.5, -2).
+    assert_eq!(similarity.apply(Vec2::new(1.0, 2.0)), Vec2::new(-3.5, -2.0));
+    // (0.25, -0.5) rotates to (0.5, 0.25), scales to (1, 0.5), moves to
+    // (1.5, -3.5).
+    assert_eq!(
+        similarity.apply(Vec2::new(0.25, -0.5)),
+        Vec2::new(1.5, -3.5)
+    );
+}
+
+#[test]
+fn composition_matches_sequential_application() {
+    let first = mixed_similarity();
+    let second = Similarity::new(
+        positive!(0.5),
+        Rotation::from_radians(1.1),
+        Vec2::new(-3.0, 4.0),
+    )
+    .expect("scale 0.5 is normal and positive");
+    let composed = first
+        .then(second)
+        .expect("the product 2.0 * 0.5 = 1.0 stays in the accepted range");
+
+    // The scales multiply exactly for powers of two.
+    assert_eq!(composed.scale(), 1.0);
+
+    for point in POINTS {
+        assert_vec2_close(composed.apply(point), second.apply(first.apply(point)));
+    }
+}
+
+#[test]
+fn inverse_round_trips_both_directions() {
+    let similarity = Similarity::new(
+        positive!(4.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(10.0, -2.0),
+    )
+    .expect("scale 4.0 is normal and positive");
+    let inverse = similarity.inverse();
+
+    // A power-of-two scale inverts exactly.
+    assert_eq!(inverse.scale(), 0.25);
+
+    for point in POINTS {
+        assert_vec2_close(inverse.apply(similarity.apply(point)), point);
+        assert_vec2_close(similarity.apply(inverse.apply(point)), point);
+    }
+}
+
+#[test]
+fn boundary_scales_and_their_inverses_stay_valid() {
+    // The smallest normal and its exact reciprocal 2¹²⁶ are the accepted range's two edges.
+    let bottom = Similarity::new(positive!(f32::MIN_POSITIVE), Rotation::IDENTITY, Vec2::ZERO)
+        .expect("the smallest normal has the reciprocal 2^126, which is normal");
+    let top = Similarity::new(
+        Positive::new(2.0_f32.powi(126)).expect("2^126 is finite"),
+        Rotation::IDENTITY,
+        Vec2::ZERO,
+    )
+    .expect("2^126 has the reciprocal f32::MIN_POSITIVE, which is normal");
+
+    // Powers of two invert exactly, so each edge maps onto the other.
+    assert_eq!(bottom.inverse().scale(), 2.0_f32.powi(126));
+    assert_eq!(top.inverse().scale(), f32::MIN_POSITIVE);
+}
+
+#[test]
+fn composition_rejects_scales_leaving_the_range() {
+    let large = Similarity::new(positive!(1.0e20), Rotation::IDENTITY, Vec2::ZERO)
+        .expect("1e20 and its reciprocal are normal");
+    let small = Similarity::new(positive!(1.0e-30), Rotation::IDENTITY, Vec2::ZERO)
+        .expect("1e-30 and its reciprocal are normal");
+
+    // 1e20 · 1e20 overflows to infinity. 1e-30 · 1e-30 underflows to zero.
+    assert!(large.then(large).is_none());
+    assert!(small.then(small).is_none());
+    // The same magnitudes compose once the scales cancel.
+    assert!(large.then(small).is_some());
+}
+
+#[test]
+fn apply_x4_matches_apply_per_lane() {
+    let similarity = mixed_similarity();
+    let batch = similarity.apply_x4(Vec2x4T::from(POINTS));
+
+    for (index, point) in POINTS.into_iter().enumerate() {
+        assert_vec2_close(batch.get(index), similarity.apply(point));
+    }
+}
+
+#[test]
+fn transform_widening_matches_apply() {
+    assert_eq!(Transform::from(Similarity::IDENTITY), Transform::IDENTITY);
+
+    let similarity = mixed_similarity();
+    let transform = Transform::from(similarity);
+
+    for point in POINTS {
+        assert_vec2_close(transform.apply(point), similarity.apply(point));
+    }
+}
+
+#[test]
+fn to_array_from_array_round_trip() {
+    let similarity = Similarity::new(
+        positive!(2.0),
+        Rotation::from_cos_sin(0.6, 0.8),
+        Vec2::new(1.5, -2.25),
+    )
+    .expect("scale 2.0 is normal and positive");
+
+    // Every slot holds a distinct value, pinning the persistence order.
+    assert_eq!(similarity.to_array(), [2.0, 0.6, 0.8, 1.5, -2.25]);
+
+    let restored =
+        Similarity::from_array(similarity.to_array()).expect("round trip keeps the scale valid");
+    assert_eq!(restored, similarity);
+}
+
+#[test]
+fn fit_recovers_a_known_transform() {
+    let expected = Similarity::new(
+        positive!(2.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(3.0, -1.0),
+    )
+    .expect("scale 2.0 is normal and positive");
+    let target = FIT_POINTS.map(|point| expected.apply(point));
+
+    let fitted = Similarity::fit(&FIT_POINTS, &target, &[1.0; 6])
+        .expect("exact correspondences determine the transform");
+
+    for (actual, reference) in fitted.to_array().into_iter().zip(expected.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_round_trips_an_exact_similarity_image() {
+    let expected = Similarity::new(
+        positive!(0.75),
+        Rotation::from_radians(-1.2),
+        Vec2::new(-4.0, 2.5),
+    )
+    .expect("scale 0.75 is normal and positive");
+    let target = FIT_POINTS.map(|point| expected.apply(point));
+    let weights = [1.0, 2.0, 0.5, 1.5, 3.0, 0.25];
+
+    let fitted = Similarity::fit(&FIT_POINTS, &target, &weights)
+        .expect("exact correspondences determine the transform");
+
+    // The target is an exact similarity image of the source, so applying
+    // the fit reproduces it point for point.
+    for (point, reference) in FIT_POINTS.into_iter().zip(target) {
+        assert_vec2_close(fitted.apply(point), reference);
+    }
+}
+
+#[test]
+fn fit_is_optimal_against_a_perturbation_grid() {
+    let target = noisy_certificate_target();
+    let fitted = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+    let best = weighted_error(fitted, &CERT_POINTS, &target, &CERT_WEIGHTS);
+
+    let scale = fitted.scale();
+    let rotation = fitted.rotation();
+    let angle = rotation.sin().atan2(rotation.cos());
+    let translation = fitted.translation();
+
+    // The objective is smooth in each of the four parameters (quadratic
+    // in scale and translation, analytic in the angle), so a vanishing
+    // directional derivative along each coordinate axis is exactly a
+    // vanishing gradient: perturbing one parameter at a time certifies
+    // each partial at the returned minimizer.
+    for delta in [-1e-3_f32, 1e-3] {
+        let perturbed = [
+            Similarity::new(
+                Positive::new(scale * (1.0 + delta)).expect("a relative nudge stays finite"),
+                rotation,
+                translation,
+            )
+            .expect("a relative nudge keeps the scale normal and positive"),
+            Similarity::new(scale, Rotation::from_radians(angle + delta), translation)
+                .expect("the scale is untouched"),
+            Similarity::new(scale, rotation, translation + Vec2::new(delta, 0.0))
+                .expect("the scale is untouched"),
+            Similarity::new(scale, rotation, translation + Vec2::new(0.0, delta))
+                .expect("the scale is untouched"),
+        ];
+
+        for candidate in perturbed {
+            let error = weighted_error(candidate, &CERT_POINTS, &target, &CERT_WEIGHTS);
+            assert!(
+                best <= error,
+                "fit error {best} must not exceed perturbed error {error} at delta {delta}",
+            );
+        }
+    }
+}
+
+#[test]
+fn fit_is_equivariant_under_target_transformation() {
+    let target = noisy_certificate_target();
+    let base = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // Post-transforming the target by a similarity scales every residual
+    // uniformly, so the minimizer moves to the composition with it.
+    let post = Similarity::new(
+        positive!(0.5),
+        Rotation::from_radians(-0.9),
+        Vec2::new(-3.0, 7.0),
+    )
+    .expect("scale 0.5 is normal and positive");
+    let moved_target = target.map(|point| post.apply(point));
+
+    let refitted = Similarity::fit(&CERT_POINTS, &moved_target, &CERT_WEIGHTS)
+        .expect("a similarity image of a well-determined target stays well-determined");
+    let expected = base
+        .then(post)
+        .expect("both scales are near one, so the product stays in the accepted range");
+
+    for (actual, reference) in refitted.to_array().into_iter().zip(expected.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_is_invariant_under_uniform_weight_scaling() {
+    let target = noisy_certificate_target();
+    let base = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // Every moment scales by the common factor, which the total-weight
+    // divisions cancel. Multiplying by five rounds each accumulation
+    // differently, so agreement is ulp-level rather than bit-exact.
+    let scaled_weights = CERT_WEIGHTS.map(|weight| weight * 5.0);
+    let scaled = Similarity::fit(&CERT_POINTS, &target, &scaled_weights)
+        .expect("uniform weight scaling keeps the system well-determined");
+
+    for (actual, reference) in scaled.to_array().into_iter().zip(base.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_par_matches_fit_on_large_input() {
+    const PAIRS: usize = 10_000;
+
+    let known = Similarity::new(
+        positive!(1.25),
+        Rotation::from_radians(-0.35),
+        Vec2::new(4.0, -2.0),
+    )
+    .expect("scale 1.25 is normal and positive");
+
+    // The logistic map below is deterministic, allocation-light, and chaotic enough to spread
+    // points, noise, and weights.
+    let mut value = 0.37_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    let mut weights = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        let noise = Vec2::new(
+            0.1_f32.mul_add(pseudo(), -0.05),
+            0.1_f32.mul_add(pseudo(), -0.05),
+        );
+        source.push(point);
+        target.push(known.apply(point) + noise);
+        weights.push(pseudo() + 0.25);
+    }
+
+    let serial = Similarity::fit(&source, &target, &weights)
+        .expect("ten thousand spread pairs determine the transform");
+    let parallel = Similarity::fit_par(&source, &target, &weights)
+        .expect("the parallel fit shares the serial contract");
+
+    // The parallel reduction combines per-chunk sums in a different
+    // order than the serial fold, so agreement is magnitude-scaled ulps
+    // rather than bit-exact.
+    for (actual, reference) in parallel.to_array().into_iter().zip(serial.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_ignores_zero_weight_pairs() {
+    let expected = Similarity::new(
+        positive!(1.5),
+        Rotation::from_radians(0.4),
+        Vec2::new(1.0, 2.0),
+    )
+    .expect("scale 1.5 is normal and positive");
+    let target = FIT_POINTS.map(|point| expected.apply(point));
+
+    let without_outlier = Similarity::fit(&FIT_POINTS, &target, &[1.0; 6])
+        .expect("exact correspondences determine the transform");
+
+    // Append a pair far outside the correspondence with weight zero: every sum it touches gains an
+    // exact zero, so the fit is bit-identical.
+    let mut source = FIT_POINTS.to_vec();
+    let mut target = target.to_vec();
+    source.push(Vec2::new(1000.0, -1000.0));
+    target.push(Vec2::new(-5000.0, 300.0));
+    let mut weights = vec![1.0; 6];
+    weights.push(0.0);
+
+    let with_outlier = Similarity::fit(&source, &target, &weights)
+        .expect("the zero-weight outlier leaves the system well-determined");
+
+    assert_eq!(with_outlier.to_array(), without_outlier.to_array());
+}
+
+#[test]
+fn fit_uniform_matches_fit_with_unit_weights() {
+    let target = noisy_certificate_target();
+
+    let weighted = Similarity::fit(&CERT_POINTS, &target, &[1.0; 12])
+        .expect("twelve spread pairs determine the transform");
+    let uniform = Similarity::fit_uniform(field(&CERT_POINTS), field(&target))
+        .expect("the uniform fit shares the weighted contract");
+
+    // The uniform pass accumulates the same moments without the weight
+    // multiplications, so each sum rounds differently: agreement is
+    // magnitude-scaled ulps rather than bit-exact.
+    for (actual, reference) in uniform.to_array().into_iter().zip(weighted.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_uniform_par_matches_fit_uniform_on_large_input() {
+    const PAIRS: usize = 10_000;
+
+    let known = Similarity::new(
+        positive!(0.8),
+        Rotation::from_radians(2.1),
+        Vec2::new(-1.0, 6.0),
+    )
+    .expect("scale 0.8 is normal and positive");
+
+    let mut value = 0.61_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        let noise = Vec2::new(
+            0.1_f32.mul_add(pseudo(), -0.05),
+            0.1_f32.mul_add(pseudo(), -0.05),
+        );
+        source.push(point);
+        target.push(known.apply(point) + noise);
+    }
+
+    let serial = Similarity::fit_uniform(field(&source), field(&target))
+        .expect("ten thousand spread pairs determine the transform");
+    let parallel = Similarity::fit_uniform_par(field(&source), field(&target))
+        .expect("the parallel fit shares the serial contract");
+
+    for (actual, reference) in parallel.to_array().into_iter().zip(serial.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn rms_residual_reduces_hand_computed_distances() {
+    // Residual distances 3 and 4 under the identity: the RMS is
+    // √((9 + 16) / 2) by hand.
+    let source = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
+    let target = [Vec2::new(0.0, 3.0), Vec2::new(14.0, 0.0)];
+
+    let residual = Similarity::IDENTITY.rms_residual(field(&source), field(&target));
+
+    assert!((residual.get() - 12.5_f64.sqrt()).abs() < 1e-12);
+}
+
+#[test]
+fn rms_residual_vanishes_on_an_exact_image() {
+    let similarity = Similarity::new(
+        positive!(2.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(3.0, -1.0),
+    )
+    .expect("scale 2.0 is normal and positive");
+    let target = FIT_POINTS.map(|point| similarity.apply(point));
+
+    let residual = similarity.rms_residual(field(&FIT_POINTS), field(&target));
+
+    // The `f32` application produced the targets while the residual applies widened `f64`
+    // coefficients, so the mismatch is the `f32` rounding of the application, not zero.
+    assert!(residual.get() < 1e-5, "exact image residual was {residual}");
+}
+
+#[test]
+fn rms_residual_is_the_fit_objective_at_the_minimizer() {
+    let target = noisy_certificate_target();
+    let fitted = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // The unweighted residual of a nearby similarity must not fall below the unweighted optimum's,
+    // so this certifies against the uniform fit.
+    let uniform = Similarity::fit_uniform(field(&CERT_POINTS), field(&target))
+        .expect("twelve spread pairs determine the transform");
+    let best = uniform.rms_residual(field(&CERT_POINTS), field(&target));
+    let off = fitted.rms_residual(field(&CERT_POINTS), field(&target));
+
+    assert!(
+        best.get() <= off.get() + 1e-9,
+        "uniform optimum {best} must not exceed the weighted fit's residual {off}"
+    );
+}
+
+#[test]
+fn rms_residual_par_matches_rms_residual() {
+    const PAIRS: usize = 10_000;
+
+    let similarity = Similarity::new(
+        positive!(1.5),
+        Rotation::from_radians(-0.2),
+        Vec2::new(2.0, 2.0),
+    )
+    .expect("scale 1.5 is normal and positive");
+
+    let mut value = 0.43_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        source.push(point);
+        target.push(Vec2::new(pseudo(), pseudo()));
+    }
+
+    let serial = similarity.rms_residual(field(&source), field(&target));
+    let parallel = similarity.rms_residual_par(field(&source), field(&target));
+
+    // Chunked summation rounds differently from the serial fold.
+    assert!((serial.get() - parallel.get()).abs() <= serial.get() * 1e-12);
+}
+
+#[test]
+#[should_panic(expected = "paired fields must cover the same rows")]
+fn rms_residual_panics_on_mismatched_lengths() {
+    let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual(field(&points), field(&points[..1]));
+}
+
+#[test]
+#[should_panic(expected = "an RMS residual needs at least one pair")]
+fn rms_residual_panics_on_empty_fields() {
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual(field(&[]), field(&[]));
+}
+
+#[test]
+#[should_panic(expected = "paired fields must cover the same rows")]
+fn rms_residual_par_panics_on_mismatched_lengths() {
+    let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+
+    let _: DNonNegative =
+        Similarity::IDENTITY.rms_residual_par(field(&points), field(&points[..1]));
+}
+
+#[test]
+#[should_panic(expected = "an RMS residual needs at least one pair")]
+fn rms_residual_par_panics_on_empty_fields() {
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual_par(field(&[]), field(&[]));
+}
+
+/// Asserts both fit entry points reject the pairing.
+///
+/// Certifies their [`None`] agreement case by case.
+#[track_caller]
+fn assert_fit_rejects(source: &[Vec2], target: &[Vec2], weights: &[f32]) {
+    assert!(Similarity::fit(source, target, weights).is_none());
+    assert!(Similarity::fit_par(source, target, weights).is_none());
+}
+
+#[test]
+fn fit_rejects_degenerate_inputs() {
+    let source = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(0.0, 1.0),
+    ];
+    let target = [
+        Vec2::new(1.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(1.0, 2.0),
+    ];
+    let weights = [1.0_f32; 3];
+
+    // Mismatched slice lengths.
+    assert_fit_rejects(&source[..2], &target, &weights);
+    assert_fit_rejects(&source, &target[..2], &weights);
+    assert_fit_rejects(&source, &target, &weights[..2]);
+
+    // Fewer than two pairs.
+    assert_fit_rejects(&[], &[], &[]);
+    assert_fit_rejects(&source[..1], &target[..1], &weights[..1]);
+
+    // Coincident source points carry no scale.
+    assert_fit_rejects(&[Vec2::new(1.0, 1.0); 3], &target, &weights);
+    assert!(Similarity::fit_uniform(field(&[Vec2::new(1.0, 1.0); 3]), field(&target)).is_none());
+    assert!(
+        Similarity::fit_uniform_par(field(&[Vec2::new(1.0, 1.0); 3]), field(&target)).is_none()
+    );
+
+    // Non-finite coordinates on either side.
+    let mut nan_source = source;
+    nan_source[1] = Vec2::new(f32::NAN, 0.0);
+    assert_fit_rejects(&nan_source, &target, &weights);
+    let mut nan_target = target;
+    nan_target[2] = Vec2::new(0.0, f32::NAN);
+    assert_fit_rejects(&source, &nan_target, &weights);
+
+    // Invalid weights: negative, non-finite, or summing to zero.
+    assert_fit_rejects(&source, &target, &[1.0, -1.0, 1.0]);
+    assert_fit_rejects(&source, &target, &[1.0, f32::NAN, 1.0]);
+    assert_fit_rejects(&source, &target, &[0.0; 3]);
+
+    // Coincident targets cancel the covariance: no orientation.
+    assert_fit_rejects(&source, &[Vec2::new(1.0, 1.0); 3], &weights);
+}
+
+#[test]
+fn fit_recovers_exact_images_at_every_accepted_length() {
+    let known = mixed_similarity();
+    let target = FIT_POINTS.map(|point| known.apply(point));
+
+    // Lengths 2 through 6 cover the acceptance boundary from the accepting side (a rejection
+    // bound drifting to `<= 2` turns the shortest prefix into `None`) and every split between
+    // the SIMD batch and the trailing scalar loop: 2 and 3 fold entirely in the rest loop,
+    // 4 entirely in the batch, 5 and 6 in both. An accumulator defect in either path moves
+    // the recovered coefficients at the lengths that exercise it.
+    let unit_weights = [1.0_f32; 6];
+    for pairs in 2..=FIT_POINTS.len() {
+        let source = &FIT_POINTS[..pairs];
+        let target = &target[..pairs];
+        let weights = &unit_weights[..pairs];
+
+        for fitted in [
+            Similarity::fit(source, target, weights),
+            Similarity::fit_par(source, target, weights),
+            Similarity::fit_uniform(field(source), field(target)),
+            Similarity::fit_uniform_par(field(source), field(target)),
+        ] {
+            let fitted = fitted.expect("distinct exact pairs determine the similarity");
+            for (&actual, &expected) in fitted.to_array().iter().zip(&known.to_array()) {
+                assert_scalar_close(actual, expected);
+            }
+        }
+    }
+}
+
+#[test]
+fn fit_uniform_rejects_mismatched_lengths() {
+    let known = mixed_similarity();
+    let target = FIT_POINTS.map(|point| known.apply(point));
+
+    // Both truncation directions: a rejection that degrades into a zip would silently fit the
+    // shorter prefix of these exact images and return `Some`.
+    assert!(Similarity::fit_uniform(field(&FIT_POINTS[..5]), field(&target)).is_none());
+    assert!(Similarity::fit_uniform(field(&FIT_POINTS), field(&target[..5])).is_none());
+    assert!(Similarity::fit_uniform_par(field(&FIT_POINTS[..5]), field(&target)).is_none());
+    assert!(Similarity::fit_uniform_par(field(&FIT_POINTS), field(&target[..5])).is_none());
+}
+
+#[test]
+fn fit_rejects_a_negative_weight_at_every_index() {
+    let known = mixed_similarity();
+    let source = &FIT_POINTS[..5];
+    let target: Vec<Vec2> = source.iter().map(|&point| known.apply(point)).collect();
+
+    // The sweep places the negative weight in every SIMD batch lane and in the trailing
+    // scalar pair, since indices 0 through 3 fill the one full batch and index 4 rides the
+    // rest loop. The coordinates stay finite and the moments stay well conditioned under the
+    // mixed-sign weights, so the validity mask is the only rejection, and a fold that loses
+    // the weight-sign lane fits these exact images instead.
+    for index in 0..source.len() {
+        let mut weights = [1.0_f32; 5];
+        weights[index] = -0.5;
+
+        assert!(
+            Similarity::fit(source, &target, &weights).is_none(),
+            "a negative weight at index {index} must reject"
+        );
+        assert!(
+            Similarity::fit_par(source, &target, &weights).is_none(),
+            "a negative weight at index {index} must reject in the parallel fit"
+        );
+    }
+}
+
+#[test]
+fn fit_par_rejects_an_invalid_chunk_beside_a_valid_one() {
+    let known = mixed_similarity();
+    let source = &CERT_POINTS[..8];
+    let target: Vec<Vec2> = source.iter().map(|&point| known.apply(point)).collect();
+
+    // The chunk size of four splits the eight pairs so that the first chunk is entirely
+    // valid and the second carries the negative weight, leaving `FitSums::combine`'s
+    // validity conjunction as the only rejection of the merged moments. The pairs are exact
+    // images with finite coordinates, so a merge that keeps the invalid side's moments while
+    // losing its flag fits them exactly.
+    let mut weights = [1.0_f32; 8];
+    weights[6] = -0.5;
+    let chunk = NonZero::new(4).expect("four is not zero");
+    assert!(Similarity::fit_par_with(source, &target, &weights, chunk).is_none());
+}
+
+#[test]
+fn invalid_scales_are_rejected() {
+    let invalid_scales = [
+        0.0,
+        -0.0,
+        -1.0,
+        f32::NAN,
+        f32::INFINITY,
+        f32::NEG_INFINITY,
+        f32::MIN_POSITIVE / 2.0,
+        // Normal scales whose reciprocals are subnormal.
+        1.0e38,
+        f32::MAX,
+    ];
+
+    for scale in invalid_scales {
+        // Negative, NaN, and infinite scales are unrepresentable as `NonNegative`; the ones the
+        // domain admits must still fail `new`'s reciprocal validation.
+        if let Some(scale) = Positive::new(scale) {
+            assert!(
+                Similarity::new(scale, Rotation::IDENTITY, Vec2::ZERO).is_none(),
+                "new must reject scale {scale}",
+            );
+        }
+        assert!(
+            Similarity::from_array([scale, 1.0, 0.0, 0.0, 0.0]).is_none(),
+            "from_array must reject scale {scale}",
+        );
+    }
+}
+
+/// An arbitrary well-conditioned similarity.
+///
+/// Scale in `0.1..10`, an arbitrary rotation angle, and a translation bounded to `-1e2..1e2`.
+fn similarity_strategy() -> impl Strategy<Value = Similarity> {
+    (0.1_f32..10.0, -16.0_f32..16.0, -1e2_f32..1e2, -1e2_f32..1e2).prop_map(
+        |(scale, radians, translate_x, translate_y)| {
+            Similarity::new(
+                Positive::new(scale).expect("the strategy's scale range is finite"),
+                Rotation::from_radians(radians),
+                Vec2::new(translate_x, translate_y),
+            )
+            .expect("the strategy's scale range is normal and positive")
+        },
+    )
+}
+
+/// A similarity scales all distances uniformly.
+///
+/// For any two points separated by at least one unit, the distance ratio equals the scale up to a
+/// relative tolerance. The strategy bounds coordinates to `-1e3..1e3`, and the separation floor
+/// keeps the subtraction's cancellation error small relative to the distance.
+#[property_test]
+fn apply_scales_distances_uniformly(
+    #[strategy = similarity_strategy()] similarity: Similarity,
+    #[strategy = (-1e3_f32..1e3, -1e3_f32..1e3)] (left_x, left_y): (f32, f32),
+    #[strategy = (-1e3_f32..1e3, -1e3_f32..1e3)] (right_x, right_y): (f32, f32),
+) {
+    let left = Vec2::new(left_x, left_y);
+    let right = Vec2::new(right_x, right_y);
+    prop_assume!(left.distance(right) >= 1.0);
+
+    // Raw ratio: the reference computation is the test's own scalar mirror, and the assumption
+    // above establishes the divisor at 1.0 or more.
+    let ratio = similarity
+        .apply(left)
+        .distance(similarity.apply(right))
+        .get()
+        / left.distance(right).get();
+
+    prop_assert!(
+        (ratio - similarity.scale().get()).abs() <= 1e-3 * similarity.scale().get(),
+        "distance ratio {} vs scale {}",
+        ratio,
+        similarity.scale(),
+    );
+}
+
+/// Fitting an exact similarity image of non-collinear points recovers the coefficients.
+///
+/// The sources are four well-spread base points jittered by at most `0.5`, far less than the base
+/// triangle's extent, so the points can never become collinear.
+#[property_test]
+fn fit_recovers_a_random_similarity(
+    #[strategy = similarity_strategy()] similarity: Similarity,
+    #[strategy = proptest::array::uniform8(-0.5_f32..0.5)] jitter: [f32; 8],
+    #[strategy = 2_usize..=8] pairs: usize,
+) {
+    // The pool spreads eight points so every prefix of two or more is well conditioned, and
+    // the varying prefix length exercises every split between the SIMD batch and the trailing
+    // scalar loop across the random input space.
+    let pool = [
+        Vec2::new(jitter[0], jitter[1]),
+        Vec2::new(8.0 + jitter[2], jitter[3]),
+        Vec2::new(jitter[4], 8.0 + jitter[5]),
+        Vec2::new(-8.0 + jitter[6], -8.0 + jitter[7]),
+        Vec2::new(8.0 + jitter[1], 8.0 + jitter[6]),
+        Vec2::new(-8.0 + jitter[3], jitter[0]),
+        Vec2::new(jitter[7], -8.0 + jitter[2]),
+        Vec2::new(-8.0 + jitter[5], 8.0 + jitter[4]),
+    ];
+    let source = &pool[..pairs];
+    let target: Vec<Vec2> = source
+        .iter()
+        .map(|&point| similarity.apply(point))
+        .collect();
+
+    let fitted = Similarity::fit(source, &target, &[1.0_f32; 8][..pairs])
+        .expect("well-spread points with an exact image are well-conditioned");
+
+    // The target coordinates are f32-rounded images, so the recovered
+    // coefficients carry working-precision error scaled by their
+    // magnitude.
+    let expected = similarity.to_array();
+    for (index, (actual, expected)) in fitted.to_array().into_iter().zip(expected).enumerate() {
+        prop_assert!(
+            (actual - expected).abs() <= 1e-3 * expected.abs().max(1.0),
+            "coefficient {}: expected {}, got {}",
+            index,
+            expected,
+            actual,
+        );
+    }
+}
+
+/// The inverse of any similarity satisfies the constructor's own invariant.
+///
+/// The scale spans the accepted range's full exponent spread with a non-dyadic mantissa, so the
+/// reciprocal rounds rather than inverting exactly, and the property exercises both boundaries,
+/// where a rounded reciprocal has the least room before the normal range ends.
+#[property_test]
+fn inverse_stays_inside_the_constructed_range(
+    #[strategy = (1.0_f32..2.0, -126_i32..=125, -16.0_f32..16.0)] (mantissa, exponent, radians): (
+        f32,
+        i32,
+        f32,
+    ),
+) {
+    let scale = mantissa * 2.0_f32.powi(exponent);
+    let similarity = Similarity::new(
+        Positive::new(scale).expect("a normal positive scale is in domain"),
+        Rotation::from_radians(radians),
+        Vec2::new(1.0, -2.0),
+    )
+    .expect("a normal scale below 2^126 has a normal reciprocal");
+
+    let inverse = similarity.inverse();
+    prop_assert!(
+        Similarity::from_array(inverse.to_array()).is_some(),
+        "inverse scale {} left the accepted range",
+        inverse.scale(),
+    );
+
+    let double = inverse.inverse();
+    prop_assert!(
+        Similarity::from_array(double.to_array()).is_some(),
+        "double-inverse scale {} left the accepted range",
+        double.scale(),
+    );
+}

@@ -1,69 +1,167 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
+import type {
+  AgentConversationObservation,
+  AgentConversationObservationPhase,
+  AgentConversationObservationSnapshot,
+  FlueClient,
+  FlueConversationSettlement,
+  FlueConversationState,
+} from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
+const noSettlements: readonly FlueConversationSettlement[] = [];
+const brunchClientToolNames = new Set([readPetrinautDocToolName]);
+
 /**
- * Hydrates the panel from the Brunch agent's `GET <endpoint>?id=` door.
- *
- * `endpoint` is null whenever the preview runs against the generic OpenAI
- * route instead: that route keeps no conversation history and answers anything
- * but POST with 405, so asking it is pure noise.
+ * The observed canonical conversation together with the durable-stream offset
+ * it was read at. Fixture consumers use the offset to tell a settled bundle
+ * from a stale one; they never interpret it.
  */
+export type FlueHistorySnapshot = FlueConversationState & {
+  readonly offset: string;
+};
+
+const projectPetrinautMessages = (
+  conversation: FlueConversationState,
+  clientToolNames: ReadonlySet<string>,
+  mapClientToolInput:
+    | ((input: {
+        readonly input: unknown;
+        readonly toolName: string;
+        readonly toolCallId: string;
+      }) => unknown)
+    | undefined,
+  validatedClientToolNames?: ReadonlySet<string>,
+): PetrinautAiMessage[] =>
+  // The host owns this narrowing: its configured client-tool catalog is the
+  // same catalog Petrinaut's message type exposes.
+  snapshotToUiMessages(conversation, {
+    clientToolNames,
+    validatedClientToolNames,
+    ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
+    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+  }) as PetrinautAiMessage[];
+
 export const useFlueChatHistory = (
-  endpoint: string | null,
+  clientPromise: Promise<FlueClient> | null,
   conversationId: string,
-  principal: string,
+  clientToolNames: ReadonlySet<string> = brunchClientToolNames,
+  mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+    readonly toolCallId: string;
+  }) => unknown,
+  validatedClientToolNames?: ReadonlySet<string>,
 ): {
+  readonly error: Error | undefined;
+  readonly latestSettlement: FlueConversationSettlement | undefined;
   readonly messages: PetrinautAiMessage[] | undefined;
+  readonly phase: AgentConversationObservationPhase | undefined;
   readonly ready: boolean;
+  readonly refresh: () => void;
+  readonly settlements: readonly FlueConversationSettlement[];
+  readonly snapshot: FlueHistorySnapshot | undefined;
 } => {
-  const [loaded, setLoaded] = useState<{
+  const observationRef = useRef<AgentConversationObservation | null>(null);
+  const [observed, setObserved] = useState<{
     readonly conversationId: string;
-    readonly messages: PetrinautAiMessage[];
+    readonly snapshot: AgentConversationObservationSnapshot;
   }>();
 
+  const refreshRequestedRef = useRef(false);
+  const refresh = useCallback(() => {
+    const observation = observationRef.current;
+    if (observation === null) {
+      refreshRequestedRef.current = true;
+      return;
+    }
+    observation.refresh();
+  }, []);
+
   useEffect(() => {
-    if (endpoint === null || conversationId.length === 0) {
+    if (clientPromise === null || conversationId.length === 0) {
+      observationRef.current = null;
+      refreshRequestedRef.current = false;
       return;
     }
     let cancelled = false;
-    const load = async (): Promise<void> => {
+    let unsubscribe: (() => void) | undefined;
+    let observation: AgentConversationObservation | undefined;
+    const observe = async (): Promise<void> => {
       try {
-        // The endpoint is a full Brunch URL in every configured deployment,
-        // but resolving it against the page keeps a relative one working.
-        const url = new URL(endpoint, window.location.origin);
-        url.searchParams.set("id", conversationId);
-        const response = await fetch(url, {
-          headers: { [BRUNCH_PRINCIPAL_HEADER]: principal },
-        });
-        if (!response.ok) {
-          return;
+        const client = await clientPromise;
+        if (cancelled) return;
+        observation = client.observe({ live: "sse" });
+        observationRef.current = observation;
+        if (refreshRequestedRef.current) {
+          refreshRequestedRef.current = false;
+          observation.refresh();
         }
-        const body = (await response.json()) as {
-          messages?: PetrinautAiMessage[];
+        const publish = (): void => {
+          if (!cancelled && observation !== undefined) {
+            setObserved({
+              conversationId,
+              snapshot: observation.getSnapshot(),
+            });
+          }
         };
-        if (!cancelled) {
-          setLoaded({
-            conversationId,
-            messages: body.messages ?? [],
-          });
-        }
-      } catch {
-        // Leave `loaded` stale so the panel keeps using its localStorage cache.
+        publish();
+        unsubscribe = observation.subscribe(publish);
+      } catch (caught) {
+        if (cancelled) return;
+        setObserved({
+          conversationId,
+          snapshot: {
+            conversation: undefined,
+            offset: undefined,
+            phase: "error",
+            error: caught instanceof Error ? caught : new Error(String(caught)),
+          },
+        });
       }
     };
-    void load();
+    void observe();
     return () => {
       cancelled = true;
+      unsubscribe?.();
+      observation?.close();
+      if (observationRef.current === observation) {
+        observationRef.current = null;
+      }
     };
-  }, [conversationId, endpoint, principal]);
+  }, [clientPromise, conversationId]);
 
-  const ready =
-    conversationId.length > 0 && loaded?.conversationId === conversationId;
+  const observation =
+    observed?.conversationId === conversationId ? observed.snapshot : undefined;
+  const conversation = observation?.conversation;
+  const absent = observation?.phase === "absent";
+  const ready = absent || conversation !== undefined;
   return {
-    messages: ready ? loaded.messages : undefined,
+    error: observation?.error,
+    latestSettlement: conversation?.settlements.at(-1),
+    messages:
+      conversation === undefined
+        ? absent
+          ? []
+          : undefined
+        : projectPetrinautMessages(
+            conversation,
+            clientToolNames,
+            mapClientToolInput,
+            validatedClientToolNames,
+          ),
+    phase: observation?.phase,
     ready,
+    refresh,
+    settlements: conversation?.settlements ?? noSettlements,
+    snapshot:
+      conversation === undefined || observation?.offset === undefined
+        ? undefined
+        : { ...conversation, offset: observation.offset },
   };
 };

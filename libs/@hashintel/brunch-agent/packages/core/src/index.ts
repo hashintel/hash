@@ -30,6 +30,7 @@ export {
   decidePendingAffordance,
   mintAskAffordance,
   pendingAskAffordanceId,
+  REPLY_BOUND_SIGNAL_TAG,
   type AskReplyAdmission,
   type PendingAffordanceDecision,
   type ReplyBindingSignalPayload,
@@ -41,6 +42,14 @@ export {
   toolPrefix,
   type Operation,
 } from "./conversation/naming";
+export {
+  BRUNCH_QUESTION_DATA_NAME,
+  BRUNCH_QUESTION_TOOL_NAME,
+  BrunchQuestionDataSchema,
+  BrunchQuestionInputSchema,
+  parseBrunchQuestionData,
+  type BrunchQuestionData,
+} from "./question-marker";
 export {
   type HarnessReplyEvent,
   type ReplyPartKind,
@@ -78,7 +87,8 @@ export {
   type IssueStatus,
   type IssueOrigin,
   type IssueType,
-  type JsonValue,
+  type ReadonlyJsonValue,
+  type UserCaptureInputProposal,
 } from "./evidence/capture-store";
 export {
   EvidenceQuoteSchema,
@@ -92,7 +102,10 @@ export {
   type SessionEntryKind,
 } from "./evidence/session-log";
 export {
+  SWEEP_REPAIR_SIGNAL_TAG,
   SWEEP_RESULT_STATUSES,
+  SweepAffordanceSchema,
+  sweepAffordanceFrom,
   advanceSweepHighWater,
   buildSettlementCheckSignal,
   buildSweepExtractionPrompt,

@@ -1,7 +1,7 @@
 /**
  * The shell both surface views share: a column holding the X/Y axis selects,
  * whatever else the view controls, the plot, and a caption that reads out the
- * drag position or the sampling progress.
+ * drag position or the view's state line.
  */
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -61,7 +61,8 @@ export const SurfaceAxisControls = ({
   onYAxisIdChange,
   children,
 }: {
-  axes: readonly { identifier: string }[];
+  /** `label` is the name shown for a generated identifier. */
+  axes: readonly { identifier: string; label?: string }[];
   xAxisId: string;
   yAxisId: string;
   onXAxisIdChange: (axisId: string) => void;
@@ -70,7 +71,7 @@ export const SurfaceAxisControls = ({
 }) => {
   const options = axes.map((axis) => ({
     value: axis.identifier,
-    text: axis.identifier,
+    text: axis.label ?? axis.identifier,
   }));
   return (
     <div className={controlsStyle}>
@@ -95,28 +96,35 @@ export const SurfaceAxisControls = ({
   );
 };
 
-export const SurfaceCaption = ({
-  preview,
+/** The state line of a view that samples its grid locally. */
+export const describeSurfaceSampling = ({
   sampledCount,
   totalCells,
   runsPerCell,
   note,
 }: {
-  /** Axis readouts under the pointer mid-drag; null outside a drag. */
-  preview: { x: string; y: string } | null;
   sampledCount: number;
   totalCells: number;
   runsPerCell: number;
   /** An extra clause between the progress and the navigation hint. */
   note?: string;
+}): string =>
+  [
+    `${sampledCount} of ${totalCells} points sampled at ${runsPerCell}+ runs`,
+    ...(note === undefined ? [] : [note]),
+    "drag or click to navigate",
+  ].join(" · ");
+
+export const SurfaceCaption = ({
+  preview,
+  text,
+}: {
+  /** Axis readouts under the pointer mid-drag; null outside a drag. */
+  preview: { x: string; y: string } | null;
+  /** The state line shown outside a drag. */
+  text: string;
 }) => (
   <span className={captionStyle}>
-    {preview
-      ? `${preview.x} · ${preview.y} — release to navigate`
-      : [
-          `${sampledCount} of ${totalCells} points sampled at ${runsPerCell}+ runs`,
-          ...(note === undefined ? [] : [note]),
-          "drag or click to navigate",
-        ].join(" · ")}
+    {preview ? `${preview.x} · ${preview.y} — release to navigate` : text}
   </span>
 );

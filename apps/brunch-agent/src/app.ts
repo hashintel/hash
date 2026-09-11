@@ -1,39 +1,91 @@
-/**
- * The app's route map — one plain Flue chat agent plus Petrinaut's /api/chat door.
- *
- * Both doors require principal + conversation id. `/api/chat` takes the principal
- * header and body `id`; `/agents/chat/:id` takes the same principal plus
- * `x-brunch-conversation` and admits the request only when those re-derive the
- * path id. The Flue instance id is derived, not a bearer token.
- */
+/** The app's route map — one ownership-guarded Flue conversation door. */
 
+import "./telemetry-bootstrap.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
-import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
-import { instrument } from "@flue/runtime";
+import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import { ChatAgent } from "./agents/chat-agent/agent.ts";
-import { assetHandler } from "./http/assets.ts";
-import { agentOwnershipGuard } from "./http/ownership.ts";
-import { createPetrinautChatHandler } from "./http/petrinaut-chat.ts";
-import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./http/routes.ts";
+import {
+  observedConstructionBrowserToolNames,
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
-instrument(createOpenTelemetryInstrumentation({ content: false }));
+import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { healthHandler } from "./health.ts";
+import { assetHandler } from "./http/assets.ts";
+import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
+import { agentOwnershipGuard } from "./http/ownership.ts";
+import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
+import { createStepARequestAccounting } from "./provider-accounting.ts";
+import { withBufferedToolAdmission } from "./provider-admission.ts";
+
+// Scope follows the runtime's submission execution, not the HTTP request that
+// merely queues it. It is an async execution flag, never a proposal/state ledger.
+const admissionScope = new AsyncLocalStorage<boolean>();
+instrument({
+  key: Symbol.for("brunch.buffered-tool-admission"),
+  observe() {},
+  interceptor(operation, context, next) {
+    if (operation.type === "agent" && context.agentName !== undefined) {
+      return admissionScope.run(
+        context.agentName === ChatAgent.agentName,
+        next,
+      );
+    }
+    if (operation.type === "task") return admissionScope.run(false, next);
+    return next();
+  },
+  dispose() {},
+});
+const accounting = createStepARequestAccounting(
+  process.env.BRUNCH_STEP_A_ACCOUNTING,
+);
+if (accounting) {
+  instrument({
+    key: Symbol.for("brunch.step-a-request-accounting"),
+    observe() {},
+    interceptor: accounting.interceptor,
+    dispose() {},
+  });
+}
+// Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
+// tool parameters to `{ type, properties, required }` unless we override
+// `convertTools`. See apps/brunch-agent/AGENTS.md.
+const nativeProvider = anthropicProvider();
+setProvider(
+  withBufferedToolAdmission(
+    accounting?.wrap(
+      nativeProvider,
+      () => admissionScope.getStore() === true,
+    ) ?? nativeProvider,
+    () => admissionScope.getStore() === true,
+    new Set([
+      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+      ...observedConstructionBrowserToolNames,
+      READ_PETRINAUT_DOC_TOOL_NAME,
+    ]),
+  ),
+);
 
 const app = new Hono();
-const appTransport: typeof fetch = async (input, init) =>
-  app.fetch(input instanceof Request ? input : new Request(input, init));
-const petrinautChatHandler = createPetrinautChatHandler(appTransport);
 
-const chatAgentMount = `/agents/${CHAT_AGENT_ROUTE}`;
+const agentMount = "/agents";
+const chatAgentMount = `${agentMount}/${CHAT_AGENT_ROUTE}`;
+app.use(
+  `${agentMount}/*`,
+  createAgentCors(
+    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+  ),
+);
 app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 
-app.on(["GET", "POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
-  petrinautChatHandler(c.req.raw),
-);
+app.get(HEALTH_ROUTE, healthHandler);
 
 const uiRoot = new URL(
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.

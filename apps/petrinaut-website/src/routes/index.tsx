@@ -4,24 +4,37 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 
-import { validateSharedExampleSearch } from "../examples/example-search";
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
+import {
+  localStorageDemoRouteIdentity,
+  validateLocalStorageDemoSearch,
+  withBrunchFixtureKey,
+} from "../main/app/local-storage-demo/local-storage-demo-search";
+import { BrowserOptimizationProvider } from "../main/app/optimization-demo/browser-optimization-provider";
 
 function IndexRoute() {
   const navigate = useNavigate({ from: "/" });
   const search = useSearch({ from: "/" });
 
   return (
-    <LocalStorageDemoApp
-      onSearchChange={(nextSearch, history) => {
-        void navigate({ replace: history === "replace", search: nextSearch });
-      }}
-      search={search}
-    />
+    <BrowserOptimizationProvider>
+      <LocalStorageDemoApp
+        key={localStorageDemoRouteIdentity(search)}
+        onSearchChange={(nextSearch, history) => {
+          void navigate({
+            replace: history === "replace",
+            // Applied to the router's own previous search, so two navigations
+            // in one event compose instead of the second reverting the first.
+            search: (previous) => withBrunchFixtureKey(previous, nextSearch),
+          });
+        }}
+        search={search}
+      />
+    </BrowserOptimizationProvider>
   );
 }
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
-  validateSearch: validateSharedExampleSearch,
+  validateSearch: validateLocalStorageDemoSearch,
 });

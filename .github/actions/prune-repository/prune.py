@@ -40,29 +40,22 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],
 }
 
+# Extras that must not fire on a transitive or prefix match.
+REQUESTED_DEPENDENCIES: dict[str, list[str]] = {
+    # The frontend's wire-conformance suite decodes the atlas crate's checked-in fixtures
+    "@apps/hash-frontend": ["@rust/hash-graph-atlas"],
+}
+
 # Non-workspace paths required by packages in the *requested* scope.
 # `turbo prune` copies workspace directories and root manifests only.
 REQUESTED_PATHS: dict[str, list[str]] = {
-    # Core's shipped-definition and baseline tests read the non-workspace
-    # context root alongside their plugin task dependencies.
-    "@hashintel/brunch-agent": [
-        ".config/oxlint/brunch",
-        "libs/@hashintel/brunch-agent/AGENTS.md",
-        "libs/@hashintel/brunch-agent/CONTEXT.md",
-        "libs/@hashintel/brunch-agent/docs",
-        "libs/@hashintel/brunch-agent/evaluations",
-        "libs/@hashintel/brunch-agent/scripts",
-    ],
-    # The app's tests execute evaluation runners and govern the complete Brunch
-    # composition. Its context root is not a workspace, so copy the docs,
-    # scripts, and agent contract files explicitly.
+    "@hashintel/brunch-agent": [".config/oxlint/brunch"],
+    # The app's product tests execute evaluation runners and inspect committed
+    # evidence. Those non-workspace inputs are copied explicitly.
     "@apps/brunch-agent": [
         ".config/oxlint/brunch",
-        "libs/@hashintel/brunch-agent/AGENTS.md",
-        "libs/@hashintel/brunch-agent/CONTEXT.md",
         "libs/@hashintel/brunch-agent/docs",
         "libs/@hashintel/brunch-agent/evaluations",
-        "libs/@hashintel/brunch-agent/scripts",
         "libs/@hashintel/petrinaut/docs",
     ],
 }
@@ -123,6 +116,20 @@ def turbo_dependency_map() -> dict[str, frozenset[str]]:
         dep_map[item["name"]] = frozenset(deps)
 
     return dep_map
+
+
+def extras_for_requested(requested: Iterable[str]) -> frozenset[str]:
+    """Return extras implied by the job's requested scopes only.
+
+    Exact identity: a name that is a prefix of its siblings must not match them.
+    """
+
+    names = set(requested)
+    extras: set[str] = set()
+    for trigger, additions in REQUESTED_DEPENDENCIES.items():
+        if trigger in names:
+            extras.update(additions)
+    return frozenset(extras)
 
 
 def extra_paths_for_requested(requested: Iterable[str]) -> list[str]:
@@ -279,7 +286,7 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     dependencies = turbo_dependency_map()
-    scopes = fixpoint_expand(initial, dependencies)
+    scopes = fixpoint_expand(initial | extras_for_requested(initial), dependencies)
     turbo_prune(scopes, dry_run=args.dry_run)
     copy_extra_paths(initial, dry_run=args.dry_run)
     stub_missing_members(dry_run=args.dry_run)

@@ -1,0 +1,126 @@
+[package]
+name              = "hash-graph-atlas"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+hashql-core = { workspace = true, features = ["rayon", "zerocopy"], public = true }
+type-system = { workspace = true, public = true }
+
+# Public third-party dependencies
+axum           = { workspace = true, public = true }
+camino         = { workspace = true, public = true }
+futures-sink   = { workspace = true, public = true }
+rand           = { workspace = true, public = true, features = ["chacha", "sys_rng"] }
+rand_core      = { workspace = true, public = true }
+schemars       = { workspace = true, public = true }
+sprs           = { workspace = true, public = true }
+tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
+tokio-postgres = { workspace = true, features = ["with-serde_json-1", "with-uuid-1"], public = true }
+uuid           = { workspace = true, public = true, features = ["std", "v7"] }
+zerocopy       = { workspace = true, features = ["alloc", "derive"], public = true }
+
+# Private workspace dependencies
+error-stack                    = { workspace = true }
+hash-graph-embeddings          = { workspace = true, public = true }
+hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
+hash-graph-types               = { workspace = true }
+hash-middleware                = { workspace = true, public = true }
+
+# Private third-party dependencies
+aide                      = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
+arc-swap                  = { workspace = true }
+burn                      = { workspace = true, features = ["autodiff", "cubecl", "cuda", "dispatch", "metal", "ndarray"] }
+bytecheck                 = { workspace = true, public = true }
+chacha20poly1305          = { workspace = true }
+clap                      = { workspace = true, features = ["derive", "env"] }
+fst                       = { workspace = true, public = true }
+futures                   = { workspace = true }
+hannoy                    = { workspace = true }
+hash-graph-authorization  = { workspace = true }
+hash-graph-postgres-store = { workspace = true, public = true }
+hash-graph-store          = { workspace = true, features = ["postgres"] }
+hash-temporal-client      = { workspace = true, public = true }
+heed                      = { workspace = true }
+hkdf                      = { workspace = true }
+kiddo                     = { workspace = true, features = ["rkyv_08", "simd", "multi-threaded"] }
+memchr                    = { workspace = true }
+memmap2                   = { workspace = true }
+moka                      = { workspace = true, features = ["future"] }
+opentelemetry             = { workspace = true, features = ["metrics"] }
+pin-project-lite          = { workspace = true }
+rancor                    = { workspace = true, public = true }
+rand_core_06              = { workspace = true }
+rand_xoshiro              = { workspace = true }
+ratatui                   = { workspace = true, optional = true }
+rayon                     = { workspace = true }
+regex                     = { workspace = true }
+rkyv                      = { workspace = true, public = true, features = ["pointer_width_64"] }
+roaring                   = { workspace = true, features = ["std"] }
+serde                     = { workspace = true, features = ["derive"] }
+serde_json                = { workspace = true, features = ["float_roundtrip"] }
+sha2                      = { workspace = true }
+simple-mermaid            = { workspace = true }
+siphasher                 = { workspace = true }
+smallvec                  = { workspace = true }
+steppe                    = { workspace = true }
+subtle                    = { workspace = true }
+tiktoken-rs               = { workspace = true }
+time                      = { workspace = true }
+tower                     = { workspace = true }
+tracing                   = { workspace = true }
+tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
+unicode-segmentation      = { workspace = true }
+zeroize                   = { workspace = true, features = ["alloc"] }
+
+[dev-dependencies]
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+darwin-kperf-events       = { workspace = true }
+insta                     = { workspace = true }
+proptest                  = { workspace = true, features = ["attr-macro"] }
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tower                     = { workspace = true, features = ["util"] }
+tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
+uuid                      = { workspace = true, features = ["v5"] }
+
+[features]
+bench = []
+cli   = ["dep:ratatui", "dep:tracing-subscriber"]
+
+[[bin]]
+name              = "hash-graph-atlas"
+path              = "src/main.rs"
+required-features = ["cli"]
+
+[[bench]]
+name              = "backfill_walk"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "math_kernels"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "miner_index"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "projector_backend"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "relation_build"
+harness           = false
+required-features = ["bench"]
+
+[lints]
+workspace = true

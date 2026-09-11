@@ -1,28 +1,49 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
-import { Select as ArkSelect } from "@ark-ui/react/select";
-import { useId, useMemo, useRef } from "react";
+import { Select as ArkSelect, useSelectContext } from "@ark-ui/react/select";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { OverflowRow } from "../../util/OverflowRow/overflow-row";
 import { usePortalContainerRef } from "../../util/portal-container-context";
+import {
+  SelectableList,
+  isCustomItem,
+  type Item,
+  type ItemOrGroup,
+} from "../../util/SelectableList/selectable-list";
+import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
+import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
+import {
+  getItemId,
+  getVisibleTabbables,
+} from "../../util/SelectableList/selectable-list-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
-import {
-  SelectableList,
-  type Item,
-  type ItemOrGroup,
-} from "../Menu/SelectableList/selectable-list";
-import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
-import { selectRecipe } from "./select.recipe";
+import {
+  onlyButtonRecipe,
+  selectRecipe,
+  suffixDefaultContentClass,
+} from "./select.recipe";
 
 import type {
   FormInputSize,
   FormInputWidth,
   SharedInputProps,
+  Tone,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
@@ -32,6 +53,18 @@ export type SelectItem<TValue extends string = string> = {
   disabled?: boolean;
 };
 
+export type MultiSelectItem<TValue extends string = string> =
+  SelectItem<TValue> & {
+    /** How selection is indicated for this item in the dropdown. Defaults to `checkbox`. */
+    variant?: "checkbox" | "tick" | "highlight";
+    /** The tone of this item's selected indicator (checkbox fill, tick or highlight color). Defaults to `neutral`. */
+    tone?: Exclude<Tone, "warning" | "success">;
+    /** Optional content aligned to the right of the item in the dropdown */
+    suffix?: React.ReactNode;
+    /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
+    showOnlyButton?: boolean;
+  };
+
 type SelectBaseProps<TValue extends string> = {
   /** An optional placeholder shown when no value is selected */
   placeholder?: string;
@@ -39,8 +72,8 @@ type SelectBaseProps<TValue extends string> = {
   readonly?: boolean;
   /** Whether the input is in a loading state */
   loading?: boolean;
-  /** subtle inputs have no border and display similarly to inline text */
-  variant?: "default" | "subtle";
+  /** subtle inputs have no border and display similarly to inline text; naked inputs strip all input chrome — no border, padding, hover or focus styles — and inherit the surrounding text styles regardless of `size` (which still sizes the dropdown list). The host is responsible for any focus affordance around a naked select. */
+  variant?: "default" | "subtle" | "naked";
   /** set the alignment of the text in the input */
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
@@ -53,43 +86,93 @@ type SelectBaseProps<TValue extends string> = {
   connectToLeftInput?: boolean;
   /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
   connectToRightInput?: boolean;
-  /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
-  clearable?: {
-    clearable: boolean;
-    onClear: () => void;
-  };
+  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `null` (or `[]` for a multi select); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  clearable?: boolean | { onClear: () => void };
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
-  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for items in the dropdown. Defaults to the item's `text`. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderItem?: (value: TValue) => React.ReactNode;
-  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
-  renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
   inputRef?: React.Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
   emptyState?: React.ReactNode;
+  /** Called when the dropdown opens or closes */
+  onOpenChange?: (open: boolean) => void;
+  /** Mount with the dropdown already open. Read once on mount; it does not open or close the dropdown afterwards, and `onOpenChange` does not fire for this initial state. */
+  defaultOpen?: boolean;
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
 > &
   React.AriaAttributes;
 
+/** Adds a search field to the dropdown that filters the items by their text.
+ * onSearch is called as the search value changes, including with "" when the
+ * dropdown closes and the search resets. */
+type SelectSearchable = {
+  onSearch?: (search: string) => void;
+};
+
+type SelectSingleProps<TValue extends string> = {
+  /** Set to allow selecting multiple values */
+  multiple?: false;
+  maxItems?: never;
+  overflow?: never;
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
+  searchable?:
+    | boolean
+    | (SelectSearchable & {
+        hideCount?: never;
+        hideSelectAllToggle?: never;
+      });
+  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
+} & (
+  | {
+      required: true;
+      value: NoInfer<TValue>;
+      onChange: (value: NoInfer<TValue>) => void;
+    }
+  | {
+      required?: false;
+      value: NoInfer<TValue> | null | undefined;
+      onChange: (value: NoInfer<TValue> | null | undefined) => void;
+    }
+);
+
+type SelectMultipleProps<TValue extends string> = {
+  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks or Space; Enter toggles the highlighted item and closes the dropdown. Items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  multiple: true;
+  /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
+  maxItems?: number;
+  /** How the selected values render in the trigger when no `renderSelectedItem` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
+  overflow?: "scroll" | "truncate" | "summary";
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
+  searchable?:
+    | boolean
+    | (SelectSearchable & {
+        /** Hide the "x of y" selected count in the selection summary. It is
+         * also hidden while `loading`, when the option count is not yet
+         * known. */
+        hideCount?: boolean;
+        /** Hide the "Select all" / "Clear all" toggle in the selection
+         * summary. It is also hidden when `maxItems` puts selecting every
+         * option out of reach. */
+        hideSelectAllToggle?: boolean;
+      });
+  items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
+  /** Custom renderer for the selected values in the trigger. Defaults to rendering each selected value with `renderItem` (or the item's `text`), comma-separated. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
+  renderSelectedItem?: (values: TValue[]) => React.ReactNode;
+  required?: boolean;
+  value: ReadonlyArray<NoInfer<TValue>>;
+  onChange: (value: Array<NoInfer<TValue>>) => void;
+};
+
 export type SelectProps<TValue extends string = string> =
   SelectBaseProps<TValue> &
-    (
-      | {
-          required: true;
-          value: NoInfer<TValue>;
-          onChange: (value: NoInfer<TValue>) => void;
-        }
-      | {
-          required?: false;
-          value: NoInfer<TValue> | null | undefined;
-          onChange: (value: NoInfer<TValue> | null | undefined) => void;
-        }
-    );
+    (SelectSingleProps<TValue> | SelectMultipleProps<TValue>);
 
 type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
@@ -156,14 +239,58 @@ function findSelectItem<TValue extends string>(
 }
 
 function mapToMenuItems<TValue extends string>(
-  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
+  items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>,
   renderItem: (value: TValue) => React.ReactNode,
+  options: {
+    multiple: boolean;
+    /** When defined, values outside the set are disabled (a multi select at `maxItems`) */
+    selectableValues: ReadonlySet<string> | undefined;
+    /** Sets the selection to just the given value — backs the per-item "Only" button */
+    selectOnly: (value: TValue) => void;
+  },
 ): Array<ItemOrGroup<Item>> {
-  const toItem = (it: SelectItem<TValue>): Item => ({
+  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode => {
+    if (!it.showOnlyButton || it.disabled) {
+      return it.suffix;
+    }
+    return (
+      <>
+        {it.suffix !== undefined && (
+          <span className={suffixDefaultContentClass}>{it.suffix}</span>
+        )}
+        <button
+          type="button"
+          className={onlyButtonRecipe({
+            tone: it.tone === "brand" ? "brand" : "neutral",
+          })}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            options.selectOnly(it.value);
+          }}
+        >
+          Only
+        </button>
+      </>
+    );
+  };
+  const toItem = (it: MultiSelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),
-    disabled: it.disabled,
-    selectedStyle: "tick",
+    disabled:
+      it.disabled ||
+      (options.selectableValues !== undefined &&
+        !options.selectableValues.has(it.value)),
+    selectedStyle: options.multiple ? (it.variant ?? "checkbox") : "tick",
+    selectedTone: it.tone,
+    suffix: toSuffix(it),
     subItems: undefined,
     onClick: () => {},
   });
@@ -174,12 +301,74 @@ function mapToMenuItems<TValue extends string>(
   );
 }
 
+/**
+ * Exposes the select machine's api to the component body — the context is
+ * only readable beneath the Root — backing the Root element's keyboard
+ * handling (Enter closing a multi select, Tab exiting an open dropdown).
+ */
+const SelectApiBridge = ({
+  onApi,
+}: {
+  onApi: (api: ReturnType<typeof useSelectContext>) => void;
+}) => {
+  const select = useSelectContext();
+  useLayoutEffect(() => {
+    onApi(select);
+  });
+  return null;
+};
+
+/**
+ * While a search filter is active, keeps the highlight on the first visible
+ * item, so arrows/Enter from the search field always operate on the filtered
+ * results — the previous highlight may have been filtered out of the
+ * collection, which would strand zag's arrow navigation.
+ */
+const SearchHighlightSync = ({
+  search,
+  firstVisibleValue,
+}: {
+  search: string;
+  firstVisibleValue: string | undefined;
+}) => {
+  const select = useSelectContext();
+  // Re-sync when the search OR the first match changes (results can arrive
+  // after the query, e.g. loading or onSearch-driven fetches), but not on
+  // plain re-renders — arrow-key navigation must keep its highlight.
+  const lastSynced = useRef<{
+    search: string;
+    firstVisibleValue: string | undefined;
+  }>({ search: "", firstVisibleValue: undefined });
+
+  useEffect(() => {
+    const last = lastSynced.current;
+    if (
+      last.search === search &&
+      last.firstVisibleValue === firstVisibleValue
+    ) {
+      return;
+    }
+    lastSynced.current = { search, firstVisibleValue };
+    if (search === "") {
+      return;
+    }
+    if (firstVisibleValue !== undefined) {
+      select.setHighlightValue(firstVisibleValue);
+    } else {
+      select.clearHighlightValue();
+    }
+  }, [search, firstVisibleValue, select]);
+
+  return null;
+};
+
+/** Flattens groups and drops custom rows (e.g. the empty-search note), which must not enter the collection as selectable options */
 function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   const flat: Item[] = [];
   for (const entry of items) {
     if ("items" in entry) {
       flat.push(...entry.items);
-    } else {
+    } else if (!isCustomItem(entry)) {
       flat.push(entry);
     }
   }
@@ -202,6 +391,9 @@ export const Select = <TValue extends string>({
   onKeyDown,
   tabIndex,
   items,
+  multiple,
+  maxItems,
+  overflow,
   renderItem,
   renderSelectedItem,
   className,
@@ -220,6 +412,9 @@ export const Select = <TValue extends string>({
   invalid,
   autoFocus,
   emptyState,
+  onOpenChange,
+  defaultOpen,
+  searchable,
   ...ariaProps
 }: SelectProps<TValue>) => {
   const portalContainerRef = usePortalContainerRef();
@@ -231,27 +426,209 @@ export const Select = <TValue extends string>({
   // with any consumer-supplied item value.
   const noneValue = useId();
 
-  const showClear = !!(clearable && !disabled);
+  const showClear = clearable !== undefined && !disabled;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
-  const orphan = useMemo<SelectItem<TValue> | undefined>(() => {
-    if (value == null || value === "" || findSelectItem(items, value)) {
-      return undefined;
+  const selectedValues = useMemo<TValue[]>(() => {
+    if (multiple) {
+      return [...(value as ReadonlyArray<TValue>)];
     }
-    return { value, text: value, disabled: true };
-  }, [items, value]);
+    const single = value as TValue | null | undefined;
+    return single != null && single !== "" ? [single] : [];
+  }, [multiple, value]);
+  const hasSelection = selectedValues.length > 0;
+
+  const orphans = useMemo<Array<SelectItem<TValue>>>(
+    () =>
+      selectedValues
+        .filter((val) => !findSelectItem(items, val))
+        .map((val) => ({ value: val, text: val, disabled: true })),
+    [items, selectedValues],
+  );
 
   const effectiveItems = useMemo<
-    ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>
+    ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>
   >(() => {
-    if (!orphan || (loading && items.length === 0)) {
+    if (orphans.length === 0 || (loading && items.length === 0)) {
       return items;
     }
-    return [orphan, ...items];
-  }, [items, orphan, loading]);
+    return [...orphans, ...items];
+  }, [items, orphans, loading]);
 
-  const selectedItem = findSelectItem(effectiveItems, value) ?? orphan;
+  // A multi select's Escape reverts the selection to its state at dropdown
+  // open (per-toggle onChange commits are treated as a cancellable session).
+  // Ark dismisses on Escape from a native document-capture listener — before
+  // any React handler — so the only spot that reliably precedes the close is
+  // a window-capture listener; the close handler then consumes the flag.
+  // A `defaultOpen` mount starts mid-"session": ark fires no onOpenChange
+  // for the initial state, so the refs seed as if it had just opened.
+  const isOpenRef = useRef(!!defaultOpen);
+  const escapedRef = useRef(false);
+  const valueAtOpenRef = useRef<TValue[]>(defaultOpen ? selectedValues : []);
+
+  // Enter in an open multi select toggles the highlighted item and then
+  // closes the dropdown (Space and clicks keep it open). The capture phase
+  // records whether it was open before ark processes the key — an Enter that
+  // opens the dropdown must not be immediately undone — and the bubble
+  // phase, running after ark has toggled the item, closes it.
+  const selectApiRef = useRef<ReturnType<typeof useSelectContext> | null>(null);
+  const enterWhileOpenRef = useRef(false);
+
+  // Tab while open moves through the dropdown's own tabbables (search field,
+  // custom rows, footer buttons) and past the edge closes the dropdown,
+  // handing focus to the document's neighbouring tabbable — zag would
+  // otherwise trap focus in the open dropdown. Handled in the capture phase
+  // so zag never sees the key; all movement is programmatic.
+  const handleTabKeyDown = (event: React.KeyboardEvent) => {
+    const api = selectApiRef.current;
+    if (!api?.open) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const trigger = internalRef.current;
+    const doc = event.currentTarget.ownerDocument;
+    const contentId = trigger?.getAttribute("aria-controls");
+    const content = contentId ? doc.getElementById(contentId) : null;
+    const direction = event.shiftKey ? -1 : 1;
+    const tabbables = content ? getVisibleTabbables(content) : [];
+    const { activeElement } = doc;
+    const index = tabbables.findIndex(
+      (el) => el === activeElement || el.contains(activeElement),
+    );
+    let next: HTMLElement | undefined;
+    if (index !== -1) {
+      next = tabbables[index + direction];
+    } else {
+      // Focus sits on a non-tabbable: the content itself, either mid-list
+      // (an option highlighted via activedescendant navigation) or fresh
+      // from opening. A highlighted option makes the items block a
+      // positional stop — partition the tabbables around it, so backward
+      // reaches the search field above the list and forward the footer
+      // below it. With nothing highlighted, forward enters the first
+      // tabbable and backward exits.
+      const highlightedId =
+        content?.getAttribute("aria-activedescendant") ??
+        activeElement?.getAttribute("aria-activedescendant");
+      const highlightedOption = highlightedId
+        ? doc.getElementById(highlightedId)
+        : null;
+      if (highlightedOption) {
+        const followsOption = (el: HTMLElement) =>
+          Boolean(
+            // eslint-disable-next-line no-bitwise -- the DOM API returns a bitmask
+            highlightedOption.compareDocumentPosition(el) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        next =
+          direction === 1
+            ? tabbables.find(followsOption)
+            : tabbables.filter((el) => !followsOption(el)).at(-1);
+      } else if (direction === 1) {
+        next = tabbables[0];
+      }
+    }
+    if (next) {
+      next.focus();
+      return;
+    }
+    // Past the edge: close, then land focus. zag restores the trigger's
+    // focus on close (which covers the backward exit); a forward exit moves
+    // on to the document's next tabbable once that restore has flushed —
+    // double rAF, as the restore's timing varies with where focus sat.
+    api.setOpen(false);
+    if (direction === -1 || !trigger) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const follows = (el: HTMLElement) =>
+          Boolean(
+            // eslint-disable-next-line no-bitwise -- the DOM API returns a bitmask
+            trigger.compareDocumentPosition(el) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        const eligible = getVisibleTabbables(doc.body).filter(
+          (el) => el !== trigger && !content?.contains(el) && follows(el),
+        );
+        eligible[0]?.focus();
+      });
+    });
+  };
+  const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && multiple) {
+      enterWhileOpenRef.current = !!selectApiRef.current?.open;
+    } else if (event.key === "Tab") {
+      handleTabKeyDown(event);
+    } else if (
+      (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+      !selectApiRef.current?.open
+    ) {
+      // zag changes a closed select's selection on Left/Right — swallow the
+      // key before it reaches the trigger so the selection stays put.
+      event.stopPropagation();
+    }
+  };
+  const handleRootKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && enterWhileOpenRef.current) {
+      enterWhileOpenRef.current = false;
+      selectApiRef.current?.setOpen(false);
+    }
+  };
+  useEffect(() => {
+    if (!multiple) {
+      return;
+    }
+    const markEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpenRef.current) {
+        escapedRef.current = true;
+      }
+    };
+    window.addEventListener("keydown", markEscape, true);
+    return () => {
+      window.removeEventListener("keydown", markEscape, true);
+    };
+  }, [multiple]);
+
+  const [search, setSearch] = useState("");
+  const showSearch = !!searchable;
+  const onSearch =
+    typeof searchable === "object" ? searchable.onSearch : undefined;
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      onSearch?.(next);
+    },
+    [onSearch],
+  );
+  const searchTerms = useMemo(
+    () => (showSearch ? search.toLowerCase().split(/\s+/).filter(Boolean) : []),
+    [showSearch, search],
+  );
+  const visibleItems = useMemo<
+    ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>
+  >(() => {
+    if (searchTerms.length === 0) {
+      return effectiveItems;
+    }
+    const matches = (it: MultiSelectItem<TValue>) => {
+      const label = it.text.toLowerCase();
+      return searchTerms.every((term) => label.includes(term));
+    };
+    const filtered: Array<ItemOrGroup<MultiSelectItem<TValue>>> = [];
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        const children = entry.items.filter(matches);
+        if (children.length > 0) {
+          filtered.push({ ...entry, items: children });
+        }
+      } else if (matches(entry)) {
+        filtered.push(entry);
+      }
+    }
+    return filtered;
+  }, [effectiveItems, searchTerms]);
 
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
@@ -259,22 +636,194 @@ export const Select = <TValue extends string>({
       ((val: TValue) => findSelectItem(effectiveItems, val)?.text ?? val),
     [renderItem, effectiveItems],
   );
-  const resolvedRenderSelectedItem = renderSelectedItem ?? resolvedRenderItem;
 
-  const isOptional = required !== true;
-  const menuItems = useMemo(() => {
-    const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem);
-    if (!isOptional || mapped.length === 0) {
-      return mapped;
+  // Every option's value, disabled options included — the total behind the
+  // selection summary and the `summary` overflow row, and the value set that
+  // "Select all" selects.
+  const optionValues = useMemo<TValue[]>(() => {
+    const values: TValue[] = [];
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        for (const it of entry.items) {
+          values.push(it.value);
+        }
+      } else {
+        values.push(entry.value);
+      }
     }
-    const noneItem: Item = {
-      id: noneValue,
-      text: "\u200B",
-      subItems: undefined,
-      onClick: () => {},
-    };
-    return [noneItem, ...mapped];
-  }, [effectiveItems, isOptional, resolvedRenderItem, noneValue]);
+    return values;
+  }, [effectiveItems]);
+
+  const overflowMode =
+    multiple && !renderSelectedItem ? (overflow ?? "scroll") : undefined;
+
+  const renderSelectedContent = (): React.ReactNode => {
+    if (multiple) {
+      if (renderSelectedItem) {
+        return (renderSelectedItem as (values: TValue[]) => React.ReactNode)(
+          selectedValues,
+        );
+      }
+      const mode = overflow ?? "scroll";
+      const rowItems = selectedValues.map((val) => ({
+        name: findSelectItem(effectiveItems, val)?.text ?? val,
+        children: resolvedRenderItem(val),
+      }));
+      return mode === "summary" ? (
+        <OverflowRow
+          items={rowItems}
+          separator=", "
+          overflow="summary"
+          // While options load, `effectiveItems` omits the orphans backing
+          // the committed selection, so the option count is not yet known —
+          // an undefined total keeps the summary from claiming "any".
+          total={
+            loading && items.length === 0 ? undefined : optionValues.length
+          }
+        />
+      ) : (
+        <OverflowRow items={rowItems} separator=", " overflow={mode} />
+      );
+    }
+    const selectedValue = selectedValues[0];
+    if (selectedValue === undefined) {
+      return "";
+    }
+    const renderSingle =
+      (renderSelectedItem as
+        | ((value: TValue) => React.ReactNode)
+        | undefined) ?? resolvedRenderItem;
+    return renderSingle(selectedValue);
+  };
+
+  const isOptional = required !== true && !multiple;
+  const atMaxItems =
+    !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
+  // At maxItems only the currently-selected values stay enabled, so they can be deselected
+  const selectableAtMax = atMaxItems ? selectedValues : undefined;
+  const selectableAtMaxSet = useMemo<ReadonlySet<string> | undefined>(
+    () =>
+      selectableAtMax === undefined
+        ? undefined
+        : new Set<string>(selectableAtMax),
+    [selectableAtMax],
+  );
+
+  // The first search match the highlight can land on — must apply the same
+  // effective-disabled rule as the collection (explicit `disabled` plus rows
+  // disabled by `maxItems`), or Enter would target an unselectable row
+  const firstVisibleValue = useMemo<TValue | undefined>(() => {
+    const isEnabled = (it: MultiSelectItem<TValue>) =>
+      !it.disabled &&
+      (selectableAtMaxSet === undefined || selectableAtMaxSet.has(it.value));
+    for (const entry of visibleItems) {
+      if ("items" in entry) {
+        const first = entry.items.find(isEnabled);
+        if (first) {
+          return first.value;
+        }
+      } else if (isEnabled(entry)) {
+        return entry.value;
+      }
+    }
+    return undefined;
+  }, [visibleItems, selectableAtMaxSet]);
+
+  const selectOnly = useCallback(
+    (val: TValue) => {
+      (onChange as (value: TValue[]) => void)([val]);
+    },
+    [onChange],
+  );
+
+  // The selection summary of a searchable multi select. Its counts and its
+  // "Select all" span the whole option set — disabled options included, so
+  // "Select all" always reaches "X of X" — not the current search filter.
+  const selectAll = useCallback(() => {
+    (onChange as (value: TValue[]) => void)([
+      ...new Set([...selectedValues, ...optionValues]),
+    ]);
+  }, [onChange, selectedValues, optionValues]);
+  const clearAll = useCallback(() => {
+    (onChange as (value: TValue[]) => void)([]);
+  }, [onChange]);
+
+  const clearSelection = () => {
+    if (typeof clearable === "object") {
+      clearable.onClear();
+    } else if (multiple) {
+      (onChange as (value: TValue[]) => void)([]);
+    } else {
+      (onChange as (value: null) => void)(null);
+    }
+  };
+  // Hide the count while options are still loading (the total is not yet
+  // known), and the toggle when maxItems makes selecting all impossible.
+  const searchableOptions =
+    typeof searchable === "object" ? searchable : undefined;
+  const hideSummaryCount = !!searchableOptions?.hideCount || !!loading;
+  const hideSummaryToggle =
+    !!searchableOptions?.hideSelectAllToggle ||
+    (maxItems !== undefined && maxItems < optionValues.length);
+
+  const selectionSummary =
+    showSearch && multiple && !(hideSummaryCount && hideSummaryToggle) ? (
+      <SelectableListSelectionSummary
+        hideCount={hideSummaryCount}
+        hideSelectAllToggle={hideSummaryToggle}
+        selectedCount={selectedValues.length}
+        totalCount={optionValues.length}
+        onSelectAll={selectAll}
+        onClearAll={clearAll}
+      />
+    ) : undefined;
+  const resolvedEmptyState =
+    emptyState ?? (loading ? "Loading options\u2026" : "No options available");
+  const menuItems = useMemo(() => {
+    const mapped: Array<ItemOrGroup<Item>> = mapToMenuItems(
+      visibleItems,
+      resolvedRenderItem,
+      {
+        multiple: !!multiple,
+        selectableValues: selectableAtMaxSet,
+        selectOnly,
+      },
+    );
+    const searching = searchTerms.length > 0;
+    if (isOptional && !searching && mapped.length > 0) {
+      const noneItem: Item = {
+        id: noneValue,
+        text: "\u200B",
+        subItems: undefined,
+        onClick: () => {},
+      };
+      mapped.unshift(noneItem);
+    }
+    if (showSearch && mapped.length === 0) {
+      return [
+        {
+          id: `${noneValue}-search-empty`,
+          custom: (
+            <span className={searchEmpty()}>
+              {searching ? "No matching options" : resolvedEmptyState}
+            </span>
+          ),
+        },
+      ];
+    }
+    return mapped;
+  }, [
+    visibleItems,
+    isOptional,
+    resolvedRenderItem,
+    noneValue,
+    multiple,
+    selectableAtMaxSet,
+    selectOnly,
+    showSearch,
+    searchTerms,
+    resolvedEmptyState,
+  ]);
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
     for (const entry of effectiveItems) {
@@ -305,6 +854,7 @@ export const Select = <TValue extends string>({
     size,
     align,
     width,
+    multiple: !!multiple,
     invalid: !!invalid,
     disabled: !!disabled,
     loading: !!loading,
@@ -312,13 +862,13 @@ export const Select = <TValue extends string>({
     hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
-    customRender: !!renderItem || !!renderSelectedItem,
+    customRender:
+      !!renderItem || !!renderSelectedItem || overflowMode !== undefined,
+    overflowRow: overflowMode !== undefined,
     clampTriggerHeight:
-      (!!renderItem || !!renderSelectedItem) && (connectsLeft || connectsRight),
-    willClear:
-      showClear &&
-      clearable.clearable &&
-      (value === null || value === undefined || value === ""),
+      (!!renderItem || !!renderSelectedItem || overflowMode !== undefined) &&
+      (connectsLeft || connectsRight),
+    willClear: showClear && !!clearable && !hasSelection,
   });
 
   if (readonly) {
@@ -329,7 +879,7 @@ export const Select = <TValue extends string>({
         data-testid={testId}
         {...ariaProps}
       >
-        {selectedItem ? resolvedRenderSelectedItem(selectedItem.value) : ""}
+        {renderSelectedContent()}
       </span>
     );
   }
@@ -337,16 +887,49 @@ export const Select = <TValue extends string>({
   return (
     <ArkSelect.Root
       collection={collection}
-      value={value != null && value !== "" ? [value] : []}
+      value={selectedValues}
+      multiple={multiple}
+      defaultOpen={defaultOpen}
+      closeOnSelect={!multiple}
       onValueChange={({ value: nextValue }) => {
+        if (multiple) {
+          const next = nextValue as TValue[];
+          if (maxItems !== undefined && next.length > maxItems) {
+            return;
+          }
+          (onChange as (value: TValue[]) => void)(next);
+          return;
+        }
         const next = nextValue[0];
         if (next === noneValue) {
           (onChange as (value: null) => void)(null);
           return;
         }
         if (next !== undefined) {
-          onChange(next as TValue);
+          (onChange as (value: TValue) => void)(next as TValue);
         }
+      }}
+      onOpenChange={({ open }) => {
+        isOpenRef.current = open;
+        if (open) {
+          escapedRef.current = false;
+          valueAtOpenRef.current = selectedValues;
+        } else {
+          if (multiple && escapedRef.current) {
+            escapedRef.current = false;
+            const atOpen = valueAtOpenRef.current;
+            const unchanged =
+              atOpen.length === selectedValues.length &&
+              atOpen.every((entry, index) => entry === selectedValues[index]);
+            if (!unchanged) {
+              (onChange as (value: TValue[]) => void)([...atOpen]);
+            }
+          }
+          if (search !== "") {
+            handleSearchChange("");
+          }
+        }
+        onOpenChange?.(open);
       }}
       disabled={disabled}
       invalid={invalid}
@@ -360,8 +943,21 @@ export const Select = <TValue extends string>({
       }}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
+      onKeyDownCapture={handleRootKeyDownCapture}
+      onKeyDown={multiple ? handleRootKeyDown : undefined}
     >
       <ArkSelect.HiddenSelect ref={inputRef} />
+      <SelectApiBridge
+        onApi={(api) => {
+          selectApiRef.current = api;
+        }}
+      />
+      {showSearch && (
+        <SearchHighlightSync
+          search={search}
+          firstVisibleValue={firstVisibleValue}
+        />
+      )}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
         ref={selectRef}
@@ -398,10 +994,13 @@ export const Select = <TValue extends string>({
             onBlur={onBlur}
             {...ariaProps}
           >
-            {selectedItem ? (
+            {hasSelection ? (
               <>
-                {(renderItem || renderSelectedItem) && "\u200B"}
-                {resolvedRenderSelectedItem(selectedItem.value)}
+                {(renderItem ||
+                  renderSelectedItem ||
+                  overflowMode !== undefined) &&
+                  "\u200B"}
+                {renderSelectedContent()}
               </>
             ) : (
               (placeholder ?? "\u200B")
@@ -418,12 +1017,12 @@ export const Select = <TValue extends string>({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                clearable.onClear();
+                clearSelection();
                 internalRef.current?.focus();
               }}
               className={cx(
                 classes.clear,
-                (!clearable.clearable || !value) && classes.hideClear,
+                (!clearable || !hasSelection) && classes.hideClear,
               )}
               aria-label="Clear input"
             >
@@ -455,12 +1054,20 @@ export const Select = <TValue extends string>({
             as="Select"
             className={classes.list}
             items={menuItems}
-            selected={value != null && value !== "" ? [value] : []}
+            selected={selectedValues}
             size={size}
-            emptyState={
-              emptyState ??
-              (loading ? "Loading options…" : "No options available")
+            emptyState={resolvedEmptyState}
+            header={
+              showSearch ? (
+                <SelectableListSearch
+                  value={search}
+                  onChange={handleSearchChange}
+                  aria-label="Search options"
+                />
+              ) : undefined
             }
+            footer={selectionSummary}
+            swapHeaderFooterOnFlip
           />
         </ArkSelect.Positioner>
       </Portal>

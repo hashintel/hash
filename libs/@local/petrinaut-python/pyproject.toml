@@ -8,12 +8,18 @@ dependencies = [
     "pydantic>=2.13.4",
 ]
 
+[project.optional-dependencies]
+sympy = [
+    "sympy>=1.13",
+]
+
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.10",
     "datamodel-code-generator>=0.74.0",
     "pytest>=8.3",
     "ruff>=0.16.4",
+    "sympy>=1.13",
 ]
 
 [build-system]

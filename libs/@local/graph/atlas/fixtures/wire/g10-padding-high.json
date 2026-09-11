@@ -1,0 +1,41 @@
+{
+  "golden": "g10-padding-high",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 7,
+    "reserved": 0
+  },
+  "directory": [
+    [72, 134],
+    [136, 160],
+    [160, 172],
+    [176, 179],
+    [0, 0],
+    [184, 194],
+    [200, 209]
+  ],
+  "head": {
+    "generation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "variant": 25,
+    "coordinate": [25, 300, 170],
+    "mode": 0,
+    "delivered": 3,
+    "firstBucket": 27,
+    "runs": [3],
+    "global": null,
+    "children": 8,
+    "trailer": false
+  },
+  "positions": [1056964608, 3196059648, 1052770304, 0, 1048576000, 1048576000],
+  "rowIds": [13, 26, 39],
+  "typeMask": [0, 1, 1],
+  "mass": null,
+  "appended": {
+    "5": [96, 96, 96, 96, 96, 96, 96, 96, 96, 96],
+    "6": [112, 112, 112, 112, 112, 112, 112, 112, 112]
+  },
+  "trailer": null
+}

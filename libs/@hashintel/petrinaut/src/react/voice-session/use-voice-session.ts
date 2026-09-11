@@ -62,3 +62,52 @@ export const useVoiceSessionActions = (): VoiceSessionActions | null => {
     () => null,
   );
 };
+
+export const useVoiceSessionCanReadFullResponse = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canReadFullResponse ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanRepeatQuestion = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRepeatQuestion ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanTakeTurn = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canTakeTurn ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionNotice = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.notice ?? null,
+    () => null,
+  );
+};
+
+export const useVoiceSessionInterruptionBySpeaking = (): boolean => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.interruptionBySpeaking ?? false,
+    () => false,
+  );
+};

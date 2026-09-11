@@ -1,14 +1,226 @@
+import {
+  createFlueChatTransport,
+  FlueChatAdmissionError,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
+
+const brunchClientToolNames = new Set([readPetrinautDocToolName]);
 
 import type {
   SweepCapture,
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "../brunch-sweep-output";
+import type {
+  AgentSendResult,
+  FlueClient,
+  FlueConversationState,
+} from "@flue/sdk";
+import type {
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+  FlueChatTransportOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
+
+export type BrunchPanelAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type BrunchPanelAdmissionTarget = Pick<
+  BrunchPanelAdmission,
+  "kind" | "messageId"
+>;
+
+export class BrunchPanelConversationTracker {
+  // Local admissions only, scoped to this conversation tracker. Retain until
+  // the tracker is replaced; missing retained history fails closed.
+  readonly #admittedSubmissionIds = new Set<string>();
+
+  public canReplaceMessages(
+    snapshot: FlueConversationState | undefined,
+  ): boolean {
+    if (snapshot === undefined || this.#inFlightSubmissions.size !== 0)
+      return false;
+    return [...this.#admittedSubmissionIds].every((submissionId) => {
+      const settlement = snapshot.settlements.find(
+        (entry) => entry.submissionId === submissionId,
+      );
+      if (settlement === undefined) return false;
+      if (settlement.outcome === "failed" || settlement.outcome === "aborted")
+        return true;
+      const responseSubmissionId =
+        settlement.answeredBySubmissionId ?? submissionId;
+      return snapshot.messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          message.purpose === "assistant" &&
+          message.submissionId === responseSubmissionId,
+      );
+    });
+  }
+  readonly #admissionFailureSubscriptions = new Set<{
+    readonly listener: (error: FlueChatAdmissionError) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
+  readonly #admissionSubscriptions = new Set<{
+    readonly listener: (admission: BrunchPanelAdmission) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
+  readonly #inFlightSubmissions = new Set<Promise<unknown>>();
+  readonly #inputSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"]
+  >();
+  readonly #responseSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"][]
+  >();
+  readonly #responseMessageStartedListeners = new Set<
+    (event: FlueChatResponseMessageStartedEvent) => void
+  >();
+  readonly #responseMessageCompletedListeners = new Set<
+    (event: FlueChatResponseMessageCompletedEvent) => void
+  >();
+  readonly #stopRequestedListeners = new Set<() => void>();
+
+  public recordAdmission(admission: BrunchPanelAdmission): void {
+    this.#admittedSubmissionIds.add(admission.admission.submissionId);
+    if (admission.kind === "user") {
+      this.#inputSubmissions.set(
+        admission.messageId,
+        admission.admission.submissionId,
+      );
+    }
+    for (const subscription of this.#admissionSubscriptions) {
+      if (
+        subscription.target.kind === admission.kind &&
+        subscription.target.messageId === admission.messageId
+      ) {
+        this.#admissionSubscriptions.delete(subscription);
+        subscription.listener(admission);
+      }
+    }
+  }
+
+  /**
+   * A client-tool continuation is projected onto the assistant message it
+   * resumes, so one message can be written by several submissions. Keep them
+   * all: Voice correlates a reply by membership, whichever side admitted the
+   * continuation.
+   */
+  public recordResponse(event: FlueChatResponseMessageStartedEvent): void {
+    const recorded = this.#responseSubmissions.get(event.messageId);
+    if (recorded === undefined) {
+      this.#responseSubmissions.set(event.messageId, [event.submissionId]);
+    } else if (!recorded.includes(event.submissionId)) {
+      recorded.push(event.submissionId);
+    }
+    for (const listener of this.#responseMessageStartedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordResponseMessageCompleted(
+    event: FlueChatResponseMessageCompletedEvent,
+  ): void {
+    for (const listener of this.#responseMessageCompletedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordStopRequested(): void {
+    for (const listener of this.#stopRequestedListeners) {
+      listener();
+    }
+  }
+
+  /**
+   * Resolves once every submission currently between `send()` and its
+   * admission has been admitted or rejected, so a conversation-wide abort
+   * issued afterwards has a settled target rather than racing the admission.
+   */
+  public settleInFlightSubmissions(): Promise<void> {
+    return Promise.allSettled(this.#inFlightSubmissions).then(() => undefined);
+  }
+
+  public trackSubmission<T>(submission: Promise<T>): Promise<T> {
+    this.#inFlightSubmissions.add(submission);
+    const release = (): void => {
+      this.#inFlightSubmissions.delete(submission);
+    };
+    submission.then(release, release);
+    return submission;
+  }
+
+  public recordAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    error: FlueChatAdmissionError,
+  ): void {
+    for (const subscription of this.#admissionFailureSubscriptions) {
+      if (
+        subscription.target.kind === target.kind &&
+        subscription.target.messageId === target.messageId
+      ) {
+        this.#admissionFailureSubscriptions.delete(subscription);
+        subscription.listener(error);
+      }
+    }
+  }
+
+  public submissionForInput(
+    messageId: string,
+  ): AgentSendResult["submissionId"] | undefined {
+    return this.#inputSubmissions.get(messageId);
+  }
+
+  public submissionsForResponse(
+    messageId: string,
+  ): readonly AgentSendResult["submissionId"][] | undefined {
+    return this.#responseSubmissions.get(messageId);
+  }
+
+  public subscribeToAdmission(
+    target: BrunchPanelAdmissionTarget,
+    listener: (admission: BrunchPanelAdmission) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionSubscriptions.add(subscription);
+    return () => this.#admissionSubscriptions.delete(subscription);
+  }
+
+  public subscribeToAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    listener: (error: FlueChatAdmissionError) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionFailureSubscriptions.add(subscription);
+    return () => this.#admissionFailureSubscriptions.delete(subscription);
+  }
+
+  public subscribeToResponseMessageCompleted(
+    listener: (event: FlueChatResponseMessageCompletedEvent) => void,
+  ): () => void {
+    this.#responseMessageCompletedListeners.add(listener);
+    return () => this.#responseMessageCompletedListeners.delete(listener);
+  }
+
+  public subscribeToResponseMessageStarted(
+    listener: (event: FlueChatResponseMessageStartedEvent) => void,
+  ): () => void {
+    this.#responseMessageStartedListeners.add(listener);
+    return () => this.#responseMessageStartedListeners.delete(listener);
+  }
+
+  public subscribeToStopRequested(listener: () => void): () => void {
+    this.#stopRequestedListeners.add(listener);
+    return () => this.#stopRequestedListeners.delete(listener);
+  }
+}
 
 const formatFailure = (failure: SweepCompletionFailure): string => {
   const location =
@@ -126,26 +338,82 @@ const decorateBrunchStream = (
   );
 };
 
-/**
- * Pin Petrinaut's stock transport to one stable conversation id so reload,
- * client-tool follow-up, and the voice dock share Flue's conversation.
- */
+/** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
-  transport: PetrinautAiChatTransport,
-  conversationId: string,
-): PetrinautAiChatTransport => ({
-  reconnectToStream: async (options) => {
-    const stream = await transport.reconnectToStream({
-      ...options,
-      chatId: conversationId,
-    });
-    return stream === null ? null : decorateBrunchStream(stream);
+  clientPromise: Promise<FlueClient>,
+  tracker: BrunchPanelConversationTracker,
+  options?: {
+    readonly initialData?: FlueChatTransportOptions["initialData"];
+    /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
+    readonly clientToolNames?: ReadonlySet<string>;
+    readonly validatedClientToolNames?: ReadonlySet<string>;
+    readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
+    readonly mapClientToolInput?: (input: {
+      readonly input: unknown;
+      readonly toolName: string;
+      readonly toolCallId: string;
+    }) => unknown;
+    readonly onAdmission?: (admission: AgentSendResult) => void;
   },
-  sendMessages: async (options) =>
-    decorateBrunchStream(
-      await transport.sendMessages({
-        ...options,
-        chatId: conversationId,
-      }),
+): PetrinautAiChatTransport => ({
+  reconnectToStream: async () => null,
+  sendMessages: (sendOptions) =>
+    tracker.trackSubmission(
+      (async () => {
+        const client = await clientPromise;
+        const transport = createFlueChatTransport({
+          client,
+          ...(options?.initialData === undefined
+            ? {}
+            : { initialData: options.initialData }),
+          clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          validatedClientToolNames: options?.validatedClientToolNames,
+          clientToolResultMetadata: options?.clientToolResultMetadata,
+          ...(options?.mapClientToolInput === undefined
+            ? {}
+            : { mapClientToolInput: options.mapClientToolInput }),
+          hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+          onAdmission: (event) => {
+            tracker.recordAdmission(event);
+            options?.onAdmission?.(event.admission);
+          },
+          onResponseMessage: (event) => tracker.recordResponse(event),
+          onResponseMessageCompleted: (event) =>
+            tracker.recordResponseMessageCompleted(event),
+        });
+        try {
+          return decorateBrunchStream(
+            await transport.sendMessages(sendOptions),
+          );
+        } catch (error) {
+          const messageId =
+            sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;
+          if (
+            error instanceof FlueChatAdmissionError &&
+            messageId !== undefined
+          ) {
+            tracker.recordAdmissionFailure(
+              {
+                kind:
+                  sendOptions.messageId === undefined
+                    ? "user"
+                    : "client-tool-result",
+                messageId,
+              },
+              error,
+            );
+          }
+          throw error;
+        }
+      })(),
     ),
+});
+
+export const createUnavailableBrunchPanelTransport = (
+  reason: string,
+): PetrinautAiChatTransport => ({
+  reconnectToStream: async () => null,
+  sendMessages: async () => {
+    throw new Error(reason);
+  },
 });

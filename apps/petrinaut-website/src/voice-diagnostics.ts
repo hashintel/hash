@@ -18,7 +18,8 @@ export interface VoiceDiagnosticEvent {
   readonly durationMs: number;
   readonly errorCode?: VoiceErrorCode;
   readonly operation: VoiceOperation;
-  readonly outcome: "success" | "failure" | "aborted";
+  readonly outcome: "success" | "failure" | "aborted" | "rejected";
+  readonly rejectionReason?: "prompt-regurgitation" | "self-echo";
   readonly requestId: string;
   readonly stage: "browser" | "playback" | "server";
   readonly status?: number;

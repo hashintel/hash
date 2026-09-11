@@ -1,0 +1,11 @@
+---
+source: libs/@local/graph/atlas/src/serve/hydrate/statements.rs
+expression: type_urls.compile().0
+---
+SELECT "entity_types_1_1_0"."ontology_id", "entity_types_1_1_0"."schema"->>'$id'
+FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+INNER JOIN "entity_types" AS "entity_types_0_1_0"
+  ON "entity_types_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+INNER JOIN "entity_types" AS "entity_types_1_1_0"
+  ON "entity_types_1_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+WHERE "entity_types_0_1_0"."ontology_id" = ANY($1)

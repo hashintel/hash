@@ -10,6 +10,7 @@ import {
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
+  vaccinationCampaign,
 } from "./index";
 
 const EXAMPLES = [
@@ -19,6 +20,7 @@ const EXAMPLES = [
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
+  vaccinationCampaign,
 ];
 
 describe.each(EXAMPLES.map((example) => [example.title, example] as const))(

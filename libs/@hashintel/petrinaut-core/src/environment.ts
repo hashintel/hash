@@ -92,3 +92,14 @@ export function createWorkerThreadRuntime<
     },
   };
 }
+
+export interface AbortControllerLike {
+  readonly signal: AbortSignalLike;
+  abort(): void;
+}
+
+declare const AbortController: new () => AbortControllerLike;
+
+export function createAbortController(): AbortControllerLike {
+  return new AbortController();
+}

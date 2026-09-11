@@ -1,0 +1,906 @@
+import { FlueApiError, FlueExecutionError } from "@flue/sdk";
+import { expect, test, vi } from "vitest";
+
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  createFlueChatTransport,
+  snapshotToUiMessages,
+} from "../src";
+
+import type { FlueChatTransportOptions } from "../src";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  FlueClient,
+} from "@flue/sdk";
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
+
+const admission: AgentSendResult = {
+  streamUrl: "http://brunch.test/stream",
+  offset: "offset-1",
+  submissionId: "submission-1",
+  uid: "uid-1",
+};
+
+const position = (index: number) => ({ batch: 1, index });
+
+const completedEvents: readonly ConversationStreamChunk[] = [
+  {
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "assistant-1",
+    submissionId: admission.submissionId,
+    turnId: "turn-1",
+    position: position(0),
+  },
+  {
+    type: "message-delta",
+    conversationId: "conversation-1",
+    messageId: "assistant-1",
+    kind: "text",
+    delta: "Canonical reply.",
+    position: position(1),
+  },
+  {
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "assistant-1",
+    position: position(2),
+  },
+  {
+    type: "submission-settled",
+    conversationId: "conversation-1",
+    submissionId: admission.submissionId,
+    outcome: "completed",
+    position: position(3),
+  },
+];
+
+const clientWith = (
+  events: readonly ConversationStreamChunk[],
+): {
+  readonly client: FlueClient;
+  readonly send: ReturnType<typeof vi.fn<FlueClient["send"]>>;
+} => {
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    // Preserve protocol order while exercising the stateful projector.
+    // eslint-disable-next-line no-await-in-loop
+    for (const event of events) await options?.onEvent?.(event);
+  });
+  return {
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    send,
+  };
+};
+
+const readChunks = async (
+  stream: ReadableStream<UIMessageChunk>,
+): Promise<UIMessageChunk[]> => {
+  const chunks: UIMessageChunk[] = [];
+  const reader = stream.getReader();
+  for (;;) {
+    // A stream reader is necessarily consumed in sequence.
+    // eslint-disable-next-line no-await-in-loop
+    const result = await reader.read();
+    if (result.done) return chunks;
+    chunks.push(result.value);
+  }
+};
+
+const sendOptions = (
+  messages: UIMessage[],
+  messageId?: string,
+): Parameters<ChatTransport<UIMessage>["sendMessages"]>[0] => ({
+  trigger: "submit-message",
+  chatId: "conversation-1",
+  messageId,
+  messages,
+  abortSignal: undefined,
+});
+
+test("forwards opaque initial data on every user submission, never client results", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const initialData = { mode: "test-bound", browser: { incarnationId: "one" } };
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["getLatestNetDefinition"]),
+    initialData,
+  });
+  const user = sendOptions([
+    { id: "user-one", role: "user", parts: [{ type: "text", text: "Hello" }] },
+  ]);
+  await readChunks(await transport.sendMessages(user));
+  await readChunks(await transport.sendMessages(user));
+  expect(send.mock.calls[0]?.[0].initialData).toBe(initialData);
+  expect(send.mock.calls[1]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "reply",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read",
+                input: {},
+                state: "output-available",
+                output: {},
+              },
+            ],
+          },
+        ],
+        "reply",
+      ),
+    ),
+  );
+  expect(send.mock.calls[2]?.[0]).not.toHaveProperty("initialData");
+  const ordinary = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  await readChunks(await ordinary.sendMessages(user));
+  expect(send.mock.calls[3]?.[0]).not.toHaveProperty("initialData");
+});
+
+test("submits results from the latest assistant step with completed client tools", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["getLatestNetDefinition", "addArc"]),
+  });
+
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "assistant-original",
+            role: "assistant",
+            parts: [
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read-before-1",
+                state: "output-available",
+                input: {},
+                output: { revision: 0 },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read-before-2",
+                state: "output-available",
+                input: {},
+                output: { revision: 0 },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "addArc",
+                toolCallId: "mutation-latest",
+                state: "output-available",
+                input: {},
+                output: { applied: true },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "activate_skill",
+                toolCallId: "server-tool-later",
+                state: "output-available",
+                input: {},
+                output: { activated: true },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        "assistant-original",
+      ),
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify([
+          {
+            toolCallId: "mutation-latest",
+            toolName: "addArc",
+            output: { applied: true },
+          },
+        ]),
+        attributes: { toolCallIds: "mutation-latest" },
+      },
+      signal: undefined,
+    }),
+  );
+});
+
+test("after snapshot fold, submits only the latest client-tool step", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const clientToolNames = new Set(["getLatestNetDefinition", "addArc"]);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames,
+  });
+  const folded = snapshotToUiMessages(
+    {
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "read-before-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"read-before-1","toolName":"getLatestNetDefinition","output":{"revision":0}}]',
+              state: "done",
+            },
+          ],
+        },
+        {
+          id: "assistant-2",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "mutation-latest",
+              toolName: "addArc",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-2",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"mutation-latest","toolName":"addArc","output":{"applied":true}}]',
+              state: "done",
+            },
+          ],
+        },
+      ],
+    },
+    { clientToolNames },
+  );
+
+  await readChunks(
+    await transport.sendMessages(sendOptions([...folded], "assistant-1")),
+  );
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify([
+          {
+            toolCallId: "mutation-latest",
+            toolName: "addArc",
+            output: { applied: true },
+          },
+        ]),
+        attributes: { toolCallIds: "mutation-latest" },
+      },
+      signal: undefined,
+    }),
+  );
+});
+
+test("keeps reordered cumulative tool results byte-identical for idempotent retry", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+  });
+  const parts: UIMessage["parts"] = ["tool-b", "tool-a"].map((toolCallId) => ({
+    type: "dynamic-tool",
+    toolName: "readPetrinautDoc",
+    toolCallId,
+    state: "output-available",
+    input: {},
+    output: toolCallId,
+  }));
+  for (const ordered of [parts, [...parts].reverse()]) {
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [{ id: "assistant-original", role: "assistant", parts: ordered }],
+          "assistant-original",
+        ),
+      ),
+    );
+  }
+  expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
+});
+
+test("admits one user message and projects a finite per-turn stream", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Run the transport tracer." }],
+      },
+    ]),
+  );
+
+  expect(send).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-1",
+    message: { kind: "user", body: "Run the transport tracer." },
+    signal: undefined,
+  });
+  expect((await readChunks(stream)).map((chunk) => chunk.type)).toEqual([
+    "start",
+    "start-step",
+    "text-start",
+    "text-delta",
+    "text-end",
+    "finish-step",
+    "finish",
+  ]);
+});
+
+test("admits one client-tool result signal and resumes its assistant id", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions(
+      [
+        {
+          id: "assistant-original",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "readPetrinautDoc",
+              toolCallId: "tool-1",
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output: "The guide.",
+            },
+          ],
+        },
+      ],
+      "assistant-original",
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:client-tools:assistant-original:tool-1",
+    message: {
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "tool-1",
+          toolName: "readPetrinautDoc",
+          output: "The guide.",
+        },
+      ]),
+      attributes: { toolCallIds: "tool-1" },
+    },
+    signal: undefined,
+  });
+  expect((await readChunks(stream))[0]).toEqual({
+    type: "start",
+    messageId: "assistant-original",
+  });
+});
+
+test("derives the same idempotency key for exact AI SDK retries", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  const options = sendOptions([
+    {
+      id: "stable-user-message",
+      role: "user",
+      parts: [{ type: "text", text: "Admit this once." }],
+    },
+  ]);
+
+  await transport.sendMessages(options);
+  await transport.sendMessages(options);
+
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls.map(([input]) => input.idempotencyKey)).toEqual([
+    "ai-sdk:user:stable-user-message",
+    "ai-sdk:user:stable-user-message",
+  ]);
+});
+
+test("starts with history-only reconnection", async () => {
+  const { client } = clientWith([]);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+
+  await expect(
+    transport.reconnectToStream({ chatId: "conversation-1" }),
+  ).resolves.toBeNull();
+});
+
+test.each([
+  [
+    "failed",
+    new Error("Elicitor tool failed.", {
+      cause: { field: "answer", reason: "Required" },
+    }),
+    {
+      type: "error",
+      errorText:
+        'Elicitor tool failed.\nCaused by: {"field":"answer","reason":"Required"}',
+    },
+  ],
+  [
+    "aborted",
+    new FlueExecutionError({
+      target: "agent_submission",
+      targetId: admission.submissionId,
+      failure: "aborted",
+    }),
+    { type: "abort", reason: "The chat turn was stopped." },
+  ],
+  [
+    "missing terminal event",
+    new FlueExecutionError({
+      target: "agent_submission",
+      targetId: admission.submissionId,
+      failure: "terminal_event_missing",
+    }),
+    {
+      type: "error",
+      errorText: "The chat stream ended before the turn settled.",
+    },
+  ],
+])(
+  "maps a %s wait rejection into the finite UI stream",
+  async (_label, waitError, expected) => {
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => {
+      throw waitError;
+    });
+    const transport = createFlueChatTransport({
+      client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    const stream = await transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Map the outcome." }],
+        },
+      ]),
+    );
+
+    expect(await readChunks(stream)).toEqual([expected]);
+  },
+);
+
+test("keeps caller cancellation distinct from durable abort", async () => {
+  const abortController = new AbortController();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(
+    async (_admission, options) =>
+      new Promise<void>((_resolve, reject) => {
+        options?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("cancelled", "AbortError")),
+          { once: true },
+        );
+      }),
+  );
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const stream = await transport.sendMessages({
+    ...sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Cancel only this observer." }],
+      },
+    ]),
+    abortSignal: abortController.signal,
+  });
+
+  abortController.abort();
+
+  await expect(readChunks(stream)).resolves.toEqual([
+    { type: "abort", reason: "The local chat stream was cancelled." },
+  ]);
+});
+
+test("classifies documented rejection and ambiguous admission without retrying", async () => {
+  const rejectedSend = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(403, "");
+  });
+  const ambiguousSend = vi.fn<FlueClient["send"]>(async () => {
+    throw new TypeError("connection lost after request write");
+  });
+  const createTransport = (send: FlueClient["send"]) =>
+    createFlueChatTransport({
+      client: { send } as Pick<FlueClient, "send"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+  const options = sendOptions([
+    {
+      id: "user-1",
+      role: "user",
+      parts: [{ type: "text", text: "Admit once." }],
+    },
+  ]);
+
+  await expect(
+    createTransport(rejectedSend).sendMessages(options),
+  ).rejects.toMatchObject({
+    failure: { kind: "rejected", status: 403 },
+    message: "Brunch rejected the message before admission (HTTP 403).",
+    name: "FlueChatAdmissionError",
+  });
+  await expect(
+    createTransport(ambiguousSend).sendMessages(options),
+  ).rejects.toMatchObject({
+    failure: { kind: "ambiguous" },
+    message:
+      "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+    name: "FlueChatAdmissionError",
+  });
+  expect(rejectedSend).toHaveBeenCalledOnce();
+  expect(ambiguousSend).toHaveBeenCalledOnce();
+});
+
+test.each([
+  ["server failure", new FlueApiError(500, "")],
+  ["unknown response", new FlueApiError(418, "")],
+] as const)(
+  "treats a %s after request write as ambiguous",
+  async (_label, error) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw error;
+    });
+    const transport = createFlueChatTransport({
+      client: { send } as Pick<FlueClient, "send"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    await expect(
+      transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-ambiguous",
+            role: "user",
+            parts: [{ type: "text", text: "Do not retry this." }],
+          },
+        ]),
+      ),
+    ).rejects.toMatchObject({
+      failure: { kind: "ambiguous" },
+      name: "FlueChatAdmissionError",
+    });
+    expect(send).toHaveBeenCalledOnce();
+  },
+);
+
+test("classifies an explicit local admission abort without retrying", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new DOMException("cancelled", "AbortError");
+  });
+  const transport = createFlueChatTransport({
+    client: { send } as Pick<FlueClient, "send"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+
+  await expect(
+    transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-aborted",
+          role: "user",
+          parts: [{ type: "text", text: "Cancel locally." }],
+        },
+      ]),
+    ),
+  ).rejects.toMatchObject({
+    failure: { kind: "aborted" },
+    name: "FlueChatAdmissionError",
+  });
+  expect(send).toHaveBeenCalledOnce();
+});
+
+test("reports one admission and its correlated response message completion", async () => {
+  const { client } = clientWith(completedEvents);
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
+  const onResponseMessage =
+    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const onResponseMessageCompleted =
+    vi.fn<
+      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
+    >();
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    onAdmission,
+    onResponseMessage,
+    onResponseMessageCompleted,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Track this response." }],
+      },
+    ]),
+  );
+  await readChunks(stream);
+
+  expect(onAdmission).toHaveBeenCalledOnce();
+  expect(onAdmission).toHaveBeenCalledWith({
+    admission,
+    kind: "user",
+    messageId: "user-1",
+  });
+  expect(onResponseMessage).toHaveBeenCalledOnce();
+  expect(onResponseMessage).toHaveBeenCalledWith({
+    messageId: "assistant-1",
+    position: position(0),
+    submissionId: admission.submissionId,
+  });
+  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
+  expect(onResponseMessageCompleted).toHaveBeenCalledWith({
+    messageId: "assistant-1",
+    position: position(2),
+    submissionId: admission.submissionId,
+  });
+});
+
+test("stays silent after the consumer cancels the per-turn stream", async () => {
+  let waitSignal: AbortSignal | undefined;
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(
+    async (_admission, options) =>
+      new Promise<void>((_resolve, reject) => {
+        waitSignal = options?.signal;
+        options?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("cancelled", "AbortError")),
+          { once: true },
+        );
+      }),
+  );
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Cancel from the reader." }],
+      },
+    ]),
+  );
+
+  const reader = stream.getReader();
+  await reader.cancel();
+  // Let the rejected `wait()` settle; an enqueue on the cancelled controller
+  // would surface here as an unhandled rejection.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(waitSignal?.aborted).toBe(true);
+  await expect(reader.closed).resolves.toBeUndefined();
+});
+
+test("reports a client-tool continuation and completion against the resumed assistant id", async () => {
+  const { client } = clientWith(completedEvents);
+  const onResponseMessage =
+    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const onResponseMessageCompleted =
+    vi.fn<
+      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
+    >();
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+    onResponseMessage,
+    onResponseMessageCompleted,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions(
+      [
+        {
+          id: "assistant-original",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "readPetrinautDoc",
+              toolCallId: "tool-1",
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output: "The guide.",
+            },
+          ],
+        },
+      ],
+      "assistant-original",
+    ),
+  );
+  await readChunks(stream);
+
+  expect(onResponseMessage).toHaveBeenCalledOnce();
+  expect(onResponseMessage).toHaveBeenCalledWith({
+    messageId: "assistant-original",
+    position: position(0),
+    submissionId: admission.submissionId,
+  });
+  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
+  expect(onResponseMessageCompleted).toHaveBeenCalledWith({
+    messageId: "assistant-original",
+    position: position(2),
+    submissionId: admission.submissionId,
+  });
+});
+
+test("replays a stable typed or Voice message with the same idempotency key", async () => {
+  const seenKeys = new Set<string>();
+  let admittedTurns = 0;
+  const send = vi.fn<FlueClient["send"]>(async (options) => {
+    const key = options.idempotencyKey;
+    if (key === undefined || !seenKeys.has(key)) {
+      admittedTurns += 1;
+      if (key !== undefined) seenKeys.add(key);
+      return admission;
+    }
+    return { ...admission, deduplicated: true };
+  });
+  const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onAdmission,
+  });
+  const typedTurn = sendOptions([
+    {
+      id: "typed-message-1",
+      role: "user",
+      parts: [{ type: "text", text: "Admit this once." }],
+    },
+  ]);
+
+  const firstStream = await transport.sendMessages(typedTurn);
+  const replayedStream = await transport.sendMessages(typedTurn);
+  await Promise.all([readChunks(firstStream), readChunks(replayedStream)]);
+
+  expect(send).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ idempotencyKey: "ai-sdk:user:typed-message-1" }),
+  );
+  expect(send).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ idempotencyKey: "ai-sdk:user:typed-message-1" }),
+  );
+  expect(admittedTurns).toBe(1);
+  expect(onAdmission).toHaveBeenNthCalledWith(2, {
+    admission: { ...admission, deduplicated: true },
+    kind: "user",
+    messageId: "typed-message-1",
+  });
+
+  const voiceTurn = sendOptions([
+    {
+      id: "voice-realtime:7:item%2F1:0",
+      role: "user",
+      parts: [{ type: "text", text: "Voice transcript." }],
+    },
+  ]);
+  await readChunks(await transport.sendMessages(voiceTurn));
+  expect(send).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      idempotencyKey: "ai-sdk:user:voice-realtime:7:item%2F1:0",
+    }),
+  );
+});
+
+test("reports an idempotency conflict as a definite existing admission", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(409, {
+      error: {
+        details: "",
+        message: "The delivery key already names another payload.",
+        meta: { submissionId: "submission-existing" },
+        type: "submission_conflict",
+      },
+    });
+  });
+  const transport = createFlueChatTransport({
+    client: { send } as Pick<FlueClient, "send"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+
+  await expect(
+    transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-conflict",
+          role: "user",
+          parts: [{ type: "text", text: "Changed payload." }],
+        },
+      ]),
+    ),
+  ).rejects.toMatchObject({
+    failure: {
+      kind: "submission-conflict",
+      status: 409,
+      submissionId: "submission-existing",
+    },
+    message:
+      "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+    name: "FlueChatAdmissionError",
+  });
+  expect(send).toHaveBeenCalledOnce();
+});

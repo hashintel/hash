@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import {
   Button,
   type ButtonElementProps,
@@ -23,58 +25,12 @@ import {
   directionToggle,
   menuContent,
   placeholderLabel,
-  searchEmpty,
-  searchIcon,
-  searchInput,
-  searchRow,
   triggerButton,
   triggerDirectionToggle,
   triggerIcon,
 } from "./sort-menu.recipe";
 
 import type { DistributedOmit } from "type-fest";
-
-const SearchField = ({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus when the (lazily mounted) dropdown opens. Double rAF so the focus
-  // lands after ark moves focus to the menu content (mirrors Filter).
-  useEffect(() => {
-    let cancelled = false;
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) {
-          inputRef.current?.focus();
-        }
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return (
-    <div className={searchRow()}>
-      <Icon name="search" size="sm" className={searchIcon()} />
-      <input
-        ref={inputRef}
-        type="text"
-        className={searchInput()}
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        placeholder="Search…"
-        aria-label="Search sort options"
-      />
-    </div>
-  );
-};
 
 export const SortMenu = <SortKey extends string = string>({
   items = [],
@@ -201,7 +157,7 @@ export const SortMenu = <SortKey extends string = string>({
   };
 
   // Left/right arrows flip the highlighted row's displayed direction
-  // Keys typed into the search row report its row id, which matches no sorter, so
+  // Keys typed into the search header report a null highlighted id, so
   // caret movement in the input is never intercepted.
   const handleContentKeyDown = (
     event: React.KeyboardEvent,
@@ -275,25 +231,15 @@ export const SortMenu = <SortKey extends string = string>({
     };
   });
 
-  const menuItems: MenuItem[] = searchable
-    ? [
-        {
-          id: "sort-menu-search",
-          custom: <SearchField value={search} onChange={setSearch} />,
-        },
-        ...sorterItems,
-        ...(visibleSorters.length === 0
-          ? [
-              {
-                id: "sort-menu-search-empty",
-                custom: (
-                  <span className={searchEmpty()}>No matching sorts</span>
-                ),
-              },
-            ]
-          : []),
-      ]
-    : sorterItems;
+  const menuItems: MenuItem[] =
+    searchable && visibleSorters.length === 0
+      ? [
+          {
+            id: "sort-menu-search-empty",
+            custom: <span className={searchEmpty()}>No matching sorts</span>,
+          },
+        ]
+      : sorterItems;
 
   const selectedSorter = value
     ? items.find((sorter) => sorter.sortKey === value.sortKey)
@@ -389,6 +335,16 @@ export const SortMenu = <SortKey extends string = string>({
       trigger={trigger}
       items={menuItems}
       className={menuContent()}
+      header={
+        searchable ? (
+          <SelectableListSearch
+            value={search}
+            onChange={setSearch}
+            aria-label="Search sort options"
+          />
+        ) : undefined
+      }
+      swapHeaderFooterOnFlip
       onOpen={(open) => {
         if (!open) {
           setDraftDirections({});

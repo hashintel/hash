@@ -18,6 +18,11 @@
 # Petrinaut bundles its user-facing docs into the build via `?raw` imports,
 # so they must be present in the Docker context (not just README.md).
 !libs/@hashintel/petrinaut/docs/*.md
+# Atlas compiles its wire contract into the binary with `include_str!`, so the
+# file is a build input rather than documentation the image can do without.
+!libs/@local/graph/atlas/docs/wire.md
+# Brunch packages prompts and skills through `?raw` imports in their builds.
+!libs/@hashintel/brunch-agent/packages/*/src/**/*.md
 
 ########################
 ## Same as in .gitignore
@@ -148,7 +153,7 @@ blocks/**/generated
 .sentryclirc
 
 # Application data
-/var
+**/var
 seed-users.json
 
 # Block Protocol

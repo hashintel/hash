@@ -1,14 +1,26 @@
 import * as v from "valibot";
 
 import { toolName } from "../../conversation/naming";
+import { FreeTextAffordance } from "./affordance";
 
 import type { SessionEntryKind } from "../../evidence/session-log";
 import type { ReadonlyDeep } from "../../readonly-deep";
-import type { FreeTextAffordance } from "./affordance";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 
-export type SweepAffordance = Pick<FreeTextAffordance, "id" | "markdown">;
+/** The two affordance fields a sweep needs; extra affordance fields are ignored, not refused. */
+export const SweepAffordanceSchema = v.pick(FreeTextAffordance, [
+  "id",
+  "markdown",
+]);
+export type SweepAffordance = v.InferOutput<typeof SweepAffordanceSchema>;
+/** Read a sweep affordance off an untyped affordance payload or tool output. */
+export const sweepAffordanceFrom = (
+  value: unknown,
+): SweepAffordance | undefined => {
+  const parsed = v.safeParse(SweepAffordanceSchema, value);
+  return parsed.success ? parsed.output : undefined;
+};
 
 export interface SweepRefusalFact {
   /** Durable history may contain refusal codes from a different harness version. */
@@ -220,17 +232,19 @@ export const buildSweepExtractionPrompt = (
     renderTail(tail),
   ].join("\n\n");
 
+export const SWEEP_REPAIR_SIGNAL_TAG = "sweep-repair";
+
 export interface SweepRepairSignal {
-  readonly type: "sweep-repair";
-  readonly tagName: "sweep-repair";
+  readonly type: typeof SWEEP_REPAIR_SIGNAL_TAG;
+  readonly tagName: typeof SWEEP_REPAIR_SIGNAL_TAG;
   readonly body: string;
 }
 
 export const buildSweepRepairSignal = (
   refusal: SweepRefusalFact,
 ): SweepRepairSignal => ({
-  type: "sweep-repair",
-  tagName: "sweep-repair",
+  type: SWEEP_REPAIR_SIGNAL_TAG,
+  tagName: SWEEP_REPAIR_SIGNAL_TAG,
   body: `The sweep was refused: ${refusal.message} Repair the proposal and call ${toolName("sweep")} again. Declining is legal.`,
 });
 

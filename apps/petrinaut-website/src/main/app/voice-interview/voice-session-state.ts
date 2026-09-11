@@ -65,6 +65,7 @@ const phaseOf = (
     return "speaking";
   }
   if (
+    snapshot.output === "cancelling" ||
     snapshot.output === "waiting-for-tool" ||
     snapshot.input === "submitting"
   ) {
@@ -93,6 +94,10 @@ export const toVoiceSessionState = ({
   }
 
   return {
+    canReadFullResponse: snapshot.canReadFullResponse,
+    canRepeatQuestion: snapshot.canRepeatQuestion,
+    canTakeTurn: snapshot.canTakeTurn,
+    interruptionBySpeaking: snapshot.interruptionBySpeaking,
     errorMessage:
       snapshot.connection === "error" ? errorMessageOf(snapshot) : null,
     microphoneMuted:
@@ -100,6 +105,16 @@ export const toVoiceSessionState = ({
       snapshot.input !== "paused" &&
       !snapshot.microphoneEnabled,
     microphoneLevel: snapshot.microphoneLevel,
+    notice:
+      snapshot.inputNotice === "answer-pending"
+        ? "Answer captured. Waiting for Brunch."
+        : snapshot.inputNotice === "answer-already-pending"
+          ? "Previous answer waiting. Please try again after it is sent."
+          : snapshot.inputNotice === "not-heard"
+            ? "We didn't catch that. Please try again."
+            : snapshot.inputNotice === "too-long"
+              ? "That answer is too long. Please try a shorter response."
+              : null,
     phase: phaseOf(snapshot),
   };
 };

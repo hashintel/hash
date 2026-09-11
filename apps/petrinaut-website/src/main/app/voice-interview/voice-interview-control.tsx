@@ -6,13 +6,22 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import {
+  FlueChatAdmissionError,
+  type FlueChatResponseMessageCompletedEvent,
+  type FlueChatResponseMessageStartedEvent,
+} from "@hashintel/brunch-agent-transport-aisdk";
+import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectCanonicalSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import {
+  RealtimeBrunchBridge,
+  type RealtimeBrunchAdmissionTarget,
+  type VoiceSubmissionSettlement,
+} from "./realtime-brunch-bridge";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
@@ -20,7 +29,105 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+
+type ResolveSubmission = (
+  messageId: string,
+) => AgentSendResult["submissionId"] | undefined;
+type ResolveSubmissions = (
+  messageId: string,
+) => readonly AgentSendResult["submissionId"][] | undefined;
+type SubscribeToAdmission = (
+  target: RealtimeBrunchAdmissionTarget,
+  listener: (submissionId: AgentSendResult["submissionId"]) => void,
+) => () => void;
+type SubscribeToAdmissionFailure = (
+  target: RealtimeBrunchAdmissionTarget,
+  listener: (error: FlueChatAdmissionError) => void,
+) => () => void;
+type SubscribeToResponseMessageCompleted = (
+  listener: (event: FlueChatResponseMessageCompletedEvent) => void,
+) => () => void;
+type SubscribeToResponseMessageStarted = (
+  listener: (event: FlueChatResponseMessageStartedEvent) => void,
+) => () => void;
+type SubscribeToStopRequested = (listener: () => void) => () => void;
+type SubmitInterviewAnswer = ConstructorParameters<
+  typeof RealtimeBrunchBridge
+>[0]["submitInterviewAnswer"];
+type SubmitInterviewAnswerInput = Parameters<SubmitInterviewAnswer>[0];
+type SubmitInterviewAnswerResult = Awaited<ReturnType<SubmitInterviewAnswer>>;
+
+export const submitVoiceInputWithAdmission = async ({
+  input,
+  resolveInputSubmission,
+  submitVoiceInput,
+  subscribeToAdmission,
+  subscribeToAdmissionFailure,
+}: {
+  readonly input: SubmitInterviewAnswerInput;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly submitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"];
+  readonly subscribeToAdmission?: SubscribeToAdmission;
+  readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+}): Promise<SubmitInterviewAnswerResult> => {
+  let unsubscribe = () => {};
+  let unsubscribeFromFailure = () => {};
+  let removeAbortListener = () => {};
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    const rejectForAbort = () =>
+      reject(new FlueChatAdmissionError({ kind: "aborted" }));
+    if (input.signal.aborted) {
+      rejectForAbort();
+      return;
+    }
+    input.signal.addEventListener("abort", rejectForAbort, { once: true });
+    removeAbortListener = () =>
+      input.signal.removeEventListener("abort", rejectForAbort);
+  });
+  const admissionObserved =
+    subscribeToAdmission === undefined &&
+    subscribeToAdmissionFailure === undefined
+      ? Promise.resolve()
+      : new Promise<void>((resolve, reject) => {
+          if (subscribeToAdmission !== undefined) {
+            unsubscribe = subscribeToAdmission(
+              input.admissionTarget,
+              (submissionId) => {
+                input.onAdmission(submissionId);
+                resolve();
+              },
+            );
+          }
+          if (subscribeToAdmissionFailure !== undefined) {
+            unsubscribeFromFailure = subscribeToAdmissionFailure(
+              input.admissionTarget,
+              reject,
+            );
+          }
+        });
+  try {
+    const [result] = await Promise.race([
+      Promise.all([submitVoiceInput(input), admissionObserved]),
+      cancelled,
+    ]);
+    if (result.kind !== "message") return result;
+    const submissionId = resolveInputSubmission?.(result.messageId);
+    if (resolveInputSubmission !== undefined && submissionId === undefined) {
+      throw new Error("The Flue admission could not be correlated.");
+    }
+    return {
+      ...result,
+      ...(submissionId === undefined ? {} : { submissionId }),
+    };
+  } finally {
+    removeAbortListener();
+    unsubscribe();
+    unsubscribeFromFailure();
+  }
+};
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -39,6 +146,36 @@ const getVoiceInterviewDisclosureStorage = (): Storage | null => {
     return window.localStorage;
   } catch {
     return null;
+  }
+};
+
+const interruptionBySpeakingStorageKey =
+  "petrinaut:interruption-by-speaking:v1";
+
+export const readInterruptionBySpeakingPreference = (
+  storage: Pick<
+    Storage,
+    "getItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): boolean => {
+  try {
+    return storage?.getItem(interruptionBySpeakingStorageKey) !== "false";
+  } catch {
+    return true;
+  }
+};
+
+export const saveInterruptionBySpeakingPreference = (
+  enabled: boolean,
+  storage: Pick<
+    Storage,
+    "setItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): void => {
+  try {
+    storage?.setItem(interruptionBySpeakingStorageKey, String(enabled));
+  } catch {
+    // The preference still applies to this session when storage is unavailable.
   }
 };
 
@@ -109,37 +246,96 @@ export const loadOpenAIVoiceConfig = async (
   }
 };
 
-const disclosureStyle = css({
-  display: "flex",
+const VoiceModeIcon = () => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height="16"
+    viewBox="0 0 20 20"
+    width="16"
+  >
+    <path
+      d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+    />
+  </svg>
+);
+
+const disclosureFrameStyle = css({
   width: "full",
-  flexDirection: "column",
-  gap: "2",
-  paddingX: "2",
-  paddingY: "2",
+  padding: "2",
   borderTopWidth: "thin",
   borderTopStyle: "solid",
   borderTopColor: "neutral.a20",
+  backgroundColor: "neutral.bg.subtle",
   color: "neutral.s100",
+  _focus: { outline: "none" },
+});
+
+const disclosureCardStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "xl",
+  backgroundColor: "neutral.s00",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0,0,0,0.03), 0px 8px 16px -12px rgba(0,0,0,0.18)]",
+});
+
+const disclosureHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const disclosureIconStyle = css({
+  display: "inline-flex",
+  width: "7",
+  height: "7",
+  flexShrink: "0",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "lg",
+  backgroundColor: "blue.a20",
+  color: "blue.s90",
 });
 
 const disclosureTitleStyle = css({
   display: "flex",
+  minWidth: "[0]",
   flexDirection: "column",
-  gap: "1",
+  gap: "0.5",
+});
+
+const disclosureHeadingStyle = css({
   fontSize: "sm",
   fontWeight: "semibold",
+  lineHeight: "tight",
 });
 
 const disclosureSubtitleStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
-  fontWeight: "normal",
 });
 
 const disclosureCopyStyle = css({
   color: "neutral.s90",
   fontSize: "xs",
   lineHeight: "relaxed",
+});
+
+const disclosureConsentStyle = css({
+  width: "full",
+  padding: "2",
+  borderRadius: "lg",
+  backgroundColor: "neutral.a10",
+  color: "neutral.s100",
 });
 
 const disclosureActionsStyle = css({
@@ -149,13 +345,22 @@ const disclosureActionsStyle = css({
   gap: "2",
 });
 
+const disclosureStatusStyle = css({
+  minHeight: "[18px]",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "relaxed",
+});
+
 const VoiceInterviewDisclosure = ({
+  checkingMicrophone,
   consented,
   microphoneCheck,
   onCheckMicrophone,
   onConsentChange,
   onStart,
 }: {
+  readonly checkingMicrophone: boolean;
   readonly consented: boolean;
   readonly microphoneCheck: string;
   readonly onCheckMicrophone: () => void;
@@ -171,40 +376,65 @@ const VoiceInterviewDisclosure = ({
   return (
     <section
       aria-label="Voice mode consent"
-      className={disclosureStyle}
+      className={disclosureFrameStyle}
       ref={disclosureRef}
       tabIndex={-1}
     >
-      <div className={disclosureTitleStyle}>
-        <strong>Voice mode</strong>
-        <span className={disclosureSubtitleStyle}>
-          Talk through your process with AI
-        </span>
-      </div>
-      <p className={disclosureCopyStyle}>
-        OpenAI processes live audio and speaks the interviewer’s words.
-        Petrinaut keeps finalized answers in this conversation, not the audio.
-      </p>
-      <label className={disclosureCopyStyle}>
-        <input
-          checked={consented}
-          type="checkbox"
-          onChange={(event) => onConsentChange(event.currentTarget.checked)}
-        />{" "}
-        I understand how speech and transcripts are handled.
-      </label>
-      {microphoneCheck && (
-        <p aria-live="polite" className={disclosureCopyStyle}>
-          {microphoneCheck}
+      <div className={disclosureCardStyle}>
+        <div className={disclosureHeaderStyle}>
+          <span className={disclosureIconStyle}>
+            <VoiceModeIcon />
+          </span>
+          <div className={disclosureTitleStyle}>
+            <strong className={disclosureHeadingStyle}>
+              Start a voice conversation
+            </strong>
+            <span className={disclosureSubtitleStyle}>
+              Talk through your process with AI
+            </span>
+          </div>
+        </div>
+        <p className={disclosureCopyStyle}>
+          OpenAI processes live audio and speaks the interviewer’s words.
+          Petrinaut saves finalized answers—not audio.
         </p>
-      )}
-      <div className={disclosureActionsStyle}>
-        <Button disabled={!consented} type="button" onClick={onStart}>
-          Start voice mode
-        </Button>
-        <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
-          Check microphone
-        </Button>
+        <Checkbox
+          className={disclosureConsentStyle}
+          label="I understand how voice data is handled."
+          onChange={onConsentChange}
+          size="xs"
+          tone="brand"
+          value={consented}
+        />
+        <div className={disclosureActionsStyle}>
+          <Button
+            disabled={!consented}
+            onClick={onStart}
+            size="xs"
+            tone="brand"
+            type="button"
+          >
+            Start voice
+          </Button>
+          <Button
+            aria-describedby="voice-microphone-check-status"
+            loading={checkingMicrophone}
+            onClick={onCheckMicrophone}
+            size="xs"
+            type="button"
+            variant="subtle"
+          >
+            Test microphone
+          </Button>
+        </div>
+        <div
+          aria-atomic="true"
+          aria-live="polite"
+          className={disclosureStatusStyle}
+          id="voice-microphone-check-status"
+        >
+          {microphoneCheck}
+        </div>
       </div>
     </section>
   );
@@ -213,7 +443,7 @@ const VoiceInterviewDisclosure = ({
 const recordLatency = (event: VoiceLatencyEvent): void => {
   try {
     performance.measure(`voice-interview:${event.name}`, {
-      detail: { questionId: event.questionId },
+      detail: { correlationId: event.correlationId },
       duration: event.elapsedMs,
       start: 0,
     });
@@ -225,9 +455,25 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  resolveInputSubmission,
+  resolveResponseSubmission,
+  settlements,
+  subscribeToAdmission,
+  subscribeToAdmissionFailure,
+  subscribeToResponseMessageCompleted,
+  subscribeToResponseMessageStarted,
+  subscribeToStopRequested,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  resolveInputSubmission?: ResolveSubmission;
+  resolveResponseSubmission?: ResolveSubmissions;
+  settlements?: readonly VoiceSubmissionSettlement[];
+  subscribeToAdmission?: SubscribeToAdmission;
+  subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
+  subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
+  subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
   "use no memo";
 
@@ -236,6 +482,9 @@ const AvailableVoiceInterviewControl = ({
     // bridge, so these callbacks read what the layout effect below installs
     // rather than what was captured here.
     let latestSubmitVoiceInput = context.submitVoiceInput;
+    let latestResolveInputSubmission = resolveInputSubmission;
+    let latestSubscribeToAdmission = subscribeToAdmission;
+    let latestSubscribeToAdmissionFailure = subscribeToAdmissionFailure;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -251,7 +500,14 @@ const AvailableVoiceInterviewControl = ({
     });
     const bridge = new RealtimeBrunchBridge({
       session,
-      submitInterviewAnswer: (input) => latestSubmitVoiceInput(input),
+      submitInterviewAnswer: (input) =>
+        submitVoiceInputWithAdmission({
+          input,
+          resolveInputSubmission: latestResolveInputSubmission,
+          submitVoiceInput: latestSubmitVoiceInput,
+          subscribeToAdmission: latestSubscribeToAdmission,
+          subscribeToAdmissionFailure: latestSubscribeToAdmissionFailure,
+        }),
     });
     const controller = new VoiceTurnController({
       bridge,
@@ -259,15 +515,29 @@ const AvailableVoiceInterviewControl = ({
       session,
       submitText: (input) => latestSubmitVoiceInput(input),
     });
+    controller.setInterruptionBySpeaking(
+      readInterruptionBySpeakingPreference(),
+    );
     return {
+      bridge,
       controller,
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
       updateSubmissionContext: (
         nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
+        nextResolveInputSubmission:
+          | ((messageId: string) => string | undefined)
+          | undefined,
+        nextSubscribeToAdmission: SubscribeToAdmission | undefined,
+        nextSubscribeToAdmissionFailure:
+          | SubscribeToAdmissionFailure
+          | undefined,
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
+        latestResolveInputSubmission = nextResolveInputSubmission;
+        latestSubscribeToAdmission = nextSubscribeToAdmission;
+        latestSubscribeToAdmissionFailure = nextSubscribeToAdmissionFailure;
       },
     };
   });
@@ -279,6 +549,7 @@ const AvailableVoiceInterviewControl = ({
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [consented, setConsented] = useState(false);
   const [microphoneCheck, setMicrophoneCheck] = useState("");
+  const [checkingMicrophone, setCheckingMicrophone] = useState(false);
   const handledVoiceSelectionRef = useRef(false);
   const {
     inputMode,
@@ -288,18 +559,61 @@ const AvailableVoiceInterviewControl = ({
     setVoiceActive,
   } = context;
 
+  useEffect(
+    () =>
+      subscribeToResponseMessageCompleted?.((event) =>
+        store.bridge.notifyResponseMessageCompleted(event),
+      ),
+    [store, subscribeToResponseMessageCompleted],
+  );
+  useEffect(
+    () =>
+      subscribeToResponseMessageStarted?.((event) =>
+        store.bridge.notifyResponseMessageStarted(event),
+      ),
+    [store, subscribeToResponseMessageStarted],
+  );
+  useEffect(
+    () =>
+      subscribeToStopRequested?.(() => store.controller.cancelPendingSpeech()),
+    [store, subscribeToStopRequested],
+  );
+
   useLayoutEffect(() => {
-    store.updateSubmissionContext(context.submitVoiceInput);
+    store.updateSubmissionContext(
+      context.submitVoiceInput,
+      resolveInputSubmission,
+      subscribeToAdmission,
+      subscribeToAdmissionFailure,
+    );
+    const canonicalSpeech = selectCanonicalSpeech(context.messages);
+    const correlateSegment = (segment: CanonicalSpeechSegment) => {
+      const submissionIds = resolveResponseSubmission?.(segment.messageId);
+      return submissionIds === undefined || submissionIds.length === 0
+        ? segment
+        : { ...segment, submissionIds };
+    };
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
-      canonicalSegments: selectCanonicalSpeechSegments(context.messages),
+      canonicalSegments: canonicalSpeech.segments.map(correlateSegment),
+      ...(canonicalSpeech.questionSegment
+        ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
+        : {}),
+      settlements,
+      stopped: context.stopped,
       status: context.status,
     });
   }, [
     context.canAcceptVoiceInput,
     context.messages,
     context.status,
+    context.stopped,
     context.submitVoiceInput,
+    resolveInputSubmission,
+    resolveResponseSubmission,
+    settlements,
+    subscribeToAdmission,
+    subscribeToAdmissionFailure,
     store,
   ]);
 
@@ -310,12 +624,21 @@ const AvailableVoiceInterviewControl = ({
       registerVoiceModeControls({
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
+        readFullResponse: () => store.controller.readFullResponse(),
         reconnect: () => {
           void store.controller.reconnect();
         },
-        resume: () => store.controller.resume(),
+        repeatQuestion: () => store.controller.repeatQuestion(),
+        resume: () => {
+          void store.controller.resume();
+        },
+        setInterruptionBySpeaking: (enabled) => {
+          store.controller.setInterruptionBySpeaking(enabled);
+          saveInterruptionBySpeakingPreference(enabled);
+        },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],
   );
@@ -382,19 +705,38 @@ const AvailableVoiceInterviewControl = ({
 
     return (
       <VoiceInterviewDisclosure
+        checkingMicrophone={checkingMicrophone}
         consented={consented}
         microphoneCheck={microphoneCheck}
         onCheckMicrophone={() => {
-          setMicrophoneCheck("Checking microphone…");
-          void navigator.mediaDevices.getUserMedia({ audio: true }).then(
-            (stream) => {
+          if (checkingMicrophone) {
+            return;
+          }
+          setCheckingMicrophone(true);
+          setMicrophoneCheck("");
+          let microphoneCheckPromise: Promise<MediaStream>;
+          try {
+            const { mediaDevices } = navigator as {
+              readonly mediaDevices?: MediaDevices;
+            };
+            microphoneCheckPromise =
+              mediaDevices === undefined
+                ? Promise.reject(new Error("Microphone access is unavailable."))
+                : mediaDevices.getUserMedia({ audio: true });
+          } catch (error) {
+            microphoneCheckPromise = Promise.reject(error);
+          }
+          void microphoneCheckPromise
+            .then((stream) => {
               for (const track of stream.getTracks()) {
                 track.stop();
               }
               setMicrophoneCheck("Microphone ready.");
-            },
-            () => setMicrophoneCheck("Microphone access was not available."),
-          );
+            })
+            .catch(() =>
+              setMicrophoneCheck("Microphone access was not available."),
+            )
+            .finally(() => setCheckingMicrophone(false));
         }}
         onConsentChange={setConsented}
         onStart={() => {
@@ -412,13 +754,37 @@ const AvailableVoiceInterviewControl = ({
 
 export const VoiceInterviewControl = ({
   config,
+  resolveInputSubmission,
+  resolveResponseSubmission,
+  settlements,
+  subscribeToAdmission,
+  subscribeToAdmissionFailure,
+  subscribeToResponseMessageCompleted,
+  subscribeToResponseMessageStarted,
+  subscribeToStopRequested,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly resolveResponseSubmission?: ResolveSubmissions;
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly subscribeToAdmission?: SubscribeToAdmission;
+  readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  readonly subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
+  readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
+  readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
     config={config}
     context={context}
+    resolveInputSubmission={resolveInputSubmission}
+    resolveResponseSubmission={resolveResponseSubmission}
+    settlements={settlements}
+    subscribeToAdmission={subscribeToAdmission}
+    subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+    subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
+    subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+    subscribeToStopRequested={subscribeToStopRequested}
   />
 );

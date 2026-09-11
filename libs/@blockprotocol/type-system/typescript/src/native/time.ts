@@ -1,4 +1,4 @@
-import type { Timestamp } from "@blockprotocol/type-system";
+import type { Timestamp } from "../generated/type-system.js";
 
 export const generateTimestamp = (date: Date): Timestamp => {
   return date.toISOString() as Timestamp;

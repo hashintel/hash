@@ -63,11 +63,7 @@ const KitchenSinkBanner = ({
   tone: BannerTone;
   variant: BannerVariant;
 }) => (
-  <Banner
-    tone={tone}
-    variant={variant}
-    dismissible={{ dismissible: true, onDismiss: noop }}
-  >
+  <Banner tone={tone} variant={variant} dismissible={{ onDismiss: noop }}>
     <Banner.Title>Summarise what happened</Banner.Title>
     <Banner.Description>
       Describe what can be done about it here.
@@ -173,7 +169,7 @@ export const Content: Story = () => (
         tone="brand"
         variant="soft"
         icon={false}
-        dismissible={{ dismissible: true, onDismiss: noop }}
+        dismissible={{ onDismiss: noop }}
       >
         <div className={css({ fontWeight: "medium", color: "neutral.s120" })}>
           <Icon
@@ -225,7 +221,7 @@ export const Content: Story = () => (
             />
           ),
         }}
-        dismissible={{ dismissible: true, onDismiss: noop }}
+        dismissible={{ onDismiss: noop }}
       >
         <Banner.Title>Alex shared a document with you</Banner.Title>
         <Banner.Description>
@@ -238,11 +234,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Title + 4 actions">
-      <Banner
-        tone="brand"
-        variant="soft"
-        dismissible={{ dismissible: true, onDismiss: noop }}
-      >
+      <Banner tone="brand" variant="soft" dismissible={{ onDismiss: noop }}>
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
           <Banner.ActionButton>Approve</Banner.ActionButton>
@@ -254,11 +246,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Extra long content">
-      <Banner
-        tone="brand"
-        variant="soft"
-        dismissible={{ dismissible: true, onDismiss: noop }}
-      >
+      <Banner tone="brand" variant="soft" dismissible={{ onDismiss: noop }}>
         <Banner.Title>
           Heads up about an upcoming permissions change
         </Banner.Title>
@@ -274,7 +262,7 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="soft"
-        dismissible={{ dismissible: true, onDismiss: noop }}
+        dismissible={{ onDismiss: noop }}
         className={css({ maxWidth: "[400px]" })}
       >
         <Banner.Title>Summarise what happened</Banner.Title>

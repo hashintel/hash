@@ -11,32 +11,45 @@
       "persistent": true,
       "passThroughEnv": [
         "ANTHROPIC_API_KEY",
+        "BRUNCH_CHAT_MODEL",
+        "BRUNCH_CHAT_PORT",
+        "BRUNCH_CORS_ALLOWED_ORIGINS",
         "BRUNCH_DEV_DB_PATH",
-        "BRUNCH_PETRINAUT_ORIGINS",
-        "BRUNCH_TRANSPORT_AISDK_INSPECT"
+        "BRUNCH_TRANSPORT_AISDK_INSPECT",
+        "HASH_OTLP_ENDPOINT",
+        "OTEL_RESOURCE_ATTRIBUTES",
+        "OTEL_SERVICE_NAME"
       ]
     },
     "petrinaut:dev": {
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["BRUNCH_CHAT_ORIGIN", "PETRINAUT_WEBSITE_ROOT"]
+      "passThroughEnv": [
+        "BRUNCH_CHAT_ORIGIN",
+        "BRUNCH_CHAT_PORT",
+        "BRUNCH_PANEL_PORT",
+        "PETRINAUT_WEBSITE_ROOT"
+      ]
+    },
+    "start": {
+      "dependsOn": ["build"]
+    },
+    "start:test": {
+      "dependsOn": ["build"]
+    },
+    "test:integration": {
+      "dependsOn": ["build", "codegen", "^build"],
+      "env": ["TEST_COVERAGE"]
     },
     "test:unit": {
-      "dependsOn": [
-        "build",
-        "codegen",
-        "^build",
-        "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-dafny#build",
-        "@hashintel/brunch-agent-plugin-gherkin#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build"
-      ],
+      "dependsOn": ["codegen", "^build"],
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
-        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/docs/**",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/evaluations/**",
+        "$TURBO_ROOT$/libs/@hashintel/petrinaut/docs/**"
       ]
     }
   }

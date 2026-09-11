@@ -14,80 +14,229 @@
     "@local/hash-graph-sdk",
     "@local/hash-graph-store",
     "@local/hash-isomorphic-utils",
+    "@local/internal-api-client",
     "@local/petrinaut-optimizer-client",
     "@local/status",
     "@local/tsconfig"
   ],
   "tasks": {
-    "build:docker": [],
-    "codegen": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@blockprotocol/type-system#codegen",
-      "@hashintel/petrinaut-core#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-authorization#codegen",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-client#codegen",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/hash-graph-store#codegen",
-      "@local/hash-isomorphic-utils#build",
-      "@local/hash-isomorphic-utils#codegen",
-      "@local/internal-api-client#build",
-      "@local/petrinaut-optimizer-client#build",
-      "@local/petrinaut-optimizer-client#codegen",
-      "@local/status#build"
-    ],
-    "dev": [
-      "@apps/hash-api#codegen"
-    ],
-    "fix:eslint": [
-      "@apps/hash-api#codegen",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@apps/hash-api#codegen",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@apps/hash-api#codegen"
-    ],
-    "start": [
-      "@apps/hash-api#start:migrate"
-    ],
-    "start:healthcheck": [],
-    "start:migrate": [
-      "@apps/hash-api#codegen",
-      "@apps/hash-graph#start:healthcheck"
-    ],
-    "start:test": [
-      "@apps/hash-api#start:test:migrate"
-    ],
-    "start:test:healthcheck": [],
-    "start:test:migrate": [
-      "@apps/hash-api#codegen",
-      "@apps/hash-graph#start:test:healthcheck"
-    ],
-    "test:unit": [
-      "@apps/hash-api#codegen",
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/hash-isomorphic-utils#build",
-      "@local/petrinaut-optimizer-client#build",
-      "@local/status#build"
-    ]
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/petrinaut-optimizer-client#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "start:migrate"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "start:migrate": {
+      "dependsOn": [
+        "@apps/hash-graph#start:healthcheck",
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start:test": {
+      "dependsOn": [
+        "start:test:migrate"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "start:test:healthcheck": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "start:test:migrate": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck",
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/hash-isomorphic-utils#build",
+        "@local/internal-api-client#build",
+        "@local/petrinaut-optimizer-client#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

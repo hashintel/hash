@@ -6,7 +6,7 @@ The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
-- **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
+- **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
@@ -101,7 +101,7 @@ See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-
 
 ## Token capacity
 
-Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded. The capacity setting is saved with the net and kept when you reopen it.
 
 A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
 
@@ -139,18 +139,20 @@ Whether a node must be fully inside or only partially inside the selection box i
 
 ## Left sidebar
 
-The left sidebar has four tabs for creating and managing entities:
+The left sidebar holds **Entities**, one tree of everything in the net, in these groups:
 
-| Tab                        | Contents                                                             |
+| Group                      | Contents                                                             |
 | -------------------------- | -------------------------------------------------------------------- |
 | **Nodes**                  | All places and transitions. Click to select and open properties.     |
-| **Types**                  | Token types (colours). Click **+** to create a new type.             |
+| **Token Types**            | Token types (colours). Click **+** to create a new type.             |
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with subnets gets a **Subnets** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
+
 Toggle the sidebar with the button in the top-left corner.
 
-Each list is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
+The tree is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
 
 ## Search
 

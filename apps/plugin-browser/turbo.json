@@ -3,23 +3,22 @@
   "tasks": {
     "codegen": {
       "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["@local/hash-isomorphic-utils#build"]
     },
     "build": {
       "outputs": ["./build/**/*", "./zip/*"],
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     },
     "build:firefox": {
       "outputs": ["./build/**/*", "./zip/*"],
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     },
     "build:test": {
       "outputs": ["./build/**/*", "./zip/*"],
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     },
-    "start:test:migrate": {
-      "cache": false,
-      "dependsOn": ["build:test", "^start:test:healthcheck"]
+    "dev": {
+      "dependsOn": ["codegen", "^build"]
     }
   }
 }

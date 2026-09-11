@@ -132,7 +132,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
-    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
+    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
 };
 
 const getLatestNetDefinitionToolInputSchema = z
@@ -212,6 +212,27 @@ export type PetrinautAiToolName = keyof typeof petrinautAiTools;
 export type PetrinautAiToolInput<Name extends PetrinautAiToolName> = z.input<
   (typeof petrinautAiTools)[Name]["inputSchema"]
 >;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/**
+ * Normalize the narrow structured values that text-oriented providers may
+ * serialize before applying the canonical Petrinaut tool schema.
+ */
+export const normalizePetrinautAiToolInput = (
+  toolName: PetrinautAiToolName,
+  input: unknown,
+): unknown => {
+  if (toolName !== "addArc" || !isRecord(input)) return input;
+  let normalized = input;
+
+  if (typeof normalized.weight === "string") {
+    const weight = Number(normalized.weight);
+    if (Number.isFinite(weight)) normalized = { ...normalized, weight };
+  }
+  return normalized;
+};
 
 /**
  * Writable tool callbacks exposed to the AI: every mutation, plus the subset

@@ -46,7 +46,6 @@ export type UserSettings = {
   showMinimap: boolean;
   snapToGrid: boolean;
   partialSelection: boolean;
-  useEntitiesTreeView: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
   /**
@@ -94,6 +93,20 @@ export type UserSettings = {
    * study drawer runs no compute of its own.
    */
   enableOptimizationSurface: boolean;
+  /**
+   * Experimental: connect a host-supplied in-browser optimizer, which runs
+   * studies through the experiments backend and streams each step's metrics
+   * as it is evaluated. Off, a connected optimizer counts as none at all and
+   * the Optimizations surfaces stay hidden. A remote optimization capability
+   * is unaffected either way.
+   */
+  enableInBrowserOptimization: boolean;
+  /**
+   * Shows a host's Brunch demo affordances, such as the demo site's
+   * prepared-fixture selector. Toggled from a palette command the host
+   * registers; the settings dialog has no control for it.
+   */
+  brunchDemoMode: boolean;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -115,7 +128,6 @@ export type UserSettingsActions = {
   setShowMinimap: (value: boolean) => void;
   setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
-  setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
   setEnableAdHocScenarios: (value: boolean) => void;
@@ -124,6 +136,8 @@ export type UserSettingsActions = {
   setShowCompilationOutput: (value: boolean) => void;
   setEnableParameterSweeps: (value: boolean) => void;
   setEnableOptimizationSurface: (value: boolean) => void;
+  setEnableInBrowserOptimization: (value: boolean) => void;
+  setBrunchDemoMode: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -150,7 +164,6 @@ export const defaultUserSettings: UserSettings = {
   showMinimap: true,
   snapToGrid: true,
   partialSelection: true,
-  useEntitiesTreeView: false,
   enableNetComponents: false,
   enableNotebookView: false,
   enableAdHocScenarios: false,
@@ -159,11 +172,17 @@ export const defaultUserSettings: UserSettings = {
   showCompilationOutput: false,
   enableParameterSweeps: false,
   enableOptimizationSurface: false,
+  enableInBrowserOptimization: false,
+  brunchDemoMode: false,
   subViewPanels: {},
   canvasViewports: {},
 };
 
-const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
+/**
+ * The value outside any provider. `UserSettingsProvider` compares against it
+ * to tell whether an ancestor already provides the settings.
+ */
+export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   ...defaultUserSettings,
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
@@ -180,7 +199,6 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowMinimap: () => {},
   setSnapToGrid: () => {},
   setPartialSelection: () => {},
-  setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
   setEnableAdHocScenarios: () => {},
@@ -189,10 +207,12 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowCompilationOutput: () => {},
   setEnableParameterSweeps: () => {},
   setEnableOptimizationSurface: () => {},
+  setEnableInBrowserOptimization: () => {},
+  setBrunchDemoMode: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextValue>(
-  DEFAULT_CONTEXT_VALUE,
+  defaultUserSettingsContextValue,
 );

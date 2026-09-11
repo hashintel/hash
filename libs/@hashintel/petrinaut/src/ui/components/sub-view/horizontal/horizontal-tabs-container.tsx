@@ -78,7 +78,7 @@ const contentStyle = cva({
 });
 
 interface TabButtonProps {
-  subView: SubView;
+  subView: Pick<SubView, "id" | "title" | "tooltip">;
   isActive: boolean;
   onClick: () => void;
 }
@@ -98,6 +98,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       onClick={onClick}
       className={tabButtonStyle({ active: isActive })}
       aria-selected={isActive}
+      tabIndex={isActive ? 0 : -1}
       aria-controls={tabpanelId}
       role="tab"
     >
@@ -114,12 +115,43 @@ const TabButton: React.FC<TabButtonProps> = ({
  * Useful when you need to compose the tabs header separately from the content.
  */
 export const HorizontalTabsHeader: React.FC<{
-  subViews: SubView[];
+  subViews: Pick<SubView, "id" | "title" | "tooltip">[];
   activeTabId: string;
   onTabChange: (tabId: string) => void;
 }> = ({ subViews, activeTabId, onTabChange }) => {
   return (
-    <div className={tabsContainerStyle} role="tablist">
+    <div
+      className={tabsContainerStyle}
+      role="tablist"
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        const index = subViews.findIndex((tab) => tab.id === activeTabId);
+        let nextIndex: number;
+        switch (event.key) {
+          case "ArrowRight":
+            nextIndex = (index + 1) % subViews.length;
+            break;
+          case "ArrowLeft":
+            nextIndex = (index - 1 + subViews.length) % subViews.length;
+            break;
+          case "Home":
+            nextIndex = 0;
+            break;
+          case "End":
+            nextIndex = subViews.length - 1;
+            break;
+          default:
+            return;
+        }
+        const next = subViews[nextIndex];
+        if (!next) return;
+        event.preventDefault();
+        onTabChange(next.id);
+        event.currentTarget
+          .querySelectorAll<HTMLButtonElement>('[role="tab"]')
+          [nextIndex]?.focus();
+      }}
+    >
       {subViews.map((subView) => (
         <TabButton
           key={subView.id}

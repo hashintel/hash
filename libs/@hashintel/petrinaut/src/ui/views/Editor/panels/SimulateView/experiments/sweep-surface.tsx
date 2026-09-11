@@ -17,12 +17,14 @@ import { Select } from "@hashintel/ds-components";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import {
+  axisDisplayName,
   axisStep,
   axisValueAt,
 } from "../../../../../../react/experiments/parameter-grid";
 import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
+  describeSurfaceSampling,
   SurfaceAxisControls,
   SurfaceCaption,
   SurfaceControlLabel,
@@ -178,7 +180,7 @@ export const SweepSurface = ({
 
   /** The axis readout a plot fraction lands on. */
   const readoutAt = (axis: ExperimentParameterAxis, fraction: number): string =>
-    `${axis.identifier} = ${formatAxisValue(
+    `${axisDisplayName(axis)} = ${formatAxisValue(
       axisValueAt(axis, Math.round(fraction * axis.stepCount)),
       axisStep(axis),
     )}`;
@@ -226,7 +228,7 @@ export const SweepSurface = ({
             {
               x: nearestGridIndex(xAxis, sweepSelection?.[xAxis.identifier]),
               y: nearestGridIndex(yAxis, sweepSelection?.[yAxis.identifier]),
-              emphasis: true,
+              kind: "navigation",
             },
           ]}
           onPickFraction={handlePickFraction}
@@ -240,9 +242,11 @@ export const SweepSurface = ({
             ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
             : null
         }
-        sampledCount={cellValues.size}
-        totalCells={totalCells}
-        runsPerCell={SURFACE_CELL_RUNS}
+        text={describeSurfaceSampling({
+          sampledCount: cellValues.size,
+          totalCells,
+          runsPerCell: SURFACE_CELL_RUNS,
+        })}
       />
     </SurfaceFrame>
   );

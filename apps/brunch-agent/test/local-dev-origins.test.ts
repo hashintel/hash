@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
+import { mergePetrinautPanelConfig } from "../petrinaut-local.vite.config.ts";
 import {
   defaultChatOrigin,
-  defaultPanelOrigins,
   localChatListen,
   localPanelListen,
   petrinautLocalServer,
@@ -13,24 +13,17 @@ import {
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
-const readRepoFile = (relativePath: string): string =>
-  readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
+/** The module reads the port variables once, as it is imported. */
+const importWithPorts = async (chatPort: string, panelPort: string) => {
+  vi.resetModules();
+  vi.stubEnv("BRUNCH_CHAT_PORT", chatPort);
+  vi.stubEnv("BRUNCH_PANEL_PORT", panelPort);
+  return import("../src/http/local-origins.ts");
+};
 
-test("one documented root command starts the Brunch server and Petrinaut panel", () => {
-  const rootPackage = JSON.parse(readRepoFile("package.json")) as {
-    scripts: Record<string, string>;
-  };
-
-  expect(rootPackage.scripts["dev:brunch"]).toBe(
-    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
-  );
-  expect(rootPackage.scripts["dev:brunch:server"]).toBe(
-    "yarn workspace @apps/brunch-agent dev",
-  );
-  expect(rootPackage.scripts["dev:brunch:panel"]).toBe(
-    'PETRINAUT_WEBSITE_ROOT="$PWD/apps/petrinaut-website" yarn workspace @apps/brunch-agent petrinaut:dev',
-  );
-  expect(readAppFile("README.md")).toContain("yarn dev:brunch");
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
 });
 
 test("dev listens on the chat origin the panel proxy already assumes", () => {
@@ -40,14 +33,9 @@ test("dev listens on the chat origin the panel proxy already assumes", () => {
     port: 4321,
     strictPort: true,
   });
-  expect(readAppFile("vite.config.ts")).toContain("localChatListen");
 });
 
-test("petrinaut:dev listens on the panel origin chat CORS already assumes", () => {
-  expect(defaultPanelOrigins).toEqual([
-    "http://127.0.0.1:4915",
-    "http://localhost:4915",
-  ]);
+test("builds local panel configuration for the mounted Flue route", () => {
   expect(localPanelListen).toEqual({
     host: "127.0.0.1",
     port: 4915,
@@ -56,16 +44,78 @@ test("petrinaut:dev listens on the panel origin chat CORS already assumes", () =
   expect(petrinautLocalServer(defaultChatOrigin)).toEqual({
     ...localPanelListen,
     proxy: {
-      "/api/chat": {
+      "/agents/chat": {
         target: defaultChatOrigin,
-        changeOrigin: true,
+        changeOrigin: false,
       },
     },
   });
-  expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
-    "petrinautLocalServer",
+});
+
+test("petrinaut:dev retains the website API handlers needed by Voice", () => {
+  const config = mergePetrinautPanelConfig({
+    chatOrigin: defaultChatOrigin,
+    loadedConfig: {
+      plugins: [{ name: "petrinaut-api-dev" }],
+    },
+    root: "/test/petrinaut-website",
+  });
+
+  expect(config.plugins).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: "petrinaut-api-dev" }),
+    ]),
   );
-  expect(readAppFile("src/http/petrinaut-chat.ts")).toContain(
-    "defaultPanelOrigins",
+});
+
+test("forwards the deployment CORS allowlist to local development", () => {
+  const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
+    tasks: {
+      dev: {
+        passThroughEnv: string[];
+      };
+    };
+  };
+
+  expect(turboConfig.tasks.dev.passThroughEnv).toContain(
+    "BRUNCH_CORS_ALLOWED_ORIGINS",
   );
+});
+
+test("forwards the port variables to both dev tasks through Turbo", () => {
+  const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
+    tasks: {
+      dev: { passThroughEnv: string[] };
+      "petrinaut:dev": { passThroughEnv: string[] };
+    };
+  };
+
+  expect(turboConfig.tasks.dev.passThroughEnv).toContain("BRUNCH_CHAT_PORT");
+  // The panel derives its proxy target from the chat port, so it needs both.
+  expect(turboConfig.tasks["petrinaut:dev"].passThroughEnv).toEqual(
+    expect.arrayContaining(["BRUNCH_CHAT_PORT", "BRUNCH_PANEL_PORT"]),
+  );
+});
+
+test("an explicit port moves the listener and everything derived from it", async () => {
+  const moved = await importWithPorts("4331", "4925");
+
+  expect(moved.localChatListen.port).toBe(4331);
+  expect(moved.defaultChatOrigin).toBe("http://127.0.0.1:4331");
+  expect(moved.localPanelListen.port).toBe(4925);
+  expect(moved.petrinautLocalServer(moved.defaultChatOrigin).port).toBe(4925);
+});
+
+test("a port that is not a usable number falls back to the default", async () => {
+  const chatOnly = await importWithPorts("4331", "not-a-port");
+
+  expect(chatOnly.localChatListen.port).toBe(4331);
+  expect(chatOnly.localPanelListen.port).toBe(4915);
+});
+
+test("an overridden port keeps strictPort, so a clash is reported not absorbed", async () => {
+  const moved = await importWithPorts("4331", "4925");
+
+  expect(moved.localChatListen.strictPort).toBe(true);
+  expect(moved.localPanelListen.strictPort).toBe(true);
 });

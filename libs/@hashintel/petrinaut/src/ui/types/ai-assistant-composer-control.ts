@@ -10,7 +10,11 @@ export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 /** The active way a user is providing input to the AI assistant. */
 export type PetrinautAiInputMode = "text" | "voice";
 
-/** Current lifecycle state of Petrinaut's AI SDK conversation. */
+/**
+ * Current lifecycle state of Petrinaut's conversation. Stays busy across the
+ * automatic follow-up to a step that ended in client tool calls, so hosts
+ * never read the SDK's momentary `ready` between them as the end of a turn.
+ */
 export type PetrinautAiComposerStatus =
   | "submitted"
   | "streaming"
@@ -37,6 +41,8 @@ export type PetrinautAiComposerControlContext = {
   conversationId: string;
   messages: PetrinautAiMessage[];
   status: PetrinautAiComposerStatus;
+  /** Logical response stopped, including a withheld follow-up; not a Flue settlement claim. */
+  stopped?: boolean;
   /** Call from an event handler or effect, never while rendering. */
   stop: () => Promise<void>;
   /** Call from an event handler or effect, never while rendering. */
@@ -61,12 +67,20 @@ export type PetrinautAiVoiceModeControls = {
   reconnect: () => void;
   /** Resumes microphone capture after `pause`. */
   resume: () => void;
+  /** Replays the exact retained canonical assistant response when available. */
+  readFullResponse?: () => void;
+  /** Replays only the exact question selected by the host's canonical marker. */
+  repeatQuestion?: () => void;
   /**
    * Stops or restarts microphone capture while the session keeps running, so
    * the assistant carries on speaking. Unlike `pause`, which suspends the
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /** Allows speech to interrupt assistant playback without clearing input. */
+  setInterruptionBySpeaking?: (enabled: boolean) => void;
+  /** Cancels Voice output and hands the live microphone turn to the user. */
+  takeTurn?: () => Promise<void> | void;
 };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
@@ -99,7 +113,14 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
     params: Omit<
       Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
       "source"
-    >,
+    > & {
+      /**
+       * Withdraws a retained turn that has not been submitted yet, for example
+       * when the Voice session ends while chat is still busy. A turn already
+       * handed to the composer is not cancelled.
+       */
+      readonly signal?: AbortSignal;
+    },
   ) => Promise<PetrinautAiComposerSubmitTextResult>;
 };
 

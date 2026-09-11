@@ -38,6 +38,7 @@ export type ToolRenderItem = {
   summary: AiToolSummary;
   tone: ToolTone;
   toolName: string;
+  notApplied: boolean;
   /** True only for the persisted spoken answer to this exact tool call. */
   voiceOrigin: boolean;
   /** Server-reported error message for tools whose state is `output-error`. */
@@ -360,6 +361,13 @@ const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
   return undefined;
 };
 
+const isNotAppliedResult = (part: RenderableToolPart): boolean =>
+  part.state === "output-available" &&
+  typeof part.output === "object" &&
+  part.output !== null &&
+  "applied" in part.output &&
+  part.output.applied === false;
+
 export const getToolSummaryFromPart = (
   part: RenderableToolPart,
 ): AiToolSummary => {
@@ -380,6 +388,16 @@ export const getToolSummaryFromPart = (
     return {
       title: docName ? `Read user guide: ${docName}` : "Read user guide",
       href: docName ? `${petrinautDocsBaseUrl}/${docName}.md` : undefined,
+    };
+  }
+  if (isNotAppliedResult(part)) {
+    const output = part.output as { reason?: unknown };
+    return {
+      title: "Not applied",
+      detail:
+        typeof output.reason === "string"
+          ? output.reason
+          : "No change was applied.",
     };
   }
   if (toolName === setNetTitleToolName) {
@@ -436,14 +454,17 @@ const getToolTone = ({
   state,
   summary,
   toolName,
+  notApplied,
 }: {
   state: string;
   summary: AiToolSummary;
   toolName: string;
+  notApplied: boolean;
 }): ToolTone => {
   if (state === "output-error") {
     return "danger";
   }
+  if (notApplied) return "neutral";
 
   if (
     toolName === getLatestNetDefinitionToolName ||
@@ -472,6 +493,7 @@ export const toToolRenderItem = (
   const state = part.state ?? "input-available";
   const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
+  const notApplied = isNotAppliedResult(part);
 
   const interactiveDefinition = hasInteractiveToolInput(state)
     ? getInteractiveTool(toolName, part.input, interactiveTools)
@@ -491,13 +513,15 @@ export const toToolRenderItem = (
         : `${message.id}-${part.type}`,
     state,
     summary,
-    tone: getToolTone({ state, summary, toolName }),
+    tone: getToolTone({ state, summary, toolName, notApplied }),
     toolName,
+    notApplied,
     voiceOrigin:
       state === "output-available" &&
       typeof part.toolCallId === "string" &&
       message.metadata?.source === "voice" &&
-      message.metadata.toolCallId === part.toolCallId,
+      (message.metadata.voiceToolCallIds?.includes(part.toolCallId) === true ||
+        message.metadata.toolCallId === part.toolCallId),
     errorText:
       state === "output-error" && typeof part.errorText === "string"
         ? part.errorText
@@ -595,7 +619,9 @@ const ToolItem = ({
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
   const expandable = children.length > 0;
-  const title = errored ? `${tool.toolName} errored` : tool.summary.title;
+  const title = errored
+    ? (tool.errorText ?? "Tool failed")
+    : tool.summary.title;
 
   if (href && !errored) {
     return (
@@ -637,7 +663,6 @@ const ToolItem = ({
           onSelectToolTarget?.(target);
         }
       }}
-      title={errored ? tool.errorText : undefined}
     >
       <span
         className={toolStatusStyle({
@@ -647,17 +672,23 @@ const ToolItem = ({
       >
         {errored ? (
           <Icon name="close" size="xs" />
+        ) : tool.notApplied ? (
+          <Icon name="dash" size="xs" data-tool-result-icon="not-applied" />
         ) : complete ? (
-          <Icon name="check" size="xs" />
+          <Icon name="check" size="xs" data-tool-result-icon="complete" />
         ) : null}
       </span>
       <span className={toolTextStyle}>
         <span>{title}</span>
-        {tool.summary.detail && (
+        {errored ? (
+          <span className={toolDetailStyle} data-testid="tool-detail">
+            {tool.toolName}
+          </span>
+        ) : tool.summary.detail ? (
           <span className={toolDetailStyle} data-testid="tool-detail">
             {tool.summary.detail}
           </span>
-        )}
+        ) : null}
       </span>
       {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
     </button>
@@ -748,7 +779,7 @@ export const AiAssistantToolList = ({
         <span className={toolHeaderIconStyle}>
           <Icon name="arrowsLeftRight" size="xs" />
         </span>
-        <span style={{ flex: 1 }}>{tools.length} changes</span>
+        <span style={{ flex: 1 }}>{tools.length} operations</span>
         <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>

@@ -2,10 +2,43 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["@local/hash-isomorphic-utils#build"]
+    },
+    // The tests import from these four packages' dist. `^build` would also pull in the
+    // browser plugin's Sentry-gated production build and the frontend's `next build`,
+    // which the type checks never read.
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen",
+        "@local/hash-isomorphic-utils#build",
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-sdk#build",
+        "@blockprotocol/graph#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "codegen",
+        "@local/eslint#build",
+        "@local/hash-isomorphic-utils#build",
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-sdk#build",
+        "@blockprotocol/graph#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "codegen",
+        "@local/eslint#build",
+        "@local/hash-isomorphic-utils#build",
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-sdk#build",
+        "@blockprotocol/graph#build"
+      ]
     },
     "test:integration": {
       "dependsOn": [
+        "codegen",
         "@apps/plugin-browser#build:test",
         "^start:test:healthcheck"
       ],

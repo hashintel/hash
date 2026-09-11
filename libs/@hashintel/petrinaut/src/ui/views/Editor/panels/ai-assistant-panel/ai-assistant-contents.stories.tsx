@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { userEvent, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -244,6 +245,7 @@ const HostVoiceSlotPreview = () => (
 
 const Frame = ({
   error,
+  initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
   status = "ready",
@@ -253,6 +255,7 @@ const Frame = ({
   voiceSession,
 }: {
   error?: Error;
+  initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   status?: "submitted" | "streaming" | "ready" | "error";
@@ -262,6 +265,9 @@ const Frame = ({
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
+  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
+    initialVoiceDockCollapsed,
+  );
   // Stands in for the host, which reports session state rather than rendering
   // the live surfaces itself.
   const [voiceSessionStore] = useState(() => {
@@ -291,8 +297,10 @@ const Frame = ({
           onInputModeChange={() => {}}
           onStop={() => {}}
           onSubmit={() => setInput("")}
+          onVoiceDockCollapsedChange={setVoiceDockCollapsed}
           status={status}
           stopped={stopped}
+          voiceDockCollapsed={voiceDockCollapsed}
           voiceMode={voiceMode}
           voiceModeAvailable={voiceModeAvailable}
         />
@@ -330,6 +338,18 @@ export const VoiceModeAwaitingConsent: Story = {
   ),
 };
 
+export const VoiceModeAwaitingConsentCompact: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+    />
+  ),
+};
+
 export const VoiceSessionListening: Story = {
   render: () => (
     <Frame
@@ -341,6 +361,25 @@ export const VoiceSessionListening: Story = {
       })}
     />
   ),
+};
+
+export const VoiceSessionCollapsed: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+      voiceSession={liveSession({ microphoneLevel: 0.6 })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", {
+        name: "Collapse voice session",
+      }),
+    );
+  },
 };
 
 export const VoiceSessionSpeaking: Story = {
@@ -471,8 +510,8 @@ export const ToolError: Story = {
     <Frame
       messages={[
         {
-          ...toolCallMessage,
-          parts: toolCallMessage.parts.map((part) =>
+          ...singleToolCallMessage,
+          parts: singleToolCallMessage.parts.map((part) =>
             part.type.startsWith("tool-")
               ? {
                   ...part,

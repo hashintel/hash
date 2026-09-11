@@ -1,0 +1,12 @@
+---
+source: libs/@local/graph/atlas/src/serve/hydrate/statements.rs
+assertion_line: 348
+expression: types.compile().0
+---
+SELECT "entity_temporal_metadata_0_0_0"."web_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_edition_cache_1_1_0"."versioned_urls", "entity_edition_cache_1_1_0"."direct_types"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+  ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+INNER JOIN "entity_edition_cache" AS "entity_edition_cache_1_1_0"
+  ON "entity_edition_cache_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL) AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ) AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2) AND (("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4) AND ("entity_editions_0_1_0"."archived" = $5))

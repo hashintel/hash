@@ -1,7 +1,54 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { css, cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
+
+// Shared by the preset width variants (duplicated in base-input.recipe.ts —
+// Panda can only extract same-file spreads): the wrapper holds the preset
+// against flex siblings but yields to containers narrower than it.
+const presetWidthWrapper = {
+  maxWidth: "[100%]",
+  minWidth: "[max(var(--form-min-width), min(var(--form-width), 100%))]",
+} as const;
+const presetWidthSelect = {
+  maxWidth: "[100%]",
+  minWidth: "var(--form-min-width)",
+} as const;
+
+// The default suffix content of a multi select item, swapped out for the
+// "Only" button while the item is hovered
+export const suffixDefaultContentClass = css({
+  "[data-part='item']:hover &": {
+    display: "none",
+  },
+});
+
+export const onlyButtonRecipe = cva({
+  base: {
+    display: "none",
+    cursor: "pointer",
+    fontWeight: "[500]",
+    _hover: {
+      textDecoration: "underline",
+    },
+    "[data-part='item']:hover &": {
+      display: "inline-flex",
+    },
+  },
+  variants: {
+    tone: {
+      neutral: {
+        color: "neutral.s110",
+        _hover: { color: "neutral.s125" },
+      },
+      brand: {
+        color: "blue.s100",
+        _hover: { color: "blue.s110" },
+      },
+    },
+  },
+  defaultVariants: { tone: "neutral" },
+});
 
 export const selectRecipe = sva({
   slots: [
@@ -31,7 +78,7 @@ export const selectRecipe = sva({
       display: "inline-flex",
       cursor: "pointer",
       width: "[fit-content]",
-      minWidth: "[min-content]",
+      minWidth: "var(--form-min-width)",
       position: "relative",
       background: "[var(--base-input-background-color)]",
       borderWidth: "var(--form-border-width)",
@@ -49,7 +96,18 @@ export const selectRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
+      // Visibility and opacity are split across the two focus rules: focus-within
+      // drives visibility so the clear stays keyboard-reachable (Chromium's tab
+      // navigation honours :focus-within-dependent visibility but skips elements
+      // revealed via :has(:focus-visible)), while opacity — the actual visual
+      // reveal — only applies for keyboard (:focus-visible) focus.
       "&:focus-within [data-part='clear']": {
+        visibility: "visible",
+      },
+      "&:has(:focus-visible) [data-part='clear']": {
+        opacity: "1",
+      },
+      "&:has([data-part='trigger'][data-state='open']) [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
@@ -169,11 +227,15 @@ export const selectRecipe = sva({
       right: "[100%]",
       maskImage: "[linear-gradient(to right, transparent, black)]",
     },
+    // At least as wide as the trigger, growing to fit item content up to
+    // 18rem. !important beats the SelectableList content min-width (140px).
     list: {
       ...formWidths.base,
-      width: "var(--reference-width)",
-      maxWidth: "var(--reference-width)",
-      minWidth: "[var(--form-min-width) !important]",
+      "--select-list-reference-width": "var(--reference-width)",
+      width: "[fit-content]",
+      minWidth:
+        "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
+      maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
     },
   },
   variants: {
@@ -198,6 +260,25 @@ export const selectRecipe = sva({
         },
         prefix: {
           paddingLeft: "2",
+        },
+      },
+      naked: {
+        wrapper: {
+          fontSize: "[inherit]",
+          lineHeight: "[inherit]",
+          fontWeight: "[inherit]",
+          letterSpacing: "[inherit]",
+        },
+        select: {
+          borderStyle: "none",
+          "--base-input-background-color": "transparent",
+          "--base-input-padding-x": "spacing.2",
+          "&::after": {
+            marginRight: "[calc(var(--base-input-padding-x) / 2)]",
+          },
+        },
+        trigger: {
+          paddingY: "0",
         },
       },
       subtle: {
@@ -244,10 +325,8 @@ export const selectRecipe = sva({
           },
         },
         list: {
-          width:
-            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
-          maxWidth:
-            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
+          "--select-list-reference-width":
+            "calc(var(--reference-width) + var(--base-input-padding-x) * 2)",
           marginLeft: "[calc(-1 * var(--base-input-padding-x))]",
         },
       },
@@ -328,16 +407,20 @@ export const selectRecipe = sva({
     },
     width: {
       xs: {
-        select: { ...formWidths.variants.widths.xs },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.xs },
+        select: presetWidthSelect,
       },
       sm: {
-        select: { ...formWidths.variants.widths.sm },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.sm },
+        select: presetWidthSelect,
       },
       md: {
-        select: { ...formWidths.variants.widths.md },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.md },
+        select: presetWidthSelect,
       },
       lg: {
-        select: { ...formWidths.variants.widths.lg },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.lg },
+        select: presetWidthSelect,
       },
       fullWidth: {
         wrapper: { width: "[100%]" },
@@ -350,6 +433,7 @@ export const selectRecipe = sva({
         select: {
           ...formWidths.variants.widths.fitContent,
           width: "[fit-content]",
+          minWidth: "[unset]",
         },
         readonly: { width: "[fit-content]" },
         triggerWrapper: {
@@ -366,7 +450,7 @@ export const selectRecipe = sva({
         },
         list: {
           width: "[auto]",
-          maxWidth: "[auto]",
+          maxWidth: "[none]",
         },
       },
     },
@@ -391,6 +475,22 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
+    overflowRow: {
+      true: {
+        select: { minWidth: "0" },
+      },
+    },
+    // Multi-select items need the same inter-item gap as Menu lists so that
+    // adjacent highlight-style selections read as separate rows
+    multiple: {
+      true: {
+        list: {
+          "& [data-part='item'] + [data-part='item']": {
+            marginTop: "[1px]",
+          },
+        },
+      },
+    },
     connectsRight: {
       true: {
         wrapper: {

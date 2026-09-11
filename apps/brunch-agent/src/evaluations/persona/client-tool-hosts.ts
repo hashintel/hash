@@ -21,17 +21,21 @@ import {
   isPetrinautConstructionToolName,
 } from "../runbook/headless-petrinaut-client.ts";
 
-export type BrunchToolExecutor = "server" | "mock" | "real-headless";
+import type { ClientToolCall } from "../../conversation/client-tools.ts";
+import type { ToolExecution } from "@hashintel/brunch-agent";
+
+/** Where a tool ran: core's server side, or one of the persona bridge's client hosts. */
+export type BrunchToolExecutor =
+  | Extract<ToolExecution, "server">
+  | "mock"
+  | "real-headless";
 
 /** The Pi flag that selects a host, named here so the bridge's failure message can cite it. */
 export const TOOL_HOST_FLAG = "brunch-tool-host";
 
-export interface BrunchClientToolCall {
+export type BrunchClientToolCall = ClientToolCall & {
   readonly submissionId: string;
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly input: unknown;
-}
+};
 
 export interface BrunchClientToolHost {
   readonly kind: Exclude<BrunchToolExecutor, "server">;

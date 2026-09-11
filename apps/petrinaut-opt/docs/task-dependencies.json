@@ -1,20 +1,37 @@
 {
   "package": "@apps/petrinaut-opt",
   "dependencies": [
+    "@local/petrinaut-optimizer-core",
     "@local/petrinaut-python"
   ],
   "tasks": {
-    "codegen": [
-      "@local/petrinaut-python#codegen"
-    ],
-    "lint:ruff": [],
-    "lint:types": [],
-    "start": [
-      "@apps/petrinaut-opt#codegen"
-    ],
-    "test:unit": [
-      "@apps/petrinaut-opt#codegen",
-      "@local/petrinaut-python#codegen"
-    ]
+    "codegen": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ]
+    },
+    "lint:ruff": {
+      "dependsOn": []
+    },
+    "lint:types": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "test:unit": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

@@ -1,8 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@rust/hash-graph-authorization#manifest"]
+    },
     "codegen": {
-      "dependsOn": ["^build", "@rust/hash-graph-authorization#build:types"],
+      "dependsOn": ["@rust/hash-graph-authorization#build:types"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
@@ -14,6 +17,7 @@
       "outputs": ["src/generated/**"]
     },
     "build": {
+      "dependsOn": ["codegen", "@blockprotocol/type-system#build", "^manifest"],
       "outputs": ["dist/**"]
     }
   }

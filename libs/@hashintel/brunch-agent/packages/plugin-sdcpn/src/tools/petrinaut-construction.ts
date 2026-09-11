@@ -2,7 +2,130 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import {
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+  normalizePetrinautAiToolInput,
+  petrinautAiTools,
+} from "@hashintel/petrinaut-core/ai";
+
+import { validateDeclaredBasis } from "../declared-basis";
+import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
+import { isObservedNodeMutation, observedNodeInputSchema } from "../root-node";
+import {
+  isObservedStateMutation,
+  observedStateInputSchema,
+} from "../root-state";
+
+import type {
+  DefinitionObservation,
+  BrowserBinding,
+  ConstructionMutationRequest,
+} from "../transition-record";
+import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
+
+export { joinedRootArcInputSchema } from "../root-arc";
+
+/** Settled-revision authority every browser-bound construction tool checks basis against. */
+export interface WorkpieceAuthorityOptions {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly retainedRevisionFor: (
+    revisionId: string,
+  ) => Promise<WorkpieceRevision | undefined>;
+}
+
+/** The immutable browser join a legacy prepared-fixture tracer mutates against. */
+export interface JoinedBrowserOptions {
+  readonly binding: BrowserBinding;
+  readonly requestedBaseHash: string;
+}
+
+/** The only joined mutation; inherited headless tools are not newly admitted. */
+export const createJoinedRootArcTool = (
+  options: WorkpieceAuthorityOptions & JoinedBrowserOptions,
+) =>
+  defineTool({
+    name: "addArc",
+    description: `${petrinautAiTools.addArc.description}\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.`,
+    input: joinedRootArcInputSchema,
+    prepareArguments: (input) => normalizePetrinautAiToolInput("addArc", input),
+    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    async run({ data }) {
+      if (data.brunch.requestedBaseHash !== options.requestedBaseHash)
+        throw new Error("The arc does not cite the issued browser base.");
+      await validateDeclaredBasis(
+        data.brunch.basis,
+        options.currentRevision,
+        options.retainedRevisionFor,
+      );
+      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+    },
+  });
+
+export { observedConstructionBrowserToolNames } from "../construction-tool-names";
+
+export const observedDefinitionReadTool = defineTool({
+  name: getLatestNetDefinitionToolName,
+  description: petrinautAiTools.getLatestNetDefinition.description,
+  input: petrinautAiTools.getLatestNetDefinition.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+export const observedCompilationReadTool = defineTool({
+  name: getNetCompilationErrorsToolName,
+  description: petrinautAiTools.getNetCompilationErrors.description,
+  input: petrinautAiTools.getNetCompilationErrors.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+/** Resolves an earlier verified browser read so a mutation can cite its exact base. */
+export interface ObservedConstructionOptions extends WorkpieceAuthorityOptions {
+  readonly observationFor: (
+    id: string,
+    mutation?: Pick<ConstructionMutationRequest, "toolName" | "input">,
+  ) => Promise<DefinitionObservation>;
+}
+
+export const createObservedArcTool = (
+  name: ConstructionMutationRequest["toolName"],
+  options: ObservedConstructionOptions,
+) =>
+  defineTool({
+    name,
+    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) && name !== "addParameter" ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
+    input: isObservedNodeMutation(name)
+      ? observedNodeInputSchema(name)
+      : isObservedStateMutation(name)
+        ? observedStateInputSchema(name)
+        : observedArcInputSchema(name),
+    prepareArguments: (input) => normalizePetrinautAiToolInput(name, input),
+    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    async run({ data }) {
+      if (!options.currentRevision)
+        throw new Error("Settle the workpiece before construction.");
+      await validateDeclaredBasis(
+        data.brunch.basis,
+        options.currentRevision,
+        options.retainedRevisionFor,
+      );
+      const { brunch, ...input } = data;
+      const observed = await options.observationFor(
+        brunch.observationToolCallId,
+        { toolName: name, input },
+      );
+      if (observed.sha256 !== data.brunch.requestedBaseHash)
+        throw new Error(
+          "Mutation base differs from the earlier verified browser observation.",
+        );
+      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+    },
+  });
 
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
@@ -13,8 +136,14 @@ export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "addArc",
 ] as const satisfies readonly (keyof typeof petrinautAiTools)[];
 
+export const petrinautFixtureToolNames = [
+  "getLatestNetDefinition",
+  "addArc",
+] as const satisfies readonly (keyof typeof petrinautAiTools)[];
+
 export type PetrinautConstructionToolName =
   (typeof PETRINAUT_CONSTRUCTION_TOOL_NAMES)[number];
+type PetrinautFixtureToolName = (typeof petrinautFixtureToolNames)[number];
 
 const issuePathFrom = (
   input: Record<string, unknown>,
@@ -40,21 +169,42 @@ const issuePathFrom = (
 };
 
 const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
+  if (toolName === "addType") {
+    const canonical = petrinautAiTools.addType;
+    return {
+      description: [
+        canonical.description,
+        "Canonical Petrinaut input JSON Schema:",
+        JSON.stringify(canonical.inputSchema.toJSONSchema({ io: "input" })),
+      ].join("\n"),
+      schema: canonical.inputSchema,
+    };
+  }
   const canonicalTool = petrinautAiTools[toolName];
   const jsonSchema = canonicalTool.inputSchema.toJSONSchema();
+  // Unjoined legacy/headless classes retain their original loose validation path.
+  // This does not admit any new class.
+  const carrier = v.looseObject({});
 
   return {
     description: [
       canonicalTool.description,
+      ...(toolName === "addArc"
+        ? [
+            "A finite numeric-string weight is normalized to a number before canonical validation.",
+          ]
+        : []),
       "Canonical Petrinaut input JSON Schema:",
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
-      v.looseObject({}),
+      carrier,
       v.rawTransform((context) => {
-        const parsed = canonicalTool.inputSchema.safeParse(
+        const normalizedInput = normalizePetrinautAiToolInput(
+          toolName,
           context.dataset.value,
         );
+        const parsed = canonicalTool.inputSchema.safeParse(normalizedInput);
         if (parsed.success) return parsed.data;
 
         for (const issue of parsed.error.issues) {
@@ -90,4 +240,17 @@ const definePetrinautConstructionTool = (
 
 export const petrinautConstructionTools = PETRINAUT_CONSTRUCTION_TOOL_NAMES.map(
   definePetrinautConstructionTool,
+);
+
+const isPetrinautFixtureTool = (
+  tool: (typeof petrinautConstructionTools)[number],
+): tool is (typeof petrinautConstructionTools)[number] & {
+  readonly name: PetrinautFixtureToolName;
+} =>
+  petrinautFixtureToolNames.some((fixtureToolName) => {
+    return fixtureToolName === tool.name;
+  });
+
+export const petrinautFixtureTools = petrinautConstructionTools.filter(
+  isPetrinautFixtureTool,
 );

@@ -11,6 +11,9 @@
       ],
       "outputs": ["src/petrinaut/models.py"],
       "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^manifest"]
     }
   }
 }

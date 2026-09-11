@@ -5,6 +5,7 @@
 
 use core::{
     alloc::Allocator,
+    clone::CloneToUninit,
     cmp,
     fmt::{self, Debug},
     marker::PhantomData,
@@ -909,19 +910,40 @@ where
     }
 }
 
+#[expect(
+    unsafe_code,
+    reason = "repr(transparent): the clone writes through `[T]`'s own layout"
+)]
+// SAFETY: `IdSlice` is `repr(transparent)` over `[T]`, so a clone of the inner slice written to
+// `dest` is a valid clone of the whole value under the same layout.
+unsafe impl<I, T> CloneToUninit for IdSlice<I, T>
+where
+    T: Clone,
+{
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        // SAFETY: the caller passes `dest` valid for writes of `self`'s layout, which
+        // `repr(transparent)` makes exactly `self.raw`'s layout.
+        unsafe {
+            <[T]>::clone_to_uninit(&self.raw, dest);
+        }
+    }
+}
+
 impl<I, T, A> Clone for Box<IdSlice<I, T>, A>
 where
-    I: Id,
     T: Clone,
     A: Allocator + Clone,
 {
     fn clone(&self) -> Self {
-        let raw = self
-            .as_raw()
-            .to_vec_in(Self::allocator(self).clone())
-            .into_boxed_slice();
+        Self::clone_from_ref_in(&**self, Self::allocator(self).clone())
+    }
 
-        IdSlice::from_boxed_slice(raw)
+    fn clone_from(&mut self, source: &Self) {
+        if self.raw.len() == source.raw.len() {
+            self.raw.clone_from_slice(&source.raw);
+        } else {
+            *self = source.clone();
+        }
     }
 }
 

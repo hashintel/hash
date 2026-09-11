@@ -20,6 +20,7 @@ export default defineConfig({
         /^@hashintel\/brunch-agent(?:\/.*)?$/u,
         /^@hashintel\/petrinaut-core(?:\/.*)?$/u,
         "valibot",
+        "zod",
       ],
     },
     sourcemap: true,

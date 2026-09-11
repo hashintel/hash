@@ -1,0 +1,891 @@
+/**
+ * @layerRoot core.optimization
+ * @role The optimization contract shared by the CLI, the service client and the browser runtime: manifest and event schemas, capability, channel and connected-source types, study description and seed derivation
+ */
+import { z } from "zod";
+
+import { constraintListSchema } from "../constraint/constraint";
+import { parseSDCPNFile } from "../file-format/parse-sdcpn-file";
+import { sdcpnSchema } from "../file-format/types";
+
+import type { AbortSignalLike } from "../environment";
+
+export const PETRINAUT_OPTIMIZATION_MAX_SEED = 2_147_483_647;
+export const PETRINAUT_OPTIMIZATION_MAX_TRIALS = 1_000;
+export const PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL = 100_000;
+export const PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS = 5_000_000;
+export const PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL = 100;
+
+const optimizationScalarSchema = z.union([z.number(), z.boolean()]);
+
+/** A value Optuna may suggest or a fixed binding may hold. */
+export type OptimizationScalar = z.infer<typeof optimizationScalarSchema>;
+
+export const petrinautContinuousOptimizationDomainSchema = z
+  .strictObject({
+    kind: z.literal("continuous"),
+    minimum: z.number(),
+    maximum: z.number(),
+    scale: z.enum(["linear", "log"]),
+  })
+  .superRefine((domain, context) => {
+    if (domain.minimum >= domain.maximum) {
+      context.addIssue({
+        code: "custom",
+        path: ["maximum"],
+        message: "Maximum must be greater than minimum",
+      });
+    }
+    if (domain.scale === "log" && domain.minimum <= 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["minimum"],
+        message: "A logarithmic range must have a positive minimum",
+      });
+    }
+  })
+  .meta({
+    description: "A continuous Optuna domain for real and ratio parameters.",
+  });
+
+export const petrinautIntegerOptimizationDomainSchema = z
+  .strictObject({
+    kind: z.literal("integer"),
+    minimum: z.number().int(),
+    maximum: z.number().int(),
+    step: z.number().int().positive(),
+    scale: z.enum(["linear", "log"]),
+  })
+  .superRefine((domain, context) => {
+    if (domain.minimum >= domain.maximum) {
+      context.addIssue({
+        code: "custom",
+        path: ["maximum"],
+        message: "Maximum must be greater than minimum",
+      });
+    } else if ((domain.maximum - domain.minimum) % domain.step !== 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["step"],
+        message:
+          "Step must divide the range exactly so the maximum is reachable",
+      });
+    } else if (domain.scale === "log" && domain.minimum <= 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["minimum"],
+        message: "A logarithmic range must have a positive minimum",
+      });
+    } else if (domain.scale === "log" && domain.step !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["step"],
+        message: "A logarithmic integer range requires a step of 1",
+      });
+    }
+  })
+  .meta({ description: "An integer Optuna domain." });
+
+export const petrinautBooleanOptimizationDomainSchema = z
+  .strictObject({ kind: z.literal("boolean") })
+  .meta({
+    description: "The complete false/true domain of a boolean parameter.",
+  });
+
+export const petrinautOptimizationDomainSchema = z
+  .discriminatedUnion("kind", [
+    petrinautContinuousOptimizationDomainSchema,
+    petrinautIntegerOptimizationDomainSchema,
+    petrinautBooleanOptimizationDomainSchema,
+  ])
+  .meta({
+    description: "A transient Optuna domain for one scenario parameter.",
+  });
+
+export const petrinautOptimizationFixedBindingSchema = z
+  .strictObject({
+    kind: z.literal("fixed"),
+    value: optimizationScalarSchema,
+  })
+  .meta({ description: "A scenario parameter held constant for every trial." });
+
+export const petrinautOptimizationVariableBindingSchema = z
+  .strictObject({
+    kind: z.literal("optimize"),
+    domain: petrinautOptimizationDomainSchema,
+  })
+  .meta({
+    description: "A scenario parameter whose value Optuna may suggest.",
+  });
+
+export const petrinautOptimizationParameterBindingSchema = z
+  .discriminatedUnion("kind", [
+    petrinautOptimizationFixedBindingSchema,
+    petrinautOptimizationVariableBindingSchema,
+  ])
+  .meta({ description: "The per-study treatment of one scenario parameter." });
+
+function addIssue(
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+  message: string,
+): void {
+  context.addIssue({ code: "custom", path, message });
+}
+
+export const petrinautOptimizationObjectiveSchema = z
+  .strictObject({
+    metricId: z.string().min(1),
+    direction: z.enum(["maximize", "minimize"]),
+  })
+  .meta({
+    description: "The sole metric and direction optimized by the study.",
+  });
+
+export const petrinautOptimizationExecutionSchema = z
+  .strictObject({
+    seed: z.number().int().min(0).max(PETRINAUT_OPTIMIZATION_MAX_SEED),
+    dt: z.number().positive(),
+    maxTime: z.number().positive(),
+    seedsPerTrial: z
+      .number()
+      .int()
+      .min(1)
+      .max(PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL)
+      .optional()
+      .meta({
+        description:
+          "How many seeded simulations each trial runs. The same derived seed sequence is reused for every trial, and the per-seed objectives are aggregated into the trial objective. Defaults to 1.",
+      }),
+  })
+  .meta({ description: "Simulation settings shared by every trial." });
+
+export const petrinautOptimizationStudySchema = z
+  .strictObject({
+    trials: z.number().int().min(1).max(PETRINAUT_OPTIMIZATION_MAX_TRIALS),
+    sampler: z.enum(["tpe", "random"]),
+  })
+  .meta({ description: "Optuna study settings." });
+
+const optimizationModelSchema = z
+  .strictObject({
+    title: z.string(),
+    definition: sdcpnSchema,
+  })
+  .transform((model, context) => {
+    const parsed = parseSDCPNFile({ ...model.definition, title: model.title });
+    if (!parsed.ok) {
+      context.addIssue({ code: "custom", message: parsed.error });
+      return z.NEVER;
+    }
+    const { title: _title, ...definition } = parsed.sdcpn;
+    return { title: model.title, definition };
+  })
+  .meta({
+    description: "An immutable, self-contained Petrinaut model snapshot.",
+  });
+
+const optimizationScenarioSchema = z
+  .strictObject({
+    id: z.string().min(1),
+    parameterBindings: z.record(
+      z.string(),
+      petrinautOptimizationParameterBindingSchema,
+    ),
+  })
+  .meta({
+    description:
+      "The sole scenario and the exhaustive, transient treatment of its parameters.",
+  });
+
+function validateScenarioParameterDefault(
+  parameter: {
+    identifier: string;
+    type: "real" | "integer" | "boolean" | "ratio";
+    default: number;
+  },
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+): void {
+  if (parameter.type === "integer" && !Number.isInteger(parameter.default)) {
+    addIssue(
+      context,
+      path,
+      `Integer scenario parameter "${parameter.identifier}" requires an integer default`,
+    );
+  } else if (
+    parameter.type === "ratio" &&
+    (parameter.default < 0 || parameter.default > 1)
+  ) {
+    addIssue(
+      context,
+      path,
+      `Ratio scenario parameter "${parameter.identifier}" requires a default between 0 and 1`,
+    );
+  } else if (
+    parameter.type === "boolean" &&
+    parameter.default !== 0 &&
+    parameter.default !== 1
+  ) {
+    addIssue(
+      context,
+      path,
+      `Boolean scenario parameter "${parameter.identifier}" requires a default of 0 or 1`,
+    );
+  }
+}
+
+export const petrinautOptimizationManifestSchema = z
+  .strictObject({
+    kind: z.literal("petrinaut-optimization"),
+    version: z.literal(1),
+    name: z.string().trim().min(1),
+    model: optimizationModelSchema,
+    scenario: optimizationScenarioSchema,
+    objective: petrinautOptimizationObjectiveSchema,
+    constraints: constraintListSchema.optional().meta({
+      description:
+        'Optional boolean conditions over the parameter space (`space: "parameters"`) and the simulation state (`space: "state"`). Absent means unconstrained; nothing enforces them yet.',
+    }),
+    execution: petrinautOptimizationExecutionSchema,
+    study: petrinautOptimizationStudySchema,
+  })
+  .superRefine((manifest, context) => {
+    const scenarios = manifest.model.definition.scenarios ?? [];
+    const metrics = manifest.model.definition.metrics ?? [];
+    if (scenarios.length !== 1) {
+      addIssue(
+        context,
+        ["model", "definition", "scenarios"],
+        "An optimization manifest must contain exactly one scenario",
+      );
+    }
+    if (metrics.length !== 1) {
+      addIssue(
+        context,
+        ["model", "definition", "metrics"],
+        "An optimization manifest must contain exactly one metric",
+      );
+    }
+
+    const scenario = scenarios[0];
+    if (!scenario || scenario.id !== manifest.scenario.id) {
+      addIssue(
+        context,
+        ["scenario", "id"],
+        "The selected scenario must be the sole scenario in the model snapshot",
+      );
+      return;
+    }
+    const objectiveMetric = metrics[0];
+    if (
+      !objectiveMetric ||
+      objectiveMetric.id !== manifest.objective.metricId
+    ) {
+      addIssue(
+        context,
+        ["objective", "metricId"],
+        "The objective metric must be the sole metric in the model snapshot",
+      );
+    }
+    if (objectiveMetric && objectiveMetric.code.trim() === "") {
+      addIssue(
+        context,
+        ["model", "definition", "metrics", 0, "code"],
+        "The objective metric must contain custom expression code",
+      );
+    }
+
+    const parametersByIdentifier = new Map(
+      scenario.scenarioParameters.map((parameter) => [
+        parameter.identifier,
+        parameter,
+      ]),
+    );
+    if (parametersByIdentifier.size !== scenario.scenarioParameters.length) {
+      addIssue(
+        context,
+        ["model", "definition", "scenarios", 0, "scenarioParameters"],
+        "Scenario parameter identifiers must be unique",
+      );
+    }
+
+    let optimizedParameterCount = 0;
+    for (const [index, parameter] of scenario.scenarioParameters.entries()) {
+      const path: PropertyKey[] = [
+        "scenario",
+        "parameterBindings",
+        parameter.identifier,
+      ];
+      validateScenarioParameterDefault(parameter, context, [
+        "model",
+        "definition",
+        "scenarios",
+        0,
+        "scenarioParameters",
+        index,
+        "default",
+      ]);
+
+      const binding = Object.hasOwn(
+        manifest.scenario.parameterBindings,
+        parameter.identifier,
+      )
+        ? manifest.scenario.parameterBindings[parameter.identifier]
+        : undefined;
+      if (!binding) {
+        addIssue(context, path, "Every scenario parameter requires a binding");
+        continue;
+      }
+
+      if (binding.kind === "fixed") {
+        const value = binding.value;
+        if (parameter.type === "boolean" && typeof value !== "boolean") {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Boolean scenario parameters require a boolean fixed value",
+          );
+        } else if (parameter.type !== "boolean" && typeof value !== "number") {
+          addIssue(
+            context,
+            [...path, "value"],
+            `${parameter.type} scenario parameters require a numeric fixed value`,
+          );
+        } else if (
+          parameter.type === "integer" &&
+          typeof value === "number" &&
+          !Number.isInteger(value)
+        ) {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Integer scenario parameters require an integer fixed value",
+          );
+        } else if (
+          parameter.type === "ratio" &&
+          typeof value === "number" &&
+          (value < 0 || value > 1)
+        ) {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Ratio scenario parameters require a fixed value between 0 and 1",
+          );
+        }
+        continue;
+      }
+
+      optimizedParameterCount++;
+      const domain = binding.domain;
+      if (
+        (parameter.type === "real" || parameter.type === "ratio") &&
+        domain.kind !== "continuous"
+      ) {
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          `${parameter.type} scenario parameters require a continuous domain`,
+        );
+      } else if (parameter.type === "integer" && domain.kind !== "integer") {
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          "Integer scenario parameters require an integer domain",
+        );
+      } else if (parameter.type === "boolean" && domain.kind !== "boolean") {
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          "Boolean scenario parameters require a boolean domain",
+        );
+      }
+      if (
+        parameter.type === "ratio" &&
+        domain.kind === "continuous" &&
+        (domain.minimum < 0 || domain.maximum > 1)
+      ) {
+        addIssue(
+          context,
+          [...path, "domain"],
+          "A ratio optimization domain must stay between 0 and 1",
+        );
+      }
+    }
+
+    for (const identifier of Object.keys(manifest.scenario.parameterBindings)) {
+      if (!parametersByIdentifier.has(identifier)) {
+        addIssue(
+          context,
+          ["scenario", "parameterBindings", identifier],
+          "Unknown scenario parameter",
+        );
+      }
+    }
+    if (optimizedParameterCount === 0) {
+      addIssue(
+        context,
+        ["scenario", "parameterBindings"],
+        "At least one scenario parameter must be optimized",
+      );
+    }
+
+    const stepsPerTrial = Math.ceil(
+      manifest.execution.maxTime / manifest.execution.dt,
+    );
+    const seedsPerTrial = manifest.execution.seedsPerTrial ?? 1;
+    if (
+      !Number.isSafeInteger(stepsPerTrial) ||
+      stepsPerTrial > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
+    ) {
+      addIssue(
+        context,
+        ["execution"],
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per seeded run`,
+      );
+    } else if (
+      stepsPerTrial * seedsPerTrial * manifest.study.trials >
+      PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
+    ) {
+      // Blame the seed multiplier only when the study fits without it.
+      const fitsUnseeded =
+        stepsPerTrial * manifest.study.trials <=
+        PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS;
+      addIssue(
+        context,
+        fitsUnseeded ? ["execution", "seedsPerTrial"] : ["study", "trials"],
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`,
+      );
+    }
+  })
+  .meta({
+    description:
+      "A versioned, self-contained study over a flat set of scenario parameters.",
+  });
+
+/** Parses a manifest, naming every invalid field in the error it throws. */
+export const parseOptimizationManifest = (
+  data: unknown,
+): PetrinautOptimizationManifest => {
+  const parsed = petrinautOptimizationManifestSchema.safeParse(data);
+  if (!parsed.success) {
+    const details = parsed.error.issues
+      .map(
+        ({ path, message }) =>
+          `${path.length > 0 ? path.join(".") : "manifest"}: ${message}`,
+      )
+      .join("; ");
+    throw new Error(`Invalid optimization manifest: ${details}`);
+  }
+  return parsed.data;
+};
+
+/** The application optimization request is the immutable CLI manifest. */
+export const petrinautOptimizationInputSchema =
+  petrinautOptimizationManifestSchema;
+
+export const petrinautOptimizationEvaluateParamsSchema = z
+  .strictObject({
+    parameterValues: z.record(z.string(), optimizationScalarSchema),
+  })
+  .meta({
+    description: "Values suggested for every and only optimized parameter.",
+  });
+
+/**
+ * The protocol's response shapes are schemas rather than plain types, so the
+ * CLI can publish them as JSON Schema and other languages can generate
+ * matching types from the one definition.
+ */
+export const petrinautOptimizationDescribeParameterSchema = z
+  .discriminatedUnion("type", [
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("float"),
+      default: z.number(),
+      minimum: z.number(),
+      maximum: z.number(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("int"),
+      // `default` stays a plain number: it comes from the scenario parameter,
+      // which the manifest schema does not force to be an integer. The bounds
+      // and step come from the integer domain, which does.
+      default: z.number(),
+      minimum: z.number().int(),
+      maximum: z.number().int(),
+      step: z.number().int(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("boolean"),
+      default: z.boolean(),
+    }),
+  ])
+  .meta({
+    description: "One optimized parameter of the study's flat search space.",
+  });
+
+export const petrinautOptimizationDescribeResultSchema = z
+  .strictObject({
+    direction: z.enum(["maximize", "minimize"]),
+    study: petrinautOptimizationStudySchema
+      .extend({
+        seed: z.number().int(),
+        seedsPerTrial: z
+          .number()
+          .int()
+          .min(1)
+          .max(PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL)
+          .optional(),
+      })
+      .meta({
+        description:
+          "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
+      }),
+    parameters: z.array(petrinautOptimizationDescribeParameterSchema),
+    constraints: constraintListSchema.optional().meta({
+      description:
+        "The manifest's constraints, passed through verbatim so protocol clients (the Python binding) can evaluate their HIR. Absent means unconstrained.",
+    }),
+  })
+  .meta({
+    description:
+      "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints.",
+  });
+
+export const petrinautOptimizationReplicateSchema = z
+  .strictObject({
+    seed: z.number().int(),
+    objective: z.number(),
+  })
+  .meta({ description: "One seeded run's objective within a trial." });
+
+export const petrinautOptimizationEvaluateResultSchema = z
+  .strictObject({
+    objective: z.number(),
+    replicates: z.array(petrinautOptimizationReplicateSchema).optional(),
+  })
+  .meta({
+    description:
+      "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one.",
+  });
+
+export type PetrinautOptimizationDescribeParameter = z.infer<
+  typeof petrinautOptimizationDescribeParameterSchema
+>;
+export type PetrinautOptimizationDescribeResult = z.infer<
+  typeof petrinautOptimizationDescribeResultSchema
+>;
+export type PetrinautOptimizationEvaluateParams = z.infer<
+  typeof petrinautOptimizationEvaluateParamsSchema
+>;
+export type PetrinautOptimizationEvaluateResult = z.infer<
+  typeof petrinautOptimizationEvaluateResultSchema
+>;
+
+const optimizationBestSchema = z
+  .strictObject({
+    trial: z.number().int().nonnegative(),
+    parameters: z.record(z.string(), optimizationScalarSchema),
+    objective: z.number(),
+  })
+  .meta({ description: "The best completed trial so far." });
+
+/**
+ * Server-authoritative, strictly increasing sequence number attached to each
+ * event of a detached optimization run. A client resuming a run asks for the
+ * events with `seq` greater than the last one it applied, and skips any
+ * replayed event at or below that cursor. Optional so streams from hosts that
+ * predate detached runs keep validating.
+ */
+const optimizationEventSeqSchema = z.number().int().nonnegative().optional();
+
+export const petrinautOptimizationStartedEventSchema = z
+  .strictObject({
+    type: z.literal("started"),
+    requestedTrials: z.number().int().positive(),
+    seq: optimizationEventSeqSchema,
+  })
+  .meta({ description: "The optimizer accepted and started the study." });
+
+export const petrinautOptimizationTrialEventSchema = z
+  .strictObject({
+    type: z.literal("trial"),
+    trial: z.number().int().nonnegative(),
+    parameters: z.record(z.string(), optimizationScalarSchema),
+    objective: z.number().nullable(),
+    state: z.enum(["complete", "pruned", "failed"]),
+    best: optimizationBestSchema.nullable(),
+    seq: optimizationEventSeqSchema,
+  })
+  .meta({ description: "One completed Optuna trial and the running best." });
+
+/**
+ * Whether the study behind the run stays available to `extendOptimizationRun`
+ * after this terminal event. A connected capability sets it on every terminal
+ * event: `false` for a segment that never reached the worker or a run that
+ * failed. A remote service keeps no study and omits it.
+ */
+const optimizationResumableSchema = z.boolean().optional();
+
+export const petrinautOptimizationCompleteEventSchema = z
+  .strictObject({
+    type: z.literal("complete"),
+    requestedTrials: z.number().int().positive(),
+    completedTrials: z.number().int().nonnegative(),
+    prunedTrials: z.number().int().nonnegative(),
+    failedTrials: z.number().int().nonnegative(),
+    best: optimizationBestSchema.nullable(),
+    resumable: optimizationResumableSchema,
+    seq: optimizationEventSeqSchema,
+  })
+  .meta({ description: "The final optimization summary." });
+
+/**
+ * The `code` of the terminal error event that reports a cancellation rather
+ * than a failure. A detached run is cancelled out-of-band — an explicit
+ * `DELETE`, orphan reaping, or optimizer shutdown — and the stream has no
+ * event type of its own for that, so it arrives as a non-retryable error.
+ * Consumers presenting run outcomes should treat this code as "cancelled",
+ * not "failed".
+ */
+export const PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE =
+  "optimization_cancelled";
+
+/**
+ * The `code` on the error a connected capability throws for a run id it does
+ * not hold: one it never created, or one it dropped when the tab reloaded.
+ * A stored run that meets it is stale and can be forgotten.
+ */
+export const PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE =
+  "optimization_unknown_run";
+
+export const isUnknownOptimizationRunError = (error: unknown): boolean =>
+  error instanceof Error &&
+  "code" in error &&
+  error.code === PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE;
+
+export const petrinautOptimizationErrorEventSchema = z
+  .strictObject({
+    type: z.literal("error"),
+    code: z.string(),
+    message: z.string(),
+    retryable: z.boolean(),
+    resumable: optimizationResumableSchema,
+    seq: optimizationEventSeqSchema,
+  })
+  .meta({ description: "A terminal optimizer error." });
+
+export const petrinautOptimizationEventSchema = z
+  .discriminatedUnion("type", [
+    petrinautOptimizationStartedEventSchema,
+    petrinautOptimizationTrialEventSchema,
+    petrinautOptimizationCompleteEventSchema,
+    petrinautOptimizationErrorEventSchema,
+  ])
+  .meta({ description: "One event in the optimizer response stream." });
+
+export type PetrinautContinuousOptimizationDomain = z.infer<
+  typeof petrinautContinuousOptimizationDomainSchema
+>;
+export type PetrinautIntegerOptimizationDomain = z.infer<
+  typeof petrinautIntegerOptimizationDomainSchema
+>;
+export type PetrinautBooleanOptimizationDomain = z.infer<
+  typeof petrinautBooleanOptimizationDomainSchema
+>;
+export type PetrinautOptimizationDomain = z.infer<
+  typeof petrinautOptimizationDomainSchema
+>;
+export type PetrinautOptimizationParameterBinding = z.infer<
+  typeof petrinautOptimizationParameterBindingSchema
+>;
+export type PetrinautOptimizationObjective = z.infer<
+  typeof petrinautOptimizationObjectiveSchema
+>;
+export type PetrinautOptimizationExecution = z.infer<
+  typeof petrinautOptimizationExecutionSchema
+>;
+export type PetrinautOptimizationStudy = z.infer<
+  typeof petrinautOptimizationStudySchema
+>;
+export type PetrinautOptimizationManifest = z.infer<
+  typeof petrinautOptimizationManifestSchema
+>;
+export type PetrinautOptimizationInput = PetrinautOptimizationManifest;
+export type PetrinautOptimizationEvent = z.infer<
+  typeof petrinautOptimizationEventSchema
+>;
+export type PetrinautOptimizationTrialEvent = z.infer<
+  typeof petrinautOptimizationTrialEventSchema
+>;
+
+/**
+ * Host-provided optimization capability for Petrinaut: the self-contained
+ * variant, backed by a remote service that owns its simulations. The
+ * in-tab variant is {@link PetrinautConnectedOptimization}.
+ *
+ * A run is detached from any one connection: it is created by id, its event
+ * stream can be (re-)attached with a `seq` cursor, and it is cancelled
+ * explicitly — which lets the UI survive connection drops and page reloads.
+ */
+export type PetrinautOptimization = {
+  /** Start a detached run and resolve its server-issued run id. */
+  createOptimizationRun(
+    input: PetrinautOptimizationInput,
+    options?: { signal?: AbortSignalLike },
+  ): Promise<{ runId: string }>;
+  /**
+   * Stream a detached run's events, replaying those with `seq` greater than
+   * `cursor` (0 replays everything) before tailing live events. The stream
+   * ends after a terminal `complete`/`error` event. `onAttached` fires once
+   * the attachment is accepted (the response headers arrived OK), which may
+   * be long before the first event on a quiet run — UIs use it to report an
+   * honest connection state while reconnecting.
+   */
+  attachOptimizationRun(
+    runId: string,
+    options?: {
+      cursor?: number;
+      signal?: AbortSignalLike;
+      onAttached?: () => void;
+    },
+  ): AsyncIterable<PetrinautOptimizationEvent>;
+  /** Idempotently stop a detached run server-side. */
+  cancelOptimizationRun(runId: string): Promise<void>;
+};
+
+/**
+ * One trial's computation, as the optimizer hands it to whoever runs
+ * simulations for it.
+ *
+ * The optimizer never simulates. It proposes values and asks its channel for
+ * the objective, so the host decides where and how a trial's runs happen and
+ * can show them as they compute.
+ */
+export type PetrinautOptimizationTrialRequest = {
+  readonly runId: string;
+  /** Optuna's trial number, from 0. */
+  readonly trial: number;
+  /** The frozen study the trial belongs to. */
+  readonly manifest: PetrinautOptimizationManifest;
+  /** The optimizer's suggestions for the optimized parameters only. */
+  readonly suggestedValues: Readonly<Record<string, OptimizationScalar>>;
+  /**
+   * Every scenario parameter's value for this trial: fixed bindings merged
+   * with the suggestions, booleans as 0/1 as the scenario compiler expects.
+   */
+  readonly scenarioParameterValues: Readonly<Record<string, number>>;
+  /**
+   * The seeds the trial's simulations run with. The same sequence for every
+   * trial (common random numbers), derived as the CLI derives them.
+   */
+  readonly seeds: readonly number[];
+  /** Aborted when the run is cancelled; the host should stop the trial's runs. */
+  readonly signal: AbortSignalLike;
+};
+
+export type PetrinautOptimizationTrialOutcome =
+  | {
+      readonly kind: "objective";
+      /** The mean of the per-seed objectives; finite. */
+      readonly objective: number;
+    }
+  | {
+      /** The host could not run the trial; Optuna records it as pruned. */
+      readonly kind: "pruned";
+      readonly reason: string;
+    };
+
+/**
+ * A way to communicate with the running optimization.
+ *
+ * The host implements it; the optimizer calls it once per trial. Everything
+ * the optimizer needs computed goes through here, so the host can stream those
+ * runs into its own metrics views instead of receiving only a number.
+ */
+export type PetrinautOptimizationChannel = {
+  evaluateTrial(
+    this: void,
+    request: PetrinautOptimizationTrialRequest,
+  ): Promise<PetrinautOptimizationTrialOutcome>;
+};
+
+export const PETRINAUT_OPTIMIZATION_MAX_PARALLELISM = 4;
+
+/** Options of a run on a connected capability; the remote one takes `signal` only. */
+export type PetrinautConnectedRunOptions = {
+  /**
+   * Creation rejects with an `AbortError` when this is already aborted; a
+   * run that exists is stopped through `cancelOptimizationRun`.
+   */
+  signal?: AbortSignalLike;
+  /**
+   * How many trials the study keeps in flight, 1 to
+   * `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`, for the run and every
+   * extension of it. Defaults to 1, which samples exactly as a sequential
+   * study does.
+   */
+  parallelism?: number;
+};
+
+/**
+ * The capability a connected source yields. A study that completed or was
+ * cancelled stays in memory until it is released, so more trials can be run
+ * on it with the sampler's history intact.
+ */
+export type PetrinautConnectedOptimizationCapability = Omit<
+  PetrinautOptimization,
+  "createOptimizationRun"
+> & {
+  createOptimizationRun(
+    input: PetrinautOptimizationInput,
+    options?: PetrinautConnectedRunOptions,
+  ): Promise<{ runId: string }>;
+  /**
+   * Run `trials` more on a run that completed or was cancelled. Its event
+   * stream gains a `started` event carrying the cumulative `requestedTrials`,
+   * the new trials continue the numbering, and the next `complete` reports
+   * counts over the whole study. Rejects for a run that is running, was
+   * released or failed, and when the total would exceed
+   * `PETRINAUT_OPTIMIZATION_MAX_TRIALS`.
+   */
+  extendOptimizationRun(runId: string, trials: number): Promise<void>;
+  /** Drop the study behind a run, which can then no longer be extended. Idempotent. */
+  releaseOptimizationRun(runId: string): Promise<void>;
+  /** Cancel every run, drop every study and free the runtime. */
+  dispose(this: void): void;
+};
+
+/**
+ * An optimization capability that runs where the host runs, in the tab, and
+ * needs the host's compute: connect it to a channel to obtain the
+ * capability. The self-contained variant is {@link PetrinautOptimization}.
+ */
+export type PetrinautConnectedOptimization = {
+  readonly kind: "connected";
+  connect(
+    this: void,
+    channel: PetrinautOptimizationChannel,
+  ): PetrinautConnectedOptimizationCapability;
+};
+
+/** What a host supplies: a remote capability, or one to connect locally. */
+export type PetrinautOptimizationSource =
+  | PetrinautOptimization
+  | PetrinautConnectedOptimization;
+
+export const isConnectedOptimization = (
+  source: PetrinautOptimizationSource,
+): source is PetrinautConnectedOptimization =>
+  (source as Partial<PetrinautConnectedOptimization>).kind === "connected";
+
+export {
+  deriveOptimizationTrialSeeds,
+  describeOptimization,
+  resolveTrialScenarioParameterValues,
+} from "./describe";

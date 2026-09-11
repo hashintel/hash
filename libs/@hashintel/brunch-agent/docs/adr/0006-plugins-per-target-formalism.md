@@ -21,7 +21,8 @@ line, truck fleet, coating plant — is unknown before the conversation starts. 
 cannot be keyed to a domain; the only thing fixed before the first turn is the target formalism the
 model will be projected into.
 
-The IR spec's [Layer B](../specs/intermediate-representation.md#layer-b--the-cps-plugins-ir)
+The historical IR spec's Layer B (last living copy
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/intermediate-representation.md`)
 already defined the CPS plugin at exactly that level: ten kinds, cross-kind `quantity` /
 `source-regime` / `rationale` attributes, and question-relative completion over a static floor.
 The design-convergence queue selected by S-005 then drifted below it. The FE-1402 rehearsal

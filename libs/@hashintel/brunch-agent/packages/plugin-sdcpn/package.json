@@ -26,14 +26,15 @@
     "@flue/runtime": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
-    "valibot": "1.4.2"
+    "valibot": "1.4.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "vite": "8.1.0",
+    "vite": "8.2.2",
     "vitest": "4.1.10"
   }
 }

@@ -3,11 +3,11 @@ import { describe, expect, test } from "vitest";
 import { createOpenAIVoiceConfigHandler } from "./openai-voice-config";
 
 describe("OpenAI voice config handler", () => {
-  test("returns only server-derived availability and the client timeout", async () => {
+  test("returns configured production availability without exposing server settings", async () => {
     const handler = createOpenAIVoiceConfigHandler({
       OPENAI_VOICE_API_KEY: "server-secret",
       PETRINAUT_OPENAI_VOICE_ENABLED: "true",
-      VERCEL_ENV: "preview",
+      VERCEL_ENV: "production",
     });
 
     const response = await handler(

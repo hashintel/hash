@@ -18,15 +18,23 @@
       "types": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
+    "./question-marker": {
+      "types": "./src/question-marker.ts",
+      "import": "./dist/question-marker.js"
+    },
     "./storage": {
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"
+    },
+    "./workpiece": {
+      "types": "./src/workpiece.ts",
+      "import": "./dist/workpiece.js"
     }
   },
   "scripts": {
     "build": "vite build",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "linear:graph": "node --experimental-strip-types ../../scripts/linear-project-graph.ts",
+    "linear:graph": "node --experimental-strip-types src/linear-project-graph.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "test:unit": "vitest run"
@@ -42,7 +50,7 @@
     "fast-check": "4.9.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "vite": "8.1.0",
+    "vite": "8.2.2",
     "vitest": "4.1.10"
   }
 }

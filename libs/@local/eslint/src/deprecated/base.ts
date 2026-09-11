@@ -55,6 +55,7 @@ export const create = (projectDirectory: string) =>
       plugins: {
         "@typescript-eslint": typescriptEslint,
         canonical,
+        "import-declared": importPlugin,
         "react-hooks": reactHooks,
         "simple-import-sort": simpleImportSort,
         unicorn,
@@ -125,6 +126,13 @@ export const create = (projectDirectory: string) =>
         "import/no-cycle": "error",
         "import/named": "off",
         "import/prefer-default-export": "off",
+        "import-declared/no-extraneous-dependencies": [
+          "error",
+          {
+            devDependencies: true,
+            includeTypes: true,
+          },
+        ],
         "no-await-in-loop": "off",
         "no-console": "error",
         "no-dupe-class-members": "off",

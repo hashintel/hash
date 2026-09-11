@@ -1,0 +1,267 @@
+import { serializeErrorText } from "./error-text";
+
+import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
+import type { UIMessageChunk } from "ai";
+
+/** How client-executed and hidden tools project into the AI SDK UI, live or from history. */
+export interface ClientToolProjectionOptions {
+  readonly clientToolNames: ReadonlySet<string>;
+  /** These client calls are not executable until their server tool has succeeded. */
+  readonly validatedClientToolNames?: ReadonlySet<string>;
+  readonly mapClientToolInput?: (
+    call: Pick<
+      Extract<ConversationStreamChunk, { type: "tool-input" }>,
+      "input" | "toolName" | "toolCallId"
+    >,
+  ) => unknown;
+  readonly hiddenToolNames?: ReadonlySet<string>;
+}
+
+export interface FlueUiStreamOptions extends ClientToolProjectionOptions {
+  readonly submissionId: AgentSendResult["submissionId"];
+  readonly write: (chunk: UIMessageChunk) => void;
+}
+
+type StreamingPart = {
+  readonly kind: Extract<
+    ConversationStreamChunk,
+    { type: "message-delta" }
+  >["kind"];
+  readonly partId: string;
+};
+
+const unhandledConversationChunk = (chunk: never): never => {
+  throw new Error(
+    `Unhandled Flue conversation chunk: ${JSON.stringify(chunk)}`,
+  );
+};
+
+export const createFlueUiStream = (
+  options: FlueUiStreamOptions,
+): { accept: (chunk: ConversationStreamChunk) => void } => {
+  let accepting = false;
+  let messageId: string | undefined;
+  let turnId: string | undefined;
+  let partOrdinal = 0;
+  let streamingPart: StreamingPart | undefined;
+  const hiddenToolCallIds = new Set<string>();
+  const pendingClientToolCallIds = new Set<string>();
+  const awaitingValidation = new Map<
+    string,
+    Extract<ConversationStreamChunk, { type: "tool-input" }>
+  >();
+  const publishClientInput = (
+    chunk: Extract<ConversationStreamChunk, { type: "tool-input" }>,
+  ) => {
+    options.write({
+      type: "tool-input-available",
+      toolCallId: chunk.toolCallId,
+      toolName: chunk.toolName,
+      input:
+        options.mapClientToolInput === undefined
+          ? chunk.input
+          : options.mapClientToolInput({
+              input: chunk.input,
+              toolName: chunk.toolName,
+              toolCallId: chunk.toolCallId,
+            }),
+    });
+  };
+
+  const finishPart = (): void => {
+    if (!streamingPart) return;
+    options.write({
+      type: `${streamingPart.kind}-end`,
+      id: streamingPart.partId,
+    });
+    streamingPart = undefined;
+  };
+
+  const finishTurn = (): void => {
+    finishPart();
+    if (!turnId) return;
+    options.write({ type: "finish-step" });
+    turnId = undefined;
+  };
+
+  const startPart = (kind: StreamingPart["kind"]): StreamingPart => {
+    finishPart();
+    partOrdinal += 1;
+    const part = {
+      kind,
+      partId: `${messageId}:${kind}:${partOrdinal}`,
+    } as const;
+    options.write({ type: `${kind}-start`, id: part.partId });
+    streamingPart = part;
+    return part;
+  };
+
+  return {
+    accept(chunk) {
+      switch (chunk.type) {
+        case "message-started": {
+          accepting = chunk.submissionId === options.submissionId;
+          if (!accepting) return;
+
+          if (messageId === undefined) {
+            messageId = chunk.messageId;
+            options.write({ type: "start", messageId });
+          } else if (
+            chunk.messageId !== messageId &&
+            pendingClientToolCallIds.size > 0
+          ) {
+            // Flue may append a waiting reply after yielding to the browser.
+            // An empty trailing AI SDK step would strand the client tool.
+            return;
+          }
+          finishTurn();
+          turnId = chunk.turnId ?? `${messageId}:turn`;
+          options.write({ type: "start-step" });
+          return;
+        }
+        case "submission-settled": {
+          if (chunk.submissionId !== options.submissionId) return;
+          finishTurn();
+          switch (chunk.outcome) {
+            case "completed":
+              options.write({
+                type: "finish",
+                finishReason:
+                  pendingClientToolCallIds.size > 0 ? "tool-calls" : "stop",
+              });
+              break;
+            case "failed":
+              options.write({
+                type: "error",
+                errorText: serializeErrorText(chunk.error),
+              });
+              break;
+            case "aborted":
+              options.write({
+                type: "abort",
+                reason: "The chat turn aborted.",
+              });
+              break;
+            default:
+              unhandledConversationChunk(chunk.outcome);
+          }
+          accepting = false;
+          return;
+        }
+        case "conversation-reset":
+        case "message-appended":
+        case "stream-checkpoint":
+          return;
+        case "message-delta": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          const part =
+            streamingPart?.kind === chunk.kind
+              ? streamingPart
+              : startPart(chunk.kind);
+          options.write({
+            type: `${part.kind}-delta`,
+            id: part.partId,
+            delta: chunk.delta,
+          });
+          return;
+        }
+        case "tool-input": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          finishPart();
+          if (options.hiddenToolNames?.has(chunk.toolName) === true) {
+            hiddenToolCallIds.add(chunk.toolCallId);
+            return;
+          }
+          const isClientTool = options.clientToolNames.has(chunk.toolName);
+          if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
+          if (
+            isClientTool &&
+            options.validatedClientToolNames?.has(chunk.toolName)
+          ) {
+            awaitingValidation.set(chunk.toolCallId, chunk);
+            options.write({
+              type: "tool-input-start",
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+            });
+            return;
+          }
+          options.write({
+            type: "tool-input-available",
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            input:
+              isClientTool && options.mapClientToolInput !== undefined
+                ? options.mapClientToolInput({
+                    input: chunk.input,
+                    toolName: chunk.toolName,
+                    toolCallId: chunk.toolCallId,
+                  })
+                : chunk.input,
+            ...(isClientTool ? {} : { providerExecuted: true }),
+          });
+          return;
+        }
+        case "tool-output": {
+          if (!accepting || messageId === undefined) return;
+          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
+          const validated = awaitingValidation.get(chunk.toolCallId);
+          if (validated) {
+            awaitingValidation.delete(chunk.toolCallId);
+            publishClientInput(validated);
+            return;
+          }
+          if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          options.write({
+            type: "tool-output-available",
+            toolCallId: chunk.toolCallId,
+            output: chunk.output,
+            providerExecuted: true,
+          });
+          return;
+        }
+        case "tool-output-error": {
+          if (!accepting || messageId === undefined) return;
+          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
+          if (awaitingValidation.delete(chunk.toolCallId)) {
+            pendingClientToolCallIds.delete(chunk.toolCallId);
+          } else if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          options.write({
+            type: "tool-output-error",
+            toolCallId: chunk.toolCallId,
+            errorText: chunk.errorText,
+            providerExecuted: true,
+          });
+          return;
+        }
+        case "message-completed": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId === messageId) finishTurn();
+          return;
+        }
+        case "message-metadata": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          options.write({
+            type: "message-metadata",
+            messageMetadata: chunk.metadata,
+          });
+          return;
+        }
+        case "data-part": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          options.write({
+            type: `data-${chunk.name}`,
+            data: chunk.data,
+          });
+          return;
+        }
+        default:
+          unhandledConversationChunk(chunk);
+      }
+    },
+  };
+};

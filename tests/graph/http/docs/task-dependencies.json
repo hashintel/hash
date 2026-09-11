@@ -4,9 +4,16 @@
     "@apps/hash-graph"
   ],
   "tasks": {
-    "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck",
-      "@local/status#build"
-    ]
+    "test:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

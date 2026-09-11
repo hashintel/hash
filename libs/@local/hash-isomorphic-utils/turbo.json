@@ -2,12 +2,15 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["codegen", "^build"],
       "outputs": ["./dist/**"]
     },
     "codegen": {
       // Outputs of GraphQL generation
-      "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^build"]
+      "outputs": ["./src/**/*.gen.*"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^build"]
     }
   }
 }

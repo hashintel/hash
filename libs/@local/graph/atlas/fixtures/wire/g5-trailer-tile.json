@@ -1,0 +1,41 @@
+{
+  "golden": "g5-trailer-tile",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 5,
+    "reserved": 0
+  },
+  "directory": [
+    [56, 112],
+    [112, 144],
+    [144, 160],
+    [0, 0],
+    [0, 0]
+  ],
+  "head": {
+    "generation": "5555555555555555555555555555555555555555555555555555555555555555",
+    "variant": 0,
+    "coordinate": [1, 1, 0],
+    "mode": 0,
+    "delivered": 4,
+    "firstBucket": 3,
+    "runs": [4],
+    "global": null,
+    "children": 5,
+    "trailer": true
+  },
+  "positions": [
+    0, 0, 1040187392, 3196059648, 1048576000, 3204448256, 1052770304, 3208642560
+  ],
+  "rowIds": [27, 38, 49, 60],
+  "typeMask": null,
+  "mass": null,
+  "appended": null,
+  "trailer": {
+    "labels": ["Zürich", null, "é", "🦀"],
+    "icons": [null, "水戸", "→", null]
+  }
+}

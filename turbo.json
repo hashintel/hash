@@ -1,16 +1,25 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
+    // A task nothing implements, so depending on it runs nothing. Its hash still covers the
+    // package's inputs, and the chain over `^manifest` carries those of every transitive
+    // dependency, which is what a task needs from a crate it reads sources from rather than
+    // artifacts. A package that reads a crate the package graph does not reach adds the
+    // crate's `manifest` to its own, so the chain continues into the crate.
+    "manifest": {
+      "dependsOn": ["^manifest"]
+    },
     // Development commands
     "dev": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["codegen"]
+      "persistent": true
     },
     // Build commands
-    "codegen": {
-      "dependsOn": ["^build"]
-    },
+    //
+    // `codegen`, `build`, `test:*` and `start:*` are shared between the JavaScript packages
+    // and the Rust crates, and what each of them consumes differs per package, so the edges
+    // are declared where they hold. A name only one toolchain uses carries its defaults here.
+    "codegen": {},
     "doc:dependency-diagram": {
       "cache": false,
       "dependsOn": ["@rust/hash-repo-chores#build"]
@@ -22,14 +31,16 @@
       "cache": false,
       "dependsOn": ["//#sync:turborepo"]
     },
-    "build": {
-      "dependsOn": ["codegen"]
-    },
+    "build": {},
+    // An image copies the repository and generates and builds inside it, so the host
+    // contributes only sources.
     "build:docker": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "build:codspeed": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "compile": {
       "cache": false
@@ -39,78 +50,90 @@
     },
     // Run commands
     "start:migrate": {
-      "cache": false,
-      "dependsOn": ["build", "^start:healthcheck"]
+      "cache": false
     },
     "start": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["start:migrate"]
+      "persistent": true
     },
     "start:healthcheck": {
-      "cache": false,
-      "dependsOn": ["compile:release"]
+      "cache": false
     },
     "start:test:migrate": {
-      "cache": false,
-      "dependsOn": ["build", "^start:test:healthcheck"]
+      "cache": false
     },
     "start:test": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["start:test:migrate"]
+      "persistent": true
     },
     "start:test:healthcheck": {
-      "cache": false,
-      "dependsOn": ["compile"]
-    },
-    // Test commands
-    "test:unit": {
-      // TODO(SRE-989): replace `^build` with a build-free upstream dependency
-      "dependsOn": ["codegen", "^build"],
-      "env": ["TEST_COVERAGE"]
-    },
-    "test:integration": {
-      "dependsOn": ["codegen", "^start:test:healthcheck"],
-      "env": ["TEST_COVERAGE"]
-    },
-    "test:codspeed": {
       "cache": false
     },
-    "test:miri": {},
+    // Test commands
+    //
+    // A test reads its dependencies' sources through the toolchain, so their inputs belong
+    // in its hash whether or not a build runs first. Packages that import from `dist` add
+    // `^build` themselves.
+    "test:unit": {
+      "dependsOn": ["^manifest"],
+      "env": ["TEST_COVERAGE"]
+    },
+    // The integration tests and benches run against the services `infra/compose` starts.
+    "test:integration": {
+      "dependsOn": ["^manifest"],
+      "env": ["TEST_COVERAGE"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
+    },
+    // Smoke-tests the image `build:docker` produced. Not run in CI yet.
+    // TODO(SRE-1032): run this in the deploy workflow against the image it already builds.
+    "test:docker": {
+      "cache": false,
+      "dependsOn": ["build:docker"]
+    },
+    "test:codspeed": {
+      "cache": false,
+      "dependsOn": ["^manifest"]
+    },
+    "test:miri": {
+      "dependsOn": ["^manifest"]
+    },
     // Benchmarks
     "bench:unit": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["^manifest"],
       "cache": false
     },
     "bench:integration": {
-      "dependsOn": ["codegen", "^start:healthcheck"],
-      "cache": false
+      "dependsOn": ["^manifest"],
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
     },
     // Linting and formatting
-    "lint": {
-      "dependsOn": ["codegen"]
-    },
+    "lint": {},
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
     // `GITHUB_EVENT_NAME` in the `.justfile`. Include it in the hash so the two run modes
     // cannot share caches.
     "lint:clippy": {
-      "env": ["GITHUB_EVENT_NAME"]
+      "env": ["GITHUB_EVENT_NAME"],
+      "dependsOn": ["^manifest"]
     },
+    // Type-aware linting resolves workspace imports from the dependencies' dist.
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["codegen", "@local/eslint#build"]
+      "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
     "lint:tsc": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     },
     // Python linting and type checking. `uv run` syncs the package's
-    // environment from its own lockfile, so neither needs a prior task.
+    // environment from its own lockfile. Ruff reads the sources as text, while
+    // type checking resolves the package's own generated modules.
     "lint:ruff": {},
-    "lint:types": {},
+    "lint:types": {
+      "dependsOn": ["codegen"]
+    },
     "fix:eslint": {
-      "dependsOn": ["codegen", "@local/eslint#build"]
+      "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
     "fix:clippy": {},
     "sentry:sourcemaps": {

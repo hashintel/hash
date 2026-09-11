@@ -1,7 +1,7 @@
-use core::fmt;
+use core::{assert_matches, fmt};
 use std::collections::HashMap;
 
-use hash_config::Loader;
+use hash_config::{LoadError, Loader};
 use serde_json::json;
 
 const SECRET: &str = "this-value-must-not-appear-in-an-error";
@@ -80,7 +80,11 @@ fn missing_required_value_fails() {
         .load::<Required>()
         .expect_err("the missing password should fail the load");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         format!("{report:?}").contains("password"),
         "the report should name the missing field: {report:?}"
@@ -95,7 +99,11 @@ fn defaults_require_map() {
         .expect_err("a scalar default document should fail the load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("invalid type: found string"),
         "the report should identify the rejected value kind: {report:?}"
@@ -114,7 +122,11 @@ fn defaults_require_string_keys() {
         .expect_err("a numeric map key should fail the load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("expected `string`"),
         "the report should explain the supported key shape: {report:?}"
@@ -139,7 +151,11 @@ fn load_redacts_mistyped_values() {
         .expect_err("a string API key should not deserialize as a number");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("invalid type: found string"),
         "the report should identify the rejected value kind: {report:?}"
@@ -164,7 +180,11 @@ fn load_redacts_numeric_overflow() {
         .expect_err("an overflowing number should not deserialize as i8");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("invalid value: found unsigned integer"),
         "the report should name the rejected value kind: {report:?}"
@@ -195,7 +215,11 @@ fn load_redacts_unknown_variants() {
         .expect_err("an unknown variant name should fail the load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("`Debug`") && rendered.contains("`Info`"),
         "the report should list the expected variants: {report:?}"
@@ -221,7 +245,11 @@ fn load_names_map_keys() {
         .expect_err("a string map value should not deserialize as a number");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("values.alpha"),
         "the report should name the key a map entry sits under: {report:?}"
@@ -248,7 +276,11 @@ fn load_names_unknown_fields() {
         .expect_err("an unknown field should fail the load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("`enalbed`"),
         "the report should name the field it did not recognise: {report:?}"
@@ -304,7 +336,11 @@ fn load_reports_serde_expectations() {
         .expect_err("a string should not deserialize as the expected integer");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains(EXPECTATION),
         "the report should carry the visitor's expectation: {report:?}"
@@ -324,7 +360,11 @@ fn load_reports_every_failing_layer() {
         .expect_err("both scalar default documents should fail the load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("found unsigned integer"),
         "the report should name the first failing layer: {report:?}"
@@ -354,7 +394,11 @@ fn load_defers_and_redacts_serialization_errors() {
         .expect_err("the serialization failure should be reported by load");
     let rendered = format!("{report:?}");
 
-    assert_eq!(report.current_context(), &hash_config::LoadError::Invalid);
+    assert_matches!(
+        report.current_context(),
+        LoadError::Invalid,
+        "the error should identify an invalid configuration"
+    );
     assert!(
         rendered.contains("tests/defaults.rs"),
         "the report should name the call site of the failing layer: {report:?}"

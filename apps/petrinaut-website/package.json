@@ -12,13 +12,16 @@
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
+    "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
@@ -26,6 +29,7 @@
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/petrinaut-optimizer-client": "workspace:*",
     "@mantine/hooks": "8.3.5",
+    "@noble/hashes": "2.0.1",
     "@pandacss/dev": "1.11.1",
     "@sentry/react": "10.64.0",
     "@tanstack/react-router": "1.170.31",
@@ -34,12 +38,15 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-icons": "5.5.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@fast-check/vitest": "0.4.1",
     "@tanstack/router-generator": "1.167.32",
     "@tanstack/router-plugin": "1.168.34",
+    "@types/node": "22.18.13",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
@@ -50,7 +57,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.35.3",
-    "vite": "8.1.0",
+    "vite": "8.2.2",
     "vitest": "4.1.10"
   }
 }

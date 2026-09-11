@@ -23,7 +23,7 @@
   "scripts": {
     "build": "vite build",
     "build-storybook": "storybook build",
-    "dev": "storybook dev -p 6006",
+    "dev": "storybook dev -p ${PORT:-6007}",
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",

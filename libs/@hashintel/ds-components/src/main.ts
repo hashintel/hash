@@ -38,6 +38,8 @@ export { FilterGroup } from "./components/Filter/filter-group";
 export type {
   FilterChange,
   Input as FilterInput,
+  MultiSelectInput as FilterMultiSelectInput,
+  SingleSelectInput as FilterSingleSelectInput,
   FilterValue,
 } from "./components/Filter/filter-util";
 export { SortMenu } from "./components/Filter/sort-menu";
@@ -57,10 +59,6 @@ export {
 } from "./components/Loading/loading-spinner";
 export { EllipsisMenu } from "./components/Menu/ellipsis-menu";
 export { Menu, type MenuItem } from "./components/Menu/menu";
-export type {
-  Item,
-  ItemOrGroup,
-} from "./components/Menu/SelectableList/selectable-list";
 export { NumberInput } from "./components/NumberInput/number-input";
 export { Popover, type PopoverProps } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
@@ -71,7 +69,11 @@ export {
   type SegmentedControlItem,
   type SegmentedControlProps,
 } from "./components/SegmentedControl/segmented-control";
-export { Select, type SelectItem } from "./components/Select/select";
+export {
+  type MultiSelectItem,
+  Select,
+  type SelectItem,
+} from "./components/Select/select";
 export { Slider, type SliderProps } from "./components/Slider/slider";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
@@ -84,5 +86,6 @@ export {
   PortalContainerContext,
   usePortalContainerRef,
 } from "./util/portal-container-context";
+export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";

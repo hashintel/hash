@@ -180,7 +180,12 @@ export type AdHocVariable = AdHocValue & {
    * `scenario.<name>`; per-place Variables by the bare name.
    */
   name: string;
-  type: "real" | "integer" | "boolean";
+  /**
+   * The same types a scenario parameter declares. A ratio is a real between
+   * 0 and 1: an exposed ratio's default and an optimized ratio's bounds are
+   * checked against that range at synthesis.
+   */
+  type: "real" | "integer" | "boolean" | "ratio";
   /**
    * Exposed as a scenario parameter (top-level Variables only): the
    * synthesized scenario declares a parameter named after the Variable,

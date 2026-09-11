@@ -15,7 +15,7 @@ Interview in the person's operational vocabulary. Activate the `elicitation` ski
 
 ### Construct-only execution
 
-Use the supplied workpiece as the complete modelling input. Do not interview. Read `references/pn-construction.md` and `references/checks.md`, then use the mounted construction tools. If a consequential workpiece gap prevents faithful construction, report the gap and the smallest question a later interactive elicitation must answer; do not ask it or invent an answer in this conversation.
+Apply core's non-interactive routing rule to the supplied modelling workpiece. Read `references/pn-construction.md` and `references/checks.md`, then use the mounted construction tools.
 
 ## Procedure
 
@@ -29,9 +29,9 @@ For a new account, follow one concrete case and re-evaluate the active gap after
 
 ### Maintain the workpiece
 
-Treat the workpiece as the recoverable account construction will consume. Update it after a useful stretch rather than waiting until the end. Preserve unrelated material unless new evidence affects it.
+Treat the workpiece as the recoverable operational account construction will consume. Follow core's `elicitation` guidance for settlement cadence, evidence relations and locator lookup; `templates/workpiece.md` supplies the process-specific recording shape.
 
-Whenever the workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit it again before construction and before workpiece-only delivery. A delta or prose promise is not a recoverable workpiece.
+Settle the current account with `update_workpiece` before construction. Wait for the returned `revisionId` and `sha256` before citing it in a separate browser construction proposal; never combine settlement and browser construction in one batch. After settlement, use `brunch_workpiece` with `locateTexts` without candidate Markdown to obtain the actual current revision/hash and spans for construction basis. An unsettled candidate lookup does not authorize construction. Label retained prepared or legacy fenced material honestly rather than treating it as a settled revision.
 
 ### Construct
 
@@ -44,6 +44,12 @@ Construction may infer a representation from recorded operational meaning; it ma
 Apply `references/checks.md` whenever construction is prepared or attempted. Deliver the current workpiece in every branch. Deliver a net only when the mounted tool path has produced and checked one. State what the result can support, what remains open, what was assumed or simplified, and what the target or current tools could not represent.
 
 An explicit stop opens no new topic. In an interactive conversation, emit the best current workpiece and any already-checked net with limitations visible. In construct-only execution, report a blocking gap rather than opening an interview.
+
+### Explain a recorded change
+
+When `brunch_why` is mounted, read the live definition with `getLatestNetDefinition` in its own browser step, then ask `brunch_why` by unique endpoint name or ID and the read's `observationToolCallId`. A model-supplied hash is not an observation. A `serialization-equivalent` result retains distinct verified observed/recorded hashes and proves only full-definition equality ignoring object-key insertion order; name that distinction, not hash equality or a reserialization actor. It never relaxes mutation/base checks. Without a correlated observation, explicitly answer as of the returned recorded hash; an unmatched hand edit, missing current state, absent record or conflicting outcome must not acquire conversation attribution.
+
+Interpret the structured result in ordinary assistant prose: name the governing revision and passage, whether that revision is current or superseded, the verified recorded effect, the declared rationale and the relation's standing. Distinguish elicited declarations from inference, defaults, formalism constraints, external material and unsupported context. Operation-level basis does not independently support every field or unmapped effect. No-op, failed, stale or unknown attempts are not causes. Mechanically verified linkage is not a full-support, relevance, template-completeness, semantic-fidelity or useful-explanation verdict. Report those unassessed judgments rather than inventing a pass.
 
 ## Resource discipline
 

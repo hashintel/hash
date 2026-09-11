@@ -14,6 +14,7 @@ import {
 } from "../../types/subgraph.js";
 import { typedEntries } from "../../util/typed-entries.js";
 
+import type { EntityRevisionId } from "../../types/entity.js";
 import type {
   EntityIdWithInterval,
   EntityVertexId,
@@ -25,7 +26,6 @@ import type {
   OutwardEdge,
   Subgraph,
 } from "../../types/subgraph.js";
-import type { EntityRevisionId } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   EntityId,

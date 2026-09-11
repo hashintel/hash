@@ -4,18 +4,13 @@ import {
   applyCaptureStoreCommand,
   createEmptyCaptureStoreSnapshot,
   type CaptureInputProposal,
+  type UserCaptureInputProposal,
   type EvidenceSpan,
 } from "../src/evidence/capture-store";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
-  type EvidenceQuote,
 } from "../src/evidence/session-log";
-
-type UserCaptureInput = Extract<
-  CaptureInputProposal,
-  { readonly evidence: readonly EvidenceQuote[] }
->;
 
 const archive = archiveSessionLogRead(createEmptySessionLogArchive(), {
   sessionId: "session-1",
@@ -276,7 +271,7 @@ describe("capture anchoring", () => {
   });
 
   test("caller-facing evidence accepts quotes, not ranges or source assertions", () => {
-    const evidence: UserCaptureInput["evidence"] = [
+    const evidence: UserCaptureInputProposal["evidence"] = [
       {
         excerpt: "June works.",
         // @ts-expect-error Entry ranges are harness-owned and absent from caller input.
@@ -293,10 +288,11 @@ describe("capture anchoring", () => {
       pointer: { sessionId: "session-1", entryStart: 1, entryEnd: 1 },
       source: "user",
     };
-    const callerQuotes: readonly UserCaptureInput["evidence"][number][] = [
-      // @ts-expect-error A stored span is not assignable to caller quote input.
-      storedSpan,
-    ];
+    const callerQuotes: readonly UserCaptureInputProposal["evidence"][number][] =
+      [
+        // @ts-expect-error A stored span is not assignable to caller quote input.
+        storedSpan,
+      ];
     expect(callerQuotes).toHaveLength(1);
   });
 });

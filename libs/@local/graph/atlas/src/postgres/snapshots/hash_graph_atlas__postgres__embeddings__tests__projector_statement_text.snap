@@ -1,0 +1,10 @@
+---
+source: libs/@local/graph/atlas/src/postgres/embeddings.rs
+expression: "projector_embedding_statement(&web_ids, &entity_uuids).sql"
+---
+SELECT "embeddings"."web_id", "embeddings"."entity_uuid", (l2_normalize(subvector("embeddings"."embedding", 1, 512))::vector(512))
+FROM UNNEST(($1::uuid[]), ($2::uuid[])) AS "request"("web_id", "entity_uuid")
+INNER JOIN "entity_embeddings" AS "embeddings"
+  ON "embeddings"."web_id" = "request"."web_id"
+ AND "embeddings"."entity_uuid" = "request"."entity_uuid"
+WHERE "embeddings"."property" IS NULL

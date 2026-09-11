@@ -9,38 +9,56 @@ There are two entry points:
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
 2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
 
-The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Its header has one **AI** label because text and voice share the same transcript rather than separate chats.
+The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 
 ## The conversation
 
 While a response is streaming you can:
 
 - Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
-- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response.
+- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. A Stop pressed while the assistant is reading or editing the net also withholds browser tools that have not started and the follow-up reply that would otherwise start automatically. Already-applied changes are not rolled back.
 - Type your next message in the composer -- it is queued for after the current response ends.
 
-The application embedding Petrinaut may place an additional control beside the message box. For
-example, a host can offer another way to enter finalized text. Text submitted by that control
-behaves like text sent with the keyboard: it joins the same conversation and, when an inline
-question is waiting for an answer, completes that question rather than starting an unrelated
-message. A host can explicitly submit a separate message instead when the text is a correction or
-other follow-up that must not answer the pending question.
-If the host offers voice input, a finalized spoken turn is held while an existing response
-finishes and is submitted when the conversation is ready.
+The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
+If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
 
-If an assistant request fails, Petrinaut shows the error in a brief toast rather than adding it to
-the conversation. Retry from the composer when the assistant is ready.
+If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
+
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host. Durably aborted assistant entries retain their **Response stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+
+A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
+
+### Workpiece in Brunch
+
+In Brunch construction conversations, the **Workpiece** tab shows the saved account as a readable document. It updates when Brunch saves a revision, without covering the canvas or opening another panel. You can read it while continuing to type in the same composer, then switch to **AI** to inspect the reply. Closing and reopening the assistant retains the selected tab for that mounted conversation.
+
+The revision label describes the recorded account, not a promise of continuing freshness. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to read the workpiece or explain the relevant model part again when you need a fresh answer. **Recorded details** expands the revision identifiers, exact saved Markdown and structured explanation results; those records do not prove the modelling rationale is correct.
+
+### Prepared local demo fixture
+
+The local Petrinaut development demo offers a labelled crew-reservation fixture when Brunch is
+configured. Opening it restores a test-authored Markdown workpiece, a non-empty final-inspection
+net, and their canonical Brunch conversation. The status panel distinguishes prepared text from
+model-produced revisions and states the fixture's non-claims.
+
+The document is mirrored to browser local storage automatically; there is no separate Save action.
+Wait for the status panel to report a settled bundle before reopening the same fixture in another
+tab. A refused status leaves the previous coherent bundle selected and names the failed history,
+workpiece, mutation-correlation, or document check instead of claiming that partial state settled.
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
 action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
 composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
-opens the existing one-time disclosure above the composer. Review that OpenAI processes live
-audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the conversation
-rather than the audio. You can check your microphone before confirming that you understand and
-selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this browser for the
-current disclosure version, so later uses of **Start voice mode** start directly. If browser storage
-is unavailable or the disclosure changes, Petrinaut asks again.
+opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
+disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
+AI header, transcript, and composer stay hidden. Select **Expand voice setup** to restore the full
+panel. Voice started from the composer keeps that full panel visible. Review that OpenAI processes
+live audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the
+conversation rather than the audio. You can check your microphone before confirming that you
+understand and selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this
+browser for the current disclosure version, so later uses of **Start voice mode** start directly. If
+browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
 a ribbon that fades out at both ends and one short state -- **Connecting**, **Listening**,
@@ -51,36 +69,53 @@ flicker above the line. While the assistant speaks the ribbon takes on a restrai
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
 
-The conversation itself stays still. Spoken turns are written to it as they happen, because that is
-what runs the tools that edit the net, but they stay hidden until the session ends rather than
-scrolling the transcript mid-sentence. **Show transcription in chat** lets them through as they land
-instead; turning it off holds them back again, and it starts off with each session. Two things are
-never held back either way: anything you typed, and any inline question waiting for your answer. When
-the session ends, the held turns appear together under a **Voice session · N turns** divider. Only
-finalized answers and canonical Brunch text become chat history; provisional transcription and
-Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
-the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
-provenance remains visible without duplicating an answer.
+Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
+stays current while the session runs and tools that edit the net remain visible. Select **Collapse
+voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and
+host Voice region without ending the session. Select **Expand voice session** to restore them. Ending
+Voice while collapsed also closes the AI panel; ending Voice while expanded returns to the text
+composer. Only finalized answers and canonical Brunch text become chat history; provisional
+transcription and Realtime audio are ephemeral. Finalized spoken user messages carry a small
+**Voice** chip in front of the words themselves, and the exact inline answer completed by speech
+carries the same chip, so Voice provenance remains visible without duplicating an answer while the
+session is mounted.
 
-The microphone stays on while the interviewer speaks, so speaking naturally interrupts the audio
-and starts listening to you; you do not need to select an interrupt action. Semantic voice detection
-finishes each answer automatically after a natural pause and is tuned to allow longer thinking
-pauses. There is no required done-speaking action.
+**Interruption by speaking** is on by default. Start speaking while Brunch is talking to stop its
+audio and give your answer. Your interrupting words are captured; you do not need to repeat them.
+If Brunch is still finishing its previous turn, the dock shows **Answer captured. Waiting for Brunch.**
+and sends that answer when it is ready. Wait for that answer to be sent before giving another one.
 
-Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
-**Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops
-sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
-drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
-while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
-to the canvas toolbar. Sending non-empty typed text from the
+Open **Voice playback options** and uncheck **Interruption by speaking** to use manual handover.
+This preference is remembered in your browser. In manual mode the microphone closes during
+assistant output. Select **Your turn**, wait for cancellation to finish, then speak; audio before
+that handover is discarded. The **Your turn** control is hidden when interruption by speaking is on.
+If speaker playback causes unwanted interruptions, use headphones or switch to manual handover.
+
+Semantic voice detection finishes your answer automatically after a natural pause, so there is no
+required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are not submitted.
+An empty or failed transcript asks you to try again, and an overlong answer asks for a shorter response.
+Completed interruptions that strongly repeat the transcription vocabulary or the assistant's active
+speech are silently discarded rather than sent as your answer. Short answers such as “stop”, “no”,
+and “wait” remain valid. A false speech detection can still stop playback even when its transcript
+is discarded.
+Provisional words remain display-only until the provider completes their transcript.
+
+Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and
+**Voice playback options** on the left, and the available handoff, microphone, recovery, and end
+actions on the right.
+**Read full response** becomes available after the matching response and speech have both finished
+and replays every exact retained canonical segment in order. **Repeat question** uses the same
+availability gates and replays only exact question text explicitly marked by Brunch. It stays
+disabled when that marker is missing or does not match finalized assistant text rather than
+guessing that the final segment is a question.
+Playback stays unavailable during active capture, submission, cancellation, pause, and errors. **Mute microphone** becomes
+**Unmute microphone** once muted, and your latest choice applies when a handoff settles. **Resume voice mode**
+replaces the microphone action while a session is paused, and **Reconnect voice mode** replaces it
+after a failure. Nothing is added to the canvas toolbar. Sending non-empty typed text from the
 composer or first-run prompt ends Voice mode before it sends the message once through the same
 conversation; repeated send actions are ignored while that short handoff completes.
 
-The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
-authority on your system. Brunch still chooses every question and interview decision; OpenAI only
-delivers its words. The question and finalized response shown in the Petrinaut conversation are
-authoritative. Spoken audio is generated from that Brunch text but may not be verbatim. Interrupting
-audio does not undo the visible response or change the interview's saved history.
+The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
 reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
@@ -88,8 +123,8 @@ ready. **Clear AI chat** is unavailable while a Voice
 session is active.
 
 If voice cannot continue, the status reads **Voice interrupted** and the actionable error arrives as
-a toast that names the microphone, connection, or Voice failure in one sentence, followed by any
-diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
+a persistent toast that names the microphone, connection, or Voice failure in one sentence, followed
+by any diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
 the session recovers. For microphone permission or device errors, allow access or connect/select a
 microphone before reconnecting. For an interrupted request, network error, or timeout, check the
 connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid
@@ -98,16 +133,15 @@ diagnostic record do not contain your transcript or the response being spoken. I
 failures use a content-free `interview-correlation`, `interview-response`, or `interview-submission`
 code so an operator can distinguish them without receiving your answer.
 
-When no interview is active, **Clear AI chat** via the delete button in the top right of the panel
-wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages
-(if the host persists them).
+When no interview is active and the host permits clearing, **Clear AI chat** via the delete button in the top right of the panel wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
 
 ## What the assistant can do
 
-The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation:
+The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
-- **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
+- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
+- **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
 - **`setNetTitle`** -- renames the net.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
@@ -119,6 +153,8 @@ The assistant has tools for inspecting and modifying the current net. You'll see
   still prevent completion.
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
+
+An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 

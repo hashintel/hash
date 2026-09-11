@@ -10,7 +10,8 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-sdk>=1.44.0",
-    "optuna>=3.6",
+    "optuna>=4.9,<5",
+    "petrinaut-optimizer-core",
     "petrinaut-python",
     "pydantic>=2.13.4",
     "python-dotenv>=1.0.0",
@@ -18,7 +19,8 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-petrinaut-python = { path = "../../libs/@local/petrinaut-python", editable = true }
+petrinaut-optimizer-core = { path = "../../libs/@local/petrinaut-optimizer-core", editable = true }
+petrinaut-python         = { path = "../../libs/@local/petrinaut-python", editable = true }
 
 [dependency-groups]
 dev = [

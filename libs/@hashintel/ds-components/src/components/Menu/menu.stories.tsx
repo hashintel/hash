@@ -1,15 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
 
+import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import {
+  defaultSelected,
+  groupedItems,
+  itemsWithSubActions,
+} from "../../util/SelectableList/selectable-list.fixtures";
 import { Button } from "../Button/button";
 import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu, type MenuItem } from "./menu";
-import { getItemId } from "./SelectableList/selectable-list-util";
-import {
-  groupedItems,
-  itemsWithSubActions,
-} from "./SelectableList/selectable-list.fixtures";
 
-import type { Item, ItemOrGroup } from "./SelectableList/selectable-list";
+import type {
+  Item,
+  ItemOrGroup,
+} from "../../util/SelectableList/selectable-list";
 import type { Story, StoryDefault } from "@ladle/react";
 
 function prefixIds(
@@ -53,6 +57,9 @@ function withSelection(
       ),
     };
   }
+  if ("custom" in entry) {
+    return entry as MenuItem;
+  }
   const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   if (nested) {
     return {
@@ -71,8 +78,8 @@ function withSelection(
   } as MenuItem;
 }
 
-function useToggleSelection() {
-  const [selected, setSelected] = useState<string[]>([]);
+function useToggleSelection(initialSelected: string[] = defaultSelected) {
+  const [selected, setSelected] = useState<string[]>(initialSelected);
   const toggle = useCallback((id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -159,10 +166,44 @@ export const PlainButtonTrigger: Story<MenuProps> = (args) => {
   );
 };
 
+export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
+  const { selected, toggle } = useToggleSelection();
+  const items = useMemo(
+    () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
+    [selected, toggle],
+  );
+  return (
+    <Menu
+      {...args}
+      trigger={<Button variant="solid">Open menu</Button>}
+      items={items}
+      header={
+        <span>
+          This is a very long header for the menu, spelling out in generous
+          detail the context of every action below, wrapping across several
+          lines while staying pinned above the scrollable items.
+        </span>
+      }
+      footer={
+        <span>
+          An equally long footer with fine print: none of the options above take
+          effect until confirmed elsewhere, and this note also wraps across
+          several lines while staying pinned below the scrollable items.
+        </span>
+      }
+      swapHeaderFooterOnFlip
+    />
+  );
+};
+
 export const EllipsisMenu: Story<MenuProps> = (args) => {
-  const ellipsis = useToggleSelection();
-  const bell = useToggleSelection();
-  const disabled = useToggleSelection();
+  const ellipsis = useToggleSelection(
+    defaultSelected.map((id) => `ellipsis-${id}`),
+  );
+  const bell = useToggleSelection(defaultSelected.map((id) => `bell-${id}`));
+  const disabled = useToggleSelection(
+    defaultSelected.map((id) => `disabled-${id}`),
+  );
   const ellipsisItems = useMemo(
     () =>
       groupedItems.map((entry) =>

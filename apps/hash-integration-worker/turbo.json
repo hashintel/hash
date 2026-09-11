@@ -2,7 +2,17 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["./dist/**"]
+      "outputs": ["./dist/**"],
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "dependsOn": ["^build"]
+    },
+    "start": {
+      "dependsOn": ["build", "@apps/hash-graph#start:healthcheck"]
+    },
+    "start:test": {
+      "dependsOn": ["build", "@apps/hash-graph#start:test:healthcheck"]
     }
   }
 }

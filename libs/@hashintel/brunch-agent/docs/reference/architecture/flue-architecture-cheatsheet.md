@@ -1,12 +1,15 @@
 # Flue architecture cheat sheet
 
-An architect's consolidation of the Flue documentation — all 21 guide entrypoints, fetched
-2026-08-17 — organized by _our_ concerns: the demo shell, the binding boundary, and the
-FE-1383/FE-1357 roadmap. Purpose (Lu's charter): align with recommended patterns and use
-provided affordances _before_ we diverge by building layers we don't need or drawing
-boundaries in the wrong place. Companion to the narrower usage audit
-([`flue-patterns-audit-2026-08-17.md`](../../evidence/audits/flue-patterns-audit-2026-08-17.md)); same caveat —
-WebFetch summarizes, so unquoted API details are paraphrase-grade.
+> Dated Flue 2.0.3 documentation read, fetched 2026-08-17. Not a Brunch roadmap and not live
+> authority. For current placement decisions use
+> [`flue-routing.md`](flue-routing.md) and root [`MISSION.md`](../../../MISSION.md).
+> Installed `@flue/runtime` docs win when this paraphrase disagrees.
+
+An architect's consolidation of the Flue documentation — all 21 guide entrypoints — organized
+by shell, binding boundary, and elicitation-owned state. Purpose: use provided affordances
+before inventing a parallel layer. Companion to the narrower usage audit
+([`flue-patterns-audit-2026-08-17.md`](../../evidence/audits/flue-patterns-audit-2026-08-17.md)).
+Unquoted API details are paraphrase-grade.
 
 The FE-1391 B1/B2 gate later checked the installed 2.0.3 source, exported types, and
 package-shipped docs directly. Its corrections below are source-grade and link to the
@@ -320,12 +323,14 @@ between the second and third:
 
 ## Reconciliation with the Flue-vs-tilde analysis (2026-08-14)
 
-The comparative analysis at [`../../reference/amp-analysis-flue-vs-tilde.md`](../../research/amp-analysis-flue-vs-tilde.md)
+The comparative analysis last living at
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/research/amp-analysis-flue-vs-tilde.md`
 read Flue's _source and changelog_, not only the guides, so where it speaks it carries higher
 evidence grade than this sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
 contradictions found — the analysis's verdict (keep Flue; Tilde is a hosted control plane, not
-a runtime; the capture store stays application-owned under any future) matches this sheet's
-boundary summary independently. Four source-level facts it adds that the guides state weakly
+a runtime; application-owned document state stays outside Flue's conversation store) matches
+this sheet's boundary summary independently. Capture envelopes were later rejected as that
+application-owned store. Four source-level facts it adds that the guides state weakly
 or not at all:
 
 - **Pre-remote-exposure gates.** The mounted Flue route is public — no authentication or

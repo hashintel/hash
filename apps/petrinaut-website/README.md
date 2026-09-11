@@ -32,14 +32,38 @@ cannot make a second net and Back skips the route. Empty nets earlier visits
 left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
+## Prepared root-arc tracer
+
+With Brunch configured, the prepared-fixture selector offers **Open the prepared root-arc mechanical tracer** at `/?brunch-fixture=crew-reservation-v1&brunchTracer=root-arc`. It opens a separate prepared document and a conversation bound to that document's persisted incarnation and original base. The **legacy crew-reservation fixture** retains its existing conversation, manifest, and fenced-workpiece reads; selecting the tracer does not migrate or overwrite that fixture.
+
+The tracer settles a full Markdown workpiece before admitting one root arc. Unknown citations refuse. Superseded citations refuse unless a retained superseded revision is explicitly intended. A changed document base refuses the mutation. Successful browser results carry independently observed before/after definitions and a correlated transition record; reopening does not resubmit a completed mutation. A conflicting result displays an unknown outcome rather than a successful change. This is a prepared mechanical demonstration, not genuine process construction or proof of provider-schema fidelity.
+
+The tracer also exposes **Current workpiece · recorded why** beside the existing assistant. Ask Brunch to read the workpiece to see the actual current-state query and discover authorized user-message IDs. The same read tool can locate exact quoted text in the current revision or an explicitly unsettled candidate; it returns bounded UTF-16 occurrences and reports omitted matches. Candidate hashes/offsets never settle a revision or confer support. Optional revision evidence is validated before settlement; prepared signals and assistant messages cannot become elicited sources. Unchanged unique passages at the same revision-local span can carry their relation, but editing, moving or duplicating text does not establish passage continuity. Missing relations remain temporal context, not inferred support.
+
+Ask why the input arc exists by its endpoint names or IDs. Brunch can read the live document, query `brunch_why`, and interpret its structured response in the normal conversation. The extra pane shows that actual response and the workpiece as reported by the tool, not a reconstruction from historical revision inputs. Reopen and ask again to refresh it. Unavailable observations are labelled as-of; real unrecorded content changes refuse attribution. A serialization-equivalent result preserves two different, independently verified hashes and recognizes only object-key-order differences across the complete definitions. It does not identify an actor or relax mutation base checks. Evidence authorization and recorded effects are mechanical facts; source relevance, flexible-template completeness, semantic fidelity and reviewer utility remain unassessed. The legacy fixture and stock host are unchanged.
+
+The ordinary configured host still uses its configured model. The explicit `test:browser-tracer` and `test:reopened-why` Brunch workspace scripts use synthetic native SDK responses, isolated storage and the existing ephemeral loopback-only listener, not external model requests. Before builds or probes, verify the process-tree guard in `libs/@hashintel/brunch-agent/evaluations/protocols/network-guard/verify-network-guard.mjs`; use that directory's deny-network profile for builds and loopback-only profile for Chrome. Build the website with `VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat`. `M7_CHROME_PATH` selects an installed Chrome executable, and `M7_BROWSER_OUTPUT` selects a fresh evidence directory. The A5 witness restarts the application runtime and reloads Chrome against the original retained stores; it does not claim a second OS-process reopen, genuine testimony or utility acceptance.
+
+## Conversation-bound construction candidate
+
+With Brunch configured, `/?brunchTracer=construction` opens a separately identified, labelled synthetic net substrate. Its first ordinary user message initializes a new mode/incarnation-scoped conversation; there is no prepared workpiece dispatch or history import. Settle the workpiece, then read the document before each root `addArc` or `updateArcWeight`. Each mutation cites the earlier browser result ID and its exact observed raw hash, plus the settled workpiece basis. Reopening requires a fresh browser read before new mutation work. The original prepared and ordinary conversation modes are unchanged.
+
+This candidate proves only root arc/weight progression. Other root classes, deletion/recreation, arc connectivity changes, layout/title, components and subnets are unavailable, not silently approximated. The why result keeps origin separate from subsequent recorded changes and attempts; weight corrections resolve their own governing revision. Basis remains operation-level and semantic utility unassessed. Unrecorded intervening content prevents attribution; failed, stale, no-op and conflicting results are not causes. `test:construction-progression` uses actual Chrome with synthetic native SDK responses, not paid or genuine/provider-class admission.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
 `/api/oembed` accepts their production URLs and returns an
 `/embed/examples/...` iframe. Canonical pages send both CSP `frame-ancestors
 'none'` and `X-Frame-Options: DENY`; only the dedicated embed routes permit
-third-party framing. The returned iframe is sandboxed with
-`allow-scripts allow-same-origin` and does not send a referrer.
+third-party framing. Every page also sends `upgrade-insecure-requests`: the deployed Brunch agent runs behind a proxy,
+sees plain HTTP and returns `http://` stream URLs, which an HTTPS page would otherwise block as mixed
+content. The returned iframe is sandboxed with
+`allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox`
+and does not send a referrer. The popup permissions are what let the preview's
+**Full view** link open the model in a new tab: a sandbox without them drops
+the navigation, and without `allow-popups-to-escape-sandbox` the full page
+would inherit the embed's sandbox.
 
 Because this is a client-rendered SPA, a static `index.html` discovery link
 cannot include the current example URL. `FullExamplePage` adds the standard
@@ -47,25 +71,34 @@ cannot include the current example URL. `FullExamplePage` adds the standard
 Consumers that do not execute JavaScript must call `/api/oembed` directly or
 use provider-pattern discovery instead.
 
-### Optimization demo with Petrinaut Opt
+### Optimization demo
 
-From the repository root, run:
+The main demo at [http://localhost:5173](http://localhost:5173) runs the
+optimizer in the browser: the Optuna study runs in a Pyodide web worker and
+each optimization step runs on Petrinaut's own experiments backend, so no
+Python service is involved. The **Optimizations** tab appears once the
+experimental **In-browser optimization** setting is on, under **Viewport
+controls > Settings > Simulation**. The first optimization in a browser
+downloads the Python runtime from jsDelivr and Optuna from PyPI; later runs use
+the browser cache.
+
+The `/optimization` route is the Python-service variant. It returns the
+website's not-found page unless `VITE_PETRINAUT_OPT_PROVIDER=service` is set.
+To run it, from the repository root:
 
 ```sh
 turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
 ```
 
 The flag builds and starts the local Petrinaut Opt Docker image, waits for its
-health endpoint, and starts the website with the real optimization provider.
-Open [http://localhost:5173/optimization](http://localhost:5173/optimization).
+health endpoint, and starts the website with
+`VITE_PETRINAUT_OPT_PROVIDER=service`. Open
+[http://localhost:5173/optimization](http://localhost:5173/optimization).
 Stopping the command also stops and removes its optimizer container.
 
 The development server proxies `/api/petrinaut-opt/*` to the optimizer on
 `127.0.0.1:4004`, avoiding development-only CORS changes to the Python service.
-Regular `yarn dev` does not enable optimization; use the dedicated command to
-connect the website to the real optimizer service. The `/optimization` route
-returns the website's not-found page when the provider is disabled. Storybook
-provides a fake optimizer for isolated UI development.
+Storybook provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
@@ -73,21 +106,29 @@ provides a fake optimizer for isolated UI development.
 | -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
 | `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
 | `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.    |
 | `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
 | `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the `/optimization` route.      |
 | `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
-### Brunch Voice mode preview
+### Brunch Voice mode
 
-Voice mode is disabled by default and always unavailable when `VERCEL_ENV` is
-`production`. To exercise the preview locally or in a Vercel preview, set a
-real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
-dedicated `OPENAI_VOICE_API_KEY`.
+Voice mode is disabled by default. To enable it, configure a real
+`VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
+provide a dedicated `OPENAI_VOICE_API_KEY`.
+
+Production Voice is temporarily unauthenticated. The same-origin check rejects
+ordinary cross-site browser requests, but a non-browser caller can spoof its
+`Origin` header and create billable Realtime sessions. Use a dedicated OpenAI
+project with low usage thresholds and alerts, monitor it while Voice is
+enabled, and set `PETRINAUT_OPENAI_VOICE_ENABLED=false` immediately if usage is
+unexpected. Revoke or rotate the dedicated `OPENAI_VOICE_API_KEY` in OpenAI,
+then update the deployment secret before re-enabling Voice. FE-1622 tracks
+adding caller authentication.
 
 Text and Voice mode use one assistant transcript and composer. When Voice mode
 is available, the empty first-run prompt and empty composer show a waveform
@@ -96,6 +137,23 @@ shows **Stop**. Starting Voice mode opens an inline, versioned consent
 disclosure before requesting microphone access. The disclosure also provides a
 microphone check and is remembered in browser storage only after Voice mode
 starts.
+
+When Brunch is selected, typed turns and completed Voice transcripts both enter
+the same mounted Flue conversation route. Each logical turn carries a stable
+delivery key so a replayed request converges on the existing admission instead
+of creating another turn. If admission cannot be confirmed, the UI reports the
+ambiguity and does not retry automatically. **Stop** requests a durable Brunch
+abort before the panel cancels its local response stream. Local playback
+cancellation remains separate and does not alter canonical history. Canonical
+Flue history is the source used when the same net is reopened. Automated
+coverage guards a locally submitted turn from an older hydration snapshot and
+does not resubmit turns or replay settled audio. The real hard-reload witness is
+still pending, so reload parity is not yet claimed for this preview.
+Voice-origin client-tool results retain their markers in Flue history. Direct
+spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
+caller delivery metadata needed to restore their Voice chip after reopening.
+
+Browser execution and its continuation keep the shared composer busy; a local tool failure reaches Voice as an error rather than an apparently completed response. Durably aborted history entries retain their stopped label. If the Flue step has already completed, Stop can withhold not-yet-started browser work locally but cannot durably record that withholding: a reopen can recover those calls as pending. This cancellation/reopen limitation remains unresolved; the local guard is not a durable cancellation claim.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
@@ -109,48 +167,71 @@ The text composer remains available. Sending typed text ends Voice mode first,
 then submits the draft exactly once through the same conversation; a failed
 handoff restores the draft. Closing the assistant pauses capture and speech
 before hiding it. Reopening preserves the mounted session in **Paused** state.
-**Pause** and **End voice mode** live under **Voice mode actions**, while
-**Resume** or **Reconnect** appears as the primary action when applicable.
+With **Interruption by speaking** disabled, the dock exposes **Your turn** while
+canonical audio owns the turn. That action
+clears pending input and output, waits for the provider's matching
+acknowledgements and response terminal event, and only then opens the
+microphone for fresh capture. Its playback menu offers **Repeat question** and
+**Read full response**. Full-response replay becomes available once the matching
+response and audio output have both finished, enqueues all exact retained
+canonical segments in order, and is disabled during capture, submission,
+cancellation, pause, and errors. **Repeat question** has the same safety gates
+and replays only exact question text carrying Brunch's non-interactive marker;
+if the marker is missing, malformed, or does not match finalized prose, the
+action stays disabled rather than guessing from the final segment.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
-Realtime call endpoint. The provider key, model, instructions, tools, language,
-and vocabulary policy stay server-side. The session uses semantic VAD with low
-eagerness so natural thinking pauses are less likely to end an answer early.
+Realtime call endpoint. The provider key, model, instructions, language, and
+session configuration stay server-side; the transcription vocabulary is shared
+with the browser's local admission filter. Realtime exposes no tools, uses
+`tool_choice: "none"`, and configures semantic VAD to detect an input boundary
+without creating a model response.
 
-Realtime is the disposable media plane: it carries continuous microphone and
-remote audio, detects complete turns, and handles barge-in. Brunch remains the
-control plane and sole authority for questions, captures, state, completion,
-and durable history. The browser bridge accepts only the configured
-`continue_interview` function, validates and serializes its arguments, rejects
-duplicate or stale calls, and submits the answer through Petrinaut's shared
-composer path with pending-`brunch_ask` correlation.
+Realtime is the disposable media plane: it carries microphone and remote audio,
+detects complete turns, and transcribes input. Brunch remains the control plane
+and sole authority for questions, captures, state, completion, and durable
+history. The bridge accepts only
+`conversation.item.input_audio_transcription.completed` as an answer, ignores
+model function arguments, and submits the normalized transcript through
+Petrinaut's shared composer path. Connection epoch, item id, and content index
+form its stable identity. Duplicate, empty, failed, unavailable, and over-limit
+transcripts never submit; recoverable failures leave a not-heard or too-long
+notice in the dock. Provisional transcription remains display-only.
+Only interruption-originated completions receive local prompt-regurgitation
+and self-echo checks before admission or pending-answer retention. Comparison
+uses NFKC, lowercase, punctuation removal, and whitespace collapse. Exact
+normalized active-playback echoes are rejected at any length; fuzzy comparison
+requires at least 80% ordered bigram overlap and minimum lengths of eight tokens
+for the vocabulary prompt or six for active canonical playback. The playback
+reference is captured when interruption starts, excludes queued speech and
+history, and is released on completion or lifecycle cleanup. Rejections produce
+only content-free diagnostics; they create no answer, error, or pending-answer
+notice. Short novel answers remain valid and the admitted payload keeps its
+original casing and punctuation.
 
 The bridge waits for the correlated Brunch turn before returning canonical
-speech segments to Realtime. It then requests audio with tools disabled and
-instructs Realtime to speak only those segments. Generated audio is not a
-verbatim record: canonical Brunch text remains visible and authoritative. The
-microphone stays active while the interviewer speaks and while Brunch is
-working. Speaking over assistant audio interrupts playback automatically;
-WebRTC truncates provider-side unheard audio without changing Brunch history.
+speech segments to Realtime. It instructs Realtime to speak only those
+segments. Generated audio is not a verbatim recording: canonical Brunch text
+remains visible and authoritative. **Interruption by speaking** is enabled by
+default: speech detection immediately cancels generation and clears output audio,
+never the input buffer. The completed answer waits if Brunch is still busy.
+False speech detection may still stop playback even if the transcript is later
+discarded. Disable this browser-saved preference for half-duplex capture: the
+microphone closes during assistant output, and audio captured before a completed
+**Your turn** handoff cannot become a later answer.
 
-The Brunch deployment must allow the website origin through its
-`BRUNCH_PETRINAUT_ORIGINS` setting. Denying microphone permission leaves the
-text composer available and submits nothing to Brunch. When Voice mode cannot
-continue, the inline recovery state distinguishes microphone, connection, and
-other Voice failures, explains the next action, and offers **Reconnect** where
-appropriate. Sanitized error codes and diagnostic references remain collapsed
-under **Technical details**.
+The local Brunch preview reaches the mounted route through its same-origin, protocol-preserving proxy; this does not establish remote authentication or public ingress. Denying microphone permission leaves the text composer available and submits nothing to Brunch. When Voice mode cannot continue, the inline recovery state distinguishes microphone, connection, and other Voice failures, explains the next action, and offers **Reconnect** where appropriate. Sanitized error codes and diagnostic references remain collapsed under **Technical details**.
 
 Realtime connection, transcription, and canonical speech timings use random
 request IDs, and the existing Brunch transport provides its own request
 correlation. Browser and server diagnostics report only operation, stage,
-outcome, duration, request ID, and—where applicable—status or a sanitized error
+outcome, duration, request ID, and—where applicable—status, rejection reason, or a sanitized error
 code. Voice responses also expose privacy-safe `Server-Timing` metrics. These
 diagnostics never record audio, SDP, transcript or prompt contents, canonical
-speech text, credentials, or provider response bodies. This controlled-preview
-evidence does not enable production: production remains unconditionally
-disabled by the server policy.
+speech text, credentials, or provider response bodies. Production Voice remains
+behind the explicit server configuration, which is an operational switch rather
+than caller authentication.
 
 ## Testing the API against the built output
 

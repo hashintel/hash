@@ -14,20 +14,27 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  PETRINAUT_DEFAULT_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
   createUserKeyedRecord,
   EMPTY_AD_HOC_STATE,
+  isWebGpuAvailable,
   metricSchema,
   petrinautOptimizationInputSchema,
   adHocOptimizationBindings,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import {
+  isConnectedOptimization,
+  PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
+  PETRINAUT_OPTIMIZATION_MAX_SEED,
+} from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -47,15 +54,32 @@ import {
   getMetricKindIcon,
   MODEL_METRIC_VALUE_PREFIX,
 } from "../metrics/metric-picker-options";
+import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { ConstraintDraftList } from "./create-optimization-drawer/constraint-draft-list";
+import {
+  type ConstraintDraft,
+  describeConstraint,
+  summarizeConstraintLspErrors,
+} from "./create-optimization-drawer/constraint-lsp";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
   OptimizationParameterRow,
 } from "./optimization-parameter-row";
+import {
+  isValidOptimizationSeed,
+  randomOptimizationSeed,
+} from "./optimization-seed";
 
+import type {
+  ExperimentComputeBackend,
+  ExperimentMetricSpecInput,
+} from "../../../../../../react/experiments/context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisError,
+  Constraint,
   Metric,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
@@ -168,6 +192,7 @@ const errorsStyle = css({
 });
 
 type Direction = "maximize" | "minimize";
+
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
 
@@ -177,6 +202,8 @@ const directionOptions = [
 ];
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
+const DEFAULT_SEEDS_PER_TRIAL = 1;
+const DEFAULT_PARALLELISM = 1;
 const AD_HOC_SCENARIO_VALUE = "__adhoc__";
 const AD_HOC_SCENARIO_LABEL = "No scenario";
 const DEFAULT_DT = 0.1;
@@ -347,6 +374,27 @@ function adHocHasOptimizeSelection(
   });
 }
 
+const NO_SCENARIO_PARAMETERS: ScenarioParameter[] = [];
+
+/**
+ * The scenario parameters an ad-hoc study exposes as `scenario.*`, or none
+ * while the definition does not synthesize.
+ */
+function getSynthesizedScenarioParameters(
+  state: AdHocScenarioState,
+  definition: SDCPN,
+  parametersEnabled: boolean,
+): ScenarioParameter[] {
+  const synthesized = synthesizeAdHocOptimization(state, {
+    netParameters: parametersEnabled ? definition.parameters : [],
+    places: definition.places,
+    types: definition.types,
+  });
+  return synthesized.ok
+    ? synthesized.output.scenario.scenarioParameters
+    : NO_SCENARIO_PARAMETERS;
+}
+
 function formatAdHocSynthesisErrors(errors: AdHocSynthesisError[]): string {
   return errors
     .map((error) => `${error.source}:${error.itemId} ${error.message}`)
@@ -363,6 +411,9 @@ function getConfigurationError({
   missingObjectiveMessage,
   direction,
   optimizationSteps,
+  seedsPerTrial,
+  parallelism,
+  seed,
   dt,
   maxTime,
 }: {
@@ -375,6 +426,9 @@ function getConfigurationError({
   missingObjectiveMessage: string;
   direction: Direction | null;
   optimizationSteps: number | null;
+  seedsPerTrial: number | null;
+  parallelism: number | null;
+  seed: number | null;
   dt: number | null;
   maxTime: number | null;
 }): string | null {
@@ -421,6 +475,25 @@ function getConfigurationError({
   ) {
     return `Optimization steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_TRIALS.toLocaleString()}`;
   }
+  if (
+    seedsPerTrial === null ||
+    !Number.isInteger(seedsPerTrial) ||
+    seedsPerTrial < 1 ||
+    seedsPerTrial > PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL
+  ) {
+    return `Runs per step must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL.toLocaleString()}`;
+  }
+  if (
+    parallelism === null ||
+    !Number.isInteger(parallelism) ||
+    parallelism < 1 ||
+    parallelism > PETRINAUT_OPTIMIZATION_MAX_PARALLELISM
+  ) {
+    return `Parallel steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}`;
+  }
+  if (!isValidOptimizationSeed(seed)) {
+    return `Seed must be an integer between 0 and ${PETRINAUT_OPTIMIZATION_MAX_SEED.toLocaleString()}`;
+  }
   if (dt === null || !Number.isFinite(dt) || dt <= 0) {
     return "Time step must be a positive number";
   }
@@ -435,10 +508,10 @@ function getConfigurationError({
     return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per optimization step`;
   }
   if (
-    simulationStepsPerOptimization * optimizationSteps >
+    simulationStepsPerOptimization * seedsPerTrial * optimizationSteps >
     PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
   ) {
-    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across the optimization`;
+    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across the optimization (time steps × runs per step × optimization steps)`;
   }
   return null;
 }
@@ -453,8 +526,11 @@ export function buildPetrinautOptimizationInput({
   metric,
   direction,
   optimizationSteps,
+  seedsPerTrial,
+  seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -464,8 +540,11 @@ export function buildPetrinautOptimizationInput({
   metric: Metric;
   direction: Direction;
   optimizationSteps: number;
+  seedsPerTrial: number;
+  seed: number;
   dt: number;
   maxTime: number;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   // Keyed by scenario parameter identifiers from the net definition: no
   // prototype.
@@ -525,7 +604,8 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
+    ...(constraints ? { constraints } : {}),
+    execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -545,8 +625,11 @@ export function buildAdHocPetrinautOptimizationInput({
   metric,
   direction,
   optimizationSteps,
+  seedsPerTrial,
+  seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -556,8 +639,11 @@ export function buildAdHocPetrinautOptimizationInput({
   metric: Metric;
   direction: Direction;
   optimizationSteps: number;
+  seedsPerTrial: number;
+  seed: number;
   dt: number;
   maxTime: number;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
@@ -573,7 +659,8 @@ export function buildAdHocPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
+    ...(constraints ? { constraints } : {}),
+    execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -586,9 +673,15 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { diagnosticsByUri, requestHirArtifacts, requestConstraint } = use(
+    LanguageClientContext,
+  );
   const { createOptimization } = use(OptimizationsContext);
-  const { enableAdHocScenarios } = use(UserSettingsContext);
+  const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
+  const source = useOptimizationSource();
+  // A remote study runs wherever the service runs, so only a connected
+  // source — trials evaluated in this browser — gets a backend choice.
+  const backendSelectable = source !== null && isConnectedOptimization(source);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -606,10 +699,27 @@ export const CreateOptimizationDrawer = ({
   const [optimizationSteps, setOptimizationSteps] = useState<number | null>(
     100,
   );
+  const [seedsPerTrial, setSeedsPerTrial] = useState<number | null>(
+    DEFAULT_SEEDS_PER_TRIAL,
+  );
+  const [seed, setSeed] = useState<number | null>(randomOptimizationSeed);
+  const [parallelism, setParallelism] = useState<number | null>(
+    DEFAULT_PARALLELISM,
+  );
+  const [gpuRequested, setGpuRequested] = useState(false);
   const [dt, setDt] = useState<number | null>(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Boolean conditions embedded in the manifest as source + lowered HIR.
+  // Declarative for now: carried and readable (Python included), not
+  // enforced by the study.
+  const [parameterConstraintDrafts, setParameterConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
+  const [stateConstraintDrafts, setStateConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
 
   const isAdHoc =
     enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
@@ -666,6 +776,42 @@ export const CreateOptimizationDrawer = ({
     );
   };
 
+  // The objective is an expression metric whichever way it is authored, which
+  // the GPU backend cannot compute, so the switch stays disabled with that
+  // reason; the net analysis still runs so the reason names the first
+  // blocker. The gate reads the metric's kind, not its code, so the custom
+  // objective counts before any code is typed.
+  const objectiveMetricForGpu =
+    metricSource === "saved"
+      ? selectedSavedMetric
+      : { id: customMetricId, name: CUSTOM_OBJECTIVE_METRIC_NAME, code: "" };
+  const objectiveMetricSpecs: ExperimentMetricSpecInput[] | null =
+    objectiveMetricForGpu
+      ? [
+          {
+            kind: "expression",
+            id: objectiveMetricForGpu.id,
+            label: objectiveMetricForGpu.name,
+            code: objectiveMetricForGpu.code,
+            sampleRuns: "all",
+            runOutput: { type: "distribution" },
+          },
+        ]
+      : null;
+  const webGpuAvailable = isWebGpuAvailable();
+  const gpu = useGpuAvailability({
+    enabled: open && backendSelectable && webGpuEnabled && webGpuAvailable,
+    sdcpn: petriNetDefinition,
+    extensions,
+    metricSpecs: objectiveMetricSpecs,
+  });
+  // Derived rather than stored, so a net edited into ineligibility after the
+  // switch was flipped neither shows as on nor submits a GPU study.
+  const gpuSelected = gpuRequested && gpu.available;
+  const computeBackend: ExperimentComputeBackend = gpuSelected
+    ? "webgpu"
+    : "cpu";
+
   const resetConfigurationState = (scenario?: Scenario) => {
     setName("Optimization");
     setDrafts(scenario ? createParameterDrafts(scenario) : {});
@@ -674,10 +820,16 @@ export const CreateOptimizationDrawer = ({
     setCustomMetricId(crypto.randomUUID());
     setDirection(null);
     setOptimizationSteps(100);
+    setSeedsPerTrial(DEFAULT_SEEDS_PER_TRIAL);
+    setParallelism(DEFAULT_PARALLELISM);
+    setSeed(randomOptimizationSeed());
+    setGpuRequested(false);
     setDt(DEFAULT_DT);
     setMaxTime(180);
     setError(null);
     setIsSubmitting(false);
+    setParameterConstraintDrafts([]);
+    setStateConstraintDrafts([]);
   };
 
   const resetState = () => {
@@ -703,6 +855,9 @@ export const CreateOptimizationDrawer = ({
             missingObjectiveMessage: "Select an objective metric",
             direction,
             optimizationSteps,
+            seedsPerTrial,
+            parallelism,
+            seed,
             dt,
             maxTime,
           })
@@ -713,6 +868,9 @@ export const CreateOptimizationDrawer = ({
       validationError ||
       direction === null ||
       optimizationSteps === null ||
+      seedsPerTrial === null ||
+      parallelism === null ||
+      !isValidOptimizationSeed(seed) ||
       dt === null ||
       maxTime === null
     ) {
@@ -773,6 +931,42 @@ export const CreateOptimizationDrawer = ({
         }
       }
 
+      // Lower each authored constraint against the study's parameters; a
+      // failing one blocks submission with its first diagnostic.
+      const constraintContext = {
+        netParameters: extensions.parameters
+          ? petriNetDefinition.parameters
+          : [],
+        scenarioParameters: scenarioForRun.scenarioParameters,
+        sdcpn: petriNetDefinition,
+        extensions,
+      };
+      const constraints: Constraint[] = [];
+      for (const [space, drafts_] of [
+        ["parameters", parameterConstraintDrafts],
+        ["state", stateConstraintDrafts],
+      ] as const) {
+        for (const [index, draft] of drafts_.entries()) {
+          if (draft.code.trim() === "") {
+            continue;
+          }
+          const lowered = await requestConstraint(
+            { space, id: draft.id, code: draft.code },
+            constraintContext,
+          );
+          if (!lowered.ok) {
+            setIsSubmitting(false);
+            setError(
+              `${describeConstraint(space, index)}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+            );
+            return;
+          }
+          constraints.push(lowered.constraint);
+        }
+      }
+      const manifestConstraints =
+        constraints.length > 0 ? constraints : undefined;
+
       const input = adHocBindings
         ? buildAdHocPetrinautOptimizationInput({
             name,
@@ -783,8 +977,11 @@ export const CreateOptimizationDrawer = ({
             metric,
             direction,
             optimizationSteps,
+            seedsPerTrial,
+            seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           })
         : buildPetrinautOptimizationInput({
             name,
@@ -795,10 +992,13 @@ export const CreateOptimizationDrawer = ({
             metric,
             direction,
             optimizationSteps,
+            seedsPerTrial,
+            seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           });
-      await createOptimization(input);
+      await createOptimization(input, { computeBackend, parallelism });
       resetState();
       resetMetricForm();
     } catch (submitError) {
@@ -881,10 +1081,29 @@ export const CreateOptimizationDrawer = ({
               : "Define the custom objective metric",
           direction,
           optimizationSteps,
+          seedsPerTrial,
+          parallelism,
+          seed,
           dt,
           maxTime,
         })
       : "Select a scenario";
+  // The constraint rows type-check as typed against the scenario the study
+  // will run: the selected one, or the one the ad-hoc definition synthesizes
+  // (its Variables and generated `adhoc_*` parameters). While the ad-hoc
+  // definition does not synthesize, the rows see no scenario parameters.
+  const constraintScenarioParameters = isAdHoc
+    ? getSynthesizedScenarioParameters(
+        adHocState ?? EMPTY_AD_HOC_STATE,
+        petriNetDefinition,
+        extensions.parameters,
+      )
+    : (selectedScenario?.scenarioParameters ?? NO_SCENARIO_PARAMETERS);
+  const constraintLspError = summarizeConstraintLspErrors(diagnosticsByUri, [
+    { space: "parameters", drafts: parameterConstraintDrafts },
+    { space: "state", drafts: stateConstraintDrafts },
+  ]);
+  const runBlocker = configurationError ?? constraintLspError;
 
   const handleClose = () => {
     if (submissionInProgress) {
@@ -1000,16 +1219,73 @@ export const CreateOptimizationDrawer = ({
                   <TextInput size="sm" value={name} onChange={setName} />
                 </Form.Field>
                 <Form.Row>
-                  <Form.Field label="Optimization steps" size="sm">
-                    <NumberInput
+                  {[
+                    <Form.Field
+                      key="steps"
+                      label="Optimization steps"
                       size="sm"
-                      min={1}
-                      max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
-                      step={1}
-                      value={optimizationSteps}
-                      onChange={setOptimizationSteps}
-                    />
-                  </Form.Field>
+                    >
+                      <NumberInput
+                        size="sm"
+                        min={1}
+                        max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
+                        step={1}
+                        value={optimizationSteps}
+                        onChange={setOptimizationSteps}
+                      />
+                    </Form.Field>,
+                    <Form.Field
+                      key="runs"
+                      label="Runs per step"
+                      labelTooltip="Seeded simulations per optimization step. Their final objective values are aggregated into the step's objective."
+                      size="sm"
+                    >
+                      <NumberInput
+                        size="sm"
+                        min={1}
+                        max={PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL}
+                        step={1}
+                        value={seedsPerTrial}
+                        onChange={setSeedsPerTrial}
+                      />
+                    </Form.Field>,
+                    // Steps overlap only where this browser evaluates them;
+                    // a remote study's service decides its own pace.
+                    ...(backendSelectable
+                      ? [
+                          <Form.Field
+                            key="parallelism"
+                            label="Parallel steps"
+                            labelTooltip="Optimization steps evaluated at the same time. Above 1, the optimizer accounts for the steps still running when it picks the next values, so the proposals differ from a one-at-a-time study."
+                            size="sm"
+                          >
+                            <NumberInput
+                              size="sm"
+                              min={1}
+                              max={PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}
+                              step={1}
+                              value={parallelism}
+                              onChange={setParallelism}
+                            />
+                          </Form.Field>,
+                        ]
+                      : []),
+                    // Only offered where the choice exists: a connected source
+                    // with WebGPU switched on in settings.
+                    ...(backendSelectable && webGpuEnabled && webGpuAvailable
+                      ? [
+                          <Form.Field key="backend" label="Backend" size="sm">
+                            <ComputeBackendToggle
+                              gpu={gpu}
+                              selected={gpuSelected}
+                              onSelectedChange={setGpuRequested}
+                            />
+                          </Form.Field>,
+                        ]
+                      : []),
+                  ]}
+                </Form.Row>
+                <Form.Row>
                   <Form.Field label="Time step" size="sm">
                     <NumberInput
                       size="sm"
@@ -1026,6 +1302,20 @@ export const CreateOptimizationDrawer = ({
                       step="any"
                       value={maxTime}
                       onChange={setMaxTime}
+                    />
+                  </Form.Field>
+                  <Form.Field
+                    label="Seed"
+                    labelTooltip="Seeds the optimizer's proposals and the simulations' random draws. Keep it to reproduce a study; change it to explore a different set of steps."
+                    size="sm"
+                  >
+                    <NumberInput
+                      size="sm"
+                      min={0}
+                      max={PETRINAUT_OPTIMIZATION_MAX_SEED}
+                      step={1}
+                      value={seed}
+                      onChange={setSeed}
                     />
                   </Form.Field>
                 </Form.Row>
@@ -1088,6 +1378,36 @@ export const CreateOptimizationDrawer = ({
                 </Section>
               )}
 
+              <Section
+                title="Constraints"
+                tooltip="Boolean conditions carried with the study. They are recorded in the manifest and readable by every consumer; nothing enforces them yet."
+                collapsible
+                defaultOpen
+              >
+                <span className={hintStyle}>
+                  Parameter constraints are expressions over the study's
+                  parameters (scenario.*, parameters.*), e.g. scenario.min_load
+                  &lt; scenario.max_load.
+                </span>
+                <ConstraintDraftList
+                  space="parameters"
+                  drafts={parameterConstraintDrafts}
+                  onChange={setParameterConstraintDrafts}
+                  scenarioParameters={constraintScenarioParameters}
+                />
+                <span className={hintStyle}>
+                  State constraints read the simulation state like a metric body
+                  and must return a boolean, e.g. return
+                  state.places.Queue.count &lt;= 10;
+                </span>
+                <ConstraintDraftList
+                  space="state"
+                  drafts={stateConstraintDrafts}
+                  onChange={setStateConstraintDrafts}
+                  scenarioParameters={constraintScenarioParameters}
+                />
+              </Section>
+
               <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
                   Choose a saved metric or write custom code for this run.
@@ -1138,13 +1458,13 @@ export const CreateOptimizationDrawer = ({
       <Drawer.Footer
         secondaryActions={
           error ||
-          (selectedScenario || isAdHoc ? configurationError : null) ||
+          (selectedScenario || isAdHoc ? runBlocker : null) ||
           visibleCustomMetricError ? (
             <Form.Field.Errors
               className={errorsStyle}
               errors={[
                 error ??
-                  (selectedScenario || isAdHoc ? configurationError : null) ??
+                  (selectedScenario || isAdHoc ? runBlocker : null) ??
                   visibleCustomMetricError,
               ]}
               size="sm"
@@ -1168,10 +1488,10 @@ export const CreateOptimizationDrawer = ({
               size="sm"
               disabled={
                 submissionInProgress ||
-                configurationError !== null ||
+                runBlocker !== null ||
                 visibleCustomMetricError !== undefined
               }
-              tooltip={configurationError ?? visibleCustomMetricError}
+              tooltip={runBlocker ?? visibleCustomMetricError}
               prefix={
                 submissionInProgress ? (
                   <LoadingSpinner size="sm" variant="bars" />
