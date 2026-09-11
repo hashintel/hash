@@ -20,6 +20,7 @@ import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
 import { Select } from "../Select/select";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
+import { RejectedKeysHint } from "./filter-keypress-hint";
 import {
   type FilterChange,
   type FilterValue,
@@ -717,67 +718,80 @@ export const Filter = <
         const isText = config.type === "string";
         const integer = !isText && isIntegerConfig(config);
 
+        const inputElement = (
+          <input
+            ref={assignInputRef}
+            className={classes.input}
+            onMouseEnter={syncTruncationTitle}
+            type={isText ? "text" : "number"}
+            inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
+            value={String(slots[inputIndex] ?? "")}
+            onChange={(event) => {
+              // Store the raw string so intermediate states like "-" and
+              // "1." survive the controlled round-trip; commitDraft
+              // resolves number slots via normalizeSlots.
+              setSlot(inputIndex, event.target.value);
+            }}
+            placeholder={config.placeholder}
+            minLength={isText ? config.min : undefined}
+            maxLength={isText ? config.max : undefined}
+            pattern={isText ? config.pattern : undefined}
+            min={isText ? undefined : config.min}
+            max={isText ? undefined : config.max}
+            step={isText ? undefined : numberStepOf(config)}
+            onKeyDown={(event) => {
+              handleInputKeyDown(event, inputIndex);
+              if (
+                !isText &&
+                !event.defaultPrevented &&
+                isRejectedNumberInputKey(event, integer)
+              ) {
+                event.preventDefault();
+                flashInvalidInput(event.currentTarget);
+              }
+            }}
+            onFocus={(event) => {
+              inputFocusValueRef.current = slotsRef.current[inputIndex] ?? null;
+              if (!isText) {
+                event.currentTarget.addEventListener("wheel", preventWheel, {
+                  passive: false,
+                });
+              }
+            }}
+            onBlur={
+              isText
+                ? undefined
+                : (event) => {
+                    event.currentTarget.removeEventListener(
+                      "wheel",
+                      preventWheel,
+                    );
+                  }
+            }
+            disabled={disabled}
+            aria-invalid={invalid || undefined}
+            aria-label={ariaLabel}
+            {...preventAutocompleteProps}
+          />
+        );
+
         return (
           <span
             className={classes.inputSlot}
             data-disabled={disabled ? "" : undefined}
             key={segmentKey}
           >
-            <input
-              ref={assignInputRef}
-              className={classes.input}
-              onMouseEnter={syncTruncationTitle}
-              type={isText ? "text" : "number"}
-              inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
-              value={String(slots[inputIndex] ?? "")}
-              onChange={(event) => {
-                // Store the raw string so intermediate states like "-" and
-                // "1." survive the controlled round-trip; commitDraft
-                // resolves number slots via normalizeSlots.
-                setSlot(inputIndex, event.target.value);
-              }}
-              placeholder={config.placeholder}
-              minLength={isText ? config.min : undefined}
-              maxLength={isText ? config.max : undefined}
-              pattern={isText ? config.pattern : undefined}
-              min={isText ? undefined : config.min}
-              max={isText ? undefined : config.max}
-              step={isText ? undefined : numberStepOf(config)}
-              onKeyDown={(event) => {
-                handleInputKeyDown(event, inputIndex);
-                if (
-                  !isText &&
-                  !event.defaultPrevented &&
-                  isRejectedNumberInputKey(event, integer)
-                ) {
-                  event.preventDefault();
-                  flashInvalidInput(event.currentTarget);
-                }
-              }}
-              onFocus={(event) => {
-                inputFocusValueRef.current =
-                  slotsRef.current[inputIndex] ?? null;
-                if (!isText) {
-                  event.currentTarget.addEventListener("wheel", preventWheel, {
-                    passive: false,
-                  });
-                }
-              }}
-              onBlur={
-                isText
-                  ? undefined
-                  : (event) => {
-                      event.currentTarget.removeEventListener(
-                        "wheel",
-                        preventWheel,
-                      );
-                    }
-              }
-              disabled={disabled}
-              aria-invalid={invalid || undefined}
-              aria-label={ariaLabel}
-              {...preventAutocompleteProps}
-            />
+            {isText ? (
+              inputElement
+            ) : (
+              <RejectedKeysHint
+                integer={integer}
+                triggerClassName={classes.hintTrigger}
+                contentClassName={classes.hintTooltip}
+              >
+                {inputElement}
+              </RejectedKeysHint>
+            )}
           </span>
         );
       })}
