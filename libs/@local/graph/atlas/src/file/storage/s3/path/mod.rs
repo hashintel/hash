@@ -56,7 +56,12 @@ impl BucketPath {
     }
 
     pub(crate) fn file_name(&self) -> Option<&str> {
-        self.key().rsplit_once('/').map(|(_, file_name)| file_name)
+        let key = self.key();
+
+        key.rsplit_once('/')
+            .map(|(_, file_name)| file_name)
+            .or(Some(key))
+            .filter(|name| !name.is_empty())
     }
 
     /// Appends literal key text, inserting a slash when the key has no trailing slash.

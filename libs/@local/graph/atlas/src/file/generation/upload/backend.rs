@@ -87,6 +87,8 @@ pub(crate) trait GenerationUploadBackend {
 
     fn read_dir(&self, path: &FilePath) -> impl Stream<Item = Result<FilePath, StorageError>>;
 
+    async fn remove(&self, path: &FilePath) -> Result<(), StorageError>;
+
     async fn remove_dir_all(&self, path: &FilePath) -> Result<(), StorageError>;
 }
 
@@ -128,6 +130,10 @@ impl GenerationUploadBackend for &Storage {
 
     fn read_dir(&self, path: &FilePath) -> impl Stream<Item = Result<FilePath, StorageError>> {
         path.read_dir(self)
+    }
+
+    async fn remove(&self, path: &FilePath) -> Result<(), StorageError> {
+        path.remove(self).await
     }
 
     async fn remove_dir_all(&self, path: &FilePath) -> Result<(), StorageError> {
