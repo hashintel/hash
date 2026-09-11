@@ -92,12 +92,15 @@ whole setup: request a device, generate and compile the WGSL, probe. The
 experiment backend now holds a `gpu-backend-cache`: one entry keyed by what
 actually shapes the shader — net and artifact identity, baked parameter
 values, metric set, `dt`, integration method, initial marking. Values of
-parameters carried in the per-run buffer are deliberately NOT in the key, so
-range batches across different selections share one backend, and with it the
-calibration (windows, derived capacities, the shader compiled at them)
-learned by earlier batches. A stale calibration heals through the same
-escape/overflow re-runs that calibrate from scratch, and the cache is
-updated with what each batch learned.
+parameters carried in the per-run buffer are deliberately NOT in the key, and
+a sweep carries every net parameter its axes can reach in that buffer for
+every batch — a point selection as one constant row per run — so all of a
+sweep's selections share one backend, and with it the calibration (windows,
+derived capacities, the shader compiled at them) learned by earlier batches.
+A stale calibration heals through the same escape/overflow re-runs that
+calibrate from scratch, and the cache is updated with what each batch
+learned. Only a selection that changes the initial marking (a scenario axis
+that shapes the initial state) still builds a new setup.
 
 Devices need explicit destruction and pipelined rungs lease the backend
 concurrently, so entries count leases: a displaced (or unsupported) entry

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { translateRangeDraws } from "./sweep-run-overrides";
+import {
+  constantRunPlan,
+  sweptNetParameterIds,
+  translateRangeDraws,
+} from "./sweep-run-overrides";
+
+import type { ExperimentParameterAxis } from "../../parameter-grid";
 
 /** Overrides: net `rate` = scenario `speed` × 2; net `size` is untouched. */
 const compileRunNumbers = (swept: Readonly<Record<string, number>>) => ({
@@ -16,6 +22,7 @@ describe("translateRangeDraws", () => {
       baseParameters,
       compileRunNumbers,
       netParameterVariableNames: new Set(["rate", "size"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["rate"]);
@@ -31,6 +38,7 @@ describe("translateRangeDraws", () => {
       baseParameters,
       compileRunNumbers,
       netParameterVariableNames: new Set(["rate", "size"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["rate"]);
@@ -44,6 +52,7 @@ describe("translateRangeDraws", () => {
       baseParameters,
       compileRunNumbers: () => ({ parameters: { ...baseParameters } }),
       netParameterVariableNames: new Set(["rate", "size"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["size"]);
@@ -57,6 +66,7 @@ describe("translateRangeDraws", () => {
       baseParameters,
       compileRunNumbers: () => ({ parameters: { ...baseParameters } }),
       netParameterVariableNames: new Set(["rate", "size"]),
+      ids: [],
     });
 
     expect(plan).toBeUndefined();
@@ -71,6 +81,7 @@ describe("translateRangeDraws", () => {
         parameters: { rate: 3, armed: (swept.speed ?? 0) > 2 },
       }),
       netParameterVariableNames: new Set(["rate", "armed"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["armed"]);
@@ -87,6 +98,7 @@ describe("translateRangeDraws", () => {
       baseParameters: { rate: 3, armed: false },
       compileRunNumbers: () => ({ parameters: { rate: 3, armed: false } }),
       netParameterVariableNames: new Set(["rate", "armed"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["armed"]);
@@ -107,9 +119,87 @@ describe("translateRangeDraws", () => {
       baseParameters: compileNumbers({ speed: 1.5 }).parameters,
       compileRunNumbers: compileNumbers,
       netParameterVariableNames: new Set(["rate", "size"]),
+      ids: [],
     });
 
     expect(plan?.ids).toEqual(["rate", "size"]);
     expect([...plan!.values]).toEqual([6, 7, 3, 9]);
+  });
+});
+
+describe("sweptNetParameterIds", () => {
+  const axis = (
+    identifier: string,
+    min: number,
+    max: number,
+  ): ExperimentParameterAxis => ({
+    identifier,
+    min,
+    max,
+    stepCount: 50,
+    integer: false,
+  });
+
+  it("finds the names an override computes, a direct net-name axis, and skips untouched names", () => {
+    const ids = sweptNetParameterIds({
+      axes: [axis("speed", 1, 2), axis("size", 5, 9), axis("irrelevant", 0, 1)],
+      compileRunNumbers: (swept) => ({
+        parameters: {
+          rate: (swept.speed ?? 1) * 2,
+          size: swept.size ?? 7,
+          fixed: 3,
+        },
+      }),
+      netParameterVariableNames: new Set(["rate", "size", "fixed"]),
+    });
+
+    expect(ids).toEqual(["rate", "size"]);
+  });
+
+  it("is empty when no axis reaches a net parameter", () => {
+    const ids = sweptNetParameterIds({
+      axes: [axis("irrelevant", 0, 1)],
+      compileRunNumbers: () => ({ parameters: { rate: 3 } }),
+      netParameterVariableNames: new Set(["rate"]),
+    });
+
+    expect(ids).toEqual([]);
+  });
+});
+
+describe("translateRangeDraws with a supplied id set", () => {
+  it("carries every supplied id even when no run moves it", async () => {
+    // Both runs draw the midpoint: nothing differs from the base, but the
+    // column still rides so this batch lays out the same buffer as any other.
+    const plan = await translateRangeDraws({
+      draws: { identifiers: ["speed"], values: new Float64Array([1.5, 1.5]) },
+      midValues: { speed: 1.5 },
+      baseParameters,
+      compileRunNumbers,
+      netParameterVariableNames: new Set(["rate", "size"]),
+      ids: ["rate"],
+    });
+
+    expect(plan?.ids).toEqual(["rate"]);
+    expect([...plan!.values]).toEqual([3, 3]);
+  });
+});
+
+describe("constantRunPlan", () => {
+  it("repeats the point's values for every run, run-major", () => {
+    const plan = constantRunPlan(["rate", "size"], { rate: 3, size: 7 }, 3);
+
+    expect(plan?.ids).toEqual(["rate", "size"]);
+    expect([...plan!.values]).toEqual([3, 7, 3, 7, 3, 7]);
+  });
+
+  it("carries a boolean as 1/0", () => {
+    const plan = constantRunPlan(["armed"], { armed: true }, 2);
+
+    expect([...plan!.values]).toEqual([1, 1]);
+  });
+
+  it("is undefined when there is nothing to carry", () => {
+    expect(constantRunPlan([], { rate: 3 }, 4)).toBeUndefined();
   });
 });

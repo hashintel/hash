@@ -25,10 +25,12 @@ stay in rung order. Run ranges are disjoint and per-run draws and seeds are
 prefix-stable, which is what makes overlapping rungs sound.
 
 Each rung asks the provider to instantiate a batch. The provider builds an
-`ExperimentRequest` (per-run parameter draws travel as a typed-array plan)
-and lets the backend selection choose
-between the CPU worker pool and the WebGPU backend the first time; later
-rungs reuse the chosen backend.
+`ExperimentRequest` (per-run parameter draws travel as a typed-array plan
+over the net parameters the sweep's axes can reach — a point selection as a
+constant plan, so every batch lays out the same per-run buffer and the GPU
+backend keeps one compiled setup across selections) and lets the backend
+selection choose between the CPU worker pool and the WebGPU backend the first
+time; later rungs reuse the chosen backend.
 
 Frames come back through the experiment handle's stores. The session merges
 the selection's cached frames with the live rungs' frames and publishes on a
