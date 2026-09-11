@@ -1,6 +1,10 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
+
+import { parseSDCPNFile } from "@hashintel/petrinaut-core";
+import { checkDefinition } from "@hashintel/petrinaut-core/diagnostics";
 
 const packageRoot = new URL("../", import.meta.url);
 const contextRoot = new URL("../../../", import.meta.url);
@@ -62,5 +66,41 @@ describe("portfolio portability", () => {
         ).toBeGreaterThan(0);
       }
     }
+  });
+
+  test("retains the established compiler-clean Inventory reference as a separate flagship input", () => {
+    const path = new URL(
+      "evaluations/cases/inventory-purchasing/reference-sdcpn.json",
+      contextRoot,
+    );
+    const bytes = readFileSync(path);
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      "81329d7beb1babae64f525ab78b7f1da60b5e67921b76fed7cfde36554985c56",
+    );
+    const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(parsed.hadMissingPositions).toBe(false);
+    expect({
+      places: parsed.sdcpn.places.length,
+      transitions: parsed.sdcpn.transitions.length,
+      types: parsed.sdcpn.types.length,
+      parameters: parsed.sdcpn.parameters.length,
+      differentialEquations: parsed.sdcpn.differentialEquations.length,
+      scenarios: parsed.sdcpn.scenarios?.length ?? 0,
+      metrics: parsed.sdcpn.metrics?.length ?? 0,
+    }).toEqual({
+      places: 38,
+      transitions: 45,
+      types: 9,
+      parameters: 58,
+      differentialEquations: 9,
+      scenarios: 10,
+      metrics: 45,
+    });
+    expect(checkDefinition(parsed.sdcpn)).toEqual({
+      isValid: true,
+      itemDiagnostics: [],
+    });
   });
 });
