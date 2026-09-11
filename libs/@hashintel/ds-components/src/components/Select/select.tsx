@@ -109,7 +109,9 @@ type SelectBaseProps<TValue extends string> = {
 
 /** Adds a search field to the dropdown that filters the items by their text.
  * onSearch is called as the search value changes, including with "" when the
- * dropdown closes and the search resets. */
+ * dropdown closes and the search resets. While the search field is empty, or
+ * the last key press was ArrowUp/ArrowDown, Space toggles the highlighted
+ * item instead of typing into the search field. */
 type SelectSearchable = {
   onSearch?: (search: string) => void;
 };
@@ -469,6 +471,47 @@ export const Select = <TValue extends string>({
 
   const selectApiRef = useRef<ReturnType<typeof useSelectContext> | null>(null);
 
+  const [search, setSearch] = useState("");
+  const showSearch = !!searchable;
+
+  // In a searchable select, Space pressed in the search field toggles the
+  // highlighted item — instead of typing a space — while the search is empty
+  // or the last key press was ArrowUp/ArrowDown (a toggling Space keeps that
+  // mode going, so repeated toggles work; any other key returns Space to
+  // typing). Runs in the capture phase: the search row's own handler stops
+  // Space from reaching zag's content keydown, where an unsearchable select
+  // gets its Space-selects behaviour, so the toggle is driven from here via
+  // the machine api instead. Single selects mirror Enter and close after
+  // selecting.
+  const lastKeyWasListNavRef = useRef(false);
+  const handleSearchSpaceKeyDown = (event: React.KeyboardEvent): boolean => {
+    const api = selectApiRef.current;
+    if (!api?.open || event.nativeEvent.isComposing) {
+      return false;
+    }
+    const target = event.target as Element;
+    if (!target.closest("[data-selectable-list-search]")) {
+      return false;
+    }
+    if (search !== "" && !lastKeyWasListNavRef.current) {
+      return false;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const highlighted = api.highlightedValue;
+    if (
+      !event.repeat &&
+      highlighted !== null &&
+      api.collection.has(highlighted)
+    ) {
+      api.selectValue(highlighted);
+      if (!multiple) {
+        api.setOpen(false);
+      }
+    }
+    return true;
+  };
+
   // Tab while open moves through the dropdown's own tabbables (search field,
   // custom rows, footer buttons) and past the edge closes the dropdown,
   // handing focus to the document's neighbouring tabbable — zag would
@@ -551,6 +594,7 @@ export const Select = <TValue extends string>({
     });
   };
   const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
+    let spaceToggled = false;
     if (event.key === "Tab") {
       handleTabKeyDown(event);
     } else if (
@@ -560,7 +604,11 @@ export const Select = <TValue extends string>({
       // zag changes a closed select's selection on Left/Right — swallow the
       // key before it reaches the trigger so the selection stays put.
       event.stopPropagation();
+    } else if (event.key === " " && showSearch) {
+      spaceToggled = handleSearchSpaceKeyDown(event);
     }
+    lastKeyWasListNavRef.current =
+      event.key === "ArrowUp" || event.key === "ArrowDown" || spaceToggled;
   };
   useEffect(() => {
     if (!multiple) {
@@ -577,8 +625,6 @@ export const Select = <TValue extends string>({
     };
   }, [multiple]);
 
-  const [search, setSearch] = useState("");
-  const showSearch = !!searchable;
   const onSearch =
     typeof searchable === "object" ? searchable.onSearch : undefined;
   const handleSearchChange = useCallback(
@@ -900,6 +946,7 @@ export const Select = <TValue extends string>({
         if (open) {
           escapedRef.current = false;
           valueAtOpenRef.current = selectedValues;
+          lastKeyWasListNavRef.current = false;
         } else {
           if (multiple && escapedRef.current) {
             escapedRef.current = false;
