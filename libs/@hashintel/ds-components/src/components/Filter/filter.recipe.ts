@@ -286,9 +286,14 @@ export const filterRecipe = sva({
         "--filter-divider": "var(--filter-pressed-border)",
         "--filter-remove-divider": "var(--filter-pressed-border)",
       },
+      // Mirrors the text input's percentage-free cap: the slot's own
+      // `min(…, 100%)` max-width is ignored while the root's fit-content
+      // width is computed (percentages don't resolve during intrinsic
+      // sizing), so without this the chip grows to the unclipped value.
       "& [data-part=trigger]": {
         paddingInline: "[var(--filter-input-padding-x)]",
         paddingBlock: "[var(--form-padding-y)]",
+        maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
       },
     },
     separator: {
