@@ -14,6 +14,7 @@ import {
 } from "../shared/header-actions";
 import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { useLowSampleSetting } from "../shared/low-sample-context";
+import { useBaseMeasure } from "../shared/measure-context";
 import { useProcurementBasis } from "../shared/procurement-basis-context";
 import { ScopeSelect } from "../shared/scope-select";
 import { SupplyChainSearchInput } from "../shared/search-input";
@@ -34,6 +35,15 @@ import {
 } from "./site/opportunities";
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
+import { StepFilterBar } from "./site/shared/step-filter-bar";
+import {
+  applyStepFilters,
+  applyStepFiltersBy,
+  applyVendorStepFilters,
+  buildStepFilterContext,
+  buildStepFilterOptions,
+  type ActiveStepFilter,
+} from "./site/shared/step-filters";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
 import { buildSiteOverviewCsv } from "./site/site-overview-export";
 import { createSiteSearchMatchers } from "./site/site-search";
@@ -45,8 +55,8 @@ import { useSiteOverviewRows } from "./site/use-site-overview-rows";
 import { VendorDetailPanel } from "./site/vendor-detail-panel";
 
 import type { BaseMeasure } from "../shared/measure-context";
-import type { StatusActionLabel, StatusStore } from "../shared/status";
-import type { Product, SiteNode, StepType } from "../shared/types";
+import type { StatusStore } from "../shared/status";
+import type { Product, SiteNode } from "../shared/types";
 import type {
   Tab,
   SortKey,
@@ -152,6 +162,14 @@ const tabBar = css({
 const tabButtons = css({ display: "flex", alignItems: "flex-end", gap: "3" });
 // Groups the tab bar with its active table so they stack tightly.
 const tableSection = css({ display: "flex", flexDirection: "column", pb: "6" });
+// Shared filter bar sitting directly above its table.
+const filterBarRow = css({ flexShrink: "0", py: "3" });
+// Groups a filter bar with the table beneath it (the content area spaces
+// direct children apart).
+const filterableTableSection = css({
+  display: "flex",
+  flexDirection: "column",
+});
 
 interface SiteOverviewProps {
   products: Product[];
@@ -214,6 +232,7 @@ export const SiteOverview = ({
   onStatusRouteClear,
 }: SiteOverviewProps) => {
   const { timeRange } = useTimeRange();
+  const { measure } = useBaseMeasure();
   const { currency, waccRate, storageCost } = useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
@@ -304,41 +323,9 @@ export const SiteOverview = ({
   const [supplierMode] = useState<SupplierMode>("worst");
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
-  // Detail-table column filters, stored per tab as the set of *hidden* values
-  // (empty = everything shown). Persisted here so they survive tab switches.
-  const [dwellTypeHidden, setDwellTypeHidden] = useState<Set<StepType>>(
-    () => new Set(),
-  );
-  const [planningTypeHidden, setPlanningTypeHidden] = useState<Set<StepType>>(
-    () => new Set(),
-  );
-  const [trendTypeHidden, setTrendTypeHidden] = useState<Set<StepType>>(
-    () => new Set(),
-  );
-  const [dwellProductHidden, setDwellProductHidden] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [planningProductHidden, setPlanningProductHidden] = useState<
-    Set<string>
-  >(() => new Set());
-  const [planningSupplierHidden, setPlanningSupplierHidden] = useState<
-    Set<string>
-  >(() => new Set());
-  const [planningBasisHidden, setPlanningBasisHidden] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [trendProductHidden, setTrendProductHidden] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [dwellStatusHidden, setDwellStatusHidden] = useState<
-    Set<StatusActionLabel>
-  >(() => new Set());
-  const [planningStatusHidden, setPlanningStatusHidden] = useState<
-    Set<StatusActionLabel>
-  >(() => new Set());
-  const [trendStatusHidden, setTrendStatusHidden] = useState<
-    Set<StatusActionLabel>
-  >(() => new Set());
+  // One filter set shared by the dwell/planning/trend tables, so switching
+  // tabs never drops an active filter (see step-filters.ts for semantics).
+  const [stepFilters, setStepFilters] = useState<ActiveStepFilter[]>([]);
 
   // Opportunities table sort. Defaults to impact (per-section score) descending,
   // which matches the order rows are built in, so the header reflects it.
@@ -346,15 +333,6 @@ export const SiteOverview = ({
     key: SortKey;
     dir: SortDir;
   } | null>({ key: "impact", dir: "desc" });
-  const [oppTypeHidden, setOppTypeHidden] = useState<Set<StepType>>(
-    () => new Set(),
-  );
-  const [oppProductHidden, setOppProductHidden] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [oppStatusHidden, setOppStatusHidden] = useState<
-    Set<StatusActionLabel>
-  >(() => new Set());
   const [oppSectionRevealRequest, setOppSectionRevealRequest] = useState<{
     kind: OpportunityKind;
     requestId: number;
@@ -448,26 +426,109 @@ export const SiteOverview = ({
     () => createSiteSearchMatchers(searchQuery),
     [searchQuery],
   );
-  const filteredDwellRows = useMemo(
-    () => dwellRows.filter(searchMatchers.siteNode),
-    [dwellRows, searchMatchers],
+  // Options and joins for the shared filter bar draw on every table's rows, so
+  // e.g. the supplier filter can match a dwell row through its material.
+  const allStepRows = useMemo(
+    () => [...dwellRows, ...planningRows, ...trendRows],
+    [dwellRows, planningRows, trendRows],
   );
-  const filteredPlanningRows = useMemo(
-    () => planningRows.filter(searchMatchers.siteNode),
-    [planningRows, searchMatchers],
+  const stepFilterOptions = useMemo(
+    () => buildStepFilterOptions(allStepRows),
+    [allStepRows],
   );
-  const filteredTrendRows = useMemo(
-    () => trendRows.filter(searchMatchers.siteNode),
-    [trendRows, searchMatchers],
+  const stepFilterContext = useMemo(
+    () =>
+      buildStepFilterContext({
+        rows: allStepRows,
+        measure,
+        timeRange,
+        waccRate,
+        storageCost,
+        siteId: siteSlug,
+        statusHistory: opportunityStatusHistory,
+      }),
+    [
+      allStepRows,
+      measure,
+      timeRange,
+      waccRate,
+      storageCost,
+      siteSlug,
+      opportunityStatusHistory,
+    ],
   );
-  const filteredSupplierRows = useMemo(
-    () => supplierRows.filter(searchMatchers.supplier),
-    [supplierRows, searchMatchers],
+  const dwellApplication = useMemo(
+    () =>
+      applyStepFilters(
+        dwellRows.filter(searchMatchers.siteNode),
+        stepFilters,
+        stepFilterContext,
+      ),
+    [dwellRows, searchMatchers, stepFilters, stepFilterContext],
   );
-  const opportunities = useMemo(
-    () => generatedOpportunities.filter(searchMatchers.opportunity),
-    [generatedOpportunities, searchMatchers],
+  const planningApplication = useMemo(
+    () =>
+      applyStepFilters(
+        planningRows.filter(searchMatchers.siteNode),
+        stepFilters,
+        stepFilterContext,
+      ),
+    [planningRows, searchMatchers, stepFilters, stepFilterContext],
   );
+  const trendApplication = useMemo(
+    () =>
+      applyStepFilters(
+        trendRows.filter(searchMatchers.siteNode),
+        stepFilters,
+        stepFilterContext,
+      ),
+    [trendRows, searchMatchers, stepFilters, stepFilterContext],
+  );
+  const supplierApplication = useMemo(
+    () =>
+      applyVendorStepFilters(
+        supplierRows.filter(searchMatchers.supplier),
+        stepFilters,
+        stepFilterContext,
+      ),
+    [supplierRows, searchMatchers, stepFilters, stepFilterContext],
+  );
+  const opportunityApplication = useMemo(
+    () =>
+      applyStepFiltersBy(
+        generatedOpportunities.filter(searchMatchers.opportunity),
+        (opportunity) => opportunity.node,
+        stepFilters,
+        stepFilterContext,
+      ),
+    [generatedOpportunities, searchMatchers, stepFilters, stepFilterContext],
+  );
+  const filteredDwellRows = dwellApplication.rows;
+  const filteredPlanningRows = planningApplication.rows;
+  const filteredTrendRows = trendApplication.rows;
+  const filteredSupplierRows = supplierApplication.rows;
+  const opportunities = opportunityApplication.rows;
+  const opportunitySkippedKeys = useMemo(
+    () => new Set(opportunityApplication.skippedKeys),
+    [opportunityApplication],
+  );
+  const activeTabSkippedKeys = useMemo(() => {
+    const application =
+      tab === "dwell"
+        ? dwellApplication
+        : tab === "planning"
+          ? planningApplication
+          : tab === "trends"
+            ? trendApplication
+            : supplierApplication;
+    return new Set(application.skippedKeys);
+  }, [
+    tab,
+    dwellApplication,
+    planningApplication,
+    trendApplication,
+    supplierApplication,
+  ]);
 
   const overPlanCount = useMemo(
     () =>
@@ -575,7 +636,6 @@ export const SiteOverview = ({
   ]);
 
   const revealOverPlanOpportunities = useCallback(() => {
-    setOppTypeHidden(new Set());
     setOppSectionRevealRequest((previousRequest) => ({
       kind: "planning_over",
       requestId: (previousRequest?.requestId ?? 0) + 1,
@@ -703,24 +763,28 @@ export const SiteOverview = ({
 
       {/* Content */}
       <div className={content}>
-        <OpportunitiesTable
-          opportunities={opportunities}
-          siteId={siteSlug}
-          statusHistory={opportunityStatusHistory}
-          onRowClick={(opportunity) =>
-            handleStepClick(opportunity.node, opportunity.kind)
-          }
-          onStatus={openStatus}
-          sort={oppSort}
-          onSort={setOppSort}
-          typeHidden={oppTypeHidden}
-          onTypeHiddenChange={setOppTypeHidden}
-          productHidden={oppProductHidden}
-          onProductHiddenChange={setOppProductHidden}
-          statusHidden={oppStatusHidden}
-          onStatusHiddenChange={setOppStatusHidden}
-          revealSectionRequest={oppSectionRevealRequest}
-        />
+        <div className={filterableTableSection}>
+          <div className={filterBarRow}>
+            <StepFilterBar
+              filters={stepFilters}
+              onFiltersChange={setStepFilters}
+              options={stepFilterOptions}
+              skippedKeys={opportunitySkippedKeys}
+            />
+          </div>
+          <OpportunitiesTable
+            opportunities={opportunities}
+            siteId={siteSlug}
+            statusHistory={opportunityStatusHistory}
+            onRowClick={(opportunity) =>
+              handleStepClick(opportunity.node, opportunity.kind)
+            }
+            onStatus={openStatus}
+            sort={oppSort}
+            onSort={setOppSort}
+            revealSectionRequest={oppSectionRevealRequest}
+          />
+        </div>
 
         <div className={chartShrink}>
           <SiteMonthlyCarryCostChart
@@ -793,6 +857,16 @@ export const SiteOverview = ({
             </div>
           </div>
 
+          {/* Shared filter bar — one filter set across every site table */}
+          <div className={filterBarRow}>
+            <StepFilterBar
+              filters={stepFilters}
+              onFiltersChange={setStepFilters}
+              options={stepFilterOptions}
+              skippedKeys={activeTabSkippedKeys}
+            />
+          </div>
+
           {/* Detail tables */}
           {tab === "dwell" && (
             <DwellTable
@@ -805,12 +879,6 @@ export const SiteOverview = ({
               onStatus={openStatus}
               timeRange={timeRange}
               currency={siteCurrency}
-              typeHidden={dwellTypeHidden}
-              onTypeHiddenChange={setDwellTypeHidden}
-              productHidden={dwellProductHidden}
-              onProductHiddenChange={setDwellProductHidden}
-              statusHidden={dwellStatusHidden}
-              onStatusHiddenChange={setDwellStatusHidden}
             />
           )}
           {tab === "planning" && (
@@ -822,16 +890,6 @@ export const SiteOverview = ({
               onRowClick={handleStepClick}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
-              typeHidden={planningTypeHidden}
-              onTypeHiddenChange={setPlanningTypeHidden}
-              productHidden={planningProductHidden}
-              onProductHiddenChange={setPlanningProductHidden}
-              supplierHidden={planningSupplierHidden}
-              onSupplierHiddenChange={setPlanningSupplierHidden}
-              basisHidden={planningBasisHidden}
-              onBasisHiddenChange={setPlanningBasisHidden}
-              statusHidden={planningStatusHidden}
-              onStatusHiddenChange={setPlanningStatusHidden}
             />
           )}
           {tab === "trends" && (
@@ -843,12 +901,6 @@ export const SiteOverview = ({
               onRowClick={handleStepClick}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
-              typeHidden={trendTypeHidden}
-              onTypeHiddenChange={setTrendTypeHidden}
-              productHidden={trendProductHidden}
-              onProductHiddenChange={setTrendProductHidden}
-              statusHidden={trendStatusHidden}
-              onStatusHiddenChange={setTrendStatusHidden}
             />
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (

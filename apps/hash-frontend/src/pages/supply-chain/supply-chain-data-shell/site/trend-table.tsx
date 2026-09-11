@@ -17,7 +17,6 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
   statusKey,
-  type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
 import { trendToneFor } from "../../shared/trend-tone";
@@ -29,7 +28,7 @@ import { type SortDir, type SortKey, type TrendRow } from "./shared/row-types";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
-import type { SiteNode, StepType } from "../../shared/types";
+import type { SiteNode } from "../../shared/types";
 
 const prevValue = css({ color: "fg.subtle" });
 const trendWrap = css({
@@ -121,12 +120,6 @@ export const TrendTable = ({
   onRowClick,
   statusHistory = {},
   onStatus,
-  typeHidden,
-  onTypeHiddenChange,
-  productHidden,
-  onProductHiddenChange,
-  statusHidden,
-  onStatusHiddenChange,
 }: {
   rows: TrendRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -136,32 +129,19 @@ export const TrendTable = ({
   onRowClick: (node: SiteNode) => void;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
-  typeHidden: Set<StepType>;
-  onTypeHiddenChange: (next: Set<StepType>) => void;
-  productHidden: Set<string>;
-  onProductHiddenChange: (next: Set<string>) => void;
-  statusHidden: Set<StatusActionLabel>;
-  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
-    useStepTableView<TrendRow>({
-      rows,
-      siteId,
-      sort,
-      onSort,
-      statusHistory,
-      typeHidden,
-      onTypeHiddenChange,
-      productHidden,
-      onProductHiddenChange,
-      statusHidden,
-      onStatusHiddenChange,
-      sortRows: sortTrendRows,
-      source: "trend_table",
-    });
+  const { displayedRows, toggleSort } = useStepTableView<TrendRow>({
+    rows,
+    siteId,
+    sort,
+    onSort,
+    statusHistory,
+    sortRows: sortTrendRows,
+    source: "trend_table",
+  });
 
   return (
     <div
@@ -179,11 +159,10 @@ export const TrendTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("material"),
                 }}
-                filter={typeFilter}
               />
             </th>
             <th className={threshold.th}>
-              <ColumnHeader label="Products" filter={productFilter} />
+              <ColumnHeader label="Products" />
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
@@ -233,7 +212,6 @@ export const TrendTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("status"),
                 }}
-                filter={statusFilter}
               />
             </th>
           </tr>

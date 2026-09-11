@@ -13,7 +13,6 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
   statusKey,
-  type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
 import { TrendIndicator } from "../../shared/trend-indicator";
@@ -25,7 +24,7 @@ import { type DwellRow, type SortKey, type SortDir } from "./shared/row-types";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
-import type { SiteNode, StepType } from "../../shared/types";
+import type { SiteNode } from "../../shared/types";
 
 const formatPolicyQuantity = (
   value: number | null | undefined,
@@ -48,12 +47,6 @@ export const DwellTable = ({
   onStatus,
   timeRange,
   currency,
-  typeHidden,
-  onTypeHiddenChange,
-  productHidden,
-  onProductHiddenChange,
-  statusHidden,
-  onStatusHiddenChange,
 }: {
   rows: DwellRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -65,31 +58,18 @@ export const DwellTable = ({
   onStatus: (node: SiteNode, title: string) => void;
   timeRange: string;
   currency: string | null;
-  typeHidden: Set<StepType>;
-  onTypeHiddenChange: (next: Set<StepType>) => void;
-  productHidden: Set<string>;
-  onProductHiddenChange: (next: Set<string>) => void;
-  statusHidden: Set<StatusActionLabel>;
-  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
 
-  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
-    useStepTableView<DwellRow>({
-      rows,
-      siteId,
-      sort,
-      onSort,
-      statusHistory,
-      typeHidden,
-      onTypeHiddenChange,
-      productHidden,
-      onProductHiddenChange,
-      statusHidden,
-      onStatusHiddenChange,
-      sortRows,
-      source: "dwell_table",
-    });
+  const { displayedRows, toggleSort } = useStepTableView<DwellRow>({
+    rows,
+    siteId,
+    sort,
+    onSort,
+    statusHistory,
+    sortRows,
+    source: "dwell_table",
+  });
 
   return (
     <div
@@ -107,11 +87,10 @@ export const DwellTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("material"),
                 }}
-                filter={typeFilter}
               />
             </th>
             <th className={threshold.th}>
-              <ColumnHeader label="Products" filter={productFilter} />
+              <ColumnHeader label="Products" />
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
@@ -171,7 +150,6 @@ export const DwellTable = ({
                   dir: sort.dir,
                   onToggle: () => toggleSort("status"),
                 }}
-                filter={statusFilter}
               />
             </th>
           </tr>

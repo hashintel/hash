@@ -4,24 +4,21 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
-import { STEP_TYPE_LABELS, STEP_TYPE_ORDER } from "../../shared/categories";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
   deriveStatusActionState,
-  STATUS_LABELS_IN_ORDER,
   statusKey,
   statusLabelForNode,
   type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
-import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
-import type { SiteNode, StepType } from "../../shared/types";
+import type { SiteNode } from "../../shared/types";
 import type { OpportunityKind, SiteOpportunity } from "./opportunities";
 import type { SortDir, SortKey } from "./shared/row-types";
 
@@ -224,12 +221,6 @@ interface OpportunitiesTableProps {
   onStatus: (node: SiteNode, title: string) => void;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (next: { key: SortKey; dir: SortDir }) => void;
-  typeHidden: Set<StepType>;
-  onTypeHiddenChange: (next: Set<StepType>) => void;
-  productHidden: Set<string>;
-  onProductHiddenChange: (next: Set<string>) => void;
-  statusHidden: Set<StatusActionLabel>;
-  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
   revealSectionRequest?: {
     kind: OpportunityKind;
     requestId: number;
@@ -348,12 +339,6 @@ export const OpportunitiesTable = ({
   onStatus,
   sort,
   onSort,
-  typeHidden,
-  onTypeHiddenChange,
-  productHidden,
-  onProductHiddenChange,
-  statusHidden,
-  onStatusHiddenChange,
   revealSectionRequest,
 }: OpportunitiesTableProps) => {
   const [collapsedSections, setCollapsedSections] = useState<
@@ -393,79 +378,19 @@ export const OpportunitiesTable = ({
     [siteId, statusHistory],
   );
 
-  const typeFilter = useMemo(() => {
-    const values = STEP_TYPE_ORDER.filter((stepType) =>
-      opportunities.some((opportunity) => opportunity.node.type === stepType),
-    );
-    return buildColumnFilter<StepType>({
-      header: "Step type",
-      values,
-      labelOf: (stepType) => STEP_TYPE_LABELS[stepType],
-      counts: countBy(opportunities, (opportunity) => opportunity.node.type),
-      hidden: typeHidden,
-      onHiddenChange: onTypeHiddenChange,
-      searchable: false,
-    });
-  }, [opportunities, typeHidden, onTypeHiddenChange]);
-
-  const productFilter = useMemo(() => {
-    const names = new Map<string, string>();
-    const counts = new Map<string, number>();
-    for (const opportunity of opportunities) {
-      for (const product of opportunity.products) {
-        names.set(product.id, product.name);
-        counts.set(product.id, (counts.get(product.id) ?? 0) + 1);
-      }
-    }
-    const values = [...names.keys()].sort((left, right) =>
-      (names.get(left) ?? "").localeCompare(names.get(right) ?? ""),
-    );
-    return buildColumnFilter<string>({
-      header: "Product",
-      values,
-      labelOf: (id) => names.get(id) ?? id,
-      counts,
-      hidden: productHidden,
-      onHiddenChange: onProductHiddenChange,
-    });
-  }, [opportunities, productHidden, onProductHiddenChange]);
-
-  const statusFilter = useMemo(() => {
-    const values = STATUS_LABELS_IN_ORDER.filter((label) =>
-      opportunities.some((opportunity) => statusOf(opportunity) === label),
-    );
-    return buildColumnFilter<StatusActionLabel>({
-      header: "Status",
-      values,
-      labelOf: (label) => label,
-      counts: countBy(opportunities, statusOf),
-      hidden: statusHidden,
-      onHiddenChange: onStatusHiddenChange,
-      searchable: false,
-    });
-  }, [opportunities, statusHidden, onStatusHiddenChange, statusOf]);
-
-  const grouped = useMemo(() => {
-    const passesProduct = (opportunity: SiteOpportunity) =>
-      opportunity.products.length === 0 ||
-      opportunity.products.some((product) => !productHidden.has(product.id));
-    const passesStatus = (opportunity: SiteOpportunity) =>
-      !statusHidden.has(statusOf(opportunity));
-
-    return OPPORTUNITY_SECTIONS.map((section) => {
-      const items = opportunities.filter(
-        (opportunity) =>
-          section.kinds.includes(opportunity.kind) &&
-          !typeHidden.has(opportunity.node.type) &&
-          passesProduct(opportunity) &&
-          passesStatus(opportunity),
-      );
-      return {
-        ...section,
-        opportunities: sortOpportunities(items, sort, statusOf),
-      };
-    });
-  }, [opportunities, typeHidden, productHidden, statusHidden, statusOf, sort]);
+  const grouped = useMemo(
+    () =>
+      OPPORTUNITY_SECTIONS.map((section) => {
+        const items = opportunities.filter((opportunity) =>
+          section.kinds.includes(opportunity.kind),
+        );
+        return {
+          ...section,
+          opportunities: sortOpportunities(items, sort, statusOf),
+        };
+      }),
+    [opportunities, statusOf, sort],
+  );
 
   const toggleSort = (key: SortKey) => {
     if (sort?.key === key) {
@@ -522,7 +447,7 @@ export const OpportunitiesTable = ({
           <thead>
             <tr className={threshold.theadRow}>
               <th className={oppTh}>
-                <ColumnHeader label="Type" filter={typeFilter} />
+                <ColumnHeader label="Type" />
               </th>
               <th className={oppTh}>
                 <ColumnHeader
@@ -532,7 +457,6 @@ export const OpportunitiesTable = ({
                     dir: sort?.dir ?? "asc",
                     onToggle: () => toggleSort("opportunity"),
                   }}
-                  filter={productFilter}
                 />
               </th>
               <th className={oppThRight}>
@@ -554,7 +478,6 @@ export const OpportunitiesTable = ({
                     dir: sort?.dir ?? "asc",
                     onToggle: () => toggleSort("status"),
                   }}
-                  filter={statusFilter}
                 />
               </th>
             </tr>
