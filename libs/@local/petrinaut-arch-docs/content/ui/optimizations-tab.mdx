@@ -103,12 +103,12 @@ remote study has no Sensitivity analysis card rather than an empty one.
 objective by step: `buildObjectiveHistory` (`study-results/objective-history-data.ts`)
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
-(`[steps, objectives, bestSoFar, infeasibleObjectives]`), and the chart draws
-the objectives as dots and the best as a stepped line. `trialFeasibility`
-reads a point's feasibility off the trial event's `constraints`: `unknown`
-without results, `infeasible` for a draw pruned by a parameter constraint;
-an `infeasible` point moves to the fourth series and draws in
-`infeasibleColor`, and never becomes the best so far.
+(`[steps, objectives, bestSoFar]`), and the chart draws the objectives as
+dots and the best as a stepped line. `trialFeasibility` reads a point's
+feasibility off the trial event's `constraints`: `unknown` without results,
+`infeasible` for a draw pruned by a parameter constraint. A pruned step has
+no objective, so it draws nothing, and an `infeasible` step never becomes the
+best so far.
 
 A study with constraints reports them through
 `react/optimizations/constraint-rates.ts`, derived per render from

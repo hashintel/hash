@@ -19,7 +19,7 @@ import { createContext, type ReactNode, use, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useOverflowEnd } from "./use-overflow-end";
+import { type OverflowState, useOverflowEnd } from "./use-overflow-end";
 
 import type { FrameHeaderEngagement } from "./use-header-engaged";
 
@@ -94,7 +94,8 @@ const headlineStyle = css({
 });
 
 // One line of chips that scrolls sideways when the title line is too narrow
-// for all of them, fading at the edge while there is more to the right.
+// for all of them, fading at the edge while there is more to the right. Only
+// while it overflows is it a tab stop, so the keyboard can scroll it.
 const scrollingLineStyle = css({
   display: "flex",
   alignItems: "center",
@@ -108,6 +109,17 @@ const scrollingLineStyle = css({
     maskImage:
       "[linear-gradient(to right, black calc(100% - 40px), transparent)]",
   },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[1px]",
+  },
+});
+
+/** The attributes that let the keyboard reach a scrolling line once it overflows. */
+const scrollingLineProps = (overflow: OverflowState) => ({
+  "data-overflow-end": overflow === "more",
+  tabIndex: overflow === "none" ? undefined : 0,
+  "aria-label": "Header statistics",
 });
 
 const compactRowStyle = css({
@@ -430,14 +442,14 @@ const CompactStats = ({
   badge,
 }: Pick<FrameHeaderProps, "stats" | "badge">) => {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
-  const overflowEnd = useOverflowEnd(element);
+  const overflow = useOverflowEnd(element);
   return (
     <FrameStatsDensityContext value="compact">
       <div
         ref={setElement}
         className={cx(scrollingLineStyle, compactRowStyle)}
         data-frame-compact-stats
-        data-overflow-end={overflowEnd}
+        {...scrollingLineProps(overflow)}
       >
         {stats}
         {badge === undefined ? null : <BadgeColumn badge={badge} />}
@@ -459,7 +471,7 @@ export const FrameHeader = ({
   engagement,
 }: FrameHeaderProps) => {
   const [stripElement, setStripElement] = useState<HTMLDivElement | null>(null);
-  const stripOverflowEnd = useOverflowEnd(stripElement);
+  const stripOverflow = useOverflowEnd(stripElement);
 
   return (
     <div
@@ -494,7 +506,7 @@ export const FrameHeader = ({
             ref={setStripElement}
             className={cx(scrollingLineStyle, statsRowStyle)}
             data-frame-stats-line
-            data-overflow-end={stripOverflowEnd}
+            {...scrollingLineProps(stripOverflow)}
           >
             {stats}
             {badge === undefined ? null : <BadgeColumn badge={badge} />}
