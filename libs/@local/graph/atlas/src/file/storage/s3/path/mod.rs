@@ -18,9 +18,10 @@ use crate::file::storage::path::error::{FilePathError, PathComponent};
 #[cfg(test)]
 mod tests;
 
-/// A bucket and object key in their original spelling.
+/// An S3 bucket and object key in unescaped form.
 ///
-/// Parsing treats the key as literal text, preserving percent escapes and path components.
+/// Use [`Self::copy_source`] to obtain the [`CopySource`] encoding for the
+/// `x-amz-copy-source` header.
 #[derive(zerocopy::FromZeros, zerocopy::KnownLayout, zerocopy::Immutable)]
 #[repr(C)]
 pub(crate) struct BucketPath {
