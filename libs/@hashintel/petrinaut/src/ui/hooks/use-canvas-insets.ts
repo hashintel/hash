@@ -20,8 +20,14 @@ export interface PanelLayoutState {
   readonly propertiesPanelWidth: number;
   readonly isAiAssistantOpen: boolean;
   readonly aiAssistantWidth: number;
+  readonly aiAssistantDockHeight: number | null;
   readonly isBottomPanelOpen: boolean;
   readonly bottomPanelHeight: number;
+}
+
+interface CanvasInsetOptions {
+  /** The viewport column clears the compact dock above, not beside it. */
+  readonly aboveCollapsedDock?: boolean;
 }
 
 /**
@@ -30,16 +36,30 @@ export interface PanelLayoutState {
  * the assistant docks beside the properties panel rather than over it, so an
  * open pair covers the sum of the two.
  */
-export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
-  left:
-    state.isLeftSidebarOpen || state.isSearchOpen
-      ? state.leftSidebarWidth + PANEL_MARGIN
-      : 0,
-  right:
-    (state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0) +
-    (state.isAiAssistantOpen ? state.aiAssistantWidth : 0),
-  bottom: state.isBottomPanelOpen ? state.bottomPanelHeight + PANEL_MARGIN : 0,
-});
+export const getCanvasInsets = (
+  state: PanelLayoutState,
+  { aboveCollapsedDock = false }: CanvasInsetOptions = {},
+): CanvasInsets => {
+  const dockHeight =
+    aboveCollapsedDock && state.isAiAssistantOpen
+      ? state.aiAssistantDockHeight
+      : null;
+  return {
+    left:
+      state.isLeftSidebarOpen || state.isSearchOpen
+        ? state.leftSidebarWidth + PANEL_MARGIN
+        : 0,
+    right:
+      (state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0) +
+      (state.isAiAssistantOpen && dockHeight === null
+        ? state.aiAssistantWidth
+        : 0),
+    bottom: Math.max(
+      state.isBottomPanelOpen ? state.bottomPanelHeight + PANEL_MARGIN : 0,
+      dockHeight ?? 0,
+    ),
+  };
+};
 
 /**
  * What the docked panels take out of the canvas, for the controls that float
@@ -50,11 +70,13 @@ export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
  */
 const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
 
-export const useCanvasInsets = (): CanvasInsets => {
+export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
   const presentation = usePetrinautPresentation();
   const editor = use(EditorContext);
 
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
-  return presentation.panelsOverlayCanvas ? getCanvasInsets(editor) : NO_INSETS;
+  return presentation.panelsOverlayCanvas
+    ? getCanvasInsets(editor, options)
+    : NO_INSETS;
 };

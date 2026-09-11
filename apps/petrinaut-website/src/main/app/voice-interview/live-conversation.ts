@@ -32,6 +32,10 @@ export const createLiveConversation = (
   const peers = new Map<ConnectionKind, RTCPeerConnection>();
   const channels = new Map<ConnectionKind, RTCDataChannel>();
   const ready = new Set<ConnectionKind>();
+  const recoveryTimers = new Map<
+    ConnectionKind,
+    ReturnType<typeof setTimeout>
+  >();
   const connectionStages = new Map<ConnectionKind, string>();
   const connectionProgress = () =>
     connectionStages.size === 0
@@ -62,6 +66,8 @@ export const createLiveConversation = (
 
   const stopMedia = () => {
     clearTimeout(activityTimer);
+    recoveryTimers.forEach((timer) => clearTimeout(timer));
+    recoveryTimers.clear();
     microphone?.getTracks().forEach((track) => track.stop());
     if (audio) {
       audio.muted = true;
@@ -133,6 +139,40 @@ export const createLiveConversation = (
     else finish(false);
   };
 
+  const handleConnectionState = (kind: ConnectionKind) => {
+    if (stopping) return;
+    const state = peers.get(kind)?.connectionState;
+    const label = kind === "live" ? "Live" : "Transcription";
+    if (state === "failed" || state === "closed") {
+      fail(`${label} media connection ended.`);
+    } else if (
+      state === "disconnected" &&
+      ready.size === 2 &&
+      !recoveryTimers.has(kind)
+    ) {
+      // ICE can recover on the existing peer. Each peer keeps its own fixed
+      // deadline; neither recovery creates a session or replays input/output.
+      recoveryTimers.set(
+        kind,
+        setTimeout(
+          () =>
+            fail(
+              `${label} media connection did not recover. No automatic retry was made.`,
+            ),
+          connectionTimeoutMs,
+        ),
+      );
+      lastActivity = undefined;
+      lastOutputActivity = -Infinity;
+      onState({ phase: "connecting", message: null });
+    } else if (state === "connected" && recoveryTimers.has(kind)) {
+      clearTimeout(recoveryTimers.get(kind));
+      recoveryTimers.delete(kind);
+      if (recoveryTimers.size === 0)
+        onState({ phase: "connected", message: null });
+    }
+  };
+
   const sampleActivity = async () => {
     const livePeer = peers.get("live");
     if (stopping || !livePeer) return;
@@ -158,6 +198,8 @@ export const createLiveConversation = (
       // Optional telemetry must not affect the session lifetime.
     }
     if (abort.signal.aborted) return;
+    activityTimer = setTimeout(() => void sampleActivity(), 100);
+    if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused && !audio.muted;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     const activity = {
@@ -172,7 +214,6 @@ export const createLiveConversation = (
       lastActivity = activity;
       onState({ phase: "connected", message: null, activity });
     }
-    activityTimer = setTimeout(() => void sampleActivity(), 100);
   };
 
   const committedAfter = (previousItemId: string) =>
@@ -207,7 +248,11 @@ export const createLiveConversation = (
     ready.add(kind);
     if (ready.size !== 2) return;
     clearTimeout(connectionTimer);
-    onState({ phase: "connected", message: null });
+    // A peer may have disconnected before the last session-ready event.
+    peers.forEach((_, connectionKind) => handleConnectionState(connectionKind));
+    if (stopping) return;
+    if (recoveryTimers.size === 0)
+      onState({ phase: "connected", message: null });
     activityTimer = setTimeout(() => void sampleActivity(), 100);
     flushFinalizedInputs();
   };
@@ -346,16 +391,9 @@ export const createLiveConversation = (
         `${kind === "live" ? "Live" : "Transcription"} data connection failed.`,
       ),
     );
-    connection.addEventListener("connectionstatechange", () => {
-      if (
-        ["failed", "disconnected", "closed"].includes(
-          connection.connectionState,
-        )
-      )
-        fail(
-          `${kind === "live" ? "Live" : "Transcription"} media connection ended.`,
-        );
-    });
+    connection.addEventListener("connectionstatechange", () =>
+      handleConnectionState(kind),
+    );
     if (kind === "live") {
       connection.addEventListener("track", (event) => {
         if (stopping) {

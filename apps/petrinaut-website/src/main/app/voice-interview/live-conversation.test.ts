@@ -101,6 +101,184 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(1, { type: "session.created" });
 };
 
+test.each([0, 1] as const)(
+  "connection %s recovers without replacing sessions or replaying finalized input",
+  async (connection) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    let release = (_stats: Map<string, unknown>) => {};
+    fixture.peers[0]!.getStats.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    await connect(fixture);
+    await vi.advanceTimersByTimeAsync(100);
+    const peer = fixture.peers[connection]!;
+    peer.connectionState = "disconnected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    expect(fixture.audio.pause).not.toHaveBeenCalled();
+    release(new Map());
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+    // Completed, ordered events still use the existing admission path.
+    const completed = {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "one",
+      content_index: 0,
+      transcript: "Actually, three machines",
+    };
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: "one",
+      previous_item_id: null,
+    });
+    fixture.emit(1, completed);
+    expect(fixture.onFinalizedInput).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ text: "Actually, three machines" }),
+    );
+    expect(fixture.conversation.appendCommentary("Settled answer")).toBe(true);
+    peer.connectionState = "connected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connected");
+    fixture.emit(1, completed);
+    await vi.advanceTimersByTimeAsync(16_000);
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    expect(fixture.onFinalizedInput).toHaveBeenCalledOnce();
+    expect(fixture.sent[0]).toHaveLength(1);
+    expect(fixture.sent[1]).toEqual([]);
+    expect(fixture.fetch).toHaveBeenCalledTimes(2);
+    expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+    const stopped = fixture.conversation.stop();
+    fixture.emit(0, { type: "session.closed" });
+    await stopped;
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
+test.each([0, 1] as const)(
+  "connection %s has a fixed recovery deadline and cannot revive after timeout",
+  async (connection) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    await connect(fixture);
+    const peer = fixture.peers[connection]!;
+    peer.connectionState = "disconnected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    await vi.advanceTimersByTimeAsync(5_000);
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.input.stop).toHaveBeenCalled();
+    expect(fixture.audio.pause).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+    expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+      "did not recover",
+    );
+    const updates = fixture.onState.mock.calls.length;
+    peer.connectionState = "connected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(fixture.onState).toHaveBeenCalledTimes(updates);
+    expect(fixture.fetch).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
+test("recovering one peer does not clear the other peer's deadline or show connected", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  await connect(fixture);
+  const live = fixture.peers[0]!;
+  const transcription = fixture.peers[1]!;
+  live.connectionState = "disconnected";
+  live.dispatchEvent(new Event("connectionstatechange"));
+  await vi.advanceTimersByTimeAsync(5_000);
+  transcription.connectionState = "disconnected";
+  transcription.dispatchEvent(new Event("connectionstatechange"));
+  live.connectionState = "connected";
+  live.dispatchEvent(new Event("connectionstatechange"));
+  await vi.advanceTimersByTimeAsync(14_999);
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+  await vi.advanceTimersByTimeAsync(1);
+  expect(fixture.input.stop).toHaveBeenCalled();
+  fixture.emit(0, { type: "session.closed" });
+  expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+    "Transcription media connection did not recover",
+  );
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test.each([0, 1] as const)(
+  "a handshake disconnect on connection %s stays bounded after both ready events",
+  async (connection) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    await fixture.conversation.start();
+    const peer = fixture.peers[connection]!;
+    peer.connectionState = "disconnected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    await vi.advanceTimersByTimeAsync(5_000);
+    fixture.emit(0, { type: "session.started" });
+    fixture.emit(1, { type: "session.created" });
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connecting");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.input.stop).toHaveBeenCalled();
+    fixture.emit(0, { type: "session.closed" });
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
+test("Stop cancels both recovery deadlines and ignores late connections", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  await connect(fixture);
+  for (const peer of fixture.peers) {
+    peer.connectionState = "disconnected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+  }
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  const updates = fixture.onState.mock.calls.length;
+  for (const peer of fixture.peers) {
+    peer.connectionState = "connected";
+    peer.dispatchEvent(new Event("connectionstatechange"));
+  }
+  await vi.advanceTimersByTimeAsync(20_000);
+  expect(fixture.onState).toHaveBeenCalledTimes(updates);
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("ended");
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test.each([
+  [0, "failed"],
+  [0, "closed"],
+  [1, "failed"],
+  [1, "closed"],
+] as const)(
+  "terminal connection %s state %s still stops immediately",
+  async (connection, state) => {
+    const fixture = setup();
+    await connect(fixture);
+    const peer = fixture.peers[connection]!;
+    peer.connectionState = state;
+    peer.dispatchEvent(new Event("connectionstatechange"));
+    expect(fixture.input.stop).toHaveBeenCalled();
+    expect(fixture.audio.pause).toHaveBeenCalled();
+    fixture.emit(0, { type: "session.closed" });
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+  },
+);
+
 test("starts Live and transcription WebRTC from one consented capture and connects only when both are usable", async () => {
   const fixture = setup();
   await fixture.conversation.start();
