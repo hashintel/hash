@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section        | Settings                                                             |
 | -------------- | -------------------------------------------------------------------- |
-| **General**    | Animations, panel loading, and the welcome guide.                    |
+| **General**    | Animations, panel loading, the welcome guide, and toolbar layout.    |
 | **Viewport**   | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
 | **Simulation** | Experimental compute, parameter sweeps, and optimization options.    |
 | **Labs**       | Experimental modeling views, code layouts, and developer tools.      |
@@ -34,6 +34,16 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 ### Show welcome guide
 
 Show the getting-started guide the next time you open Petrinaut.
+
+### Bottom toolbar (experimental)
+
+Choose how the toolbar at the bottom of the canvas is laid out. Every layout keeps the same controls and steps aside from the panels in the same way; they differ in how the controls are grouped.
+
+| Layout          | Description                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Split**       | Two glass segments: the cursor and editing tools on the left, the panel toggle, diagnostics status and playback controls on the right. (Default)                                                                                                                                                                                                                                                       |
+| **Mode switch** | One segment showing one face at a time. The edit face holds the AI assistant and the tools that add nodes; the simulate face holds diagnostics, Play, the playback speed and the scrubber. The Edit / Simulate switch at the right end flips between them, and starting a run flips to the simulate face by itself. The cursor button is tinted blue on the edit face and purple on the simulate face. |
+| **Single**      | One segment holding every control in one row: cursor, AI assistant and editing tools, then diagnostics status, a filled blue Play button, the scrubber and the playback settings, with the panel toggle at the far end.                                                                                                                                                                                |
 
 ## Viewport
 

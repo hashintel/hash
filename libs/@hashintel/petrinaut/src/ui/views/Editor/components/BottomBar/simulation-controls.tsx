@@ -108,12 +108,21 @@ export interface SimulationControlsProps {
   disabled?: boolean;
   inSubnet?: boolean;
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];
+  /** `filled` paints Play in the brand colour as the segment's one action. */
+  playEmphasis?: "plain" | "filled";
+  /**
+   * Where the playback settings open from: a gear after the scrubber, or the
+   * current speed next to Play, the way the design file places it.
+   */
+  settingsTrigger?: "gear" | "speed";
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
   inSubnet = false,
   allowedPlaybackSpeeds,
+  playEmphasis = "plain",
+  settingsTrigger = "gear",
 }) => {
   const presentation = usePetrinautPresentation();
   const experimentalIcons = useExperimentalIconPackEnabled();
@@ -240,6 +249,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         onClick={handlePlayPause}
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
+        emphasis={playEmphasis}
       >
         {experimentalIcons ? (
           <PlaybackIcon playing={isPlaybackPlaying} duration={200} />
@@ -249,42 +259,54 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           <Icon name="playFilled" />
         )}
       </ToolbarButton>
+      {settingsTrigger === "speed" && (
+        <PlaybackSettingsMenu
+          allowedSpeeds={allowedPlaybackSpeeds}
+          trigger="speed"
+        />
+      )}
 
       {/* Frame controls - only visible when simulation exists - and the
           playback settings, which the bar hides first when it runs short of
           room: the scrubber is the widest thing on it. */}
-      <CollapsibleGroup>
-        {hasSimulation && (
-          <>
-            <div
-              role="timer"
-              aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
-              className={timeReadoutStyle({
-                compact: presentation.compactControls,
-              })}
-            >
-              <span className={elapsedTimeStyle}>{times.elapsed}</span>
-              <span className={totalTimeStyle}>/ {times.total}</span>
-            </div>
+      {(hasSimulation || settingsTrigger === "gear") && (
+        <CollapsibleGroup>
+          {hasSimulation && (
+            <>
+              <div
+                role="timer"
+                aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
+                className={timeReadoutStyle({
+                  compact: presentation.compactControls,
+                })}
+              >
+                <span className={elapsedTimeStyle}>{times.elapsed}</span>
+                <span className={totalTimeStyle}>/ {times.total}</span>
+              </div>
 
-            <input
-              type="range"
-              min="0"
-              max={Math.max(0, totalFrames - 1)}
-              value={frameIndex}
-              disabled={isDisabled}
-              onChange={(event) =>
-                setCurrentViewedFrame(Number(event.target.value))
-              }
-              className={sliderStyle({ compact: presentation.compactControls })}
-            />
+              <input
+                type="range"
+                min="0"
+                max={Math.max(0, totalFrames - 1)}
+                value={frameIndex}
+                disabled={isDisabled}
+                onChange={(event) =>
+                  setCurrentViewedFrame(Number(event.target.value))
+                }
+                className={sliderStyle({
+                  compact: presentation.compactControls,
+                })}
+              />
 
-            <ToolbarDivider />
-          </>
-        )}
+              {settingsTrigger === "gear" && <ToolbarDivider />}
+            </>
+          )}
 
-        <PlaybackSettingsMenu allowedSpeeds={allowedPlaybackSpeeds} />
-      </CollapsibleGroup>
+          {settingsTrigger === "gear" && (
+            <PlaybackSettingsMenu allowedSpeeds={allowedPlaybackSpeeds} />
+          )}
+        </CollapsibleGroup>
+      )}
     </>
   );
 };

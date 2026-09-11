@@ -143,8 +143,27 @@ const maxTimeInputStyle = css({
 });
 
 export type PlaybackSettingsMenuProps = {
+  /**
+   * What opens the menu: a gear, or the current playback speed with a chevron,
+   * for a bar that puts the speed in view next to Play.
+   */
+  trigger?: "gear" | "speed";
   allowedSpeeds?: readonly PlaybackSpeed[];
 };
+
+const speedTriggerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[2px]",
+  paddingX: "[4px]",
+  fontSize: "sm",
+  fontWeight: "medium",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const speedChevronStyle = css({
+  opacity: "[0.5]",
+});
 
 const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
   const rows: PlaybackSpeed[][] = [];
@@ -156,6 +175,7 @@ const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
 
 export const PlaybackSettingsMenu = ({
   allowedSpeeds = PLAYBACK_SPEEDS,
+  trigger = "gear",
 }: PlaybackSettingsMenuProps) => {
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -207,7 +227,12 @@ export const PlaybackSettingsMenu = ({
         ariaExpanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        {enableExperimentalIconPack ? (
+        {trigger === "speed" ? (
+          <span className={speedTriggerStyle}>
+            {playbackSpeed}x
+            <Icon name="chevronDown" size="xs" className={speedChevronStyle} />
+          </span>
+        ) : enableExperimentalIconPack ? (
           <SettingsIcon open={open} duration={240} />
         ) : (
           <Icon name="gear" />

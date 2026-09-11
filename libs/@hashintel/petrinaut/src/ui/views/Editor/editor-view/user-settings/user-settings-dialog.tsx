@@ -491,6 +491,28 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowWalkthroughOnInit}
                         />
                       </SettingsGroup>
+                      <SettingsGroup title="Toolbar">
+                        <SettingRow
+                          label="Bottom toolbar (Experimental)"
+                          description="Choose how editing and playback controls are grouped."
+                          wideControl
+                        >
+                          {(aria) => (
+                            <Select
+                              {...aria}
+                              size="sm"
+                              required
+                              value={settings.bottomBarVariant}
+                              onChange={settings.setBottomBarVariant}
+                              items={[
+                                { value: "split", text: "Split" },
+                                { value: "modes", text: "Mode switch" },
+                                { value: "single", text: "Single" },
+                              ]}
+                            />
+                          )}
+                        </SettingRow>
+                      </SettingsGroup>
                     </>
                   )}
                   {item.id === "viewport" && (
