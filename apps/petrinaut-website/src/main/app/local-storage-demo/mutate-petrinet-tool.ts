@@ -3,7 +3,7 @@ import {
   mutatePetrinetAttemptCallId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   observedMutationOutcome,
   type MutationEffects,
   type BrowserBinding,
@@ -120,7 +120,7 @@ const executeCanonicalMutation = (
       break;
     default: {
       operation satisfies never;
-      throw new Error("Unsupported mutate_petrinet operation");
+      throw new Error("Unsupported mutate_petrinaut_net operation");
     }
   }
 };
@@ -170,7 +170,7 @@ export const createMutatePetrinetAutomaticTool = (
     ) => void;
   },
 ) => ({
-  toolName: mutatePetrinetToolName,
+  toolName: mutatePetrinautNetToolName,
   inputSchema: mutatePetrinetInputSchema,
   outputSchema: mutatePetrinetOutputSchema,
   async execute({
@@ -190,7 +190,7 @@ export const createMutatePetrinetAutomaticTool = (
     const beforeBatch = observeBrowserDefinition(handle);
     if (request.observation.baseHash !== beforeBatch.sha256)
       throw new Error(
-        "mutate_petrinet does not cite the current observed base",
+        "mutate_petrinaut_net does not cite the current observed base",
       );
     const operations = selectedMutationBatchSchema.parse(
       request.operations.map(

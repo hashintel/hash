@@ -126,9 +126,9 @@ export const clientToolResultMetadataSchema = v.object({
     }),
   ),
   /**
-   * A separately recorded `applyAutoLayout` command: layout is a document
+   * A separately recorded `layout_petrinaut_net` command: layout is a document
    * mutation with its own observed pre/post hashes and position effects, not
-   * part of a `mutate_petrinet` result and never a hidden hash change.
+   * part of a `mutate_petrinaut_net` result and never a hidden hash change.
    */
   layoutRecord: v.optional(
     v.object({

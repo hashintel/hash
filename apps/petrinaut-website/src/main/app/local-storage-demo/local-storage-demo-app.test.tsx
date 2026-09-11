@@ -348,7 +348,10 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
+    expect([...brunchClientToolNames]).toEqual([
+      "read_petrinaut_docs",
+      "readPetrinautDoc",
+    ]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
@@ -836,7 +839,7 @@ describe("local storage demo prepared fixture", () => {
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(
       aiAssistant.automaticTools?.some(
-        ({ toolName }) => toolName === "mutate_petrinet",
+        ({ toolName }) => toolName === "mutate_petrinaut_net",
       ),
     ).toBe(true);
     expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
@@ -850,11 +853,20 @@ describe("local storage demo prepared fixture", () => {
       "applyAutoLayout",
       "getLatestNetDefinition",
       "getNetCompilationErrors",
+      "layout_petrinaut_net",
+      "mutate_petrinaut_net",
       "mutate_petrinet",
       "readPetrinautDoc",
+      "read_petrinaut_diagnostics",
+      "read_petrinaut_docs",
+      "read_petrinaut_net",
     ]);
     expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
-      "mutate_petrinet",
+      "read_petrinaut_docs",
+      "read_petrinaut_net",
+      "read_petrinaut_diagnostics",
+      "mutate_petrinaut_net",
+      "layout_petrinaut_net",
     ]);
   });
 });

@@ -569,7 +569,7 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     // The reported final hash is final: a later change cannot hide behind it.
     fixture.execute();
     expect(() => recorder.clientToolResultMetadata(result)).toThrow(
-      /after the mutate_petrinet result/iu,
+      /after the mutate_petrinaut_net result/iu,
     );
     const attempt = metadata?.mutationRecord?.attempts[0];
     if (!attempt) throw new Error("Expected a retained batch attempt.");

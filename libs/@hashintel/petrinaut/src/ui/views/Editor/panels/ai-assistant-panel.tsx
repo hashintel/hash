@@ -881,7 +881,10 @@ const ConversationAiAssistantPanel = ({
       );
     }
 
-    if (toolCall.dynamic) {
+    const canonicalToolName =
+      aiAssistant.toolAliases?.[toolCall.toolName] ?? toolCall.toolName;
+
+    if (toolCall.dynamic && canonicalToolName === toolCall.toolName) {
       const automaticTool = aiAssistant.automaticTools?.find(
         ({ toolName }) => toolName === toolCall.toolName,
       );
@@ -928,7 +931,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
 
-    if (toolCall.toolName === getLatestNetDefinitionToolName) {
+    if (canonicalToolName === getLatestNetDefinitionToolName) {
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
@@ -937,11 +940,11 @@ const ConversationAiAssistantPanel = ({
           definition: instance.definition.get(),
           extensions: instance.extensions,
         },
-      });
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === getNetCompilationErrorsToolName) {
+    if (canonicalToolName === getNetCompilationErrorsToolName) {
       const outcome = await waitForDiagnosticsRefresh({
         pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
         diagnosticsVersionRef,
@@ -955,21 +958,21 @@ const ConversationAiAssistantPanel = ({
           outcome === "pending"
             ? pendingDiagnosticsContext
             : diagnosticsContextRef.current,
-      });
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === readPetrinautDocToolName) {
+    if (canonicalToolName === readPetrinautDocToolName) {
       const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output: petrinautDocsContent[doc],
-      });
+      } as never);
       return;
     }
 
-    if (toolCall.toolName === setNetTitleToolName) {
+    if (canonicalToolName === setNetTitleToolName) {
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({
@@ -980,7 +983,7 @@ const ConversationAiAssistantPanel = ({
             blocked: setNetTitleReadOnlyReason.kind,
             reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
           } satisfies AiToolOutput,
-        });
+        } as never);
         return;
       }
 
@@ -1001,11 +1004,11 @@ const ConversationAiAssistantPanel = ({
               ? `Previous title: ${previousTitle}`
               : undefined,
         } satisfies AiToolOutput,
-      });
+      } as never);
       return;
     }
 
-    const toolName = toolCall.toolName;
+    const toolName = canonicalToolName;
     if (
       !isPetrinautAiMutationToolName(toolName) &&
       !isPetrinautAiCommandToolName(toolName)
@@ -1024,14 +1027,14 @@ const ConversationAiAssistantPanel = ({
 
       if (!allowedDespiteReadOnly) {
         await addAutomaticToolOutput({
-          tool: toolName,
+          tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           output: {
             applied: false,
             blocked: currentReadOnlyReason.kind,
             reason: formatReadOnlyReason(currentReadOnlyReason),
           } satisfies AiToolOutput,
-        });
+        } as never);
         return;
       }
     }
@@ -1059,10 +1062,10 @@ const ConversationAiAssistantPanel = ({
         instance,
       });
       await addAutomaticToolOutput({
-        tool: toolName,
+        tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output,
-      });
+      } as never);
       return;
     }
 
@@ -1086,10 +1089,10 @@ const ConversationAiAssistantPanel = ({
     });
 
     await addAutomaticToolOutput({
-      tool: toolName,
+      tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       output,
-    });
+    } as never);
   };
 
   const {
@@ -1216,7 +1219,8 @@ const ConversationAiAssistantPanel = ({
       if (
         aiAssistant.automaticTools?.some(
           ({ toolName }) => toolName === toolCall.toolName,
-        )
+        ) ||
+        aiAssistant.toolAliases?.[toolCall.toolName] !== undefined
       )
         return undefined;
       return executeToolCall({ toolCall });
@@ -1386,21 +1390,26 @@ const ConversationAiAssistantPanel = ({
           part,
           aiAssistant.automaticTools,
         );
-        if (!isStatic && !isAutomaticDynamic) continue;
+        const isAliasedDynamic =
+          part.type === "dynamic-tool" &&
+          part.state === "input-available" &&
+          aiAssistant.toolAliases?.[part.toolName] !== undefined;
+        if (!isStatic && !isAutomaticDynamic && !isAliasedDynamic) continue;
 
-        const toolCall = isAutomaticDynamic
-          ? {
-              dynamic: true as const,
-              input: part.input,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
-            }
-          : ({
-              dynamic: false,
-              input: part.input,
-              toolCallId: part.toolCallId,
-              toolName: getStaticToolName(part),
-            } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
+        const toolCall =
+          isAutomaticDynamic || isAliasedDynamic
+            ? {
+                dynamic: true as const,
+                input: part.input,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+              }
+            : ({
+                dynamic: false,
+                input: part.input,
+                toolCallId: part.toolCallId,
+                toolName: getStaticToolName(part),
+              } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
         if (
           aiAssistant.followMessages !== undefined &&
@@ -1488,6 +1497,7 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.automaticTools,
     aiAssistant.followMessages,
+    aiAssistant.toolAliases,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,

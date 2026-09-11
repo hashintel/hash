@@ -32,11 +32,11 @@ A physical location becomes target structure only through its recorded operation
 
 When the corresponding tools are mounted:
 
-1. Call `getLatestNetDefinition` before changing the net.
+1. Call `read_petrinaut_net` before changing the net.
 2. Add only workpiece-supported token types and tunable parameters with `addType` and `addParameter`.
 3. Add places and transitions with `addPlace` and `addTransition`; establish stable identifiers before connecting them.
 4. Add connections with `addArc`. Arc weights are positive token multiplicities, not switches for mutually exclusive modes.
-5. Re-inspect with `getLatestNetDefinition` after each dependent stage and at the end.
+5. Re-inspect with `read_petrinaut_net` after each dependent stage and at the end.
 6. Correct rejected calls in the same conversation or state why construction remains partial.
 
 The mounted schemas, not this prose, govern exact payload fields.

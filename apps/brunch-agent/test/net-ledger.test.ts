@@ -296,7 +296,7 @@ describe("the net ledger is a projection over Flue history", () => {
     });
     expect(events[1]).toMatchObject({
       kind: "mutation",
-      toolName: "mutate_petrinet",
+      toolName: "mutate_petrinaut_net",
       outcome: "applied",
       postHash: sha256Of(oneHopNet),
     });

@@ -1,4 +1,7 @@
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+import {
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 /**
  * The one catalog of tools the browser answers on Brunch's behalf. The panel
@@ -8,5 +11,6 @@ import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
  * Kept free of React imports so the transport can load outside the DOM.
  */
 export const brunchClientToolNames: ReadonlySet<string> = new Set([
-  readPetrinautDocToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
 ]);

@@ -38,7 +38,7 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-test("app registration classifies mutate_petrinet as a browser tool", async () => {
+test("app registration classifies mutate_petrinaut_net as a browser tool", async () => {
   const registration = vi
     .mocked(instrument)
     .mock.calls.find(
@@ -51,7 +51,7 @@ test("app registration classifies mutate_petrinet as a browser tool", async () =
     fauxAssistantMessage(
       [
         fauxToolCall("mutate_workpiece", {}),
-        fauxToolCall("mutate_petrinet", {}),
+        fauxToolCall("mutate_petrinaut_net", {}),
       ],
       { stopReason: "toolUse" },
     ),
@@ -61,7 +61,7 @@ test("app registration classifies mutate_petrinet as a browser tool", async () =
     registration!.interceptor(
       {
         type: "agent",
-        operationId: "mutate-petrinet-classification",
+        operationId: "mutate-petrinaut-net-classification",
         operationKind: "prompt",
       },
       { agentName: "brunch-chat-agent" },

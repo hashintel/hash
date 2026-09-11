@@ -69,12 +69,12 @@ local persona-based development produces an accepted session + workpiece + net
 → website opens the copy with its conversation, workpiece and SDCPN
 → persona speaks in ordinary language; workpiece revisions settle
 → Brunch recognizes explanation, construction or correction intent
-→ getLatestNetDefinition supplies a fresh, verified base
-→ mutate_petrinet adds, edits or removes admitted root-net parts by ID
+→ read_petrinaut_net supplies a fresh, verified base
+→ mutate_petrinaut_net adds, edits or removes admitted root-net parts by ID
 → website applies the committed prefix and records complete verified effects
-→ getNetCompilationErrors returns clean | errors | pending for that version
+→ read_petrinaut_diagnostics returns clean | errors | pending for that version
 → Brunch repairs against a fresh observation when errors remain
-→ applyAutoLayout records its pre/post hashes and position-only effects
+→ layout_petrinaut_net records its pre/post hashes and position-only effects
 → query_workpiece maps selected Petrinaut elements to their recorded mutation
   revisions, workpiece passages and session turns, or reports absence
 → close/reopen resumes the same owned copy coherently
@@ -153,7 +153,7 @@ can count as acceptance:
 | Inventory-derived code-bearing slice fits the carrier | A frozen fixture names a coloured type, parameters, places and arcs, a stochastic transition and a differential equation; it parses, applies canonically and reaches clean TypeScript diagnostics. It is mechanism evidence only. |
 | The capability envelope is complete and honest | The canonical batch, plugin carrier and website-owned host executor admit the same operations. Every admitted shape verifies `applied` at the receiving boundary. An unadmitted shape is refused at its own position with the admitted names before anything applies. The dedicated [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) is the authority. |
 | Compiler feedback is version-correlated | A structurally applied dirty batch reports errors or pending, never stale success; repair begins from a fresh observation and reaches diagnostics for the repaired definition. Dependency changes invalidate all affected code. |
-| Layout is a recorded document mutation | `applyAutoLayout` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. |
+| Layout is a recorded document mutation | `layout_petrinaut_net` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. |
 | Workpiece query uses recorded current-revision evidence | An ordinary question about visible Petrinaut elements obtains a fresh observation, resolves element IDs to existing mutation-attempt revision IDs, maps those to current workpiece passages and relevant session turns, and reports missing or ambiguous provenance without inventing a link. |
 | Assistant modes are isolated | Host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. |
 
@@ -187,7 +187,7 @@ hold:
 - Petrinaut Core owns canonical mutation and command schemas, including
   `getNetCompilationErrors` and `applyAutoLayout`. Brunch selects or projects
   them and does not copy their field contracts.
-- Ordinary construction exposes one model-facing `mutate_petrinet` carrier,
+- Ordinary construction exposes one model-facing `mutate_petrinaut_net` carrier,
   not a parallel catalogue of individual mutations. Its admitted set is
   governed by the capability matrix, not by a schema-size threshold.
 - Every code-bearing batch, or batch that changes a code dependency, reaches a
@@ -286,11 +286,11 @@ hold:
   history is the product contract, not a predetermined module. The candidate
   projection is retained only if parity tests show that it removes duplicate
   interpretation without creating a store, identity scheme or authority.
-- **Petrinaut tool family:** target operations should name the application they
-  actually wrap (`read_petrinaut`, `mutate_petrinaut`, and any separately
-  earned commands), not a generic Petri net. Settle whether document,
-  diagnostics, guide and layout operations are variants of fewer tools or
-  remain separate before renaming mounts. A possible package rename to
+- **Petrinaut tool family:** settled as separate Brunch-facing
+  `read_petrinaut_net`, `read_petrinaut_docs`,
+  `read_petrinaut_diagnostics`, `layout_petrinaut_net` and
+  `mutate_petrinaut_net` operations. Petrinaut Core retains its canonical
+  operation names behind these host aliases. A possible package rename to
   `@hashintel/brunch-plugin-process-petrinaut` follows that topology decision;
   do not rename the package first.
 - **Question marker reliability:** `brunch_mark_question` supports Voice

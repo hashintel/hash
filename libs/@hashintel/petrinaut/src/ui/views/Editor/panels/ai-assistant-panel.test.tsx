@@ -1396,6 +1396,60 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
+  test("executes a dynamic host alias as its canonical Petrinaut read", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "aliased-net-read",
+                toolName: "read_petrinaut_net",
+                input: {},
+                dynamic: true,
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("alias-complete", "Alias read received")),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+        toolAliases: {
+          read_petrinaut_net: getLatestNetDefinitionToolName,
+        },
+      },
+      initialMessage: "Read through the host alias",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Alias read received")).not.toBeNull();
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "aliased-net-read",
+        toolName: "read_petrinaut_net",
+      }),
+    );
+  });
+
   test("does not continue while a sibling automatic tool is pending", async () => {
     let releaseLayout: (() => void) | undefined;
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>

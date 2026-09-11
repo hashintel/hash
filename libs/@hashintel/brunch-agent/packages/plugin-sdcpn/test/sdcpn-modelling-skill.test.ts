@@ -72,7 +72,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
     expect(checks).toContain("Tool-schema acceptance");
     expect(checks).toContain("Agent-reviewed structural correspondence");
     expect(checks).toContain("Behavioral execution or stronger analysis");
-    expect(construction).toContain("getLatestNetDefinition");
+    expect(construction).toContain("read_petrinaut_net");
     expect(construction).not.toContain("```json");
     expect(construction).not.toContain("```pn-json");
   });

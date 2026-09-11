@@ -468,7 +468,7 @@ describe("mutate_petrinet tool", () => {
     const observation = property(root, "observation", root);
     const bases = property(root, "bases", root);
     const operations = property(root, "operations", root);
-    expect(observation?.description).toMatch(/getLatestNetDefinition/u);
+    expect(observation?.description).toMatch(/read_petrinaut_net/u);
     expect(bases?.description).toMatch(/basisId/u);
     expect(operations?.description).toMatch(
       /\{operationId, basisId, type, input\}/u,
