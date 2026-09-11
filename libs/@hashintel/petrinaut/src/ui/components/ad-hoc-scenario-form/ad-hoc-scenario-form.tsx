@@ -1,11 +1,12 @@
 /**
  * @layerRoot ui.adhoc-form
- * @role The inline Initial State + Parameters form compiling to a generated, never-persisted scenario
+ * @role The inline Initial State + Parameters form: the one scenario form, compiling to a generated scenario or persisting as a saved one
  *
  * The ad-hoc scenario form: define Initial State + Parameters inline and let
  * the caller compile them through `synthesizeAdHocScenario` (plain runs) or
- * `synthesizeAdHocOptimization` (optimization). The generated scenario is
- * never persisted; this component only edits `AdHocScenarioState`.
+ * `synthesizeAdHocOptimization` (optimization), or save them as a scenario
+ * (`initialState.type: "adhoc"`). The generated scenario is never persisted;
+ * this component only edits `AdHocScenarioState`.
  *
  * It is the one scenario form. Quick Simulation renders it with `selection`
  * "none"; experiment creation renders it with "sweep", which grows a Sweep

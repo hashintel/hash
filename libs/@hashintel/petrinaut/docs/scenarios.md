@@ -9,9 +9,9 @@ Scenarios live under the **Simulate** [global mode](drawing-a-net.md#global-mode
 A scenario has four parts:
 
 1. **Name** and optional description.
-2. **Scenario parameters** -- numeric variables scoped to this scenario. Referenced in code as `scenario.<identifier>`.
-3. **Parameter bindings** -- expressions that override the default value of each net-level parameter, for this scenario only.
-4. **Initial state** -- the starting marking of each place. Authored either per-place or as a single function (see below).
+2. **Scenario parameters** -- numeric variables scoped to this scenario. Referenced in expressions as `scenario.<identifier>`.
+3. **Parameter overrides** -- expressions that override the default value of net-level parameters, for this scenario only (the form's **Parameters** section).
+4. **Initial state** -- the starting marking of each place, authored in the scenario form: one block per place, every value an expression.
 
 You can save as many scenarios as you like; they are stored on the net alongside places, transitions, and parameters.
 
@@ -29,46 +29,17 @@ You will need scenarios when you want to:
 
 1. Switch to **Simulate** mode and open the **Scenarios** tab.
 2. Click **Create**. The Create Scenario drawer opens.
-3. Fill in **Name** (required, must be unique among scenarios) and an optional description.
-4. Add **Scenario parameters** if you need variables scoped to this scenario. Each parameter has an identifier (snake_case, lowercase; the form auto-converts on blur), a type (Real / Integer / Boolean / Ratio), and a default value. Ratios are clamped to `[0, 1]`; booleans are stored as `1` or `0` and exposed to expressions as `true` or `false`.
-5. Set **Parameter bindings** for any net-level parameters whose default you want to override. Each binding is a TypeScript expression; leaving it empty keeps the net default (shown in the placeholder).
-6. Configure **Initial state** for each place that should start with tokens.
-7. Click **Create**. Save is blocked while the form has validation or LSP errors -- hover the disabled button to see why.
+3. Fill in **Scenario name** (required, unique among scenarios) and an optional description.
+4. Add **Variables** -- one per value you want to drive from a single number, written `scenario.<name>` in every expression below. Turn **Scenario Parameter** on to expose a Variable as a tunable parameter of the saved scenario: it needs a snake_case name, a constant expression as its default, and a value between 0 and 1 for a ratio.
+5. Fill in **Parameters** -- an expression per net-level parameter whose default you want to override; the `default` tag marks the untouched ones.
+6. Configure **Initial state** -- a count expression per untyped place, rows of cells per typed place (a Dynamic row builds many tokens from one count). See [Ad-hoc Scenarios](ad-hoc-scenarios.md#the-form) for the form itself.
+7. Click **Create**. It is disabled while the name or any value has an error -- hover it to read the first.
 
 The view drawer opens from the Scenarios list, which works like the other Simulate-mode lists: the first click selects a row, and a click on the selected row (or Enter) opens it. The list is a single Tab stop whose rows the arrow keys walk. The drawer shows the same form populated with the existing values, with **Close** and **Save** buttons.
 
-With the experimental [Ad-hoc scenarios](ad-hoc-scenarios.md#enabling-the-feature) setting on, the Create Scenario drawer instead shows the [ad-hoc form](ad-hoc-scenarios.md#saved-ad-hoc-scenarios): name and description above one inline Initial State + Parameters form, with a **Scenario Parameter** toggle on each Variable and no "Define as code" toggle. A scenario created that way always edits through the same form.
+## Expression language
 
-## Initial state: per-place vs code
-
-The Initial State section has a **Define as code** toggle.
-
-### Per-place mode (default)
-
-You see a row per place. Which places appear depends on the **Show all places** toggle:
-
-- Off (default): only places whose **Default starting place** flag is on (configured in the place's properties panel). If no places are marked, the section is empty and shows a hint.
-- On: every place in the net, with default-starting places listed first.
-
-What you enter per place depends on whether it has a type:
-
-- **Uncoloured places**: a single-line TypeScript expression that evaluates to the token count. The result is rounded down and clamped to `>= 0`. You can reference `parameters.<variable_name>` and `scenario.<identifier>`, plus the `range` helper described under [Code mode](#code-mode-define-as-code). Empty/missing means zero tokens.
-- **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal values matching each column's type — numbers for Real/Integer, true/false for Boolean, free text for String, and identifiers for UUID; expressions are not supported in the spreadsheet. UUID columns accept any text: a UUID string is used as-is, and any other text (e.g. `order-1`) is converted deterministically to a UUID, so the same text always produces the same identifier. If you later edit the type itself, existing rows follow along: added elements get a default column, removed elements' columns are dropped, reordered elements keep their values, and changing an element's type converts each stored value (falling back to the new type's default when a value can't be converted). Each spreadsheet is a single Tab stop with arrow-key movement (arrows also flow from one place's spreadsheet into the next), click-to-select then click-to-edit cells, and a row-number column where Delete removes the row.
-
-### Code mode (Define as code)
-
-You write a single function body (no `function` keyword, no `export default`) that returns an object keyed by **place name**:
-
-```ts
-return {
-  RawMaterial: scenario.raw_material,
-  AvailableMachines: range(scenario.machines_count).map(() => ({
-    machine_damage_ratio: scenario.initial_machine_damage,
-  })),
-};
-```
-
-`parameters` (net-level) and `scenario` (this scenario's parameters) are in scope, along with the `range` helper:
+Every value in the form is an expression: `parameters` (net-level) and `scenario` (this scenario's Variables) are in scope, along with the `range` helper:
 
 - `range(end)` -- integers from `0` (inclusive) to `end` (exclusive): `range(3)` is `[0, 1, 2]`.
 - `range(start, end)` -- from `start` (inclusive) to `end` (exclusive).
@@ -80,19 +51,22 @@ Scenario code compiles through the same restricted TypeScript subset as the othe
 
 The subset is strict about booleans and equality: conditions and `&&`/`||` take booleans (write `parameters.x > 0`, not `parameters.x`), `==` is strict (comparing a boolean with a number is flagged as always false — use the boolean directly, e.g. `scenario.enabled ? 1 : 0`), and arithmetic takes numbers.
 
-For each returned key:
+## Scenarios stored as code
 
-- An **uncoloured** place takes a number (rounded, clamped to `>= 0`).
-- A **coloured** place takes an array of token objects, with one property per type element.
+Net files, the AI assistant and earlier versions of Petrinaut may store a scenario's initial state per place (one expression or one token spreadsheet per place) or as a single code block. Both run unchanged, and both preview as computed rows in Simulation Settings and the experiment drawer. Editing opens each in the form: a per-place scenario opens converted -- its parameters as exposed Variables, its expressions and rows as the form's blocks -- and saving stores it in the form's format; a code scenario opens with its name, description, Variables and Parameters editable and its code shown read-only in the Initial state slot -- edit its values here, change the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count). The code is a function body that returns an object keyed by **place name** -- a number for an untyped place (rounded, clamped to `>= 0`), an array of token objects for a typed one -- with `parameters`, `scenario` and `range` in scope; a key that is not a place name is a compile error, so a typo'd name fails the scenario instead of being silently ignored:
 
-> Place keys are **names** in code mode, but **IDs** in per-place mode. This asymmetry is by design.
-> A key that is not a place name is a compile error ("`<name>` is not a place in this net"), so a typo'd name fails the scenario instead of being silently ignored.
+```ts
+return {
+  RawMaterial: scenario.raw_material,
+  AvailableMachines: range(scenario.machines_count).map(() => ({
+    machine_damage_ratio: scenario.initial_machine_damage,
+  })),
+};
+```
 
-The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save. Leaving the code editor empty is not an error: empty code defines no scenario-specific initial state, so every place keeps the initial marking entered manually on the canvas. Note that this differs from per-place mode, where clearing a place's expression sets that place to **zero** tokens rather than leaving it alone.
+## Parameters
 
-## Parameter bindings
-
-Each net-level parameter gets one row. The placeholder shows that parameter's default. A bound expression replaces the default whenever this scenario is active.
+Each net-level parameter gets one row in the form's **Parameters** section. An untouched row shows the parameter's default with a `default` tag; enter an expression to replace it whenever this scenario is active.
 
 Common patterns:
 
@@ -100,13 +74,13 @@ Common patterns:
 - Derived from a scenario parameter: `scenario.peak_demand * 1.2`
 - Combination of both: `parameters.base_rate * scenario.surge_multiplier`
 
-Bindings are evaluated once at the start of each run, before the initial state is computed, so you can safely reference parameter values from inside initial-state expressions or code.
+Overrides are evaluated once at the start of each run, before the initial state is computed, so you can safely reference parameter values from inside initial-state expressions or code.
 
 ## Running a scenario
 
 In **Edit** mode, open **Simulation Settings** (bottom panel). The **Scenario** dropdown lists "No scenario" plus every saved scenario. While a scenario is selected:
 
-- The **Parameters** section in Simulation Settings shows the **scenario parameters** (with the scenario's defaults pre-filled). Adjust them per run; net-level parameter values are not editable here, since they are fixed by the scenario's bindings.
+- The form shows the **scenario parameters** editable on the left (with the scenario's defaults pre-filled); the parameter overrides and initial state sit read-only on the right. Adjust the parameters per run; net-level parameter values are fixed by the scenario's overrides.
 - The Properties panel **State** sub-view for each place becomes read-only ("Defined by scenario").
 - Pressing **Play** runs the simulation with the scenario's overrides and initial state.
 
@@ -122,6 +96,6 @@ Several of the built-in examples ship with scenarios so you can see realistic co
 
 - **SIR Epidemic Model** -- "Seasonal Flu" and "High Virulence Outbreak", driven by `population` and `infected_ratio` scenario parameters plus parameter overrides for infection and recovery rates.
 - **Production Machines** -- "Default Production", driven by `raw_material`, `machines_count`, and `initial_machine_damage`.
-- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar), plus "Pre-deployed Constellation", which authors its initial state in code mode: `range(scenario.number_of_satellites).map(...)` builds a ring of satellites at a configurable altitude, each already travelling at circular-orbit speed so the ring holds its orbit as soon as you press play.
+- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar), plus "Pre-deployed Constellation", which defines its initial state as code: `range(scenario.number_of_satellites).map(...)` builds a ring of satellites at a configurable altitude, each already travelling at circular-orbit speed so the ring holds its orbit as soon as you press play.
 
-Loading any of these examples is the fastest way to see a working scenario authored in both modes.
+Loading any of these examples is the fastest way to see working scenarios, including one stored as code.
