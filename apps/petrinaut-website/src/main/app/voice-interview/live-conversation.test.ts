@@ -29,6 +29,7 @@ const setup = () => {
     srcObject: null,
     autoplay: false,
     muted: false,
+    paused: false,
     play: vi.fn(async () => undefined),
     pause: vi.fn(),
   };
@@ -218,4 +219,123 @@ test("plays the remote track while microphone remains attached, then stops both"
   await stopped;
   expect(fixture.audio.pause).toHaveBeenCalled();
   expect(fixture.input.stop).toHaveBeenCalled();
+});
+
+test("reports local audio activity without treating silence or transcripts as turn completion", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  const levels = { input: 0.24, output: 0 };
+  const getStats = vi.fn(
+    async () =>
+      new Map([
+        [
+          "input",
+          { type: "media-source", kind: "audio", audioLevel: levels.input },
+        ],
+        [
+          "output",
+          { type: "inbound-rtp", kind: "audio", audioLevel: levels.output },
+        ],
+      ]),
+  );
+  Object.assign(fixture.peer, { getStats });
+  await fixture.conversation.start();
+  await vi.advanceTimersByTimeAsync(100);
+  expect(getStats).not.toHaveBeenCalled();
+  fixture.emit({ type: "session.started" });
+  fixture.peer.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.output,
+      streams: [{ getTracks: () => [fixture.output] }],
+    }),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "connected",
+      activity: { microphoneLevel: 0.24, outputActive: false },
+    }),
+  );
+  levels.output = 0.2;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      activity: { microphoneLevel: 0.24, outputActive: true },
+    }),
+  );
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  levels.output = 0;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    activity: { outputActive: true },
+  });
+  await vi.advanceTimersByTimeAsync(400);
+  fixture.emit({
+    type: "session.output_transcript.delta",
+    delta: "Not playback",
+  });
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    phase: "connected",
+    activity: { outputActive: false },
+  });
+  levels.output = 0.2;
+  fixture.audio.paused = true;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    activity: { outputActive: false },
+  });
+  fixture.audio.paused = false;
+  fixture.audio.muted = true;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    activity: { outputActive: false },
+  });
+  expect(fixture.sent).toEqual([]);
+  expect(fixture.fetch).toHaveBeenCalledTimes(1);
+  const stopped = fixture.conversation.stop();
+  const samples = getStats.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(getStats).toHaveBeenCalledTimes(samples);
+  fixture.emit({ type: "session.closed" });
+  await stopped;
+});
+
+test("missing or failed telemetry does not end the session; a late sample cannot revive it after Stop", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  const getStats = vi.fn(async (): Promise<Map<string, unknown>> => new Map());
+  Object.assign(fixture.peer, { getStats });
+  await fixture.conversation.start();
+  fixture.emit({ type: "session.started" });
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+    phase: "connected",
+    activity: { microphoneLevel: 0, outputActive: false },
+  });
+  getStats.mockRejectedValueOnce(new Error("Telemetry unavailable"));
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.sent).toEqual([]);
+  let release!: (stats: Map<string, unknown>) => void;
+  getStats.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  const stopped = fixture.conversation.stop();
+  fixture.emit({ type: "session.closed" });
+  await stopped;
+  const updates = fixture.onState.mock.calls.length;
+  const samples = getStats.mock.calls.length;
+  release(
+    new Map([
+      ["late", { type: "media-source", kind: "audio", audioLevel: 0.9 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(500);
+  expect(fixture.onState).toHaveBeenCalledTimes(updates);
+  expect(getStats).toHaveBeenCalledTimes(samples);
+  expect(fixture.fetch).toHaveBeenCalledTimes(1);
 });

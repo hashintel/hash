@@ -7,8 +7,8 @@ witness, not conversational-quality acceptance.
 [FE-1663](https://linear.app/hash/issue/FE-1663/experiment-live-full-duplex-migration)
 is related to FE-1661, which remains the migration-effort assessment.
 This website experiment uses Petrinaut's existing Voice dock, with optional
-session controls and a connectivity-only state. It does not recut Brunch's existing Mission 7a or
-promote its future-planning drafts.
+session controls and local audio-activity indicators, not inferred turn boundaries.
+It does not recut Brunch's existing Mission 7a or promote its future-planning drafts.
 
 ## Imperative
 

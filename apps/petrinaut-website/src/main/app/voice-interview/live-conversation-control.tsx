@@ -29,7 +29,11 @@ export const LiveConversationControl = ({
   connectionTimeoutMs,
 }: LiveControlsContext & { readonly connectionTimeoutMs: number }) => {
   const [consented, setConsented] = useState(false);
-  const [phase, setPhase] = useState<LiveConversationState["phase"]>("idle");
+  const [state, setState] = useState<LiveConversationState>({
+    phase: "idle",
+    message: null,
+  });
+  const { phase, activity } = state;
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
@@ -58,15 +62,20 @@ export const LiveConversationControl = ({
         isAiAssistantOpen &&
         (phase === "connecting" || phase === "connected")
         ? {
-            phase,
-            microphoneLevel: 0,
+            phase:
+              phase === "connecting"
+                ? "connecting"
+                : activity?.outputActive
+                  ? "speaking"
+                  : "listening",
+            microphoneLevel: activity?.microphoneLevel ?? 0,
             microphoneMuted: false,
             errorMessage: null,
             notice: null,
           }
         : null,
     );
-  }, [inputMode, isAiAssistantOpen, phase, reportVoiceSessionState]);
+  }, [inputMode, isAiAssistantOpen, phase, activity, reportVoiceSessionState]);
 
   useEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen)
@@ -105,10 +114,10 @@ export const LiveConversationControl = ({
       onStart={() => {
         if (!consented || phase === "stopping") return;
         setConsented(false);
-        setPhase("connecting");
+        setState({ phase: "connecting", message: null });
         const next = createLiveConversation((nextState) => {
           if (session.current !== next) return;
-          setPhase(nextState.phase);
+          setState(nextState);
           setVoiceActive(
             nextState.phase === "connecting" || nextState.phase === "connected",
           );

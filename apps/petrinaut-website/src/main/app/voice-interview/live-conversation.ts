@@ -7,6 +7,11 @@ export interface LiveConversationState {
     | "ended"
     | "error";
   readonly message: string | null;
+  /** Local media activity for the dock, never a turn or playback-completion signal. */
+  readonly activity?: {
+    readonly microphoneLevel: number;
+    readonly outputActive: boolean;
+  };
 }
 
 /** One disposable Live session. No composer, tool, transcript or turn-settlement interface. */
@@ -27,12 +32,59 @@ export const createLiveConversation = (
   let failure: string | undefined;
   let connectionTimer: ReturnType<typeof setTimeout> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
+  let activityTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastOutputActivity = -Infinity;
+  let lastActivity: LiveConversationState["activity"];
   let resolveStopped: () => void = () => {};
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve;
   });
 
+  const sampleActivity = async () => {
+    if (stopping || !peer) return;
+    let microphoneLevel = 0;
+    let outputLevel = 0;
+    try {
+      const stats = await peer.getStats();
+      stats.forEach((report: unknown) => {
+        if (
+          typeof report !== "object" ||
+          report === null ||
+          !("kind" in report) ||
+          report.kind !== "audio" ||
+          !("audioLevel" in report) ||
+          typeof report.audioLevel !== "number" ||
+          !("type" in report)
+        )
+          return;
+        if (report.type === "media-source") microphoneLevel = report.audioLevel;
+        if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
+      });
+    } catch {
+      // Optional browser telemetry must not terminate or retry the conversation.
+    }
+    if (abort.signal.aborted) return;
+    const playing = audio?.srcObject && !audio.paused && !audio.muted;
+    if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
+    const activity = {
+      microphoneLevel: Math.round(microphoneLevel * 100) / 100,
+      // Brief hold avoids flicker between syllables. This never settles a turn;
+      // received audio energy also cannot prove that the user heard playback.
+      outputActive: Boolean(playing) && Date.now() - lastOutputActivity < 300,
+    };
+    if (
+      !lastActivity ||
+      activity.microphoneLevel !== lastActivity.microphoneLevel ||
+      activity.outputActive !== lastActivity.outputActive
+    ) {
+      lastActivity = activity;
+      onState({ phase: "connected", message: null, activity });
+    }
+    activityTimer = setTimeout(() => void sampleActivity(), 100);
+  };
+
   const stopMedia = () => {
+    clearTimeout(activityTimer);
     microphone?.getTracks().forEach((track) => track.stop());
     if (audio) {
       audio.muted = true;
@@ -129,10 +181,11 @@ export const createLiveConversation = (
           return;
         }
         if (stopping) return;
-        if (data.type === "session.started") {
+        if (data.type === "session.started" && !ready) {
           ready = true;
           clearTimeout(connectionTimer);
           onState({ phase: "connected", message: null });
+          activityTimer = setTimeout(() => void sampleActivity(), 100);
         } else if (data.type === "error" || data.type === "session.error") {
           fail("Live reported an error. No automatic retry was made.");
         }
