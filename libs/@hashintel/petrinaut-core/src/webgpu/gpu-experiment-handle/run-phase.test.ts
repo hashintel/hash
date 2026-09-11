@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { RUN_POLICY } from "./calibration";
+import { CACHED_RUN_POLICY } from "./calibration";
 import { runCalibratedExperiment } from "./run-phase";
 
 import type { CompiledNetShader } from "../compile-net-shader";
@@ -172,11 +172,12 @@ describe("runCalibratedExperiment", () => {
   });
 
   it("probes afresh when a cached calibration still overflows after growth", async () => {
-    // Another selection's slabs undersize this one past RUN_POLICY's budget:
-    // rather than failing, the run probes as a first batch would.
+    // Another selection's slabs undersize this one past the one growth a
+    // cached calibration gets: rather than failing, the run probes as a
+    // first batch would.
     const current = session({ p: 10 });
     const overflowing = Array.from(
-      { length: 1 + RUN_POLICY.maxSlabGrowths },
+      { length: 1 + CACHED_RUN_POLICY.maxSlabGrowths },
       () => ({ ok: true as const, result: outcome({ overflowRuns: 1 }) }),
     );
     const { execute, attempts } = scripted([
@@ -198,7 +199,9 @@ describe("runCalibratedExperiment", () => {
       false,
       true,
     ]);
-    // The probe starts from the grown slabs, never below them.
+    // The one growth is the probe's factor; the probe then sizes from what
+    // it observed.
+    expect(attempts[1]?.shader.stateWordsPerRun).toBe(4 + 40 * 2);
     expect(current.capacities.get("p")).toBe(154);
     expect(remembered).toHaveLength(1);
     expect(result).toMatchObject({

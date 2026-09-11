@@ -9,6 +9,7 @@
  */
 import { planInitialWindows } from "../metric-windows";
 import {
+  CACHED_RUN_POLICY,
   probeDerivedCapacities,
   probeRunCount,
   probeWindows,
@@ -37,8 +38,9 @@ export type RunPhaseOutcome =
 /**
  * Probes when nothing is calibrated yet — derived capacities first, which
  * also observes the metric ranges; else the blind windows alone — then runs
- * the full attempt under `RUN_POLICY`. A cached calibration the full attempt
- * outgrows even after growth sends the run back through the probe.
+ * the full attempt under `RUN_POLICY`. A cached calibration runs under
+ * `CACHED_RUN_POLICY` instead, and outgrowing it sends the run back through
+ * the probe.
  */
 export const runCalibratedExperiment = async (options: {
   session: CalibrationSession;
@@ -130,7 +132,7 @@ export const runCalibratedExperiment = async (options: {
     runsFor: () => runCount,
     windows,
     execute,
-    policy: RUN_POLICY,
+    policy: calibratedWindows === null ? RUN_POLICY : CACHED_RUN_POLICY,
     stopped,
   });
   if (!calibrated.ok) {
