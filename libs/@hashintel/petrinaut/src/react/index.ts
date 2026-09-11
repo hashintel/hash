@@ -95,6 +95,7 @@ export {
   ExperimentsContext,
   isExperimentActive,
 } from "./experiments/context";
+export { AiExperimentsContext } from "./ai-experiments/context";
 export type {
   CreateExperimentInput,
   ExperimentRecord,

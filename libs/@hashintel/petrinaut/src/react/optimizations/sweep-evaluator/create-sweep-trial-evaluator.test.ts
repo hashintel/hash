@@ -53,6 +53,28 @@ describe("sweepPointFor", () => {
 });
 
 describe("createSweepTrialEvaluator", () => {
+  it("uses a host run cap and leaves final refinement to the host", async () => {
+    const navigateSweep = vi.fn().mockResolvedValue({
+      position: { rate: 25 },
+      runsCompleted: 4,
+      means: { infected: 2 },
+    });
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE],
+      metricId: "infected",
+      runCap: 4,
+      refineOnSettle: false,
+      navigateSweep,
+    });
+    await evaluator.evaluateTrial(request({ rate: 0.5 }));
+    evaluator.settle({ trial: 1, parameters: { rate: 0.5 }, objective: 2 });
+    expect(navigateSweep).toHaveBeenCalledExactlyOnceWith(
+      "exp",
+      { rate: { from: 25, to: 25 } },
+      { runCap: 4 },
+    );
+  });
   it("navigates the sweep to the trial's point with the trial cap and reads the metric there", async () => {
     const navigateSweep = vi.fn().mockResolvedValue({
       position: { rate: 25, days: 5 },

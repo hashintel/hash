@@ -1,3 +1,4 @@
+import { AiExperimentsProvider } from "./ai-experiments/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { LanguageClientProvider } from "./lsp/provider";
 import {
@@ -87,7 +88,11 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             >
               <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
                 <OptimizationsProvider>
-                  <PetrinautCanvasProvider>{children}</PetrinautCanvasProvider>
+                  <AiExperimentsProvider>
+                    <PetrinautCanvasProvider>
+                      {children}
+                    </PetrinautCanvasProvider>
+                  </AiExperimentsProvider>
                 </OptimizationsProvider>
               </ExperimentsProvider>
             </SimulationProvider>

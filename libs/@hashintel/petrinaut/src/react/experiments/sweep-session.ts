@@ -137,6 +137,8 @@ export type CreateSweepSessionOptions = {
    * publishes once as idle and waits for a selection. Defaults to on.
    */
   startComputing?: boolean;
+  /** Refuse partial results when a batch finishes with errored runs. */
+  requireSuccessfulRuns?: boolean;
   instantiateBatch: InstantiateSweepBatch;
   onUpdate: (update: SweepSessionUpdate) => void;
   /**
@@ -527,7 +529,15 @@ export function createSweepSession(
     const unsubscribeProgress = handle.progress.subscribe(() => onLiveTick());
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "complete") {
-        resolveDone("complete");
+        if (options.requireSuccessfulRuns && event.progress.erroredRuns > 0) {
+          failed = true;
+          onError(
+            `${event.progress.erroredRuns} of ${event.progress.runCount} runs failed`,
+          );
+          resolveDone("stopped");
+        } else {
+          resolveDone("complete");
+        }
       } else if (event.type === "cancelled") {
         resolveDone("stopped");
       } else {

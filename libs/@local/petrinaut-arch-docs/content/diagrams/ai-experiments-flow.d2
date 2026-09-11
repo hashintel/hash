@@ -1,0 +1,14 @@
+direction: down
+vars: {d2-config: {theme-id: 0}}
+validate: "Capture + validate"
+create: "Create + lock inputs"
+simulate: "Simulate"
+optimize: "Search + refine"
+result: "Capture result"
+finish: "Unlock + notify"
+validate -> create: "valid"
+create -> simulate
+create -> optimize
+simulate -> result: "done / cancelled"
+optimize -> result: "done / cancelled"
+result -> finish

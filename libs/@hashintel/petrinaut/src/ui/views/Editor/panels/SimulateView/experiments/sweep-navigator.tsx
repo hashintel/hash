@@ -243,11 +243,13 @@ export const SweepNavigator = ({
   selection,
   status,
   onSelectionChange,
+  disabled = false,
 }: {
   axes: readonly ExperimentParameterAxis[];
   selection: SweepSelection;
   status: SweepNavigatorStatus;
   onSelectionChange: (selection: SweepSelection) => void;
+  disabled?: boolean;
 }) => {
   return (
     <div className={navigatorStyle}>
@@ -258,7 +260,7 @@ export const SweepNavigator = ({
           </span>
           <AxisControl
             axis={axis}
-            disabled={status.following !== null}
+            disabled={disabled || status.following !== null}
             selected={
               selection[axis.identifier] ?? {
                 from: 0,
