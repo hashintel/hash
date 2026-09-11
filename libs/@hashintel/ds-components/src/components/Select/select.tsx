@@ -143,7 +143,7 @@ type SelectSingleProps<TValue extends string> = {
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks or Space; Enter toggles the highlighted item and closes the dropdown. Items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks, Space or Enter. Items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
@@ -304,7 +304,7 @@ function mapToMenuItems<TValue extends string>(
 /**
  * Exposes the select machine's api to the component body — the context is
  * only readable beneath the Root — backing the Root element's keyboard
- * handling (Enter closing a multi select, Tab exiting an open dropdown).
+ * handling (Tab exiting an open dropdown).
  */
 const SelectApiBridge = ({
   onApi,
@@ -467,13 +467,7 @@ export const Select = <TValue extends string>({
   const escapedRef = useRef(false);
   const valueAtOpenRef = useRef<TValue[]>(defaultOpen ? selectedValues : []);
 
-  // Enter in an open multi select toggles the highlighted item and then
-  // closes the dropdown (Space and clicks keep it open). The capture phase
-  // records whether it was open before ark processes the key — an Enter that
-  // opens the dropdown must not be immediately undone — and the bubble
-  // phase, running after ark has toggled the item, closes it.
   const selectApiRef = useRef<ReturnType<typeof useSelectContext> | null>(null);
-  const enterWhileOpenRef = useRef(false);
 
   // Tab while open moves through the dropdown's own tabbables (search field,
   // custom rows, footer buttons) and past the edge closes the dropdown,
@@ -557,9 +551,7 @@ export const Select = <TValue extends string>({
     });
   };
   const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" && multiple) {
-      enterWhileOpenRef.current = !!selectApiRef.current?.open;
-    } else if (event.key === "Tab") {
+    if (event.key === "Tab") {
       handleTabKeyDown(event);
     } else if (
       (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
@@ -568,12 +560,6 @@ export const Select = <TValue extends string>({
       // zag changes a closed select's selection on Left/Right — swallow the
       // key before it reaches the trigger so the selection stays put.
       event.stopPropagation();
-    }
-  };
-  const handleRootKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" && enterWhileOpenRef.current) {
-      enterWhileOpenRef.current = false;
-      selectApiRef.current?.setOpen(false);
     }
   };
   useEffect(() => {
@@ -944,7 +930,6 @@ export const Select = <TValue extends string>({
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
       onKeyDownCapture={handleRootKeyDownCapture}
-      onKeyDown={multiple ? handleRootKeyDown : undefined}
     >
       <ArkSelect.HiddenSelect ref={inputRef} />
       <SelectApiBridge
