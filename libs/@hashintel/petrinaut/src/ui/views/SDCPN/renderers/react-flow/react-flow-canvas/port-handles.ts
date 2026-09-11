@@ -5,7 +5,7 @@
  */
 
 import type { CanvasConnection } from "../../../use-canvas-interactions";
-import type { Connection } from "@xyflow/react";
+import type { Edge } from "@xyflow/react";
 
 const portInPrefix = "port-in-";
 const portOutPrefix = "port-out-";
@@ -20,7 +20,7 @@ const portIdOf = (handle: string | null | undefined, prefix: string) =>
   handle?.startsWith(prefix) ? handle.slice(prefix.length) : null;
 
 export const toCanvasConnection = (
-  connection: Connection,
+  connection: Pick<Edge, "source" | "target" | "sourceHandle" | "targetHandle">,
 ): CanvasConnection => ({
   sourceId: connection.source,
   targetId: connection.target,

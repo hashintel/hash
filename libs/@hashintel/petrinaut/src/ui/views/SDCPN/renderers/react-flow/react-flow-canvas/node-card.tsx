@@ -1,8 +1,6 @@
-import { Handle, Position } from "@xyflow/react";
-
 import { css } from "@hashintel/ds-helpers/css";
 
-import { handleStyling } from "../../../styles/styling";
+import { NodeHandles } from "./shared/node-handles";
 
 import type { ReactNode } from "react";
 
@@ -120,12 +118,6 @@ export const NodeCard: React.FC<NodeCardProps> = ({
 }) => {
   return (
     <div className={containerStyle}>
-      <Handle
-        type="target"
-        position={Position.Left}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
       <div ref={cardRef} className={cardClassName} style={cardStyle}>
         {iconContainer}
         <div className={textAreaStyle}>
@@ -134,12 +126,7 @@ export const NodeCard: React.FC<NodeCardProps> = ({
         </div>
         {badge}
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
+      <NodeHandles isConnectable={isConnectable} />
     </div>
   );
 };

@@ -30,7 +30,65 @@ const DemoModeProbe = ({ name }: { name: string }) => {
   );
 };
 
+const ArcConnectionsProbe = () => {
+  const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
+    use(UserSettingsContext);
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
+      }
+    >
+      Automatic arcs: {enableAutomaticArcConnections ? "on" : "off"}
+    </button>
+  );
+};
+
 describe("UserSettingsProvider", () => {
+  it("defaults automatic arcs off for saved preferences from before the experiment", () => {
+    localStorage.setItem(
+      "petrinaut:user-settings",
+      JSON.stringify({ compactNodes: false }),
+    );
+    render(
+      <UserSettingsProvider>
+        <ArcConnectionsProbe />
+      </UserSettingsProvider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "Automatic arcs: off" }),
+    ).toBeTruthy();
+  });
+
+  it("persists automatic arcs independently of the saved arc style", () => {
+    localStorage.setItem(
+      "petrinaut:user-settings",
+      JSON.stringify({ arcRendering: "smoothstep" }),
+    );
+    const first = render(
+      <UserSettingsProvider>
+        <ArcConnectionsProbe />
+      </UserSettingsProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Automatic arcs: off" }),
+    );
+    first.unmount();
+    render(
+      <UserSettingsProvider>
+        <ArcConnectionsProbe />
+      </UserSettingsProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Automatic arcs: on" }));
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({
+      enableAutomaticArcConnections: false,
+      arcRendering: "smoothstep",
+    });
+  });
+
   it("starts with Brunch demo mode off and toggles it", () => {
     render(
       <UserSettingsProvider>

@@ -1,8 +1,11 @@
 import { MarkerType } from "@xyflow/react";
+import { use } from "react";
 
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
 import { portInHandleId, portOutHandleId } from "./port-handles";
+import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
 import type { ArcEdgeType, NodeType } from "./react-flow-types";
@@ -79,10 +82,37 @@ const toReactFlowEdge = (arc: CanvasArc): ArcEdgeType => {
 export const useReactFlowElements = (
   scene: CanvasScene,
 ): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
+  const { enableAutomaticArcConnections, compactNodes } =
+    use(UserSettingsContext);
+  const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
+  const connections = new Set(
+    scene.arcs
+      .filter((arc) => !arc.sourcePortId && !arc.targetPortId)
+      .map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),
+  );
+
   // Rebuilt from the scene, then held at their previous identity where
   // nothing changed, so React Flow re-renders only what a hover touched.
   return {
     nodes: useStableItems(scene.nodes.map(toReactFlowNode)),
-    edges: useStableItems(scene.arcs.map(toReactFlowEdge)),
+    edges: useStableItems(
+      scene.arcs.map((arc) => {
+        const edge = toReactFlowEdge(arc);
+        if (enableAutomaticArcConnections && edge.data) {
+          const source = nodesById.get(arc.sourceId);
+          const target = nodesById.get(arc.targetId);
+          const sourceOutline = source && getOutlineNode(source, compactNodes);
+          const targetOutline = target && getOutlineNode(target, compactNodes);
+          if (sourceOutline && targetOutline) {
+            edge.data.outlinePath = getOutlineArcPath(
+              sourceOutline,
+              targetOutline,
+              connections.has(JSON.stringify([arc.targetId, arc.sourceId])),
+            );
+          }
+        }
+        return edge;
+      }),
+    ),
   };
 };

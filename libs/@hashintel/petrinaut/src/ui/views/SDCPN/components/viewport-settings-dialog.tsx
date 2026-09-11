@@ -94,6 +94,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setKeepPanelsMounted,
     compactNodes,
     setCompactNodes,
+    enableAutomaticArcConnections,
+    setEnableAutomaticArcConnections,
     arcRendering,
     setArcRendering,
     showMinimap,
@@ -177,11 +179,37 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
-        <SettingRow label="Arcs rendering">
+        <SettingRow
+          label={
+            <>
+              Automatic arc connections{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Create arcs from one hover handle. Connections follow the outlines of places and transitions."
+        >
+          <Toggle
+            aria-label="Automatic arc connections"
+            value={enableAutomaticArcConnections}
+            onChange={setEnableAutomaticArcConnections}
+            size="sm"
+          />
+        </SettingRow>
+        <SettingRow
+          label="Arcs rendering"
+          description={
+            enableAutomaticArcConnections
+              ? "Automatic arc connections uses curves that follow node direction."
+              : undefined
+          }
+        >
           <Select
             size="sm"
             className={selectStyle}
             required
+            disabled={enableAutomaticArcConnections}
             value={arcRendering}
             onChange={(nextArcRendering) =>
               setArcRendering(nextArcRendering as ArcRendering)

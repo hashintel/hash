@@ -10,8 +10,9 @@ import {
   ReactFlowProvider,
   SelectionMode,
   useStore,
+  useStoreApi,
 } from "@xyflow/react";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -39,6 +40,7 @@ import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
 import { MiniMap } from "./react-flow-canvas/mini-map";
+import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
@@ -48,6 +50,7 @@ import { useReactFlowController } from "./react-flow-canvas/use-react-flow-contr
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
+import type { Connection, IsValidConnection } from "@xyflow/react";
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -103,20 +106,70 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   viewportActions,
 }) => {
   const presentation = usePetrinautPresentation();
-  const { compactNodes, showMinimap, partialSelection } =
-    use(UserSettingsContext);
+  const {
+    compactNodes,
+    showMinimap,
+    partialSelection,
+    enableAutomaticArcConnections,
+  } = use(UserSettingsContext);
   const { globalMode } = use(EditorContext);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
 
   const interactions = useCanvasInteractions(scene);
+  const flowStore = useStoreApi();
   const controller = useReactFlowController();
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
 
   useRecenterOnPanelOpen(controller, containerSize, scene.nodes);
   useMonacoKeyboardIsolation();
+
+  useEffect(() => {
+    const cancel = () => {
+      flowStore.getState().cancelConnection();
+      flowStore.setState({ connectionClickStartHandle: null });
+    };
+    cancel();
+    if (!enableAutomaticArcConnections) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { connection, connectionClickStartHandle } = flowStore.getState();
+      if (
+        event.key === "Escape" &&
+        (connection.inProgress || connectionClickStartHandle)
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        cancel();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [enableAutomaticArcConnections, flowStore]);
+
+  const isValidOutlineConnection: IsValidConnection = (connection) => {
+    const canvasConnection = toCanvasConnection(connection);
+    return (
+      !canvasConnection.sourcePortId &&
+      !canvasConnection.targetPortId &&
+      interactions.isValidConnection(canvasConnection)
+    );
+  };
+
+  const connect = (connection: Connection) => {
+    const { connection: gesture, connectionClickStartHandle } =
+      flowStore.getState();
+    if (
+      (!gesture.inProgress && !connectionClickStartHandle) ||
+      (enableAutomaticArcConnections && !isValidOutlineConnection(connection))
+    ) {
+      return;
+    }
+    interactions.connect(toCanvasConnection(connection));
+  };
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
 
@@ -182,12 +235,13 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           edgeTypes={REACTFLOW_EDGE_TYPES}
           onNodesChange={applyChanges}
           onEdgesChange={applyChanges}
-          onConnect={
-            interactions.readonly
-              ? undefined
-              : (connection) =>
-                  interactions.connect(toCanvasConnection(connection))
+          connectionLineComponent={
+            enableAutomaticArcConnections ? OutlineConnectionLine : undefined
           }
+          isValidConnection={
+            enableAutomaticArcConnections ? isValidOutlineConnection : undefined
+          }
+          onConnect={interactions.readonly ? undefined : connect}
           onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
           // Node click selection is handled by ReactFlow's internal
           // handleNodeClick, which fires select changes through

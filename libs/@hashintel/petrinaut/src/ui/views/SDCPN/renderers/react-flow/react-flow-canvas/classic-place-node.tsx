@@ -1,4 +1,4 @@
-import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -6,9 +6,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { splitPascalCase } from "../../../../../lib/split-pascal-case";
 import { usePlaceTokenCount } from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
-import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
+import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
 
@@ -107,12 +107,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   return (
     <div className={containerStyle}>
       {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
-      <Handle
-        type="target"
-        position={Position.Left}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
+
       <div
         className={`${placeCircleStyle} ${nodeFocusStyle({ focus })}`}
         style={{
@@ -130,12 +125,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           <div className={tokenCountBadgeStyle}>{tokenCount}</div>
         )}
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
+      <NodeHandles isConnectable={isConnectable} />
     </div>
   );
 };

@@ -34,6 +34,7 @@ export type UserSettings = {
   showAnimations: boolean;
   keepPanelsMounted: boolean;
   compactNodes: boolean;
+  enableAutomaticArcConnections: boolean;
   arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -121,6 +122,7 @@ export type UserSettingsActions = {
   setShowAnimations: (value: boolean) => void;
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
+  setEnableAutomaticArcConnections: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
@@ -158,6 +160,7 @@ export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
   compactNodes: false,
+  enableAutomaticArcConnections: false,
   arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -194,6 +197,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
+  setEnableAutomaticArcConnections: () => {},
   setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
