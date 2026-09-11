@@ -2,11 +2,8 @@
  * Whether a firing is close enough to see to be worth animating.
  *
  * Each transition that fires animates its box, its bolt and every arc it
- * touches, and each of those animations is resolved and painted on the main
- * thread for as long as it runs. On a large net that is hundreds of
- * animations in flight at once, which costs more per frame than everything
- * else the canvas does: on a 1000-node net, dropping them takes a scrub from
- * 13 to 48 frames per second.
+ * touches, and each animation is resolved and painted on the main thread for
+ * as long as it runs, so on a large net hundreds run at once.
  *
  * Most of that work is invisible. A node off the side of the pane cannot be
  * seen at all, and one drawn at a twentieth of its size is a smudge a few
@@ -22,8 +19,8 @@ export type ViewportState = {
 };
 
 /**
- * Zoom below which a firing is not animated. A transition's box is around
- * 40px wide, so this is the point where its flash covers ten pixels.
+ * Zoom below which a firing is not animated. Below it a compact transition
+ * is under 45px across, and its flash reads as a flicker rather than a firing.
  */
 const MIN_ANIMATION_ZOOM = 0.25;
 
@@ -33,12 +30,6 @@ const MIN_ANIMATION_ZOOM = 0.25;
  * widened by roughly a node to cover the rest of the shape.
  */
 const VISIBILITY_MARGIN = 200;
-
-const toScreenX = (x: number, { transform }: ViewportState): number =>
-  x * transform[2] + transform[0];
-
-const toScreenY = (y: number, { transform }: ViewportState): number =>
-  y * transform[2] + transform[1];
 
 /**
  * Whether the box spanning two points in flow coordinates overlaps the pane.
@@ -53,24 +44,15 @@ const spanIsVisible = (
   secondX: number,
   secondY: number,
 ): boolean => {
-  const margin = VISIBILITY_MARGIN * viewport.transform[2];
-  const left = Math.min(
-    toScreenX(firstX, viewport),
-    toScreenX(secondX, viewport),
-  );
-  const right = Math.max(
-    toScreenX(firstX, viewport),
-    toScreenX(secondX, viewport),
-  );
-  const top = Math.min(
-    toScreenY(firstY, viewport),
-    toScreenY(secondY, viewport),
-  );
-  const bottom = Math.max(
-    toScreenY(firstY, viewport),
-    toScreenY(secondY, viewport),
-  );
-
+  const [panX, panY, zoom] = viewport.transform;
+  if (zoom < MIN_ANIMATION_ZOOM) {
+    return false;
+  }
+  const margin = VISIBILITY_MARGIN * zoom;
+  const left = Math.min(firstX, secondX) * zoom + panX;
+  const right = Math.max(firstX, secondX) * zoom + panX;
+  const top = Math.min(firstY, secondY) * zoom + panY;
+  const bottom = Math.max(firstY, secondY) * zoom + panY;
   return (
     right >= -margin &&
     bottom >= -margin &&
@@ -86,9 +68,7 @@ export const nodeFiringIsVisible = (
   viewport: ViewportState,
   x: number,
   y: number,
-): boolean =>
-  viewport.transform[2] >= MIN_ANIMATION_ZOOM &&
-  spanIsVisible(viewport, x, y, x, y);
+): boolean => spanIsVisible(viewport, x, y, x, y);
 
 /**
  * Whether an arc between these two flow positions should play its firing
@@ -101,6 +81,4 @@ export const arcFiringIsVisible = (
   sourceY: number,
   targetX: number,
   targetY: number,
-): boolean =>
-  viewport.transform[2] >= MIN_ANIMATION_ZOOM &&
-  spanIsVisible(viewport, sourceX, sourceY, targetX, targetY);
+): boolean => spanIsVisible(viewport, sourceX, sourceY, targetX, targetY);

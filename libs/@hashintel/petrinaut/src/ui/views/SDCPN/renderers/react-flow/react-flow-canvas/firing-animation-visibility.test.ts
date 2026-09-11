@@ -36,7 +36,7 @@ describe("nodeFiringIsVisible", () => {
 
   it("skips everything once the net is drawn too small to read", () => {
     expect(nodeFiringIsVisible(viewport([0, 0, 0.1]), 500, 300)).toBe(false);
-    // The margin scales with the zoom, so a distant node stays out at any zoom.
+    // Just above the threshold the same node animates.
     expect(nodeFiringIsVisible(viewport([0, 0, 0.3]), 500, 300)).toBe(true);
   });
 });

@@ -1,25 +1,21 @@
-import { useStoreApi } from "@xyflow/react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
-import { nodeFiringIsVisible } from "./firing-animation-visibility";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
   NodeCard,
   nodeCardStyle,
 } from "./node-card";
+import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
-
-const FIRING_ANIMATION_DURATION_MS = 300;
 
 const transitionCardStyle = css({
   borderColor: "neutral.s70",
@@ -47,72 +43,6 @@ const firingIndicatorStyle = css({
   transform: "scale(0.5)",
 });
 
-/**
- * Hook to animate the transition box and lightning bolt when firing.
- * Uses Web Animations API for smooth, programmatic control.
- */
-function useFiringAnimation(
-  boxRef: React.RefObject<HTMLDivElement | null>,
-  boltRef: React.RefObject<HTMLDivElement | null>,
-  firingDelta: number | null,
-  position: { x: number; y: number },
-): void {
-  const store = useStoreApi();
-  // Read in the effect rather than subscribed to, so panning and zooming do
-  // not re-render every transition on the canvas.
-  const positionRef = useLatest(position);
-
-  useEffect(() => {
-    // Only animate when there's an actual firing (delta > 0)
-    if (firingDelta === null || firingDelta <= 0) {
-      return;
-    }
-
-    const box = boxRef.current;
-    const bolt = boltRef.current;
-
-    if (!box || !bolt) {
-      return;
-    }
-
-    const { x, y } = positionRef.current;
-    if (!nodeFiringIsVisible(store.getState(), x, y)) {
-      return;
-    }
-
-    // Flash the box yellow with a glow. Only the flash is a keyframe: the
-    // animation runs back to whatever the stylesheet says, so the focus ring's
-    // white band in `box-shadow` returns once it is over instead of staying
-    // replaced by the glow's transparent end.
-    box.animate(
-      [
-        {
-          background: "rgba(255, 224, 132, 0.7)",
-          boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
-          offset: 0,
-        },
-      ],
-      {
-        duration: FIRING_ANIMATION_DURATION_MS,
-        easing: "ease-out",
-      },
-    );
-
-    // Animate the lightning bolt: appear then fade out
-    bolt.animate(
-      [
-        { opacity: 1, transform: "scale(1)" },
-        { opacity: 0, transform: "scale(0.5)" },
-      ],
-      {
-        duration: FIRING_ANIMATION_DURATION_MS * 3,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "forwards",
-      },
-    );
-  }, [firingDelta, boxRef, boltRef, positionRef, store]);
-}
-
 export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   id,
   data,
@@ -132,7 +62,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
-  useFiringAnimation(boxRef, boltRef, firingDelta, {
+  useTransitionFiringAnimation(boxRef, boltRef, firingDelta, {
     x: positionAbsoluteX,
     y: positionAbsoluteY,
   });

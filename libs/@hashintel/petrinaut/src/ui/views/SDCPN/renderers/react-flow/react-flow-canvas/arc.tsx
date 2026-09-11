@@ -61,9 +61,10 @@ function useFiringAnimation(
   },
 ): void {
   const animationStateRef = useRef<AnimationState | null>(null);
+  // The viewport is read when a firing lands rather than subscribed to, so a
+  // pan or a zoom does not re-render every arc on the canvas.
   const store = useStoreApi();
-  // Read in the effect rather than subscribed to, so a pan or a zoom does not
-  // re-render every arc on the canvas.
+  // Held in a ref so a node drag during a firing does not restart it.
   const endpointsRef = useLatest(endpoints);
 
   useEffect(() => {
