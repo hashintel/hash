@@ -2,7 +2,14 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, test } from "vitest";
 
-import { applyAutoLayoutToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  applyAutoLayoutToolName,
+  deriveMutationEffects,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+  type ConstructionMutationAttempt,
+  type ConstructionMutationRequest,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
@@ -132,29 +139,85 @@ const mutationTurn = (
   toolCallId: string,
   pre: SDCPN,
   post: SDCPN | undefined,
-): FlueConversationMessage[] => [
-  assistantCall(toolCallId, "mutate_petrinet", { operations: [] }),
-  resultDelivery(
-    toolCallId,
-    "mutate_petrinet",
-    { outcome: post === undefined ? "unknown" : "applied" },
-    {
-      mutationRecord: {
-        outcome: post === undefined ? "unknown" : "applied",
-        attempts:
-          post === undefined
-            ? []
-            : [
-                {
-                  outcome: "applied",
-                  pre: observationOf(pre),
-                  post: observationOf(post),
-                },
-              ],
+): FlueConversationMessage[] => {
+  const operationId = "add-place";
+  const batch = mutatePetrinetInputSchema.parse({
+    observation: { toolCallId: "read-1", baseHash: sha256Of(pre) },
+    bases: [
+      {
+        basisId: "absent-basis",
+        basis: { kind: "absent", reason: "Ledger test fixture." },
       },
-    },
-  ),
-];
+    ],
+    operations: [
+      {
+        operationId,
+        basisId: "absent-basis",
+        type: "addPlace",
+        input: oneHopNet.places[0],
+      },
+    ],
+  });
+  const attempts: ConstructionMutationAttempt[] = [];
+  if (post !== undefined) {
+    const request: ConstructionMutationRequest = {
+      toolCallId: `${toolCallId}:${operationId}`,
+      toolName: "addPlace",
+      input: oneHopNet.places[0]!,
+      binding,
+      requestedBaseHash: sha256Of(pre),
+      observationToolCallId: batch.observation.toolCallId,
+    };
+    attempts.push({
+      request,
+      binding,
+      outcome: "applied",
+      pre: observationOf(pre),
+      post: observationOf(post),
+      effects: deriveMutationEffects(request, pre, post),
+    });
+  }
+  return [
+    assistantCall(toolCallId, mutatePetrinetToolName, batch),
+    resultDelivery(
+      toolCallId,
+      mutatePetrinetToolName,
+      {
+        execution: "ordered-stop",
+        toolCallId,
+        observationToolCallId: batch.observation.toolCallId,
+        preHash: sha256Of(pre),
+        postHash: sha256Of(post ?? pre),
+        outcomes: [
+          post === undefined
+            ? {
+                index: 0,
+                operationId,
+                basisId: "absent-basis",
+                status: "unknown",
+                preHash: sha256Of(pre),
+                error: "The final browser state is unknown.",
+              }
+            : {
+                index: 0,
+                operationId,
+                basisId: "absent-basis",
+                status: "applied",
+                preHash: sha256Of(pre),
+                postHash: sha256Of(post),
+                effects: [],
+              },
+        ],
+      },
+      {
+        mutationRecord: {
+          outcome: post === undefined ? "unknown" : "applied",
+          attempts,
+        },
+      },
+    ),
+  ];
+};
 
 const layoutTurn = (
   toolCallId: string,

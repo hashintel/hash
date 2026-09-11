@@ -9,9 +9,8 @@ import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { deriveNetLedger } from "./net-ledger.ts";
 
-import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
+import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import type { ClientToolHistoryResult } from "@hashintel/brunch-agent-transport-aisdk";
 
 /** Signal appended at user-turn start when the model must read before relying on the net. */
 export const NET_STALE_SIGNAL = "brunch.net-stale";
