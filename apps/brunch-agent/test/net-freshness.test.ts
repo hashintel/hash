@@ -2,6 +2,12 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
 
+import {
+  deriveMutationEffects,
+  mutatePetrinetToolName,
+  type ConstructionMutationAttempt,
+  type ConstructionMutationRequest,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
@@ -29,19 +35,18 @@ const emptyNet: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
+const oneHopPlace: SDCPN["places"][number] = {
+  id: "place-1",
+  name: "Received",
+  x: 0,
+  y: 0,
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+};
 const oneHopNet: SDCPN = {
   ...emptyNet,
-  places: [
-    {
-      id: "place-1",
-      name: "Received",
-      x: 0,
-      y: 0,
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-    },
-  ],
+  places: [oneHopPlace],
 };
 const sha256Of = (definition: SDCPN): string =>
   createHash("sha256").update(JSON.stringify(definition)).digest("hex");
@@ -114,29 +119,44 @@ const mutationTurn = (
   toolCallId: string,
   pre: SDCPN,
   post: SDCPN | undefined,
-): FlueConversationMessage[] => [
-  assistantCall(toolCallId, "mutate_petrinet", { operations: [] }),
-  resultDelivery(
-    toolCallId,
-    "mutate_petrinet",
-    { outcome: post === undefined ? "unknown" : "applied" },
-    {
-      mutationRecord: {
-        outcome: post === undefined ? "unknown" : "applied",
-        attempts:
-          post === undefined
-            ? []
-            : [
-                {
-                  outcome: "applied",
-                  pre: observationOf(pre),
-                  post: observationOf(post),
-                },
-              ],
+  alterAttempt?: (
+    attempt: ConstructionMutationAttempt,
+  ) => ConstructionMutationAttempt,
+): FlueConversationMessage[] => {
+  const attempts: ConstructionMutationAttempt[] = [];
+  if (post !== undefined) {
+    const request: ConstructionMutationRequest = {
+      toolCallId: `${toolCallId}:add-place`,
+      toolName: "addPlace",
+      input: oneHopPlace,
+      binding,
+      requestedBaseHash: sha256Of(pre),
+    };
+    const attempt: ConstructionMutationAttempt = {
+      request,
+      binding,
+      outcome: "applied",
+      pre: observationOf(pre),
+      post: observationOf(post),
+      effects: deriveMutationEffects(request, pre, post),
+    };
+    attempts.push(alterAttempt?.(attempt) ?? attempt);
+  }
+  return [
+    assistantCall(toolCallId, mutatePetrinetToolName, { operations: [] }),
+    resultDelivery(
+      toolCallId,
+      mutatePetrinetToolName,
+      { outcome: post === undefined ? "unknown" : "applied" },
+      {
+        mutationRecord: {
+          outcome: post === undefined ? "unknown" : "applied",
+          attempts,
+        },
       },
-    },
-  ),
-];
+    ),
+  ];
+};
 
 const snapshotOf = (
   messages: readonly FlueConversationMessage[],
@@ -195,6 +215,25 @@ test("a mutation without a verifiable record leaves the current net unrecorded",
       snapshotOf([
         ...readTurn("read-1", emptyNet),
         ...mutationTurn("mutate-1", emptyNet, undefined),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: undefined,
+  });
+});
+
+test("a mutation whose declared effects do not verify leaves the current net unrecorded", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn("mutate-1", emptyNet, oneHopNet, (attempt) => ({
+          ...attempt,
+          effects: { created: [], updated: [], deleted: [], derived: [] },
+        })),
       ]),
       browser,
     ),

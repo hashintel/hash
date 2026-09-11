@@ -34,7 +34,7 @@ SIDE_QUEST.md committed alone
 
 | Result | Oracle |
 | --- | --- |
-| Freshness is derived from history alone | `apps/brunch-agent/test/net-freshness.test.ts`: empty history is `never-read`; one verified read is `current`; a verified read followed by an applied browser mutation whose verified post hash differs is `stale`; a matching re-read returns `current`; a mutation without a verifiable record is `stale` with the current net unrecorded; an observation whose hash does not re-verify, or that belongs to another document incarnation, is not a read. |
+| Freshness is derived from history alone | `apps/brunch-agent/test/net-freshness.test.ts`: empty history is `never-read`; one verified read is `current`; a verified read followed by an applied browser mutation whose verified post hash differs is `stale`; a matching re-read returns `current`; a mutation without a verifiable record or with effects that do not support its declared outcome is `stale` with the current net unrecorded; an observation whose hash does not re-verify, or that belongs to another document incarnation, is not a read. |
 | The marker reaches the model before its first turn | `apps/brunch-agent/test/integration/net-freshness.test.ts` (faux provider, headless Petrinaut host, no browser, built application): in `batched-construction` mode the first user turn records `brunch.net-stale` ahead of the model's first assistant message and the model's captured context contains exactly one marker; the correlated verified read continuation adds none; the next user turn adds none; each user turn is recorded once; the UI projection of that history contains no marker. The post-mutation leg is proven at the fold, not through the batched `mutate_petrinet` path, which requires a settled workpiece and browser-derived effects that Mission 7b's own browser integrations already exercise. |
 | Hydration stays clean | `apps/petrinaut-website/.../use-flue-chat-history.test.ts`: a `brunch.net-stale` dispatch record between a user and an assistant message projects no UI message. |
 | Package gates | `turbo run lint:tsc lint:eslint test:unit --filter @apps/brunch-agent --filter @apps/petrinaut-website`. |
@@ -49,7 +49,7 @@ This quest does not claim provider compliance, hand-edit detection, Voice-specif
 - The marker only ever asks for more reading. A malformed or unverifiable record makes the state conservative (stale), never confident.
 - No browser-to-server side channel: Flue `kind: "user"` deliveries carry no metadata, and a separate signal runs its own model turn, so the browser's live hash is not transported in this quest.
 - No change to `initialData` modes, mode instructions in `plugin-sdcpn`, `APPEND_SYSTEM.md`, Voice, or the stock Petrinaut `/api/chat` fallback.
-- Existing verification primitives (`recordedBrowserObservation`, `verifyDefinitionObservation`, `parseClientToolResultMetadata`) are reused, not reimplemented. The why tool's own history walk stays why-specific; the fold lives beside it in `apps/brunch-agent/src/conversation/net-freshness.ts`.
+- Existing verification primitives (`recordedBrowserObservation`, `verifyMutationAttempt`, `parseClientToolResultMetadata`) are reused, not reimplemented. The why tool's own history walk stays why-specific; the fold lives beside it in `apps/brunch-agent/src/conversation/net-freshness.ts`.
 - The marker is app-owned: `ChatAgent` appends it and `ChatAgent`'s instruction explains it. Plugin guidance is unchanged.
 
 ## Fog-line

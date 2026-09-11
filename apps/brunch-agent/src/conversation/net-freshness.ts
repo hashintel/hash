@@ -7,13 +7,14 @@
  */
 import {
   parseClientToolResultMetadata,
-  verifyDefinitionObservation,
+  verifyMutationAttempt,
+  type ConstructionMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
+  readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
@@ -39,27 +40,21 @@ export type NetFreshness =
 const nonMutatingBrowserTools: ReadonlySet<string> = new Set([
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  readPetrinautDocToolName,
 ]);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** The verified post hash of the last applied attempt, or undefined when the record cannot vouch for one. */
 const appliedPostHash = async (
   attempts: readonly unknown[],
 ): Promise<string | undefined> => {
   let hash: string | undefined;
-  for (const attempt of attempts) {
-    if (!isRecord(attempt) || attempt.outcome !== "applied") continue;
-    if (!isRecord(attempt.post)) return undefined;
+  for (const rawAttempt of attempts) {
     try {
       // eslint-disable-next-line no-await-in-loop -- Attempts commit in order; the last applied post wins.
-      const verified = await verifyDefinitionObservation({
-        definition: attempt.post.definition,
-        sha256: String(attempt.post.sha256),
-      });
-      hash = verified.sha256;
+      const attempt = await verifyMutationAttempt(
+        rawAttempt as ConstructionMutationAttempt,
+      );
+      if (attempt.outcome === "applied") hash = attempt.post?.sha256;
     } catch {
       return undefined;
     }
