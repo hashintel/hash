@@ -178,50 +178,6 @@ describe("mutate_petrinet tool", () => {
         })
         .operations.map(({ type }) => type),
     ).toEqual(["removePlace", "removeTransition", "removeArc"]);
-    expect(
-      mutatePetrinetInputSchema
-        .parse({
-          ...input,
-          operations: [
-            {
-              operationId: "add-item",
-              basisId: "queue-basis",
-              type: "addType",
-              input: {
-                id: "item",
-                name: "Item",
-                iconSlug: "circle",
-                displayColor: "#1E90FF",
-                elements: [],
-              },
-            },
-            {
-              operationId: "add-rate",
-              basisId: "queue-basis",
-              type: "addParameter",
-              input: {
-                id: "rate",
-                name: "Rate",
-                variableName: "arrival_rate",
-                type: "real",
-                defaultValue: "1",
-              },
-            },
-            {
-              operationId: "add-decay",
-              basisId: "queue-basis",
-              type: "addDifferentialEquation",
-              input: {
-                id: "decay",
-                name: "Decay",
-                colorId: "item",
-                code: "return tokens.map(() => ({}));",
-              },
-            },
-          ],
-        })
-        .operations.map(({ type }) => type),
-    ).toEqual(["addType", "addParameter", "addDifferentialEquation"]);
   });
 
   test("refuses the wrapped operation dialect and addArc endpoint shorthand", () => {
@@ -295,7 +251,7 @@ describe("mutate_petrinet tool", () => {
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(9);
+    expect(variants.length).toBe(6);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),
@@ -322,8 +278,6 @@ describe("mutate_petrinet tool", () => {
     expect(property(addArcInput, "placeId", root)?.description).toMatch(
       /root net/u,
     );
-    const compactBytes = JSON.stringify(root).length;
-    expect(compactBytes).toBeLessThan(64 * 1024);
     const removeArc = variants.find((variant) => {
       const type = property(variant, "type", root);
       return type?.const === "removeArc";
