@@ -202,6 +202,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   createPetrinautAiWritableCallbacks,
+  createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,

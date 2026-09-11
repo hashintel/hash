@@ -1,5 +1,8 @@
 import type { AiToolCall, AiToolOutput } from "./tool-summaries";
 import type {
+  createExperimentToolName,
+  PetrinautExperimentRequest,
+  PetrinautExperimentResult,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   PetrinautAiCommandToolInput,
@@ -34,6 +37,10 @@ type PetrinautAiUiTools = {
     output: AiToolOutput;
   };
 } & {
+  [createExperimentToolName]: {
+    input: PetrinautExperimentRequest;
+    output: PetrinautExperimentResult;
+  };
   [getLatestNetDefinitionToolName]: {
     input: PetrinautAiToolInput<typeof getLatestNetDefinitionToolName>;
     output: {
