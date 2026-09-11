@@ -25,17 +25,17 @@ export type ViewportState = {
 const MIN_ANIMATION_ZOOM = 0.25;
 
 /**
- * Flow units of slack around the pane. Node coordinates are the node's
- * top-left corner and an arc's are its endpoints, so the visible area is
- * widened by roughly a node to cover the rest of the shape.
+ * Flow units of slack around the pane. A node's coordinates are its top-left
+ * corner, so the visible area is widened by roughly a node to cover the rest
+ * of the shape.
  */
 const VISIBILITY_MARGIN = 200;
 
 /**
  * Whether the box spanning two points in flow coordinates overlaps the pane.
  *
- * Points may arrive in either order — an arc runs in any direction — so the
- * span is normalised here rather than at each call site.
+ * Points may arrive in either order, so the span is normalised here rather
+ * than at each call site.
  */
 const spanIsVisible = (
   viewport: ViewportState,
@@ -71,14 +71,14 @@ export const nodeFiringIsVisible = (
 ): boolean => spanIsVisible(viewport, x, y, x, y);
 
 /**
- * Whether an arc between these two flow positions should play its firing
- * animation. The arc is drawn as a curve, so the box between its endpoints
- * understates it; the margin covers the bulge.
+ * Whether an arc drawn within this box, in flow units, should play its firing
+ * animation. The box is the drawn path's own, so a curve that sweeps past its
+ * endpoints counts where it is drawn.
  */
 export const arcFiringIsVisible = (
   viewport: ViewportState,
-  sourceX: number,
-  sourceY: number,
-  targetX: number,
-  targetY: number,
-): boolean => spanIsVisible(viewport, sourceX, sourceY, targetX, targetY);
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+): boolean => spanIsVisible(viewport, left, top, right, bottom);
