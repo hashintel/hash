@@ -44,11 +44,10 @@ behind the scenes.
    switch appears next to these fields. For an optimization it is available
    when the objective compiles to the GPU (see
    [Compute backend](experiments.md#compute-backend-experimental)); otherwise
-   it is greyed out with the reason on hover. A study with state constraints
-   runs its steps on the CPU even with the switch on, because constraints are
-   checked over time; its **Compute** badge says so. The in-browser optimizer
-   also offers **Parallel
-   steps** (1 to 4, default `1`): how many steps it evaluates at once. The
+   it is greyed out with the reason on hover. A state constraint greys it out
+   too, because constraints are checked over time, which the GPU does not do
+   yet. The in-browser optimizer also offers **Parallel steps** (1 to 4,
+   default `1`): how many steps it evaluates at once. The
    **Seed** field starts at a fresh random value each time the form opens; it
    seeds both the optimizer's proposals and the simulations' random draws, so
    keep a seed to reproduce a study and change it to explore a different set

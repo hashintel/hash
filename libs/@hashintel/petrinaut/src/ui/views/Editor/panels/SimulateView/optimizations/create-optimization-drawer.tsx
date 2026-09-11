@@ -1058,7 +1058,31 @@ export const CreateOptimizationDrawer = ({
     metricSource === "saved"
       ? selectedSavedMetric
       : buildMetricFromFormState(customMetricValues, customMetricId);
-  const objectiveMetricSpecs: ExperimentMetricSpecInput[] | null =
+  // Each state constraint runs as a 0/1 indicator metric aggregated with
+  // `min` over a run's frames (`stateConstraintMetrics`), which the GPU gate
+  // refuses before it reads anything else about the metric. The gate sees a
+  // place count carrying that aggregation under the row's name — the
+  // indicator itself exists only once the constraint's HIR is lowered at
+  // submission — so the switch is refused with the run-time gate's sentence,
+  // under the row's name. Empty rows are skipped at submission and here.
+  const firstPlaceId = petriNetDefinition.places[0]?.id;
+  const stateConstraintGateSpecs: ExperimentMetricSpecInput[] =
+    firstPlaceId === undefined
+      ? []
+      : stateConstraintDrafts.flatMap((draft, index) =>
+          draft.code.trim() === ""
+            ? []
+            : [
+                {
+                  kind: "placeTokenCountMean" as const,
+                  id: draft.id,
+                  label: describeConstraint("state", index),
+                  placeId: firstPlaceId,
+                  aggregateTime: "min" as const,
+                },
+              ],
+        );
+  const gateMetricSpecs: ExperimentMetricSpecInput[] | null =
     objectiveMetricForGpu
       ? [
           {
@@ -1069,6 +1093,7 @@ export const CreateOptimizationDrawer = ({
             sampleRuns: "all",
             runOutput: { type: "distribution" },
           },
+          ...stateConstraintGateSpecs,
         ]
       : null;
   const webGpuAvailable = isWebGpuAvailable();
@@ -1076,7 +1101,7 @@ export const CreateOptimizationDrawer = ({
     enabled: open && backendSelectable && webGpuEnabled && webGpuAvailable,
     sdcpn: petriNetDefinition,
     extensions,
-    metricSpecs: objectiveMetricSpecs,
+    metricSpecs: gateMetricSpecs,
   });
   // Derived rather than stored, so a net edited into ineligibility after the
   // switch was flipped neither shows as on nor submits a GPU study.

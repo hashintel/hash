@@ -1457,6 +1457,50 @@ describe("CreateOptimizationDrawer backend choice", () => {
     });
   });
 
+  it("rules the GPU out while a state constraint is drafted, since its indicator aggregates over time", async () => {
+    // The run carries one `min`-aggregated indicator metric per state
+    // constraint, which the GPU gate refuses; the switch must say so before
+    // the study is created rather than the study falling back at run time.
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient: makeSuccessfulLanguageClient(),
+    });
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    // An empty row is skipped at submission, so it does not gate the switch.
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+    const row = screen.getByRole("group", { name: "State constraint 1" });
+    fireEvent.change(within(row).getByRole("textbox"), {
+      target: { value: "state.places.Infected.count < 100" },
+    });
+    await waitFor(() => {
+      expect(backendState()).toBe("unavailable");
+    });
+    expect(backendSwitch().disabled).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 1" }),
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+  });
+
   it("passes the backend as a creation option", async () => {
     const languageClient = makeSuccessfulLanguageClient();
     const createOptimization = vi.fn(
