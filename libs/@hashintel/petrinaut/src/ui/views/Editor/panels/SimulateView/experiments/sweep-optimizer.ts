@@ -1,17 +1,14 @@
 /**
  * The optimizer behind a parameter sweep: the study manifest built from the
  * experiment record, the hook that starts the study with the experiment from
- * the Create Experiment drawer, and the hook that reads the study back for
- * the sweep's Parameters card. The study evaluates its trials through the
- * sweep's own compute (`createOptimization` with `sweep`), so this file only
+ * the Create Experiment drawer, and the hook that reads the one study back
+ * for the results drawer. The study evaluates its trials through the sweep's
+ * own compute (`createOptimization` with `sweep`), so this file only
  * describes the search and reads the record.
  */
 import { use } from "react";
 
-import {
-  isConnectedOptimization,
-  petrinautOptimizationInputSchema,
-} from "@hashintel/petrinaut-core/optimization";
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core/optimization";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import {
@@ -19,7 +16,6 @@ import {
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { directionWord } from "../shared/study-labels";
 
@@ -274,80 +270,46 @@ const studyStepProgress = (
   total: study.requestedTrials,
 });
 
+/** The one study of this sweep, read back from the optimizations context. */
 export type SweepOptimizer = {
   /**
-   * The optimizer can run for this sweep: the in-browser optimizer is on,
-   * the experiment kept the scenario it compiled and has at least one metric.
-   */
-  available: boolean;
-  /**
-   * Every study started from this sweep, oldest first; empty before any. The
-   * objective strip draws them end to end.
-   */
-  studies: readonly OptimizationRecord[];
-  /**
-   * The study started most recently, `studies.at(-1)`; null before any. Read
-   * for its outcome and its error once `driving` is null.
+   * The study started with the experiment; null for a sweep created without
+   * the optimizer. Read for its outcome and its error once `driving` is null.
    */
   study: OptimizationRecord | null;
-  /** The step of the study driving the sweep now; null while none does. */
+  /** The step the study is on while it drives the sweep; null otherwise. */
   driving: SweepStepProgress | null;
-  /** Starts a study; rejects with the reason when the experiment cannot be one. */
-  start: (objective: SweepObjective) => Promise<void>;
   /** Stops the driving study; the sweep keeps its last point. */
   stop: () => void;
-  /** Removes every study started from this sweep, with the experiment. */
+  /** Removes the study with the experiment. */
   discard: () => void;
 };
 
 export const useSweepOptimizer = (
-  experiment: ExperimentRecord,
+  experiment: Pick<ExperimentRecord, "id">,
 ): SweepOptimizer => {
-  const source = useOptimizationSource();
-  const { petriNetDefinition, title } = use(SDCPNContext);
-  const {
-    optimizations,
-    createOptimization,
-    cancelOptimization,
-    removeOptimization,
-  } = use(OptimizationsContext);
+  const { optimizations, cancelOptimization, removeOptimization } =
+    use(OptimizationsContext);
 
-  // The provider prepends; the strip reads oldest first.
-  const studies = optimizations
-    .filter(
+  const study =
+    optimizations.find(
       (optimization) => optimization.origin.experimentId === experiment.id,
-    )
-    .toSorted((left, right) => left.createdAt - right.createdAt);
-  const study = studies.at(-1) ?? null;
-  const available =
-    source !== null &&
-    isConnectedOptimization(source) &&
-    experiment.sweep !== null &&
-    experiment.scenario !== null &&
-    experiment.metricSpecs.length > 0;
+    ) ?? null;
 
   return {
-    available,
-    studies,
     study,
     driving:
       study !== null && isOptimizationActive(study)
         ? studyStepProgress(study)
         : null,
-    start: (objective) =>
-      startSweepStudy(
-        { title, definition: petriNetDefinition, createOptimization },
-        experiment,
-        objective,
-      ),
     stop: () => {
       if (study !== null && isOptimizationActive(study)) {
         cancelOptimization(study.id);
       }
     },
     discard: () => {
-      for (const record of studies) {
-        removeOptimization(record.id);
+      if (study !== null) {
+        removeOptimization(study.id);
       }
     },
   };

@@ -6,7 +6,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
 import { use } from "react";
@@ -55,17 +54,14 @@ const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
 }));
 
 const idleOptimizer: SweepOptimizer = {
-  available: false,
-  studies: [],
   study: null,
   driving: null,
-  start: () => Promise.resolve(),
   stop: () => {},
   discard: () => {},
 };
 
-// A test that exercises the control alone sets a fake; otherwise the real
-// hook reads the host's optimizer through its contexts.
+// A test that exercises the Stop control alone sets a fake; otherwise the
+// real hook reads the host's study through its contexts.
 vi.mock("./sweep-optimizer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./sweep-optimizer")>();
   return {
@@ -104,25 +100,22 @@ vi.mock("./sweep-surface", async () => {
 });
 
 // uPlot cannot mount in jsdom; the strip's row and fold around the chart are
-// real, and so is the history the row describes. The axis edge and the
-// dividers the chart would draw sit on the stub as data attributes.
+// real, and so is the history the row describes. The axis edge the chart
+// would draw to sits on the stub as a data attribute.
 vi.mock("../shared/objective-history-chart", () => ({
   ObjectiveHistoryChart: ({
     plotHeight,
     xMax,
-    dividers,
     emptyLabel,
   }: {
     plotHeight: number;
     xMax: number | undefined;
-    dividers: readonly number[];
     emptyLabel: string;
   }) => (
     <div
       data-testid="objective-history"
       style={{ height: plotHeight }}
       data-x-max={xMax}
-      data-dividers={dividers.join(" ")}
       data-empty-label={emptyLabel}
     />
   ),
@@ -198,10 +191,10 @@ const sweepStudy = (
   ...overrides,
 });
 
-/** The sweep's drawer over the host's studies, newest first as the provider keeps them. */
+/** The sweep's drawer over the host's study, the one its experiment was created with. */
 const renderDrawerWithStudies = (
   experiment: ExperimentRecord,
-  [first, ...rest]: readonly [OptimizationRecord, ...OptimizationRecord[]],
+  study: OptimizationRecord,
   overrides: Partial<OptimizationsContextValue> = {},
 ) =>
   render(
@@ -209,10 +202,7 @@ const renderDrawerWithStudies = (
       <PetrinautOptimizationContext value={connectedOptimizer}>
         <SDCPNContext value={sirSdcpnContextValue}>
           <OptimizationsContext
-            value={makeOptimizationsContextValue(first, {
-              optimizations: [first, ...rest],
-              ...overrides,
-            })}
+            value={makeOptimizationsContextValue(study, overrides)}
           >
             <ViewExperimentDrawer
               open
@@ -225,39 +215,23 @@ const renderDrawerWithStudies = (
     </WithInBrowserOptimizer>,
   );
 
-/** No study yet: the optimizer is offered, nothing has been started. */
-const noStudies: OptimizationsContextValue = {
-  optimizations: [],
-  createOptimization: () => Promise.resolve("never"),
-  cancelOptimization: () => {},
-  removeOptimization: () => {},
-};
-
-/** The sweep's drawer with the optimizer offered and no study, so the record can be swapped in place. */
-const renderOptimizableDrawer = (experiment: ExperimentRecord) => {
-  const tree = (record: ExperimentRecord) => (
-    <WithInBrowserOptimizer>
-      <PetrinautOptimizationContext value={connectedOptimizer}>
-        <SDCPNContext value={sirSdcpnContextValue}>
-          <OptimizationsContext value={noStudies}>
-            <ViewExperimentDrawer open onClose={() => {}} experiment={record} />
-          </OptimizationsContext>
-        </SDCPNContext>
-      </PetrinautOptimizationContext>
-    </WithInBrowserOptimizer>
-  );
-  const { rerender } = render(tree(experiment));
-  return { swapTo: (record: ExperimentRecord) => rerender(tree(record)) };
-};
-
-/** The sweep's drawer with one study started from it, four steps landed (one pruned), driving or settled. */
+/** The sweep's drawer with the study it was created with, four steps landed (one pruned), driving or settled. */
 const renderDrawerWithStudy = (
   experiment: ExperimentRecord,
   status: "running" | "cancelled",
 ) =>
-  renderDrawerWithStudies(experiment, [
+  renderDrawerWithStudies(
+    experiment,
     sweepStudy(experiment, { status, completedTrials: 3, prunedTrials: 1 }),
-  ]);
+  );
+
+/** The buttons of every axis's Range / Point control: disabled while a study drives the sweep. */
+const selectionModeButtons = () =>
+  screen
+    .getAllByRole("group", { name: /selection mode$/u })
+    .flatMap((group) =>
+      within(group).getAllByRole<HTMLButtonElement>("button"),
+    );
 
 /** The sweep in each state a drawer can show it. */
 const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
@@ -451,44 +425,21 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.getByRole("button", { name: /Cancel$/u })).toBeTruthy();
     expect(screen.getByText(/^Following step 5 of 30/u)).toBeTruthy();
+    expect(selectionModeButtons().every((button) => button.disabled)).toBe(
+      true,
+    );
   });
 
-  it("starts the Optimize prompt afresh for another sweep swapped into the drawer", () => {
-    const { swapTo } = renderOptimizableDrawer(sweep);
-    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
-    const metricPicker = () =>
-      screen.getByRole("combobox", {
-        name: "Metric to optimize",
-      }) as HTMLSelectElement;
-    expect(metricPicker().value).toBe("infected");
-
-    swapTo({
-      ...sweep,
-      id: "experiment-9",
-      metricSpecs: [
-        {
-          kind: "placeTokenCountMean",
-          id: "recovered",
-          label: "Recovered",
-          placeId: "place__recovered",
-          runOutput: { type: "distribution", binning: "exact" },
-        },
-      ],
-    });
-
-    // The prompt closed with the record it belonged to; reopened, it offers
-    // the new sweep's metric rather than an identifier this sweep never had.
-    expect(screen.queryByRole("combobox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
-    expect(metricPicker().value).toBe("recovered");
-  });
-
-  it("offers Optimize again once the study settles and keeps its outcome on the status line", () => {
+  it("keeps the settled outcome on the status line with no card control", () => {
     renderDrawerWithStudy({ ...sweep, status: "idle" }, "cancelled");
 
     expect(screen.getByText("Idle")).toBeTruthy();
     expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
-    expect(screen.getByRole("button", { name: /Optimize$/u })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Stop$/u })).toBeNull();
+    expect(selectionModeButtons().some((button) => button.disabled)).toBe(
+      false,
+    );
     // The headline and the navigator's status line read the same outcome.
     const outcome = screen.getAllByText(/^Stopped after 4 of 30 steps/u);
     expect(outcome).toHaveLength(2);
@@ -497,7 +448,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBe(true);
   });
 
-  it("shows no objective strip before any study", () => {
+  it("shows no objective strip for a sweep created without a study", () => {
     renderDrawer(sweep);
 
     expect(document.querySelector("[data-sweep-objective]")).toBeNull();
@@ -507,7 +458,8 @@ describe("ViewExperimentDrawer in the frame", () => {
   });
 
   it("reads the strip's row as 0 steps, without a metric, when the sweep's only study failed before its first step", () => {
-    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+    renderDrawerWithStudies(
+      { ...sweep, status: "idle" },
       sweepStudy(sweep, {
         status: "error",
         trials: [],
@@ -515,7 +467,7 @@ describe("ViewExperimentDrawer in the frame", () => {
         completedTrials: 0,
         prunedTrials: 0,
       }),
-    ]);
+    );
 
     const row = screen.getByRole("button", { name: /^Objective by step/u });
     expect(row.textContent).toMatch(/step0 steps$/u);
@@ -526,7 +478,8 @@ describe("ViewExperimentDrawer in the frame", () => {
   });
 
   it("waits for the first step in the strip's fold while the driving study has drawn none yet", () => {
-    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+    renderDrawerWithStudies(
+      { ...sweep, status: "idle" },
       sweepStudy(sweep, {
         status: "running",
         trials: [],
@@ -534,7 +487,7 @@ describe("ViewExperimentDrawer in the frame", () => {
         completedTrials: 0,
         prunedTrials: 0,
       }),
-    ]);
+    );
 
     expect(screen.getByTestId("objective-history").dataset.emptyLabel).toBe(
       "Waiting for the first step",
@@ -601,7 +554,7 @@ describe("ViewExperimentDrawer in the frame", () => {
   });
 });
 
-describe("the Optimize control", () => {
+describe("the Stop control", () => {
   /** A study driving the sweep, three steps landed and one pruned. */
   const drivingStudy = sweepStudy(sweep, {
     id: "study",
@@ -610,119 +563,40 @@ describe("the Optimize control", () => {
     prunedTrials: 1,
   });
 
-  const openPrompt = () => {
-    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
-    return screen.getByRole("button", { name: /Start$/u });
-  };
-
-  it("starts a study with the chosen metric, direction and steps, then closes the prompt", async () => {
-    const start = vi.fn<SweepOptimizer["start"]>(() => Promise.resolve());
-    optimizer.current = { ...idleOptimizer, available: true, start };
-    renderDrawer(sweep);
-
-    fireEvent.click(openPrompt());
-
-    expect(start).toHaveBeenCalledWith({
-      metricId: "infected",
-      direction: "maximize",
-      steps: 30,
-    });
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
-    });
-  });
-
-  it("seeds the prompt from the experiment the drawer swapped to", () => {
-    const start = vi.fn<SweepOptimizer["start"]>(() => Promise.resolve());
-    optimizer.current = { ...idleOptimizer, available: true, start };
-    const view = renderDrawer(sweep);
-    openPrompt();
-
-    // The drawer swaps records in place; the open prompt, its metric and
-    // its steps belong to the previous experiment.
-    const recovered = {
-      ...sweep.metricSpecs[0]!,
-      id: "recovered",
-      label: "Recovered",
-    };
-    view.rerender(
-      drawerElement({ ...sweep, id: "other", metricSpecs: [recovered] }),
-    );
-
-    expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
-    fireEvent.click(openPrompt());
-    expect(start).toHaveBeenCalledWith({
-      metricId: "recovered",
-      direction: "maximize",
-      steps: 30,
-    });
-  });
-
-  it("shows a refused start's reason in the prompt", async () => {
-    optimizer.current = {
-      ...idleOptimizer,
-      available: true,
-      start: () => Promise.reject(new Error("Pick a metric to optimize")),
-    };
-    renderDrawer(sweep);
-
-    fireEvent.click(openPrompt());
-
-    expect((await screen.findByRole("alert")).textContent).toBe(
-      "Pick a metric to optimize",
-    );
-    expect(screen.getByRole("button", { name: /Start$/u })).toBeTruthy();
-  });
-
   it("stops the driving study from the Parameters card", () => {
     const stop = vi.fn();
     optimizer.current = {
       ...idleOptimizer,
-      available: true,
       study: drivingStudy,
       driving: { step: 5, total: 30 },
       stop,
     };
     renderDrawer(sweep);
 
-    expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
 
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it("orders the host's studies by creation, summarises the strip from the later one and stops it", () => {
+  it("reads the host's study for the experiment, pins the strip's axis to its steps and stops it through the optimizations context", () => {
     const cancelOptimization = vi.fn();
     const experiment = { ...sweep, status: "idle" as const };
-    const earlier = sweepStudy(experiment, {
-      id: "study-1",
-      status: "cancelled",
-      createdAt: Date.now() - 200_000,
-      completedTrials: 3,
-      prunedTrials: 1,
-    });
-    const later = sweepStudy(experiment, {
-      id: "study-2",
-      status: "running",
-      trials: fakeStudyTrials.trials.slice(0, 3),
-      completedTrials: 3,
-      prunedTrials: 0,
-      best: { trial: 1, parameters: {}, objective: 700.25 },
-    });
-    // The provider prepends, so the later study comes first.
-    renderDrawerWithStudies(experiment, [later, earlier], {
-      cancelOptimization,
-    });
+    renderDrawerWithStudies(
+      experiment,
+      sweepStudy(experiment, {
+        id: "study-2",
+        status: "running",
+        trials: fakeStudyTrials.trials.slice(0, 3),
+        completedTrials: 3,
+        prunedTrials: 0,
+        best: { trial: 1, parameters: {}, objective: 700.25 },
+      }),
+      { cancelOptimization },
+    );
 
     const row = screen.getByRole("button", { name: /^Objective by step/u });
-    expect(row.textContent).toMatch(
-      / · 7 steps in 2 optimizations · best 700\.250$/u,
-    );
-    // The divider sits at the later study's first step; the axis reaches its
-    // requested steps past the earlier study's four.
-    const chart = screen.getByTestId("objective-history");
-    expect(chart.dataset.dividers).toBe("5");
-    expect(chart.dataset.xMax).toBe(String(4 + 30));
+    expect(row.textContent).toMatch(/ · 3 steps · best 700\.250$/u);
+    expect(screen.getByTestId("objective-history").dataset.xMax).toBe("30");
     expect(screen.getByText(/^Following step 4 of 30/u)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
@@ -735,7 +609,7 @@ describe("the Optimize control", () => {
 describe("ViewExperimentDrawer with a study", () => {
   const idleSweep: ExperimentRecord = { ...sweep, status: "idle" };
 
-  it("shows nothing of a study before one exists", () => {
+  it("shows nothing of a study for a sweep created without one", () => {
     renderDrawer(idleSweep);
 
     expect(document.querySelector("[data-study-header]")).toBeNull();
@@ -786,7 +660,7 @@ describe("ViewExperimentDrawer with a constrained study", () => {
   });
 
   it("adds the Constraints card with the steps clear, the latest step's verdict and one bar per state constraint", () => {
-    renderDrawerWithStudies(constrainedSweep, [settled]);
+    renderDrawerWithStudies(constrainedSweep, settled);
 
     const card = screen
       .getByText("Constraints")
@@ -809,7 +683,7 @@ describe("ViewExperimentDrawer with a constrained study", () => {
   });
 
   it("puts the steps clear in the strip and a Runs passed column in the table, greying the infeasible draws", () => {
-    renderDrawerWithStudies(constrainedSweep, [settled]);
+    renderDrawerWithStudies(constrainedSweep, settled);
 
     expect(screen.getByText("Steps clear")).toBeTruthy();
     expect(screen.getByText("Runs passed")).toBeTruthy();
@@ -825,13 +699,14 @@ describe("ViewExperimentDrawer with a constrained study", () => {
   });
 
   it("shows none of it for a study without constraints", () => {
-    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+    renderDrawerWithStudies(
+      { ...sweep, status: "idle" },
       sweepStudy(sweep, {
         status: "complete",
         trials: fakeStudyTrials.trials,
         best: fakeStudyTrials.best,
       }),
-    ]);
+    );
 
     expect(screen.queryByText("Constraints")).toBeNull();
     expect(screen.queryByText("Steps clear")).toBeNull();
@@ -849,7 +724,8 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
       .closest<HTMLElement>("[data-chart-card]")!;
 
   it("lists the optimized parameters in binding order with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
-    renderDrawerWithStudies(idleSweep, [
+    renderDrawerWithStudies(
+      idleSweep,
       sweepStudy(idleSweep, {
         status: "complete",
         input: fakeLongStudyInput,
@@ -860,7 +736,7 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
           fakeLongStudyTrials.trials,
         ),
       }),
-    ]);
+    );
 
     const card = importanceCard();
     expect(card.getAttribute("data-tone")).toBe("default");
@@ -886,7 +762,8 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
   });
 
   it("mutes the card and fades the bars below the floor, and says so in the subtitle", () => {
-    renderDrawerWithStudies(idleSweep, [
+    renderDrawerWithStudies(
+      idleSweep,
       sweepStudy(idleSweep, {
         status: "complete",
         input: fakeShortStudyInput,
@@ -897,7 +774,7 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
           fakeShortStudyTrials.trials,
         ),
       }),
-    ]);
+    );
 
     const card = importanceCard();
     expect(card.getAttribute("data-tone")).toBe("muted");
@@ -917,14 +794,15 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
   });
 
   it("shows dashed rows and the correlations while no estimate has arrived", () => {
-    renderDrawerWithStudies(idleSweep, [
+    renderDrawerWithStudies(
+      idleSweep,
       sweepStudy(idleSweep, {
         status: "running",
         input: fakeShortStudyInput,
         trials: fakeShortStudyTrials.trials,
         best: fakeShortStudyTrials.best,
       }),
-    ]);
+    );
 
     const card = importanceCard();
     const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
@@ -975,32 +853,23 @@ describe("ViewExperimentDrawer holds every box still across a study's states", (
     ...makeConstrainedSweepExperiment(),
     status: "idle",
   };
-  const studyIn = (
-    status: OptimizationRecord["status"],
-    id = "sweep-study",
-  ): OptimizationRecord =>
+  const studyIn = (status: OptimizationRecord["status"]): OptimizationRecord =>
     sweepStudy(constrainedSweep, {
-      id,
       status,
       input: fakeConstrainedStudyInput,
       trials: fakeConstrainedStudyTrials.trials.slice(0, 4),
       best: fakeConstrainedStudyTrials.best,
     });
 
-  it("gives the header, the note row, every card and the steps table one height while running, stopped and failed, and on a second study", () => {
-    const signatures = (
-      [
-        [studyIn("running")],
-        [studyIn("cancelled")],
-        [studyIn("error")],
-        [studyIn("running", "sweep-study-2"), studyIn("cancelled")],
-      ] as const
-    ).map((studies) => {
-      const view = renderDrawerWithStudies(constrainedSweep, studies);
-      const signature = frameLayoutSignature(view.container);
-      view.unmount();
-      return signature;
-    });
+  it("gives the header, the note row, every card and the steps table one height while running, stopped and failed", () => {
+    const signatures = (["running", "cancelled", "error"] as const).map(
+      (status) => {
+        const view = renderDrawerWithStudies(constrainedSweep, studyIn(status));
+        const signature = frameLayoutSignature(view.container);
+        view.unmount();
+        return signature;
+      },
+    );
 
     expect(signatures[0]!.header).toBe("false");
     expect(signatures[0]!.note).toBe("20px");
@@ -1018,7 +887,7 @@ describe("ViewExperimentDrawer holds every box still across a study's states", (
   });
 
   it("puts a failed study's error in the reserved note row", () => {
-    renderDrawerWithStudies(constrainedSweep, [studyIn("error")]);
+    renderDrawerWithStudies(constrainedSweep, studyIn("error"));
 
     const note = document.querySelector<HTMLElement>("[data-frame-note]")!;
     expect(note.textContent).toBe("The optimizer lost its worker");

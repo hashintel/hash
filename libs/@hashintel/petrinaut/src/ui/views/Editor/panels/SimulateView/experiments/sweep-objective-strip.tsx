@@ -1,11 +1,10 @@
 /**
  * The sweep's objective by step, under the Parameters card's sliders: a
- * disclosure row (a dot that breathes while a study drives the sweep, the
- * title, the last study's metric with the steps run and the best found, a
- * chevron) over a fold holding the shared objective chart in purple. Every
- * study started from the sweep draws on one axis, oldest first, numbered end
- * to end, with a dashed divider where each further study began and its own
- * best-so-far line. Mounted from the first Optimize on and kept while the
+ * disclosure row (a dot that breathes while the study drives the sweep, the
+ * title, the study's metric with the steps run and the best found, a
+ * chevron) over a fold holding the shared objective chart in purple, its
+ * axis reaching to the steps asked for while the study runs. Mounted with
+ * the drawer of an experiment created with Optimize and kept while the
  * drawer lives; the fold clips height alone, so the plot keeps taking steps
  * while collapsed and reopens on the current picture.
  */
@@ -14,6 +13,7 @@ import { useId, useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { isOptimizationActive } from "../../../../../../react/optimizations/context";
 import { Fold } from "../shared/drawer-frame";
 import { formatNumber } from "../shared/format-value";
 import {
@@ -34,7 +34,6 @@ const sweepObjectiveStyle: ObjectiveHistoryStyle = {
   axisText: { x: "#5f3289", y: "#5f3289" },
   grid: "#f2e2fc",
   ticks: { x: "#e0c4f4", y: "#e0c4f4" },
-  divider: "#d1afec",
   axisSize: { x: 22, y: 44 },
   paddingTop: 6,
 };
@@ -132,33 +131,30 @@ const chartWrapStyle = css({
   paddingTop: "2",
 });
 
-/** `Infected peak · 47 steps in 2 optimizations · best 650.500`; without a metric name, `0 steps`. */
+/** `Infected peak · 47 steps · best 650.500`; without a metric name, `0 steps`. */
 const describeHistory = (
   metricName: string,
   steps: number,
-  studies: number,
   best: number | null,
 ): string =>
   [
     ...(metricName === "" ? [] : [metricName]),
-    `${steps} ${steps === 1 ? "step" : "steps"}${
-      studies > 1 ? ` in ${studies} optimizations` : ""
-    }`,
+    `${steps} ${steps === 1 ? "step" : "steps"}`,
     ...(best === null ? [] : [`best ${formatNumber(best)}`]),
   ].join(" · ");
 
 export const SweepObjectiveStrip = ({
-  studies,
+  study,
   driving,
 }: {
-  /** Every study started from the sweep, oldest first; never empty. */
-  studies: readonly OptimizationRecord[];
-  /** Whether the last study drives the sweep now: the row's dot breathes. */
+  /** The study started with the sweep. */
+  study: OptimizationRecord;
+  /** Whether the study drives the sweep now: the row's dot breathes. */
   driving: boolean;
 }) => {
   const [expanded, setExpanded] = useState(true);
   const foldId = useId();
-  const history = buildSweepObjectiveHistory(studies);
+  const history = buildSweepObjectiveHistory(study);
 
   return (
     <div className={stripStyle} data-sweep-objective-strip>
@@ -178,7 +174,6 @@ export const SweepObjectiveStrip = ({
           {describeHistory(
             history.metricName,
             history.points.length,
-            history.studyCount,
             history.best,
           )}
         </span>
@@ -190,13 +185,12 @@ export const SweepObjectiveStrip = ({
             plotHeight={SWEEP_OBJECTIVE_PLOT_HEIGHT}
             style={sweepObjectiveStyle}
             xMax={history.xMax}
-            dividers={history.dividers}
-            // A study about to draw its first step is waited for; a history
-            // whose every study failed at start has run none.
+            // A study about to draw its first step is waited for; one that
+            // ended without a step, failed at start, has run none.
             emptyLabel={
-              history.studyCount === 0
-                ? "No steps run"
-                : "Waiting for the first step"
+              isOptimizationActive(study)
+                ? "Waiting for the first step"
+                : "No steps run"
             }
           />
         </div>
