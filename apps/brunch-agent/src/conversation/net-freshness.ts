@@ -6,9 +6,9 @@
  * makes the answer conservative; it never makes it confident.
  */
 import {
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
   parseClientToolResultMetadata,
-  verifyMutationAttempt,
-  type ConstructionMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import {
@@ -18,10 +18,12 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
 import { recordedBrowserObservation } from "./why.ts";
 
-import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import type { ClientToolHistoryResult } from "@hashintel/brunch-agent-transport-aisdk";
 
 /** Signal appended at user-turn start when the model must read before relying on the net. */
 export const NET_STALE_SIGNAL = "brunch.net-stale";
@@ -43,23 +45,38 @@ const nonMutatingBrowserTools: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
 ]);
 
-/** The verified post hash of the last applied attempt, or undefined when the record cannot vouch for one. */
-const appliedPostHash = async (
-  attempts: readonly unknown[],
+/** The final verified post hash of a non-unknown admitted batch. */
+const verifiedMutationPostHash = async (
+  call: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
+  results: readonly ClientToolHistoryResult[],
+  browser: BrowserContext,
 ): Promise<string | undefined> => {
-  let hash: string | undefined;
-  for (const rawAttempt of attempts) {
-    try {
-      // eslint-disable-next-line no-await-in-loop -- Attempts commit in order; the last applied post wins.
-      const attempt = await verifyMutationAttempt(
-        rawAttempt as ConstructionMutationAttempt,
-      );
-      if (attempt.outcome === "applied") hash = attempt.post?.sha256;
-    } catch {
-      return undefined;
-    }
+  if (call.toolName !== mutatePetrinetToolName) return undefined;
+  const delivered = results.filter(
+    (result) => result.toolCallId === call.toolCallId,
+  );
+  const first = delivered[0];
+  const mutationRecord = parseClientToolResultMetadata(
+    first?.metadata,
+  )?.mutationRecord;
+  if (
+    delivered.length !== 1 ||
+    first?.toolName !== call.toolName ||
+    mutationRecord === undefined ||
+    mutationRecord.outcome === "unknown"
+  )
+    return undefined;
+  try {
+    const attempts = await verifyMutatePetrinetAttempts({
+      toolCallId: call.toolCallId,
+      batch: mutatePetrinetInputSchema.parse(call.input),
+      binding: browser.binding,
+      mutationRecord,
+    });
+    return attempts.at(-1)?.post?.sha256;
+  } catch {
+    return undefined;
   }
-  return hash;
 };
 
 export const deriveNetFreshness = async (
@@ -104,17 +121,8 @@ export const deriveNetFreshness = async (
         continue;
       }
       if (nonMutatingBrowserTools.has(call.toolName)) continue;
-      const delivered = results.filter(
-        (result) => result.toolCallId === call.toolCallId,
-      );
-      const record = parseClientToolResultMetadata(
-        delivered[0]?.metadata,
-      )?.mutationRecord;
-      const post =
-        delivered.length === 1 && record !== undefined
-          ? // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
-            await appliedPostHash(record.attempts)
-          : undefined;
+      // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
+      const post = await verifiedMutationPostHash(call, results, browser);
       if (post === undefined) {
         // A mutation the ledger cannot vouch for may have changed the net.
         unrecordedMutation = true;

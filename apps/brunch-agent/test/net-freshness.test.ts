@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 
 import {
   deriveMutationEffects,
+  mutatePetrinetInputSchema,
   mutatePetrinetToolName,
   type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
@@ -122,20 +123,42 @@ const mutationTurn = (
   alterAttempt?: (
     attempt: ConstructionMutationAttempt,
   ) => ConstructionMutationAttempt,
+  outcome: ConstructionMutationAttempt["outcome"] = post === undefined
+    ? "unknown"
+    : "applied",
 ): FlueConversationMessage[] => {
+  const operationId = "add-place";
+  const batch = mutatePetrinetInputSchema.parse({
+    observation: { toolCallId: "read-1", baseHash: sha256Of(pre) },
+    bases: [
+      {
+        basisId: "absent-basis",
+        basis: { kind: "absent", reason: "Freshness test fixture." },
+      },
+    ],
+    operations: [
+      {
+        operationId,
+        basisId: "absent-basis",
+        type: "addPlace",
+        input: oneHopPlace,
+      },
+    ],
+  });
   const attempts: ConstructionMutationAttempt[] = [];
   if (post !== undefined) {
     const request: ConstructionMutationRequest = {
-      toolCallId: `${toolCallId}:add-place`,
+      toolCallId: `${toolCallId}:${operationId}`,
       toolName: "addPlace",
       input: oneHopPlace,
       binding,
       requestedBaseHash: sha256Of(pre),
+      observationToolCallId: batch.observation.toolCallId,
     };
     const attempt: ConstructionMutationAttempt = {
       request,
       binding,
-      outcome: "applied",
+      outcome,
       pre: observationOf(pre),
       post: observationOf(post),
       effects: deriveMutationEffects(request, pre, post),
@@ -143,14 +166,14 @@ const mutationTurn = (
     attempts.push(alterAttempt?.(attempt) ?? attempt);
   }
   return [
-    assistantCall(toolCallId, mutatePetrinetToolName, { operations: [] }),
+    assistantCall(toolCallId, mutatePetrinetToolName, batch),
     resultDelivery(
       toolCallId,
       mutatePetrinetToolName,
-      { outcome: post === undefined ? "unknown" : "applied" },
+      { outcome },
       {
         mutationRecord: {
-          outcome: post === undefined ? "unknown" : "applied",
+          outcome,
           attempts,
         },
       },
@@ -233,6 +256,68 @@ test("a mutation whose declared effects do not verify leaves the current net unr
         ...mutationTurn("mutate-1", emptyNet, oneHopNet, (attempt) => ({
           ...attempt,
           effects: { created: [], updated: [], deleted: [], derived: [] },
+        })),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: undefined,
+  });
+});
+
+test.each([
+  {
+    outcome: "no-op" as const,
+    alterAttempt: (attempt: ConstructionMutationAttempt) => attempt,
+  },
+  {
+    outcome: "failed" as const,
+    alterAttempt: (attempt: ConstructionMutationAttempt) => ({
+      ...attempt,
+      error: "Browser rejected the mutation.",
+    }),
+  },
+  {
+    outcome: "stale" as const,
+    alterAttempt: (attempt: ConstructionMutationAttempt) => ({
+      ...attempt,
+      request: {
+        ...attempt.request,
+        requestedBaseHash: "f".repeat(64),
+      },
+    }),
+  },
+])(
+  "a verified $outcome mutation retains its unchanged post as the current net",
+  async ({ outcome, alterAttempt }) => {
+    expect(
+      await deriveNetFreshness(
+        snapshotOf([
+          ...readTurn("read-1", emptyNet),
+          ...mutationTurn(
+            "mutate-1",
+            emptyNet,
+            emptyNet,
+            alterAttempt,
+            outcome,
+          ),
+        ]),
+        browser,
+      ),
+    ).toEqual({ kind: "current", hash: sha256Of(emptyNet) });
+  },
+);
+
+test("a mutation record for another document incarnation leaves the current net unrecorded", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn("mutate-1", emptyNet, oneHopNet, (attempt) => ({
+          ...attempt,
+          binding: { ...binding, incarnationId: "another-incarnation" },
         })),
       ]),
       browser,
