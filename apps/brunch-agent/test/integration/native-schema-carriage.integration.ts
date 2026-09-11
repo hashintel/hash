@@ -29,6 +29,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { ordinaryBrunchToolCatalogue } from "../../src/agents/chat-agent/tool-catalogue.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -313,6 +314,25 @@ try {
   for (const method of ["stream", "streamSimple"] as const) {
     const requests = captures.filter((capture) => capture.method === method);
     assert(requests.length > 0);
+    const ordinaryRequest = requests.find((request) =>
+      request.serialized.tools.some(
+        (tool) => tool.name === mutatePetrinetToolName,
+      ),
+    );
+    assert(ordinaryRequest, `${method} must carry ordinary Brunch tools`);
+    const mountedNames = ordinaryRequest.serialized.tools.map(
+      (tool) => tool.name,
+    );
+    assert.equal(
+      new Set(mountedNames).size,
+      mountedNames.length,
+      `${method} ordinary Brunch tools must have unique names`,
+    );
+    assert.deepEqual(
+      mountedNames,
+      ordinaryBrunchToolCatalogue.map(({ name }) => name),
+      `${method} ordinary Brunch tools must match the checked catalogue`,
+    );
     for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
       const expected = (
         name === "addArc"
