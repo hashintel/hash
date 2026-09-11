@@ -5,12 +5,14 @@
  * care which backend produced them. Keeping that contract identical is what lets
  * the GPU path be a setting rather than a parallel UI.
  *
- * Supportability is resolved *before* the handle exists — eligibility, HIR
- * lowering, shader generation and the capacity probe all happen in `create...`,
- * which returns a reason instead of a handle when the net cannot run. A handle
- * that could fail on `start()` would leave the caller unable to fall back
- * cleanly, because by then the experiment is already registered and showing as
- * running.
+ * Supportability that can be decided statically — eligibility, HIR lowering,
+ * shader generation, a marking against declared capacities — is resolved
+ * *before* the handle exists: `create...` returns a reason instead of a handle
+ * when the net cannot run, so the caller can still fall back. What only a run
+ * can tell — the slab a derived-capacity place needs, a metric's window — is
+ * calibrated as the first phase of `start()`, so the probe's chunks stream to
+ * the charts like every other attempt's instead of arriving en bloc once the
+ * handle exists. A probe that concedes ends the run with its reason.
  */
 import { resolveNetParameterValues } from "../parameter-values";
 import {
@@ -24,23 +26,13 @@ import { requestGpuExperimentBackend } from "./backend";
 import { encodeInitialTokenWords } from "./compile-net-shader";
 import { placeCountCeiling } from "./eligibility";
 import { gpuBackendSetupKey } from "./gpu-backend-cache";
-import {
-  probeDerivedCapacities,
-  probeRunCount,
-  probeWindows,
-  rememberCalibration,
-  RUN_POLICY,
-  runUntilCalibrated,
-} from "./gpu-experiment-handle/calibration";
+import { rememberCalibration } from "./gpu-experiment-handle/calibration";
 import { createFrameMerger } from "./gpu-experiment-handle/frame-merge";
 import { metricFailure } from "./gpu-experiment-handle/metric-failure";
 import { deriveRunParameters } from "./gpu-experiment-handle/run-parameters";
+import { runCalibratedExperiment } from "./gpu-experiment-handle/run-phase";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
-import {
-  anyEscapes,
-  calibrationKey,
-  planInitialWindows,
-} from "./metric-windows";
+import { anyEscapes, calibrationKey } from "./metric-windows";
 import { GPU_PREVIEW_RUNS, runGpuExperiment } from "./runner";
 
 import type { AbortSignalLike } from "../environment";
@@ -101,10 +93,10 @@ export type CreateGpuMonteCarloExperimentConfig = {
   /** Caps runs per tile below the device's limit. For tests and benchmarks. */
   maxRunsPerTile?: number;
   /**
-   * Abandons creation: checked after acquiring the backend and between the
-   * capacity probe's attempts, each of which is a GPU round-trip. Creation
-   * then throws an `AbortError`, which the selection walk rethrows rather
-   * than treating as a refusal that sends the experiment to the CPU.
+   * Abandons creation: checked once the backend is acquired, when creation
+   * throws an `AbortError`, which the selection walk rethrows rather than
+   * treating as a refusal that sends the experiment to the CPU. A handle
+   * already created stops at its next chunk instead.
    */
   signal?: AbortSignalLike;
   /**
@@ -273,7 +265,7 @@ export async function createGpuMonteCarloExperiment(
   let aborted = false;
   // A minimal `AbortSignalLike`: the runner only reads `aborted`, and building
   // a real AbortController would pull a DOM global into this package. The
-  // creation signal folds in so an abandoned probe stops at its next chunk.
+  // creation signal folds in so an abandoned run stops at its next chunk.
   const signal = {
     get aborted() {
       return aborted || creationAborted();
@@ -476,109 +468,40 @@ export async function createGpuMonteCarloExperiment(
       runCount,
     });
 
-  let calibratedWindows: MetricWindow[] | null = null;
-  /** The capacity probe's halted-metric failure; run() reports it before its first attempt. */
-  let probedFailure: string | null = null;
+  const calibratedWindows: MetricWindow[] | null = cachedCalibration
+    ? [...cachedCalibration.windows]
+    : null;
   if (cachedCalibration) {
     session.shader = cachedCalibration.shader;
     for (const [placeId, capacity] of cachedCalibration.capacities) {
       session.capacities.set(placeId, capacity);
     }
-    calibratedWindows = [...cachedCalibration.windows];
-  } else if (session.capacities.size > 0) {
-    const probed = await probeDerivedCapacities({
-      session,
-      runCount: config.runCount,
-      windowInputs,
-      placeCounts,
-      execute: executeAttempt,
-      stopped: creationAborted,
-    });
-    if (creationAborted()) {
-      disposed = true;
-      releaseBackend();
-      throw abortError();
-    }
-    if (!probed.ok) {
-      disposed = true;
-      releaseBackend({ evict: true });
-      return {
-        supported: false,
-        cause: "net-unsupported",
-        reason: probed.reason,
-      };
-    }
-    probedFailure = metricFailureIn(probed.metricErrors, probed.probeRuns);
-    calibratedWindows = probed.windows;
-    // A halted probe's calibration is not stored: the next batch on this
-    // marking would adopt it, skip its probe and meet the halt only after a
-    // full attempt.
-    if (probedFailure === null) {
-      storeCalibration(calibratedWindows);
-    }
   }
 
   const run = async () => {
-    if (probedFailure !== null) {
-      fail(probedFailure);
-      return;
-    }
-    // Blind windows (any metric without a ceiling) probe with a prefix of the
-    // runs first, unless the capacity probe already calibrated them at
-    // creation.
-    let windows =
-      calibratedWindows ??
-      planInitialWindows(windowInputs, session.shader.histogramBins);
-    const blindWindows = windowInputs.some((input) => input.ceiling === null);
-    if (
-      calibratedWindows === null &&
-      blindWindows &&
-      metricIds.length > 0 &&
-      !aborted
-    ) {
-      const probeRuns = probeRunCount(session.shader, config.runCount);
-      const probe = await probeWindows({
-        session,
-        windows,
-        execute: executeAttempt,
-        runCount: probeRuns,
-      });
-      if (isDisposed()) {
-        return;
-      }
-      if (!probe.ok) {
-        fail(probe.reason);
-        return;
-      }
-      if (probe.result.cancelled) {
-        finish("cancelled");
-        return;
-      }
-      const probeFailure = metricFailureIn(
-        probe.result.metricErrors,
-        probeRuns,
-      );
-      if (probeFailure !== null) {
-        fail(probeFailure);
-        return;
-      }
-      windows = probe.windows;
-      storeCalibration(windows);
-    }
-
-    const calibrated = await runUntilCalibrated({
+    // The probes run here, after `start()`, so their chunks stream like
+    // every other attempt's: the first picture a batch shows is the probe's,
+    // overwritten progressively as the full attempt lands.
+    const calibrated = await runCalibratedExperiment({
       session,
-      runsFor: () => config.runCount,
-      windows,
+      calibratedWindows,
+      windowInputs,
+      placeCounts,
+      runCount: config.runCount,
       execute: executeAttempt,
-      policy: RUN_POLICY,
-      stopped: () => isDisposed() || aborted,
+      stopped: () => isDisposed() || signal.aborted,
+      remember: storeCalibration,
+      metricFailure: metricFailureIn,
     });
 
     if (isDisposed()) {
       return;
     }
-    if (!calibrated.ok) {
+    if (calibrated.kind === "stopped") {
+      finish("cancelled");
+      return;
+    }
+    if (calibrated.kind === "failed") {
       fail(calibrated.reason);
       return;
     }
