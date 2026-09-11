@@ -295,6 +295,40 @@ const sweptContextValue: SDCPNContextValue = {
   },
 };
 
+/** The swept scenario with a second numeric parameter, so two toggles can flip. */
+const twoParametersContextValue: SDCPNContextValue = {
+  ...sweptContextValue,
+  petriNetDefinition: {
+    ...sweptContextValue.petriNetDefinition,
+    scenarios: [
+      {
+        ...sweptScenario,
+        scenarioParameters: [
+          ...sweptScenario.scenarioParameters,
+          { identifier: "recovery_days", type: "integer", default: 7 },
+        ],
+      },
+    ],
+  },
+};
+
+/** A connected source that never runs: the drawer only asks what kind it is. */
+const connectedSource: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => {
+    throw new Error("The test's optimizer is never connected");
+  },
+};
+
+/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
+const remoteSource: PetrinautOptimization = {
+  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
+  async *attachOptimizationRun() {
+    yield { type: "started", requestedTrials: 1, seq: 1 };
+  },
+  cancelOptimizationRun: () => Promise.resolve(),
+};
+
 /** The SIR net with one saved scenario exposing nothing, so the run form has no rows. */
 const unparameterizedContextValue: SDCPNContextValue = {
   ...sirSdcpnContextValue,
@@ -447,7 +481,7 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
   });
 
-  it("offers a Sweep toggle per numeric parameter when the setting is on", async () => {
+  it("offers a Sweep toggle per numeric parameter when the setting is on and no optimizer is wired", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -459,6 +493,66 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     expect(
       await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     ).toBeInstanceOf(HTMLElement);
+    expect(
+      screen.queryByRole("button", { name: "Optimize transmission_rate" }),
+    ).toBeNull();
+  });
+
+  it("reads Sweep on the toggle for a remote-only optimizer, which cannot drive a sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
+    ).toBeInstanceOf(HTMLElement);
+  });
+
+  it("reads Optimize on the toggle when the in-browser optimizer can drive the sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+    ).toBeInstanceOf(HTMLElement);
+    expect(
+      screen.queryByRole("button", { name: "Sweep transmission_rate" }),
+    ).toBeNull();
+  });
+
+  it("keeps the word when a second toggle flips", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={twoParametersContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    // The word follows the settings and the source, never the toggle count:
+    // the first toggle relabels nothing.
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Optimize recovery_days" }),
+    );
+    expect(screen.getAllByRole("button", { name: /^Optimize / })).toHaveLength(
+      2,
+    );
+    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
   });
 
   it("tells a saved scenario without parameters apart from an empty form", async () => {
@@ -515,7 +609,38 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     ).toBeTruthy();
   });
 
-  it("offers no Sweep toggle on the ad-hoc form while sweeps are off", async () => {
+  it("reads Sweep on the ad-hoc form's toggle for a remote-only optimizer", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
+      HTMLElement,
+    );
+  });
+
+  it("reads Optimize on the ad-hoc form's toggle when the in-browser optimizer can drive the sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Optimize Rate")).toBeInstanceOf(
+      HTMLElement,
+    );
+    expect(screen.queryByLabelText("Sweep Rate")).toBeNull();
+  });
+
+  it("offers no interval toggle on the ad-hoc form while sweeps are off", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -525,6 +650,7 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
 
     await screen.findByText("Rate");
     expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Optimize / })).toBeNull();
   });
 
   it("hands the form's draft to the experiment with sweeps off, never as a sweep", async () => {
@@ -554,23 +680,6 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     expect(input.adHocSweeps).toBe(false);
   });
 });
-
-/** A connected source that never runs: the drawer only asks what kind it is. */
-const connectedSource: PetrinautConnectedOptimization = {
-  kind: "connected",
-  connect: () => {
-    throw new Error("The test's optimizer is never connected");
-  },
-};
-
-/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
-const remoteSource: PetrinautOptimization = {
-  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
-  async *attachOptimizationRun() {
-    yield { type: "started", requestedTrials: 1, seq: 1 };
-  },
-  cancelOptimizationRun: () => Promise.resolve(),
-};
 
 /** The language client with constraint lowering that succeeds, keeping the source's name. */
 const makeLoweringLanguageClient = (): LanguageClientContextValue => ({
@@ -631,9 +740,11 @@ const firstConstraintSession = (
   return params;
 };
 
-/** Flips a scenario parameter's Sweep pill in the run form. */
-const flipSweep = (identifier: string) => {
-  fireEvent.click(screen.getByRole("button", { name: `Sweep ${identifier}` }));
+/** Flips a scenario parameter's interval pill in the run form, under the word the drawer reads. */
+const flipInterval = (identifier: string, word: "Optimize" | "Sweep") => {
+  fireEvent.click(
+    screen.getByRole("button", { name: `${word} ${identifier}` }),
+  );
 };
 
 const submitButton = () =>
@@ -653,7 +764,7 @@ const openConstrainedSweep = async (
       {...props}
     />,
   );
-  flipSweep("transmission_rate");
+  flipInterval("transmission_rate", "Optimize");
   expect(await screen.findByText("Constraints")).toBeTruthy();
   return rendered;
 };
@@ -672,7 +783,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
-  it("offers no Constraints section until a Sweep toggle flips", async () => {
+  it("offers no Constraints section until an Optimize toggle flips", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -683,7 +794,7 @@ describe("CreateExperimentDrawer constraints", () => {
     );
     expect(screen.queryByText("Constraints")).toBeNull();
 
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Optimize");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.getByText(
@@ -693,7 +804,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.getByText("Create sweep")).toBeTruthy();
 
     // Flipping it back hides the section with the sweep.
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Optimize");
     await waitFor(() => {
       expect(screen.queryByText("Constraints")).toBeNull();
     });
@@ -708,12 +819,12 @@ describe("CreateExperimentDrawer constraints", () => {
         optimizationSource={remoteSource}
       />,
     );
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Sweep");
     expect(await screen.findByText("Create sweep")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
-  it("offers no Constraints section for an ad-hoc sweep, which no study can drive", async () => {
+  it("offers no Constraints section for an ad-hoc sweep, whose generated names are not authorable", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -722,8 +833,8 @@ describe("CreateExperimentDrawer constraints", () => {
         optimizationSource={connectedSource}
       />,
     );
-    // The ad-hoc form's Sweep toggle is a button of its own.
-    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
+    // The ad-hoc form's Optimize toggle is a button of its own.
+    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
     expect(await screen.findByText("Create sweep")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
   });
@@ -1060,7 +1171,7 @@ describe("CreateExperimentDrawer constraints", () => {
     });
     // The other scenario's sweep has to be turned on again, as its inputs reset.
     expect(screen.queryByText("Constraints")).toBeNull();
-    flipSweep("recovery_days");
+    flipInterval("recovery_days", "Optimize");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.queryByRole("group", { name: "Parameter constraint 1" }),

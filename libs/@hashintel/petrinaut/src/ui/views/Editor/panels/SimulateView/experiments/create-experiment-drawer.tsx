@@ -68,6 +68,7 @@ import {
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
 
+import type { AdHocFormSelection } from "../../../../../components/ad-hoc-scenario-form/form-context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
@@ -847,6 +848,16 @@ export const CreateExperimentDrawer = ({
   };
   const adHocSweeping =
     enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const optimizerConnected =
+    optimizationSource !== null && isConnectedOptimization(optimizationSource);
+  // The word on every interval toggle, from the settings and the source
+  // alone — never from how many toggles are on: Optimize where the
+  // in-browser optimizer can drive the sweep, Sweep otherwise.
+  const selection: AdHocFormSelection = !enableParameterSweeps
+    ? "none"
+    : optimizerConnected
+      ? "optimize"
+      : "sweep";
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -917,9 +928,7 @@ export const CreateExperimentDrawer = ({
   // same facts that make the Parameters card offer Optimize. The rows stay
   // in state while the section is hidden and are never lowered.
   const constraintsEnabled =
-    enableParameterSweeps &&
-    optimizationSource !== null &&
-    isConnectedOptimization(optimizationSource) &&
+    selection === "optimize" &&
     selectedScenario !== undefined &&
     sweepSummary !== null;
   const constraintLspError = constraintsEnabled
@@ -1244,7 +1253,7 @@ export const CreateExperimentDrawer = ({
                   scenario={selectedScenario}
                   context={adHocFormContext}
                   inputs={paramInputs}
-                  sweepable={enableParameterSweeps}
+                  selection={selection}
                   onInputsChange={(updates) =>
                     setParamInputs((prev) => {
                       const next = { ...prev };
@@ -1267,7 +1276,7 @@ export const CreateExperimentDrawer = ({
                   state={adHocState ?? EMPTY_AD_HOC_STATE}
                   onChange={setAdHocState}
                   context={adHocFormContext}
-                  selection={enableParameterSweeps ? "sweep" : "none"}
+                  selection={selection}
                 />
                 {sweepSummaryLine}
               </>
