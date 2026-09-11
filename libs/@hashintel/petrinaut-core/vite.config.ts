@@ -17,6 +17,9 @@ export default defineConfig(({ command }) => ({
         // Node/tooling-only reusable model compiler. This depends on the
         // TypeScript-powered HIR compiler and must stay out of the main entry.
         "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
+        // Node/tooling-only headless TypeScript diagnostics for a definition;
+        // bundles the TypeScript compiler like the LSP worker does.
+        diagnostics: resolve(packageRoot, "src/diagnostics.ts"),
         // HIR compiler (bundles the TypeScript frontend, heavy; used by the
         // LSP worker internally and by tooling/playgrounds).
         hir: resolve(packageRoot, "src/hir.ts"),

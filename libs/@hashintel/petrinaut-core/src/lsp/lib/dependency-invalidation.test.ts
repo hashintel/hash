@@ -1,10 +1,9 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
+import { checkDefinition } from "../../diagnostics";
 import { createJsonDocHandle } from "../../handle";
 import { createPetrinaut } from "../../instance";
-import { checkSDCPN } from "./checker";
-import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
@@ -16,10 +15,8 @@ import type { SDCPN } from "../../types/sdcpn";
  * that does not touch any code and asserts the compiler reports it.
  */
 
-const errorsOf = (sdcpn: SDCPN) => {
-  const server = new SDCPNLanguageServer();
-  server.syncFiles(sdcpn);
-  return checkSDCPN(sdcpn, server).itemDiagnostics.flatMap((item) =>
+const errorsOf = (sdcpn: SDCPN) =>
+  checkDefinition(sdcpn).itemDiagnostics.flatMap((item) =>
     item.diagnostics
       .filter((diag) => diag.category === ts.DiagnosticCategory.Error)
       .map((diag) => ({
@@ -27,7 +24,6 @@ const errorsOf = (sdcpn: SDCPN) => {
         message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
       })),
   );
-};
 
 const cleanNet = () =>
   createSDCPN({
