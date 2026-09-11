@@ -61,7 +61,7 @@ const titleRow = css({
 const headerActions = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1",
   flexShrink: "0",
 });
 const tableScroll = css({ flex: "1", minH: "0", overflow: "auto" });
