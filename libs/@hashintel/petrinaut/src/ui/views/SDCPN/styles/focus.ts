@@ -3,10 +3,10 @@
  *
  * A focused node and its neighbours are ringed in colour — blue for what
  * feeds them, orange for what they feed, purple where a cycle makes a
- * neighbour both — and the rest of the net recedes only as far as a softer
- * border and label. This matches the Notebook's net graph, and it leaves
- * every node's own fill and token count as legible as it was before the
- * pointer arrived.
+ * neighbour both — and the rest of the net fades back whole, by a rule on
+ * the canvas pane that applies while a focus is active. The rings here are
+ * the only styles a highlighted item itself changes. This matches the
+ * Notebook's net graph.
  *
  * Panda reads the styles below statically, so the ring declarations are
  * spelled out rather than composed from the colour constants.

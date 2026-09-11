@@ -15,7 +15,7 @@ import { useRef } from "react";
  * not a general deep-equal — a scene item holds no cycles, class instances or
  * functions, and the comparison runs for every item on every render.
  */
-export const isSameContent = (left: unknown, right: unknown): boolean => {
+const isSameContent = (left: unknown, right: unknown): boolean => {
   if (Object.is(left, right)) {
     return true;
   }
@@ -65,8 +65,7 @@ export const isSameContent = (left: unknown, right: unknown): boolean => {
  *
  * It is idempotent: every object it returns is content-equal to the one it
  * replaces, so a discarded or repeated render changes nothing a consumer can
- * observe. What it buys is the hover path — without it every node and arc is
- * a new object and React Flow re-renders all of them.
+ * observe.
  */
 export const useStableItems = <Item extends { id: string }>(
   items: Item[],

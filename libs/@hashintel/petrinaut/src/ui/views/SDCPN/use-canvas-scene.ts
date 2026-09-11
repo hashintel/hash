@@ -12,7 +12,6 @@ import { UserSettingsContext } from "../../../react/state/user-settings-context"
 import { buildCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
-import { useStableItems } from "./use-stable-items";
 
 /**
  * The scene for the active net, as the editor currently shows it. Takes the
@@ -43,7 +42,7 @@ export const useCanvasScene = (
     setSettledHoverId(hoveredId);
   }
 
-  const scene = buildCanvasScene({
+  return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
     extensions,
@@ -56,13 +55,4 @@ export const useCanvasScene = (
       selectedIds: new Set(selection.keys()),
     }),
   });
-
-  // A hover re-roles a handful of items and rebuilds them all. Carrying the
-  // untouched ones over at their previous identity is what lets the renderer
-  // skip them.
-  return {
-    ...scene,
-    nodes: useStableItems(scene.nodes),
-    arcs: useStableItems(scene.arcs),
-  };
 };
