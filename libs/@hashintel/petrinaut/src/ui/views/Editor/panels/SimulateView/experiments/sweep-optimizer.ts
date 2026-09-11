@@ -186,7 +186,12 @@ export type SweepOptimizer = {
    */
   available: boolean;
   /**
-   * The study started from this sweep most recently; null before any. Read
+   * Every study started from this sweep, oldest first; empty before any. The
+   * objective strip draws them end to end.
+   */
+  studies: readonly OptimizationRecord[];
+  /**
+   * The study started most recently, `studies.at(-1)`; null before any. Read
    * for its outcome and its error once `driving` is null.
    */
   study: OptimizationRecord | null;
@@ -219,12 +224,15 @@ export const useSweepOptimizer = (
     removeOptimization,
   } = use(OptimizationsContext);
 
-  const studies = optimizations.filter(
-    (optimization) =>
-      optimization.origin?.kind === "sweep" &&
-      optimization.origin.experimentId === experiment.id,
-  );
-  const study = studies[0] ?? null;
+  // The provider prepends; the strip reads oldest first.
+  const studies = optimizations
+    .filter(
+      (optimization) =>
+        optimization.origin?.kind === "sweep" &&
+        optimization.origin.experimentId === experiment.id,
+    )
+    .toSorted((left, right) => left.createdAt - right.createdAt);
+  const study = studies.at(-1) ?? null;
   const scenario =
     petriNetDefinition.scenarios?.find(
       (candidate) => candidate.id === experiment.scenarioId,
@@ -238,6 +246,7 @@ export const useSweepOptimizer = (
 
   return {
     available,
+    studies,
     study,
     driving:
       study !== null && isOptimizationActive(study)

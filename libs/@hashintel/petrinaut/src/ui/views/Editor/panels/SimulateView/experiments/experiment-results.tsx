@@ -3,8 +3,9 @@
  * one-line title, the status and the stat columns (errors and simulated time
  * for both kinds; runs and wall-clock time for a plain experiment, the
  * selection's sampling for a sweep), the computing chip and the compute
- * badge, the Parameters card with its optimizer control and the surface for
- * a sweep, one metric card per configured metric, and Remove, Cancel and
+ * badge, the Parameters card with its optimizer control and, once a study
+ * ran, the objective strip under its sliders, the surface for a sweep, one
+ * metric card per configured metric, and Remove, Cancel and
  * Close in the footer. While a study drives a sweep the header reads from
  * the study: Optimizing, its step as the progress, its step on the batch.
  */
@@ -26,6 +27,7 @@ import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import { SweepNavigator } from "./sweep-navigator";
+import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
 import {
   type SweepOptimizer,
@@ -245,7 +247,7 @@ export const experimentResultsModel = (
   // computes afresh — and a sweep never completes.
   const locked = following !== null || experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
-  const { study } = optimizer;
+  const { study, studies } = optimizer;
 
   return {
     header: {
@@ -310,6 +312,15 @@ export const experimentResultsModel = (
                 }
               />
             ),
+            // Every study started from the sweep, under the sliders, from the
+            // first Optimize on; before it the card is exactly as without.
+            below:
+              studies.length === 0 ? null : (
+                <SweepObjectiveStrip
+                  studies={studies}
+                  driving={following !== null}
+                />
+              ),
             more: null,
             tone,
           },
