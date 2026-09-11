@@ -30,9 +30,9 @@ use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
-use super::{ServeCommand, ServeOptions, Serving, args::parse};
+use super::{Serve, ServeCommand, ServeOptions, args::parse};
 use crate::{
-    cli::RootArgs,
+    cli::{RootArgs, Storage},
     device::PinnedDevice,
     file::generation::{GenerationRoot, ScratchDirectory},
     integrity::SecretString,
@@ -67,7 +67,7 @@ impl AuthenticationProvider<ActorId> for HeaderActor {
 ///
 /// Panics if the temporary directory is not UTF-8, filesystem setup fails, the unconnected pool
 /// cannot be constructed, the arguments fail parsing, or serving construction fails.
-async fn serving() -> (ScratchDirectory, Serving) {
+async fn serving() -> (ScratchDirectory, Serve) {
     let temporary = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should be UTF-8");
     let scratch = GenerationRoot::new(temporary)
@@ -124,6 +124,7 @@ async fn serving() -> (ScratchDirectory, Serving) {
             hard: Duration::from_secs(10),
         },
         workflow: None,
+        storage: Storage::in_temp_dir(),
     })
     .expect("serving should construct before a generation exists");
 

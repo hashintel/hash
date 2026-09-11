@@ -17,6 +17,12 @@ pub(crate) trait GenerationDownloadBackend {
     ) -> impl Future<Output = Result<impl AsyncBufRead + Send, StorageError>> + Send;
 }
 
+impl GenerationDownloadBackend for Storage {
+    async fn read(&self, path: &FilePath) -> Result<impl AsyncBufRead + Send, StorageError> {
+        path.read(self).await
+    }
+}
+
 impl GenerationDownloadBackend for &Storage {
     async fn read(&self, path: &FilePath) -> Result<impl AsyncBufRead + Send, StorageError> {
         path.read(self).await

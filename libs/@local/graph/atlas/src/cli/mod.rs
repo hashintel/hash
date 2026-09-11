@@ -61,7 +61,7 @@ pub use self::{
     fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
     s3::{S3Args, S3ArgsError},
-    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions, Serving},
+    serve::{Serve, ServeArgs, ServeCommand, ServeError, ServeOptions},
 };
 pub use crate::{
     file::storage::Storage,
