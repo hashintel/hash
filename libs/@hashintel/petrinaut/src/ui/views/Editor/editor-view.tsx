@@ -100,6 +100,7 @@ const formatRelativeTime = (isoTimestamp: string): string => {
 // overflow, scrollIntoView can still scroll it programmatically — pushing the
 // TopBar out of view.
 const rowContainerStyle = css({
+  position: "relative",
   flex: "[1]",
   minHeight: "[0]",
   userSelect: "none",
@@ -570,24 +571,24 @@ export const EditorView = ({
                 onCursorModeChange={setCursorMode}
                 hasAiAssistant={aiAssistant !== undefined}
               />
-
-              {aiAssistant && (
-                <AiAssistantPanel
-                  /** Reset state (e.g. initial messages) when the active net changes */
-                  key={petriNetId ?? "no-net"}
-                  aiAssistant={aiAssistant}
-                  initialMessage={pendingAiAssistantMessage}
-                  initialInteractionMode={pendingAiInteractionMode}
-                  offerStartPosture={offerStartPosture}
-                  onInitialMessageConsumed={() =>
-                    setPendingAiAssistantMessage(null)
-                  }
-                  onInitialInteractionModeConsumed={() =>
-                    setPendingAiInteractionMode(null)
-                  }
-                />
-              )}
             </Box>
+          )}
+
+          {aiAssistant && (
+            <AiAssistantPanel
+              /** Reset state (e.g. initial messages) when the active net changes */
+              key={petriNetId ?? "no-net"}
+              aiAssistant={aiAssistant}
+              initialMessage={pendingAiAssistantMessage}
+              initialInteractionMode={pendingAiInteractionMode}
+              offerStartPosture={offerStartPosture}
+              onInitialMessageConsumed={() =>
+                setPendingAiAssistantMessage(null)
+              }
+              onInitialInteractionModeConsumed={() =>
+                setPendingAiInteractionMode(null)
+              }
+            />
           )}
         </Stack>
       </VoiceSessionProvider>

@@ -4,6 +4,7 @@ import {
   mutationActionInputSchemas,
   type MutationActionName,
 } from "./action-schemas";
+import { petrinautExperimentRequestSchema } from "./ai/experiments";
 import {
   aiCommandActionInputSchemas,
   type AiCommandActionName,
@@ -93,6 +94,7 @@ export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
 export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
 export const setNetTitleToolName = "setNetTitle";
 export const readPetrinautDocToolName = "readPetrinautDoc";
+export const createExperimentToolName = "createExperiment";
 
 export const petrinautDocNames = [
   "drawing-a-net",
@@ -185,6 +187,7 @@ export const petrinautAiToolInputSchemas = {
   [getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
   [setNetTitleToolName]: setNetTitleToolInputSchema,
   [readPetrinautDocToolName]: readPetrinautDocToolInputSchema,
+  [createExperimentToolName]: petrinautExperimentRequestSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
@@ -213,6 +216,10 @@ export const petrinautAiTools = {
   [readPetrinautDocToolName]: {
     description: getSchemaDescription(readPetrinautDocToolInputSchema),
     inputSchema: readPetrinautDocToolInputSchema,
+  },
+  [createExperimentToolName]: {
+    description: getSchemaDescription(petrinautExperimentRequestSchema),
+    inputSchema: petrinautExperimentRequestSchema,
   },
 } satisfies PetrinautAiTools;
 

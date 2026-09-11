@@ -62,7 +62,7 @@ export const formatDiagnosticsForAi = ({
   );
 
   if (diagnostics.length === 0) {
-    return "No net-code diagnostics.";
+    return "No net-code diagnostics. Scenario and metric compilation is checked when creating an experiment.";
   }
 
   const shownDiagnostics = diagnostics.slice(0, maxDiagnostics);

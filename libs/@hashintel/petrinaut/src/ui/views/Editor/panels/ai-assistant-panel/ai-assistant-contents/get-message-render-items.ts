@@ -8,6 +8,7 @@ import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
 
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { PetrinautAiMessage } from "../types";
+import type { ExperimentToolPart } from "./experiment-card";
 
 export type MessagePart = PetrinautAiMessage["parts"][number];
 export type TextPart = Extract<MessagePart, { type: "text" }>;
@@ -16,6 +17,7 @@ export type ReasoningMessagePart = Extract<MessagePart, { type: "reasoning" }>;
 export type MessageRenderItem =
   | { type: "reasoning"; key: string; part: ReasoningMessagePart }
   | { type: "text"; key: string; part: TextPart }
+  | { type: "experiment"; key: string; part: ExperimentToolPart }
   | { type: "tools"; key: string; tools: ToolRenderItem[] };
 
 export const isPartActive = (
@@ -64,6 +66,12 @@ export const getMessageRenderItems = (
         key: `${message.id}-reasoning-${index}`,
         part,
       });
+      return;
+    }
+
+    if (part.type === "tool-createExperiment") {
+      flushTools();
+      items.push({ type: "experiment", key: part.toolCallId, part });
       return;
     }
 

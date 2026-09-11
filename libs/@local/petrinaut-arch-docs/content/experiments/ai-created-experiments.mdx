@@ -1,6 +1,6 @@
 ---
-title: Browser experiment host
-description: Validate and run bounded experiment requests in the browser.
+title: AI-created experiments
+description: Run experiments from AI chat through the browser host.
 sidebar_order: 40
 attachTo: react.ai-experiments
 ---
@@ -10,6 +10,9 @@ The browser validates the captured model, reports progress, and returns a
 captured result. Optimization uses the same request and experiment record.
 
 ![Browser experiment architecture](@diagrams/ai-experiments-architecture.svg)
+
+The [AI chat integration](doc:ai/experiment-chat) exposes this host through
+`petrinautAiTools.createExperiment` and displays its progress in the conversation.
 
 ## Request and result
 

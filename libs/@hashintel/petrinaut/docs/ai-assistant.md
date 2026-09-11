@@ -1,6 +1,6 @@
 # AI Assistant
 
-Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant is available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and in [HASH](https://hash.ai) and may or may not be enabled in other Petrinaut embeds.
+Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and in [HASH](https://hash.ai) and may or may not be enabled in other Petrinaut embeds.
 
 ## Opening the panel
 
@@ -10,7 +10,13 @@ There are two entry points:
 2. **File → New → Build with Brunch**. When the host enables its experimental Brunch demo mode, shows net-management controls, and provides an assistant, this creates a fresh empty net, opens the assistant, and offers two chips before the first message: **Interview first** (elicit before inventing missing detail or drawing the net) or **Quick preview** (fill reasonable gaps, mark them as provisional, and wait for assent). **Start blank** creates the same empty net without opening the assistant or showing the first-run prompt. Without that host flag, **New** retains its ordinary direct blank-net behavior.
 3. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
 
-The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
+The assistant panel stays open when you switch to **Simulate** or **Notebook**
+mode, so you can inspect an experiment while its chat result arrives. The panel
+resizes by dragging its left edge. Text and voice share the **AI** transcript.
+Some hosts add a second tab, such as **Workpiece**, for a saved document.
+Select a tab to switch views, or use the left/right arrow keys while a tab is
+focused. Switching does not end a response, clear your draft or interrupt Voice;
+the composer and active controls remain available.
 
 ## The conversation
 
@@ -159,6 +165,30 @@ An embedding application can check its live document immediately before and afte
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 
+## Experiments from chat
+
+When your host enables experiment tools, ask the assistant to run a saved
+[scenario](scenarios.md) and measure one or more saved metrics.
+For example: "Run 100 simulations of this scenario and show the completed
+orders metric." The assistant can also search numeric scenario parameter
+ranges to minimize or maximize a metric.
+
+The experiment appears in a compact card with its status, run count, and
+results. Simulation cards use blue; optimization cards use purple and glow
+while running. Select **View
+experiment** to inspect metric distributions in the Experiments drawer. The
+heatmap shows how values spread across runs; click a time step to see its
+histogram. Select **Cancel**
+to stop its work. The assistant receives the
+result when the requested work finishes; an optimization includes the final
+runs at its best parameter values.
+
+While an AI experiment runs, its compute-changing controls are locked. You
+can inspect its charts or cancel it. After completion you can explore its
+parameters again; the result already recorded in chat stays unchanged.
+Experiments run in your current browser session, so keep the page open until
+they finish. See [Experiments](experiments.md#experiments-created-by-the-assistant).
+
 ## Read-only behaviour
 
 Whether the assistant can change the net depends on the editor state:
@@ -173,8 +203,9 @@ The composer stays open in all of these cases, so you can still ask questions, r
 The assistant can request a fresh TypeScript check of the current net and
 use the returned errors to revise its code. An unchanged set of errors still
 counts as a completed check. If checking fails, the assistant receives an
-error. The bottom **Diagnostics** tab continues to show diagnostics for the
-code you are editing.
+error. Experiment creation also checks its selected
+scenario and metrics before running. The bottom **Diagnostics** tab continues
+to show diagnostics for the code you are editing.
 
 ## Host configuration
 

@@ -56,7 +56,9 @@ describe("formatDiagnosticsForAi", () => {
         definition,
         diagnosticsByUri: new Map(),
       }),
-    ).toBe("No net-code diagnostics.");
+    ).toBe(
+      "No net-code diagnostics. Scenario and metric compilation is checked when creating an experiment.",
+    );
   });
 
   test("formats transition and differential-equation diagnostics", () => {
