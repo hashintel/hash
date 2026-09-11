@@ -191,25 +191,27 @@ const SurfaceSetting = ({
   );
 };
 
-const renderDrawer = (
+type DrawerOptions = {
+  enableOptimizationSurface?: boolean;
+} & Partial<
+  Pick<
+    OptimizationsContextValue,
+    | "setOptimizationNavigation"
+    | "cancelOptimization"
+    | "extendOptimization"
+    | "pauseOptimization"
+    | "resumeOptimization"
+    | "refineOptimizationBest"
+    | "removeOptimization"
+  >
+>;
+
+const drawerElement = (
   optimization: OptimizationRecord,
-  options: {
-    enableOptimizationSurface?: boolean;
-  } & Partial<
-    Pick<
-      OptimizationsContextValue,
-      | "setOptimizationNavigation"
-      | "cancelOptimization"
-      | "extendOptimization"
-      | "pauseOptimization"
-      | "resumeOptimization"
-      | "refineOptimizationBest"
-      | "removeOptimization"
-    >
-  > = {},
+  options: DrawerOptions = {},
 ) => {
   const { enableOptimizationSurface = false, ...actions } = options;
-  return render(
+  return (
     <OptimizationsContext
       value={makeOptimizationsContextValue(optimization, actions)}
     >
@@ -220,9 +222,14 @@ const renderDrawer = (
           optimization={optimization}
         />
       </SurfaceSetting>
-    </OptimizationsContext>,
+    </OptimizationsContext>
   );
 };
+
+const renderDrawer = (
+  optimization: OptimizationRecord,
+  options: DrawerOptions = {},
+) => render(drawerElement(optimization, options));
 
 const input = makeOptimizationInput(optimizedBindingSets.base);
 const { trials, best } = makeTrials(input, 5);
@@ -380,6 +387,24 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(
       screen.getByRole("button", { name: /Open full view/u }),
     ).toBeTruthy();
+  });
+
+  it("opens the next study's fixed parameters folded when the drawer swaps records in place", () => {
+    const view = renderDrawer(connected);
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Show \d+ fixed parameters/u }),
+    );
+    expect(
+      screen.getByRole("button", { name: /^Hide fixed parameters/u }),
+    ).toBeTruthy();
+
+    view.rerender(drawerElement({ ...connected, id: `${connected.id}-next` }));
+
+    expect(
+      screen
+        .getByRole("button", { name: /^Show \d+ fixed parameters/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
   it("summarizes the study in one strip and stars the best step in the table", () => {

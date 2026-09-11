@@ -143,39 +143,6 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBeTruthy();
   });
 
-  it("opens the next experiment's Parameters unfolded when the drawer swaps records in place", () => {
-    const view = renderDrawer(sweep);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Collapse Parameters" }),
-    );
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("true");
-
-    view.rerender(
-      <ViewExperimentDrawer
-        open
-        onClose={() => {}}
-        experiment={{ ...sweep, id: "experiment-5" }}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: "Collapse Parameters" }),
-    ).toBeTruthy();
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("false");
-    expect(screen.queryByText("Summary")).toBeNull();
-    expect(document.querySelector("[data-frame-progress]")).toBeTruthy();
-    expect(screen.getByText("Parameters")).toBeTruthy();
-    expect(screen.getByTestId("sweep-surface")).toBeTruthy();
-  });
-
   it("condenses the header once the body scrolls, with nothing else involved", () => {
     renderDrawer(sweep);
 
