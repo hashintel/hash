@@ -1,27 +1,21 @@
 ---
 title: Running the loop locally
-description: One command that stands up the whole optimization loop — browser, Python service, and CLI subprocess — without HASH.
+description: One command that stands up the Python optimizer service and its CLI subprocess locally — without HASH — and what reaches it.
 sidebar_order: 20
 attachTo: optimizer
 ---
 
-The full optimization loop runs locally without any HASH infrastructure. From
-the repository root:
+The Python [optimizer](layer:optimizer) service runs locally without any HASH
+infrastructure. From the repository root:
 
 ```sh
-turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
+turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service
 ```
 
-Then open [http://localhost:5173/optimization](http://localhost:5173/optimization)
-(or whatever port Vite prints). Simulate mode gains the **Optimizations** view,
-and studies created there run against the real
-[optimizer](layer:optimizer) service.
-
-Turborepo builds the website's workspace dependencies first, `@hashintel/petrinaut`
-included, because `dev` depends on `codegen`, which depends on `^build`. The
-website's dev task (`apps/petrinaut-website/scripts/dev.sh`) then hands the
-flag to the shell library `libs/@local/petrinaut-optimizer-client/scripts/optimizer-service.sh`,
-which does five things in order:
+Petrinaut's dev task (`libs/@hashintel/petrinaut/scripts/dev.sh`) hands the
+flag to the shell library
+`libs/@local/petrinaut-optimizer-client/scripts/optimizer-service.sh`, which
+does five things in order:
 
 1. Removes any container left behind by an earlier launcher run. A
    hard-killed launcher (closed terminal, crash) never reaches its cleanup,
@@ -38,54 +32,39 @@ which does five things in order:
    seconds, then it gives up). The image bundles the [CLI](layer:cli) at
    `/usr/local/bin/petrinaut`, so the service finds its child executable
    without any checkout-specific setup.
-4. Starts the website's Vite dev server with
-   `VITE_PETRINAUT_OPT_PROVIDER=service` and
-   `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`. The demo website consumes
-   Petrinaut's **built dist**, not the sources.
+4. Starts Storybook with `VITE_PETRINAUT_OPT_PROVIDER=service` and
+   `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`, which activates the
+   **Petrinaut → With real optimizer** story: the full editor, built from
+   source, with the service capability as its `PetrinautOptimizationContext`.
 5. Stops and removes its container when you stop the command. A reused
    optimizer is left alone.
 
 Docker must be running unless a reusable optimizer is already serving.
-Every other argument after `--` is forwarded to Vite, so
-`turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service --port 5175 --strictPort`
-pins the website port for tooling that needs to know it.
+Every other argument after `--` is forwarded to Storybook, so
+`turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service --port 6007`
+pins the port for tooling that needs to know it.
 
-## With Storybook, for editor work
+## What reaches the service
 
-The website consumes Petrinaut's **built dist**, so editing the editor means
-rebuilding it. Storybook builds the editor from source with fast refresh, and
-can run against the same real optimizer:
+Since optimization folded into the Experiments tab, the editor starts a study
+only from a sweep's Parameters card, and only on a connected source: the
+[browser runtime](layer:core.optimization.browser), which the demo website
+(`apps/petrinaut-website`) mounts and `useOptimizationSource()` returns while
+the experimental **In-browser optimization** setting is on. A plain
+`turbo run dev` in `@apps/petrinaut-website` therefore runs every study in the
+tab with no service involved ([the browser runtime](doc:optimizer/browser-runtime)
+covers that path), and the website has no service-backed route.
 
-```sh
-turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service
-```
-
-The container lifecycle is identical (steps 1–3 and 5); Petrinaut's dev task
-(`libs/@hashintel/petrinaut/scripts/dev.sh`) starts Storybook with the
-provider environment set instead of the website. Open the **Petrinaut → With real optimizer** story: the full
-editor on a net with an objective, where optimization studies created in
-Simulate mode run on the local service. Storybook's dev server carries the
-same `/api/petrinaut-opt/*` proxy as the website's, and the story explains
-how to launch when the environment is missing. Remaining arguments go to
-Storybook (`turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service --port 6007`).
-
-## Which optimizer plain `yarn dev` offers
-
-The editor renders the Optimizations tab only when `useOptimizationSource()`
-yields a source. The main demo (`/`) mounts the
-[browser runtime](layer:core.optimization.browser) as a connected source, which
-the hook returns only while the experimental **In-browser optimization**
-setting is on: a plain `turbo run dev` in `@apps/petrinaut-website` shows the
-tab once that setting is on, and the studies created there run in the tab with
-no service involved ([the browser runtime](doc:optimizer/browser-runtime)
-covers that path). The `/optimization` route mounts the service capability, and
-only with `VITE_PETRINAUT_OPT_PROVIDER=service` set; without it the route is
-not found. Storybook provides a fake optimizer for isolated UI work on the
-drawers.
+A remote capability such as the service passes through the hook, but the
+editor offers no Optimize control on it: the **With real optimizer** story and
+the HASH embed's bridge mount the capability without a surface that starts a
+study. Driving a sweep study through a remote evaluator is a follow-up; until
+then the service is exercised by `@local/petrinaut-optimizer-client`'s tests
+and by direct calls.
 
 ## The request path
 
-The browser never talks to the Python service directly. Vite's dev server
+The browser never talks to the Python service directly. Storybook's dev server
 proxies `/api/petrinaut-opt/*` to the optimizer origin (rewriting the prefix
 away), which avoids development-only CORS changes to the service. Behind
 that, the service spawns one `petrinaut serve` subprocess per optimization
@@ -94,10 +73,10 @@ run and speaks JSON lines to it — the
 contract, and the [CLI usage manual](doc:cli/usage-manual) the protocol.
 
 ```
-browser ── /api/petrinaut-opt/* ──▶ Vite proxy ──▶ petrinaut-opt (127.0.0.1:4004)
-                                                        │ one per run
-                                                        ▼
-                                                  petrinaut serve (JSON lines)
+browser ── /api/petrinaut-opt/* ──▶ Storybook proxy ──▶ petrinaut-opt (127.0.0.1:4004)
+                                                             │ one per run
+                                                             ▼
+                                                       petrinaut serve (JSON lines)
 ```
 
 Override the proxy target with `PETRINAUT_OPT_ORIGIN` when the service runs
@@ -122,15 +101,14 @@ Two things the Docker image otherwise provides become your problem:
   onto that path — the [Python bindings manual](doc:python-bindings/usage-manual)
   covers the options.
 - **The port.** Bare `uvicorn --reload` defaults to 8000; pass `--port 4004`
-  or point the website at it with `PETRINAUT_OPT_ORIGIN`.
+  or point Storybook at it with `PETRINAUT_OPT_ORIGIN`.
 
-Then start the website side alone, with the provider enabled:
+Then start Storybook alone, with the provider enabled:
 
 ```sh
-cd apps/petrinaut-website
-VITE_PETRINAUT_OPT_PROVIDER=service yarn dev
+cd libs/@hashintel/petrinaut
+VITE_PETRINAUT_OPT_PROVIDER=service yarn storybook dev
 ```
 
-Use the one-command Docker flow when you are working on Petrinaut and just
-need a real optimizer behind it; use the uvicorn flow when the service is
-what you are changing.
+Use the one-command Docker flow when you need a real optimizer behind the
+editor; use the uvicorn flow when the service is what you are changing.

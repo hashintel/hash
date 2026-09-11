@@ -59,14 +59,11 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
   },
 ];
 
-/** The modes with a view of their own; a study lives in its experiment's drawer. */
-type ViewedSimulateViewMode = Exclude<SimulateViewMode, "optimizations">;
-
 const views = {
   experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
-} satisfies Record<ViewedSimulateViewMode, ComponentType>;
+} satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
 
@@ -76,8 +73,7 @@ export const SimulateView = () => {
   const visibleModeOptions = modeOptions.filter(
     (option) => option.value !== "metrics",
   );
-  const visibleMode =
-    mode === "metrics" || mode === "optimizations" ? "experiments" : mode;
+  const visibleMode = mode === "metrics" ? "experiments" : mode;
   const ActiveView = views[visibleMode];
 
   return (
