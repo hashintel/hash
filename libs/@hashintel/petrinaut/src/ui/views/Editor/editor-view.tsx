@@ -197,7 +197,14 @@ export const EditorView = ({
   // rules never disagree.
   const effectiveMode = useEffectiveGlobalMode();
 
-  const openAiAssistant = () => {
+  const toggleAiAssistant = () => {
+    if (
+      isAiAssistantOpen &&
+      (effectiveMode === "edit" || effectiveMode === "actual")
+    ) {
+      setAiAssistantOpen(false);
+      return;
+    }
     if (effectiveMode !== "edit" && effectiveMode !== "actual") {
       setGlobalMode("edit");
     }
@@ -502,7 +509,7 @@ export const EditorView = ({
   return (
     <>
       <EditorCommands
-        onOpenAiAssistant={aiAssistant ? openAiAssistant : undefined}
+        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}

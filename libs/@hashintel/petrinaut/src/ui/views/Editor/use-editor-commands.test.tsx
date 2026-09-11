@@ -16,8 +16,8 @@ afterEach(cleanup);
 describe("AI assistant command", () => {
   it("registers only when an assistant is available and uses the latest action", () => {
     const registry = createCommandRegistry();
-    const open = vi.fn();
-    const updatedOpen = vi.fn();
+    const toggle = vi.fn();
+    const updatedToggle = vi.fn();
     const { rerender, unmount } = render(
       <CommandRegistryProvider registry={registry}>
         <EditorCommands />
@@ -26,38 +26,38 @@ describe("AI assistant command", () => {
     const aiCommand = () =>
       registry
         .list()
-        .find((command) => command.id === "petrinaut.ai-assistant.open");
+        .find((command) => command.id === "petrinaut.ai-assistant.toggle");
     expect(aiCommand()).toBeUndefined();
     rerender(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands onOpenAiAssistant={open} />
+        <EditorCommands onToggleAiAssistant={toggle} />
       </CommandRegistryProvider>,
     );
     expect(aiCommand()).toMatchObject({
-      label: "Open AI assistant",
+      label: "Toggle AI assistant",
       shortcut: "mod+shift+k",
     });
-    registry.execute("petrinaut.ai-assistant.open");
-    expect(open).toHaveBeenCalledOnce();
+    registry.execute("petrinaut.ai-assistant.toggle");
+    expect(toggle).toHaveBeenCalledOnce();
     rerender(
       <CommandRegistryProvider registry={registry}>
-        <EditorCommands onOpenAiAssistant={updatedOpen} />
+        <EditorCommands onToggleAiAssistant={updatedToggle} />
       </CommandRegistryProvider>,
     );
-    registry.execute("petrinaut.ai-assistant.open");
-    expect(updatedOpen).toHaveBeenCalledOnce();
+    registry.execute("petrinaut.ai-assistant.toggle");
+    expect(updatedToggle).toHaveBeenCalledOnce();
     unmount();
     expect(aiCommand()).toBeUndefined();
   });
 
   it.each(["metaKey", "ctrlKey"])(
-    "opens before text-field handlers with %s + Shift + K without a palette provider",
+    "toggles before text-field handlers with %s + Shift + K without a palette provider",
     (modifier) => {
-      const open = vi.fn();
+      const toggle = vi.fn();
       const { getByRole, unmount } = render(
         <>
           <input aria-label="Other input" />
-          <EditorCommands onOpenAiAssistant={open} />
+          <EditorCommands onToggleAiAssistant={toggle} />
         </>,
       );
       const input = getByRole("textbox");
@@ -71,17 +71,17 @@ describe("AI assistant command", () => {
           shiftKey: true,
         }),
       ).toBe(false);
-      expect(open).toHaveBeenCalledOnce();
+      expect(toggle).toHaveBeenCalledOnce();
       expect(deleteLine).not.toHaveBeenCalled();
       unmount();
       fireEvent.keyDown(window, { key: "K", [modifier]: true, shiftKey: true });
-      expect(open).toHaveBeenCalledOnce();
+      expect(toggle).toHaveBeenCalledOnce();
     },
   );
 
   it("leaves other chords, composition, and handled events alone", () => {
-    const open = vi.fn();
-    render(<EditorCommands onOpenAiAssistant={open} />);
+    const toggle = vi.fn();
+    render(<EditorCommands onToggleAiAssistant={toggle} />);
     for (const modifiers of [
       { metaKey: true },
       { shiftKey: true },
@@ -99,6 +99,6 @@ describe("AI assistant command", () => {
     });
     event.preventDefault();
     window.dispatchEvent(event);
-    expect(open).not.toHaveBeenCalled();
+    expect(toggle).not.toHaveBeenCalled();
   });
 });

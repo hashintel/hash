@@ -7,7 +7,7 @@ import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
-const useEditorCommands = (onOpenAiAssistant?: () => void): void => {
+const useEditorCommands = (onToggleAiAssistant?: () => void): void => {
   const {
     setCursorMode,
     setEditionMode,
@@ -24,19 +24,19 @@ const useEditorCommands = (onOpenAiAssistant?: () => void): void => {
 
   useCommand(
     {
-      id: "petrinaut.ai-assistant.open",
-      label: "Open AI assistant",
+      id: "petrinaut.ai-assistant.toggle",
+      label: "Toggle AI assistant",
       category: "Editor",
-      keywords: ["chat", "focus", "panel"],
+      keywords: ["chat", "focus", "panel", "open", "close"],
       shortcut: "mod+shift+k",
-      run: () => onOpenAiAssistant?.(),
+      run: () => onToggleAiAssistant?.(),
     },
-    { when: onOpenAiAssistant !== undefined },
+    { when: onToggleAiAssistant !== undefined },
   );
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (
-      onOpenAiAssistant &&
+      onToggleAiAssistant &&
       !event.defaultPrevented &&
       !event.isComposing &&
       !event.repeat &&
@@ -47,7 +47,7 @@ const useEditorCommands = (onOpenAiAssistant?: () => void): void => {
     ) {
       event.preventDefault();
       event.stopPropagation();
-      onOpenAiAssistant();
+      onToggleAiAssistant();
     }
   });
   useEffect(() => {
@@ -164,8 +164,8 @@ const useEditorCommands = (onOpenAiAssistant?: () => void): void => {
  * re-render this leaf and not the `EditorView` tree.
  */
 export const EditorCommands: React.FC<{
-  onOpenAiAssistant?: () => void;
-}> = ({ onOpenAiAssistant }) => {
-  useEditorCommands(onOpenAiAssistant);
+  onToggleAiAssistant?: () => void;
+}> = ({ onToggleAiAssistant }) => {
+  useEditorCommands(onToggleAiAssistant);
   return null;
 };

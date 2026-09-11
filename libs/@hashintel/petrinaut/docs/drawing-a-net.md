@@ -209,7 +209,7 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+Z              | Undo                                   |
 | Cmd+Shift+Z        | Redo                                   |
 | Cmd+F              | Search                                 |
-| Cmd+Shift+K        | Open and focus the AI assistant        |
+| Cmd+Shift+K        | Toggle the AI assistant                |
 | Delete / Backspace | Delete selection                       |
 
 On Windows/Linux, use Ctrl instead of Cmd.
