@@ -60,6 +60,7 @@ describe("toGpuMetricSpecs", () => {
         {
           id: "susceptible",
           integer: true,
+          sampleRuns: "active",
           sample: { kind: "placeCount", placeId: sir.places[0]!.id },
         },
       ],
@@ -78,10 +79,32 @@ describe("toGpuMetricSpecs", () => {
         {
           id: "metric__infected_fraction",
           integer: false,
+          sampleRuns: "active",
           sample: { kind: "expression", hir: spec.artifact.hir },
         },
       ],
     });
+  });
+
+  it("carries the spec's `sampleRuns` to the shader", () => {
+    // The optimizer objective and the experiment drawer sample `all` runs, so
+    // a finished run's final state counts in every later frame on both
+    // backends.
+    const result = toGpuMetricSpecs(
+      [
+        { ...susceptibleCount, sampleRuns: "completed" },
+        modelMetricSpec(sir, "metric__infected_fraction", {
+          sampleRuns: "all",
+        }),
+      ],
+      { sdcpn: sir },
+    );
+
+    expect(
+      result.ok
+        ? result.metrics.map(({ sampleRuns }) => sampleRuns)
+        : result.reason,
+    ).toStrictEqual(["completed", "all"]);
   });
 
   it("refuses an expression the shader cannot translate and names the construct", () => {

@@ -10,6 +10,11 @@
  * reproduced by hand. It needs a browser with WebGPU (real hardware; the
  * GPU column reports why when unavailable), and it logs a `gpu-parity:`
  * JSON line so scripts can extract the numbers.
+ *
+ * The place-count rows sample active runs, the chart default; the expression
+ * row samples `all` runs, as the optimizer objective and the experiment form
+ * do, so it also checks the shader's run-status guard and the final frame
+ * (row `frame_limit`, where every run is complete) against the CPU.
  */
 import { useEffect, useState } from "react";
 

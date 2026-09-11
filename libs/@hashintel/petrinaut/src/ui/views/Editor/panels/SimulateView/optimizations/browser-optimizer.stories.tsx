@@ -127,7 +127,7 @@ const watchForNote =
   "Everything is in view at once: the summary strip (status, steps, best, backend, progress bars and the computing chip), the Parameters band, the Surface beside the objective's chart, and the steps table filling the rest. Watch the band follow each step, the Surface gain a dot per step — the best emphasized, the field filling in between them, the ringed dot on the step in flight streaming its running value — and the chart beside it stream the objective over the step's runs. While the study runs the sliders are disabled and a drag on the Surface does nothing; turn Follow steps off to take over early. Once complete, click the Surface or move a slider: the point refines in escalating batches, its value enters the field, and the chart streams again.";
 
 const gpuNote =
-  "With WebGPU on in settings, the create form's Backend switch appears but stays disabled for an expression objective by design: the GPU backend cannot compute expression metrics, so steps run on the CPU.";
+  "With WebGPU on in settings, the create form's Backend switch appears, available when the objective translates to WGSL (counts, parameters, arithmetic, conditionals and one place's tokens) and greyed out with the reason on hover otherwise; a drafted state constraint greys it out too, since its indicator aggregates over time.";
 
 export const SirCpu: Story = {
   name: "SIR CPU",
@@ -153,7 +153,7 @@ export const SirGpuRequested: Story = {
   parameters: {
     docs: {
       description: {
-        story: `The SIR study with WebGPU enabled and the GPU requested for its steps. The GPU backend declines the expression objective, so the record's badge reads CPU and its tooltip carries the reason: the real fallback. ${firstRunNote} ${watchForNote} ${gpuNote}`,
+        story: `The SIR study with WebGPU enabled and the GPU requested for its steps. Infected Fraction translates to WGSL, so in a browser with WebGPU the steps run on the device and the record's badge reads GPU; without WebGPU the backend declines the request and the badge reads CPU with the reason in its tooltip: the real fallback. ${firstRunNote} ${watchForNote} ${gpuNote}`,
       },
     },
   },
@@ -191,7 +191,7 @@ export const VaccinationCampaign: Story = {
   parameters: {
     docs: {
       description: {
-        story: `The Vaccination Campaign example's Winter wave scenario, minimizing Total cost over vaccination coverage (0 to 0.9) and contact reduction (0 to 0.8) on the CPU: the model built for this drawer. Cases are priced against a campaign and distancing whose prices rise quadratically, so the Surface shows a valley along the epidemic threshold with its floor near a coverage of 0.45 and a contact reduction of 0.4 (about 960 against 1,280 to 2,220 in the corners). Six steps are still the sampler's random start-up, so expect scattered dots with the best step landing in the valley and the Surface field dipping there. The net is GPU-eligible, so an experiment on it runs on the GPU when one is available, while the study's expression objective keeps its steps on the CPU. ${firstRunNote} ${watchForNote} ${gpuNote}`,
+        story: `The Vaccination Campaign example's Winter wave scenario, minimizing Total cost over vaccination coverage (0 to 0.9) and contact reduction (0 to 0.8) on the CPU: the model built for this drawer. Cases are priced against a campaign and distancing whose prices rise quadratically, so the Surface shows a valley along the epidemic threshold with its floor near a coverage of 0.45 and a contact reduction of 0.4 (about 960 against 1,280 to 2,220 in the corners). Six steps are still the sampler's random start-up, so expect scattered dots with the best step landing in the valley and the Surface field dipping there. The net is GPU-eligible and Total cost translates to WGSL, so with WebGPU on the study's Backend switch is available. ${firstRunNote} ${watchForNote} ${gpuNote}`,
       },
     },
   },

@@ -20,9 +20,14 @@ import type { SDCPN } from "../types/sdcpn";
 import type { GpuMetricSpec, GpuOdeMethod } from "./compile-net-shader";
 
 /** A metric sampling one place's token count. */
-const placeCount = (id: string, placeId: string): GpuMetricSpec => ({
+const placeCount = (
+  id: string,
+  placeId: string,
+  sampleRuns: GpuMetricSpec["sampleRuns"] = "active",
+): GpuMetricSpec => ({
   id,
   integer: true,
+  sampleRuns,
   sample: { kind: "placeCount", placeId },
 });
 
@@ -33,6 +38,7 @@ const placeCount = (id: string, placeId: string): GpuMetricSpec => ({
 const expression = (id: string, hir: HirFunction): GpuMetricSpec => ({
   id,
   integer: false,
+  sampleRuns: "active",
   sample: { kind: "expression", hir },
 });
 
@@ -325,12 +331,13 @@ describe("compileNetShader", () => {
     expect(wgsl).not.toContain("if (running && status == 0u) {");
   });
 
-  it("never writes the histogram's last row, so sampling first costs no buffer", () => {
-    // The buffer holds `frame_limit` rows. Sampling after the step left row
-    // `frame_limit - 1` empty: every run still running takes status 2 at the
-    // frame limit inside the end-of-frame fold, and a finished run is never
-    // sampled. Sampling first fills rows 0..frame_limit - 1 of the same
-    // buffer, as long as that status flip still follows the sample.
+  it("flips a run's status after the sample, so a run leaves `active` in the frame it finishes", () => {
+    // The CPU excludes a run from `active` in the frame it completes or
+    // deadlocks and counts it as `completed` from that frame on. The shader
+    // matches as long as the end-of-frame fold's status flip follows the
+    // sample: row f then reads the status step f - 1 left, and row
+    // `frame_limit`, sampled by the host's extra iteration, sees every run
+    // at status 2.
     const result = compileFor(sir, {
       metrics: [placeCount("infected", "place__infected")],
     });
@@ -975,10 +982,18 @@ function unbalancedBraces(wgsl: string): number {
 
 /**
  * Expression metrics are emitted from their HIR at the top of the frame,
- * inside the same `if (in_range && status == 0u)` block a place count is
- * sampled in. These pin the emitted text for the shapes the bundled examples
- * use: count arithmetic with a conditional, a `tokens.reduce` loop, and a
- * swept parameter.
+ * inside the same status-guarded block a place count is sampled in. These pin
+ * the emitted text for the shapes the bundled examples use: count arithmetic
+ * with a conditional, a `tokens.reduce` loop, and a swept parameter.
+ *
+ * Validated by hand with naga 30.0.1 (`naga <file>.wgsl`, "Validation
+ * successful") on three dumps of this emitter: SIR with Infected Fraction
+ * sampling `all` runs, SIR with an active place count beside Infected Fraction
+ * sampling `completed` runs, and capped satellites with all four model metrics
+ * (two of them `reduce` loops) sampling `all` runs — so `fn window_bin`,
+ * `f32_order_key`, the `var`/`for` reduce inside the frame loop, `select` over
+ * a division and each status guard pass a real validator, not only the scans
+ * below.
  */
 describe("expression metrics", () => {
   const cappedSatellites = (): SDCPN => ({
@@ -1122,6 +1137,71 @@ describe("expression metrics", () => {
     );
     expect(wgsl).toContain(
       "for (var m3_u_1_s: u32 = 0u; m3_u_1_s < counts[0u];",
+    );
+    expect(sameScopeRedeclarations(wgsl)).toStrictEqual([]);
+    expect(unbalancedBraces(wgsl)).toBe(0);
+  });
+});
+
+/**
+ * `sampleRuns` selects the runs a frame counts by the status word: 0 is a run
+ * still stepping, 1 deadlocked, 2 at the frame limit (both `complete` on the
+ * CPU), 3 and above halted by an overflow or a non-finite sample. A finished
+ * run's registers are frozen by the `running` gate, so a later frame reads
+ * its final state.
+ */
+describe("run sampling", () => {
+  it("samples active runs by default, as the CPU does", () => {
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected")],
+    });
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.shader.wgsl).toContain(
+      "    if (in_range && status == 0u) {\n      let v0: f32 = f32(counts[1u]);",
+    );
+  });
+
+  it("samples completed runs through both finished statuses and never a halted one", () => {
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected", "completed")],
+    });
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.shader.wgsl).toContain(
+      "    if (in_range && (status == 1u || status == 2u)) {\n      let v0: f32 = f32(counts[1u]);",
+    );
+  });
+
+  it("samples all runs below the halted statuses", () => {
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected", "all")],
+    });
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.shader.wgsl).toContain(
+      "    if (in_range && status <= 2u) {\n      let v0: f32 = f32(counts[1u]);",
+    );
+  });
+
+  it("guards each metric by its own mode and scans clean", () => {
+    // The optimizer objective samples `all` runs beside a chart's default
+    // `active` place count; each block carries its own guard.
+    const result = compileFor(sir, {
+      metrics: [
+        placeCount("infected", "place__infected"),
+        {
+          ...modelMetric(sir, "metric__infected_fraction"),
+          sampleRuns: "all",
+        },
+      ],
+    });
+    if (!result.ok) throw new Error(result.reason);
+    const { wgsl } = result.shader;
+
+    expect(wgsl).toContain("    if (in_range && status == 0u) {\n      let v0");
+    expect(wgsl).toContain(
+      "    if (in_range && status <= 2u) {\n      let m1_u_0_s: f32 = f32(counts[0u]);",
     );
     expect(sameScopeRedeclarations(wgsl)).toStrictEqual([]);
     expect(unbalancedBraces(wgsl)).toBe(0);

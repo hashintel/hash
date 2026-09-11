@@ -15,14 +15,18 @@
  * the bundled examples' 30 model metrics, 28 translate; the two `.concat`
  * averages stay on the CPU.
  *
- * Where a GPU frame differs from the CPU's: the shader samples the runs still
- * active in a frame, whatever `sampleRuns` asks (the spec is accepted and the
- * setting ignored), so on a terminating net late frames weight the
- * longest-lived runs. A non-finite sample halts its run on the device and the
- * handle fails the experiment after the attempt, where the CPU throws at the
- * frame. Scalar aggregates are reduced from bin labels — exact for integer
- * metrics at stride 1, quantised to the labels otherwise — and `last` is the
- * highest bin label rather than the highest run index's sample.
+ * `sampleRuns` is carried to the shader, which tests each run's status word
+ * the way the CPU tests the run's status, so a metric over `all` runs counts
+ * a finished run's final state in every later frame on both backends, and the
+ * device writes the CPU's final frame (row `frame_limit`, where every run is
+ * complete) rather than stopping one row short.
+ *
+ * Where a GPU frame differs from the CPU's: a non-finite sample halts its run
+ * on the device and the handle fails the experiment after the attempt, where
+ * the CPU throws at the frame. Scalar aggregates are reduced from bin labels —
+ * exact for integer metrics at stride 1, quantised to the labels otherwise —
+ * and `last` is the highest bin label rather than the highest run index's
+ * sample.
  */
 import { tryTranslateMetric } from "./try-translate-metric";
 
@@ -75,10 +79,13 @@ export function toGpuMetricSpecs(
         reason: `The GPU backend does not aggregate metrics over time yet; metric "${spec.label}" uses a time aggregation.`,
       };
     }
+    // The CPU's default when a spec leaves it unset (`shouldSampleRun`).
+    const sampleRuns = spec.sampleRuns ?? "active";
     if (spec.kind === "placeTokenCountMean") {
       metrics.push({
         id: spec.id,
         integer: true,
+        sampleRuns,
         sample: { kind: "placeCount", placeId: spec.placeId },
       });
       continue;
@@ -106,6 +113,7 @@ export function toGpuMetricSpecs(
     metrics.push({
       id: spec.id,
       integer: translation.integer,
+      sampleRuns,
       sample: { kind: "expression", hir },
     });
   }

@@ -184,8 +184,10 @@ the same parameter values step for step while the objective values match;
 above 1 the constant-liar sampler also counts the trials in flight, and the
 proposals differ from a sequential study's. A connected study runs on the GPU
 when its objective translates to WGSL (`useGpuAvailability` reads the
-compilation report); a study with state constraints still falls back to the
-CPU at run time, because their indicators aggregate over time.
+compilation report). The drawer's gate also carries one `min`-aggregated spec
+per drafted state constraint, as the run carries their indicators, so a study
+with state constraints is refused at the switch with the sentence the run-time
+gate would give rather than falling back after the switch was flipped.
 `test_runtime_lock.py` in optimizer-core fails when the Optuna pin in
 `runtime-lock.json` differs from the version the package's own lockfile
 installs; the service resolves the same version range (`optuna>=4.9,<5`) in

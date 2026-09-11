@@ -12,6 +12,7 @@ import { WgslBailError } from "../emit-wgsl";
 import { emitMetricSample } from "./metric-sample";
 
 import type { HirFunction } from "../../hir/hir";
+import type { MonteCarloUserDefinedMetricSampleRuns } from "../../simulation/monte-carlo/metrics";
 import type { GpuNetProfile } from "../eligibility";
 import type { WgslParameterValue, WgslValue } from "../emit-wgsl";
 
@@ -33,6 +34,13 @@ export type GpuMetricSpec = {
   id: string;
   /** Every sample is a whole number, so bins keep exact integer labels. */
   integer: boolean;
+  /**
+   * Which runs a frame samples, read off the run's status word as the CPU
+   * reads it off the run's status: `active` is a run still stepping,
+   * `completed` one that reached the frame limit or deadlocked, `all` both.
+   * A run halted by an error is never sampled.
+   */
+  sampleRuns: MonteCarloUserDefinedMetricSampleRuns;
   sample:
     /** A place's token count, read from `counts[]`. */
     | { kind: "placeCount"; placeId: string }
@@ -172,12 +180,38 @@ export const workgroupHistogramLines = (
       ];
 
 /**
+ * The status test a metric's `sampleRuns` selects. Status 0 is a run still
+ * stepping; 1 (deadlocked) and 2 (reached the frame limit) are both `complete`
+ * on the CPU; 3 and above are halted runs, which no mode samples.
+ */
+const sampledStatusCondition = (
+  sampleRuns: MonteCarloUserDefinedMetricSampleRuns,
+): string => {
+  switch (sampleRuns) {
+    case "active":
+      return "status == 0u";
+    case "completed":
+      return "(status == 1u || status == 2u)";
+    case "all":
+      return "status <= 2u";
+  }
+};
+
+/**
  * Emits the start-of-frame sampling: zero the workgroup histogram, sample each
- * live run's metrics as f32 and bin them, then flush to the global histogram
- * and range. Sampling precedes the step, so row `f` holds the state after `f`
- * steps and row 0 is the initial marking; no row is spent on it, because the
- * last row was never written when sampling followed the step (every run still
- * running takes `status = 2u` at the frame limit).
+ * run the metric asks for as f32 and bin it, then flush to the global
+ * histogram and range. Sampling precedes the step, so row `f` holds the state
+ * after `f` steps and row 0 is the initial marking. The host dispatches one
+ * iteration past the frame limit, in which nothing runs: it writes row
+ * `frame_limit`, the CPU's final frame, where every run is complete and only a
+ * metric sampling completed runs has anything to count.
+ *
+ * A finished run's registers and token slots hold its final state, since
+ * every write is gated on `running`, so sampling it later is the same read as
+ * sampling a live run: `active` takes `status == 0u`, `completed` the two
+ * finished statuses, `all` both. A run halted by an overflow or a non-finite
+ * sample (status 3 and above) is never sampled, as the CPU skips an errored
+ * run.
  *
  * One path for every metric: the sample is an f32 — a place count cast from
  * its register, or a metric body emitted over `metricState` — its observed
@@ -218,9 +252,11 @@ export const emitFrameHistograms = (
     `    // \`absolute_frame\` steps, so row f is frame f and row 0 is the initial`,
   );
   push(
-    `    // marking. A run is sampled while active, the CPU metric default, which`,
+    `    // marking. Each metric samples the runs its \`sampleRuns\` names by status:`,
   );
-  push(`    // excludes a run in the frame it deadlocks or completes.`);
+  push(
+    `    // 0 active, 1 deadlocked, 2 complete; a halted run is never sampled.`,
+  );
   push(
     `    for (var b: u32 = lid; b < ${totalBins}u; b = b + ${workgroupSize}u) {`,
   );
@@ -237,13 +273,12 @@ export const emitFrameHistograms = (
     const value = `v${metricIndex}`;
     const key = `k${metricIndex}`;
     const bin = `b${metricIndex}`;
-    // Samples only runs still active at the top of the frame: the previous
-    // step set the status, so the CPU metric default's exclusion of a run in
-    // the frame it deadlocks or completes holds here too. A sample outside the
-    // window clamps into the edge bin and is counted as an escape, which
+    // The previous step set the status, so a run is excluded from `active`
+    // in the frame it deadlocks or completes, as on the CPU. A sample outside
+    // the window clamps into the edge bin and is counted as an escape, which
     // triggers a recalibrated re-run — the clamped picture is only ever an
     // intermediate.
-    push(`    if (in_range && status == 0u) {`);
+    push(`    if (in_range && ${sampledStatusCondition(metric.sampleRuns)}) {`);
     if (metric.sample.kind === "placeCount") {
       const placeIndex = placeIndexById.get(metric.sample.placeId);
       if (placeIndex === undefined) {

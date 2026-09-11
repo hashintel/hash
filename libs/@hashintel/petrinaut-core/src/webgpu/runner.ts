@@ -206,7 +206,11 @@ export async function runGpuExperiment(
 
   const bytesPerRun = shader.stateWordsPerRun * 4;
   const histWordsPerFrame = shader.histogramBins * metricCount;
-  const histBytes = Math.max(1, frameLimit * histWordsPerFrame) * 4;
+  // Rows 0..frameLimit: row f is the state after f steps, and the last row is
+  // the CPU's final frame, sampled by one loop iteration past the limit in
+  // which nothing runs. Only a metric sampling completed runs writes it.
+  const sampledRows = frameLimit + 1;
+  const histBytes = Math.max(1, sampledRows * histWordsPerFrame) * 4;
 
   const tooLarge = describeBufferOverflow({
     histBytes,
@@ -285,7 +289,7 @@ export async function runGpuExperiment(
       : device.createBuffer({
           size: Math.max(
             4,
-            Math.min(framesPerDispatch, frameLimit) * histWordsPerFrame * 4,
+            Math.min(framesPerDispatch, sampledRows) * histWordsPerFrame * 4,
           ),
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
@@ -435,7 +439,7 @@ export async function runGpuExperiment(
 
       let baseFrame = 0;
       for (const chunkFrameCount of dispatchChunkFrames(
-        frameLimit,
+        sampledRows,
         framesPerDispatch,
       )) {
         // Frames already advanced stay in the histogram, and the caller is
@@ -460,13 +464,15 @@ export async function runGpuExperiment(
         // Awaiting per chunk (not per frame) keeps the browser responsive and
         // bounds how far ahead the queue runs, at negligible cost.
         await device.queue.onSubmittedWorkDone();
-        const framesDone = Math.min(baseFrame + chunkFrameCount, frameLimit);
+        const rowsDone = baseFrame + chunkFrameCount;
+        // Progress counts steps, so the final sampling row is not a frame done.
+        const framesDone = Math.min(rowsDone, frameLimit);
         if (chunkReadback !== null) {
           // Every frame's bins are final once its dispatch retired, so the
           // chunk's range can be read while later dispatches queue. Later
           // tiles re-read ranges earlier tiles already streamed; the
           // re-decoded frames carry every tile's samples so far.
-          const chunkFrames = framesDone - baseFrame;
+          const chunkFrames = rowsDone - baseFrame;
           const chunkBytes = chunkFrames * histWordsPerFrame * 4;
           const copyEncoder = device.createCommandEncoder();
           copyEncoder.copyBufferToBuffer(
@@ -499,7 +505,7 @@ export async function runGpuExperiment(
           runsInTile,
           runCount,
         });
-        baseFrame = framesDone;
+        baseFrame = rowsDone;
       }
 
       dispatchMs += now() - start;
@@ -611,7 +617,7 @@ export async function runGpuExperiment(
       firstFrame: 0,
       frameCount: sampledFrameCount({
         data: histogram,
-        frameLimit,
+        frameLimit: sampledRows,
         metricCount,
         histogramBins: shader.histogramBins,
       }),

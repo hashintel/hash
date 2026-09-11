@@ -1,7 +1,8 @@
 /**
  * Decoding the device's histogram buffer into per-frame metric frames.
  *
- * The buffer holds `frameLimit × metrics × bins` u32 counts, frame-major then
+ * The buffer holds `(frameLimit + 1) × metrics × bins` u32 counts, one row
+ * per frame from the initial marking to the final state, frame-major then
  * metric-major; bin `b` covers the values `[lo + b × stride, lo + (b + 1) ×
  * stride)` of its metric's window. An integer window labels the bin by its
  * middle integer, exact at stride 1; a real window labels it by its centre.
