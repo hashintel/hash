@@ -62,13 +62,9 @@ Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom pa
 
 Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in the experiment form, so an experiment can explore an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
 
-### Optimization surface (experimental)
-
-Off by default. Adds an **Objective surface** card to a study run on the optimization service with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
-
 ### In-browser optimization (experimental)
 
-Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, Petrinaut connects that optimizer: the **Optimizations** tab appears under Simulate, each study's steps run on the experiments backend, and the study drawer streams the objective's metrics for the step being evaluated (see [Running in the browser](optimization.md#running-in-the-browser)). Off, the tab stays hidden and any running in-browser optimization is cancelled.
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, a sweep's Parameters card offers **Optimize** and the Create Experiment drawer offers **Constraints**; each study's steps run on the experiments backend and the experiment drawer follows the step being evaluated (see [Running in the browser](optimization.md#running-in-the-browser)). Off, both hide and any running in-browser optimization is cancelled.
 
 ### Arcs rendering
 

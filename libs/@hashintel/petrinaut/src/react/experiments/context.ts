@@ -6,7 +6,6 @@ import type {
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
-  SweepCellSnapshot,
   SweepNavigateOptions,
   SweepSelection,
   SweepVisitedCell,
@@ -20,14 +19,10 @@ export type {
 import type {
   AdHocScenarioState,
   Constraint,
-  HirMetricArtifact,
-  SDCPN,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
-  MonteCarloUserDefinedMetricTimeAggregation,
   MonteCarloWorkerProgress,
-  ReadableStore,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautOptimizationConstraintPolicy } from "@hashintel/petrinaut-core/optimization";
 
@@ -253,136 +248,7 @@ export type ExperimentsContextValue = {
     selection: SweepSelection,
     options?: SweepNavigateOptions,
   ) => Promise<SweepVisitedCell | null>;
-  /**
-   * Computes one metric sample against an arbitrary net snapshot, on the
-   * background single-worker lane — the optimization surface's local compute
-   * path, which must run a study's frozen model rather than the live editor
-   * net. Batches are serialized; compilation is cached per `cacheKey`.
-   * Resolves null when the batch is refused or fails (a hole in the surface,
-   * not an error).
-   */
-  sampleDetachedObjective: (
-    request: DetachedObjectiveRequest,
-  ) => Promise<SweepCellSnapshot | null>;
-  /**
-   * Streams one batch of a study's objective at one parameter point on the
-   * requested backend: the in-browser optimizer's trials and the study
-   * drawer's selected-point refinement. Batches queue per `queueKey` (the
-   * `cacheKey` by default); different keys run side by side. The
-   * returned run never rejects — refusal, failure and cancellation all
-   * settle `completion` with a failed outcome naming the reason.
-   */
-  runDetachedObjective: (
-    request: DetachedObjectiveRunRequest,
-  ) => DetachedObjectiveRun;
-  /**
-   * The net parameter values a study's batch simulates with at one
-   * parameter point: the scenario's overrides applied to the net's defaults,
-   * from the same compiled snapshot the batches use. Rejects when the
-   * scenario does not compile there.
-   */
-  resolveDetachedObjectiveParameters: (
-    request: DetachedObjectiveParametersRequest,
-  ) => Promise<Readonly<Record<string, number | boolean>>>;
 };
-
-/**
- * A metric a batch observes beside its objective, already compiled: the
- * request carries no code to lower. Each run's value, aggregated over time
- * as asked, lands in the batch's `runResults` under `id`.
- */
-export type DetachedObjectiveAuxiliaryMetric = {
-  id: string;
-  label: string;
-  artifact: HirMetricArtifact;
-  aggregateTime: MonteCarloUserDefinedMetricTimeAggregation;
-};
-
-/** One local compute batch for an optimization study's objective. */
-export type DetachedObjectiveRequest = {
-  /** Compile-cache identity; one study keeps one compiled snapshot. */
-  cacheKey: string;
-  /** The frozen model snapshot to run (not the live editor net). */
-  definition: SDCPN;
-  scenarioId: string;
-  /** Parsed values for every scenario parameter (bindings plus navigation). */
-  scenarioParameterValues: Readonly<Record<string, number | boolean>>;
-  /** The study's objective metric, evaluated as an expression metric. */
-  metric: { id: string; label: string; code: string };
-  /** Metrics observed beside the objective; none by default. */
-  auxiliaryMetrics?: readonly DetachedObjectiveAuxiliaryMetric[];
-  seed: number;
-  runCount: number;
-  dt: number;
-  maxTime: number;
-};
-
-/** One parameter point of a study, for resolving the net parameters its batch would run with. */
-export type DetachedObjectiveParametersRequest = Pick<
-  DetachedObjectiveRequest,
-  | "cacheKey"
-  | "definition"
-  | "scenarioId"
-  | "scenarioParameterValues"
-  | "metric"
->;
-
-export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
-  /**
-   * Pinned per-run seeds, `runCount` long; CPU only. Absent (and always on
-   * the GPU, which derives every run's seed from `seed`), runs derive their
-   * seeds from `seed`.
-   */
-  runSeeds?: readonly number[];
-  /**
-   * Runs sharing a queue key run one at a time, in order; runs with
-   * different keys overlap. Defaults to `cacheKey`, so a study's batches
-   * queue unless the caller gives each its own key.
-   */
-  queueKey?: string;
-  computeBackend: ExperimentComputeBackend;
-  signal?: AbortSignal;
-};
-
-export type DetachedObjectiveRunResult = {
-  runsCompleted: number;
-  metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
-  /** Per-run final metric values; empty on the GPU, which reports no run axis. */
-  runResults: ReadonlyMap<number, Readonly<Record<string, number>>>;
-  /** Where the batch ran. */
-  computeBackend: ExperimentComputeBackend;
-  /** Why the requested backend declined, when the batch ran elsewhere. */
-  computeBackendFallbackReason: string | null;
-};
-
-/**
- * How a batch ended. A failure carries a reason the user can act on: the
- * diagnostics of a metric that did not compile, each backend that declined
- * and why, how many runs errored. `cancelled` marks a batch stopped through
- * `cancel` or the request's signal, which nobody needs to act on.
- */
-export type DetachedObjectiveRunOutcome =
-  | ({ readonly ok: true } & DetachedObjectiveRunResult)
-  | {
-      readonly ok: false;
-      readonly reason: string;
-      readonly cancelled: boolean;
-    };
-
-/** One streaming batch for a study's objective at one parameter point. */
-export type DetachedObjectiveRun = {
-  /** Frames so far; replaced as the batch streams, at most every 100 ms. */
-  readonly frames: ReadableStore<readonly MonteCarloUserDefinedMetricFrame[]>;
-  readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
-  /** Settles on the terminal event; never rejects. */
-  readonly completion: Promise<DetachedObjectiveRunOutcome>;
-  cancel(this: void): void;
-};
-
-const constantStore = <T>(value: T): ReadableStore<T> => ({
-  get: () => value,
-  subscribe: () => () => {},
-});
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   experiments: [],
@@ -394,19 +260,6 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   removeExperiment: () => {},
   setSweepSelection: () => {},
   navigateSweep: () => Promise.resolve(null),
-  sampleDetachedObjective: () => Promise.resolve(null),
-  runDetachedObjective: () => ({
-    frames: constantStore([]),
-    progress: constantStore(null),
-    completion: Promise.resolve({
-      ok: false,
-      cancelled: false,
-      reason: "Experiments are unavailable",
-    }),
-    cancel: () => {},
-  }),
-  resolveDetachedObjectiveParameters: () =>
-    Promise.reject(new Error("Experiments are unavailable")),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
@@ -427,9 +280,6 @@ export type ExperimentsActionsValue = Pick<
   | "removeExperiment"
   | "setSweepSelection"
   | "navigateSweep"
-  | "sampleDetachedObjective"
-  | "runDetachedObjective"
-  | "resolveDetachedObjectiveParameters"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(

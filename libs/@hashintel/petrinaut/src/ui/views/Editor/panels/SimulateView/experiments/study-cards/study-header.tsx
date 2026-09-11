@@ -61,13 +61,6 @@ export const StudyHeader = ({
   return (
     <div className={headerStyle} data-study-header>
       <span className={textStyle}>{describeStudyProgress(optimization)}</span>
-      {optimization.status === "paused" ? (
-        <span className={chipSlotStyle} data-paused-chip>
-          <Chip size="xs" variant="soft" color="grey">
-            Paused
-          </Chip>
-        </span>
-      ) : null}
       {verdict === null ? null : (
         <span className={chipSlotStyle} data-verdict={verdict.kind}>
           <Chip size="xs" variant="soft" color={VERDICT_COLOR[verdict.kind]}>

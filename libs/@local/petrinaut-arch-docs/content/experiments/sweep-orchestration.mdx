@@ -69,13 +69,10 @@ experiment's max time.
 
 - The session's private pieces (selection keys and range draws) sit next to
   `sweep-session.ts` in
-  [react.experiments.sweep](layer:react.experiments.sweep); the throttle is a
-  `react/experiments/shared` helper, as is the batch registry the
-  optimizations provider's `connected-study.ts` uses for a study's own
-  activity.
-- The provider's batch instantiator, the detached objective sampler used by
-  the optimization surface, experiment creation and record patching sit under
-  `provider/`.
+  [react.experiments.sweep](layer:react.experiments.sweep); the throttle and
+  the batch registry are `react/experiments/shared` helpers.
+- The provider's batch instantiator, experiment creation and record patching
+  sit under `provider/`.
 - Backends and the run plan contract are in
   [core.experiments](layer:core.experiments); the pooled worker factory in
   [core.simulation.monte-carlo.runtime](layer:core.simulation.monte-carlo.runtime).

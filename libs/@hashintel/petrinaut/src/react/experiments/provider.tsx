@@ -50,10 +50,6 @@ import {
   newExperimentRecord,
 } from "./provider/create-experiment";
 import {
-  createDetachedObjectiveSampler,
-  type DetachedObjectiveSampler,
-} from "./provider/detached-objective";
-import {
   latestFramesById,
   mapExperimentStatus,
   patchExperimentRecords,
@@ -149,9 +145,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
   /** Backends an experiment chose, disposed with the experiment. */
   const backendsRef = useRef(new Map<string, ExperimentBackend[]>());
-  const detachedObjectiveSamplerRef = useRef<DetachedObjectiveSampler | null>(
-    null,
-  );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const selectedExperimentId =
     navigation.state.simulateResource?.type === "experiment"
@@ -176,10 +169,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const pendingRegistrations = pendingRegistrationsRef.current;
     const sweepSessions = sweepSessionsRef.current;
     const chosenBackends = backendsRef.current;
-    const detachedObjectiveSampler = detachedObjectiveSamplerRef;
     return () => {
-      detachedObjectiveSampler.current?.dispose();
-      detachedObjectiveSampler.current = null;
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
       }
@@ -654,31 +644,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const stableRemoveExperiment = useStableCallback(removeExperiment);
   const stableSetSweepSelection = useStableCallback(setSweepSelection);
   const stableNavigateSweep = useStableCallback(navigateSweep);
-  // Built on first use: a session that never opens an optimization surface
-  // or runs a study in the browser spawns no extra worker lane.
-  const getDetachedObjectiveSampler = (): DetachedObjectiveSampler => {
-    detachedObjectiveSamplerRef.current ??= createDetachedObjectiveSampler({
-      languageClient: languageClientRef,
-      createWorker: reusableWorkerFactory,
-      shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
-    });
-    return detachedObjectiveSamplerRef.current;
-  };
-  const sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"] =
-    (request) => getDetachedObjectiveSampler().sample(request);
-  const runDetachedObjective: ExperimentsContextValue["runDetachedObjective"] =
-    (request) => getDetachedObjectiveSampler().run(request);
-  const resolveDetachedObjectiveParameters: ExperimentsContextValue["resolveDetachedObjectiveParameters"] =
-    (request) => getDetachedObjectiveSampler().resolveParameters(request);
-
-  const stableSampleDetachedObjective = useStableCallback(
-    sampleDetachedObjective,
-  );
-  const stableRunDetachedObjective = useStableCallback(runDetachedObjective);
-  const stableResolveDetachedObjectiveParameters = useStableCallback(
-    resolveDetachedObjectiveParameters,
-  );
-
   // Every callback is identity-stable, so this object never changes and
   // actions-only consumers sit out the per-publish re-render storm.
   const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
@@ -688,10 +653,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: stableSetSweepSelection,
     navigateSweep: stableNavigateSweep,
-    sampleDetachedObjective: stableSampleDetachedObjective,
-    runDetachedObjective: stableRunDetachedObjective,
-    resolveDetachedObjectiveParameters:
-      stableResolveDetachedObjectiveParameters,
   }));
 
   const contextValue: ExperimentsContextValue = {

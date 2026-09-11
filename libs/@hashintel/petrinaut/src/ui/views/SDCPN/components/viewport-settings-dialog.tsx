@@ -116,8 +116,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setShowCompilationOutput,
     enableParameterSweeps,
     setEnableParameterSweeps,
-    enableOptimizationSurface,
-    setEnableOptimizationSurface,
     enableInBrowserOptimization,
     setEnableInBrowserOptimization,
   } = use(UserSettingsContext);
@@ -322,23 +320,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Toggle
             value={enableParameterSweeps}
             onChange={setEnableParameterSweeps}
-            size="sm"
-          />
-        </SettingRow>
-        <SettingRow
-          label={
-            <>
-              Optimization surface{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Show a contour of the objective over two optimized parameters in a study's drawer, computed locally on this machine"
-        >
-          <Toggle
-            value={enableOptimizationSurface}
-            onChange={setEnableOptimizationSurface}
             size="sm"
           />
         </SettingRow>

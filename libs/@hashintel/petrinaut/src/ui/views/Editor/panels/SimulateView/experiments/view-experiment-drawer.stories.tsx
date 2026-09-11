@@ -192,8 +192,6 @@ const SweepWithStudies = ({
         <OptimizationsContext
           value={makeOptimizationsContextValue(studies[0]!, {
             optimizations: [...studies],
-            selectedOptimization: null,
-            selectedOptimizationId: null,
           })}
         >
           <FakeExperimentsProvider

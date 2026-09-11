@@ -84,7 +84,6 @@ export {
 } from "./optimizations/context";
 export type {
   OptimizationBest,
-  OptimizationConnectionState,
   OptimizationRecord,
   OptimizationStatus,
   OptimizationsContextValue,
