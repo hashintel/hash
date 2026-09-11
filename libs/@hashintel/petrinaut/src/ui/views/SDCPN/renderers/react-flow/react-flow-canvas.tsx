@@ -48,6 +48,7 @@ import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes"
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
+import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
 import type { Connection, IsValidConnection } from "@xyflow/react";
@@ -119,6 +120,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   const interactions = useCanvasInteractions(scene);
   const flowStore = useStoreApi();
+  const readOnlyDragHandlers = useReadOnlyNodeDrag(interactions.readonly);
   const controller = useReactFlowController();
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
@@ -221,6 +223,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   return (
     <CanvasControllerContext value={controller}>
       <div
+        {...readOnlyDragHandlers}
         className={paneStyle}
         data-focus-active={scene.focusActive ? "" : undefined}
         style={{

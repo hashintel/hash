@@ -3,6 +3,7 @@ import { use } from "react";
 import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautCommands } from "@hashintel/petrinaut-core";
 
@@ -23,12 +24,14 @@ export function usePetrinautCommands(): PetrinautCommands {
     );
   }
   const isReadOnly = useIsReadOnly();
+  const notifyReadOnly = useReadOnlyFeedback();
   const { activeSubnetId } = use(ActiveNetContext);
   const { commands } = instance;
 
   return {
     applyClipboardPaste(input) {
       if (isReadOnly) {
+        notifyReadOnly();
         return { newItemIds: [] };
       }
       return commands.applyClipboardPaste({
@@ -38,6 +41,7 @@ export function usePetrinautCommands(): PetrinautCommands {
     },
     async applyAutoLayout() {
       if (isReadOnly) {
+        notifyReadOnly();
         return { commitCount: 0 };
       }
       return commands.applyAutoLayout({ targetSubnetId: activeSubnetId });

@@ -4,6 +4,7 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
@@ -43,6 +44,7 @@ export function useKeyboardShortcuts(
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
   const isReadonly = useIsReadOnly();
+  const notifyReadOnly = useReadOnlyFeedback();
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
@@ -56,16 +58,19 @@ export function useKeyboardShortcuts(
 
     // Handle undo/redo shortcuts, but let inputs handle their own undo/redo.
     if (
-      undoRedo &&
       !isInputFocused &&
       (event.metaKey || event.ctrlKey) &&
       event.key.toLowerCase() === "z"
     ) {
       event.preventDefault();
+      if (isReadonly) {
+        notifyReadOnly();
+        return;
+      }
       if (event.shiftKey) {
-        undoRedo.redo();
+        undoRedo?.redo();
       } else {
-        undoRedo.undo();
+        undoRedo?.undo();
       }
       return;
     }
@@ -109,8 +114,12 @@ export function useKeyboardShortcuts(
         return;
       }
 
-      if (key === "v" && !isReadonly) {
+      if (key === "v") {
         event.preventDefault();
+        if (isReadonly) {
+          notifyReadOnly();
+          return;
+        }
         void pasteFromClipboard(applyClipboardPaste).then((newItemIds) => {
           if (newItemIds && newItemIds.length > 0) {
             setSelection(
@@ -151,12 +160,12 @@ export function useKeyboardShortcuts(
     }
 
     // Delete selected items with Backspace or Delete
-    if (
-      (event.key === "Delete" || event.key === "Backspace") &&
-      !isReadonly &&
-      hasSelection
-    ) {
+    if ((event.key === "Delete" || event.key === "Backspace") && hasSelection) {
       event.preventDefault();
+      if (isReadonly) {
+        notifyReadOnly();
+        return;
+      }
       deleteItemsByIds({ items: Array.from(selection.values()) });
       clearSelection();
       return;
@@ -186,13 +195,19 @@ export function useKeyboardShortcuts(
         onEditionModeChange("cursor");
         break;
       case "n":
-        if (mode === "edit") {
+        if (isReadonly) {
+          event.preventDefault();
+          notifyReadOnly();
+        } else if (mode === "edit") {
           event.preventDefault();
           onEditionModeChange("add-place");
         }
         break;
       case "t":
-        if (mode === "edit") {
+        if (isReadonly) {
+          event.preventDefault();
+          notifyReadOnly();
+        } else if (mode === "edit") {
           event.preventDefault();
           onEditionModeChange("add-transition");
         }
