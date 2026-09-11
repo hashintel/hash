@@ -138,8 +138,10 @@ parameter computed from `record.trials`, and the fade rule (`tone="muted"`,
 bars at a quarter opacity that no longer set the scale) below
 `importanceFloor(requestedTrials)`. A remote study has no panel.
 
-The Parameters card (`FrameCard`, the chart card's chrome with the parameters
-held fixed folded behind its footer button) carries the state line,
+The Parameters card (`FrameCard`, the chart card's chrome
+(`SimulateView/shared/chart-card.tsx`: `ChartCard`, `ChartCardMenu`,
+`ChartCardGrid`, `chartCardHeight`) with the parameters held fixed folded
+behind its footer button) carries the state line,
 `describeSelection` (`Following step 4`,
 `12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
 with the **Follow steps** switch while the study runs; the navigator is a

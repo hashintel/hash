@@ -28,16 +28,6 @@
       ],
       "port": 4322,
       "autoPort": true
-    },
-    {
-      "name": "petrinaut-website-direct",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-lc",
-        "cd apps/petrinaut-website && yarn examples:generate >/dev/null && exec ../../node_modules/.bin/vite --port \"${PORT:-5173}\" --strictPort"
-      ],
-      "port": 5173,
-      "autoPort": true
     }
   ]
 }
