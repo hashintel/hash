@@ -14,9 +14,9 @@ The assistant panel only renders in **Edit** mode. Switching to **Simulate** mod
 
 ### Docking and floating
 
-The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. The canvas makes room for the sidebar.
+The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. The sidebar slides in at its full width while the canvas makes room. Closing it returns that space to the canvas.
 
-Choose **Float AI assistant** in the header to detach it into a rounded panel over the canvas. Drag its **AI** header to move it, or focus **Move AI assistant** and use the arrow keys. Hold **Shift** with an arrow key to move farther. The floating panel stays within the editor when the window changes size.
+Choose **Float AI assistant** in the header to detach it into a rounded panel over the canvas. The canvas expands smoothly to reclaim the sidebar's space, and the floating panel reserves no space at the right edge. Drag its **AI** header to move it, or focus **Move AI assistant** and use the arrow keys. Hold **Shift** with an arrow key to move farther. The floating panel stays within the editor when the window changes size.
 
 Choose **Dock AI assistant** to return it to the right sidebar. Switching between these layouts keeps your draft, conversation, and active response. Both layouts resize from the left edge. Closing and reopening the assistant keeps your layout choice for the editor session.
 

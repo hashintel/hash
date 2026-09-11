@@ -112,11 +112,13 @@ const shellStyle = cva({
     height: "full",
     maxHeight: "full",
     maxWidth: "full",
+    transform: "[translateX(0)]",
+    visibility: "visible",
     zIndex: "[calc(var(--z-index-sticky) + 2)]",
     pointerEvents: "auto",
     '&[data-animating="true"]': {
       transition:
-        "[top 150ms ease-in-out, right 150ms ease-in-out, height 150ms ease-in-out, max-height 150ms ease-in-out]",
+        "[top 150ms ease-in-out, right 150ms ease-in-out, height 150ms ease-in-out, max-height 150ms ease-in-out, transform 150ms ease-in-out, visibility 0s]",
       "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
     },
     "@media (prefers-reduced-motion: reduce)": {
@@ -135,12 +137,12 @@ const shellStyle = cva({
     },
     open: {
       false: {
-        top: "[auto]",
-        bottom: "[0]",
-        width: "[0px]",
-        height: "[0px]",
-        overflow: "visible",
+        transform: "[translateX(100%)]",
+        visibility: "hidden",
         pointerEvents: "none",
+        '&[data-animating="true"]': {
+          transitionDelay: "[0s, 0s, 0s, 0s, 0s, 150ms]",
+        },
       },
     },
     collapsed: {
@@ -189,14 +191,6 @@ const cardStyle = cva({
         borderRadius: "xl",
         boxShadow:
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
-      },
-    },
-    open: {
-      false: {
-        width: "[0px]",
-        height: "[0px]",
-        overflow: "visible",
-        pointerEvents: "none",
       },
     },
   },
@@ -635,8 +629,6 @@ export const AiAssistantContents = ({
   const isVoiceDockCollapsed =
     voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
 
-  // Held in editor state, not here: the bottom toolbar and the viewport
-  // controls have to keep clear of this panel, and cannot read a local value.
   const {
     aiAssistantPlacement,
     aiAssistantWidth: assistantWidth,
@@ -694,7 +686,6 @@ export const AiAssistantContents = ({
   }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
 
@@ -740,7 +731,7 @@ export const AiAssistantContents = ({
 
   useEffect(() => {
     if (isOpen) {
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }, [composerFocusRequest, isOpen]);
 
@@ -770,12 +761,10 @@ export const AiAssistantContents = ({
     const isFirstScroll = !hasScrolledOnceRef.current;
     hasScrolledOnceRef.current = true;
     const scrollToEnd = () => {
-      // The inner optional chain (`scrollIntoView?.`) is intentional — jsdom
-      // omits `Element.prototype.scrollIntoView`, so unit tests need the
-      // graceful no-op. The lint rule can't see that.
+      // Scroll only the transcript: the panel may be sliding outside the editor.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      messagesEndRef.current?.scrollIntoView?.({
-        block: "end",
+      messagesRef.current?.scrollTo?.({
+        top: messagesRef.current.scrollHeight,
         behavior: isFirstScroll ? "instant" : "smooth",
       });
     };
@@ -799,27 +788,22 @@ export const AiAssistantContents = ({
         ref={panelRef}
         aria-hidden={!isOpen ? true : undefined}
         aria-label="AI assistant"
+        inert={!isOpen}
         className={shellStyle({
-          collapsed: isOpen && isVoiceDockCollapsed,
+          collapsed: isVoiceDockCollapsed,
           open: isOpen,
           floating: isFloating,
         })}
         data-placement={aiAssistantPlacement}
         data-animating={isPanelAnimating && !isDragging}
-        style={
-          isOpen
-            ? {
-                width: panelWidth,
-                ...(isFloating && !isVoiceDockCollapsed
-                  ? floatingPositionStyle
-                  : {}),
-              }
-            : undefined
-        }
+        style={{
+          width: panelWidth,
+          ...(isFloating && !isVoiceDockCollapsed ? floatingPositionStyle : {}),
+        }}
       >
         <div
           className={`${resizeAnchorStyle} ${panelContentStyle({
-            visible: isOpen && !isVoiceDockCollapsed,
+            visible: !isVoiceDockCollapsed,
           })}`}
         >
           <ResizeHandle
@@ -839,7 +823,6 @@ export const AiAssistantContents = ({
         </div>
         <div
           className={cardStyle({
-            open: isOpen,
             floating: isFloating || isVoiceDockCollapsed,
           })}
           data-animating={isPanelAnimating && !isDragging}
@@ -847,7 +830,7 @@ export const AiAssistantContents = ({
         >
           <div
             className={`${headerStyle} ${panelContentStyle({
-              visible: isOpen && !isVoiceDockCollapsed,
+              visible: !isVoiceDockCollapsed,
             })}`}
           >
             <button
@@ -915,7 +898,7 @@ export const AiAssistantContents = ({
             aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
             hidden={showingHostTab}
             className={`${messagesStyle} ${panelContentStyle({
-              visible: isOpen && !isVoiceDockCollapsed && !showingHostTab,
+              visible: !isVoiceDockCollapsed && !showingHostTab,
             })}`}
             data-testid="ai-transcript"
             onScroll={recordDistanceFromEnd}
@@ -941,7 +924,6 @@ export const AiAssistantContents = ({
             {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
               <div className={stoppedNoteStyle}>Response stopped</div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {additionalTab && (
@@ -951,7 +933,7 @@ export const AiAssistantContents = ({
               aria-labelledby={`tab-${hostTabId}`}
               hidden={!showingHostTab}
               className={`${messagesStyle} ${panelContentStyle({
-                visible: isOpen && !isVoiceDockCollapsed && showingHostTab,
+                visible: !isVoiceDockCollapsed && showingHostTab,
               })}`}
             >
               {additionalTab.content}
@@ -961,8 +943,7 @@ export const AiAssistantContents = ({
           {voiceMode && (
             <div
               className={`${voiceModeStyle} ${panelContentStyle({
-                visible:
-                  isOpen && (!isVoiceDockCollapsed || !isVoiceSessionLive),
+                visible: !isVoiceDockCollapsed || !isVoiceSessionLive,
               })}`}
               data-testid="ai-voice-mode"
             >
@@ -971,7 +952,7 @@ export const AiAssistantContents = ({
           )}
 
           {isVoiceSessionLive ? (
-            <div className={panelContentStyle({ visible: isOpen })}>
+            <div>
               <LiveVoiceDock
                 collapsed={isVoiceDockCollapsed}
                 onCollapsedEnd={onCollapsedVoiceEnd}
@@ -983,7 +964,7 @@ export const AiAssistantContents = ({
           ) : (
             <>
               {isVoiceDockCollapsed && (
-                <div className={panelContentStyle({ visible: isOpen })}>
+                <div>
                   <VoiceDock
                     actions={null}
                     canReadFullResponse={false}
@@ -1003,7 +984,7 @@ export const AiAssistantContents = ({
               )}
               <div
                 className={`${composerWrapStyle} ${panelContentStyle({
-                  visible: isOpen && !isVoiceDockCollapsed,
+                  visible: !isVoiceDockCollapsed,
                 })}`}
               >
                 {showChips && (

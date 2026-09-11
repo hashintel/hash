@@ -46,20 +46,20 @@ describe("getCanvasInsets", () => {
     ).toBe(450);
   });
 
-  it("reserves the larger of the floating assistant and properties panel", () => {
+  it("reserves no canvas edge for the movable floating assistant", () => {
     const floating = {
       ...closed,
       aiAssistantPlacement: "floating" as const,
       isAiAssistantOpen: true,
-      hasSelection: true,
+      hasSelection: false,
     };
-    expect(getCanvasInsets(floating).right).toBe(512);
-    expect(
-      getCanvasInsets({ ...floating, propertiesPanelWidth: 600 }).right,
-    ).toBe(600);
+    expect(getCanvasInsets(floating).right).toBe(0);
+    expect(getCanvasInsets({ ...floating, hasSelection: true }).right).toBe(
+      450,
+    );
     expect(
       getCanvasInsets({ ...floating, isAiAssistantOpen: false }).right,
-    ).toBe(450);
+    ).toBe(0);
   });
 
   it("leaves room for a compact voice dock until it expands or closes", () => {

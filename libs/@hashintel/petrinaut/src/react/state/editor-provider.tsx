@@ -519,13 +519,22 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         };
       });
     },
-    setAiAssistantOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isAiAssistantOpen: isOpen })),
-    toggleAiAssistant: () =>
+    setAiAssistantOpen: (isOpen) => {
+      scheduleAnimationEnd();
       setState((prev) => ({
         ...prev,
+        ...animationPatch(),
+        isAiAssistantOpen: isOpen,
+      }));
+    },
+    toggleAiAssistant: () => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
         isAiAssistantOpen: !prev.isAiAssistantOpen,
-      })),
+      }));
+    },
     triggerPanelAnimation: () => {
       scheduleAnimationEnd();
       setState((prev) => ({ ...prev, ...animationPatch() }));

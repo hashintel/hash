@@ -374,6 +374,15 @@ describe("AiAssistantContents", () => {
     expect(panel.getAttribute("data-placement")).toBe("floating");
     fireEvent.click(screen.getByRole("button", { name: "Dock AI assistant" }));
     expect(panel.getAttribute("data-placement")).toBe("docked");
+    const panelWidth = panel.style.width;
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    expect(panel.style.width).toBe(panelWidth);
+    expect(panel.hasAttribute("inert")).toBe(true);
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
+    expect(panel.hasAttribute("inert")).toBe(false);
     expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
       textarea,
     );
@@ -1764,16 +1773,16 @@ describe("AiAssistantContents", () => {
   });
 
   test("scrolls to the latest chat content", async () => {
-    // jsdom does not implement `scrollIntoView`, so we install a stub on the
+    // jsdom does not implement `scrollTo`, so we install a stub on the
     // prototype and restore it afterwards. The `unbound-method` lint warning
     // is a false positive — we never invoke the saved reference, we only
     // assign it back.
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
-    const scrollIntoView = vi.fn();
-    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
     // Make rAF synchronous so the scroll effect runs before the assertion.
     window.requestAnimationFrame = (callback) => {
       callback(0);
@@ -1803,8 +1812,11 @@ describe("AiAssistantContents", () => {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
-    expect(scrollIntoView).toHaveBeenCalled();
-    window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    expect(scrollTo).toHaveBeenCalled();
+    expect(scrollTo.mock.instances).toContain(
+      screen.getByTestId("ai-transcript"),
+    );
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
     window.requestAnimationFrame = originalRequestAnimationFrame;
     window.cancelAnimationFrame = originalCancelAnimationFrame;
   });

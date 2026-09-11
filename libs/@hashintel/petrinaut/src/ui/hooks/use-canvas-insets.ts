@@ -29,8 +29,8 @@ export interface PanelLayoutState {
 /**
  * Each edge's rule is the one the panel on it renders by: search opens the
  * left sidebar without the toggle, a selection opens the properties panel, and
- * a floating or compact assistant overlaps the properties panel. The expanded,
- * docked assistant has its own column outside the canvas.
+ * a compact Voice dock stays at the right edge. The expanded, docked assistant
+ * has its own column outside the canvas. A movable assistant reserves no edge.
  */
 export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
   left:
@@ -39,9 +39,7 @@ export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
       : 0,
   right: Math.max(
     state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0,
-    state.isAiAssistantOpen &&
-      (state.aiAssistantPlacement === "floating" ||
-        state.isAiAssistantCollapsed)
+    state.isAiAssistantOpen && state.isAiAssistantCollapsed
       ? state.aiAssistantWidth + 12
       : 0,
   ),
