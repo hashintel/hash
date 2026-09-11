@@ -2,19 +2,21 @@
 
 ## Status
 
-Live on `ln/fe-1573-mission-7c`, [PR #9667](https://github.com/hashintel/hash/pull/9667),
-stacked on the current-net freshness work described in
-[`SIDE_QUEST.md`](SIDE_QUEST.md). Mission 7b merged as
-[PR #9649](https://github.com/hashintel/hash/pull/9649) and is archived in
+Live on `ln/fe-1573-mission-7c`, [PR #9667](https://github.com/hashintel/hash/pull/9667).
+Mission 7b merged as [PR #9649](https://github.com/hashintel/hash/pull/9649)
+and is archived in
 [`7b-ordinary-batched-construction-provenance.md`](docs/mission-archive/7b-ordinary-batched-construction-provenance.md).
 Mission 7a landed as [PR #9562](https://github.com/hashintel/hash/pull/9562).
+The current-net freshness parent merged as
+[PR #9672](https://github.com/hashintel/hash/pull/9672) and is now ordinary
+inherited code on `main`.
 This mission advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph)
 without closing it.
 
 This file is the normative mission contract: what must be true and how
-acceptance is judged. Current implementation state, test paths, residuals and
-browser observations live in
-[`docs/mission-check-ins/7c-implementation.md`](docs/mission-check-ins/7c-implementation.md).
+acceptance is judged. Current implementation state, test paths and residual
+observations belong in [PR #9667](https://github.com/hashintel/hash/pull/9667),
+not in a second mission document.
 
 **Product boundary.** Brunch is Petrinaut's default assistant for understanding,
 constructing, explaining and revising operational processes as SDCPNs,
@@ -80,8 +82,10 @@ modes.
   — accepted ordinary batch and provenance base.
 - [`docs/reference/architecture/mutation-capability-matrix.md`](docs/reference/architecture/mutation-capability-matrix.md)
   — operation ownership, admission, execution and refusal authority.
-- [`SIDE_QUEST.md`](SIDE_QUEST.md) — current-net freshness and the candidate
-  shared-history projection, including its authority constraints.
+- [`../../../apps/brunch-agent/src/conversation/net-freshness.ts`](../../../apps/brunch-agent/src/conversation/net-freshness.ts)
+  and [`../../../apps/brunch-agent/src/conversation/net-ledger.ts`](../../../apps/brunch-agent/src/conversation/net-ledger.ts)
+  — current-net freshness and the candidate shared-history projection,
+  including its authority constraints.
 - [`packages/plugin-sdcpn/src/mutate-petrinet.ts`](packages/plugin-sdcpn/src/mutate-petrinet.ts)
   and [`packages/plugin-sdcpn/src/mutation-record.ts`](packages/plugin-sdcpn/src/mutation-record.ts)
   — selected carrier and receiving-boundary verification.
@@ -256,8 +260,7 @@ hold:
 - **Shared history projection:** shared interpretation of canonical Flue
   history is the product contract, not a predetermined module. The candidate
   projection is retained only if parity tests show that it removes duplicate
-  interpretation without creating a store, identity scheme or authority. See
-  [`SIDE_QUEST.md`](SIDE_QUEST.md).
+  interpretation without creating a store, identity scheme or authority.
 - **Why scope:** the current contract is limited to current-revision recorded
   basis or an honest absent/ambiguous disposition. The product concept, tool
   name, authority and code ownership remain under owner review; do not widen
