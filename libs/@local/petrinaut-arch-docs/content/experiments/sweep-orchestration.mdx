@@ -41,7 +41,15 @@ from the experiments context.
 
 ## The optimizer path
 
-A study started from the sweep's Parameters card runs no batches of its own.
+A study starts with the experiment from the Create Experiment drawer
+(`useCreateOptimizedExperiment`: create → start → select, so the results
+drawer mounts with the study already in the optimizations context) and runs
+no batches of its own. The first trial relies on one contract of
+`createExperiment`: the sweep branch of the experiment's initialization
+awaits nothing before `startSweepSession`, so the session is registered by
+the time the promise resolves and the study's first `navigateSweep` finds it;
+the provider's test pins that no await is ever inserted before it. A study
+that cannot start removes the experiment again, before anything selects.
 Its trials go through `navigateSweep(experimentId, point, { runCap })`: the
 session adopts the point as its selection with a run cap, restarts its ladder
 there, and resolves the call once the point has folded that many runs (or is
@@ -105,27 +113,28 @@ carries no `constraints` and counts in no rate.
 
 `experimentResultsModel` (`experiments/experiment-results.tsx`) builds the
 shared `ResultsModel` the [results view](layer:ui.views.editor.results)
-renders. It finds the sweep's studies through `useSweepOptimizer`, which
+renders. It finds the sweep's one study through `useSweepOptimizer`, which
 matches `OptimizationRecord.origin.experimentId`, and fills four of the
 model's optional members whenever `optimizer.study !== null`: the header's
 headline (`StudyHeader`: `describeStudyProgress` plus the convergence chip
 in a reserved cell), the Steps and Steps clear stat columns (`studyStats`,
 sized by their widest value from `requestedTrials`), the Constraints and
 Sensitivity analysis cards in the metric grid at `METRIC_PLOT_HEIGHT`
-(`experiment-results/`, wrapped in a fragment keyed on `study.id`), and the steps
-table under both columns. The Parameters card's footer lists the record's
+(`experiment-results/`, wrapped in a fragment keyed on `study.id`), and the
+steps table under both columns; the Parameters card shows Stop in its header
+while the study drives. The Parameters card's footer lists the record's
 constraints (`experiment-results/constraints-fold.tsx`) whether or not a study
 exists.
 
-The gate is the study's existence, never its status or connection state, so
-the drawer changes shape once, at the first Optimize, and holds it across
-running, stopped and failed studies and later ones: a second study remounts
-the keyed cards in the same boxes, with row counts that are properties of
-the experiment (one bar per constraint, one row per swept axis). The
-`experiment-results` and `view-experiment-drawer` tests pin this with
-`frameLayoutSignature` equality between running, stopped and failed states
-and between a first and a second study, and between two renders before any
-study.
+The gate is the study's existence, never its status or connection state.
+Because the study is created with the experiment, the drawer's shape is
+fixed by the experiment's kind at creation — every study slot present from
+the first frame for an Optimize-created sweep, none for a Sweep-created one
+— and never changes afterwards, across running, stopped and failed studies;
+row counts are properties of the experiment (one bar per constraint, one row
+per swept axis). The `experiment-results` and `view-experiment-drawer` tests
+pin this with `frameLayoutSignature` equality between running, stopped and
+failed states and between two renders of a sweep without a study.
 
 ## Where the pieces live
 

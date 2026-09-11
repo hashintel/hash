@@ -2,8 +2,8 @@
  * @layerRoot react.optimizations.sweep-evaluator
  * @role Evaluates an optimizer's trials through a parameter sweep's own compute: each trial moves the sweep to the suggested point and reads the metric there
  *
- * A study started from an experiment's Parameters card runs no batches of
- * its own. Its evaluator turns every suggestion into a point on the sweep's
+ * A study started with the experiment from the Create Experiment drawer
+ * runs no batches of its own. Its evaluator turns every suggestion into a point on the sweep's
  * quantized axes, asks the experiments provider to navigate there and wait
  * for the trial's runs, and reports the metric's value at that point. The
  * sweep's navigator therefore moves trial by trial, every trial is a visited

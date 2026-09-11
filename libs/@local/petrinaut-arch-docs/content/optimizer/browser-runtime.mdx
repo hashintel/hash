@@ -11,8 +11,8 @@ Terms on this page: a **study** is one capability run, identified by its
 trials between a run start or extension and a terminal event. A source
 evaluated in the tab is **connected**; the optimizer service is **remote**.
 Since optimization folded into the Experiments tab, every study is started
-from a parameter sweep's Parameters card and evaluated through that sweep,
-and only a connected source can start one.
+with a parameter sweep from the Create Experiment drawer's Optimize and
+evaluated through that sweep, and only a connected source can start one.
 
 An optimization needs an Optuna study that suggests parameter values and a
 simulator that scores them. The browser has both: Optuna runs under Pyodide,
@@ -29,22 +29,25 @@ the one `PetrinautOptimizationChannel` left. The event schema
 
 The provider reaches the source through `useOptimizationSource()`, which
 returns a connected source only while the experimental **In-browser
-optimization** user setting is on. Off, the hook returns `null`: the sweep's
-Optimize control and the Create Experiment drawer's Constraints section hide,
-and the provider disposes the connection, which cancels every run made
-through it. A remote capability passes through the hook unchanged, and the
+optimization** user setting is on. Off, the hook returns `null`: the
+experiment form's interval toggles read Sweep, the Create Experiment drawer's
+Objective and Constraints sections hide, and the provider disposes the
+connection, which cancels every run made through it. A remote capability passes through the hook unchanged, and the
 provider refuses to start a study on it.
 
 ![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 
 ## The data flow
 
-1. **Parameters card → provider.** `useSweepOptimizer.start` builds the
-   manifest with `buildSweepOptimizationInput` (model snapshot, scenario,
-   the chosen metric and direction, one range domain per swept axis, the
-   record's `scenarioParameterValues` as the fixed bindings, the experiment's
-   constraints and pass threshold, `seedsPerTrial` at the run ladder's first
-   rung) and calls `createOptimization(input, { sweep })`; the provider
+1. **Create Experiment drawer → provider.** `useStartSweepStudy` builds
+   the manifest with `buildSweepOptimizationInput` from the experiment
+   record (model snapshot, the scenario the record compiled from, the
+   Objective section's metric, direction and steps, one range domain per
+   swept axis, the record's `scenarioParameterValues` as the fixed bindings,
+   the experiment's constraints and pass threshold, `seedsPerTrial` at the
+   run ladder's first rung) and calls `createOptimization(input, { sweep })`
+   right after `createExperiment` resolves and before the experiment is
+   selected; the provider
    registers a sweep evaluator for the record and calls
    `createOptimizationRun(manifest, { parallelism: 1 })` on the connected
    capability. Steps run one at a time; the compute backend is the
@@ -130,7 +133,7 @@ holds (`requestedTotal`), checks it against
 `PETRINAUT_OPTIMIZATION_MAX_TRIALS`, appends `started` with that total and
 queues `extend { runId, trials }`; the segment inherits the run's parallelism,
 and the trials continue Optuna's numbering. A stopped sweep study is done: a
-further Optimize on the same sweep creates a new run.
+new search is a new experiment.
 
 **Remove** calls `releaseOptimizationRun(runId)`, which cancels a running
 segment and posts `release { runId }`; the worker drops the study after the
