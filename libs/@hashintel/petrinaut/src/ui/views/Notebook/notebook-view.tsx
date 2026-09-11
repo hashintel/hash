@@ -13,7 +13,12 @@ import { useFocusStops } from "../../worksheet/use-focus-stops";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
 import { GraphExplorer } from "./graph-explorer";
+import { buildCycleMembership, findCycleGroups } from "./net-cycles";
 import { layoutNetGraph } from "./net-graph-layout";
+import {
+  buildInitialPlaceMembership,
+  findInitialPlaceGroups,
+} from "./net-siphons";
 import { cellBodyParts, NotebookCell, partStopId } from "./notebook-cell";
 import {
   buildConnectionIndex,
@@ -29,6 +34,7 @@ import {
 import { orderCellsTopologically } from "./notebook-order";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
+import type { InitialPlaceGroup } from "./net-siphons";
 import type {
   NodeRef,
   NotebookCellKind,
@@ -109,6 +115,19 @@ const DEFAULT_EXPLORER_WIDTH = 520;
 const MIN_EXPLORER_WIDTH = 320;
 const MAX_EXPLORER_WIDTH = 1100;
 
+/**
+ * Put the places the initial state has to seed at the front of the flow order,
+ * so a resource pool inside a cycle reads alongside the net's plain sources
+ * rather than buried wherever the layering happened to put it.
+ */
+const hoistInitialPlaces = (
+  flowOrder: string[],
+  initialByPlace: ReadonlyMap<string, InitialPlaceGroup>,
+): string[] => [
+  ...flowOrder.filter((id) => initialByPlace.has(id)),
+  ...flowOrder.filter((id) => !initialByPlace.has(id)),
+];
+
 const emptyStyle = css({
   fontSize: "sm",
   color: "neutral.fg.subtle",
@@ -132,7 +151,7 @@ const emptyStyle = css({
  * and a transition links to the parameters its code reads. The toolbar
  * controls the cell order (document or topological) and which kinds are listed
  * and searched; rows with dependents end with how many cells depend on them,
- * directly and in total.
+ * directly and in total, and cells caught in a cycle carry a matching badge.
  */
 const NotebookViewContent: React.FC = () => {
   const { activeNet } = use(ActiveNetContext);
@@ -149,6 +168,7 @@ const NotebookViewContent: React.FC = () => {
   const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
   const [focusOnSelection, setFocusOnSelection] = useState(false);
+  const [hoveredCycleKey, setHoveredCycleKey] = useState<string | null>(null);
   const [visibleKinds, setVisibleKinds] = useState<
     ReadonlySet<NotebookCellKind>
   >(() => new Set(CELL_KINDS));
@@ -157,16 +177,23 @@ const NotebookViewContent: React.FC = () => {
   const connectionIndex = buildConnectionIndex(activeNet);
   const dependentCounts = buildDependentCounts(connectionIndex);
   const netGraph = buildNetGraph(activeNet);
+  const cycleGroups = findCycleGroups(netGraph);
+  const cycleByNode = buildCycleMembership(cycleGroups);
+  const initialGroups = findInitialPlaceGroups(activeNet);
+  const initialByPlace = buildInitialPlaceMembership(initialGroups);
 
   // The topological list follows the diagram's default layer order (not the
   // focused re-layout, which is a transient lens on the same net), with
-  // declarations inlined before their first user.
+  // declarations inlined before their first user and seed places hoisted.
   const cells =
     cellOrder === "document"
       ? documentCells
       : orderCellsTopologically(
           documentCells,
-          layoutNetGraph(netGraph).nodes.map(({ id }) => id),
+          hoistInitialPlaces(
+            layoutNetGraph(netGraph).nodes.map(({ id }) => id),
+            initialByPlace,
+          ),
           connectionIndex,
         );
   const visibleCells = cells.filter(({ kind }) => visibleKinds.has(kind));
@@ -245,6 +272,9 @@ const NotebookViewContent: React.FC = () => {
       ].map(({ id }) => id),
     ),
     placeColors,
+    cycleByNode,
+    initialByPlace,
+    hoveredCycleKey,
     focusId: focusOnSelection ? selectedNodeId : null,
   };
 
@@ -522,6 +552,13 @@ const NotebookViewContent: React.FC = () => {
                   isDimmed={isSearching && !matchesById.has(cell.id)}
                   nameMatchIndices={matchesById.get(cell.id) ?? null}
                   dependentCount={dependentCounts.get(cell.id)}
+                  cycle={cycleByNode.get(cell.id)}
+                  initialGroup={initialByPlace.get(cell.id)}
+                  isCycleHovered={
+                    hoveredCycleKey !== null &&
+                    cycleByNode.get(cell.id)?.key === hoveredCycleKey
+                  }
+                  onHoverCycle={setHoveredCycleKey}
                   onSelect={() => selectCell(cell)}
                   onSetExpanded={(expanded) =>
                     setCellExpanded(cell.id, expanded)
@@ -596,6 +633,8 @@ const NotebookViewContent: React.FC = () => {
           selectedCellId={selectedId}
           selectedName={selectedName}
           graph={explorerGraph}
+          cycleGroups={cycleGroups}
+          onHoverCycle={setHoveredCycleKey}
           isFocusMode={focusOnSelection}
           canFocus={selectedNodeId !== null}
           onToggleFocus={() => setFocusOnSelection((previous) => !previous)}

@@ -9,6 +9,7 @@ import { useDraftField } from "../../hooks/use-draft-field";
 import { CodeEditor } from "../../monaco/code-editor";
 import { focusLands } from "../../worksheet/focus-flow";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
+import { cycleTint } from "./net-cycles";
 import {
   arcPlaceId,
   placeName,
@@ -18,6 +19,8 @@ import {
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { CodeEditorProps } from "../../monaco/code-editor";
+import type { CycleGroup } from "./net-cycles";
+import type { InitialPlaceGroup } from "./net-siphons";
 import type {
   DependentCount,
   NotebookCell as NotebookCellModel,
@@ -117,6 +120,63 @@ const nameMarkStyle = css({
   backgroundColor: "yellow.s40",
   color: "[inherit]",
   borderRadius: "xs",
+});
+
+const cycleBadgeStyle = cva({
+  base: {
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "[2px]",
+    paddingX: "1",
+    borderRadius: "sm",
+    fontSize: "[10px]",
+    fontWeight: "medium",
+    fontFamily: "mono",
+    borderWidth: "[1px]",
+    borderStyle: "solid",
+    cursor: "default",
+  },
+  variants: {
+    tint: {
+      pink: {
+        backgroundColor: "pink.s20",
+        borderColor: "pink.s60",
+        color: "pink.s115",
+      },
+      green: {
+        backgroundColor: "green.s20",
+        borderColor: "green.s60",
+        color: "green.s115",
+      },
+      yellow: {
+        backgroundColor: "yellow.s20",
+        borderColor: "yellow.s60",
+        color: "yellow.s115",
+      },
+    },
+    isHovered: {
+      true: { filter: "[brightness(0.94)]" },
+      false: {},
+    },
+  },
+});
+
+const initialBadgeStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  paddingX: "1",
+  borderRadius: "sm",
+  fontSize: "[10px]",
+  fontWeight: "medium",
+  fontFamily: "mono",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  backgroundColor: "blue.s15",
+  borderColor: "blue.s50",
+  color: "blue.s110",
+  cursor: "default",
 });
 
 const countStyle = css({
@@ -1340,6 +1400,16 @@ export interface NotebookCellProps {
   nameMatchIndices: number[] | null;
   /** How much depends on this cell, shown at the end of the row. */
   dependentCount: DependentCount | undefined;
+  /** The cycle this cell belongs to, if any. */
+  cycle: CycleGroup | undefined;
+  /**
+   * Set when this place has to hold tokens in the initial state, because
+   * nothing in the net can produce into its group.
+   */
+  initialGroup: InitialPlaceGroup | undefined;
+  /** Whether that cycle is currently hovered anywhere in the view. */
+  isCycleHovered: boolean;
+  onHoverCycle: (cycleKey: string | null) => void;
   onSelect: () => void;
   onSetExpanded: (expanded: boolean) => void;
   /** The row's slice of the list's worksheet focus flow. */
@@ -1366,6 +1436,10 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
   isDimmed,
   nameMatchIndices,
   dependentCount,
+  cycle,
+  initialGroup,
+  isCycleHovered,
+  onHoverCycle,
   onSelect,
   onSetExpanded,
   rowFocus,
@@ -1442,6 +1516,31 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
         <span className={nameStyle}>
           <HighlightedName name={name} matchIndices={nameMatchIndices} />
         </span>
+        {initialGroup !== undefined && (
+          <span
+            className={initialBadgeStyle}
+            title={
+              initialGroup.placeIds.length === 1
+                ? "Must hold tokens in the initial state: nothing in the net produces into it"
+                : `Must hold tokens in the initial state: this pool of ${initialGroup.placeIds.length} places only circulates what it starts with`
+            }
+          >
+            initial
+          </span>
+        )}
+        {cycle !== undefined && (
+          <span
+            className={cycleBadgeStyle({
+              tint: cycleTint(cycle),
+              isHovered: isCycleHovered,
+            })}
+            title={`In cycle ${cycle.label} with ${cycle.memberIds.length - 1} other node${cycle.memberIds.length === 2 ? "" : "s"}`}
+            onMouseEnter={() => onHoverCycle(cycle.key)}
+            onMouseLeave={() => onHoverCycle(null)}
+          >
+            ↻{cycle.label}
+          </span>
+        )}
         <span className={summaryStyle}>{summary}</span>
         {dependentCount !== undefined && dependentCount.transitive > 0 && (
           <span
