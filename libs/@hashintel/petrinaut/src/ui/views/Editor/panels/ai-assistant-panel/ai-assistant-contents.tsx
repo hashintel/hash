@@ -4,6 +4,7 @@ import {
   type RefObject,
   use,
   useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useRef,
@@ -608,7 +609,28 @@ export const AiAssistantContents = ({
   const {
     aiAssistantWidth: assistantWidth,
     setAiAssistantWidth: setAssistantWidth,
+    setAiAssistantDockHeight,
   } = use(EditorContext);
+
+  const shellRef = useRef<HTMLElement>(null);
+  const reportDockHeight = useEffectEvent((height: number | null) => {
+    setAiAssistantDockHeight(height);
+  });
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    if (!isOpen || !isVoiceDockCollapsed || !shell) {
+      return;
+    }
+    const measure = () =>
+      reportDockHeight(shell.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(shell);
+    return () => {
+      observer.disconnect();
+      reportDockHeight(null);
+    };
+  }, [isOpen, isVoiceDockCollapsed]);
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
@@ -738,6 +760,7 @@ export const AiAssistantContents = ({
 
   return (
     <aside
+      ref={shellRef}
       aria-hidden={!isOpen ? true : undefined}
       aria-label="AI assistant"
       className={shellStyle({
