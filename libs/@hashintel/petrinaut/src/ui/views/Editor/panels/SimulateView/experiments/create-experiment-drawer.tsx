@@ -9,7 +9,6 @@ import {
   NumberInput,
   Select,
   TextInput,
-  Toggle,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -30,7 +29,6 @@ import {
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
-  type ExperimentParameterRangeInput,
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -74,7 +72,6 @@ import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
   Scenario,
-  ScenarioParameter,
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -96,48 +93,6 @@ const gridStyle = css({
   display: "grid",
   gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
   gap: "3",
-});
-
-const paramRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
-
-const paramNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  width: "[140px]",
-  flexShrink: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const paramTypeStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  width: "[60px]",
-  flexShrink: 0,
-});
-
-const paramSweepToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flexShrink: 0,
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const paramRangeStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flex: "1",
-  minWidth: "[0]",
-  "& > *": { flex: "1", minWidth: "[0]" },
 });
 
 const sweepSummaryStyle = css({
@@ -265,15 +220,6 @@ const codeDiagnosticStyle = css({
   fontSize: "xs",
   color: "red.s100",
   whiteSpace: "pre-wrap",
-});
-
-const emptyParamsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingY: "[16px]",
-  fontSize: "sm",
-  color: "neutral.s80",
 });
 
 const errorStyle = css({
@@ -524,81 +470,6 @@ function buildMetricSpecs(
 }
 
 // -- Component ----------------------------------------------------------------
-
-/** The interval a parameter starts sweeping with: around its default. */
-function initialRangeFor(
-  param: ScenarioParameter,
-): ExperimentParameterRangeInput {
-  const base = typeof param.default === "number" ? param.default : 0;
-  if (param.type === "ratio") {
-    return { mode: "range", min: 0, max: 1 };
-  }
-  const spread = Math.max(Math.abs(base), 1);
-  const min =
-    param.type === "integer" ? Math.round(base - spread) : base - spread;
-  const max =
-    param.type === "integer" ? Math.round(base + spread) : base + spread;
-  return { mode: "range", min, max };
-}
-
-const ScenarioParameterRow = ({
-  param,
-  value,
-  sweepable,
-  onChange,
-}: {
-  param: ScenarioParameter;
-  value: ExperimentParameterInput;
-  /** Whether the parameter may be turned into an interval. */
-  sweepable: boolean;
-  onChange: (value: ExperimentParameterInput) => void;
-}) => (
-  <div className={paramRowStyle}>
-    <span className={paramNameStyle}>{param.identifier}</span>
-    <span className={paramTypeStyle}>{param.type}</span>
-    {value.mode === "range" ? (
-      <div className={paramRangeStyle}>
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} minimum`}
-          step="any"
-          value={Number.isFinite(value.min) ? value.min : null}
-          onChange={(min) => onChange({ ...value, min: min ?? Number.NaN })}
-        />
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} maximum`}
-          step="any"
-          value={Number.isFinite(value.max) ? value.max : null}
-          onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
-        />
-      </div>
-    ) : (
-      <CodeEditor
-        singleLine
-        language="typescript"
-        value={value.value}
-        onChange={(v) => onChange({ mode: "fixed", value: v ?? "" })}
-        placeholder={String(param.default)}
-      />
-    )}
-    {sweepable && param.type !== "boolean" ? (
-      <span className={paramSweepToggleStyle}>
-        Sweep
-        <Toggle
-          size="sm"
-          aria-label={`Sweep ${param.identifier}`}
-          value={value.mode === "range"}
-          onChange={(checked) =>
-            onChange(
-              checked ? initialRangeFor(param) : { mode: "fixed", value: "" },
-            )
-          }
-        />
-      </span>
-    ) : null}
-  </div>
-);
 
 const ExperimentMetricLspSession = ({
   code,
@@ -919,8 +790,7 @@ export const CreateExperimentDrawer = ({
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, enableAdHocScenarios, enableParameterSweeps } =
-    use(UserSettingsContext);
+  const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
   const { createExperiment } = use(ExperimentsActionsContext);
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = useOptimizationSource();
@@ -974,9 +844,7 @@ export const CreateExperimentDrawer = ({
     types: extensions.colors ? petriNetDefinition.types : [],
   };
   const adHocSweeping =
-    enableAdHocScenarios &&
-    enableParameterSweeps &&
-    effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+    enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -1026,8 +894,8 @@ export const CreateExperimentDrawer = ({
     };
   })();
 
-  // Shown under whichever scenario body is on screen: the classic rows, the
-  // ad-hoc form, or a saved scenario shown through it.
+  // Shown under whichever scenario body is on screen: the form, or a saved
+  // scenario shown through it.
   // A sweep computes nothing at creation: it waits for a selection.
   const submitLabel = sweepSummary
     ? isSubmitting
@@ -1219,10 +1087,7 @@ export const CreateExperimentDrawer = ({
             : effectiveSelectedScenarioId,
         scenarioParameterValues: paramInputs,
         adHocScenario:
-          enableAdHocScenarios &&
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? adHocState
-            : null,
+          effectiveSelectedScenarioId === NO_SCENARIO_VALUE ? adHocState : null,
         adHocSweeps: adHocSweeping,
         runCount: Number(runCount),
         seed: Number(seed),
@@ -1367,62 +1232,33 @@ export const CreateExperimentDrawer = ({
             </div>
 
             {selectedScenario ? (
-              enableAdHocScenarios ? (
-                // The selected scenario shows through the ad-hoc form in run
-                // mode: scenario parameters editable in worksheet style, and
-                // a collapsed "Computed state" preview of the exact values
-                // and tokens each run starts with.
-                <>
-                  <ExperimentScenarioRun
-                    scenario={selectedScenario}
-                    context={adHocFormContext}
-                    inputs={paramInputs}
-                    sweepable={enableParameterSweeps}
-                    onInputsChange={(updates) =>
-                      setParamInputs((prev) => {
-                        const next = { ...prev };
-                        for (const update of updates) {
-                          next[update.identifier] = update.input;
-                        }
-                        return next;
-                      })
-                    }
-                  />
-                  {sweepSummaryLine}
-                </>
-              ) : selectedScenario.scenarioParameters.length === 0 ? (
-                <div className={emptyParamsStyle}>No scenario parameters</div>
-              ) : (
-                <>
-                  {selectedScenario.scenarioParameters.map((param) => (
-                    <ScenarioParameterRow
-                      key={param.identifier}
-                      param={param}
-                      sweepable={enableParameterSweeps}
-                      value={
-                        paramInputs[param.identifier] ?? {
-                          mode: "fixed",
-                          value: "",
-                        }
+              // The selected scenario shows through the form in run mode:
+              // scenario parameters editable in worksheet style, and a
+              // collapsed "Computed state" preview of the exact values and
+              // tokens each run starts with.
+              <>
+                <ExperimentScenarioRun
+                  scenario={selectedScenario}
+                  context={adHocFormContext}
+                  inputs={paramInputs}
+                  sweepable={enableParameterSweeps}
+                  onInputsChange={(updates) =>
+                    setParamInputs((prev) => {
+                      const next = { ...prev };
+                      for (const update of updates) {
+                        next[update.identifier] = update.input;
                       }
-                      onChange={(v) =>
-                        setParamInputs((prev) => ({
-                          ...prev,
-                          [param.identifier]: v,
-                        }))
-                      }
-                    />
-                  ))}
-                  {sweepSummaryLine}
-                </>
-              )
-            ) : enableAdHocScenarios ? (
+                      return next;
+                    })
+                  }
+                />
+                {sweepSummaryLine}
+              </>
+            ) : (
               // With no scenario, the experiment's Initial State + Parameters
               // are defined inline and compile through a scenario generated
               // at experiment start, never persisted. Left untouched, the
-              // experiment runs exactly as before. Behind the Ad-hoc
-              // scenarios setting; off, no scenario means the model's own
-              // initial marking, as before the feature.
+              // experiment runs from the model's own initial marking.
               <>
                 <AdHocScenarioForm
                   state={adHocState ?? EMPTY_AD_HOC_STATE}
@@ -1432,7 +1268,7 @@ export const CreateExperimentDrawer = ({
                 />
                 {sweepSummaryLine}
               </>
-            ) : null}
+            )}
           </Section>
 
           {constraintsEnabled ? (
