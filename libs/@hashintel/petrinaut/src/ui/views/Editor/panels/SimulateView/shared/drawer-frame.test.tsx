@@ -191,6 +191,41 @@ describe("DrawerFrame", () => {
     ).toEqual(["30 / 30 · 3 runs each", "30 / 30"]);
   });
 
+  it("makes the stats line a labelled tab stop only while it overflows, so the keyboard can scroll it", () => {
+    const view = render(frame());
+    const line = document.querySelector<HTMLElement>(
+      "[data-frame-stats-line]",
+    )!;
+
+    expect(line.hasAttribute("tabindex")).toBe(false);
+    expect(line.dataset.overflowEnd).toBe("false");
+
+    // jsdom lays nothing out: give the line more content than width.
+    Object.defineProperty(line, "scrollWidth", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(line, "clientWidth", {
+      configurable: true,
+      value: 400,
+    });
+    view.rerender(frame());
+
+    expect(line.getAttribute("tabindex")).toBe("0");
+    expect(line.getAttribute("aria-label")).toBe("Header statistics");
+    expect(line.dataset.overflowEnd).toBe("true");
+
+    // Scrolled to the end it stays reachable but the fade goes.
+    Object.defineProperty(line, "scrollLeft", {
+      configurable: true,
+      value: 200,
+    });
+    fireEvent.scroll(line);
+
+    expect(line.getAttribute("tabindex")).toBe("0");
+    expect(line.dataset.overflowEnd).toBe("false");
+  });
+
   it("keeps the note row mounted at one height whether or not there is a note", () => {
     const empty = renderFrame();
     const emptyRow = document.querySelector<HTMLElement>("[data-frame-note]")!;
