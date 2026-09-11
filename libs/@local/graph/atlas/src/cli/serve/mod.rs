@@ -18,19 +18,22 @@ use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
 
 pub use self::args::ServeArgs;
-use self::args::{DeltaArgs, LimitsArgs, ManagerArgs};
-use super::RootArgs;
+use self::args::{DeltaArgs, DownloadArgs, LimitsArgs, ManagerArgs};
+use super::{RootArgs, Storage};
 use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
-    file::generation::GenerationRoot,
+    file::generation::{
+        GenerationRoot,
+        download::{Download, DownloadOptions, DownloadTask},
+    },
     integrity::SecretString,
     serve::{
         authorization::authority::Authority,
         delta::EmbeddingWorkflow,
         runtime::{
             FeedOptions,
-            manager::{GenerationManager, source::RuntimeSource},
+            manager::{GenerationManager, GenerationManagerTask, source::RuntimeSource},
         },
         secret::ServeSecret,
         visibility::cache::VisibilityLimits,
@@ -78,26 +81,45 @@ pub struct ServeOptions<P> {
     pub visibility: VisibilityLimits,
     /// Optional embedding workflow submission for arrivals missing embeddings.
     pub workflow: Option<EmbeddingWorkflow>,
+    /// The storage backend for downloaded files.
+    pub storage: Storage,
 }
 
 /// HTTP routes and the owned generation-maintenance task.
 #[must_use = "generation maintenance must be retained and run by the host"]
-pub struct Serving {
+pub struct Serve {
     router: Router,
-    manager: GenerationManager,
+    manager: GenerationManagerTask,
+    download: Option<DownloadTask<Storage>>,
 }
 
-impl Serving {
+impl Serve {
     /// Separates HTTP routing from maintenance retained until shutdown completes.
-    pub fn into_parts(
+    pub fn into_parts<S>(
         self,
-        shutdown: impl Future<Output = ()> + Send,
-    ) -> (Router, impl Future<Output = ()> + Send) {
+        shutdown: impl FnMut() -> S,
+    ) -> (
+        Router,
+        impl Future<Output = ()> + Send,
+        Option<impl Future<Output = ()> + Send>,
+    )
+    where
+        S: Future<Output = ()> + Send,
+    {
         let Self {
             router,
-            mut manager,
+            manager,
+            download,
         } = self;
-        (router, async move { manager.run(shutdown).await })
+
+        (
+            router,
+            manager.run(shutdown()),
+            download.map(|task| {
+                let download_shutdown = shutdown();
+                task.run(download_shutdown)
+            }),
+        )
     }
 }
 
@@ -110,6 +132,7 @@ pub struct ServeCommand {
     secret: ServeSecret,
     delta: DeltaArgs,
     manager: ManagerArgs,
+    download: DownloadArgs,
 }
 
 impl ServeCommand {
@@ -123,6 +146,7 @@ impl ServeCommand {
             secret: args.secret,
             delta: args.delta,
             manager: args.manager,
+            download: args.download,
         }
     }
 
@@ -151,8 +175,9 @@ impl ServeCommand {
             pool,
             visibility,
             workflow,
+            storage,
         }: ServeOptions<P>,
-    ) -> Result<Serving, Report<ServeError>>
+    ) -> Result<Serve, Report<ServeError>>
     where
         P: AuthenticationProvider<ActorId> + 'static,
     {
@@ -167,7 +192,7 @@ impl ServeCommand {
         });
         let manager = GenerationManager::new(
             RuntimeSource {
-                root: self.root,
+                root: self.root.clone(),
                 secret: self.secret,
                 pool: Arc::clone(&pool),
                 feed,
@@ -176,6 +201,15 @@ impl ServeCommand {
             visibility.hard,
         )
         .change_context(ServeError::Manager)?;
+
+        let (download_path, download_options) = self.download.into();
+        let download = if let Some(download) = download_path {
+            let download = Download::new(storage, self.root, download);
+            let task = download.into_task(download_options);
+            Some(task)
+        } else {
+            None
+        };
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
@@ -219,6 +253,10 @@ impl ServeCommand {
         )
         .layer(HttpTracingLayer::new(|path| path == STATUS_PATH));
 
-        Ok(Serving { router, manager })
+        Ok(Serve {
+            router,
+            manager: manager.into_task(),
+            download,
+        })
     }
 }

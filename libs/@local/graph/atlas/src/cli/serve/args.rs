@@ -1,6 +1,7 @@
 use core::{num::NonZero, time::Duration};
 
 use crate::{
+    file::{generation::download::DownloadOptions, storage::path::FilePath},
     integrity::SecretHexBytesValueParser,
     serve::{
         delta::{DeltaFeedTaskOptions, DeltaPlacementTaskOptions, DeltaTaskOptions},
@@ -25,6 +26,7 @@ const DEFAULT_DELTA: DeltaTaskOptions = DeltaTaskOptions {
     },
 };
 const DEFAULT_MANAGER: ManagerOptions = ManagerOptions { .. };
+const DEFAULT_DOWNLOAD: DownloadOptions = DownloadOptions { .. };
 
 /// Per-request limits also published by the manifest.
 #[derive(Debug, clap::Args)]
@@ -212,17 +214,51 @@ impl From<ManagerArgs> for ManagerOptions {
     }
 }
 
+#[derive(Debug, clap::Args)]
+pub(super) struct DownloadArgs {
+    /// Whether to upload the generated results to remote storage.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
+    download: Option<FilePath>,
+
+    /// Interval at which to poll for download completion.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL",
+        default_value_t = NonZero::new(DEFAULT_DOWNLOAD.poll_interval.as_secs())
+            .expect("the default download poll interval is positive"),
+    )]
+    download_poll_interval: NonZero<u64>,
+}
+
+impl From<DownloadArgs> for (Option<FilePath>, DownloadOptions) {
+    fn from(args: DownloadArgs) -> Self {
+        (
+            args.download,
+            DownloadOptions {
+                poll_interval: Duration::from_secs(args.download_poll_interval.get()),
+            },
+        )
+    }
+}
+
 /// Generation selection and request-serving settings.
 #[derive(Debug, clap::Args)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "see: BE-804, the whole CLI is currently a hot mess"
+)]
 pub struct ServeArgs {
     #[command(flatten)]
-    pub limits: LimitsArgs,
+    pub(super) limits: LimitsArgs,
 
     #[command(flatten)]
-    pub delta: DeltaArgs,
+    pub(super) delta: DeltaArgs,
 
     #[command(flatten)]
-    pub manager: ManagerArgs,
+    pub(super) manager: ManagerArgs,
+
+    #[command(flatten)]
+    pub(super) download: DownloadArgs,
 
     /// The server secret behind the wire row-id codec.
     ///
@@ -234,5 +270,5 @@ pub struct ServeArgs {
         hide_env_values = true,
         value_parser = SecretHexBytesValueParser::<ServeSecret, { size_of::<ServeSecret>() }>::new(),
     )]
-    pub secret: ServeSecret,
+    pub(super) secret: ServeSecret,
 }

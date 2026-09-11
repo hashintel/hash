@@ -29,7 +29,7 @@ use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
-use super::{ServeArgs, ServeCommand, ServeOptions, Serving};
+use super::{Serve, ServeArgs, ServeCommand, ServeOptions};
 use crate::{
     cli::RootArgs,
     device::PinnedDevice,
@@ -173,7 +173,7 @@ impl AuthenticationProvider<ActorId> for HeaderActor {
     }
 }
 
-async fn serving() -> (ScratchDirectory, Serving) {
+async fn serving() -> (ScratchDirectory, Serve) {
     let temporary = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should be UTF-8");
     let scratch = GenerationRoot::new(temporary)
