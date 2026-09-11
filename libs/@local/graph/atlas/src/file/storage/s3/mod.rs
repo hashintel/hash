@@ -226,6 +226,15 @@ impl S3 {
             .map_err(From::from)
     }
 
+    pub(crate) async fn remove(&self, path: &BucketPath) -> Result<(), StorageError> {
+        self.delete(
+            path.bucket(),
+            [ObjectIdentifier::builder().key(path.key()).build()?],
+        )
+        .await
+        .map(|_| ())
+    }
+
     pub(crate) async fn remove_dir_all(&self, path: &BucketPath) -> Result<(), StorageError> {
         const DELETE_CHUNK_SIZE: usize = 1000;
 

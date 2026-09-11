@@ -16,6 +16,10 @@ pub(crate) struct RemoteGeneration {
 }
 
 impl RemoteGeneration {
+    pub(crate) fn directory(&self) -> &FilePath {
+        &self.path
+    }
+
     /// Locates the document completing this publication.
     ///
     /// # Errors
