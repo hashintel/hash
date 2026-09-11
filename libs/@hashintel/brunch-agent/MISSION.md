@@ -233,10 +233,14 @@ hold:
   diagnostics and the Postgres catalogue/copy path.
 - The Petrinaut website owns browser execution, diagnostics/layout host
   integration, assistant selection and URL routing, including `?bundle=`.
-- Brunch-owned names use `brunch_<operation>`; canonical Petrinaut action and
-  command names remain camelCase; Flue built-ins remain substrate-owned.
-  Definition homes, mounts, execution hosts, display consumers and persistence
-  must agree before a tool is renamed or moved.
+- Workpiece operations use action names rather than ownership prefixes:
+  `read_workpiece` reads the current workpiece and source/locator material;
+  `mutate_workpiece` submits a complete next revision and records its verified
+  delta from the cited base. Retained histories may recognize the legacy
+  `brunch_workpiece` and `update_workpiece` names, but new conversations mount
+  only the current names. Canonical Petrinaut action and command names remain
+  unchanged. Definition homes, mounts, execution hosts, display consumers and
+  persistence must agree before any other tool is renamed or moved.
 
 ### Scope boundary and external owners
 
@@ -282,6 +286,16 @@ hold:
   basis or an honest absent/ambiguous disposition. The one-tool/split-internals
   authority shape is settled above; the model-facing name remains under owner
   review.
+- **Workpiece query:** `query_workpiece` is the candidate replacement concept
+  for asking about target-formalism history: map named target-document
+  revisions through workpiece revision IDs to the relevant session-turn range.
+  Its input identity—whole-document revision/hash versus element/change
+  identity—must be settled before its schema or ownership is designed.
+- **Question marker reliability:** `brunch_mark_question` supports Voice
+  question replay when the model calls it with exact matching prose. Plumbing
+  is proven; autonomous activation reliability is not. Decide whether this
+  model-compliance mechanism remains mounted, moves behind a deterministic
+  response contract, or is removed.
 - **Seeded session instantiation:** Flue 2.0.3 has no supported public
   export/fork operation for an independently writable retained session.
   Projected `history()` cannot reconstruct canonical stream records or
