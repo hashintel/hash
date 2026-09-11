@@ -1,8 +1,10 @@
 //! Metadata-last publication preserves complete generations across independent object writes.
 
-use core::pin::pin;
+use core::{pin::pin, str::FromStr as _};
 
 use bytes::Bytes;
+use futures::TryStreamExt;
+use hashql_core::symbol::sym::xor;
 use tokio::io::AsyncReadExt as _;
 
 use self::backend::GenerationUploadBackend;
@@ -18,6 +20,10 @@ mod error;
 mod tests;
 
 pub(crate) use self::error::UploadError;
+
+struct PromotionOptions {
+    delete_old_active_revisions: bool,
+}
 
 /// The destination's selected generation and the revision a promotion writes against.
 struct Current {
@@ -222,6 +228,46 @@ where
         self.finish_object(destination, id.digest(), result).await
     }
 
+    async fn delete_old_active_revisions(
+        &self,
+        current: GenerationId,
+        previous: Option<GenerationId>,
+    ) -> Result<(), UploadError> {
+        let active = self.remote.active_root()?;
+
+        let files = self.backend.read_dir(&active);
+        let mut files = pin!(files);
+        while let Some(entry) = files.try_next().await? {
+            let Some(file_name) = entry.file_name() else {
+                tracing::warn!("todo");
+                continue;
+            };
+
+            let file_id = match GenerationId::from_str(file_name) {
+                Ok(file_id) => file_id,
+                Err(error) => {
+                    tracing::warn!("todo");
+                    continue;
+                }
+            };
+
+            if file_id == current {
+                continue;
+            }
+            if let Some(previous) = previous
+                && file_id == previous
+            {
+                continue;
+            }
+
+            if let Err(error) = self.backend.remove_dir_all(&entry).await {
+                tracing::warn!("todo");
+            }
+        }
+
+        Ok(())
+    }
+
     /// Completes an active prefix and selects it against the captured current pointer.
     ///
     /// A completed repository prefix supplies the copy sources. The current-pointer write makes one
@@ -233,7 +279,11 @@ where
     /// preserves a rejected precondition. Other failures retain their storage error, including
     /// transport failures with unknown write outcomes.
     #[tracing::instrument(skip_all, fields(%id), err)]
-    pub(crate) async fn promote(self, id: GenerationId) -> Result<Promotion, UploadError> {
+    pub(crate) async fn promote(
+        self,
+        id: GenerationId,
+        options: PromotionOptions,
+    ) -> Result<Promotion, UploadError> {
         let generation = self.open(id).await?;
         let repository = self.remote.repository(id)?;
         let active = self.remote.active(id)?;
@@ -269,9 +319,12 @@ where
         let previous = self.remote.previous()?;
 
         let previous_id = self.current.as_ref().map(|current| current.id);
-        let condition = self.current.map_or(WriteCondition::Absent, |current| {
-            WriteCondition::Match(current.revision)
-        });
+        let condition = self
+            .current
+            .as_ref()
+            .map_or(WriteCondition::Absent, |current| {
+                WriteCondition::Match(current.revision)
+            });
 
         if let Err(error) = self
             .backend
@@ -293,6 +346,12 @@ where
         } else {
             None
         };
+
+        if options.delete_old_active_revisions {
+            if let Err(error) = self.delete_old_active_revisions(id, previous_id).await {
+                tracing::warn!("todo");
+            }
+        }
 
         Ok(Promotion { id, previous_error })
     }
