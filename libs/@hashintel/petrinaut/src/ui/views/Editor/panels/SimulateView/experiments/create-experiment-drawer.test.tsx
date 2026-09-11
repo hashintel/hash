@@ -137,6 +137,7 @@ const TestProviders = ({
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
+    setEnableAutomaticArcConnections: () => {},
     setArcRendering: () => {},
     setCursorMode: () => {},
     setIsLeftSidebarOpen: () => {},

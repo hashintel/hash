@@ -70,6 +70,12 @@ Off by default. Adds a **Surface** section to an optimization study with two or 
 
 Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, Petrinaut connects that optimizer: the **Optimizations** tab appears under Simulate, each study's steps run on the experiments backend, and the study drawer streams the objective's metrics for the step being evaluated (see [Running in the browser](optimization.md#running-in-the-browser)). Off, the tab stays hidden and any running in-browser optimization is cancelled.
 
+### Automatic arc connections (experimental)
+
+Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
+
+This setting uses automatic curves and temporarily disables the **Arcs rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
+
 ### Arcs rendering
 
 Choose how arcs are drawn between nodes:

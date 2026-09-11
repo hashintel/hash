@@ -322,7 +322,8 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
 
   // Compute path based on arc rendering setting.
   const [arcPath, labelX, labelY] =
-    arcRendering === "smoothstep"
+    data?.outlinePath ??
+    (arcRendering === "smoothstep"
       ? getSmoothStepPath({
           sourceX,
           sourceY,
@@ -347,7 +348,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             targetX,
             targetY,
             targetPosition,
-          });
+          }));
 
   const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
