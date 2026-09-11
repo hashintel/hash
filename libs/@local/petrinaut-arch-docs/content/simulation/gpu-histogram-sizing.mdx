@@ -102,9 +102,12 @@ calibrates itself instead of warning:
 
 Frame 0 is sampled on the device before the first step, like every later
 frame: the sample sits at the top of the frame iteration, so row `f` holds the
-state after `f` steps. The histogram's last row was always empty (every run
-still going takes its completed status at the frame limit, before it could be
-sampled there), so the shift to sampling before the step costs no buffer.
+state after `f` steps. Frame 0 reuses the row the old scheme left empty (every
+run still going took its completed status at the frame limit, before it could
+be sampled there), and the buffer gains one row, `frameLimit + 1` rows in all,
+so row `frame_limit` holds the CPU's final frame for `completed` and `all`
+metrics, matching `runner/histogram-frames.ts`'s "(frameLimit + 1) × metrics ×
+bins".
 
 A count past the old fixed range is therefore no longer an error, a warning,
 or a refusal — a 1,030-token initial marking runs with a window that covers
