@@ -2,9 +2,11 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 
 import {
+  applyAutoLayoutToolName,
   assertMutationEffects,
   canonicalContent,
   classifyMutationOutcome,
+  deriveLayoutEffects,
   deriveMutationEffects,
   mutatePetrinetToolName,
   observedMutationOutcome,
@@ -318,6 +320,8 @@ export const createJoinedBrowserMutationRecorder = (input: {
   const requestedBaseHash = input.requestedBaseHash;
   const issuedReads = new Set<string>();
   const observedReads = new Map<string, string>();
+  /** Live observation taken when the layout call was issued, before the browser ran it. */
+  const issuedLayouts = new Map<string, DefinitionObservation>();
   const issued = new Map<
     string,
     { request: ConstructionMutationRequest; envelope: unknown }
@@ -345,6 +349,14 @@ export const createJoinedBrowserMutationRecorder = (input: {
   > = (call) => {
     if (call.toolName === "getLatestNetDefinition") {
       issuedReads.add(call.toolCallId);
+      return call.input;
+    }
+    if (call.toolName === applyAutoLayoutToolName) {
+      if (!issuedLayouts.has(call.toolCallId))
+        issuedLayouts.set(
+          call.toolCallId,
+          observeBrowserDefinition(input.handle),
+        );
       return call.input;
     }
     if (
@@ -407,7 +419,31 @@ export const createJoinedBrowserMutationRecorder = (input: {
         observation: { toolCallId: result.toolCallId, binding, observed },
       } satisfies ClientToolResultMetadata;
     }
+    if (result.toolName === applyAutoLayoutToolName) {
+      const pre = issuedLayouts.get(result.toolCallId);
+      if (!pre) throw new Error("Unknown issued browser layout command.");
+      const post = observeBrowserDefinition(input.handle);
+      return {
+        layoutRecord: {
+          toolCallId: result.toolCallId,
+          binding,
+          pre,
+          post,
+          effects: deriveLayoutEffects(pre.definition, post.definition),
+        },
+      } satisfies ClientToolResultMetadata;
+    }
     if (result.toolName === mutatePetrinetToolName) {
+      const reported =
+        typeof result.output === "object" &&
+        result.output !== null &&
+        "postHash" in result.output
+          ? result.output.postHash
+          : undefined;
+      if (reported !== observeBrowserDefinition(input.handle).sha256)
+        throw new Error(
+          "The document changed after the mutate_petrinet result reported its final hash.",
+        );
       const prefix = `${result.toolCallId}:`;
       const attempts = recorder
         .records()

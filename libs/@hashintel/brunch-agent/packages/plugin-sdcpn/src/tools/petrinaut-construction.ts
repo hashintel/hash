@@ -9,6 +9,7 @@ import {
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import { applyAutoLayoutToolName } from "../construction-tool-names";
 import { validateDeclaredBasis } from "../declared-basis";
 import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
 import { isObservedNodeMutation, observedNodeInputSchema } from "../root-node";
@@ -63,7 +64,10 @@ export const createJoinedRootArcTool = (
     },
   });
 
-export { observedConstructionBrowserToolNames } from "../construction-tool-names";
+export {
+  applyAutoLayoutToolName,
+  observedConstructionBrowserToolNames,
+} from "../construction-tool-names";
 
 export const observedDefinitionReadTool = defineTool({
   name: getLatestNetDefinitionToolName,
@@ -85,6 +89,21 @@ export const observedCompilationReadTool = defineTool({
   },
 });
 
+/**
+ * Canonical Petrinaut ELK layout, executed by the browser as its own recorded
+ * command. Its client result carries `metadata.layoutRecord` with the observed
+ * pre/post hashes and position effects; the post hash is the next base.
+ */
+export const observedLayoutCommandTool = defineTool({
+  name: applyAutoLayoutToolName,
+  description: `${petrinautAiTools.applyAutoLayout.description}\nLayout is a recorded document mutation, separate from mutate_petrinet. Call it in its own proposal after a batch that added or restructured places or transitions, never after a batch that only changed types, parameters or dynamics. The browser result's metadata.layoutRecord reports the observed pre hash, post hash and position effects; the post hash is the current base, so obtain a fresh getLatestNetDefinition before any further mutation.`,
+  input: petrinautAiTools.applyAutoLayout.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
 /** Resolves an earlier verified browser read so a mutation can cite its exact base. */
 export interface ObservedConstructionOptions extends WorkpieceAuthorityOptions {
   readonly observationFor: (
@@ -99,7 +118,13 @@ export const createObservedArcTool = (
 ) =>
   defineTool({
     name,
-    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) && name !== "addParameter" ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
+    description: `${
+      petrinautAiTools[name].description
+    }\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${
+      isObservedStateMutation(name) && name !== "addParameter"
+        ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities."
+        : ""
+    }`,
     input: isObservedNodeMutation(name)
       ? observedNodeInputSchema(name)
       : isObservedStateMutation(name)

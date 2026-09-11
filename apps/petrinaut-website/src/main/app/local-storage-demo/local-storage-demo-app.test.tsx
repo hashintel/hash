@@ -751,6 +751,7 @@ describe("local storage demo prepared fixture", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "applyAutoLayout",
       "getLatestNetDefinition",
       "getNetCompilationErrors",
       "mutate_petrinet",
