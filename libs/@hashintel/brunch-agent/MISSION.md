@@ -27,14 +27,18 @@ remain independent.
 
 ## Imperative
 
-Make a product manager able to open the stable Inventory purchasing worked
-model from one Postgres-backed template (`?bundle=inventory-purchasing`) as an
-independently owned working copy; inspect a legible, sophisticated SDCPN with
-its retained Brunch conversation and workpiece; ask why consequential content
-exists; correct it in ordinary language; see compiler-clean model changes and
-coherent layout; and close and reopen the same copy. Editing one copy must not
-alter the template or a sibling, and the product must create a clean copy on
-request.
+Use local persona-based development to produce a versioned Inventory fixture
+bundle containing one retained Brunch session, its workpiece and its
+sophisticated SDCPN. Package that accepted fixture with the deployed app and
+seed it into Postgres when the database is created or upgraded.
+
+Make a product manager able to open that stable Inventory purchasing template
+through `?bundle=inventory-purchasing` as an independently owned working copy;
+inspect its retained conversation, workpiece and legible SDCPN; ask why
+consequential content exists; correct it in ordinary language; see
+compiler-clean model changes and coherent layout; and close and reopen the
+same copy. Editing one copy must not alter the seeded template or a sibling,
+and the product must create a clean copy from the seed on request.
 
 Inventory is the fully recorded flagship and semantic acceptance exemplar, but
 the construction architecture must not depend on Inventory-specific nouns or
@@ -57,8 +61,10 @@ work is claimed.
 ## Throughline
 
 ```text
-?bundle=inventory-purchasing
-→ Brunch app resolves template, principal and owned working copy
+local persona-based development produces an accepted session + workpiece + net
+→ app build packages the versioned fixture bundle
+→ database creation or upgrade seeds the standard template idempotently
+→ ?bundle=inventory-purchasing resolves template, principal and owned copy
 → website opens the copy with its conversation, workpiece and SDCPN
 → persona speaks in ordinary language; workpiece revisions settle
 → Brunch recognizes explanation, construction or correction intent
@@ -160,7 +166,7 @@ hold:
 
 | Acceptance result | Required oracle |
 | --- | --- |
-| Inventory template and copies behave as one worked model | Postgres integration plus two-principal product proof: the route creates or resumes the right owned copy; copy edits never reach the template or sibling; a clean copy can be created; conversation, workpiece, net and current-revision explanation resume coherently. |
+| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right owned copy; copy edits never reach the template or sibling; a clean copy can be created from the seed; conversation, workpiece, net and current-revision explanation resume coherently. |
 | Inventory is connected and operationally coherent | Lu reviews procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions. Structural and compiled evidence cannot pass this gate. |
 | The tiered portfolio obligation is met | Repeatable run records demonstrate all three tiers defined in the Imperative, and a scan confirms that reusable guidance contains no Inventory-specific nouns or IDs. |
 | Ordinary requests succeed or refuse visibly | Representative live-browser construction and correction across the capability envelope succeeds through canonical operations or produces a clear unsupported-operation refusal. No case crashes, stalls, corrupts the net, silently omits requested meaning, leaves hidden partial state or claims success. |
@@ -198,8 +204,10 @@ hold:
 - Flue history is canonical conversation history; the workpiece is the
   recoverable operational account; Petrinaut is the model authority.
 - The Inventory template and owned copies live in the Brunch app's Postgres
-  store through the existing adapter and migrations. SQLite remains for
-  lightweight tests and disposable local work. Do not create a second
+  store through the existing adapter and migrations. Versioned fixture bundles
+  produced locally are build inputs whose exact session, workpiece and net are
+  seeded idempotently; they are not a runtime promotion path. SQLite remains
+  for lightweight tests and disposable local work. Do not create a second
   persistence system.
 - A `?bundle=` key identifies a template; it does not authenticate a user by
   obscurity. Any bearer-capability proposal requires explicit review of
@@ -230,8 +238,10 @@ hold:
 
 - No Petrinaut simulation scenarios or metrics, structured-question widgets
   or questionnaires enter 7c unless PM explicitly recuts the objective.
-- No arbitrary import/clone, attachments or complete historical-effect
-  rebinding enter the copy path.
+- No arbitrary user import/clone, attachments or complete historical-effect
+  rebinding enter the copy path. Catalogue-controlled instantiation of a
+  versioned seeded fixture into an independently writable copy is the intended
+  product path.
 - No public deployment, hosted authentication, spend control,
   backup/recovery or multi-replica safety claim enters 7c. Tim owns hosted
   infrastructure and remote readiness under the Mission 8 successor and
