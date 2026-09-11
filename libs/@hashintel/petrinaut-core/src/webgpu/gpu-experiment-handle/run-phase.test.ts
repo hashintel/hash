@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { RUN_POLICY } from "./calibration";
 import { runCalibratedExperiment } from "./run-phase";
 
 import type { CompiledNetShader } from "../compile-net-shader";
@@ -168,6 +169,42 @@ describe("runCalibratedExperiment", () => {
       }),
     ]);
     expect(remembered).toEqual([]);
+  });
+
+  it("probes afresh when a cached calibration still overflows after growth", async () => {
+    // Another selection's slabs undersize this one past RUN_POLICY's budget:
+    // rather than failing, the run probes as a first batch would.
+    const current = session({ p: 10 });
+    const overflowing = Array.from(
+      { length: 1 + RUN_POLICY.maxSlabGrowths },
+      () => ({ ok: true as const, result: outcome({ overflowRuns: 1 }) }),
+    );
+    const { execute, attempts } = scripted([
+      ...overflowing,
+      {
+        ok: true,
+        result: outcome({ derivedPlaceMaxes: [{ max: 100, meanRunMax: 90 }] }),
+      },
+      { ok: true, result: outcome({ completedRuns: 1000 }) },
+    ]);
+
+    const { run, remembered } = runWith(current, execute, {
+      calibratedWindows: [{ lo: 0, stride: 1, integer: true }],
+    });
+    const result = await run;
+
+    expect(attempts.map(({ preview }) => preview)).toEqual([
+      ...overflowing.map(() => true),
+      false,
+      true,
+    ]);
+    // The probe starts from the grown slabs, never below them.
+    expect(current.capacities.get("p")).toBe(154);
+    expect(remembered).toHaveLength(1);
+    expect(result).toMatchObject({
+      kind: "calibrated",
+      result: { completedRuns: 1000, overflowRuns: 0 },
+    });
   });
 
   it("probes blind windows alone when no place needs a slab", async () => {

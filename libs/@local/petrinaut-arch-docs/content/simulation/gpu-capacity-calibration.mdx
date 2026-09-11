@@ -98,8 +98,10 @@ every batch — a point selection as one constant row per run — so all of a
 sweep's selections share one backend, and with it the calibration (windows,
 derived capacities, the shader compiled at them) learned by earlier batches.
 A stale calibration heals through the same escape/overflow re-runs that
-calibrate from scratch, and the cache is updated with what each batch
-learned. Only a selection that changes the initial marking (a scenario axis
+calibrate from scratch — and a calibration the full attempt outgrows even
+after its growth budget sends the batch back through the probe, from the
+grown slabs, as a first batch would — and the cache is updated with what
+each batch learned. Only a selection that changes the initial marking (a scenario axis
 that shapes the initial state) still builds a new setup.
 
 Pipelined rungs lease the backend concurrently, and the ladder starts the
