@@ -406,7 +406,7 @@ try {
         .metadata?.observation;
       assert(observation);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
           transition: "Start final inspection",
           place: "Dispatch crew available",
@@ -418,7 +418,7 @@ try {
       );
     },
     (context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("why", answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "construction-add");
@@ -638,7 +638,7 @@ try {
         .metadata?.observation;
       assert(observation);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
           transition: "Start final inspection",
           place: "Dispatch crew available",
@@ -650,7 +650,7 @@ try {
       );
     },
     (context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("hand-edit-why", answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/u);

@@ -365,7 +365,7 @@ try {
     afterMutation("updateTransition", "creation-read-correction"),
     checked((context) =>
       tool(
-        "brunch_why",
+        "query_workpiece",
         {
           kind: "place",
           name: queue.name,
@@ -379,7 +379,7 @@ try {
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-queue");
@@ -392,13 +392,13 @@ try {
         "creation-revision-two",
       );
       return tool(
-        "brunch_why",
+        "query_workpiece",
         { kind: "transition", name: step.name, field: "lambdaCode" },
         "creation-why-pause",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-step");
@@ -407,25 +407,25 @@ try {
         "creation-pause",
       );
       return tool(
-        "brunch_why",
+        "query_workpiece",
         { kind: "place", name: queue.name, field: "entity" },
         "creation-why-entity",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.originToolCallId, "creation-queue");
       assert.equal(answer.disposition, "refused");
       assert.equal(answer.governing, undefined);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         { kind: "transition", name: step.name, field: "inputArcs" },
         "creation-why-input-arcs",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /aggregate.*descendant/iu);
@@ -433,13 +433,13 @@ try {
       assert.equal(answer.governing, undefined);
       assert.equal(answer.recordedChange, undefined);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         { kind: "transition", name: step.name, field: "outputArcs" },
         "creation-why-output-arcs",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /aggregate.*descendant/iu);
@@ -742,7 +742,7 @@ try {
       assert(observation);
       reopenedObservationId = observation.toolCallId;
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
           kind: "place",
           name: queue.name,
@@ -753,7 +753,7 @@ try {
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       reopenedAnswers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-queue");
@@ -778,7 +778,7 @@ try {
         ),
       );
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
           kind: "transition",
           name: step.name,
@@ -789,7 +789,7 @@ try {
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       reopenedAnswers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-step");
@@ -898,7 +898,7 @@ try {
   );
   faux.setResponses([
     tool(
-      "brunch_why",
+      "query_workpiece",
       {
         kind: "place",
         name: queue.name,
@@ -908,7 +908,7 @@ try {
       "creation-external-why",
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("external-why", answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/);

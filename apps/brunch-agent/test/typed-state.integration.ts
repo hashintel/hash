@@ -356,7 +356,7 @@ const query = (context: Context, args: Record<string, unknown>, id: string) => {
     fields.field = `/initialState/content/${queueId.replaceAll("~", "~0").replaceAll("/", "~1")}/${initialCell.join("/")}`;
   }
   return tool(
-    "brunch_why",
+    "query_workpiece",
     { ...fields, observationToolCallId: observation.toolCallId },
     id,
   );
@@ -543,7 +543,7 @@ try {
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /derived/);
@@ -608,7 +608,7 @@ try {
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /derived/);
@@ -822,7 +822,7 @@ try {
       );
       responses.push(
         checked((context) => {
-          const answer = toolOutput(context, "brunch_why");
+          const answer = toolOutput(context, "query_workpiece");
           answers.push(answer);
           assert.equal(answer.disposition, expected);
           if (change)
@@ -1189,7 +1189,7 @@ try {
   );
   faux.setResponses([
     tool(
-      "brunch_why",
+      "query_workpiece",
       {
         kind: "type",
         name: selectedType.name,
@@ -1199,7 +1199,7 @@ try {
       "typed-external-why",
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/);

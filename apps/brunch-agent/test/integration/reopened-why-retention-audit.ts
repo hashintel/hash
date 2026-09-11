@@ -249,7 +249,7 @@ export const auditReopenedWhyRetention = (
           isJsonObject(message) &&
           message.role === "toolResult" &&
           (message.toolName === "read_workpiece" ||
-            message.toolName === "brunch_why"),
+            message.toolName === "query_workpiece"),
       ), "prior workpiece/why results absent from query context");
       require(!asArray(query.priorQueryIds, `${name} prior query ids`).some(
         (callId) => serialized.includes(String(callId)),
@@ -520,7 +520,7 @@ export const falsifyReopenedWhyRetention = (
       }
       asArray(context.messages, "context messages").push({
         role: "toolResult",
-        toolName: "brunch_why",
+        toolName: "query_workpiece",
         toolCallId: "retention-live-why",
         content: [{ type: "text", text: JSON.stringify(answer) }],
       });

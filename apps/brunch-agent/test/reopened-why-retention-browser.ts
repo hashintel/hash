@@ -382,7 +382,7 @@ export const seedRetentionBrowser = async (options: {
       ),
       retentionCall("getLatestNetDefinition", {}, "retention-live-read"),
       retentionCall(
-        "brunch_why",
+        "query_workpiece",
         { ...retentionQuery, observationToolCallId: "retention-live-read" },
         "retention-live-why",
       ),

@@ -96,7 +96,7 @@ export const ordinaryBrunchToolCatalogue: readonly OrdinaryBrunchToolCatalogueEn
       role: "workpiece",
     },
     {
-      name: "brunch_why",
+      name: "query_workpiece",
       definitionOwner: "brunch-app",
       executionOwner: "brunch-app",
       role: "explanation",

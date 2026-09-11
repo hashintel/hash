@@ -27,7 +27,7 @@ const messages = [
     parts: [
       {
         type: "dynamic-tool",
-        toolName: "brunch_why",
+        toolName: "query_workpiece",
         toolCallId: "why-call",
         state: "output-available",
         output,
@@ -48,6 +48,33 @@ test("renders a readable document without a floating overlay and keeps raw recor
   expect(html).not.toContain("position:fixed");
   expect(html).toContain("<details");
   expect(html).not.toContain("<details open");
+});
+
+test("continues to render retained brunch_why results", () => {
+  const legacyMessages = [
+    {
+      role: "assistant",
+      purpose: "assistant",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolName: "brunch_why",
+          toolCallId: "why-call",
+          state: "output-available",
+          output,
+        },
+      ],
+    },
+  ];
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={legacyMessages}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("<h1>Actual tool workpiece</h1>");
+  expect(html).toContain("State queried by why-call");
 });
 
 test("shows actual recorded tool output and refuses to call a hand-edited document reconciled", () => {

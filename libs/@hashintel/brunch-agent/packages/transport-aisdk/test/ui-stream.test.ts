@@ -559,7 +559,7 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "visible-1",
-    toolName: "brunch_why",
+    toolName: "query_workpiece",
     input: {},
     position: position(1),
   });
@@ -591,7 +591,7 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
     {
       submissionId: "submission-1",
       toolCallId: "visible-1",
-      toolName: "brunch_why",
+      toolName: "query_workpiece",
       errorText: "Unknown governing revision",
       hidden: false,
     },
