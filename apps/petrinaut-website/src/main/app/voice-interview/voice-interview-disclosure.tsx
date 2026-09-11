@@ -147,17 +147,23 @@ export const VoiceInterviewDisclosure = ({
             )}
           </div>
         </div>
-        {!experimental && (
+        <p className={disclosureCopyStyle}>
+          {experimental
+            ? "OpenAI receives microphone audio in Live and a separate transcription session, with additional provider usage. Petrinaut saves finalized text—not audio."
+            : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
+        </p>
+        {experimental && (
           <p className={disclosureCopyStyle}>
-            OpenAI processes live audio and speaks the interviewer’s words.
-            Petrinaut saves finalized answers—not audio.
+            Brunch directs the interview. Live speech control is best-effort: it
+            may speak independently or paraphrase incorrectly. Check the
+            conversation and workpiece; spoken claims do not prove completion.
           </p>
         )}
         <Checkbox
           className={disclosureConsentStyle}
           label={
             experimental
-              ? "Allow OpenAI to process microphone audio."
+              ? "Allow both OpenAI audio streams and finalized text submission."
               : "I understand how voice data is handled."
           }
           onChange={onConsentChange}
