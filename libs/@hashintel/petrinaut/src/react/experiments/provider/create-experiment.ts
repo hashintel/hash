@@ -17,6 +17,7 @@ import {
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
+import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
   buildAdHocSweepAxes,
   buildParameterAxis,
@@ -416,7 +417,10 @@ export const newExperimentRecord = ({
  * shader-generating backend reads them, while re-lowering the whole net per
  * batch was most of the delay between a slider move and its first frames.
  * A failed compile is not cached, so a transient worker error stays
- * retryable.
+ * retryable. The experiment's state constraints ride every request as
+ * indicator metrics after the user's specs (`constraintIndicatorSpecs`),
+ * compiled once here on the main thread; the record's own metric specs
+ * never carry them.
  */
 export const createExperimentRequestBuilder = ({
   input,
@@ -432,6 +436,11 @@ export const createExperimentRequestBuilder = ({
   compiled: CompiledExperimentScenario;
   requestHirArtifacts: LanguageClientContextValue["requestHirArtifacts"];
 }): BuildExperimentRequest => {
+  const indicatorSpecs = constraintIndicatorSpecs(
+    input.constraints ?? [],
+    sdcpn,
+    extensions,
+  );
   const artifactsMemo = new Map<
     boolean,
     ReturnType<typeof requestHirArtifacts>
@@ -484,7 +493,7 @@ export const createExperimentRequestBuilder = ({
       dt: input.dt,
       maxTime: input.maxTime,
       runCount: input.runCount,
-      metricSpecs,
+      metricSpecs: [...metricSpecs, ...indicatorSpecs],
       hirArtifacts: artifacts,
       ...override,
     };

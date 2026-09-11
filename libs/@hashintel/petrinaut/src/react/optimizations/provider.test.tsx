@@ -39,6 +39,7 @@ import {
 } from "./fake-detached-objective-runs.fixtures";
 import { OptimizationsProvider } from "./provider";
 import {
+  sirConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
 } from "./sir-optimization-input.fixtures";
@@ -219,6 +220,8 @@ const createEvaluatingSource = (
                 objective: outcome.objective,
               };
             }
+            // The in-browser worker copies what the channel reported onto
+            // the trial event; so does this fake.
             yield {
               type: "trial",
               trial,
@@ -227,6 +230,9 @@ const createEvaluatingSource = (
                 outcome.kind === "objective" ? outcome.objective : null,
               state: outcome.kind === "objective" ? "complete" : "pruned",
               best: null,
+              ...(outcome.constraints
+                ? { constraints: outcome.constraints }
+                : {}),
               seq,
             };
           }
@@ -1676,6 +1682,84 @@ describe("OptimizationsProvider driving a sweep", () => {
       expect(getValue().optimizations[0]?.status).toBe("cancelled"),
     );
     expect(navigateSweep).toHaveBeenCalledTimes(2);
+  });
+
+  it("carries a constrained sweep's verdicts onto the trial events: an infeasible draw pruned without moving the sweep, a feasible one with its runs passed", async () => {
+    const constrainedSweepInput: PetrinautOptimizationInput = {
+      ...sirConstrainedOptimizationInput,
+      execution: {
+        ...sirConstrainedOptimizationInput.execution,
+        seedsPerTrial: 8,
+      },
+    };
+    // 0.15 breaks `infected_ratio <= 0.1`; 0.05 holds it.
+    const { source } = createEvaluatingSource([0.15, 0.05], {
+      manifest: constrainedSweepInput,
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    const navigateSweep = vi.fn(
+      (
+        _experimentId: string,
+        selection: SweepSelection,
+        _options?: { runCap?: number },
+      ) =>
+        Promise.resolve({
+          ...sweepCellAt(selection),
+          means: {
+            ...sweepCellAt(selection).means,
+            "constraint:infected-cap": 0.75,
+          },
+        }),
+    );
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      navigateSweep,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(constrainedSweepInput, { sweep });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+
+    const study = getValue().optimizations[0]!;
+    expect(study).toMatchObject({ completedTrials: 1, prunedTrials: 1 });
+    expect(study.trials).toEqual([
+      expect.objectContaining({
+        trial: 0,
+        state: "pruned",
+        constraints: {
+          parameters: [
+            { constraintId: "ratio-cap", margin: expect.any(Number) as number },
+          ],
+          state: [],
+          infeasible: "ratio-cap",
+        },
+      }),
+      expect.objectContaining({
+        trial: 1,
+        state: "complete",
+        constraints: {
+          parameters: [
+            { constraintId: "ratio-cap", margin: expect.any(Number) as number },
+          ],
+          state: [
+            { constraintId: "infected-cap", runsPassed: 6, runsTotal: 8 },
+          ],
+        },
+      }),
+    ]);
+    // Only the feasible draw moved the sweep (plus the park once done).
+    expect(
+      navigateSweep.mock.calls.map(([, point, options]) => [point, options]),
+    ).toEqual([
+      [sweepPointOf(0.05), { runCap: 8 }],
+      [sweepPointOf(0.05), undefined],
+    ]);
+    expect(fake.runs).toHaveLength(0);
+    unmount();
   });
 });
 

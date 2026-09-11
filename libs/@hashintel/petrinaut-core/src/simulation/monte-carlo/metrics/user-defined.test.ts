@@ -5,19 +5,21 @@ import { createMonteCarloUserDefinedMetric } from "./user-defined";
 import type { SimulationFrameReader } from "../../api";
 import type {
   MonteCarloFrameMetricContext,
+  MonteCarloMetricRunStatus,
   MonteCarloUserDefinedMetricConfig,
 } from "./types";
 
-/** A frame context over `runs`: run index to the value the metric reads. */
+/** A frame context over `runs`: run index to the value the metric reads, every run in `status`. */
 const frameContext = (
   frameNumber: number,
   runs: Readonly<Record<number, number>>,
+  status: MonteCarloMetricRunStatus = "running",
 ): MonteCarloFrameMetricContext => ({
   frameNumber,
   time: frameNumber,
   runCount: Object.keys(runs).length,
-  activeRunCount: Object.keys(runs).length,
-  completedRunCount: 0,
+  activeRunCount: status === "running" ? Object.keys(runs).length : 0,
+  completedRunCount: status === "complete" ? Object.keys(runs).length : 0,
   erroredRunCount: 0,
   placeIds: [],
   placeNames: [],
@@ -26,7 +28,7 @@ const frameContext = (
     for (const [runIndex, value] of Object.entries(runs)) {
       visitor({
         runIndex: Number(runIndex),
-        status: "running",
+        status,
         // The measure below reads the value straight off this stub.
         frame: { value } as unknown as SimulationFrameReader,
       });
@@ -89,6 +91,29 @@ describe("createMonteCarloUserDefinedMetric getRunValues", () => {
         [5, 1],
         [7, 1],
       ],
+    });
+  });
+
+  it("bins each finished run's min on the last frame with sampleRuns all: [[0, failed], [1, passed]]", () => {
+    // A state constraint's indicator: 1 where the condition held, min over
+    // the run's frames, every run sampled so finished runs stay in the bins.
+    const indicator = metric({
+      aggregateTime: "min",
+      runOutput: { type: "distribution" },
+    });
+    indicator.observeFrame(frameContext(0, { 0: 1, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(frameContext(1, { 0: 0, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(
+      frameContext(2, { 0: 1, 1: 1, 2: 1, 3: 1 }, "complete"),
+    );
+
+    expect(indicator.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      bins: [
+        [0, 1],
+        [1, 3],
+      ],
+      runSampleCount: 4,
     });
   });
 
