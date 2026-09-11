@@ -139,7 +139,7 @@ yarn workspace @apps/petrinaut-website examples:generate
 PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunch:panel
 ```
 
-Open <http://localhost:4915/new>, dismiss the tour if shown, open the AI panel,
+Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
 and select the waveform **Start voice mode** action in the empty composer.
 Read the experimental label, check consent, then choose **Start voice**.
 Only that last action requests microphone access and a billable Live session.
