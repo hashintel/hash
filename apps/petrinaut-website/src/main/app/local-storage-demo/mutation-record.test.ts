@@ -175,15 +175,12 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       observeBrowserDefinition(fixture.handle).sha256,
     );
     expect(parsed?.post.sha256).not.toBe(pre.sha256);
-    expect(parsed?.effects.length).toBeGreaterThan(0);
-    expect(parsed?.effects).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          kind: "updated",
-          path: expect.stringMatching(/^\/(places|transitions)\/\d+\/(x|y)$/u),
-        }),
-      ]),
-    );
+    const effects = parsed?.effects as { kind: string; path: string }[];
+    expect(effects.length).toBeGreaterThan(0);
+    for (const effect of effects) {
+      expect(effect.kind).toBe("updated");
+      expect(effect.path).toMatch(/^\/(places|transitions)\/\d+\/(x|y)$/u);
+    }
     // Re-sending the same result reproduces the same record.
     expect(joined.clientToolResultMetadata({ ...call, output })).toEqual(
       metadata,
