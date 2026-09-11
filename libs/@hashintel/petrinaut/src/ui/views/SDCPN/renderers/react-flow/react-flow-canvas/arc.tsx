@@ -4,6 +4,7 @@ import {
   getBezierPath,
   getSmoothStepPath,
   type Position,
+  useStoreApi,
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
@@ -17,6 +18,7 @@ import {
   ARC_WHITE_OVERHANG,
   arcHaloColor,
 } from "../../../styles/focus";
+import { arcFiringIsVisible } from "./firing-animation-visibility";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -52,10 +54,29 @@ function useFiringAnimation(
   weight: number,
 ): void {
   const animationStateRef = useRef<AnimationState | null>(null);
+  // The viewport is read when a firing lands rather than subscribed to, so a
+  // pan or a zoom does not re-render every arc on the canvas.
+  const store = useStoreApi();
 
   useEffect(() => {
     // Only start a new animation when there's an actual firing (delta > 0)
     if (firingDelta === null || firingDelta <= 0 || pathRef.current === null) {
+      return;
+    }
+
+    // The box the drawn path occupies, in flow units: a curve can sweep well
+    // past its endpoints, so where it is drawn is what decides, whichever
+    // rendering made it.
+    const box = pathRef.current.getBBox();
+    if (
+      !arcFiringIsVisible(
+        store.getState(),
+        box.x,
+        box.y,
+        box.x + box.width,
+        box.y + box.height,
+      )
+    ) {
       return;
     }
 
@@ -110,7 +131,7 @@ function useFiringAnimation(
         animationStateRef.current = null;
       }
     };
-  }, [firingDelta, pathRef, weight]);
+  }, [firingDelta, pathRef, weight, store]);
 
   // Cancel animation on unmount
   useEffect(() => {
