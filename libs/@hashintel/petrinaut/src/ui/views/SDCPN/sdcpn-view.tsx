@@ -28,8 +28,9 @@ const canvasContainerStyle = css({
  * SDCPNView builds the renderer-agnostic scene for the active net and hands
  * it to the active canvas renderer. It measures the canvas container and only
  * mounts the renderer once the size is known, so the net renders centered
- * from its very first frame. Switching to another net remounts the renderer,
- * centering it on the new net.
+ * from its very first frame. Switching to another net remounts the frame
+ * store and the renderer under it, so the store holds only the new net's
+ * transitions and the renderer centers on the new net.
  */
 export const SDCPNView: React.FC<{
   viewportActions?: ViewportAction[];
@@ -46,9 +47,8 @@ export const SDCPNView: React.FC<{
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
-        <CanvasFrameStoreProvider>
+        <CanvasFrameStoreProvider key={petriNetId}>
           <Renderer
-            key={petriNetId}
             scene={scene}
             containerSize={containerSize}
             viewportActions={viewportActions}
