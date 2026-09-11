@@ -6,9 +6,11 @@ use crate::file::{
     storage::error::StorageError,
 };
 
+/// Part intervals cover the object exactly while respecting non-final size and count bounds.
 #[test]
 fn parts_boundary() {
     for length in [
+        0,
         1,
         Parts::MIN_PART_BYTES - 1,
         Parts::MIN_PART_BYTES,
@@ -81,6 +83,7 @@ async fn read_file_intervals() {
     drop(directory);
 }
 
+/// Copy ranges retain the final byte through inclusive endpoints.
 #[test]
 fn copy_range_final_byte() {
     let parts =
@@ -93,6 +96,7 @@ fn copy_range_final_byte() {
     );
 }
 
+/// Completion associates each checksum and entity tag with its original part number.
 #[test]
 fn complete_part_metadata() {
     let parts =
@@ -124,6 +128,7 @@ fn complete_part_metadata() {
     }
 }
 
+/// Completion requires both an entity tag and a checksum.
 #[test]
 fn complete_missing_metadata() {
     for (etag, checksum, missing_etag) in [
@@ -147,6 +152,7 @@ fn complete_missing_metadata() {
     }
 }
 
+/// An object exceeding the combined multipart capacity fails during planning.
 #[test]
 fn parts_oversized() {
     let length = Parts::MAX_PART_BYTES * Parts::MAX_PARTS + 1;

@@ -17,6 +17,7 @@ use crate::file::{
     storage::{WriteCondition, error::StorageError},
 };
 
+/// A source that fails on its first read.
 struct FailedReader;
 
 impl AsyncRead for FailedReader {
@@ -29,8 +30,11 @@ impl AsyncRead for FailedReader {
     }
 }
 
+/// A source that announces its first read and blocks until its observer releases it.
 struct PausedReader {
+    /// Signals the first read, once.
     entered: Option<oneshot::Sender<()>>,
+    /// Completes the read when the observer releases it.
     release: oneshot::Receiver<()>,
 }
 
