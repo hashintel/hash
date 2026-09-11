@@ -6,13 +6,15 @@ use aws_sdk_s3::{
     Client,
     config::{Credentials, ProvideCredentials as _},
 };
-use clap::Args;
 
 use crate::integrity::SecretString;
 
+/// A failure to resolve the region or credentials for an enabled S3 backend.
 #[derive(Debug)]
 pub enum S3ArgsError {
+    /// Neither explicit arguments nor SDK configuration supplied a region.
     MissingRegion,
+    /// The configured credential provider failed to load credentials.
     Credentials(CredentialsError),
 }
 
@@ -36,11 +38,22 @@ impl Error for S3ArgsError {
     }
 }
 
-#[derive(Debug, Args)]
+impl From<CredentialsError> for S3ArgsError {
+    fn from(value: CredentialsError) -> Self {
+        Self::Credentials(value)
+    }
+}
+
+/// Optional S3 access with explicit overrides for the SDK's configuration chain.
+#[derive(Debug, clap::Args)]
 pub struct S3Args {
+    /// Enable S3 access.
+    ///
+    /// Off by default.
     #[arg(long = "s3", env = "HASH_GRAPH_ATLAS_S3")]
     enabled: bool,
 
+    /// S3 region. Defaults to the SDK's region configuration.
     #[arg(
         long = "s3-region",
         env = "HASH_GRAPH_ATLAS_S3_REGION",
@@ -48,6 +61,9 @@ pub struct S3Args {
     )]
     region: Option<String>,
 
+    /// Access key id paired with the explicit secret key.
+    ///
+    /// Defaults to the SDK credential chain.
     #[arg(
         long = "s3-access-key-id",
         env = "HASH_GRAPH_ATLAS_S3_ACCESS_KEY_ID",
@@ -56,6 +72,9 @@ pub struct S3Args {
     )]
     access_key_id: Option<String>,
 
+    /// Secret key paired with the explicit access key id.
+    ///
+    /// Defaults to the SDK credential chain.
     #[arg(
         long = "s3-secret-access-key",
         env = "HASH_GRAPH_ATLAS_S3_SECRET_ACCESS_KEY",
@@ -65,6 +84,9 @@ pub struct S3Args {
     )]
     secret_access_key: Option<SecretString>,
 
+    /// Session token for the explicit access-key pair.
+    ///
+    /// No token by default.
     #[arg(
         long = "s3-session-token",
         env = "HASH_GRAPH_ATLAS_S3_SESSION_TOKEN",
@@ -73,6 +95,9 @@ pub struct S3Args {
     )]
     session_token: Option<SecretString>,
 
+    /// Service endpoint override.
+    ///
+    /// Defaults to the SDK's endpoint configuration.
     #[arg(
         long = "s3-endpoint",
         env = "HASH_GRAPH_ATLAS_S3_ENDPOINT",
@@ -80,6 +105,9 @@ pub struct S3Args {
     )]
     endpoint: Option<String>,
 
+    /// Select path-style bucket addressing.
+    ///
+    /// Off by default.
     #[arg(
         long = "s3-force-path-style",
         env = "HASH_GRAPH_ATLAS_S3_FORCE_PATH_STYLE",
@@ -89,11 +117,14 @@ pub struct S3Args {
 }
 
 impl S3Args {
-    /// Return the configured S3 client, if enabled.
+    /// Resolves region and credentials for an enabled S3 backend.
+    ///
+    /// With S3 access off, returns `None` without consulting SDK configuration or credential
+    /// providers.
     ///
     /// # Errors
     ///
-    /// Returns an error if the S3 client cannot be configured.
+    /// Returns [`S3ArgsError`] if no region resolves or the configured credential provider fails.
     pub async fn client(self) -> Result<Option<Client>, S3ArgsError> {
         if !self.enabled {
             return Ok(None);
@@ -132,10 +163,7 @@ impl S3Args {
         }
 
         if let Some(credentials) = config.credentials_provider() {
-            credentials
-                .provide_credentials()
-                .await
-                .map_err(S3ArgsError::Credentials)?;
+            credentials.provide_credentials().await?;
         }
 
         let config = aws_sdk_s3::config::Builder::from(&config)

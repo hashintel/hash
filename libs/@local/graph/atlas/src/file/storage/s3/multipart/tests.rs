@@ -14,6 +14,7 @@ use crate::file::storage::error::StorageError;
 
 const TWO_PARTS: u64 = 5 * 1024 * 1024 + 1;
 
+/// An observed transfer operation or abort-completion boundary.
 #[derive(Debug, PartialEq)]
 enum Event {
     Start,
@@ -23,14 +24,17 @@ enum Event {
     AbortFinished,
 }
 
+/// The operation selected to return a fixture error.
 enum Failure {
     Start,
     Part(i32),
     Complete,
 }
 
+/// A fixture upload handle with no external resource.
 struct Upload;
 
+/// Controlled transfer failures with observable completion and abort progress.
 struct Fixture {
     failure: Option<Failure>,
     events: RefCell<Vec<Event>>,
@@ -39,6 +43,7 @@ struct Fixture {
 }
 
 impl Fixture {
+    /// Selects a transfer failure with abort initially ready to complete.
     const fn new(failure: Option<Failure>) -> Self {
         Self {
             failure,
@@ -106,6 +111,7 @@ impl Backend for &Fixture {
     }
 }
 
+/// Completion receives every part's metadata in transfer order.
 #[tokio::test]
 async fn transfer_two_parts() {
     let fixture = Fixture::new(None);
@@ -141,6 +147,7 @@ async fn transfer_two_parts() {
     );
 }
 
+/// An object outside multipart bounds fails before any backend operation.
 #[test]
 fn transfer_oversized() {
     let fixture = Fixture::new(None);
@@ -154,6 +161,7 @@ fn transfer_oversized() {
     );
 }
 
+/// Failed creation provides no handle for transfer or abort.
 #[tokio::test]
 async fn transfer_start_failure() {
     let fixture = Fixture::new(Some(Failure::Start));
@@ -170,6 +178,7 @@ async fn transfer_start_failure() {
     );
 }
 
+/// A failed part stops further transfer and preserves its error after abort completes.
 #[tokio::test]
 async fn transfer_part_failure() {
     for failed in [1, 2] {
@@ -197,6 +206,7 @@ async fn transfer_part_failure() {
     }
 }
 
+/// Failed completion preserves its error after abort completes.
 #[tokio::test]
 async fn transfer_complete_failure() {
     let fixture = Fixture::new(Some(Failure::Complete));

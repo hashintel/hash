@@ -10,6 +10,7 @@ use super::{
 };
 use crate::integrity::Sha256Digest;
 
+/// Opening a generation keeps the published bytes, and transfer reuses their allocation.
 #[test]
 fn read_original_encoding() {
     let (_scratch, root) = root();
@@ -40,6 +41,7 @@ fn read_original_encoding() {
     );
 }
 
+/// Identity verification refuses bytes that hash to another generation, before any parsing.
 #[test]
 fn new_identity_mismatch() {
     let bytes = b"not json".to_vec();
@@ -52,6 +54,7 @@ fn new_identity_mismatch() {
     assert_matches!(error, OpenError::Identity { id, actual: received } if id == expected && received == actual);
 }
 
+/// A matching identity still requires bytes that parse as a repository.
 #[test]
 fn new_invalid_document() {
     let bytes = b"not json".to_vec();
@@ -63,6 +66,7 @@ fn new_invalid_document() {
     assert_matches!(error, OpenError::Document(_));
 }
 
+/// Absent metadata reads as unpublished, and an unreadable path reports its I/O failure.
 #[test]
 fn read_unavailable() {
     let (_scratch, root) = root();

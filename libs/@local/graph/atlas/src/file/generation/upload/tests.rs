@@ -33,30 +33,37 @@ use crate::{
     integrity::{ParseHexError, Sha256Digest},
 };
 
+/// Returns the current-pointer path under the destination root.
 fn current_path(root: &Utf8Path) -> Utf8PathBuf {
     root.join("generations/current")
 }
 
+/// Returns the advisory previous-pointer path under the destination root.
 fn previous_path(root: &Utf8Path) -> Utf8PathBuf {
     root.join("generations/previous")
 }
 
+/// Locates a generation artifact under the destination's repository prefix.
 fn repository_path(root: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
     root.join(format!("generations/repository/{id}/{name}"))
 }
 
+/// Locates the metadata that completes the destination's repository prefix.
 fn repository_metadata_path(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
     repository_path(root, id, METADATA_FILE)
 }
 
+/// Locates a generation artifact under the destination's active prefix.
 fn active_path(root: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
     root.join(format!("generations/active/{id}/{name}"))
 }
 
+/// Locates the metadata that completes the destination's active prefix.
 fn active_metadata_path(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
     active_path(root, id, METADATA_FILE)
 }
 
+/// Writes a destination object, creating its prefix.
 fn seed(path: &Utf8Path, content: impl AsRef<[u8]>) {
     fs::create_dir_all(path.parent().expect("should have a parent"))
         .expect("should create the fixture directory");
@@ -71,6 +78,7 @@ fn make_readonly(path: &Utf8Path) {
     fs::set_permissions(path, permissions).expect("should set the fixture artifact permissions");
 }
 
+/// A write precondition recorded without its revision.
 #[derive(Debug, Clone, PartialEq)]
 enum Condition {
     Any,
@@ -88,6 +96,7 @@ impl From<&WriteCondition> for Condition {
     }
 }
 
+/// One recorded backend call.
 #[derive(Debug, Clone, PartialEq)]
 enum Event {
     Get {
@@ -112,6 +121,7 @@ enum Event {
 }
 
 impl Event {
+    /// Reports whether either path of the call contains `needle`.
     fn touches(&self, needle: &str) -> bool {
         match self {
             Self::Get { path }
@@ -127,12 +137,16 @@ impl Event {
     }
 }
 
+/// A storage failure the fixture returns in place of one call's result.
 enum Fault {
+    /// An I/O failure the storage layer returns.
     Generic,
+    /// A request that fails before the client sends it.
     Construction,
 }
 
 impl Fault {
+    /// Builds the storage error this fault returns.
     fn error(self) -> StorageError {
         match self {
             Self::Generic => StorageError::Io(io::Error::other("fixture storage failure")),
@@ -144,6 +158,10 @@ impl Fault {
     }
 }
 
+/// A destination directory with recorded calls and one-shot injected faults.
+///
+/// Object operations use [`Storage`]'s local backend unless a [`Fault`] replaces the call's
+/// result.
 struct Fixture {
     _scratch: ScratchDirectory,
     root: Utf8PathBuf,
@@ -154,6 +172,7 @@ struct Fixture {
 }
 
 impl Fixture {
+    /// Creates a destination directory holding no objects and no faults.
     fn new() -> Self {
         let root = Utf8PathBuf::from_path_buf(std::env::temp_dir())
             .expect("should have a UTF-8 path")
@@ -174,22 +193,27 @@ impl Fixture {
         }
     }
 
+    /// Returns the destination containing the `generations/` namespace.
     fn destination(&self) -> &FilePath {
         &self.destination
     }
 
+    /// Installs a one-shot fault for the next call on `path`.
     fn fault(&self, path: &Utf8Path, fault: Fault) {
         self.faults.borrow_mut().insert(path.to_string(), fault);
     }
 
+    /// Removes and returns the fault installed for `path`.
     fn take_fault(&self, path: &FilePath) -> Option<Fault> {
         self.faults.borrow_mut().remove(&path.to_string())
     }
 
+    /// Records one backend call.
     fn record(&self, event: Event) {
         self.events.borrow_mut().push(event);
     }
 
+    /// Copies the recorded calls in their execution order.
     fn events(&self) -> Vec<Event> {
         self.events.borrow().clone()
     }
@@ -270,6 +294,7 @@ impl GenerationUploadBackend for &Fixture {
     }
 }
 
+/// Publishes the fixture repository with noncanonical metadata.
 fn publish(root: &GenerationRoot) -> (SaltRepository, GenerationId) {
     let repository = repository();
     let staging = root.stage().expect("should create the staging");
@@ -295,6 +320,7 @@ fn publish(root: &GenerationRoot) -> (SaltRepository, GenerationId) {
     (repository, id)
 }
 
+/// Checks the active prefix against the local publication's artifacts and metadata bytes.
 #[track_caller]
 fn assert_active_matches(
     source: &GenerationRoot,
@@ -322,6 +348,7 @@ fn assert_active_matches(
     );
 }
 
+/// Preparation rejects a pointer containing a non-hexadecimal character.
 #[tokio::test]
 async fn prepare_pointer_invalid_character() {
     let (_scratch, root) = root();
@@ -342,6 +369,7 @@ async fn prepare_pointer_invalid_character() {
     );
 }
 
+/// Preparation rejects a pointer shorter than one identity.
 #[tokio::test]
 async fn prepare_pointer_short() {
     let (_scratch, root) = root();
@@ -362,6 +390,7 @@ async fn prepare_pointer_short() {
     );
 }
 
+/// Preparation rejects trailing bytes instead of accepting an identity prefix.
 #[tokio::test]
 async fn prepare_pointer_over_length() {
     let (_scratch, root) = root();
@@ -384,6 +413,7 @@ async fn prepare_pointer_over_length() {
     );
 }
 
+/// A failed pointer read refuses preparation and retains the storage error.
 #[tokio::test]
 async fn prepare_storage_failure() {
     let (_scratch, root) = root();
@@ -398,6 +428,7 @@ async fn prepare_storage_failure() {
     assert_matches!(error, UploadError::Storage(StorageError::Io(_)));
 }
 
+/// An upload writes each artifact and then the metadata, touching no pointer and no active object.
 #[tokio::test]
 async fn upload_creates_repository() {
     let (_scratch, root) = root();
@@ -467,6 +498,7 @@ async fn upload_creates_repository() {
     );
 }
 
+/// A failed artifact transfer leaves the repository prefix without its metadata.
 #[tokio::test]
 async fn upload_artifact_failure() {
     let (_scratch, root) = root();
@@ -493,6 +525,7 @@ async fn upload_artifact_failure() {
     );
 }
 
+/// A missing local artifact fails verification before the first transfer.
 #[tokio::test]
 async fn upload_missing_local_content() {
     let (_scratch, root) = root();
@@ -522,6 +555,7 @@ async fn upload_missing_local_content() {
     );
 }
 
+/// A tampered local artifact fails verification before the first transfer.
 #[tokio::test]
 async fn upload_corrupt_local_content() {
     let (_scratch, root) = root();
@@ -554,6 +588,7 @@ async fn upload_corrupt_local_content() {
     );
 }
 
+/// An upload reuses an existing object after verifying its bytes against the artifact.
 #[tokio::test]
 async fn upload_reuse_matching() {
     let (_scratch, root) = root();
@@ -589,6 +624,7 @@ async fn upload_reuse_matching() {
     );
 }
 
+/// Reuse rejects an object's mismatched bytes before writing metadata.
 #[tokio::test]
 async fn upload_checksum_mismatch_artifact() {
     let (_scratch, root) = root();
@@ -620,6 +656,7 @@ async fn upload_checksum_mismatch_artifact() {
     );
 }
 
+/// Reuse rejects metadata whose bytes differ from the expected document.
 #[tokio::test]
 async fn upload_checksum_mismatch_metadata() {
     let (_scratch, root) = root();
@@ -645,6 +682,7 @@ async fn upload_checksum_mismatch_metadata() {
     );
 }
 
+/// Promotion selects its completed active prefix without writing previous.
 #[tokio::test]
 async fn promote_current_absent() {
     let (_scratch, root) = root();
@@ -707,6 +745,7 @@ async fn promote_current_absent() {
     );
 }
 
+/// A promotion selects current against the captured revision, then records the replaced identity.
 #[tokio::test]
 async fn promote_current_replaces_previous() {
     let (_scratch, root) = root();
@@ -779,6 +818,7 @@ async fn promote_current_replaces_previous() {
     );
 }
 
+/// A failed active copy prevents the current write.
 #[tokio::test]
 async fn promote_active_copy_failure() {
     let (_scratch, root) = root();
@@ -806,6 +846,7 @@ async fn promote_active_copy_failure() {
     );
 }
 
+/// A failed active metadata write leaves the prefix incomplete and every pointer unchanged.
 #[tokio::test]
 async fn promote_active_metadata_failure() {
     let (_scratch, root) = root();
@@ -845,6 +886,7 @@ async fn promote_active_metadata_failure() {
     );
 }
 
+/// Active metadata holding other bytes prevents the current write.
 #[tokio::test]
 async fn promote_active_metadata_mismatch() {
     let (_scratch, root) = root();
@@ -873,6 +915,7 @@ async fn promote_active_metadata_mismatch() {
     );
 }
 
+/// A repository document holding other bytes stops the promotion before any copy.
 #[tokio::test]
 async fn promote_repository_metadata_mismatch() {
     let (_scratch, root) = root();
@@ -910,6 +953,7 @@ async fn promote_repository_metadata_mismatch() {
     );
 }
 
+/// Selection fails when current changes after capture, without writing previous.
 #[tokio::test]
 async fn promote_current_conflict_present() {
     let (_scratch, root) = root();
@@ -970,6 +1014,7 @@ async fn promote_current_conflict_present() {
     );
 }
 
+/// Selection fails if another writer creates current after an absent capture.
 #[tokio::test]
 async fn promote_current_conflict_absent() {
     let (_scratch, root) = root();
@@ -1028,6 +1073,7 @@ async fn promote_current_conflict_absent() {
     );
 }
 
+/// A current write failing during request construction leaves previous unwritten.
 #[tokio::test]
 async fn promote_current_construction_failure() {
     let (_scratch, root) = root();
@@ -1080,6 +1126,7 @@ async fn promote_current_construction_failure() {
     );
 }
 
+/// Promotion succeeds with the advisory error when writing previous fails.
 #[tokio::test]
 async fn promote_previous_write_failure() {
     let (_scratch, root) = root();
@@ -1111,6 +1158,7 @@ async fn promote_previous_write_failure() {
     );
 }
 
+/// An existing active object holding other bytes prevents selection.
 #[tokio::test]
 async fn promote_checksum_mismatch() {
     let (_scratch, root) = root();

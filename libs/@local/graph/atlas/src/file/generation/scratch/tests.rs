@@ -1,3 +1,5 @@
+//! Scratch fixtures for tests across the crate, and the input-completion cases.
+
 use std::{env, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -6,6 +8,7 @@ use uuid::Uuid;
 
 use super::{ScratchDirectory, ScratchFile};
 
+/// Creates a fixture scratch directory under the system temporary directory.
 #[expect(
     clippy::create_dir,
     reason = "the fixture must refuse an existing directory rather than reuse it"
@@ -18,16 +21,19 @@ pub(crate) fn scratch() -> ScratchDirectory {
     ScratchDirectory::new(path)
 }
 
+/// Returns the directory's own path for placing fixture files inside it.
 pub(crate) fn root(directory: &ScratchDirectory) -> &Utf8Path {
     &directory.path
 }
 
+/// Counts the entries directly inside `path`.
 pub(crate) fn entry_count(path: &Utf8Path) -> usize {
     fs::read_dir(path)
         .expect("should read the fixture directory")
         .count()
 }
 
+/// Completed inputs take distinct names in one directory and keep the bytes written to them.
 #[tokio::test]
 async fn finish_distinct_files() {
     let directory = scratch();
@@ -92,8 +98,10 @@ async fn finish_distinct_files() {
         2,
         "should retain both completed inputs"
     );
+    drop(directory);
 }
 
+/// A failed transfer removes its own partial input, returns its error and retains the others.
 #[tokio::test]
 async fn finish_partial_failure() {
     let directory = scratch();
@@ -133,4 +141,5 @@ async fn finish_partial_failure() {
         fs::read(sentinel).expect("should retain the unrelated file"),
         b"retained"
     );
+    drop(directory);
 }

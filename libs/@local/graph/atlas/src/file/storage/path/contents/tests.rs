@@ -11,6 +11,7 @@ use crate::{
     integrity::Sha256Digest,
 };
 
+/// A buffered read and a byte read share one position over the opened reader.
 #[tokio::test]
 async fn read_mixed_modes() {
     // The async stream supplies a reader that requires pinning.

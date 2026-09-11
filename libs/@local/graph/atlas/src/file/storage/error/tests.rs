@@ -11,6 +11,7 @@ use aws_sdk_s3::{
 
 use super::StorageError;
 
+/// Conversion retains the service error, response status and response body.
 #[test]
 fn request_service_metadata() {
     let response = HttpResponse::new(
@@ -46,6 +47,7 @@ fn request_service_metadata() {
     );
 }
 
+/// Request construction failure establishes neither absence nor a rejected write.
 #[test]
 fn request_construction_failure() {
     let error = StorageError::from(SdkError::<GetObjectError>::construction_failure(
@@ -65,6 +67,7 @@ fn request_construction_failure() {
     assert_matches!(error.as_ref(), SdkError::ConstructionFailure(_));
 }
 
+/// Only a parsed service response with status 412 identifies a rejected write.
 #[test]
 fn request_service_preconditions() {
     for (status, rejected) in [(412, true), (409, false), (404, false)] {
@@ -88,6 +91,7 @@ fn request_service_preconditions() {
     }
 }
 
+/// An unparsed 412 response does not establish whether a conditional write failed.
 #[test]
 fn request_unparsed_precondition() {
     let response = HttpResponse::new(

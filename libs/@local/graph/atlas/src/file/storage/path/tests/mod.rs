@@ -16,6 +16,7 @@ use crate::file::{
 
 mod mutation;
 
+/// A spelling without a scheme selects the local variant and prints back unchanged.
 #[test]
 fn parse_local() {
     let path: FilePath = "relative/file.bin"
@@ -25,6 +26,7 @@ fn parse_local() {
     assert_eq!(path.to_string(), "relative/file.bin");
 }
 
+/// An `s3://` spelling keeps the object variant, and the bucket and the key read back apart.
 #[test]
 fn parse_s3() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
@@ -34,6 +36,7 @@ fn parse_s3() {
     assert_eq!((remote.bucket(), remote.key()), ("bucket", "key"));
 }
 
+/// Only a leading `s3://` selects the object location.
 #[test]
 fn parse_embedded_scheme() {
     let path: FilePath = "not-s3://bucket/key"
@@ -42,6 +45,7 @@ fn parse_embedded_scheme() {
     assert_matches!(&path.variant, FilePathVariant::Local(_));
 }
 
+/// A missing bucket fails the parse rather than falling back to a local path.
 #[test]
 fn parse_empty_bucket() {
     assert_matches!(
@@ -52,6 +56,7 @@ fn parse_empty_bucket() {
     );
 }
 
+/// Reading a local file yields its bytes without an S3 backend.
 #[tokio::test]
 async fn read_local() {
     let directory = scratch();
@@ -72,6 +77,7 @@ async fn read_local() {
     drop(directory);
 }
 
+/// A missing local file reports the filesystem's not-found error.
 #[tokio::test]
 async fn read_local_missing() {
     let directory = scratch();
@@ -87,6 +93,7 @@ async fn read_local_missing() {
     drop(directory);
 }
 
+/// An S3 path without a client reports the unavailable backend instead of an I/O error.
 #[tokio::test]
 async fn read_s3_unconfigured() {
     let directory = scratch();
@@ -101,6 +108,7 @@ async fn read_s3_unconfigured() {
     drop(directory);
 }
 
+/// A local input resolves to its own spelling without writing to the scratch directory.
 #[tokio::test]
 async fn sync_local() {
     let source = scratch();
@@ -114,9 +122,11 @@ async fn sync_local() {
         .expect("should resolve the local path without S3");
     assert_matches!(resolved, Cow::Borrowed(value) if value == file);
     assert_eq!(entry_count(root(&destination)), 0);
+    drop(destination);
     drop(source);
 }
 
+/// Resolving a local input opens nothing and keeps the caller's own allocation.
 #[tokio::test]
 async fn into_local_missing() {
     let directory = scratch();
@@ -133,8 +143,10 @@ async fn into_local_missing() {
     assert_eq!(resolved, root(&directory).join("missing.bin"));
     assert_eq!(resolved.as_str().as_ptr(), allocation);
     assert_eq!(entry_count(root(&directory)), 0);
+    drop(directory);
 }
 
+/// A missing backend fails the call before it creates the scratch destination.
 #[tokio::test]
 async fn into_local_unconfigured() {
     let destination = scratch();
@@ -146,8 +158,10 @@ async fn into_local_unconfigured() {
         .expect_err("should require S3 before creating a destination");
     assert_matches!(error, StorageError::S3Unavailable);
     assert_eq!(entry_count(root(&destination)), 0);
+    drop(destination);
 }
 
+/// Missing S3 configuration preserves both existing and absent scratch directories.
 #[tokio::test]
 async fn sync_s3_unconfigured() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
@@ -161,4 +175,5 @@ async fn sync_s3_unconfigured() {
         assert_matches!(error, StorageError::S3Unavailable);
     }
     assert_eq!(entry_count(root(&destination)), 0);
+    drop(destination);
 }

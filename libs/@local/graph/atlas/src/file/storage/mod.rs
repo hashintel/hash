@@ -12,9 +12,12 @@ mod local;
 pub(crate) mod path;
 pub(crate) mod s3;
 
+/// A content identity in the form the backend that produced it reports.
 #[derive(Debug)]
 enum RevisionKind {
+    /// The complete file contents, hashed on open.
     Local(Sha256Digest),
+    /// The entity tag the object response carried.
     Bucket(s3::ETag),
 }
 
@@ -37,6 +40,12 @@ pub(crate) enum WriteCondition {
 }
 
 impl WriteCondition {
+    /// Restates the condition as the object-write precondition an S3 request carries.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::RevisionMismatch`] if the captured revision is a local one, which
+    /// no object write can check.
     fn as_s3(&self) -> Result<s3::WriteCondition<'_>, StorageError> {
         match self {
             Self::Any => Ok(s3::WriteCondition::Any),
@@ -49,6 +58,10 @@ impl WriteCondition {
     }
 }
 
+/// The backends and the scratch directory a file path resolves against.
+///
+/// [`Self::set_s3`] and [`Self::with_s3`] supply the client. Downloading an object writes into
+/// the scratch directory this value carries.
 #[derive(Debug)]
 pub struct Storage {
     s3: Option<S3>,
@@ -58,6 +71,10 @@ pub struct Storage {
 
 impl Storage {
     /// Create a new [`Storage`] with the specified scratch directory.
+    ///
+    /// The directory must already exist when a remote download resolves through it. By default
+    /// the value carries no S3 backend.
+    #[must_use]
     pub const fn new(scratch: Utf8PathBuf) -> Self {
         Self { s3: None, scratch }
     }
@@ -80,7 +97,7 @@ impl Storage {
         self.s3 = Some(S3::new(s3));
     }
 
-    /// Set the S3 client for this [`Storage`].
+    /// Set the S3 client and return the updated [`Storage`].
     #[must_use]
     pub fn with_s3(self, s3: aws_sdk_s3::Client) -> Self {
         Self {
@@ -89,6 +106,11 @@ impl Storage {
         }
     }
 
+    /// Borrow the configured S3 backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::S3Unavailable`] when the configuration carries no client.
     pub(crate) const fn s3(&self) -> Result<&S3, StorageError> {
         match &self.s3 {
             Some(backend) => Ok(backend),

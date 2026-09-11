@@ -383,7 +383,7 @@ where
                 tracing::info!(%id, "promoted generation");
 
                 if let Some(previous_error) = previous_error {
-                    tracing::error!(%previous_error, "unable to place advisory previous pointer file, previous file has been skipped");
+                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
                 }
             }
         }
@@ -449,7 +449,12 @@ where
             upload.upload(summary.generation).await?;
 
             if summary.activated {
-                upload.promote(summary.generation).await?;
+                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                tracing::info!(%id, "promoted generation");
+
+                if let Some(previous_error) = previous_error {
+                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
+                }
             }
         }
 

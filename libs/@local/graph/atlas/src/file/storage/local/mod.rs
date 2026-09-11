@@ -29,6 +29,7 @@ pub(crate) struct LocalFile<'path> {
 }
 
 impl<'path> LocalFile<'path> {
+    /// Names a destination without opening or creating anything.
     pub(crate) const fn new(path: &'path Utf8Path) -> Self {
         Self { path }
     }
@@ -122,8 +123,8 @@ impl<'path> LocalFile<'path> {
         let lock = lock.into_std().await;
         let lock = tokio::task::spawn_blocking(move || lock.lock().map(|()| lock)).await??;
 
-        // with the shared lock held, we check the condition for replacement while other cooperating
-        // writers wait.
+        // the held lock keeps other cooperating writers waiting through the condition check and
+        // the replacement.
         match condition {
             WriteCondition::Any => {}
             WriteCondition::Absent => match fs::symlink_metadata(self.path).await {
