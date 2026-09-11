@@ -198,6 +198,7 @@ export default withSentryConfig(
       },
 
       transpilePackages: [
+        "@apollo/client",
         "@blockprotocol/service",
         "@blockprotocol/core",
         "@blockprotocol/graph",
@@ -214,6 +215,7 @@ export default withSentryConfig(
         "@hashintel/type-editor",
         "echarts",
         "zrender",
+        "nextjs-progressbar",
         "@hashintel/query-editor",
         "@local/advanced-types",
         "@local/flow-petri-net",

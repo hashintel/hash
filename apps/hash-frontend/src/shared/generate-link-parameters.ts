@@ -3,7 +3,7 @@ import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 
 import { isHrefExternal } from "./is-href-external";
 
-import type { Url } from "next/dist/shared/lib/router/router";
+import type { UrlObject } from "node:url";
 
 /**
  * A RegExp to match the path of HASH or Block Protocol-formatted type URLs.
@@ -22,7 +22,7 @@ const typeUrlRegExp =
  * 3. Specifies whether the returned href points to a different site or not
  */
 export const generateLinkParameters = (
-  hrefToCheck?: string | Url,
+  hrefToCheck?: string | UrlObject,
 ): {
   isExternal: boolean;
   href: string;

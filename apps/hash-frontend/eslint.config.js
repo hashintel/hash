@@ -130,6 +130,7 @@ export default [
         // Outside the tsconfig project: imports `@hashintel/ds-components/preset`,
         // an `exports` subpath the legacy `moduleResolution: "node"` cannot resolve
         "panda.config.ts",
+        "vite.config.ts",
       ],
     },
   ]),
