@@ -240,11 +240,12 @@ describe("mutate_petrinet automatic host tool", () => {
     const tool = createMutatePetrinetAutomaticTool(binding);
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [tokenType, parameter, dynamics]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-definition",
-      }),
+        inputFor(instance, [tokenType, parameter, dynamics]),
+        "batch-definition",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -265,11 +266,12 @@ describe("mutate_petrinet automatic host tool", () => {
     const tool = createMutatePetrinetAutomaticTool(binding);
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [tokenType, invalidDynamics]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-invalid-dynamics",
-      }),
+        inputFor(instance, [tokenType, invalidDynamics]),
+        "batch-invalid-dynamics",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -284,11 +286,12 @@ describe("mutate_petrinet automatic host tool", () => {
     ]);
 
     const repaired = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [repairedDynamics]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-repair-dynamics",
-      }),
+        inputFor(instance, [repairedDynamics]),
+        "batch-repair-dynamics",
+      ),
     );
     expect(repaired.outcomes.map(({ status }) => status)).toEqual(["applied"]);
     expect(instance.definition.get().differentialEquations).toEqual([
