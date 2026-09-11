@@ -578,9 +578,10 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
+  const setVoiceDockCollapsedRef = useLatest(setVoiceDockCollapsed);
   useLayoutEffect(
-    () => () => setVoiceDockCollapsed(false),
-    [setVoiceDockCollapsed],
+    () => () => setVoiceDockCollapsedRef.current(false),
+    [setVoiceDockCollapsedRef],
   );
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(

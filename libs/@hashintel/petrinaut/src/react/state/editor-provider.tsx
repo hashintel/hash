@@ -112,6 +112,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  useEffect(() => () => clearTimeout(animationTimerRef.current), []);
   const selectionGestureRef = useRef({ active: false, hasNavigated: false });
   const selectionNavigationMountedRef = useRef(true);
   const pendingSelectionNavigationRef = useRef<{
@@ -388,8 +389,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setAiAssistantWidth: (width) =>
       setState((prev) => ({ ...prev, aiAssistantWidth: width })),
-    setAiAssistantCollapsed: (collapsed) =>
-      setState((prev) => ({ ...prev, isAiAssistantCollapsed: collapsed })),
+    setAiAssistantCollapsed: (collapsed) => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
+        isAiAssistantCollapsed: collapsed,
+      }));
+    },
     setAiAssistantPlacement: (placement) => {
       scheduleAnimationEnd();
       setState((prev) => ({
