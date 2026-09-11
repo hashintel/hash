@@ -79,8 +79,6 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
           workerFactory={lspWorkerFactory}
         >
           <NotificationsProvider>
-            {/* The simulation provider reads the Ad-hoc scenarios user
-                setting, which the document layer above provides. */}
             <SimulationProvider
               key={instance.handle.id}
               workerFactory={simulationWorkerFactory}
