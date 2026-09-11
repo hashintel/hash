@@ -32,6 +32,9 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     parameterAxes: [],
     sweep: null,
     latestMetricFramesById: {},
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
     ...overrides,
   };
 }

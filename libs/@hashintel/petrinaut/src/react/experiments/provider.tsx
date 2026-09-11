@@ -460,6 +460,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
+      fixedScenarioValues: compiled.fixedScenarioValues,
     });
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);

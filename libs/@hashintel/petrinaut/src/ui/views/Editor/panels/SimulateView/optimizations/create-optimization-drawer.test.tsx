@@ -879,6 +879,14 @@ describe("CreateOptimizationDrawer", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Add parameter constraint" }),
     );
+    // A blank row is skipped at submission and never blocks; the diagnostic
+    // has to land on a row with code.
+    fireEvent.change(
+      within(
+        screen.getByRole("group", { name: "Parameter constraint 1" }),
+      ).getByRole("textbox"),
+      { target: { value: "scenario.population" } },
+    );
     expect(runButton().disabled).toBe(false);
 
     const { sessionId } = firstConstraintSession(languageClient);

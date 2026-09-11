@@ -929,27 +929,26 @@ export const CreateOptimizationDrawer = ({
         extensions,
       };
       const constraints: Constraint[] = [];
-      for (const [space, drafts_] of [
-        ["parameters", parameterConstraintDrafts],
-        ["state", stateConstraintDrafts],
-      ] as const) {
-        for (const [index, draft] of drafts_.entries()) {
-          if (draft.code.trim() === "") {
-            continue;
-          }
-          const lowered = await requestConstraint(
-            { space, id: draft.id, code: draft.code },
-            constraintContext,
-          );
-          if (!lowered.ok) {
-            setIsSubmitting(false);
-            setError(
-              `${describeConstraint(space, index)}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
-            );
-            return;
-          }
-          constraints.push(lowered.constraint);
+      const allConstraintDrafts = [
+        ...parameterConstraintDrafts,
+        ...stateConstraintDrafts,
+      ];
+      for (const draft of allConstraintDrafts) {
+        if (draft.code.trim() === "") {
+          continue;
         }
+        const lowered = await requestConstraint(
+          { space: draft.space, id: draft.id, code: draft.code },
+          constraintContext,
+        );
+        if (!lowered.ok) {
+          setIsSubmitting(false);
+          setError(
+            `${describeConstraint(draft, allConstraintDrafts)}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+          );
+          return;
+        }
+        constraints.push(lowered.constraint);
       }
       const manifestConstraints =
         constraints.length > 0 ? constraints : undefined;
@@ -1069,14 +1068,14 @@ export const CreateOptimizationDrawer = ({
   const stateConstraintGateSpecs: ExperimentMetricSpecInput[] =
     firstPlaceId === undefined
       ? []
-      : stateConstraintDrafts.flatMap((draft, index) =>
+      : stateConstraintDrafts.flatMap((draft) =>
           draft.code.trim() === ""
             ? []
             : [
                 {
                   kind: "placeTokenCountMean" as const,
                   id: draft.id,
-                  label: describeConstraint("state", index),
+                  label: describeConstraint(draft, stateConstraintDrafts),
                   placeId: firstPlaceId,
                   aggregateTime: "min" as const,
                 },
@@ -1163,8 +1162,8 @@ export const CreateOptimizationDrawer = ({
       )
     : (selectedScenario?.scenarioParameters ?? NO_SCENARIO_PARAMETERS);
   const constraintLspError = summarizeConstraintLspErrors(diagnosticsByUri, [
-    { space: "parameters", drafts: parameterConstraintDrafts },
-    { space: "state", drafts: stateConstraintDrafts },
+    ...parameterConstraintDrafts,
+    ...stateConstraintDrafts,
   ]);
   const runBlocker = configurationError ?? constraintLspError;
 

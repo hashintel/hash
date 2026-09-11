@@ -18,6 +18,7 @@ import {
   isWebGpuAvailable,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import {
   ExperimentsActionsContext,
@@ -33,6 +34,7 @@ import {
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -49,6 +51,17 @@ import {
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import {
+  type ConstraintDraftsState,
+  EMPTY_CONSTRAINT_DRAFTS,
+} from "./create-experiment-drawer/constraints/constraint-drafts";
+import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraints/constraint-lsp";
+import { ConstraintsSection } from "./create-experiment-drawer/constraints/constraints-section";
+import {
+  constraintPolicyFor,
+  lowerConstraintDrafts,
+  stateConstraintGateSpecs,
+} from "./create-experiment-drawer/constraints/lower-constraint-drafts";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -909,6 +922,8 @@ export const CreateExperimentDrawer = ({
   const { webGpuEnabled, enableAdHocScenarios, enableParameterSweeps } =
     use(UserSettingsContext);
   const { createExperiment } = use(ExperimentsActionsContext);
+  const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
+  const optimizationSource = useOptimizationSource();
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -923,6 +938,8 @@ export const CreateExperimentDrawer = ({
   const [dt, setDt] = useState(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
+  const [constraintDrafts, setConstraintDrafts] =
+    useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
   );
@@ -1025,15 +1042,41 @@ export const CreateExperimentDrawer = ({
     </span>
   ) : null;
 
-  const footerError = error ?? metricFormError;
+  // Constraints are authored only where a study could ever read them: a
+  // saved scenario's sweep, with the in-browser optimizer to drive it — the
+  // same facts that make the Parameters card offer Optimize. The rows stay
+  // in state while the section is hidden and are never lowered.
+  const constraintsEnabled =
+    enableParameterSweeps &&
+    optimizationSource !== null &&
+    isConnectedOptimization(optimizationSource) &&
+    selectedScenario !== undefined &&
+    sweepSummary !== null;
+  const constraintLspError = constraintsEnabled
+    ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
+    : null;
+
+  const footerError = error ?? metricFormError ?? constraintLspError;
   const canRun =
-    !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
+    !isSubmitting &&
+    metricFormError === null &&
+    constraintLspError === null &&
+    sweepSummary?.error !== true;
 
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
-  // judge yet, and Run is disabled for the same reason.
+  // judge yet, and Run is disabled for the same reason. A drafted state
+  // constraint rides along as the placeholder spec the gate refuses.
   let draftMetricSpecs: ExperimentMetricSpecInput[] | null = null;
   try {
-    draftMetricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+    draftMetricSpecs = [
+      ...buildMetricSpecs(metricDrafts, petriNetDefinition),
+      ...(constraintsEnabled
+        ? stateConstraintGateSpecs(
+            constraintDrafts,
+            petriNetDefinition.places[0]?.id,
+          )
+        : []),
+    ];
   } catch {
     draftMetricSpecs = null;
   }
@@ -1062,6 +1105,7 @@ export const CreateExperimentDrawer = ({
     setDt(DEFAULT_DT);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1080,6 +1124,8 @@ export const CreateExperimentDrawer = ({
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
     setParamInputs({});
+    // The rows type-checked against the previous scenario's parameters.
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setError(null);
   };
 
@@ -1149,6 +1195,22 @@ export const CreateExperimentDrawer = ({
 
     try {
       const metricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+      // Lowered against the net at creation and never re-lowered; a row that
+      // does not compile rejects with its label and lands in the footer.
+      const constraints = constraintsEnabled
+        ? await lowerConstraintDrafts({
+            drafts: constraintDrafts,
+            requestConstraint,
+            context: {
+              netParameters: extensions.parameters
+                ? petriNetDefinition.parameters
+                : [],
+              scenarioParameters: selectedScenario.scenarioParameters,
+              sdcpn: petriNetDefinition,
+              extensions,
+            },
+          })
+        : [];
       await createExperiment({
         name,
         scenarioId:
@@ -1170,6 +1232,11 @@ export const CreateExperimentDrawer = ({
         // Read here rather than in ExperimentsProvider, which is mounted outside
         // UserSettingsProvider and so cannot see this setting.
         computeBackend,
+        constraints,
+        constraintPolicy:
+          constraints.length > 0
+            ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
+            : undefined,
       });
       resetForm();
     } catch (submitError) {
@@ -1368,6 +1435,15 @@ export const CreateExperimentDrawer = ({
             ) : null}
           </Section>
 
+          {constraintsEnabled ? (
+            <ConstraintsSection
+              drafts={constraintDrafts}
+              onChange={setConstraintDrafts}
+              scenarioParameters={selectedScenario.scenarioParameters}
+              disabled={isSubmitting}
+            />
+          ) : null}
+
           <Section title="Metrics" collapsible defaultOpen>
             <div className={metricListStyle}>
               <div className={metricHeaderStyle}>
@@ -1429,7 +1505,7 @@ export const CreateExperimentDrawer = ({
               tone="neutral"
               size="sm"
               disabled={!canRun}
-              tooltip={metricFormError ?? undefined}
+              tooltip={metricFormError ?? constraintLspError ?? undefined}
               prefix={
                 isSubmitting ? (
                   <LoadingSpinner size="sm" variant="bars" />

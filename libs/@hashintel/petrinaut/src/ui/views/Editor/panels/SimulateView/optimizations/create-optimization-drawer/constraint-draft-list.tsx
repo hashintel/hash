@@ -54,29 +54,26 @@ const ADD_LABEL: Record<ConstraintSpace, string> = {
 
 const ConstraintDraftRow = ({
   draft,
-  index,
-  space,
+  label,
   scenarioParameters,
   onChange,
   onRemove,
 }: {
   draft: ConstraintDraft;
-  index: number;
-  space: ConstraintSpace;
+  label: string;
   scenarioParameters: ScenarioParameter[];
   onChange: (code: string) => void;
   onRemove: () => void;
 }) => {
   useConstraintLspSession({
     sessionId: draft.id,
-    space,
+    space: draft.space,
     code: draft.code,
     scenarioParameters,
   });
   const { diagnosticsByUri } = use(LanguageClientContext);
   const errorMessage = getConstraintErrorMessage(diagnosticsByUri, draft.id);
-  const label = describeConstraint(space, index);
-  const multiline = space === "state";
+  const multiline = draft.space === "state";
 
   return (
     <div role="group" aria-label={label} className={rowStyle}>
@@ -128,12 +125,11 @@ export const ConstraintDraftList = ({
   scenarioParameters: ScenarioParameter[];
 }) => (
   <div className={listStyle}>
-    {drafts.map((draft, index) => (
+    {drafts.map((draft) => (
       <ConstraintDraftRow
         key={draft.id}
         draft={draft}
-        index={index}
-        space={space}
+        label={describeConstraint(draft, drafts)}
         scenarioParameters={scenarioParameters}
         onChange={(code) =>
           onChange(
@@ -153,7 +149,7 @@ export const ConstraintDraftList = ({
         variant="subtle"
         tone="neutral"
         onClick={() =>
-          onChange([...drafts, { id: crypto.randomUUID(), code: "" }])
+          onChange([...drafts, { id: crypto.randomUUID(), space, code: "" }])
         }
       >
         {ADD_LABEL[space]}

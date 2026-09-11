@@ -7,16 +7,22 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  DiagnosticSeverity,
+  getConstraintDocumentUri,
+} from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   defaultUserSettings,
@@ -29,7 +35,18 @@ import type { CreateExperimentInput } from "../../../../../../react/experiments/
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
-import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  ConstraintSource,
+  LowerConstraintResult,
+  Scenario,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
+import type {
+  PetrinautConnectedOptimization,
+  PetrinautOptimization,
+  PetrinautOptimizationSource,
+} from "@hashintel/petrinaut-core/optimization";
+import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 import type { ReactNode } from "react";
 
 vi.mock("../../../../../monaco/code-editor", () => ({
@@ -60,11 +77,47 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     {
       Header: () => null,
       Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-      Footer: ({ actions }: { actions?: ReactNode }) => <div>{actions}</div>,
+      Footer: ({
+        actions,
+        secondaryActions,
+      }: {
+        actions?: ReactNode;
+        secondaryActions?: ReactNode;
+      }) => (
+        <div>
+          {secondaryActions}
+          {actions}
+        </div>
+      ),
     },
   );
 
-  return { ...actual, Drawer };
+  // The real Select is an Ark menu jsdom cannot drive; a native select with
+  // the same items lets a test change the scenario.
+  const Select = ({
+    items,
+    onChange,
+    value,
+  }: {
+    items: readonly (
+      | { value: string; text: string }
+      | { items: readonly { value: string; text: string }[] }
+    )[];
+    onChange: (value: string) => void;
+    value: string;
+  }) => (
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {items
+        .flatMap((item) => ("items" in item ? item.items : [item]))
+        .map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.text}
+          </option>
+        ))}
+    </select>
+  );
+
+  return { ...actual, Drawer, Select };
 });
 
 /**
@@ -121,12 +174,17 @@ const TestProviders = ({
   enableAdHocScenarios = false,
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => Promise.resolve("experiment-test"),
+  languageClient,
+  optimizationSource = null,
 }: {
   webGpuEnabled: boolean;
   enableParameterSweeps?: boolean;
   enableAdHocScenarios?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
   createExperiment?: (input: CreateExperimentInput) => Promise<string>;
+  languageClient?: LanguageClientContextValue;
+  /** The host's optimizer; the In-browser optimization setting follows it on. */
+  optimizationSource?: PetrinautOptimizationSource | null;
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const settings: UserSettingsContextValue = {
@@ -134,6 +192,7 @@ const TestProviders = ({
     webGpuEnabled,
     enableParameterSweeps,
     enableAdHocScenarios,
+    enableInBrowserOptimization: optimizationSource !== null,
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
@@ -166,7 +225,7 @@ const TestProviders = ({
 
   return (
     <PortalContainerContext value={portalContainerRef}>
-      <LanguageClientContext value={makeLanguageClient()}>
+      <LanguageClientContext value={languageClient ?? makeLanguageClient()}>
         <ExperimentsActionsContext
           value={{
             setSelectedExperimentId: () => {},
@@ -191,8 +250,10 @@ const TestProviders = ({
         >
           <SDCPNContext value={sdcpnContextValue}>
             <UserSettingsContext value={settings}>
-              <div ref={portalContainerRef} />
-              <CreateExperimentDrawer open onClose={() => {}} />
+              <PetrinautOptimizationContext value={optimizationSource}>
+                <div ref={portalContainerRef} />
+                <CreateExperimentDrawer open onClose={() => {}} />
+              </PetrinautOptimizationContext>
             </UserSettingsContext>
           </SDCPNContext>
         </ExperimentsActionsContext>
@@ -443,5 +504,562 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
 
     await screen.findByText("Rate");
     expect(screen.queryByLabelText(/^Sweep /)).toBeNull();
+  });
+});
+
+/** A connected source that never runs: the drawer only asks what kind it is. */
+const connectedSource: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => {
+    throw new Error("The test's optimizer is never connected");
+  },
+};
+
+/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
+const remoteSource: PetrinautOptimization = {
+  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
+  async *attachOptimizationRun() {
+    yield { type: "started", requestedTrials: 1, seq: 1 };
+  },
+  cancelOptimizationRun: () => Promise.resolve(),
+};
+
+/** The language client with constraint lowering that succeeds, keeping the source's name. */
+const makeLoweringLanguageClient = (): LanguageClientContextValue => ({
+  ...makeLanguageClient(),
+  requestConstraint: vi.fn((source: ConstraintSource) =>
+    Promise.resolve({
+      ok: true,
+      constraint: {
+        ...source,
+        hir: {
+          hirVersion: 1,
+          surface:
+            source.space === "parameters" ? "scenario-expression" : "metric",
+          params:
+            source.space === "parameters"
+              ? []
+              : [{ name: "state", span: { start: 0, length: 0 } }],
+          body: {
+            kind: "boolLit",
+            id: 0,
+            span: { start: 0, length: 0 },
+            value: true,
+          },
+          span: { start: 0, length: 0 },
+        },
+      },
+    } as LowerConstraintResult),
+  ),
+});
+
+/** The swept scenario beside a second one, so a test can switch between them. */
+const twoScenariosContextValue: SDCPNContextValue = {
+  ...sweptContextValue,
+  petriNetDefinition: {
+    ...sweptContextValue.petriNetDefinition,
+    scenarios: [
+      sweptScenario,
+      {
+        ...sweptScenario,
+        id: "scenario-other",
+        name: "Other",
+        scenarioParameters: [
+          { identifier: "recovery_days", type: "integer", default: 7 },
+        ],
+      },
+    ],
+  },
+};
+
+const firstConstraintSession = (
+  languageClient: LanguageClientContextValue,
+): ConstraintSessionParams => {
+  const params = vi.mocked(languageClient.initializeConstraintSession).mock
+    .calls[0]?.[0];
+  if (!params) {
+    throw new Error("expected a constraint session to have been initialized");
+  }
+  return params;
+};
+
+/**
+ * Flips a parameter's Sweep toggle: the ds Toggle's label carries the name,
+ * and the hidden checkbox inside it is what a click has to reach.
+ */
+const flipSweep = (identifier: string) => {
+  fireEvent.click(
+    screen
+      .getByLabelText(`Sweep ${identifier}`)
+      .querySelector<HTMLInputElement>("input[type='checkbox']")!,
+  );
+};
+
+const submitButton = () =>
+  screen.getByRole("button", { name: /Create sweep|Run/ }) as HTMLButtonElement;
+
+/** A constrained sweep's drawer: sweeps on, connected optimizer, the swept scenario's toggle flipped. */
+const openConstrainedSweep = async (
+  props: Partial<Parameters<typeof TestProviders>[0]> = {},
+) => {
+  const rendered = render(
+    <TestProviders
+      webGpuEnabled={false}
+      enableParameterSweeps
+      sdcpnContextValue={sweptContextValue}
+      optimizationSource={connectedSource}
+      languageClient={makeLoweringLanguageClient()}
+      {...props}
+    />,
+  );
+  flipSweep("transmission_rate");
+  expect(await screen.findByText("Constraints")).toBeTruthy();
+  return rendered;
+};
+
+const codeOf = (row: HTMLElement) => within(row).getByRole("textbox");
+
+describe("CreateExperimentDrawer constraints", () => {
+  it("offers no Constraints section while parameter sweeps are off", () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    expect(screen.queryByText("Constraints")).toBeNull();
+  });
+
+  it("offers no Constraints section until a Sweep toggle flips", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    expect(screen.queryByText("Constraints")).toBeNull();
+
+    flipSweep("transmission_rate");
+    expect(await screen.findByText("Constraints")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "No constraints — the optimizer may try any point of the sweep.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Create sweep")).toBeTruthy();
+
+    // Flipping it back hides the section with the sweep.
+    flipSweep("transmission_rate");
+    await waitFor(() => {
+      expect(screen.queryByText("Constraints")).toBeNull();
+    });
+  });
+
+  it("offers no Constraints section for a remote-only optimizer, which cannot evaluate a sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+    flipSweep("transmission_rate");
+    expect(await screen.findByText("Create sweep")).toBeTruthy();
+    expect(screen.queryByText("Constraints")).toBeNull();
+  });
+
+  it("offers no Constraints section for an ad-hoc sweep, which no study can drive", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableAdHocScenarios
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    // The ad-hoc form's Sweep toggle is a button of its own.
+    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
+    expect(await screen.findByText("Create sweep")).toBeTruthy();
+    expect(screen.queryByText("Constraints")).toBeNull();
+  });
+
+  it("runs one language session per row, keyed by the row id, over the scenario's parameters", async () => {
+    const languageClient = makeLoweringLanguageClient();
+    await openConstrainedSweep({ languageClient });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    const row = screen.getByRole("group", { name: "Parameter constraint 1" });
+    expect(within(row).getByText(/Parameters/)).toBeTruthy();
+    const session = firstConstraintSession(languageClient);
+    expect(session).toMatchObject({
+      space: "parameters",
+      code: "",
+      scenarioParameters: [
+        { identifier: "transmission_rate", type: "real", default: 0.3 },
+      ],
+    });
+
+    fireEvent.change(codeOf(row), {
+      target: { value: "scenario.transmission_rate < 0.45" },
+    });
+    expect(languageClient.updateConstraintSession).toHaveBeenCalledWith({
+      ...session,
+      code: "scenario.transmission_rate < 0.45",
+    });
+    expect(languageClient.initializeConstraintSession).toHaveBeenCalledOnce();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    expect(
+      vi.mocked(languageClient.initializeConstraintSession).mock.calls[1]?.[0],
+    ).toMatchObject({ space: "state", code: "" });
+    expect(
+      within(
+        screen.getByRole("group", { name: "State constraint 1" }),
+      ).getByText(/State/),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove parameter constraint 1" }),
+    );
+    expect(languageClient.killConstraintSession).toHaveBeenCalledWith(
+      session.sessionId,
+    );
+    expect(
+      screen.queryByRole("group", { name: "Parameter constraint 1" }),
+    ).toBeNull();
+  });
+
+  it("mounts the pass threshold with the first state row only", async () => {
+    await openConstrainedSweep();
+    expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    expect(
+      (screen.getByLabelText("Pass threshold (percent)") as HTMLInputElement)
+        .value,
+    ).toBe("95");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 1" }),
+    );
+    expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
+  });
+
+  it("shows a row's error in its reserved line and blocks Create sweep naming the row", async () => {
+    const languageClient = makeLoweringLanguageClient();
+    const { rerender } = await openConstrainedSweep({ languageClient });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "Parameter constraint 1" })),
+      { target: { value: "scenario.transmission_rate" } },
+    );
+    expect(submitButton().disabled).toBe(false);
+
+    const { sessionId } = firstConstraintSession(languageClient);
+    const range = {
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 1 },
+    };
+    const withDiagnostics = (
+      diagnosticsByUri: LanguageClientContextValue["diagnosticsByUri"],
+    ) => (
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+        languageClient={{ ...languageClient, diagnosticsByUri }}
+      />
+    );
+    rerender(
+      withDiagnostics(
+        new Map([
+          [
+            getConstraintDocumentUri(sessionId),
+            [
+              {
+                range,
+                message: "only a lint",
+                severity: DiagnosticSeverity.Warning,
+              },
+              {
+                range,
+                message: "Type 'number' is not assignable to type 'boolean'.",
+                severity: DiagnosticSeverity.Error,
+              },
+            ],
+          ],
+          [
+            getConstraintDocumentUri("another-drawer"),
+            [
+              {
+                range,
+                message: "elsewhere",
+                severity: DiagnosticSeverity.Error,
+              },
+            ],
+          ],
+        ]),
+      ),
+    );
+
+    const row = screen.getByRole("group", { name: "Parameter constraint 1" });
+    expect(
+      within(row).getByText(
+        "Type 'number' is not assignable to type 'boolean'.",
+      ),
+    ).toBeTruthy();
+    expect(submitButton().disabled).toBe(true);
+    expect(
+      screen.getByText(
+        "Parameter constraint 1: Type 'number' is not assignable to type 'boolean'.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/only a lint/)).toBeNull();
+
+    rerender(
+      withDiagnostics(
+        new Map([
+          [
+            getConstraintDocumentUri("another-drawer"),
+            [
+              {
+                range,
+                message: "elsewhere",
+                severity: DiagnosticSeverity.Error,
+              },
+            ],
+          ],
+        ]),
+      ),
+    );
+    expect(submitButton().disabled).toBe(false);
+    expect(screen.queryByText(/elsewhere/)).toBeNull();
+  });
+
+  it("lowers the rows under their labels and hands them to the experiment without a policy at the default threshold", async () => {
+    const languageClient = makeLoweringLanguageClient();
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      Promise.resolve("experiment-constrained"),
+    );
+    await openConstrainedSweep({ languageClient, createExperiment });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "Parameter constraint 1" })),
+      { target: { value: "scenario.transmission_rate < 0.45" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "State constraint 1" })),
+      { target: { value: "return state.places.Infected.count <= 900;" } },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+
+    expect(
+      vi
+        .mocked(languageClient.requestConstraint)
+        .mock.calls.map(([source]) => source),
+    ).toEqual([
+      expect.objectContaining({
+        space: "parameters",
+        name: "Parameter constraint 1",
+        code: "scenario.transmission_rate < 0.45",
+      }),
+      expect.objectContaining({
+        space: "state",
+        name: "State constraint 1",
+        code: "return state.places.Infected.count <= 900;",
+      }),
+    ]);
+    expect(
+      vi.mocked(languageClient.requestConstraint).mock.calls[0]?.[1],
+    ).toMatchObject({
+      scenarioParameters: sweptScenario.scenarioParameters,
+      sdcpn: sweptContextValue.petriNetDefinition,
+    });
+    const input = createExperiment.mock.calls[0]![0];
+    expect(input.scenarioParameterValues.transmission_rate?.mode).toBe("range");
+    expect(input.constraints).toHaveLength(2);
+    expect(input.constraints).toMatchObject([
+      {
+        space: "parameters",
+        name: "Parameter constraint 1",
+        hir: { surface: "scenario-expression" },
+      },
+      {
+        space: "state",
+        name: "State constraint 1",
+        hir: { surface: "metric" },
+      },
+    ]);
+    expect(input.constraintPolicy).toBeUndefined();
+  });
+
+  it("writes a changed pass threshold to the experiment as alpha", async () => {
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      Promise.resolve("experiment-threshold"),
+    );
+    await openConstrainedSweep({ createExperiment });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "State constraint 1" })),
+      { target: { value: "return state.places.Infected.count <= 900;" } },
+    );
+    fireEvent.change(screen.getByLabelText("Pass threshold (percent)"), {
+      target: { value: "90" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    expect(createExperiment.mock.calls[0]![0].constraintPolicy).toEqual({
+      alpha: 0.1,
+    });
+  });
+
+  it("ignores blank rows at submission", async () => {
+    const languageClient = makeLoweringLanguageClient();
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      Promise.resolve("experiment-blank"),
+    );
+    await openConstrainedSweep({ languageClient, createExperiment });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    expect(languageClient.requestConstraint).not.toHaveBeenCalled();
+    expect(createExperiment.mock.calls[0]![0].constraints).toEqual([]);
+    expect(createExperiment.mock.calls[0]![0].constraintPolicy).toBeUndefined();
+  });
+
+  it("puts a row that fails to lower in the footer under its label", async () => {
+    const languageClient: LanguageClientContextValue = {
+      ...makeLanguageClient(),
+      requestConstraint: vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          diagnostics: [
+            {
+              code: "hir:type",
+              message: "Type 'number' is not assignable to type 'boolean'.",
+              severity: "error",
+              span: { start: 0, length: 1 },
+            },
+          ],
+        } as LowerConstraintResult),
+      ),
+    };
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      Promise.resolve("never"),
+    );
+    await openConstrainedSweep({ languageClient, createExperiment });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "Parameter constraint 1" })),
+      { target: { value: "scenario.transmission_rate" } },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    expect(
+      await screen.findByText(
+        "Parameter constraint 1: Type 'number' is not assignable to type 'boolean'.",
+      ),
+    ).toBeTruthy();
+    expect(createExperiment).not.toHaveBeenCalled();
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it("clears the rows when the scenario changes", async () => {
+    await openConstrainedSweep({ sdcpnContextValue: twoScenariosContextValue });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    expect(
+      screen.getByRole("group", { name: "Parameter constraint 1" }),
+    ).toBeTruthy();
+
+    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
+      target: { value: "scenario-other" },
+    });
+    // The other scenario's sweep has to be turned on again, as its inputs reset.
+    expect(screen.queryByText("Constraints")).toBeNull();
+    flipSweep("recovery_days");
+    expect(await screen.findByText("Constraints")).toBeTruthy();
+    expect(
+      screen.queryByRole("group", { name: "Parameter constraint 1" }),
+    ).toBeNull();
+    expect(
+      screen.getByText(
+        "No constraints — the optimizer may try any point of the sweep.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("rules the GPU out while a state constraint is drafted, since its indicator aggregates over time", async () => {
+    await openConstrainedSweep({ webGpuEnabled: true });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    // A blank row is skipped at submission, so it does not gate the switch.
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+    fireEvent.change(
+      codeOf(screen.getByRole("group", { name: "State constraint 1" })),
+      { target: { value: "return state.places.Infected.count < 100;" } },
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("unavailable");
+    });
+    expect(findGpuControl().disabled).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 1" }),
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
   });
 });
