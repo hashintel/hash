@@ -15,19 +15,21 @@ Parameters. Three consumers mount the same component, differing in what
 selecting a value means (`selection` prop) and in whether the definition
 persists. Quick simulation passes `"none"` (no toggles) and lays the groups
 out in the Simulation Settings panel's two columns through `renderLayout`;
-experiment creation passes `"sweep"` while the Parameter sweeps setting is
-on (a value is selected as a swept interval) and `"none"` otherwise. Both
+experiment creation passes `"optimize"` or `"sweep"` while the Parameter
+sweeps setting is on and `"none"` otherwise. The two words name one
+interval semantics — a value selected as an interval, Min and Max and
+nothing else — and the Create Experiment drawer chooses the word from the
+settings and the optimization source alone: `"optimize"` when the
+in-browser optimizer can drive the sweep (In-browser optimization on, a
+connected source), `"sweep"` when the sweep will wait for a selection. Both
 compile what the user enters through a scenario **generated at run time and
 never persisted**. The third consumer, scenario creation and editing, passes
 `"expose"`: no value toggles, and instead each top-level Variable row grows
 a "Scenario Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario
 exposes those Variables as its tunable parameters. There alone the
-definition persists (see **The persisted format** below). The `"optimize"`
-mode (a value selected for the optimizer, with bounds and a scale) is kept
-in the union and the synthesis but has no consumer since optimization moved
-into the Experiments tab; a study now runs over a sweep. Optimize selections
-write the `optimize` settings object; expose writes the boolean `exposed`
-flag.
+definition persists (see **The persisted format** below). Interval
+selections write the `optimize` settings object under either word; expose
+writes the boolean `exposed` flag.
 
 A fourth use reuses the component in `mode="run"`: Simulation Settings and
 the experiment drawer show every selected scenario through the form
@@ -442,7 +444,7 @@ const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
   state={state}
   onChange={setState}
   context={{ netParameters, places, types }} // from the SDCPN
-  selection="none" // "sweep" | "expose" where the toggles apply
+  selection="none" // "optimize" | "sweep" | "expose" where the toggles apply
 />;
 ```
 

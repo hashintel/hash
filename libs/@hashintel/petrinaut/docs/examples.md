@@ -34,7 +34,7 @@ The SIR model with two policy levers and a cost account, built as the model to o
 - **GPU-ready modelling** -- untyped places and rates that read only parameters, so an experiment measuring the **Infected** place's token count (**Built-in › Place tokens**) runs on the GPU backend as shipped. The model's expression metrics — **Total cost**, **Infected**, **Attack rate** — compile to the GPU too.
 - Two further metrics -- **Infected** (the wave's curve, dying out or growing) and **Attack rate** (share of the population infected so far).
 
-**Suggested initial state:** pick **Winter wave** and create an experiment over it with a max time of 60, **Sweep** on `vaccination_coverage` (0 to 0.9) and `contact_reduction` (0 to 0.8) and a **Total cost** metric; then press **Optimize** on the sweep's Parameters card and minimize **Total cost**: the Surface shows a valley along the epidemic threshold and the steps settle around a coverage of 0.45 and a contact reduction of 0.4 (see [Optimizing a sweep](experiments.md#optimizing-a-sweep)). To watch a single run instead, press Play and select the **Infected** metric in the timeline.
+**Suggested initial state:** create an experiment on **Winter wave** with a max time of 60 and **Total cost** as a metric, flip **Optimize** on `vaccination_coverage` (0 to 0.9) and `contact_reduction` (0 to 0.8), choose **Minimize**, and the experiment opens searching: the Surface shows a valley along the epidemic threshold and the steps settle around a coverage of 0.45 and a contact reduction of 0.4 (see [Optimizing a sweep](experiments.md#optimizing-a-sweep)). To watch a single run instead, press Play and select the **Infected** metric in the timeline.
 
 **Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [scenarios](scenarios.md), [optimization objectives](useful-patterns.md#optimization-objectives-metrics-that-read-parameters), [parameter sweeps](experiments.md#parameter-sweeps).
 
@@ -48,7 +48,7 @@ A small service system: customers arrive, wait, are served by a limited staff po
 - Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
 - A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
 
-**Suggested initial state:** pick **Morning Rush** and create an experiment measuring **Waiting** — then sweep `arrival_rate` against `service_rate` and watch the queue-explosion boundary appear on the surface plot.
+**Suggested initial state:** pick **Morning Rush** and create an experiment measuring **Waiting** — flip the interval toggle on `arrival_rate` and `service_rate` (**Sweep** with the optimizer off, so the surface is yours to explore) and watch the queue-explosion boundary appear on the surface plot.
 
 ## Drone Patrol
 
@@ -62,7 +62,7 @@ A typed fleet of drones cycling between the hangar and the air: launch, drain ba
 - **Token-reading rates**: launch tempo scales with the candidate drone's battery, and returns become more likely as the battery falls.
 - The **Standard Patrol** scenario exposes `launch_rate` and `drain_rate` for sweeping.
 
-**Suggested initial state:** pick **Standard Patrol** and create an experiment measuring **Airborne**; on the GPU, sweeping `launch_rate` against `drain_rate` streams the fleet's equilibrium as a distribution.
+**Suggested initial state:** pick **Standard Patrol** and create an experiment measuring **Airborne**; on the GPU, with the interval toggle on `launch_rate` and `drain_rate` (**Sweep** with the optimizer off), the fleet's equilibrium streams as a distribution.
 
 ## Supply Chain with Disruption
 

@@ -81,13 +81,14 @@ result flows back into the same cache and the surface repaints with it.
 
 ## The optimizer on the surface
 
-A study started from the sweep's Parameters card draws on this same surface
-and no other: its steps are points the sweep visited through `navigateSweep`,
+A study started with the experiment from the Create Experiment drawer draws
+on this same surface and no other: its steps are points the sweep visited through `navigateSweep`,
 so each lands as a dot at the trial's cap of eight runs, the step in flight
 is the computing ring, and infeasible draws never reach the surface because
 the evaluator prunes them before it navigates. While the study drives the
 sweep the card takes the `optimizing` tone and only displays; once the study
-settles, or is stopped, the navigator parks on the best point, the plot takes
-picks again, and the point refines to the run budget through the same cache.
+settles, or Stop on the Parameters card ends it, the navigator parks on the
+best point, the plot takes picks again, and the point refines to the run
+budget through the same cache.
 [Sweep orchestration](doc:experiments/sweep-orchestration) describes the
 study that drives that navigation and the constraints it enforces.

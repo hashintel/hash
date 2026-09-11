@@ -81,17 +81,20 @@ export type UserSettings = {
    */
   showCompilationOutput: boolean;
   /**
-   * Experimental: offer parameter sweeps. On, every numeric scenario parameter
-   * in the experiment form gets a Sweep toggle that turns its value into an
-   * interval. Off, experiments take fixed values only.
+   * Experimental: offer parameter sweeps. On, every numeric value of the
+   * experiment form gets an interval toggle — reading Sweep, or Optimize when
+   * In-browser optimization is on — that turns its value into an interval.
+   * Off, experiments take fixed values only.
    */
   enableParameterSweeps: boolean;
   /**
-   * Experimental: connect a host-supplied in-browser optimizer, which runs
-   * studies through the experiments backend and streams each step's metrics
-   * as it is evaluated. Off, a connected optimizer counts as none at all and
-   * the Optimizations surfaces stay hidden. A remote optimization capability
-   * is unaffected either way.
+   * Experimental: connect a host-supplied in-browser optimizer. On, the
+   * experiment form's interval toggles read Optimize: creating the experiment
+   * starts a study over the selected intervals, with an Objective and
+   * Constraints chosen in the form. Off, a connected optimizer counts as none
+   * at all, the toggles read Sweep and the sweep waits for a selection; any
+   * running in-browser optimization is cancelled. A remote optimization
+   * capability is unaffected either way.
    */
   enableInBrowserOptimization: boolean;
   /**
