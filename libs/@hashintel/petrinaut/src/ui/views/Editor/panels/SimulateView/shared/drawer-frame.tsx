@@ -7,7 +7,6 @@
 export {
   DrawerFrame,
   type DrawerFrameProps,
-  FRAME_NOTE_HEIGHT,
   type FrameNote,
 } from "./drawer-frame/frame";
 export {

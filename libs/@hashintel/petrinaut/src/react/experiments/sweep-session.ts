@@ -426,15 +426,22 @@ export function createSweepSession(
   const isFailed = (loopGeneration: number): boolean =>
     failure?.generation === loopGeneration;
 
-  /** A batch of `loopGeneration` failed: the loop stops and the owner hears why. */
-  const fail = (loopGeneration: number, message: string) => {
-    failure = { generation: loopGeneration, message };
-    onError(message);
-  };
-
   /** Whether `loopGeneration` still owns the session's compute slot. */
   const isStale = (loopGeneration: number): boolean =>
     disposed || loopGeneration !== generation;
+
+  /**
+   * A batch of `loopGeneration` failed: the loop stops and the owner hears
+   * why. A rung the selection has already moved past, or one the session
+   * disposed, reports nothing: its error belongs to a ladder nobody follows.
+   */
+  const fail = (loopGeneration: number, message: string) => {
+    if (isStale(loopGeneration)) {
+      return;
+    }
+    failure = { generation: loopGeneration, message };
+    onError(message);
+  };
 
   /** The top of the ladder for the current selection. */
   const ladderTop = (): number =>

@@ -5,16 +5,16 @@
  * it; the view knows neither record. What differs between the two kinds is
  * data and a few extra panels, so the panels only one kind has are slots.
  */
-import type { ChartCardTone } from "../chart-card";
-import type { ComputeBackendSummary } from "../compute-backend-badge";
+import type { ChartCardTone } from "./chart-card";
+import type { ComputeBackendSummary } from "./compute-backend-badge";
 import type {
   ComputeBatch,
   FrameCardMore,
   FrameNote,
   FrameStatShort,
   FrameStatusTone,
-} from "../drawer-frame";
-import type { MetricTile } from "../metric-tiles";
+} from "./drawer-frame";
+import type { MetricTile } from "./metric-tiles";
 import type { ReactNode } from "react";
 
 /** The status pill: the word, its tone, and the longest word it can become. */

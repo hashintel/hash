@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { frameStats } from "../shared/drawer-frame-test-helpers";
+import { frameStats } from "../shared/drawer-frame.test-helpers";
 import { OptimizationFullView } from "./optimization-full-view";
 import {
   fakeShortStudyInput,

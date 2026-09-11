@@ -71,14 +71,14 @@ import {
 import { ParameterImportancePanel } from "./study-results/parameter-importance-panel";
 import { ParameterValues } from "./study-results/parameter-values";
 import {
-  activityBatches,
-  stepsProgressPercent,
-} from "./study-results/shared/study-progress";
-import {
   PresentationToggle,
   StudyActions,
 } from "./study-results/study-actions";
 import { StudyHeader } from "./study-results/study-header";
+import {
+  activityBatches,
+  stepsProgressPercent,
+} from "./study-results/study-progress";
 import { StudySteps } from "./study-results/study-steps";
 
 import type { FrameNote } from "../shared/drawer-frame";
@@ -88,7 +88,7 @@ import type {
   ResultsModel,
   ResultsStat,
   ResultsStatus,
-} from "../shared/results/results-model";
+} from "../shared/results-model";
 
 /**
  * The objective plot's height: sized so the card ends level with the surface

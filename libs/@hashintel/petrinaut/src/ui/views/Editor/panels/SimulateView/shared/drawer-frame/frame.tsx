@@ -39,7 +39,7 @@ export type FrameNote = {
 };
 
 /** The height of the note row in pixels: the body's top padding, which the row sits in. */
-export const FRAME_NOTE_HEIGHT = 20;
+const FRAME_NOTE_HEIGHT = 20;
 
 // The ds close button is 28px wide with a 20px right gutter.
 const DRAWER_CLOSE_GUTTER = 52;
