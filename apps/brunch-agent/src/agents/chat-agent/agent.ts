@@ -45,6 +45,11 @@ import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
 import {
+  deriveNetFreshness,
+  NET_STALE_SIGNAL,
+  netStaleSignalBody,
+} from "../../conversation/net-freshness.ts";
+import {
   verifyRootArcResults,
   assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
@@ -164,7 +169,24 @@ export function ChatAgent({ id }: AgentProps) {
         ] as const)
       : []),
   );
-  useAgentStart(async () => {
+  useAgentStart(async ({ append }) => {
+    if (browserContext && delivery.kind === "user") {
+      // Flue history is the only ledger of what the model has observed. The
+      // marker joins this response ahead of the model's first turn; it asks for
+      // a read and never withdraws the tool.
+      const freshness = await deriveNetFreshness(
+        await history(),
+        browserContext,
+      );
+      if (freshness.kind !== "current")
+        append({
+          kind: "signal",
+          type: NET_STALE_SIGNAL,
+          tagName: NET_STALE_SIGNAL,
+          attributes: { kind: freshness.kind },
+          body: netStaleSignalBody(freshness),
+        });
+    }
     if (browserContext && isClientResultDelivery) {
       // Legacy recorded reads lack this optional sidecar. Only a why lookup that
       // actually cites an observation requires it; legacy continuation is unchanged.
@@ -208,6 +230,7 @@ export function ChatAgent({ id }: AgentProps) {
 Call ping when you need to confirm the server tool path.
 Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
 A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${getLatestNetDefinitionToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${getLatestNetDefinitionToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useTool(ping);
