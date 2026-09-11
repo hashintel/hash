@@ -1,34 +1,35 @@
 //! The fit command that runs one production generation over the live store or a dump directory.
 
-use core::{error::Error, fmt, num::NonZero, panic::UnwindSafe, time::Duration};
-use std::{io, time::Instant};
+use core::{fmt, num::NonZero, panic::UnwindSafe, time::Duration};
+use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use clap::{Args, ValueHint};
+use clap::ValueHint;
 use tokio_postgres::Client;
 
-use super::embedder::{self, EmbedderArgs, EmbedderError};
+use self::error::FitError;
+use super::embedder::{self, EmbedderArgs};
 use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
     file::{
         generation::{
             GenerationRoot,
-            upload::{Promotion, Upload, UploadError},
+            upload::{Promotion, Upload},
         },
         storage::{Storage, error::StorageError, path::FilePath},
     },
     progress::{NoProgress, Progress},
     salt::{
         knn::recall::RecallAdmission,
-        runner::operator::{
-            ClassifierSource, Options, Placement, RunError, Summary, live, offline,
-        },
+        runner::operator::{ClassifierSource, Options, Placement, Summary, live, offline},
     },
 };
 
+pub(crate) mod error;
+
 /// Root and run settings of one fit.
-#[derive(Debug, Args)]
+#[derive(Debug, clap::Args)]
 #[command(group = clap::ArgGroup::new("classifier_input")
     .required(true)
     .args(["annotations", "classifier"]))]
@@ -71,8 +72,8 @@ pub struct FitArgs {
 
     /// Path of a reviewed-verdicts document to supply.
     ///
-    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
-    /// so a corpus whose relations carry Proximal force needs one to train.
+    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs.
+    /// A corpus whose relations carry Proximal force needs these verdicts to train.
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS", value_hint = ValueHint::FilePath)]
     verdicts: Option<FilePath>,
 
@@ -83,7 +84,7 @@ pub struct FitArgs {
     /// 1]`) and `maximum_density_spread` (finite, non-negative, at most the `f32` maximum). A
     /// present field overrides its default, an unknown field refuses the document, and an
     /// out-of-domain value refuses the run before it starts. The source defaults are maximally
-    /// permissive, gating evidence presence rather than fidelity.
+    /// permissive. Admission still checks evidence presence.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS",
@@ -131,96 +132,17 @@ pub struct FitArgs {
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 
-    /// Whether to upload the generated results to remote storage.
+    /// Destination prefix for generated artifacts. No upload runs by default.
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 }
 
-#[derive(Debug)]
-enum FitErrorKind {
-    /// Producing the embedding provider failed.
-    Embedder(EmbedderError),
-    /// The run failed.
-    Run(RunError),
-    /// Writing the admission report failed.
-    Io(io::Error),
-    /// Uploading the results failed.
-    Upload(UploadError),
-    /// Serializing the admission report failed.
-    Serialize(serde_json::Error),
-}
-
-/// One fit invocation's failure, by step.
-///
-/// The embedder and run variants splice into the chain transparently (their display text and
-/// sources are the wrapped fault's, unchanged). The report variant names its own step.
-#[derive(Debug)]
-pub struct FitError(Box<FitErrorKind>);
-
-impl fmt::Display for FitError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &*self.0 {
-            FitErrorKind::Embedder(error) => fmt::Display::fmt(error, fmt),
-            FitErrorKind::Run(error) => fmt::Display::fmt(error, fmt),
-            FitErrorKind::Io(_) => fmt.write_str("the admission report could not be written"),
-            FitErrorKind::Upload(_) => fmt.write_str("uploading the results failed"),
-            FitErrorKind::Serialize(_) => fmt.write_str("serializing the admission report failed"),
-        }
-    }
-}
-
-impl Error for FitError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match &*self.0 {
-            FitErrorKind::Embedder(error) => error.source(),
-            FitErrorKind::Run(error) => error.source(),
-            FitErrorKind::Io(error) => Some(error),
-            FitErrorKind::Upload(error) => Some(error),
-            FitErrorKind::Serialize(error) => Some(error),
-        }
-    }
-}
-
-impl From<UploadError> for FitError {
-    fn from(error: UploadError) -> Self {
-        Self(Box::new(FitErrorKind::Upload(error)))
-    }
-}
-
-impl From<serde_json::Error> for FitError {
-    fn from(value: serde_json::Error) -> Self {
-        Self(Box::new(FitErrorKind::Serialize(value)))
-    }
-}
-
-impl From<EmbedderError> for FitError {
-    fn from(value: EmbedderError) -> Self {
-        Self(Box::new(FitErrorKind::Embedder(value)))
-    }
-}
-
-impl From<RunError> for FitError {
-    fn from(value: RunError) -> Self {
-        Self(Box::new(FitErrorKind::Run(value)))
-    }
-}
-
-impl From<io::Error> for FitError {
-    fn from(value: io::Error) -> Self {
-        Self(Box::new(FitErrorKind::Io(value)))
-    }
-}
-
-/// One fit's verdict.
-///
-/// The command's product, which its host renders rather than printing in place. The standalone
-/// shell's dashboard owns the terminal until the run ends, so the shell writes the verdict after
-/// the dashboard hands it back.
+/// A fit's result, admission-report path and fitting duration.
 #[derive(Debug)]
 pub struct FitVerdict {
     /// The run's plain-number summary.
     summary: Summary,
-    /// Where the admission report landed.
+    /// The admission-report destination.
     report: Utf8PathBuf,
     /// How long the run took.
     elapsed: Duration,
@@ -346,7 +268,7 @@ where
             "starting the production run"
         );
 
-        // The provider holds its observer across every request, so it takes the detached half.
+        // the provider retains its observer across requests.
         let embedder =
             embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
 

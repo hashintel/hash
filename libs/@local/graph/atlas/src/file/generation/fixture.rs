@@ -37,16 +37,19 @@ use crate::{
     },
 };
 
+/// Hashes a fixture seed into an artifact digest.
 pub(super) fn digest(seed: &str) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(seed.as_bytes());
     hasher.finalize()
 }
 
+/// Binds an artifact to the digest of `seed`.
 fn binding<A: Artifact>(seed: &str) -> Binding<A> {
     Binding::new(digest(seed))
 }
 
+/// Builds the reproducibility configuration a fixture repository records.
 fn config(seed: u64) -> FitConfig {
     FitConfig {
         seed,
@@ -59,6 +62,7 @@ fn config(seed: u64) -> FitConfig {
     }
 }
 
+/// Builds the spot checks and measurements a fixture repository records.
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -134,6 +138,7 @@ fn evidence() -> Evidence {
     }
 }
 
+/// Builds the metadata document every generation fixture publishes.
 pub(super) fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V2,
@@ -205,6 +210,11 @@ pub(super) fn make_writable(path: &camino::Utf8Path) {
 ///
 /// The whitespace preserves valid JSON while distinguishing the original encoding from a
 /// reserialized document.
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "the seal consumes the staging, and the suggested merge would skip staging the \
+              artifacts between the two calls"
+)]
 pub(super) fn publish_noncanonical(
     root: &GenerationRoot,
     repository: &SaltRepository,
@@ -236,6 +246,7 @@ pub(super) fn publish_noncanonical(
     id
 }
 
+/// Stages every manifest file, writing each file's name as its content.
 pub(super) fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let mut file = staging
@@ -246,6 +257,7 @@ pub(super) fn stage_all(staging: &StagedGeneration, repository: &SaltRepository)
     }
 }
 
+/// Opens an empty generation root, returning the handle that removes its directory.
 pub(super) fn root() -> (ScratchDirectory, GenerationRoot) {
     let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should have a UTF-8 path")

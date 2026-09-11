@@ -29,7 +29,9 @@ mod tests;
 
 pub(crate) use self::error::DownloadError;
 
+/// Polling cadence for acquiring source generations.
 pub(crate) struct DownloadOptions {
+    /// Time between source-current checks, one second by default.
     pub poll_interval: Duration = Duration::from_secs(1),
 }
 
@@ -136,7 +138,7 @@ where
         let flushed = writer.flush().await;
         if let Err(error) = result {
             if let Err(flush_error) = flushed {
-                tracing::warn!(?flush_error, "failed to flush an incomplete download");
+                tracing::warn!(%flush_error, "failed to flush an incomplete download");
             }
 
             return Err(error.into());
@@ -244,15 +246,21 @@ where
         Ok(Some(id))
     }
 
-    /// Polls immediately, then at `poll_interval`, retaining each started synchronization.
+    /// Polls the source while retaining each started synchronization through shutdown.
     ///
-    /// The loop reports failures and retries on a later poll. Shutdown stops new polls and waits
-    /// for the active synchronization, including its filesystem work. Configure finite backend
-    /// timeouts to bound shutdown while the source is unavailable.
+    /// Polling starts immediately and follows [`DownloadOptions::poll_interval`]. The loop reports
+    /// failures and retries on a later poll. Shutdown stops new polls and waits for the active
+    /// synchronization, including its filesystem work. Configure finite backend timeouts to bound
+    /// shutdown while the source is unavailable.
     ///
     /// # Panics
     ///
-    /// Panics if `poll_interval` is zero.
+    /// Panics if [`DownloadOptions::poll_interval`] is zero or when polling without a time-enabled
+    /// Tokio runtime.
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "the remainder is `tokio::select!`'s own branch dispatch"
+    )]
     pub(crate) async fn run(
         &mut self,
         DownloadOptions { poll_interval }: DownloadOptions,
@@ -270,11 +278,12 @@ where
             }
 
             if let Err(error) = self.synchronize().await {
-                tracing::warn!(?error, "failed to synchronize the remote generation");
+                tracing::warn!(%error, "failed to synchronize the remote generation");
             }
         }
     }
 
+    /// Transfers the downloader and polling options into an unstarted task.
     pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<B> {
         DownloadTask {
             download: self,
@@ -283,16 +292,23 @@ where
     }
 }
 
+/// Periodic generation synchronization that finishes active work before shutdown.
 pub(crate) struct DownloadTask<B> {
     download: Download<B>,
     options: DownloadOptions,
 }
 
 impl<B> DownloadTask<B> {
+    /// Polls the source until shutdown and finishes any active synchronization.
+    ///
+    /// # Panics
+    ///
+    /// Panics under the conditions documented by [`Download::run`].
     pub(crate) async fn run(mut self, shutdown: impl Future<Output = ()>)
     where
         B: GenerationDownloadBackend,
     {
-        self.download.run(self.options, shutdown).await;
+        // boxing the download loop avoids the host's layout-query depth overflow.
+        Box::pin(self.download.run(self.options, shutdown)).await;
     }
 }
