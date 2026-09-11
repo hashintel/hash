@@ -9,7 +9,6 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -34,6 +33,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
 import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
@@ -125,7 +125,7 @@ const recordProviderToolNames = (context: {
     providerToolNames.add(tool.name);
   }
 };
-setProvider(faux.provider);
+installFauxProvider(faux.provider);
 const application = await loadBuiltBrunchApplication();
 
 try {
@@ -265,6 +265,22 @@ try {
               { note: "health" },
               { id: "tool-ping-1" },
             ),
+          ],
+          { stopReason: "toolUse" },
+        );
+      },
+      (context) => {
+        recordProviderToolNames(context);
+        if (
+          !context.tools?.some(({ name }) => name === "getLatestNetDefinition")
+        ) {
+          throw new Error(
+            "current-net reader disappeared after the server-tool continuation",
+          );
+        }
+        return fauxAssistantMessage(
+          [
+            fauxThinking("Read the current net before consulting the guide."),
             fauxToolCall(
               "getLatestNetDefinition",
               {},
@@ -408,14 +424,6 @@ try {
         chunk.type === "tool-output-available" &&
         chunk.toolCallId === pingCall?.toolCallId,
     );
-    const clientToolCall =
-      initialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
-      ) ?? null;
     const currentNetCallsFromChunks = (chunks: readonly UIMessageChunk[]) =>
       chunks.filter(
         (
@@ -433,18 +441,23 @@ try {
       .find(
         (part) =>
           "toolCallId" in part &&
-          part.toolCallId === clientToolCall?.toolCallId,
+          part.toolCallId === firstCurrentNetCall?.toolCallId,
       );
 
     if (
       startChunk?.type !== "start" ||
-      clientToolCall === null ||
       firstCurrentNetCalls.length !== 1 ||
       firstCurrentNetCall === null
     ) {
-      throw new Error("initial stream did not reach the client-tool pause");
+      throw new Error(
+        `initial stream did not reach the client-tool pause: ${JSON.stringify({
+          startChunk,
+          firstCurrentNetCalls,
+          initialChunks,
+        })}`,
+      );
     }
-    const resumeMessages = [
+    const currentNetResumeMessages = [
       userMessage,
       {
         id: startChunk.messageId,
@@ -457,6 +470,48 @@ try {
             input: {},
             output: firstCurrentNetSnapshot,
           },
+        ],
+      },
+    ] as UIMessage[];
+    const currentNetResumedChunks = await chunksFrom(
+      await panelTransport.sendMessages({
+        trigger: "submit-message",
+        chatId: conversationId,
+        messageId: startChunk.messageId,
+        messages: currentNetResumeMessages,
+        abortSignal: undefined,
+      }),
+    );
+    const firstResumedCurrentNetCalls = currentNetCallsFromChunks(
+      currentNetResumedChunks,
+    );
+    if (firstResumedCurrentNetCalls.length !== 0) {
+      throw new Error(
+        "first continuation repeated getLatestNetDefinition after the initial read",
+      );
+    }
+    const clientToolCall =
+      currentNetResumedChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
+      ) ?? null;
+    if (clientToolCall === null) {
+      throw new Error(
+        `current-net continuation did not reach the documentation reader: ${JSON.stringify(
+          currentNetResumedChunks,
+        )}`,
+      );
+    }
+    const resumeMessages = [
+      userMessage,
+      {
+        id: startChunk.messageId,
+        role: "assistant" as const,
+        parts: [
+          ...currentNetResumeMessages[1]!.parts,
           {
             type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
             toolCallId: clientToolCall.toolCallId,
@@ -477,11 +532,11 @@ try {
         abortSignal: undefined,
       }),
     );
-    const firstResumedCurrentNetCalls =
+    const documentationResumedCurrentNetCalls =
       currentNetCallsFromChunks(resumedChunks);
-    if (firstResumedCurrentNetCalls.length !== 0) {
+    if (documentationResumedCurrentNetCalls.length !== 0) {
       throw new Error(
-        "first continuation repeated getLatestNetDefinition after the initial read",
+        "documentation continuation repeated getLatestNetDefinition after the initial read",
       );
     }
     const secondUserMessage = {

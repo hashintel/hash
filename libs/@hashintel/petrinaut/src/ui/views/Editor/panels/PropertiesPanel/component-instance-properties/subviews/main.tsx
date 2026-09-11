@@ -11,6 +11,7 @@ import { validateEntityName } from "@hashintel/petrinaut-core";
 import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
+import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
@@ -80,22 +81,28 @@ const ComponentInstanceMainContent: React.FC = () => {
         <Form.Field
           label="Name"
           size="sm"
-          disabled={isDisabled}
-          errors={nameField.error ? [nameField.error] : undefined}
+          errors={
+            !isDisabled && nameField.error ? [nameField.error] : undefined
+          }
         >
-          <Tooltip content={readOnlyTooltip ?? ""} disableTooltip={!isDisabled}>
-            <TextInput
-              value={nameField.value}
-              size="sm"
-              onChange={(name) => {
-                nameField.setValue(name);
-                if (nameField.error) nameField.setError(null);
-              }}
-              onBlur={handleNameBlur}
-              disabled={isDisabled}
-              invalid={!!nameField.error}
-            />
-          </Tooltip>
+          <PropertyValue text={instance.name}>
+            <Tooltip
+              content={readOnlyTooltip ?? ""}
+              disableTooltip={!isDisabled}
+            >
+              <TextInput
+                value={nameField.value}
+                size="sm"
+                onChange={(name) => {
+                  nameField.setValue(name);
+                  if (nameField.error) nameField.setError(null);
+                }}
+                onBlur={handleNameBlur}
+                disabled={isDisabled}
+                invalid={!!nameField.error}
+              />
+            </Tooltip>
+          </PropertyValue>
         </Form.Field>
 
         <DescriptionField

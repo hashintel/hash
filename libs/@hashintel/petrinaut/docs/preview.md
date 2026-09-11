@@ -10,11 +10,20 @@ both surfaces. You can pan and zoom the canvas, fit the net into view, and use
 the minimap. You cannot move, connect, add, delete, or otherwise edit net
 elements.
 
+Text in the preview is not selectable, so dragging across the canvas always
+pans or selects rather than highlighting a label.
+
+When the embed supplies a full-size location for the model, **Full view** in
+the header opens it in a new tab, on the scenario and the item you were
+looking at.
+
 ## Inspecting a net
 
 Select a place, transition, arc, or other supported item to inspect it. The
 preview presents the same property information as Petrinaut's inspector,
-without source editing or other authoring controls. On a wide embed the
+without source editing or other authoring controls. A field's name, description and
+type are shown as text rather than as filled-in fields; the remaining controls
+are still rendered, and simply do nothing. On a wide embed the
 inspector docks to the right of the canvas. On a narrow embed it sits under
 the canvas so the canvas remains usable.
 
@@ -32,7 +41,7 @@ The selected scenario's initial marking appears on the shared canvas before a
 run starts. Press **Play** in the compact bar at the bottom to start the run;
 the preview never starts it automatically. The same bar lets you pause, reset,
 choose from the playback speeds allowed by the embed, and scrub through the
-frames that have been produced.
+run. It reads out the elapsed time and the run's total time.
 
 As soon as frames arrive, the compact bar expands upward to show a small
 timeline. The timeline follows playback, lets you hover to inspect a series,

@@ -1,15 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
 
+import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import {
+  defaultSelected,
+  groupedItems,
+  itemsWithSubActions,
+} from "../../util/SelectableList/selectable-list.fixtures";
 import { Button } from "../Button/button";
 import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu, type MenuItem } from "./menu";
-import { getItemId } from "./SelectableList/selectable-list-util";
-import {
-  groupedItems,
-  itemsWithSubActions,
-} from "./SelectableList/selectable-list.fixtures";
 
-import type { Item, ItemOrGroup } from "./SelectableList/selectable-list";
+import type {
+  Item,
+  ItemOrGroup,
+} from "../../util/SelectableList/selectable-list";
 import type { Story, StoryDefault } from "@ladle/react";
 
 function prefixIds(
@@ -74,8 +78,8 @@ function withSelection(
   } as MenuItem;
 }
 
-function useToggleSelection() {
-  const [selected, setSelected] = useState<string[]>([]);
+function useToggleSelection(initialSelected: string[] = defaultSelected) {
+  const [selected, setSelected] = useState<string[]>(initialSelected);
   const toggle = useCallback((id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -193,9 +197,13 @@ export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
 };
 
 export const EllipsisMenu: Story<MenuProps> = (args) => {
-  const ellipsis = useToggleSelection();
-  const bell = useToggleSelection();
-  const disabled = useToggleSelection();
+  const ellipsis = useToggleSelection(
+    defaultSelected.map((id) => `ellipsis-${id}`),
+  );
+  const bell = useToggleSelection(defaultSelected.map((id) => `bell-${id}`));
+  const disabled = useToggleSelection(
+    defaultSelected.map((id) => `disabled-${id}`),
+  );
   const ellipsisItems = useMemo(
     () =>
       groupedItems.map((entry) =>

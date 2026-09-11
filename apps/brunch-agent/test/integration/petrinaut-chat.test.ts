@@ -147,7 +147,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     });
     expect(result.questionToolVisibleHistory).toBe(false);
     expect(result.historyUserEntryCount).toBe(2);
-    expect(result.historyClientToolResultCount).toBe(2);
+    expect(result.historyClientToolResultCount).toBe(3);
 
     expect(result.historyGetStatus).toBe(200);
     expect(result.historyUserText).toContain(

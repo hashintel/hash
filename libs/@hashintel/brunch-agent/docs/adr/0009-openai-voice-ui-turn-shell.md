@@ -1,11 +1,14 @@
 # ADR-0009: OpenAI Realtime media plane, Brunch control plane
 
 Date: 2026-08-26
-Status: accepted for the bounded H-6763 preview stack
+Status: historical for the H-6763 preview stack. The Realtime-as-media-plane / Brunch-as-control-plane
+split survives; `brunch_ask`, capture-fold authority, and duplex-shell details do not. Live Voice
+contracts are Missions 5, 6b, and 7.
 Extends: [ADR-0004](0004-in-petrinaut-staging-and-the-monorepo-import.md), which keeps Brunch and
 Petrinaut composition in applications and reusable libraries mutually unaware
-Preserves: [ADR-0003](0003-three-register-ir.md), which makes Brunch's capture fold authoritative,
-and the [Petrinaut integration attach contract](../specs/petrinaut-integration.md#attach-contract)
+Originally preserved: [ADR-0003](0003-three-register-ir.md) and the historical
+[Petrinaut integration attach contract](../specs/petrinaut-integration.md#attach-contract) —
+both later superseded for provenance and structured questions.
 
 ## Context
 

@@ -57,7 +57,7 @@ const ClearableInput = (
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={{ clearable: true, onClear: () => setValue("") }}
+      clearable
     />
   );
 };
@@ -74,9 +74,7 @@ const StyledNumberInput = ({
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={
-        clearable ? { clearable: true, onClear: () => setValue("") } : undefined
-      }
+      clearable={clearable}
       styledValue={
         <span style={{ color: "green", fontWeight: "bold" }}>
           {Number(value).toLocaleString() || value}

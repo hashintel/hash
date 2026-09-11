@@ -1,6 +1,10 @@
 import { expect, test } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL, snapshotToUiMessages } from "../src";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  snapshotToUiMessages,
+  type ClientToolResult,
+} from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -67,9 +71,10 @@ test("retains Voice origins from folded continuation messages", () => {
             text: JSON.stringify([
               {
                 toolCallId: `tool-${ordinal}`,
+                toolName: "readPetrinautDoc",
                 output: "A spoken answer",
                 source: "voice",
-              },
+              } satisfies ClientToolResult,
             ]),
           },
         ],
@@ -433,6 +438,68 @@ test("folds a client-tool continuation into the assistant message it resumed", (
       parts: [{ type: "text", text: "You are welcome.", state: "done" }],
     },
   ]);
+});
+
+test("treats reordered object keys as the same browser result and refuses a changed payload", () => {
+  const pending = snapshotWithPendingClientTool.messages[0]!;
+  const delivery = (text: string): FlueConversationSnapshot => ({
+    ...snapshotWithPendingClientTool,
+    messages: [
+      pending,
+      {
+        id: "signal-first",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [
+          {
+            type: "text",
+            state: "done",
+            text: JSON.stringify([
+              {
+                toolCallId: "tool-doc-1",
+                toolName: "readPetrinautDoc",
+                output: { markdown: "Saved", ordinal: 1 },
+              },
+            ]),
+          },
+        ],
+      },
+      {
+        id: "signal-second",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [{ type: "text", state: "done", text }],
+      },
+    ],
+  });
+  const partOf = (snapshot: FlueConversationSnapshot) =>
+    snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts[0];
+  expect(
+    partOf(
+      delivery(
+        '[{"output":{"ordinal":1,"markdown":"Saved"},"toolName":"readPetrinautDoc","toolCallId":"tool-doc-1"}]',
+      ),
+    ),
+  ).toMatchObject({
+    toolCallId: "tool-doc-1",
+    state: "output-available",
+    output: { markdown: "Saved", ordinal: 1 },
+  });
+  expect(
+    partOf(
+      delivery(
+        '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":{"markdown":"Changed","ordinal":1}}]',
+      ),
+    ),
+  ).toMatchObject({
+    state: "output-error",
+    errorText:
+      "Conflicting browser result deliveries; the outcome is unknown. Do not reapply.",
+  });
 });
 
 test("hides a question-marker tool while retaining its durable data", () => {

@@ -423,10 +423,7 @@ const NotebookViewContent: React.FC = () => {
             onChange={(value) => setSearchQuery(value)}
             placeholder={`Search cells… ("/" to focus)`}
             prefix={{ iconName: "search" }}
-            clearable={{
-              clearable: searchQuery !== "",
-              onClear: () => setSearchQuery(""),
-            }}
+            clearable
             inputRef={searchInputRef}
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {

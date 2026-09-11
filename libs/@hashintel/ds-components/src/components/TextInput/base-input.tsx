@@ -47,11 +47,8 @@ export type BaseInputProps = {
   connectToRightInput?: boolean;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
-  /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
-  clearable?: {
-    clearable: boolean;
-    onClear: () => void;
-  };
+  /** Set to allow the input to be cleared. `true` empties the input through the normal change pipeline (`onChange` fires with `""`); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  clearable?: boolean | { onClear: () => void };
   showEditIcon?: boolean;
   /** Defaults to false, set to true to allow browsers to autocomplete an input */
   autocomplete?: boolean;
@@ -208,7 +205,26 @@ export const BaseInput = ({
 
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || !autocomplete;
-  const showClear = !!(clearable && !disabled);
+  const showClear = clearable !== undefined && !disabled;
+
+  // Default clear: empties the input through its own change pipeline (native
+  // setter + input event), so `onChange` receives a real ChangeEvent exactly
+  // as if the user had emptied the field.
+  const clearValue = () => {
+    if (typeof clearable === "object") {
+      clearable.onClear();
+      return;
+    }
+    const input = internalRef.current;
+    if (!input) {
+      return;
+    }
+    Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set?.call(input, "");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
   const hasIcons = !!loading || showClear;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
@@ -229,9 +245,7 @@ export const BaseInput = ({
     connectsRight,
     subtlePrefix,
     willClear:
-      showClear &&
-      clearable.clearable &&
-      (value === null || value === undefined),
+      showClear && !!clearable && (value === null || value === undefined),
   });
 
   if (readonly) {
@@ -335,12 +349,12 @@ export const BaseInput = ({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                clearable.onClear();
+                clearValue();
                 internalRef.current?.focus();
               }}
               className={cx(
                 classes.clear,
-                (!clearable.clearable || !value) && classes.hideClear,
+                (!clearable || !value) && classes.hideClear,
               )}
               aria-label="Clear input"
             >

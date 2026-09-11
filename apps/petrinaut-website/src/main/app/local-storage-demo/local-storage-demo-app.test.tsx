@@ -245,6 +245,7 @@ describe("local storage demo Brunch voice integration", () => {
       "readPetrinautDoc",
       "getLatestNetDefinition",
     ]);
+    expect(aiAssistant.executeMutation).toBeUndefined();
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
       aiAssistant.interactiveTools?.some(
@@ -606,6 +607,53 @@ describe("local storage demo prepared fixture", () => {
       screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
     );
     expect(selector()).toBeNull();
+  });
+
+  test("mounts the recorder only on the opt-in incarnation-scoped root-arc route and keeps it stable across renders", async () => {
+    seedStoredNet();
+    flueClientMock.current = {
+      history: async () => {
+        throw new Error("Test preparation unavailable");
+      },
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    const search = {
+      "brunch-fixture": crewReservationFixtureId,
+      brunchTracer: "root-arc" as const,
+    };
+    const view = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
+    );
+    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    expect(first.executeMutation).toBeTypeOf("function");
+    expect(first.conversationId).toMatch(/^prepared-root-arc:/u);
+    expect(first.conversationId).not.toBe(crewReservationConversationId);
+    await waitFor(() =>
+      expect(document.body.textContent).toContain(
+        "Test preparation unavailable",
+      ),
+    );
+    view.rerender(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
+    );
+    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    expect(next.executeMutation).toBe(first.executeMutation);
+    expect(next.conversationId).toBe(first.conversationId);
+    view.unmount();
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ "brunch-fixture": crewReservationFixtureId }}
+      />,
+    );
+    const legacy = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    expect(legacy.conversationId).toBe(crewReservationConversationId);
+    expect(legacy.executeMutation).toBeUndefined();
   });
 
   test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {

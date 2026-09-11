@@ -33,11 +33,8 @@ export type BannerRootProps = {
    * `outline` sits on an opaque surface.
    */
   variant?: BannerVariant;
-  /** When present and enabled, renders a trailing dismiss button. */
-  dismissible?: {
-    dismissible: boolean;
-    onDismiss: () => void;
-  };
+  /** Set to render a trailing dismiss button. `false` hides it. */
+  dismissible?: false | { onDismiss: () => void };
   /**
    * The ARIA role for the banner. Not set by default — pass e.g. `"status"`
    * (polite) or `"alert"` (assertive) to announce it to assistive technology.
@@ -152,7 +149,7 @@ export const BannerRoot = ({
   const isCustomIcon = typeof icon === "object" && "custom" in icon;
   const classes = styles({ tone, variant, customIcon: isCustomIcon });
   const iconNode = renderIcon(icon, tone, classes);
-  const showDismiss = !!dismissible?.dismissible;
+  const showDismiss = !!dismissible;
 
   const items = Children.toArray(children);
   const actions = items.filter(

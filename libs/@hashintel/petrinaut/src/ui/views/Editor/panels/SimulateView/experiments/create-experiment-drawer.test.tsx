@@ -149,7 +149,6 @@ const TestProviders = ({
     setShowMinimap: () => {},
     setSnapToGrid: () => {},
     setPartialSelection: () => {},
-    setUseEntitiesTreeView: () => {},
     setEnableNetComponents: () => {},
     setEnableNotebookView: () => {},
     setEnableAdHocScenarios: () => {},

@@ -7,7 +7,7 @@ Vocabulary for Brunch, an elicitation system in which a universal core and forma
 ### Package authority
 
 **Core**:
-The universal authority: context-, domain-, editor-, and formalism-independent elicitation semantics, the always-on prompt, the `elicitation` capability, and the evidence contracts. Owns nothing that names a formalism or a concrete situation.
+The universal authority: context-, domain-, editor-, and formalism-independent elicitation semantics, the always-on prompt, the `elicitation` capability, and the shared workpiece and evidence contracts. Owns nothing that names a formalism or a concrete situation.
 _Avoid_: harness, kernel
 
 **Plugin**:
@@ -50,7 +50,7 @@ _Avoid_: runbook, loader, workflow
 A skill whose method is meaningful independently of any job, such as `elicitation`. Core's contributions are capability skills.
 
 **Job skill**:
-A skill that accomplishes one recognizable user outcome, such as `sdcpn-modelling`, owning its workpiece, target review and revision, construction, checks, and tool orchestration, and activating capability skills when it needs them. A plugin contributes the smallest set of job skills its real jobs earn.
+A skill that accomplishes one recognizable user outcome, such as `sdcpn-modelling`, owning its domain-specific workpiece shape, target review and revision, construction, checks, and target-tool orchestration, and activating capability skills when it needs them. A plugin contributes the smallest set of job skills its real jobs earn.
 _Avoid_: task skill, lifecycle skill, one-skill-per-plugin
 
 **Resource**:
@@ -67,7 +67,7 @@ How far a contribution has reached the model: always present, catalogued, activa
 ### Elicitation
 
 **Elicitation**:
-Acquiring and improving an epistemically responsible account from a person through adaptive conversation: recognizing cues, choosing the next probe, handling correction and contextual variation, preserving authorship and uncertainty, and judging when evidence suffices. Excludes target review, target mutation, construction, and tool execution.
+Acquiring and improving an epistemically responsible source-side account through adaptive conversation and consulted material, including authorship, uncertainty, correction, and core-owned workpiece settlement, readback and locator use. Source-side consultation belongs here; target review, target mutation, construction and target-tool orchestration belong to the job skill.
 _Avoid_: interviewing (as the whole), intake, questionnaire
 
 **Domain typology**:
@@ -86,7 +86,7 @@ _Avoid_: domain typology, use case
 One of five semantic addresses classifying what elicitation guidance does: Directives, Recognition, Operations, Coverage, Verification. Registers are not phases, question order, skills, schemas, or file topology.
 
 **Workpiece**:
-The recoverable, domain-primary, cold-readable account the agent maintains during elicitation and revision and consumes during construction. Each operational claim has one authoritative home, with its evidence and epistemic treatment beside it.
+The recoverable, domain-primary, cold-readable account the agent maintains during elicitation and revision and consumes during construction. Each claim has one authoritative home, with its evidence and epistemic treatment beside it.
 _Avoid_: runbook IR, IR, intermediate representation, target-document, spec, requirements graph
 
 **Epistemic annotation**:
@@ -113,11 +113,15 @@ The runtime branch in which the workpiece is the complete input and no interview
 **Evidence level**:
 One of three non-collapsible claims about a constructed artifact: tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis. Report every level reached; none implies the next.
 
-### Evidence and capture
+### Evidence
 
 **Session**:
-One substrate conversation: the full log of user, agent, tool, and injected entries. Sessions go quiet rather than close.
+One substrate conversation: the full log of user, agent, tool, and injected entries. Sessions go quiet rather than close. Flue history is the canonical conversation log.
 _Avoid_: sitting, conversation (as a distinct concept)
+
+### Historical — rejected capture path (2026-09-04)
+
+These terms describe Mission 2's mechanical sweep and store. They were rejected as product provenance on 2026-09-04: Flue history already carries message ids and exact text, and the store duplicated them under a second identity scheme. Surviving homes are the workpiece revision protocol and, if compaction loses folded records, the existing session-log archive lane. Do not treat the still-exported capture-store code as the durable truth of a document.
 
 **Capture**:
 Mechanically extracted source evidence from a settled range of session entries: an immutable, quote-anchored, domain-opaque envelope. Produced only by a sweep and never written during conversation.

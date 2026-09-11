@@ -164,7 +164,7 @@ A parser-accepted or tool-schema-accepted definition is not behavioral success. 
 
 Select one candidate through every applicable comparison stage before running the Mission 4 campaign. Stage 3 is needed only when paper evidence leaves a discriminating behavioral question; this comparison selected Candidate A at Stage 2 and skipped Stage 3. Do not pay to campaign every lightly reasoned variant.
 
-Create a new versioned protocol/output location based on `evaluations/protocols/prospective-runbook-v1/`. Preserve its case wall, grader separation, immutable manifests, artifact retention, and three-invocation campaign shape unless a separately accepted protocol decision changes one. Never write into `docs/evidence/evaluations/vestera-prospective-baseline-v1/`.
+Create a new versioned protocol if that comparison is ever rerun. Write local output under `apps/brunch-agent/.data-wipe-me/evaluations/`. Never overwrite the retained prospective-baseline adjudication.
 
 For each valid selected-candidate run:
 

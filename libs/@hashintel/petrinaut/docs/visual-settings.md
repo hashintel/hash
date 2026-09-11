@@ -40,10 +40,6 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
 
-### Entities tree view (experimental)
-
-Replaces the tabbed left sidebar with a unified **tree view** showing all entities (nodes, types, equations, parameters) in a single hierarchy.
-
 ### Ad-hoc scenarios (experimental)
 
 Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment and optimization drawers, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.

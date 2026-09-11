@@ -11,10 +11,7 @@ import {
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
-import {
-  LEFT_SIDEBAR_SUBVIEWS,
-  LEFT_SIDEBAR_TREE_SUBVIEWS,
-} from "../../../../constants/ui-subviews";
+import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { searchSubView } from "./subviews/search-panel";
 
@@ -108,29 +105,16 @@ export const LeftSideBar: React.FC = () => {
   } = use(EditorContext);
   const { extensions } = use(SDCPNContext);
 
-  const { keepPanelsMounted, useEntitiesTreeView, enableNetComponents } =
-    use(UserSettingsContext);
+  const { keepPanelsMounted, enableNetComponents } = use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  const sidebarSubViews = (
-    useEntitiesTreeView ? LEFT_SIDEBAR_TREE_SUBVIEWS : LEFT_SIDEBAR_SUBVIEWS
-  ).filter((subView) => {
-    if (subView.id === "token-types-list") {
-      return extensions.colors;
-    }
-    if (subView.id === "differential-equations-list") {
-      return extensions.colors && extensions.dynamics;
-    }
-    if (subView.id === "parameters-list") {
-      return extensions.parameters;
-    }
-    if (subView.id === "nets-list") {
-      return extensions.subnets && enableNetComponents;
-    }
-    return true;
-  });
+  const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) =>
+    subView.id === "nets-list"
+      ? extensions.subnets && enableNetComponents
+      : true,
+  );
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 

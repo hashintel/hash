@@ -39,24 +39,27 @@ Preserve known precision whenever it changes builder behavior, scope, proof, ris
 
 Every final proof leaf in a live mission or side quest must name a credible oracle: an exact test or command, fixture, artifact inspection, human witness, or adjudication that can distinguish the claimed result from mere presence. A provisional mission draft may instead mark `ORACLE GAP` and state what must resolve it, but that gap must close before the draft is cut with that leaf as a claim.
 
-### Throughline proof, readiness gate, and stratum closure
+### Mission, current throughline, and delegated work
 
-- **Throughline proof** is the smallest deployed end-to-end path showing that a capability crosses the real product boundary.
-- **Readiness gate** is the decision after that path works: enumerate the lateral obligations now exposed, decide which are required to trust the current visible capability, and identify which first become load-bearing for the next visible product advance.
-- **Stratum closure** completes breadth, fidelity, invalid-state, durability, identity, failure, and oracle obligations across one named contract layer and accepted scenario or peer set.
+**Decompose the territory broadly; authorize execution narrowly. A responsibility map is not a completion schedule.**
 
-A vertical tracer does not automatically require horizontal completion. Close an obligation now when the current visible claim would otherwise be false or unsafe. Carry it only when the next visible product mission is its first real consumer, and name that owner, re-entry gate, and oracle; “later” is not a disposition.
+- **Mission** holds the imperative, accepted meaning and final acceptance bar across many tasks. Acceptance obligations remain visible; they are not automatically prerequisites to the first informative use.
+- **Current throughline** names the next real product observation that can change a consequential decision. Use the existing system to obtain it before building more capability.
+- **Delegated work** discharges concrete dependencies of that observation. Each task names its consumer or observed failure, bounded change/probe, discriminator and return condition—not independent subsystem completion. Parallelize independent dependencies of that same observation, not empty cells in a responsibility matrix.
 
-Use the recursive operating model:
+Before dispatch, answer: **What next observation becomes possible through this task, and why can't the current system produce it?** Integration returns to that question; it is a decision point, not a successor-task launch trigger.
 
 ```text
 survey the real territory, not only its maps
-→ establish a working line of communication, transport, and evidence
-→ stage a dependable camp/base by closing the contract stratum the line has made load-bearing
-→ launch the next survey and throughline from that stronger departure point
+→ attempt the next informative use through the actual product
+→ inspect what worked, failed or remained unknown
+→ repair a blocking or false/unsafe boundary, or advance with explicit limits
+→ re-decide the route from that evidence
 ```
 
-Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence, and failure. A dependable base closes only the earned coverage, identity, durability, recovery, observability, and oracle obligations required by accepted consumers. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
+Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence and failure. Close an obligation now when it blocks the next observation or makes the current visible claim false or unsafe. Otherwise carry its limitation, named consumer, re-entry trigger and discriminator. That consumer may be later in the same mission; it need not become another mission.
+
+Stratum closure is a deliberate breadth decision for an identified current consumer, not an obligatory stage after every tracer. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
 
 This is an expeditionary posture, not a defensive one. Survey only until the next consequential and reversible move is warranted. Once downside is bounded or explicitly accepted, advance; uncertainty is terrain to reduce through action, not a reason to hold position. Stage only the base the next operation needs, not the safest or most complete base imaginable.
 
@@ -72,7 +75,7 @@ Only three additional planning or control surfaces are permitted:
 
 `MISSION.next.md` and its linked provisional drafts form the combined future planning record. They are not execution authority, do not create concurrent missions, and must not be implemented before conversion into `MISSION.md`. Give every planning item one authoritative planning home; the compact spine may carry a concise summary and link, but must not duplicate the detailed contract. Keep each hypothesis, observation, accepted decision, rejected alternative and reason, re-entry condition, question, named mechanism, constraint, fog item, stop condition, scenario class, and evidence source at the fidelity needed for a cold-start builder. Do not rely on a transcript as the surviving record.
 
-A side quest is legitimate only when live-mission evidence exposes a bounded set of concrete residual failures whose investigation helps close that mission or informs named future clusters. It must state its relationship to the live mission, imperative, throughlines, oracle-bound proof, constraints, stop conditions, and budget for each paid activity. It must not supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live mission, or coexist with another active side quest. Record its outcome in affected future-planning homes and in any mission evidence it produced, then remove the active file before archiving the mission. A documentation-only remediation that produces no separate implementation or evaluation evidence records its oracle-bound close audit in the canonical future-planning record rather than inventing another evidence document.
+A side quest is legitimate only when live-mission evidence exposes a bounded set of concrete residual failures whose investigation helps close that mission or informs named future clusters. It must state its relationship to the live mission, imperative, throughlines, oracle-bound proof, constraints, stop conditions, and budget for each paid activity. It must not supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live mission, or coexist with another active side quest. Record its outcome in affected future-planning homes, then remove the active file before archiving the mission. A documentation-only remediation records its oracle-bound close audit in the canonical future-planning record rather than inventing an evidence document.
 
 ### Conversion and lifecycle
 
@@ -89,13 +92,16 @@ These rules exist because Mission 4 lost its design between the owner conversati
 3. **Authority-preserving handoff.** A handoff that translates accepted semantic content, architecture, interaction policy, proof interpretation, or a frozen instrument names the protected source, each production destination, the permitted semantic deltas, and the unresolved choices. An unlisted semantic delta is a stop condition, not a judgment call. Mechanical corrections inside an owner-approved envelope with stated bounds and stop conditions may be batched without a per-change gate.
 4. **Oracle non-authority.** An oracle may falsify an implementation or a claim; it may not redefine policy, architecture, or interaction semantics. An operationalization stricter than the accepted wording is an owner decision, and prompts are never rewritten to mirror a checker.
 5. **Scoped experimental verdicts.** Every experiment adjudication states which decisions its evidence may update and which remain owner-held. Failure of one implementation mechanism does not select another architecture.
-6. **Rationale before disposal.** Before a workbench or draft holding the only explanation of a surviving decision is deleted, the surviving rationale is preserved under `docs/evidence/` with adopted and superseded portions marked, and the complete artifact is pinned by commit. Do not copy whole stale workbenches forward.
-7. **Status is present tense.** `MISSION.md` Status carries only the current state and pointers; campaign chronology lives in evidence.
+6. **Rationale before disposal.** Before a workbench or draft holding the only explanation of a surviving decision is deleted, move that still-binding reason into `MISSION.md` or an ADR. Otherwise intentionally discard the workbench. Do not copy stale workbenches forward or pin complete run directories in the repository.
+7. **`MISSION.md` is present tense throughout.** Status carries only the current state and pointers; the six sections carry the resulting contract. A dated "reached X boundary" or run-narrative block is chronology: record what is now admitted or true in the relevant section, name the commit, and delete the narrative. Still-binding owner decisions live in one dated **Owner decisions** list; a consumed one-shot authorization collapses to one line naming the consuming commit and any continuing restriction. An observation whose only record is a local, ignored store is labelled **local-only / not portable** with the native record named as its oracle — it is verified, not an `ORACLE GAP`, and export is not a precondition for believing it. Commits, tests, native run records and the PR close report are the implementation record; campaign chronology lives in none of the repository's documents.
 8. **Close by external acceptance.** Where closure, witness acceptance, handoff selection, or a paid ceiling is owner-reserved, an agent prepares the packet and stops. It records acceptance only after the owner has performed that gate.
+
+A delegated task returns its result in the PR or chat. It does not create a file under `docs/`, and it does not add a review or handoff generation to a run directory beyond the [one current handoff](#run-directories). Do not add packets under `docs/evidence/implementations/`. Per-implementation proof is the code, test, commit, and PR.
 
 ## Correctives
 
 - Before adding structure, name the production pressure that requires it.
+- **Safeguards must earn their friction.** Before adding or defending a limit, gate or refusal, identify the observed failure, concrete external constraint or explicit owner requirement it protects. Inherited code, a safety label and passing enforcement tests do not establish necessity. When a safeguard blocks real use, question its justification before tuning or instrumenting it; preserve the actual data/security contract with the least mechanism.
 - Work the first unproven boundary; do not build toward the imagined end.
 - Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
 - A ticket is a projection; the mission is the authority. If the ticket stops serving the
@@ -104,14 +110,27 @@ These rules exist because Mission 4 lost its design between the owner conversati
 - When things accumulate, subtract before you extend.
 - No imperative and proof means it is not a mission yet — do not start it.
 - Censor noise; keep consequential doubt visible.
-- Checking is proportional to consequence and reversibility. Within that budget, a commitment is
-  warranted when the premises it depends on are either observed at the real boundary or
-  explicitly accepted as risk.
+- Checking is proportional to consequence and reversibility: use the narrowest falsifying check, the actual product boundary for an integration claim, and the affected package checks before integrating code. Reuse earned regression tests; a documentation or lane handoff does not itself require another full browser/crash campaign. Within that budget, a commitment is warranted when its premises are observed or explicitly accepted as risk. Evidence retention follows the [retention contract](docs/evidence/README.md).
 - Low confidence must change the next move — build the smallest real path that reveals more,
   inspect, choose the reversible option, or flag it — or go unsaid.
 - At close, update the PR description: what each proof item established, the observed answer to
   each fog-line question, and the flags that carry into the next mission. Archive the closed
   `MISSION.md` as above; the PR description remains the GitHub-facing close report.
+
+## Development and evaluation execution
+
+Ordinary dependency installation, builds and documentation research may use the network with repository tooling and pinned dependencies; a missing cache is not by itself an AFK blocker. This permits neither unrelated upgrades nor sending private material to external services. Synthetic tests must remain synthetic and must not fall through to live providers.
+
+Before hermetic proofs, provider authentication checks or paid evaluations, read [evaluation execution safety](evaluations/README.md#execution-safety). Isolation follows the proof claim, not all development. Missions specify exceptions and concrete run limits; they need not reauthorize this default, and these standing rules grant no paid allocation or waiver of an existing stop.
+
+### Run directories
+
+Ignored run output (for example `apps/brunch-agent/.data-wipe-me/persona-runs/<run>/`) follows the same anti-accretion rule as tracked documentation; moving the packet habit off Git does not retire it.
+
+- A run directory retains **native records**: canonical history, workpiece records, snapshots, stop state, observations the product or launcher wrote, and logs. These are the oracle for what the run did.
+- It holds **one current handoff** (`handoff.md`, or the run's `gate-packet.md`), overwritten in place. No `review-*`, `final`, `wrap` or `linked` generations, and no second copy of a handoff.
+- Write an **observation summary** only when a concrete decision depends on it; that decision then goes to the `MISSION.md` Owner decisions list, and the summary is not kept as a sibling packet. A subagent otherwise returns its result in chat or the PR.
+- Superseded generations are deleted by the operator when the run is wrapped; they are not archived beside the retained records.
 
 ## Retained facts
 
@@ -122,6 +141,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
   branch mission remains the execution authority. Follow
   [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, rebasing, or
   submitting a branch or connecting it to an issue or PR.
+- **Interactive delegation:** before preparing, placing, reusing or closing Herdr-hosted subagents, read [`docs/agents/interactive-work.md`](docs/agents/interactive-work.md) for checkout/configuration readiness, readable layout, lifecycle and cleanup. `MISSION.md` supplies task scope and concrete execution exceptions/allocations.
 - **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
   inherited issue history is evidence and inbox rather than an authoritative plan. Follow
   [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) before creating, reusing, relating,
@@ -130,6 +150,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
   [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
   issue, pull request, or comment.
 - **Plugin scope:** each plugin pairs one reusable domain typology with one target formalism; it may name concepts from that typology but never facts or nouns from a concrete domain, organization, situation, or scenario.
+- **Plugin freshness:** after core guidance changes, re-read roughed-in plugins before treating them as seam evidence. Classify each divergence as lag (realign) or intent (record why), then update the plugin's single `Aligned to core as of <commit>` marker to the reviewed core revision. Coordinate in-progress packages with their assigned owner rather than editing across ownership.
 - **Topology gates** (enforced by tests): core and plugins expose Flue-native production resources through dedicated `./flue` subpaths; plugins depend inward on core and never on bindings; transport packages never depend on a binding; suspended code lives under a package's `src/_suspended/` and is never mounted; bindings translate generalized capture machinery into the selected substrate. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
 - **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.
@@ -139,9 +160,9 @@ These rules exist because Mission 4 lost its design between the owner conversati
 
 ## Authorities vs obligations
 
-[`docs/specs/`](docs/specs), [`docs/adr/`](docs/adr) (see its [README](docs/adr/README.md)), and
-[`docs/evidence/`](docs/evidence) are history and reference: prior design hypotheses and observed
-results. They are not marching orders. Re-earn any design you build to; an implemented decision is
+[`docs/specs/`](docs/specs) (see its [README](docs/specs/README.md)), [`docs/adr/`](docs/adr)
+(see its [README](docs/adr/README.md)), and [`docs/evidence/`](docs/evidence) are history and
+reference: prior design hypotheses and observed results. They are not marching orders. Re-earn any design you build to; an implemented decision is
 evidence, unimplemented design is a hypothesis. A branch may depart from a recorded decision by
 noting the divergence in its commit. Provenance is not warrant: a statement is evidence of what
 was said, not automatically of the terrain. This holds equally for specs, ADRs, the user's

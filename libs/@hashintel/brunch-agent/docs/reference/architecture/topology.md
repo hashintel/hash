@@ -1,16 +1,20 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 and conversation transport updated by FE-1574 / Mission 5 on 2026-09-03 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
+**Status: living package-tree map.** Original ratification 2026-08-17 (ADR-0002); transport
+updated by Mission 5. This file records where code lives now. It is not a placement roadmap
+and not a capture-store or YAML-plugin plan. `✓` complies today; `○` exists but is unmounted
+or rejected as product provenance.
 
 ## Verification — the tree as it stands
 
 ```text
-packages/core                      CORE HARNESS + Flue-native agent contribution
+packages/core                      CORE + Flue-native agent contribution
 ├─ prompts/SYSTEM.md  ✓ authoritative context- and formalism-independent always-on prompt
 ├─ skills/elicitation/ ✓ core's one capability skill: `SKILL.md` + `references/universal-elicitation.md`,
 │                        packaged through `skills/skill-markdown.ts` and mounted by `flue.ts`
 ├─ flue.ts            ✓ `useBrunchAgent()`: model, elicitation skill, returned core prompt (`./flue`)
-├─ evidence/          ✓ active capture-store and archived-session evidence authority
+├─ evidence/          ○ capture-store code still exported; rejected as product provenance on
+│                        2026-09-04. Archived-session evidence remains the binding-owned archive lane.
 ├─ conversation/      ✓ tool naming and the harness reply-event contract
 ├─ _suspended/conversation/ ○ compiled ask/affordance and settlement protocols; not mounted;
 │                        re-exported only for contracts other packages still type against
@@ -53,6 +57,10 @@ packages/plugin-gherkin            TARGET POLICY + Flue-native contribution bund
 packages/plugin-dafny              STUB contribution bundle (topology pressure test; not composed)
 ├─ prompts/APPEND_SYSTEM.md, skills/dafny-verification/SKILL.md, flue.ts — placeholder homes only
 
+packages/plugin-claims             STUB contribution bundle (normative-source interference probe; not composed)
+├─ index.ts, flue.ts, skills/claims-formalization/ — pairing identity, append, and job skill;
+│                        no ledger API or application mount
+
 packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
 ├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
 ├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append
@@ -80,35 +88,27 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
 │                        not product runtime authority
 ├─ src/diagnostics/   ✓  operator-facing transcript CLI
-├─ src/ui/            ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
-│                        (divergence risk 1). Never: growing new part-rendering features here.
+├─ src/ui/            ✓  local diagnostics client only; do not grow part-rendering here.
+│                        `@flue/react` remains appropriate for this debug UI (spine later concerns).
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
 ```
 
-## Specification — where what's next lands
+## Current placement locks
 
-- **N1 (the structural repair, discharged by FE-1422 + FE-1392).**
-  `packages/core/src/conversation/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
-  reply-binding signal payload, and instruction fragments. `packages/core/src/conversation/sweep-protocol.ts`
-  owns range selection, trigger/repair decisions (including reopening the loop guard after a
-  refusal), prompt content, and advisory semantics;
-  `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
-  refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563; retired 2026-09-02).** The YAML cell/repertoire machinery described here was removed on 2026-09-02 once plugins became Flue-native contribution bundles; this paragraph is history. Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities.
-- **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
-  shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
-  Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing
-  integration.
-  Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
-  about one another.
-- **N4 (experiments).** Experiment runners live under the consuming app's `src/evaluations/`, use the JS-API pattern with `observe()` accounting, and never enter `packages/` or become bespoke daemons. Reusable cases, oracles, and protocols remain under the context-root `evaluations/`; observed output remains under `docs/evidence/evaluations/`.
-- **N5 (storage-port implementations; local target discharged by FE-1391).** One per (binding ×
-  deploy target), always in the binding package, always implementing core's `CaptureStore` +
-  parse-on-read. The local implementation provisions a versioned target-document record around
-  both capture and archive state. The Cloudflare case (per-object SQLite) is a new implementation
-  behind the same port — the file-path assumption never leaks above the binding.
-- **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
-  gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
+These replace the old N1–N6 "where next work lands" list. Retired N items (ask/sweep remount,
+YAML repertoire, plugin-assurance-for-symmetry) are history in [ADR-0002](../../adr/0002-topology-and-placement-rules.md).
 
-Ratification note: N1 was the only item that changed existing code in the original 2026-08-17 ratification; FE-1422 extracted the ask protocol and FE-1392 continued the same repair for sweep mechanism. Mission 3 later narrowed N2's blanket app-skill prohibition for one directly authored proving instrument without reactivating plugin composition. N2–N6 otherwise constrain future placement. ADR-0002 records the original ratification. The boundary gates in `test/boundaries.test.ts` should learn enforceable package rules as their packages arrive; N5's "port implementations only in bindings" remains mechanically checkable.
+- **App vs libraries.** `apps/brunch-agent` is the registration and host-composition shell.
+  `apps/petrinaut-website` owns the user-facing integration. Applications may compose public
+  surfaces; reusable libraries may not know about one another.
+- **Flue-native contributions.** Core and plugins expose production resources through `./flue`
+  subpaths. Plugins depend inward on core, never on bindings. Transport never depends on a
+  binding. Suspended code stays under `src/_suspended/` and is never mounted.
+- **Experiments.** Runners live under the consuming app, use the JS-API `observe()` pattern, and
+  never enter `packages/`. Cases, oracles, and protocols stay in context-root `evaluations/`;
+  observed output stays under `apps/brunch-agent/.data-wipe-me/evaluations/`.
+- **Durable state.** Workpiece revisions settle in per-conversation state; Flue `history()` is
+  the conversation log. Binding-owned storage ports may implement the session-log archive lane
+  per deploy target; they must not revive capture envelopes as the document of record. File-path
+  assumptions never leak above the binding.

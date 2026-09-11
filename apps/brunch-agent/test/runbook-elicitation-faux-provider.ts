@@ -5,6 +5,8 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
+import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
+
 const modelId = process.env["BRUNCH_CHAT_MODEL"] ?? "claude-haiku-4-5";
 const skillName = "sdcpn-modelling";
 const elicitationSkillName = "elicitation";
@@ -149,4 +151,5 @@ faux.setResponses([
   ]),
 ]);
 
+installFauxProvider(faux.provider);
 export default faux.provider;

@@ -4,6 +4,7 @@ import {
   type RefObject,
   use,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -23,6 +24,7 @@ import {
   useVoiceSessionPhase,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { voiceSetupLabels } from "../../components/voice-session-labels";
@@ -41,6 +43,7 @@ import {
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
+import type { PetrinautAiAssistant } from "../../../../petrinaut";
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
@@ -56,6 +59,7 @@ const errorNotification = (
 ): AddNotificationInput => ({ detail, message, tone: "error" });
 
 export type AiAssistantContentsProps = {
+  additionalTab?: PetrinautAiAssistant["additionalTab"];
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
   composerFocusRequest?: number;
@@ -502,6 +506,7 @@ const AiAssistantMessage = memo(
 AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
+  additionalTab,
   clearMessagesDisabled = false,
   composerControl,
   composerFocusRequest = 0,
@@ -531,6 +536,11 @@ export const AiAssistantContents = ({
   voiceMode,
   voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
+  const panelId = useId();
+  const aiTabId = `${panelId}-ai`;
+  const hostTabId = `${panelId}-host`;
+  const [hostTabSelected, setHostTabSelected] = useState(false);
+  const showingHostTab = additionalTab !== undefined && hostTabSelected;
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
@@ -763,7 +773,18 @@ export const AiAssistantContents = ({
             visible: isOpen && !isVoiceDockCollapsed,
           })}`}
         >
-          <div className={headerLabelStyle}>AI</div>
+          {additionalTab ? (
+            <HorizontalTabsHeader
+              subViews={[
+                { id: aiTabId, title: "AI" },
+                { id: hostTabId, title: additionalTab.label },
+              ]}
+              activeTabId={showingHostTab ? hostTabId : aiTabId}
+              onTabChange={(tabId) => setHostTabSelected(tabId === hostTabId)}
+            />
+          ) : (
+            <div className={headerLabelStyle}>AI</div>
+          )}
           <div style={{ flex: 1 }} />
           <Button
             size="xs"
@@ -788,8 +809,12 @@ export const AiAssistantContents = ({
         </div>
 
         <div
+          id={additionalTab ? `tabpanel-${aiTabId}` : undefined}
+          role={additionalTab ? "tabpanel" : undefined}
+          aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
+          hidden={showingHostTab}
           className={`${messagesStyle} ${panelContentStyle({
-            visible: isOpen && !isVoiceDockCollapsed,
+            visible: isOpen && !isVoiceDockCollapsed && !showingHostTab,
           })}`}
           data-testid="ai-transcript"
           onScroll={recordDistanceFromEnd}
@@ -817,6 +842,18 @@ export const AiAssistantContents = ({
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {additionalTab && (
+          <div
+            id={`tabpanel-${hostTabId}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${hostTabId}`}
+            hidden={!showingHostTab}
+            className={`${messagesStyle} ${panelContentStyle({ visible: isOpen && !isVoiceDockCollapsed && showingHostTab })}`}
+          >
+            {additionalTab.content}
+          </div>
+        )}
 
         {voiceMode && (
           <div

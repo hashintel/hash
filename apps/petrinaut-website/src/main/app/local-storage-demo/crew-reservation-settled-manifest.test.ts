@@ -4,7 +4,6 @@ import {
   preparedWorkpieceAuthorship,
   preparedWorkpieceClaimBoundary,
   preparedWorkpieceSignalTag,
-  type WorkpieceHistoryMessage,
 } from "@hashintel/brunch-agent/workpiece";
 
 import {
@@ -19,10 +18,14 @@ import {
   startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
 
-const preparedMessage: WorkpieceHistoryMessage = {
+import type { CrewReservationHistory } from "./crew-reservation-history";
+import type { FlueConversationMessage } from "@flue/sdk";
+
+const preparedMessage: FlueConversationMessage = {
   id: "prepared-message",
   role: "system",
   purpose: "dispatch",
+  display: "hidden",
   submissionId: "prepare-submission",
   signal: {
     tagName: preparedWorkpieceSignalTag,
@@ -35,14 +38,15 @@ const preparedMessage: WorkpieceHistoryMessage = {
   parts: [
     {
       type: "text",
+      state: "done",
       text: preparedCrewReservationWorkpiece,
     },
   ],
 };
 
 const settledHistory = (
-  messages: readonly WorkpieceHistoryMessage[] = [preparedMessage],
-) => ({
+  messages: readonly FlueConversationMessage[] = [preparedMessage],
+): CrewReservationHistory => ({
   conversationId: "canonical-flue-conversation",
   offset: "10",
   messages,
@@ -51,17 +55,19 @@ const settledHistory = (
 
 const targetMutationMessages = (
   toolCallId = "target-arc-call",
-): readonly [WorkpieceHistoryMessage, WorkpieceHistoryMessage] => [
+): readonly [FlueConversationMessage, FlueConversationMessage] => [
   {
     id: "target-mutation-request",
     role: "assistant",
     purpose: "assistant",
+    display: "visible",
     submissionId: "confirmation-turn",
     parts: [
       {
         type: "dynamic-tool",
         toolCallId,
         toolName: "addArc",
+        state: "input-available",
         input: {
           transitionId: startFinalInspectionTransitionId,
           arcDirection: "input",
@@ -75,6 +81,7 @@ const targetMutationMessages = (
     id: "target-mutation-result",
     role: "system",
     purpose: "dispatch",
+    display: "hidden",
     submissionId: "mutation-continuation",
     signal: {
       tagName: "client-tool-result",
@@ -82,6 +89,7 @@ const targetMutationMessages = (
     parts: [
       {
         type: "text",
+        state: "done",
         text: JSON.stringify([
           {
             toolCallId,
@@ -131,14 +139,16 @@ describe("crew-reservation settled manifest", () => {
       throw new Error("Expected the prepared fixture to settle");
     }
 
-    const revisedMessage: WorkpieceHistoryMessage = {
+    const revisedMessage: FlueConversationMessage = {
       id: "revised-workpiece",
       role: "assistant",
       purpose: "assistant",
+      display: "visible",
       submissionId: "confirmation-turn",
       parts: [
         {
           type: "text",
+          state: "done",
           text: preparedCrewReservationWorkpiece.replace(
             "It deliberately lacks",
             "The confirmation resolves",
@@ -192,14 +202,16 @@ describe("crew-reservation settled manifest", () => {
     // The transport waits for preparation, not for the revision-zero manifest,
     // so a user who submits immediately can produce the model revision before
     // any manifest exists. Its manifest must still say revision one.
-    const revisedMessage: WorkpieceHistoryMessage = {
+    const revisedMessage: FlueConversationMessage = {
       id: "revised-workpiece",
       role: "assistant",
       purpose: "assistant",
+      display: "visible",
       submissionId: "confirmation-turn",
       parts: [
         {
           type: "text",
+          state: "done",
           text: preparedCrewReservationWorkpiece.replace(
             "It deliberately lacks",
             "The confirmation resolves",
@@ -246,12 +258,15 @@ describe("crew-reservation settled manifest", () => {
   });
 
   test("refuses a model revision without one successful correlated target mutation", async () => {
-    const revisedMessage: WorkpieceHistoryMessage = {
+    const revisedMessage: FlueConversationMessage = {
       id: "revised-workpiece",
       role: "assistant",
       purpose: "assistant",
+      display: "visible",
       submissionId: "confirmation-turn",
-      parts: [{ type: "text", text: preparedCrewReservationWorkpiece }],
+      parts: [
+        { type: "text", state: "done", text: preparedCrewReservationWorkpiece },
+      ],
     };
     const revisedDefinition = structuredClone(preparedCrewReservationNet);
     const startInspection = revisedDefinition.transitions.find(
@@ -265,7 +280,7 @@ describe("crew-reservation settled manifest", () => {
       type: "standard",
       weight: 1,
     });
-    const history = {
+    const history: CrewReservationHistory = {
       ...settledHistory([preparedMessage, revisedMessage]),
       settlements: [
         { submissionId: "prepare-submission", outcome: "completed" },
@@ -298,6 +313,7 @@ describe("crew-reservation settled manifest", () => {
               parts: [
                 {
                   type: "text",
+                  state: "done",
                   text: JSON.stringify([
                     {
                       toolCallId: "target-arc-call",

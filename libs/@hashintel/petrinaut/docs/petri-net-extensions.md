@@ -22,7 +22,7 @@ Integer, Boolean, UUID, and String dimensions are **discrete**: their values onl
 
 **To create a type:**
 
-1. Open the **Token Types** tab in the left sidebar.
+1. Open the **Token Types** group in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
 4. Add dimensions, giving each a name and a value type.
@@ -39,7 +39,7 @@ Parameters are named values available in all user-authored code: dynamics, firin
 
 **To create a parameter:**
 
-1. Open the **Parameters** tab in the left sidebar.
+1. Open the **Parameters** group in the left sidebar.
 2. Click **+** to add a new parameter.
 3. Set a **name** (display label), **variable name** (used in code), and **default value** (can be overridden in the simulation settings). Variable names must be lower_snake_case (e.g. `infection_rate`) and must not be a reserved JavaScript property name such as `constructor`.
 
@@ -71,7 +71,7 @@ Differential equations define how token data evolves continuously over time. The
 
 **Setup:**
 
-1. Create a differential equation in the **Differential Equations** tab (left sidebar).
+1. Create a differential equation in the **Differential Equations** group (left sidebar).
 2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
 3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place.
 

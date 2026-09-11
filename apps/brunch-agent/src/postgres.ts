@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { Signer } from "@aws-sdk/rds-signer";
+import { Signer, type SignerConfig } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
 
 import {
@@ -32,12 +32,11 @@ interface ConnectionOptions {
   readonly onIamToken?: () => void;
   readonly onPoolError?: (error: Error) => void;
   readonly readTlsCa?: (path: string) => string;
-  readonly signerFactory?: (config: {
-    hostname: string;
-    port: number;
-    region: string;
-    username: string;
-  }) => Pick<Signer, "getAuthToken">;
+  readonly signerFactory?: (
+    config: Required<
+      Pick<SignerConfig, "hostname" | "port" | "region" | "username">
+    >,
+  ) => Pick<Signer, "getAuthToken">;
 }
 
 export const POSTGRES_CONNECTION_TIMEOUT_MS = 10_000;

@@ -90,16 +90,17 @@ A transition blocked only because its output place is at [capacity](drawing-a-ne
 
 The bottom toolbar provides playback controls:
 
-| Control          | Description                         |
-| ---------------- | ----------------------------------- |
-| **Play**         | Start or resume playback.           |
-| **Pause**        | Pause at the current frame.         |
-| **Stop / Reset** | Stop playback and reset to frame 0. |
+| Control          | Description                               |
+| ---------------- | ----------------------------------------- |
+| **Play**         | Start or resume playback.                 |
+| **Pause**        | Pause at the current point in the run.    |
+| **Stop / Reset** | Stop playback and reset to the run start. |
 
-The frame counter shows the current frame number, total frames, and elapsed simulation time.
+The time readout shows the elapsed simulation time and the run's total
+simulated time, at the precision the run's time step carries.
 
 Playback widens the toolbar, so in a narrow window it keeps Play and folds the
-scrubber, the frame counter and the playback settings away until you point at
+scrubber, the time readout and the playback settings away until you point at
 it.
 
 <img width="717" height="62" alt="simulation-toolbar" src="https://github.com/user-attachments/assets/fc39afbe-8603-4be5-88b1-83d5b09d5367" />

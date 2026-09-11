@@ -9,6 +9,25 @@ import {
 import { crewReservationFixtureId } from "./prepared-crew-reservation-fixture";
 
 describe("local storage demo search", () => {
+  test("keeps conversation construction distinct from retained prepared and ordinary modes", () => {
+    const search = validateLocalStorageDemoSearch({
+      brunchTracer: "construction",
+    });
+    expect(localStorageDemoRouteIdentity(search)).toBe(
+      "construction-candidate",
+    );
+    expect(
+      localStorageDemoRouteIdentity({
+        "brunch-fixture": crewReservationFixtureId,
+        brunchTracer: "root-arc",
+      }),
+    ).toBe("root-arc-tracer");
+    expect(
+      withBrunchFixtureKey(search, { itemType: "arc", itemId: "arc" })
+        .brunchTracer,
+    ).toBe("construction");
+    expect(isCrewReservationFixtureSelected(search)).toBe(false);
+  });
   test("owns the fixture key beside the shared contract", () => {
     expect(
       validateLocalStorageDemoSearch({
