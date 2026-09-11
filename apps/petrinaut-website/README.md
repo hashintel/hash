@@ -37,6 +37,25 @@ editable copy with its own UUID and opens its local URL. Local URLs work in the
 browser and origin that hold the document; a missing document shows a recovery
 page with a link back to Petrinaut.
 
+## Snapshot links
+
+**Share** in the top bar captures a document for a self-contained `/share#v1.br.<payload>`
+link. The optional current view uses the same validated query parameters as example
+and local-document routes. View navigation preserves the fragment, and browser
+history can move between snapshots.
+
+Snapshots use compact canonical JSON, Brotli quality 11, and unpadded base64url.
+The codec loads in a dedicated worker when needed. Encoding and decoding cap the
+document at 2 MiB and the fragment at 16,000 characters; decoding enforces its
+output limit incrementally. Each worker is terminated on completion, cancellation,
+or a 30-second timeout. Larger documents can be downloaded from the Share dialog.
+
+A snapshot opens read-only without writing a saved document. **Make a local copy**
+creates a new UUID and preserves the current view. Snapshot fragments are removed
+from Sentry events, transactions, spans, and breadcrumbs before transmission.
+
+See the [sharing guide](../../libs/@hashintel/petrinaut/docs/sharing.md) for the user flow.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
