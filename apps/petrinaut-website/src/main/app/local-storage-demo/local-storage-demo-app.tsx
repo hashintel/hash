@@ -116,7 +116,7 @@ import {
 } from "./use-crew-reservation-fixture-session";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
-import { emptySDCPN } from "./use-local-storage-sdcpns";
+import { emptySDCPN, readLocalStorageNets, type LocalStorageNetWithUuid } from "./use-local-storage-sdcpns";
 import {
   selectCrewReservationPreparationBrowser,
   usePrepareCrewReservationConversation,
@@ -390,9 +390,13 @@ const DemoModeFixtureSelector = () => {
  * for background nets.
  */
 export const LocalStorageDemoApp = ({
+  initialNetId,
+  onNetChange,
   onSearchChange,
   search,
 }: {
+  initialNetId?: string;
+  onNetChange?: (net: LocalStorageNetWithUuid) => void;
   onSearchChange: (
     search: LocalStorageDemoSearch,
     history: "push" | "replace",
@@ -472,7 +476,8 @@ export const LocalStorageDemoApp = ({
     crewReservationFixtureSelected &&
     (isRootArcTracerSelected(search) || constructionSelected);
   const selectLocalRoute = useCallback(
-    () =>
+    () => {
+      if (onNetChange) return;
       onSearchChange(
         {
           bundle: undefined,
@@ -480,8 +485,9 @@ export const LocalStorageDemoApp = ({
           brunchTracer: undefined,
         },
         "push",
-      ),
-    [onSearchChange],
+      );
+    },
+    [onNetChange, onSearchChange],
   );
   const { controller } = useDocumentController({
     bundleKey: search.bundle,
@@ -490,7 +496,15 @@ export const LocalStorageDemoApp = ({
     isBrunchConfigured: brunchPreviewConfig.isBrunchConfigured,
     principalKey: brunchPrincipal,
     remoteRouteSelected,
-    onOpenDocument: clearSharedLocation,
+    initialLocalDocumentId: initialNetId,
+    onOpenDocument: (documentId) => {
+      if (onNetChange) {
+        const net = readLocalStorageNets(window.localStorage)[documentId];
+        if (net) onNetChange(net);
+      } else {
+        clearSharedLocation();
+      }
+    },
     onSelectLocalRoute: selectLocalRoute,
     fixture: {
       enabled: brunchSelected && !remoteRouteSelected,

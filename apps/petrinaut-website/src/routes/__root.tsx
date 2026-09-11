@@ -9,5 +9,5 @@ import { NotFoundPage } from "./-not-found-page";
 
 export const Route = createRootRoute({
   component: Outlet,
-  notFoundComponent: NotFoundPage,
+  notFoundComponent: () => <NotFoundPage />,
 });

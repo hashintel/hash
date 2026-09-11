@@ -1,5 +1,14 @@
 # Drawing a Net
 
+On the demo website, each document saved in your browser has a URL like
+`/local/550e8400-e29b-41d4-a716-446655440000`. Bookmark it to reopen that document.
+The file stays in this browser: opening the link in another browser or after
+clearing browser storage shows “Local document not found”. Export the file to
+move it between browsers.
+
+To edit a published example, choose **Make a local copy** in its top bar. The copy
+opens at its own local URL, and the published example stays unchanged.
+
 ## Editor layout
 
 The editor is organized around a central canvas where you build your net:
