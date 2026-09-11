@@ -14,21 +14,33 @@ export interface LiveConversationState {
   };
 }
 
-/** One disposable Live session. No composer, tool, transcript or turn-settlement interface. */
+interface FinalizedInput {
+  readonly id: string;
+  readonly text: string;
+}
+
+type ConnectionKind = "live" | "transcription";
+
+/** One disposable Live plus transcription session sharing one consented capture. */
 export const createLiveConversation = (
   onState: (state: LiveConversationState) => void,
   connectionTimeoutMs: number,
+  onFinalizedInput: (input: FinalizedInput) => void,
 ) => {
   const abort = new AbortController();
-  let peer: RTCPeerConnection | undefined;
-  let channel: RTCDataChannel | undefined;
+  const sessionId = crypto.randomUUID();
+  const peers = new Map<ConnectionKind, RTCPeerConnection>();
+  const channels = new Map<ConnectionKind, RTCDataChannel>();
+  const ready = new Set<ConnectionKind>();
+  const committedPrevious = new Map<string, string | null>();
+  const completed = new Map<string, FinalizedInput>();
+  const emitted = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
   let started = false;
-  let ready = false;
   let stopping = false;
   let finished = false;
-  let creationRequested = false;
+  let liveCreationRequested = false;
   let failure: string | undefined;
   let connectionTimer: ReturnType<typeof setTimeout> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -40,12 +52,81 @@ export const createLiveConversation = (
     resolveStopped = resolve;
   });
 
+  const stopMedia = () => {
+    clearTimeout(activityTimer);
+    microphone?.getTracks().forEach((track) => track.stop());
+    if (audio) {
+      audio.muted = true;
+      audio.pause();
+      audio.srcObject = null;
+    }
+    peers.forEach((peer) =>
+      peer.getReceivers().forEach((receiver) => receiver.track.stop()),
+    );
+  };
+
+  const finish = (liveConfirmed: boolean) => {
+    if (finished) return;
+    finished = true;
+    stopping = true;
+    clearTimeout(connectionTimer);
+    clearTimeout(closeTimer);
+    abort.abort();
+    stopMedia();
+    channels.forEach((channel) => channel.close());
+    peers.forEach((peer) => peer.close());
+    const closure = liveConfirmed
+      ? "Live confirmed session closure."
+      : liveCreationRequested
+        ? "Remote Live session closure was not confirmed."
+        : "No Live provider session was requested.";
+    onState({
+      phase: failure ? "error" : "ended",
+      message: `${failure ? `${failure} ` : ""}Microphone and playback stopped. ${closure}`,
+    });
+    resolveStopped();
+  };
+
+  const stop = (): Promise<void> => {
+    if (stopping) return stopped;
+    stopping = true;
+    clearTimeout(connectionTimer);
+    abort.abort();
+    stopMedia();
+    channels.get("transcription")?.close();
+    peers.get("transcription")?.close();
+    onState({
+      phase: "stopping",
+      message: "Microphone and playback stopped. Closing Live…",
+    });
+    const liveChannel = channels.get("live");
+    if (liveChannel?.readyState === "open" && ready.has("live")) {
+      closeTimer = setTimeout(() => finish(false), 2_000);
+      try {
+        liveChannel.send(JSON.stringify({ type: "session.close" }));
+      } catch {
+        finish(false);
+      }
+    } else {
+      finish(false);
+    }
+    return stopped;
+  };
+
+  const fail = (message: string) => {
+    if (stopping) return;
+    failure = message;
+    stopping = true;
+    finish(false);
+  };
+
   const sampleActivity = async () => {
-    if (stopping || !peer) return;
+    const livePeer = peers.get("live");
+    if (stopping || !livePeer) return;
     let microphoneLevel = 0;
     let outputLevel = 0;
     try {
-      const stats = await peer.getStats();
+      const stats = await livePeer.getStats();
       stats.forEach((report: unknown) => {
         if (
           typeof report !== "object" ||
@@ -61,15 +142,13 @@ export const createLiveConversation = (
         if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
       });
     } catch {
-      // Optional browser telemetry must not terminate or retry the conversation.
+      // Optional telemetry must not affect the session lifetime.
     }
     if (abort.signal.aborted) return;
     const playing = audio?.srcObject && !audio.paused && !audio.muted;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     const activity = {
       microphoneLevel: Math.round(microphoneLevel * 100) / 100,
-      // Brief hold avoids flicker between syllables. This never settles a turn;
-      // received audio energy also cannot prove that the user heard playback.
       outputActive: Boolean(playing) && Date.now() - lastOutputActivity < 300,
     };
     if (
@@ -83,130 +162,187 @@ export const createLiveConversation = (
     activityTimer = setTimeout(() => void sampleActivity(), 100);
   };
 
-  const stopMedia = () => {
-    clearTimeout(activityTimer);
-    microphone?.getTracks().forEach((track) => track.stop());
-    if (audio) {
-      audio.muted = true;
-      audio.pause();
-      audio.srcObject = null;
-    }
-    peer?.getReceivers().forEach((receiver) => receiver.track.stop());
-  };
+  const committedAfter = (previousItemId: string) =>
+    [...committedPrevious].find(
+      ([, previous]) => previous === previousItemId,
+    )?.[0];
 
-  const finish = (confirmed: boolean) => {
-    if (finished) return;
-    finished = true;
-    stopping = true;
-    clearTimeout(connectionTimer);
-    clearTimeout(closeTimer);
-    abort.abort();
-    stopMedia();
-    channel?.close();
-    peer?.close();
-    const closure = confirmed
-      ? "Live confirmed session closure."
-      : creationRequested
-        ? "Remote session closure was not confirmed."
-        : "No provider session was requested.";
-    onState({
-      phase: failure ? "error" : "ended",
-      message: `${failure ? `${failure} ` : ""}Microphone and playback stopped. ${closure}`,
-    });
-    resolveStopped();
-  };
-
-  const stop = (): Promise<void> => {
-    if (stopping) return stopped;
-    stopping = true;
-    clearTimeout(connectionTimer);
-    abort.abort();
-    stopMedia();
-    onState({
-      phase: "stopping",
-      message: "Microphone and playback stopped. Closing Live…",
-    });
-    if (channel?.readyState === "open" && ready) {
-      // Registered message listener remains until session.closed or this cleanup deadline.
-      closeTimer = setTimeout(() => finish(false), 2_000);
-      try {
-        channel.send(JSON.stringify({ type: "session.close" }));
-      } catch {
-        finish(false);
-      }
-    } else {
-      finish(false);
-    }
-    return stopped;
-  };
-
-  const fail = (message: string) => {
-    if (stopping) return;
-    failure = message;
-    void stop();
-  };
-
-  const start = async (): Promise<void> => {
-    if (started || stopping) return;
-    started = true;
-    onState({ phase: "connecting", message: null });
-    connectionTimer = setTimeout(
-      () => fail("Live connection timed out. No automatic retry was made."),
-      connectionTimeoutMs,
+  const flushFinalizedInputs = () => {
+    if (stopping || ready.size !== 2) return;
+    const roots = [...committedPrevious].filter(
+      ([, previous]) => previous === null,
     );
-    try {
-      audio = new Audio();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (abort.signal.aborted) {
-        stream.getTracks().forEach((track) => track.stop());
+    if (roots.length > 1) {
+      fail(
+        "Transcription item ordering conflicted. No automatic retry was made.",
+      );
+      return;
+    }
+    let itemId = roots[0]?.[0];
+    while (itemId && !abort.signal.aborted) {
+      const input = completed.get(itemId);
+      if (!input) return;
+      if (!emitted.has(input.id)) {
+        emitted.add(input.id);
+        onFinalizedInput(input);
+      }
+      itemId = committedAfter(itemId);
+    }
+  };
+
+  const markReady = (kind: ConnectionKind) => {
+    ready.add(kind);
+    if (ready.size !== 2) return;
+    clearTimeout(connectionTimer);
+    onState({ phase: "connected", message: null });
+    activityTimer = setTimeout(() => void sampleActivity(), 100);
+    flushFinalizedInputs();
+  };
+
+  const handleTranscriptionEvent = (data: Record<string, unknown>) => {
+    if (data.type === "session.created" || data.type === "session.updated") {
+      if (!ready.has("transcription")) markReady("transcription");
+      return;
+    }
+    if (data.type === "input_audio_buffer.committed") {
+      if (
+        typeof data.item_id !== "string" ||
+        !(
+          data.previous_item_id === null ||
+          typeof data.previous_item_id === "string"
+        )
+      ) {
+        fail("Transcription sent an invalid committed item.");
         return;
       }
-      microphone = stream;
-      peer = new RTCPeerConnection();
-      const connection = peer;
-      channel = connection.createDataChannel("oai-events");
-      channel.addEventListener("message", (event: MessageEvent<string>) => {
-        if (finished) return;
-        let data: unknown;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          fail("Live sent an unreadable event.");
-          return;
-        }
-        if (typeof data !== "object" || data === null || !("type" in data))
-          return;
-        if (data.type === "session.closed") {
-          finish(true);
-          return;
-        }
-        if (stopping) return;
-        if (data.type === "session.started" && !ready) {
-          ready = true;
-          clearTimeout(connectionTimer);
-          onState({ phase: "connected", message: null });
-          activityTimer = setTimeout(() => void sampleActivity(), 100);
-        } else if (data.type === "error" || data.type === "session.error") {
-          fail("Live reported an error. No automatic retry was made.");
-        }
-        // Transcript deltas are not finalized utterances. Delegations contain metadata,
-        // not task text. Neither is forwarded, persisted, or used to execute anything.
-      });
-      channel.addEventListener("close", () => {
-        if (!stopping) failure = "Live disconnected.";
-        finish(false);
-      });
-      channel.addEventListener("error", () =>
-        fail("Live data connection failed."),
+      const previous = committedPrevious.get(data.item_id);
+      const conflictingSuccessor = [...committedPrevious].some(
+        ([id, predecessor]) =>
+          id !== data.item_id && predecessor === data.previous_item_id,
       );
-      connection.addEventListener("connectionstatechange", () => {
-        if (
-          ["failed", "disconnected", "closed"].includes(
-            connection.connectionState,
-          )
+      let ancestor: string | null | undefined = data.previous_item_id;
+      const ancestors = new Set([data.item_id]);
+      while (
+        ancestor !== null &&
+        ancestor !== undefined &&
+        !ancestors.has(ancestor)
+      ) {
+        ancestors.add(ancestor);
+        ancestor = committedPrevious.get(ancestor);
+      }
+      if (
+        (previous !== undefined && previous !== data.previous_item_id) ||
+        conflictingSuccessor ||
+        (ancestor !== null && ancestor !== undefined)
+      ) {
+        fail(
+          "Transcription item ordering conflicted. No automatic retry was made.",
+        );
+        return;
+      }
+      committedPrevious.set(data.item_id, data.previous_item_id);
+      flushFinalizedInputs();
+      return;
+    }
+    if (data.type === "conversation.item.input_audio_transcription.completed") {
+      if (
+        typeof data.item_id !== "string" ||
+        data.content_index !== 0 ||
+        typeof data.transcript !== "string"
+      ) {
+        fail("Transcription sent an invalid completed item.");
+        return;
+      }
+      const input = {
+        id: `voice-live:${sessionId}:${encodeURIComponent(data.item_id)}:${data.content_index}`,
+        text: data.transcript,
+      };
+      const existing = completed.get(data.item_id);
+      if (
+        existing &&
+        (existing.id !== input.id || existing.text !== input.text)
+      ) {
+        fail("Transcription identity conflicted. No automatic retry was made.");
+        return;
+      }
+      completed.set(data.item_id, input);
+      flushFinalizedInputs();
+      return;
+    }
+    if (
+      data.type === "conversation.item.input_audio_transcription.failed" ||
+      data.type === "error" ||
+      data.type === "session.error"
+    )
+      fail("Transcription failed. No fallback or automatic retry was made.");
+  };
+
+  const parseEvent = (kind: ConnectionKind, event: MessageEvent<string>) => {
+    if (finished) return;
+    let data: unknown;
+    try {
+      data = JSON.parse(event.data);
+    } catch {
+      fail(
+        `${kind === "live" ? "Live" : "Transcription"} sent an unreadable event.`,
+      );
+      return;
+    }
+    if (typeof data !== "object" || data === null || !("type" in data)) return;
+    if (stopping && !(kind === "live" && data.type === "session.closed"))
+      return;
+    if (kind === "transcription") {
+      handleTranscriptionEvent(data as Record<string, unknown>);
+      return;
+    }
+    if (data.type === "session.closed") {
+      finish(true);
+    } else if (
+      !stopping &&
+      data.type === "session.started" &&
+      !ready.has("live")
+    ) {
+      markReady("live");
+    } else if (
+      !stopping &&
+      (data.type === "error" || data.type === "session.error")
+    ) {
+      fail("Live reported an error. No automatic retry was made.");
+    }
+  };
+
+  const createConnection = async (
+    kind: ConnectionKind,
+    stream: MediaStream,
+  ) => {
+    abort.signal.throwIfAborted();
+    const connection = new RTCPeerConnection();
+    peers.set(kind, connection);
+    const channel = connection.createDataChannel("oai-events");
+    channels.set(kind, channel);
+    channel.addEventListener("message", (event: MessageEvent<string>) =>
+      parseEvent(kind, event),
+    );
+    channel.addEventListener("close", () => {
+      if (!stopping)
+        fail(`${kind === "live" ? "Live" : "Transcription"} disconnected.`);
+    });
+    channel.addEventListener("error", () =>
+      fail(
+        `${kind === "live" ? "Live" : "Transcription"} data connection failed.`,
+      ),
+    );
+    connection.addEventListener("connectionstatechange", () => {
+      if (
+        ["failed", "disconnected", "closed"].includes(
+          connection.connectionState,
         )
-          fail("Live media connection ended.");
-      });
+      )
+        fail(
+          `${kind === "live" ? "Live" : "Transcription"} media connection ended.`,
+        );
+    });
+    if (kind === "live") {
       connection.addEventListener("track", (event) => {
         if (stopping) {
           event.track.stop();
@@ -222,71 +358,114 @@ export const createLiveConversation = (
             ),
           );
       });
-      stream.getTracks().forEach((track) => {
+    }
+    stream.getTracks().forEach((track) => connection.addTrack(track, stream));
+    await connection.setLocalDescription(await connection.createOffer());
+    abort.signal.throwIfAborted();
+    if (connection.iceGatheringState !== "complete") {
+      await new Promise<void>((resolve, reject) => {
+        const check = () => {
+          if (connection.iceGatheringState === "complete") resolve();
+        };
+        connection.addEventListener("icegatheringstatechange", check, {
+          signal: abort.signal,
+        });
+        abort.signal.addEventListener(
+          "abort",
+          () => reject(abort.signal.reason),
+          {
+            once: true,
+          },
+        );
+        check();
+      });
+    }
+    abort.signal.throwIfAborted();
+    const sdp = connection.localDescription?.sdp;
+    if (!sdp) throw new Error("Missing local SDP");
+    if (kind === "live") liveCreationRequested = true;
+    const response = await fetch(`/api/voice/${kind}-session`, {
+      method: "POST",
+      headers: { "content-type": "application/sdp" },
+      body: sdp,
+      signal: abort.signal,
+    });
+    if (!response.ok) throw new Error("Session creation failed");
+    const answer: unknown = await response.json();
+    abort.signal.throwIfAborted();
+    if (
+      typeof answer !== "object" ||
+      answer === null ||
+      !("sdp" in answer) ||
+      typeof answer.sdp !== "string" ||
+      !answer.sdp.trimStart().startsWith("v=0")
+    )
+      throw new Error("Invalid SDP answer");
+    await connection.setRemoteDescription({ type: "answer", sdp: answer.sdp });
+  };
+
+  const start = async (): Promise<void> => {
+    if (started || stopping) return;
+    started = true;
+    onState({ phase: "connecting", message: null });
+    connectionTimer = setTimeout(
+      () => fail("Voice connections timed out. No automatic retry was made."),
+      connectionTimeoutMs,
+    );
+    try {
+      audio = new Audio();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (abort.signal.aborted) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      microphone = stream;
+      stream.getTracks().forEach((track) =>
         track.addEventListener(
           "ended",
           () => fail("Microphone disconnected."),
           {
             signal: abort.signal,
           },
-        );
-        connection.addTrack(track, stream);
-      });
-      await connection.setLocalDescription(await connection.createOffer());
-      abort.signal.throwIfAborted();
-      if (connection.iceGatheringState !== "complete") {
-        const listeners = new AbortController();
-        await new Promise<void>((resolve, reject) => {
-          const check = () => {
-            if (connection.iceGatheringState === "complete") {
-              resolve();
-            }
-          };
-          const cancelled = () => {
-            reject(abort.signal.reason);
-          };
-          connection.addEventListener("icegatheringstatechange", check, {
-            signal: listeners.signal,
-          });
-          abort.signal.addEventListener("abort", cancelled, {
-            once: true,
-            signal: listeners.signal,
-          });
-          check();
-        }).finally(() => listeners.abort());
-      }
-      abort.signal.throwIfAborted();
-      const sdp = connection.localDescription?.sdp;
-      if (!sdp) throw new Error("Missing local SDP");
-      creationRequested = true;
-      const response = await fetch("/api/voice/live-session", {
-        method: "POST",
-        headers: { "content-type": "application/sdp" },
-        body: sdp,
-        signal: abort.signal,
-      });
-      if (!response.ok) throw new Error("Session creation failed");
-      const answer: unknown = await response.json();
-      abort.signal.throwIfAborted();
-      if (
-        typeof answer !== "object" ||
-        answer === null ||
-        !("sdp" in answer) ||
-        typeof answer.sdp !== "string" ||
-        !answer.sdp.trimStart().startsWith("v=0")
-      )
-        throw new Error("Invalid SDP answer");
-      await connection.setRemoteDescription({
-        type: "answer",
-        sdp: answer.sdp,
-      });
-      // WebRTC creation already starts Live. Wait for session.started; never send session.start.
+        ),
+      );
+      await Promise.all([
+        createConnection("live", stream),
+        createConnection("transcription", stream),
+      ]);
     } catch {
       fail(
-        "Live could not connect. Check microphone, audio permissions and server configuration. No automatic retry was made.",
+        "Voice could not connect. Check microphone, audio permissions and server configuration. No automatic retry was made.",
       );
     }
   };
 
-  return { start, stop };
+  const appendCommentary = (text: string): boolean => {
+    const liveChannel = channels.get("live");
+    if (
+      stopping ||
+      ready.size !== 2 ||
+      liveChannel?.readyState !== "open" ||
+      !text.trim() ||
+      // UTF-8 byte length is a conservative upper bound on text BPE tokens.
+      // Never split or truncate a frozen source to fit the 500-token API cap.
+      new TextEncoder().encode(text).byteLength > 500
+    )
+      return false;
+    try {
+      liveChannel.send(
+        JSON.stringify({
+          type: "session.commentary.append",
+          event_id: crypto.randomUUID(),
+          delegation_id: null,
+          content: text,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  return { start, stop, appendCommentary };
 };

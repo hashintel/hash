@@ -1,5 +1,3 @@
-# Experiment Live Full Brunch Integration — unpublished description draft
-
 ## 🌟 What is the purpose of this PR?
 
 Preserve Live's fluid, full-duplex interview while Brunch directs the conversation
@@ -7,16 +5,17 @@ and performs authorized application work. The intended path is finalized speech
 through the existing composer and Flue admission, Brunch reasoning/execution,
 complete-turn settlement, a frozen canonical speech source, and Live delivery.
 
-**Authority cut only:** this branch currently records the accepted mission and
-manual test plan, not an integrated application. The selected experiment uses
+**Draft integration; connection failure unresolved.** The application integrates finalized
+transcription with the existing Brunch composer/admission path. Kostandin reports that
+the experiment does not connect; the failing stage is not yet identified. The experiment uses
 separate authoritative transcription and native Live with best-effort speech control.
 It does not claim strict audible-output control or exact relay.
 Kostandin's positive standalone impression supports exploring integration; it is
 not comprehensive acceptance. No live end-to-end, naturalness or readiness claim.
 
-The owner conversation accepts this hybrid, experimental speech-policy relaxation,
-mission recut and one separate local mission-only commit. Product commits and
-publication remain unauthorized.
+The owner accepts this hybrid, experimental speech-policy relaxation and separate
+authority commit, and authorizes publishing the integration as a draft stacked on
+FE-1663. Neither experiment is ready to merge.
 
 ## 🔗 Related links
 
@@ -27,7 +26,9 @@ publication remain unauthorized.
 
 ## 🚫 Blocked by
 
-- [ ] Implement and verify the first short Brunch exchange under the accepted policy.
+- [ ] Identify and fix the reported connection failure using the failed request
+      status/response or displayed error. Route availability is not a successful handshake.
+- [ ] Kostandin witnesses the first short no-tool Brunch exchange under the accepted policy.
       Independent questions and unsupported claims are manual failure observations,
       not canonical answers or accepted production behavior.
 - [ ] Before claiming compatibility with current main, coordinate inclusion of
@@ -38,10 +39,13 @@ publication remain unauthorized.
 
 ## 🔍 What does this change?
 
-Records the accepted authority and evidence needed to cross one real no-tool
-exchange. The website mission points to the sole Brunch authority; the consumed
-draft is removed. Product code and the parent are untouched. No adapter, transcript
-finalizer, playback lifecycle or queue is invented.
+Reuses the consent, provider selection and WebRTC surface, adding a transcription-only
+connection sharing the consented capture. Final items enter the existing composer
+once in provider-committed order. Correlated complete Brunch turns supply frozen prose
+to Live commentary. Stop invalidates late input/output and closes both transports.
+No second conversation store, domain agent, queue policy or playback lifecycle is added.
+The parent source and published history remain untouched. The child contains the
+authority commit separately from its implementation.
 
 <details>
 <summary>🏗️ Agent notes</summary>
@@ -57,10 +61,11 @@ not another authority. Its six semantic addresses are:
   settlement gates context, not all speech. First a short no-tool turn, then authorized work.
 - **Proof:** mocked boundary checks plus Kostandin's manual canonical/effects/audio
   comparison; typed/Voice/stopped-entry second-tab recovery before readiness. The
-  current documentation-only result proves neither the tracer nor migration readiness.
+  implemented/mocked path prepares the tracer but proves neither live compatibility nor migration readiness.
 - **Constraints:** Brunch domain meaning, Flue identity/order/settlement, Petrinaut
   execution/effects; preserve #9562, existing queue, Realtime behavior, consent and
-  cleanup. No provider calls, synthetic audio, prompts/model changes or publication.
+  cleanup. No agent-started provider calls, synthetic audio, Brunch prompt/model
+  changes, merge or deployment. Draft stack publication is authorized.
 - **Fog-line:** use a separate transcription session's completed-item events because
   native Live has no final-transcript event. Verify ordering and dual-session cleanup.
   Live has no response-terminal lifecycle; do not use commentary acknowledgement as
@@ -69,18 +74,18 @@ not another authority. Its six semantic addresses are:
   Premature speech, lost corrections, invented status,
   uncertain replay or revived stopped speech require reassessment, not demo workarounds.
 
-Proposed input: OpenAI `gpt-live-transcribe` over browser WebRTC, using one consented
+Implemented input: OpenAI `gpt-live-transcribe` over browser WebRTC, using one consented
 microphone capture for Live and transcription. The documented
 `conversation.item.input_audio_transcription.completed` event finalizes each item;
 completions can arrive out of order. Preserve stable identity and provider item order
 before using the existing composer and its one-waiting-input policy. No new FIFO,
-Live-transcript fallback, automatic replay, or audio approval buffer. Exact creation
-schema and ordered-event reconciliation still require implementation verification.
+Live-transcript fallback, automatic replay, or audio approval buffer. The creation
+schema and ordered-event reconciliation have provider-free checks, not a live witness.
 
 Stack: branch `kostandin/fe-1664-experiment-live-full-brunch-integration` at
 `/Users/kostandin/Projects/hashdev/worktrees/fe-1664-live-brunch-integration`, based on
 published parent [b72c2ac9f83875d34f585bc672ef62496144fe6a](https://github.com/hashintel/hash/commit/b72c2ac9f83875d34f585bc672ef62496144fe6a).
-Eventual base is `kostandin/fe-1663-experiment-live-full-duplex-migration` while #9671
+PR base is `kostandin/fe-1663-experiment-live-full-duplex-migration` while #9671
 is open. The original main baseline [67f60d5446](https://github.com/hashintel/hash/commit/67f60d5446ed3224609161f938e1b36bc9d62f89)
 is already an ancestor. The restack includes the parent's activity indicators,
 standalone prompt changes, microphone-loss shutdown and bounded/cancellable uploads. Main
@@ -94,7 +99,10 @@ Donor disposition: retain source identity, factual fidelity, full reports on scr
 event-grounded notices, settlement and recovery obligations. Do not import Realtime
 response-terminal machinery as Live events, #9638's FIFO/Resume/Discard policy,
 the prompt changes from #9585, #9651's synthetic harness or #9622's negative speech authoring.
-No mechanism has been replaced in code. The [mission's donor table](libs/@hashintel/brunch-agent/MISSION.md#carry-over-classification)
+Live replaces Realtime response-controlled audio with native unbuffered delivery;
+authoritative transcription supplies the missing finalized-input lifecycle. There
+are no pre-settlement progress appends and no playback-completion claim. The
+[mission's donor table](libs/@hashintel/brunch-agent/MISSION.md#carry-over-classification)
 pins rechecked heads and distinguishes contracts from mechanisms and policies.
 
 </details>
@@ -103,45 +111,81 @@ pins rechecked heads and distinguishes contracts from mechanisms and policies.
 
 ### 🚢 Has this modified a publishable library?
 
-- [x] Does not modify any publishable blocks or libraries, or modifications do not need publishing.
+This PR:
+
+- [x] does not modify any publishable blocks or libraries, or modifications do not need publishing
 
 ### 📜 Does this require a change to the docs?
 
-- [x] Requires changes to planning docs which are made as part of this draft.
+The changes in this PR:
+
+- [x] require changes to docs which **are made** as part of this PR
+
+Updates the mission, consent disclosure and experiment manual-test instructions.
 
 ### 🕸️ Does this require a change to the Turbo Graph?
 
-- [x] Does not affect the execution graph.
+The changes in this PR:
+
+- [x] do not affect the execution graph
 
 ## ⚠️ Known issues
 
-`live` still selects the inherited standalone experiment. It is **not integrated
-Live**, and must not be presented as such. Realtime remains the existing integrated
+**The current manual attempt does not connect.** Local inspection confirms that
+the child servers run on 4915/4321, `/api/voice/config` reports Live available, and
+both session routes load. No provider session was started by the agent to reproduce
+the failure. Request status/response or the displayed error is still needed to
+distinguish Live creation, transcription creation, permissions and WebRTC readiness.
+
+`live` selects the child integration. Realtime remains the unchanged integrated
 baseline; it can speak completed segments before whole-turn settlement, so do not
-mislabel it as the proposed Live settlement gate. Direct spoken-user provenance
-after hydration and durable locally withheld work recovery remain unproved.
+mislabel it as the Live context-supply gate. Native Live may speak before settlement,
+paraphrase incorrectly or ask independent questions. None of that becomes canonical
+Brunch output or evidence of execution. Direct spoken-user provenance after hydration,
+durable locally withheld work recovery and multi-turn answering/continuation correlation
+remain unproved in the integrated Live path.
+
+The first tracer uses a conservative **500 UTF-8 byte** commentary bound beneath
+the provider's 500-token limit. Longer frozen sources remain on screen with a notice;
+there is no truncation, chunking or automatic replay. This can omit audible answers
+that the provider could have fit; revisit from the first actual short-turn observation.
 
 ## 🐾 Next steps
 
-The separate local authority commit is restacked on the published parent. Implement
-the first no-tool exchange. The [selected experiment](libs/@hashintel/brunch-agent/MISSION.md#selected-experiment)
+Resolve the connection failure, then manually witness the first no-tool exchange
+before extending the tool/correction trial. The [selected experiment](libs/@hashintel/brunch-agent/MISSION.md#selected-experiment)
 is accepted; do not reopen native best-effort versus buffering as an implementation
-prerequisite. No product commit, push or PR publication is authorized by this file.
+prerequisite. Draft publication is not live acceptance or authorization to merge.
 
 ## 🛡 What tests cover this?
 
-Documentation-only verification checks local links/anchors, referenced test paths,
-single mission authority, ancestry, whitespace and unchanged product/archive
-files. Unit tests, typechecking, lint and UI rendering have **not** been run for an
-integrated implementation: none exists yet. The [regression portfolio](libs/@hashintel/brunch-agent/MISSION.md#provider-free-regression-portfolio)
-names the existing suites and discriminating cases for the approved implementation.
+Provider-free results (test process trees denied outbound networking):
+
+- Website `yarn test:unit`: **51 files / 554 tests passed**. Finalized item ordering,
+  duplicates, stale/conflicting input, uncertain admission, provider pinning,
+  no history autoplay, source correlation, settlement, failed/textless continuations
+  and Stop are covered by mocked boundaries and existing regressions.
+- Website `yarn test:integration`: **2 tests passed**, using the built real Brunch
+  registration/proposal/continuation/Stop path with the existing faux provider.
+- Brunch `yarn test:unit test/provider-admission.test.ts test/reconciliation.test.ts`:
+  **45 passed**. Petrinaut mounted assistant/contents suites: **125 passed**.
+- Website typecheck/lint/build and Brunch production build pass. Website lint retains
+  one warning in the unchanged Realtime control; builds retain existing compiler
+  and bundle-size warnings.
+- Playwright exercised real consent UI and a mocked microphone rejection with
+  zero session requests. Both screenshots were inspected. No microphone, provider
+  inference or synthetic audio was used. Browser networking allowed loopback only.
+
+This proves neither a real Live↔Brunch exchange nor naturalness, tool-turn fidelity,
+second-tab recovery or migration readiness. The [regression portfolio](libs/@hashintel/brunch-agent/MISSION.md#provider-free-regression-portfolio)
+retains those acceptance limits.
 
 ## ❓ How to test this?
 
-No provider session was started. These commands are for Kostandin's manual use,
+No provider session was started by the agent. These commands are for Kostandin's manual use,
 from the child root after ordinary dependency/environment provisioning. Use the
-existing Brunch credentials and `OPENAI_VOICE_API_KEY`; no new service is required
-by this preparation. Open `http://localhost:4915`; the paired Brunch server uses
+existing Brunch credentials and `OPENAI_VOICE_API_KEY`; no new service is required.
+Open `http://localhost:4915`; the paired Brunch server uses
 4321 and the launcher supplies `/agents/chat`. Do not start Voice until ready to
 consent to microphone/provider access.
 
@@ -149,14 +193,28 @@ consent to microphone/provider access.
 # Existing integrated Realtime; unset provider also selects realtime.
 PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=realtime yarn dev:brunch
 
-# Currently standalone Ex1 ONLY, not integrated Ex2.
+# Integrated Live + authoritative transcription on this child branch.
 PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunch
 ```
 
 Run one provider configuration at a time; restart for the other, never switch an
-active session. The fresh child has not had dependencies or credentials provisioned.
+active session. Dependencies and both application builds are prepared. The running
+child reports credentials present, but their provider validity has not been tested
+by the agent. The dependency build uses the
+existing root command:
 
-Once an approved integrated path exists, allow about 15–20 minutes:
+```sh
+turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-website^...'
+```
+
+Website example generation hit the inherited bundled-HIR `r.platform is not a
+function` failure. Generated examples are present locally after running the existing
+generator through `tsx` with `@hashintel/petrinaut-core/hir` resolved to its source;
+no product workaround or generated file is committed. The Brunch panel launcher
+loads Vite directly and does not rerun that standalone examples script. A fresh
+checkout needs example generation or equivalent build-cache outputs before checks.
+
+Start with step 1 (about 5 minutes); inspect that result before the later 15–20 minute trial:
 
 1. Give an account and answer a short Brunch clarification.
 2. Hesitate, elaborate and correct a consequential detail.
@@ -169,5 +227,9 @@ Once an approved integrated path exists, allow about 15–20 minutes:
 
 ## 📹 Demo
 
-None: no integrated UI or live session was demonstrated. Retain the original
-standalone comparison; do not use it as evidence of Brunch integration.
+Local-only inspected UI captures: `apps/brunch-agent/.data-wipe-me/fe-1664-ui/consent.png` and
+`apps/brunch-agent/.data-wipe-me/fe-1664-ui/error.png`. They demonstrate disclosure and failure UI,
+not a live interview. Retain the original standalone comparison; do not use it as
+evidence of Brunch integration. Recommendation: keep the draft blocked on the
+connection failure, then evaluate the explicitly accepted hybrid's first manual
+exchange. Retain Realtime as the baseline; migration readiness remains inconclusive.

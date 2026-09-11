@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { BrunchPanelConversationTracker } from "../local-storage-demo/brunch-panel-transport";
 import { createLiveConversation } from "./live-conversation";
 import {
   loadOpenAIVoiceConfig,
@@ -21,6 +22,7 @@ vi.mock("./live-conversation", () => ({
   createLiveConversation: vi.fn(() => ({
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
+    appendCommentary: vi.fn(() => true),
   })),
 }));
 afterEach(() => {
@@ -67,7 +69,8 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
     screen.getByRole("region", { name: "Voice mode consent" }),
   ).toBeTruthy();
   expect(screen.getByText("GPT-Live · Experimental interview")).toBeTruthy();
-  expect(screen.queryByText(/Petrinaut saves finalized/)).toBeNull();
+  expect(screen.getByText(/separate transcription session/)).toBeTruthy();
+  expect(screen.getByText(/best-effort/)).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Start voice" })
@@ -132,11 +135,7 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
     }),
   );
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(null);
-  expect(
-    screen.getByText(
-      "Connection error. Check microphone and server configuration.",
-    ),
-  ).toBeTruthy();
+  expect(screen.getByText(/Connection failed/)).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Start voice" })
@@ -214,3 +213,108 @@ test.each(["live", "realtime", "live-experience"])(
     );
   },
 );
+
+test("final transcription enters the real admission helper and only its settled canonical prose reaches Live", async () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async ({ id }) => {
+    if (!id) throw new Error("Missing stable input identity");
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: id,
+      admission: {
+        submissionId: "root",
+        uid: "test",
+        offset: "opaque",
+        streamUrl: "http://local/stream",
+      },
+    });
+    return { kind: "message", messageId: id };
+  });
+  const wiring = {
+    resolveInputSubmission: tracker.submissionForInput.bind(tracker),
+    resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
+    subscribeToAdmission: (
+      target: Parameters<typeof tracker.subscribeToAdmission>[0],
+      listener: (id: string) => void,
+    ) =>
+      tracker.subscribeToAdmission(target, (event) =>
+        listener(event.admission.submissionId),
+      ),
+    subscribeToAdmissionFailure:
+      tracker.subscribeToAdmissionFailure.bind(tracker),
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+    subscribeToResponseMessageCompleted:
+      tracker.subscribeToResponseMessageCompleted.bind(tracker),
+    subscribeToStopRequested: tracker.subscribeToStopRequested.bind(tracker),
+  };
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+    .value as ReturnType<typeof createLiveConversation>;
+  act(() => call[0]({ phase: "connected", message: null }));
+  await act(async () =>
+    call[2]({ id: "utterance-1", text: "Seven reviewers, not four." }),
+  );
+  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+  expect(props.submitVoiceInput).toHaveBeenCalledWith(
+    expect.objectContaining({ text: "Seven reviewers, not four." }),
+  );
+  const response = {
+    messageId: "answer",
+    submissionId: "root",
+    position: { batch: 1, index: 0 },
+  };
+  act(() => tracker.recordResponse(response));
+  const messages: PetrinautAiVoiceModeContext["messages"] = [
+    {
+      id: "answer",
+      role: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "Are all seven reviewers required?",
+          state: "done",
+        },
+      ],
+    },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      status="streaming"
+      config={config}
+    />,
+  );
+  act(() =>
+    tracker.recordResponseMessageCompleted({
+      ...response,
+      position: { batch: 2, index: 0 },
+    }),
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      settlements={[{ submissionId: "root", outcome: "completed" }]}
+      config={config}
+    />,
+  );
+  expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Are all seven reviewers required?",
+  );
+  act(() => tracker.recordStopRequested());
+  expect(session.stop).toHaveBeenCalled();
+  await act(async () => call[2]({ id: "late", text: "Late transcription" }));
+  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+});

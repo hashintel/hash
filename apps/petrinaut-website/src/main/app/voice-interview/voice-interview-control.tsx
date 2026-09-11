@@ -593,13 +593,24 @@ const PinnedVoiceInterviewControl = ({
   if (sessionConfig.provider === "live") {
     return (
       <LiveConversationControl
+        {...context}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
-        inputMode={context.inputMode}
-        isAiAssistantOpen={context.isAiAssistantOpen}
-        registerVoiceModeControls={context.registerVoiceModeControls}
-        reportVoiceSessionState={context.reportVoiceSessionState}
-        setInputMode={context.setInputMode}
-        setVoiceActive={context.setVoiceActive}
+        resolveResponseSubmission={resolveResponseSubmission}
+        settlements={settlements}
+        subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+        subscribeToResponseMessageCompleted={
+          subscribeToResponseMessageCompleted
+        }
+        subscribeToStopRequested={subscribeToStopRequested}
+        submit={(input) =>
+          submitVoiceInputWithAdmission({
+            input,
+            resolveInputSubmission,
+            subscribeToAdmission,
+            subscribeToAdmissionFailure,
+            submitVoiceInput: context.submitVoiceInput,
+          })
+        }
       />
     );
   }

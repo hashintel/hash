@@ -499,8 +499,9 @@ Before claiming long-running provenance, prove panel/transcript/workpiece recove
 The FE-1664 integration draft is consumed into this child branch's
 [mission](MISSION.md): native best-effort Live speech plus authoritative
 transcription, with canonical Brunch/Flue/Petrinaut authority retained. Its accepted
-recut permits one separate local authority commit before product implementation;
-no paid run or publication is authorized. The recovery obligation below remains a
+recut has a separate authority commit before product implementation. The live mission
+records the later authorization to commit and publish the draft stack; no paid run
+is authorized. The recovery obligation below remains a
 readiness gate, not a transferred waiver. Outgoing Mission 7a and standalone Ex1
 contracts remain at their original paths in the pinned published parent
 [771712c1af](https://github.com/hashintel/hash/commit/771712c1afe2d4f3d3e5ee8fac39d17303bee7a1);

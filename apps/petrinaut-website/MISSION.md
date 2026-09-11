@@ -13,9 +13,11 @@ Experiment 1's original standalone comparison remains at
 [771712c1afe2d4f3d3e5ee8fac39d17303bee7a1](https://github.com/hashintel/hash/commit/771712c1afe2d4f3d3e5ee8fac39d17303bee7a1).
 The child's restacked parent is
 [b72c2ac9f83875d34f585bc672ef62496144fe6a](https://github.com/hashintel/hash/commit/b72c2ac9f83875d34f585bc672ef62496144fe6a).
-This child does not close or modify that experiment. Its existing product code
-still runs standalone Live until the integration is implemented and verified.
+This child does not close or modify that experiment. The child now selects the
+integrated path, with provider-free checks passing but a reported connection failure
+still unresolved. No live end-to-end or naturalness acceptance is established.
 
 Keep `PETRINAUT_VOICE_PROVIDER=realtime|live`, with unset meaning `realtime`.
-No paid sessions, automatic microphone access, product commits, pushes, published
-PRs or deployment are authorized. Kostandin performs live testing manually.
+The owner authorizes committing and publishing the draft child PR against the
+parent. No paid sessions, automatic microphone access, merge or deployment are
+authorized. Kostandin performs live testing manually.

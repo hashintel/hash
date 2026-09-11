@@ -3,8 +3,11 @@
 ## Status
 
 Live mission for provider-free implementation and Kostandin's later manual testing.
-The experiment policy and one separate local authority commit are accepted in the
-owner conversation. Product implementation and manual acceptance are not established.
+The accepted policy is committed separately in authority commit
+`10d8f5c11a951916767ac40be63cd5741943a021`. The short-turn integration has passing
+provider-free checks, but Kostandin reports that it does not connect. The failing
+stage is not yet identified; the first real no-tool exchange and manual acceptance
+remain unproved. Commit and stacked draft-PR publication are authorized.
 
 [FE-1664](https://linear.app/hash/issue/FE-1664/experiment-live-full-brunch-integration)
 depends on [FE-1663 / #9671](https://github.com/hashintel/hash/pull/9671) and retains
@@ -30,7 +33,7 @@ Settlement gates supplied Brunch context, not all audible speech.
 ### Selected experiment
 
 - **Input:** use a separate OpenAI transcription-only session for canonical user
-  text. The proposed model is `gpt-live-transcribe`, using browser WebRTC and the
+  text. The model is `gpt-live-transcribe`, using browser WebRTC and the
   existing server credential boundary. One consented microphone capture supplies
   Live and transcription; neither session starts automatically. Disclose the second
   stream and additional provider usage in the existing consent surface.
@@ -59,18 +62,18 @@ Settlement gates supplied Brunch context, not all audible speech.
   The first short exchange must fit; longer-source delivery remains a specific
   follow-up design question, not grounds for a premature chunk/playback queue.
 
-The proposed browser path avoids a new service and reuses existing credentials.
-Before implementing it, verify the exact transcription WebRTC creation schema and
-committed-item ordering events against the reference. Keep both connections under
+The browser path avoids a new service and reuses existing credentials. The
+transcription WebRTC schema and committed-item ordering follow the reference;
+live provider compatibility remains unproved. Keep both connections under
 one session lifetime: failure/Stop invalidates late callbacks and tears down media
 without an automatic standalone or Realtime fallback. Do not infer playback completion
 from commentary acceptance, use it to release pending work, or restore historical audio.
 Acoustic interruption remains native Live behavior; durable composer Stop still
 cancels canonical work separately and must immediately silence local playback.
 
-Commit this authority change separately before dependent product implementation.
-Only that local mission commit is authorized; subsequent product changes remain
-uncommitted unless separately requested.
+The separate authority commit satisfies the implementation prerequisite. The owner
+now authorizes committing the integration and publishing a draft child PR on the
+parent branch, without rewriting the parent's history or merging either experiment.
 
 ### Inspected departure and stack
 
@@ -132,8 +135,9 @@ Paths below are relative to the repository root.
 | Boundary | Inspected contract and consequence |
 | --- | --- |
 | Live startup | `apps/petrinaut-website/api/voice/live-session.ts` composes `createOpenAILiveSessionHandler({environment, fetch})`. The server validates origin/SDP/enablement, creates client-delegated `gpt-live-1`, returns `{sessionId, sdp}` and does not retry unknown outcomes. |
-| Live media | `createLiveConversation(onState, connectionTimeoutMs)` returns only `{start, stop}`. It ignores transcript/delegation events and plays incoming media directly. No finalized-input, submission, settlement or tool contract exists. |
-| Live controls | `LiveConversationControl` receives a restricted `Pick<PetrinautAiVoiceModeContext>` without canonical messages or submission. It registers local end/pause, not canonical Stop. |
+| Live media | `createLiveConversation(onState, connectionTimeoutMs, onFinalizedInput)` returns `{start, stop, appendCommentary}`. One consented capture feeds two WebRTC sessions. Transcription completed items are reconciled against committed predecessor IDs; Live deltas/delegations never admit input. Audio remains native and unbuffered. |
+| Live controls | `LiveConversationControl` receives canonical messages, submission resolution, settlements and response/Stop subscriptions. `LiveBrunchBridge` calls the existing admission helper and freezes correlated prose only at complete-turn settlement. Local end/pause silences both sessions; canonical Stop also invokes that local teardown. |
+| Transcription creation | `api/voice/transcription-session.ts` composes `createOpenAITranscriptionSessionHandler`, with the existing credentials and enablement boundary. Multipart `/v1/realtime/calls` configures `type: transcription`, `gpt-live-transcribe` and default semantic VAD. Origin, upload size, abort and timeout failures are bounded; unknown creation is never retried automatically. |
 | Canonical entry | `voice-interview-control.tsx` exposes `submitVoiceInputWithAdmission`: subscribe before composer submission, correlate stable message identity to Flue admission, race abort, distinguish ambiguous/rejected/conflicting admission. `submitVoiceInput` retains at most one waiting input; abort withdraws only unsubmitted work. |
 | Canonical source | `canonical-speech.ts` selects non-streaming assistant prose, with message/part/hash/submission identity and a marked question only if it occurs in finalized prose. This is source selection, not whole-turn or playback approval. Workpiece, reasoning, basis and raw tool payloads are excluded. |
 | Baseline delivery | `realtime-brunch-bridge.ts` can call `speakCanonical` for completed segments while chat is streaming. Its test “speaks a completed canonical segment while chat remains streaming and settles separately” makes that intentional. Preserve Realtime; do not label this whole-turn-gated Live delivery. |
@@ -148,16 +152,16 @@ One finalized input enters the existing composer with stable identity, produces
 one Flue admission and one correlated Brunch answer, settles completely, and is
 offered to Live as frozen commentary. Kostandin compares the actual audible answer
 with that source, including whether it was heard at all; append acceptance is not
-that witness. Record premature independent speech separately. No integrated
-implementation or manual witness exists yet. Supported transcription
-events enable a proposed input contract; they do not prove this application's
-ordering/admission integration. Strict native output eligibility is deliberately
-not a claim of the selected proposal. Mocked events cannot prove speech adherence.
+that witness. Record premature independent speech separately. The local integration
+is prepared; no live witness exists yet. Mocked tests establish item ordering,
+deduplication, admission correlation, complete-turn settlement and teardown, not
+transcription accuracy or live provider compatibility. Strict native output
+eligibility is deliberately not a claim. Mocked events cannot prove speech adherence.
 
 ### Provider-free regression portfolio
 
-Use the existing suites, extending only the newly crossed boundary. These are
-candidate checks, not results of this documentation-only preparation:
+Use the existing suites, extending only the newly crossed boundary. The portfolio
+below names the intended checks; the executed subset and its limits follow it:
 
 | Claim to test | Existing oracle / required discriminator |
 | --- | --- |
@@ -173,7 +177,37 @@ after actual code changes; read evaluation execution safety before hermetic runs
 Do not port the synthetic audio harness. Provider-free tests do not establish
 speech fidelity, native full duplex, naturalness or migration readiness.
 
-### Manual witness once an approved integrated implementation exists
+Executed provider-free checks on the child:
+
+- Website `yarn test:unit`: 51 files / 554 tests. Includes the real admission helper
+  and conversation tracker with mocked composer/provider boundaries. The Live bridge
+  distinguishes stale completion positions, failed/textless continuations, Stop and
+  uncertain admission. This is not a real Brunch interview.
+- Website `yarn test:integration`: 2 tests using the built Brunch application and
+  its existing faux-provider proposal/settlement probe. Brunch
+  `yarn test:unit test/provider-admission.test.ts test/reconciliation.test.ts`: 45 tests.
+  These retain existing host/effect regression evidence, not Live tool-turn acceptance.
+- Petrinaut mounted `ai-assistant-panel.test.tsx` and
+  `ai-assistant-panel/ai-assistant-contents.test.tsx`: 125 tests. They retain the
+  AI/Workpiece, composer and Voice control contracts without changing their owners.
+- Website typechecking, lint and production build, and Brunch production build pass.
+  The remaining website lint warning is in the unchanged Realtime control. Existing
+  compiler/chunk-size warnings are not migration-quality evidence.
+- Browser consent and mocked microphone-rejection checks pass with zero session
+  requests. Inspected captures are local-only / not portable:
+  `apps/brunch-agent/.data-wipe-me/fe-1664-ui/{consent,error}.png`. They establish readable disclosure,
+  disabled Start before consent, visible failure and consent reset, not connected
+  audio. Tests ran under OS outbound-network denial; browser verification allowed
+  loopback only and replaced microphone capture with a rejecting mock.
+
+The first tracer sends at most 500 UTF-8 bytes per frozen commentary source, a
+conservative bound beneath the API's 500-token cap. Larger sources remain on screen
+with a visible notice; they are neither truncated nor queued for replay. No progress
+commentary is injected before settlement. Cross-submission `answeredBySubmissionId`
+and multi-turn recovery still rely on the existing host and need the later Live
+operation/correction/recovery witness; these checks do not establish that broader path.
+
+### Manual witness for the prepared integration
 
 Allow about 15–20 minutes, with a familiar process and a disposable local document:
 
@@ -211,8 +245,14 @@ new store, cross-store transaction or concurrency project by default.
   This explicitly replaces strict audible-output enforcement for this experiment,
   not canonical answer/tool ownership, queue policy or production acceptance.
   Independent questions and unsupported claims remain manual-test failures.
-  No paid sessions, automatic microphone access, product commits or publication
-  are authorized. Manual testing belongs to Kostandin.
+  No paid sessions or automatic microphone access are authorized. Manual testing
+  belongs to Kostandin.
+- **2026-09-11 — Publish the draft stack.** The owner authorizes removing Amp thread
+  IDs from the child's unpublished commits, committing and pushing the integration,
+  publishing its draft PR against FE-1663, and keeping both experiment PRs draft
+  with template-based descriptions. This supersedes the no-product-commit and
+  no-PR-publication restrictions, not provider, merge, deployment or parent-history
+  protections. The unresolved connection failure remains a visible blocker.
 
 ### Continuing boundaries
 
@@ -227,8 +267,8 @@ new store, cross-store transaction or concurrency project by default.
 - Exactly `PETRINAUT_VOICE_PROVIDER=realtime|live`, unset `realtime`; reuse current
   enablement/credentials. Pin provider and delivery policy for the session. No
   `live-experience`, `live-brunch`, new provider framework, automatic replay or
-  standalone fallback. The child must not advertise integrated Live until these
-  contracts hold; inherited `live` currently remains Ex1, not this milestone.
+  standalone fallback. The child's `live` path is the local integration; the pinned
+  parent remains the standalone comparison. Neither is a migration-readiness claim.
 - Retain current host queue policy. The one-waiting-input contract is not #9638's
   FIFO. Realtime's interruption preference and echo/noise filtering are transport
   behavior, not proof that native Live establishes input ordering. Interrupting
@@ -251,8 +291,9 @@ new store, cross-store transaction or concurrency project by default.
   with no claimed deterministic wording/frequency enforcement.
 - No agent-started provider sessions/inference/microphone, synthetic recordings,
   audio harness, Brunch model/prompt edits, new service/infrastructure, donor host
-  overwrite, parent-worktree changes, product commits, pushes, published PR, merge, deploy
-  or Notion writes. Local provider-free work remains allowed within current authority.
+  overwrite, parent-worktree/history changes, merge, deploy or Notion writes.
+  Local provider-free work and the explicitly authorized draft stack publication
+  remain allowed within current authority.
 
 ## Fog-line
 
@@ -265,9 +306,10 @@ The selected input proposal additionally uses the current official
 [transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription)
 and [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad).
 They document `gpt-live-transcribe`, browser WebRTC, final transcript events and
-out-of-order completion. Exact endpoint/schema compatibility, item-order
-reconciliation, dual-session cleanup and practical transcription/Live disagreement
-remain implementation and manual-test obligations, not established results.
+out-of-order completion. The creation schema, item-order reconciliation and
+dual-session cleanup are implemented and checked with mocks against that contract.
+Actual provider compatibility and transcription/Live disagreement remain manual-test
+obligations, not established results.
 
 ### Input: no supported native finalization marker
 
@@ -287,7 +329,7 @@ Input alternatives considered:
    transcription lifecycle as well as Live, with stable capture identity and an
    explicit final event. This is a hybrid, with extra cost, timing/ordering,
    disagreement and cleanup obligations. Selected by Kostandin, with the concrete
-   OpenAI proposal above; not implemented or live-tested.
+   OpenAI path above; locally implemented but not live-tested.
 
 ### Output: context acceptance is not permission to hear speech
 
@@ -317,15 +359,16 @@ Output alternatives considered:
    or enforced faithful rephrasing.
 
 Neither input alternative fixes output, and output approval does not finalize input.
-Both alternatives are now explicitly selected by Kostandin. Do not attribute this
-to a production acceptance or extend the single authority-commit permission to
-product commits or publishing.
+Both alternatives are explicitly selected by Kostandin. Neither the selected policy
+nor draft publication establishes production acceptance.
 
 ## Stop or reorient
 
-After the separate authority commit, start with the short real no-tool exchange
-and manually assess the
-best-effort speech behavior rather than reopening strict control as its prerequisite.
+First identify the reported connection failure. The running child exposes Live
+enablement and both session routes, but that does not prove either provider handshake.
+The failing request status/response or displayed error is still needed; do not start
+a paid session to obtain it. Once connected, manually assess the short no-tool
+exchange rather than reopening strict speech control as its prerequisite.
 If the experiment fails, retaining Realtime is a recommendation, not a silent fallback.
 Do not reopen FE-1624 based on Ex1's pleasant conversation. During later testing,
 premature speech, lost corrections, reordered admissions, invented progress,

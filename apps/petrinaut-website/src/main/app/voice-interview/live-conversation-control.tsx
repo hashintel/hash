@@ -1,23 +1,36 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
+import { selectCanonicalSpeech } from "./canonical-speech";
+import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
 import { VoiceInterviewDisclosure } from "./voice-interview-disclosure";
 
+import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
-// No canonical messages, submission, settlement, or tools cross this boundary.
-type LiveControlsContext = Pick<
-  PetrinautAiVoiceModeContext,
-  | "inputMode"
-  | "isAiAssistantOpen"
-  | "registerVoiceModeControls"
-  | "reportVoiceSessionState"
-  | "setVoiceActive"
-  | "setInputMode"
->;
+type LiveControlsContext = PetrinautAiVoiceModeContext &
+  Pick<
+    Parameters<typeof VoiceInterviewControl>[0],
+    | "resolveResponseSubmission"
+    | "settlements"
+    | "subscribeToResponseMessageStarted"
+    | "subscribeToResponseMessageCompleted"
+    | "subscribeToStopRequested"
+  > & {
+    readonly submit: ConstructorParameters<
+      typeof LiveBrunchBridge
+    >[0]["submit"];
+    readonly connectionTimeoutMs: number;
+  };
 
 export const LiveConversationControl = ({
   inputMode,
@@ -27,8 +40,19 @@ export const LiveConversationControl = ({
   setVoiceActive,
   setInputMode,
   connectionTimeoutMs,
-}: LiveControlsContext & { readonly connectionTimeoutMs: number }) => {
+  submit,
+  messages,
+  status,
+  stopped,
+  canAcceptVoiceInput,
+  resolveResponseSubmission,
+  settlements,
+  subscribeToResponseMessageStarted,
+  subscribeToResponseMessageCompleted,
+  subscribeToStopRequested,
+}: LiveControlsContext) => {
   const [consented, setConsented] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [state, setState] = useState<LiveConversationState>({
     phase: "idle",
     message: null,
@@ -37,12 +61,80 @@ export const LiveConversationControl = ({
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
+  const bridge = useRef<LiveBrunchBridge | null>(null);
+  const latest = useRef({
+    submit,
+    chat: {
+      status,
+      stopped,
+      canAcceptVoiceInput,
+      segments: selectCanonicalSpeech(messages).segments,
+      settlements: settlements ?? [],
+    },
+  });
+  useLayoutEffect(() => {
+    const segments = selectCanonicalSpeech(messages).segments.map(
+      (segment) => ({
+        ...segment,
+        submissionIds: resolveResponseSubmission?.(segment.messageId),
+      }),
+    );
+    latest.current = {
+      submit,
+      chat: {
+        status,
+        stopped,
+        canAcceptVoiceInput,
+        segments,
+        settlements: settlements ?? [],
+      },
+    };
+    bridge.current?.update(latest.current.chat);
+  }, [
+    submit,
+    messages,
+    status,
+    stopped,
+    canAcceptVoiceInput,
+    resolveResponseSubmission,
+    settlements,
+  ]);
+
+  useEffect(
+    () =>
+      subscribeToResponseMessageStarted?.((event) =>
+        bridge.current?.responseStarted(event),
+      ),
+    [subscribeToResponseMessageStarted],
+  );
+  useEffect(
+    () =>
+      subscribeToResponseMessageCompleted?.((event) =>
+        bridge.current?.responseCompleted(event),
+      ),
+    [subscribeToResponseMessageCompleted],
+  );
   const end = useCallback(async () => {
+    bridge.current?.stop();
     const closing = session.current?.stop();
     setVoiceActive(false);
     setConsented(false);
     await closing;
   }, [setVoiceActive]);
+  useEffect(
+    () =>
+      subscribeToStopRequested?.(() => {
+        void end();
+      }),
+    [end, subscribeToStopRequested],
+  );
+
+  useEffect(() => {
+    if (stopped || inputMode !== "voice" || !isAiAssistantOpen) {
+      bridge.current?.stop();
+      void session.current?.stop();
+    }
+  }, [stopped, inputMode, isAiAssistantOpen]);
 
   useEffect(
     () =>
@@ -71,18 +163,22 @@ export const LiveConversationControl = ({
             microphoneLevel: activity?.microphoneLevel ?? 0,
             microphoneMuted: false,
             errorMessage: null,
-            notice: null,
+            notice,
           }
         : null,
     );
-  }, [inputMode, isAiAssistantOpen, phase, activity, reportVoiceSessionState]);
+  }, [
+    inputMode,
+    isAiAssistantOpen,
+    phase,
+    activity,
+    notice,
+    reportVoiceSessionState,
+  ]);
 
   useEffect(() => {
-    if (inputMode !== "voice" || !isAiAssistantOpen)
-      void session.current?.stop();
-  }, [inputMode, isAiAssistantOpen]);
-  useEffect(() => {
     const leave = () => {
+      bridge.current?.stop();
       void session.current?.stop();
     };
     window.addEventListener("pagehide", leave);
@@ -90,6 +186,7 @@ export const LiveConversationControl = ({
       window.removeEventListener("pagehide", leave);
       const current = session.current;
       session.current = null;
+      bridge.current?.stop();
       void current?.stop();
       setVoiceActive(false);
       reportVoiceSessionState(null);
@@ -104,24 +201,38 @@ export const LiveConversationControl = ({
       consented={consented}
       onConsentChange={setConsented}
       startDisabled={phase === "stopping"}
-      microphoneCheck={
-        phase === "error"
-          ? "Connection error. Check microphone and server configuration."
-          : phase === "stopping"
-            ? "Disconnecting…"
-            : ""
-      }
+      microphoneCheck={state.message ?? ""}
       onStart={() => {
         if (!consented || phase === "stopping") return;
         setConsented(false);
+        setNotice(null);
         setState({ phase: "connecting", message: null });
-        const next = createLiveConversation((nextState) => {
-          if (session.current !== next) return;
-          setState(nextState);
-          setVoiceActive(
-            nextState.phase === "connecting" || nextState.phase === "connected",
-          );
-        }, connectionTimeoutMs);
+        const next = createLiveConversation(
+          (nextState) => {
+            if (session.current !== next) return;
+            if (
+              nextState.phase === "error" ||
+              nextState.phase === "ended" ||
+              nextState.phase === "stopping"
+            )
+              bridge.current?.stop();
+            setState(nextState);
+            setVoiceActive(
+              nextState.phase === "connecting" ||
+                nextState.phase === "connected",
+            );
+          },
+          connectionTimeoutMs,
+          (input) => {
+            if (session.current === next) void bridge.current?.accept(input);
+          },
+        );
+        bridge.current = new LiveBrunchBridge({
+          submit: (input) => latest.current.submit(input),
+          appendCommentary: next.appendCommentary,
+          notice: setNotice,
+        });
+        bridge.current.update(latest.current.chat);
         session.current = next;
         setVoiceActive(true);
         void next.start();
