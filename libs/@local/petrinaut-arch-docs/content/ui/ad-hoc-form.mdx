@@ -1,6 +1,6 @@
 ---
 title: The ad-hoc scenario form
-description: How an inline Initial State + Parameters definition becomes a generated scenario, a swept experiment, and a live-type-checked spreadsheet.
+description: How the one scenario form turns an inline Initial State + Parameters definition into a generated scenario, a swept experiment or a saved scenario, through a live-type-checked spreadsheet.
 sidebar_order: 10
 attachTo: ui.adhoc-form
 ---
@@ -9,35 +9,46 @@ import { Lanes } from "@diagrams/lanes";
 import { Pipeline } from "@diagrams/pipeline";
 import { Sequence } from "@diagrams/sequence";
 
-The ad-hoc form lets a user define Initial State and Parameters inline —
-without saving a [scenario](layer:core.simulation.authoring) — and compiles
-what they enter through a scenario **generated at run time and never
-persisted**. Three consumers mount the same component, differing only in
-what selecting a value means (`selection` prop): quick simulation and plain
-experiment creation pass `"none"` (no toggles), and experiment creation with
-parameter sweeps on passes `"sweep"` (a value is selected as a swept
-interval). The `"optimize"` mode (a value selected for the optimizer, with
-bounds and a scale) is kept in the union and the synthesis but has no
-consumer since optimization moved into the Experiments tab; a study now runs
-over a sweep. A
-third mode, `"expose"`, is the scenario creation form's: it offers no value
-toggles at all, and instead each top-level Variable row grows a "Scenario
-Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
-those Variables as its tunable parameters. Optimize selections write the
-`optimize` settings object; expose writes the boolean `exposed` flag. In
-that consumer alone the definition persists (see **The persisted format**
-below); everywhere else the generated scenario stays ephemeral. A fourth
-consumer reuses the component in `mode="run"`: Simulation Settings and the
-experiment drawer show every selected scenario through the form read-only,
-with only the scenario parameters' values editable; each edit resolves to
-an ordinary scenario-parameter value for the run. The experiment drawer
-adds a collapsed "Computed state" sub-section, materialized only while
-open. An ad-hoc scenario renders its stored
-definition; a classic (`code` or `per_place`) scenario has none, so its
-compiled initial marking is materialized into literal fixed rows
+The ad-hoc form is the one scenario form: the only surface that authors or
+edits a [scenario](layer:core.simulation.authoring)'s Initial State and
+Parameters. Three consumers mount the same component, differing in what
+selecting a value means (`selection` prop) and in whether the definition
+persists. Quick simulation passes `"none"` (no toggles) and lays the groups
+out in the Simulation Settings panel's two columns through `renderLayout`;
+experiment creation passes `"sweep"` while the Parameter sweeps setting is
+on (a value is selected as a swept interval) and `"none"` otherwise. Both
+compile what the user enters through a scenario **generated at run time and
+never persisted**. The third consumer, scenario creation and editing, passes
+`"expose"`: no value toggles, and instead each top-level Variable row grows
+a "Scenario Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario
+exposes those Variables as its tunable parameters. There alone the
+definition persists (see **The persisted format** below). The `"optimize"`
+mode (a value selected for the optimizer, with bounds and a scale) is kept
+in the union and the synthesis but has no consumer since optimization moved
+into the Experiments tab; a study now runs over a sweep. Optimize selections
+write the `optimize` settings object; expose writes the boolean `exposed`
+flag.
+
+A fourth use reuses the component in `mode="run"`: Simulation Settings and
+the experiment drawer show every selected scenario through the form
+read-only, with only the scenario parameters' values editable; each edit
+resolves to an ordinary scenario-parameter value for the run. The
+experiment drawer adds a collapsed "Computed state" sub-section,
+materialized only while open. An `adhoc` scenario renders its stored
+definition; a `code` or `per_place` scenario has none, so its compiled
+initial marking is materialized into literal fixed rows
 (`classicScenarioRunState` in petrinaut-core), recomputed per parameter
 edit and capped per place, with the scenario parameters named by their
 identifiers verbatim so value pushes bypass the ad-hoc snake_case mapping.
+
+The edit drawer opens every stored kind in the same expose-mode form,
+seeded by `adHocStateFromScenario` (petrinaut-core): an `adhoc` scenario
+verbatim; a `per_place` scenario converted losslessly — parameters as
+exposed Variables, expressions and token rows as the form's blocks — and
+rewritten as `adhoc` only when the user saves; a `code` scenario as its
+Variables and Parameters, with the code body shown read-only in the
+Initial state slot through a `CodeEditor` and written back verbatim on
+save.
 
 The design is the scenario **code editor's model, constrained**: everything
 the form can express synthesizes to code-mode scenario source that the
@@ -84,8 +95,9 @@ A scenario saved from the form is an ordinary `Scenario` whose
 `initialState` takes the third of its three variants, declared beside the
 other two in `core/types/sdcpn.ts`:
 
-- `{ type: "per_place", content }` — the classical spreadsheet of static
-  values;
+- `{ type: "per_place", content }` — one expression or one spreadsheet of
+  literal values per place, as files, the AI assistant and earlier versions
+  store it;
 - `{ type: "code", content }` — a hand-written code block;
 - `{ type: "adhoc", content: AdHocScenarioState }` — the form's state,
   verbatim.
@@ -115,7 +127,15 @@ snake_case-named, defaulting to its expression's constant value) and
 `parameterOverrides` onto the scenario. Downstream consumers — experiments,
 optimization manifests, the CLI's `metadata` — read those derived fields;
 `content` stays the single editable source, and the edit drawer loads it
-back into the form verbatim.
+back into the form verbatim. The other two variants reach the same form
+through `adHocStateFromScenario` (`scenario-to-ad-hoc-state.ts`): a
+`per_place` scenario converts to an equivalent state (a core parity test
+pins that the converted state compiles to the same initial state and
+parameter values as the original) and is stored as `adhoc` on the next
+save; a `code` scenario yields Variables and Parameters only, and the
+authoring hook keeps the body verbatim, adding one footer error per stored
+parameter no longer exposed under the same identifier and type so the
+code's `scenario.<id>` references stay valid.
 
 Code exists only at compile time: `lowerScenarioToHir` synthesizes the
 state to code-mode scenario source and
@@ -385,7 +405,7 @@ initial-state body and wrapped override expressions.
       boxes: [
         {
           label: "Simulation Settings (inline)",
-          note: "Quick simulation embeds the bare, variables-less form; react.simulation synthesizes and compiles on every change, so errors surface live",
+          note: "Quick simulation embeds the form through renderLayout — Variables and Parameters in the left column, Initial state in the right; react.simulation synthesizes and compiles on every change, so errors surface live",
         },
         {
           label: "Create-experiment drawer",
@@ -394,6 +414,10 @@ initial-state body and wrapped override expressions.
         {
           label: "Create-experiment drawer (sweeps)",
           note: "Swept fields become the experiment's parameter axes",
+        },
+        {
+          label: "Scenario drawers",
+          note: 'Create and edit save the state as initialState.type "adhoc"; the edit drawer seeds through adHocStateFromScenario, showing a code scenario\'s body read-only',
         },
       ],
     },
@@ -415,7 +439,7 @@ const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
   state={state}
   onChange={setState}
   context={{ netParameters, places, types }} // from the SDCPN
-  selection="none" // "optimize" | "expose" where the toggles apply
+  selection="none" // "sweep" | "expose" where the toggles apply
 />;
 ```
 
@@ -425,14 +449,18 @@ matches the data flow.
 
 Two props shape an **embedding**: `withVariables={false}` removes the
 Variables section (an expression referencing `scenario.<name>` then fails as
-unknown), and `bare` renders the exposed groups without the collapsible
-section chrome, for hosts with their own heading grammar. The Parameters
-section removes itself the same way when the context carries no net
-parameters. Quick simulation combines all three — `bare`,
-`withVariables={false}`, `netParameters: []` — so Simulation Settings shows
-exactly one group, the places, under the panel's own "Initial state"
-heading, with the panel's parameter inputs staying the single owner of
-parameter values.
+unknown), and `renderLayout` hands the host each group — Variables,
+Parameters, places — already wired to the form's contexts and without
+section chrome, so the host lays them out under its own headings; each
+visual column goes in a `FormLayoutColumn` so the keyboard walk chains the
+column's groups and crosses between columns. The Parameters group is `null`
+when the context carries no net parameters. Simulation Settings uses
+`renderLayout` for both shapes: with no scenario, Variables and Parameters
+in the left panel column and Initial state in the right; with a saved
+scenario, the run form's scenario parameters on the left and the read-only
+Parameters and Initial state on the right. The scenario drawer uses it too,
+for a `code` scenario only, to put the read-only code where the places
+would render.
 
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
@@ -460,4 +488,6 @@ its Simulation Settings error banner stays live.
   participating places are a synthesis error because the generated initial
   state is keyed by place name.
 - **The generated scenario is never persisted** — no consumer writes it into
-  the net file, and the experiments table shows it as "Ad-hoc scenario".
+  the net file, and the experiments table shows it as "Ad-hoc scenario". The
+  form's state persists only through the scenario drawers, as
+  `initialState.type: "adhoc"`.
