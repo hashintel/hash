@@ -9,6 +9,8 @@ use std::{fs, time::Instant};
 use arc_swap::Guard;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::{sync::oneshot, time::timeout};
+use tracing::{Dispatch, Instrument as _};
+use tracing_subscriber::Registry;
 use type_system::principal::actor::{ActorId, ActorType};
 use uuid::Uuid;
 
@@ -145,6 +147,14 @@ async fn refusing(_epoch: &Epoch) -> Result<PendingCacheEntry, &'static str> {
     Err("permission resolution failed")
 }
 
+#[expect(
+    clippy::panic_in_result_fn,
+    reason = "this resolver exercises cleanup after a task panic"
+)]
+fn panicking(_epoch: &Epoch) -> Result<PendingCacheEntry, ()> {
+    panic!("a refresh resolver panic should unwind out of its task")
+}
+
 fn other_epoch(files: &TamperFixture) -> Epoch {
     let generation = files.tamper(&artifact::Representations::NAME, |path| {
         fs::remove_file(path).expect("the staged placeholder should be removable");
@@ -194,6 +204,7 @@ async fn resolve_reopened_inflight() {
                 .expect("the replacement should release the prior resolution");
             Ok::<_, ()>(pending(&previous_world, epoch, actor))
         },
+        |()| panic!("should return foreground errors to the caller"),
     );
     let new = async {
         started
@@ -206,6 +217,7 @@ async fn resolve_reopened_inflight() {
                 CacheKey::new(&epoch, actor, None),
                 fixture.now,
                 async move |epoch: &Epoch| Ok::<_, ()>(pending(&world, epoch, actor)),
+                |()| panic!("should return foreground errors to the caller"),
             )
             .await
             .expect("the new lifetime should resolve independently")
@@ -245,7 +257,9 @@ async fn resolve_reopened_retired() {
     let held = fixture.seed(key(), fixture.cache.limits.soft).await;
     let answer = fixture
         .cache
-        .resolve(&epoch, key(), fixture.now, forbidden)
+        .resolve(&epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("a previous lifetime lookup should not fail")
         .expect("the unexpired publication should remain usable");
@@ -255,14 +269,18 @@ async fn resolve_reopened_retired() {
     fixture.seed(key(), HARD).await;
     let expired = fixture
         .cache
-        .resolve(&epoch, key(), fixture.now, forbidden)
+        .resolve(&epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("the expired lifetime should not resolve again");
     assert!(expired.is_none());
     fixture.absent(&key()).await;
     let missing = fixture
         .cache
-        .resolve(&epoch, key(), fixture.now, forbidden)
+        .resolve(&epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("a previous lifetime miss should not resolve again");
     assert!(missing.is_none());
@@ -275,7 +293,9 @@ async fn resolve_stale_retired() {
     let held = fixture.seed(key(), fixture.cache.limits.soft).await;
     let answer = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, forbidden)
+        .resolve(&fixture.epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("the retired lookup should not fail")
         .expect("the unexpired entry should remain usable");
@@ -304,7 +324,9 @@ async fn resolve_reactivated() {
 
     let retired = fixture
         .cache
-        .resolve(&other, key(), fixture.now, forbidden)
+        .resolve(&other, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("the retired lookup should not fail")
         .expect("the unexpired entry should remain usable under the other epoch");
@@ -313,16 +335,14 @@ async fn resolve_reactivated() {
         "the other generation should reuse the held publication"
     );
 
-    let (announce, started) = oneshot::channel();
-    let resolver = async move |epoch: &Epoch| {
-        announce
-            .send(())
-            .expect("the lookup should await refresh startup");
-        refusing(epoch).await
-    };
+    let (announce, finished) = oneshot::channel();
     let active = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, resolver)
+        .resolve(&fixture.epoch, key(), fixture.now, refusing, move |error| {
+            announce
+                .send(error)
+                .expect("should await the refresh failure");
+        })
         .await
         .expect("the active lookup should not fail")
         .expect("the active lookup should return the held entry");
@@ -330,13 +350,144 @@ async fn resolve_reactivated() {
         Arc::ptr_eq(&active, &held),
         "a refresh should preserve the immediate answer"
     );
-    timeout(Duration::from_secs(1), started)
-        .await
-        .expect("refresh startup should not stall")
-        .expect("reactivation should launch the eligible refresh");
+    assert_eq!(
+        timeout(Duration::from_secs(1), finished)
+            .await
+            .expect("should finish the refresh")
+            .expect("should report the refresh failure"),
+        "permission resolution failed"
+    );
     assert!(
         !held.refreshing.load(Ordering::Acquire),
         "a failed refresh should release its claim"
+    );
+}
+
+/// Failed refreshes retain the publication and report their error under the scheduling span.
+#[tokio::test(start_paused = true)]
+async fn resolve_refresh_failure() {
+    let fixture = Fixture::new("cache-resolve-refresh-failure");
+    let key = || fixture.key(fixture.epoch.generation());
+    let held = fixture.seed(key(), fixture.cache.limits.soft).await;
+    let dispatch = Dispatch::new(Registry::default());
+    let _default = tracing::dispatcher::set_default(&dispatch);
+
+    let requests = [
+        tracing::info_span!("request"),
+        tracing::info_span!("request"),
+        tracing::Span::none(),
+    ];
+    assert_ne!(requests[0].id(), requests[1].id());
+    for request in requests {
+        let expected_id = request.id();
+        let (announce, finished) = oneshot::channel();
+        let claimed = Arc::clone(&held);
+        let error = vec![17_u8, 29];
+        let answer = fixture
+            .cache
+            .resolve(
+                &fixture.epoch,
+                key(),
+                fixture.now,
+                async move |_: &Epoch| Err(error),
+                move |error| {
+                    announce
+                        .send((
+                            error,
+                            claimed.refreshing.load(Ordering::Acquire),
+                            tracing::Span::current().id(),
+                        ))
+                        .expect("should await the error callback");
+                },
+            )
+            .instrument(request)
+            .await
+            .expect("should answer from the stale entry")
+            .expect("should retain the stale entry");
+        assert!(Arc::ptr_eq(&answer, &held));
+
+        let (error, refreshing, actual_id) = timeout(Duration::from_secs(1), finished)
+            .await
+            .expect("should complete the refresh")
+            .expect("should call the error observer");
+        assert_eq!(error, [17, 29]);
+        assert!(
+            !refreshing,
+            "should release the claim before reporting the failure"
+        );
+        assert_eq!(actual_id, expected_id);
+        assert_eq!(tracing::Span::current().id(), None);
+        let retained = fixture
+            .cache
+            .entries
+            .get(&key())
+            .await
+            .expect("should retain the failed refresh's publication");
+        assert!(Arc::ptr_eq(&retained, &held));
+    }
+}
+
+/// A refresh whose resolver panics releases its claim and admits the next attempt.
+#[tokio::test]
+async fn resolve_refresh_panic() {
+    let fixture = Fixture::new("cache-resolve-refresh-panic");
+    let key = || fixture.key(fixture.epoch.generation());
+    let held = fixture.seed(key(), fixture.cache.limits.soft).await;
+
+    let (announce, started) = oneshot::channel();
+    let resolver = async move |epoch: &Epoch| {
+        announce
+            .send(())
+            .expect("the case should await refresh startup");
+        panicking(epoch)
+    };
+    let answer = fixture
+        .cache
+        .resolve(&fixture.epoch, key(), fixture.now, resolver, |()| {
+            panic!("should not report an unwinding panic as a resolver error")
+        })
+        .await
+        .expect("the stale lookup should not fail")
+        .expect("the stale lookup should return the held entry");
+
+    assert!(
+        Arc::ptr_eq(&answer, &held),
+        "a refresh should preserve the immediate answer"
+    );
+    // The refresh runs on this case's current-thread scheduler, and its announcement precedes
+    // its panic within one poll. Awaiting the announcement returns after the task has unwound
+    // and released the claim it holds.
+    timeout(Duration::from_secs(1), started)
+        .await
+        .expect("refresh startup should not stall")
+        .expect("the stale lookup should launch the eligible refresh");
+    assert!(
+        !held.refreshing.load(Ordering::Acquire),
+        "a panicking refresh should release its claim"
+    );
+
+    let (announce, finished) = oneshot::channel();
+    let later = fixture
+        .cache
+        .resolve(&fixture.epoch, key(), fixture.now, refusing, move |error| {
+            announce
+                .send(error)
+                .expect("should await the later refresh failure");
+        })
+        .await
+        .expect("the later lookup should not fail")
+        .expect("the later lookup should return the held entry");
+
+    assert!(
+        Arc::ptr_eq(&later, &held),
+        "the later lookup should answer from the same publication"
+    );
+    assert_eq!(
+        timeout(Duration::from_secs(1), finished)
+            .await
+            .expect("should finish the later refresh")
+            .expect("should report the later refresh failure"),
+        "permission resolution failed"
     );
 }
 
@@ -350,7 +501,9 @@ async fn resolve_expired_retired() {
 
     let answer = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, forbidden)
+        .resolve(&fixture.epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("a retired lookup should not fail");
 
@@ -418,7 +571,13 @@ async fn resolve_missing_active() {
 
     let answer = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, resolving!(fixture))
+        .resolve(
+            &fixture.epoch,
+            key(),
+            fixture.now,
+            resolving!(fixture),
+            |()| panic!("should return foreground errors to the caller"),
+        )
         .await
         .expect("an active miss should not fail")
         .expect("an active miss should resolve a new entry");
@@ -442,7 +601,9 @@ async fn resolve_missing_retired() {
 
     let answer = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, forbidden)
+        .resolve(&fixture.epoch, key(), fixture.now, forbidden, |()| {
+            panic!("should not refresh a retired entry")
+        })
         .await
         .expect("a retired miss should not fail");
 
@@ -460,7 +621,9 @@ async fn resolve_resolver_failure() {
 
     let error = fixture
         .cache
-        .resolve(&fixture.epoch, key(), fixture.now, refusing)
+        .resolve(&fixture.epoch, key(), fixture.now, refusing, |_| {
+            panic!("should return foreground errors to the caller")
+        })
         .await
         .expect_err("resolution failure should propagate without an expired fallback");
 

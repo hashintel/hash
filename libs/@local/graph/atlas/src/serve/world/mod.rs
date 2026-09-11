@@ -26,8 +26,8 @@ mod ontology;
 pub(crate) mod topology;
 
 pub(crate) use self::{
-    encoding::Encoding, error::WorldError, geometry::Geometry, layout::Layout,
-    node_importance::NodeImportance, node_index::NodeIndex, ontology::Ontology, topology::Topology,
+    error::WorldError, layout::Layout, node_index::NodeIndex, ontology::Ontology,
+    topology::Topology,
 };
 
 /// A generation and the secret used to derive its wire-ID codecs.
@@ -125,10 +125,10 @@ impl World {
     ///
     /// Returns any filesystem error from removing the directory.
     pub(crate) async fn destroy(self) -> io::Result<()> {
-        // A file is only truly deleted once all of its file descriptors are closed, and each
-        // artifact holds two file descriptors. One for the mmap, another one for the
-        // advisory read lock. Therefore it is safe to remove the directory, and then
-        // release the file descriptors at the end of the call through `Drop`.
+        // POSIX preserves file contents after unlink while an open descriptor or memory mapping
+        // retains a reference. Each `PageMap` owns one mapping and one `File` holding its advisory
+        // read lock. Therefore it is safe to remove the directory before releasing those resources
+        // through `Drop`.
         tokio::fs::remove_dir_all(self.generation.path()).await
     }
 }
@@ -160,8 +160,7 @@ mod tests {
         );
     }
 
-    /// Open refuses an adjacency spanning an extra node row, under
-    /// [`WorldError::NodeCountMismatch`].
+    /// An extra adjacency node produces [`WorldError::NodeCountMismatch`].
     ///
     /// Dropping a node row from the adjacency would drop that node's edge slots with it and move
     /// the edge domain in the same tamper. The tamper therefore adds a row, and widening is as
@@ -188,8 +187,7 @@ mod tests {
         );
     }
 
-    /// Open refuses a postings point domain above the layout's node count, under
-    /// [`WorldError::NodeCountMismatch`].
+    /// Postings beyond the layout's node count produce [`WorldError::NodeCountMismatch`].
     ///
     /// Narrowing the postings' point domain can strand a membership position outside it, which
     /// the postings contract refuses first and under its own name. The tamper therefore adds a

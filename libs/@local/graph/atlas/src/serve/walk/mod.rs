@@ -55,7 +55,7 @@ pub(crate) struct Walk<'context> {
     pub index: &'context NodeIndex,
 }
 
-impl<'context> Walk<'context> {
+impl Walk<'_> {
     fn node_withdrawn(&self, epoch: &Epoch, node: NodeRowId) -> bool {
         !epoch
             .nodes(self.index)

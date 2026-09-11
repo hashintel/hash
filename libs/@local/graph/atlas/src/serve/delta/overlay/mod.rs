@@ -123,6 +123,13 @@ where
     }
 }
 
+/// Identity rows added, withdrawn and relabelled over an immutable base provider.
+///
+/// The residual snapshots the base's [`RowDomain`] at construction and allocates added rows past
+/// it, in order. An added row's [`DeltaRowId`] is its offset from that snapshot, and every method
+/// taking a `base` requires one reporting the snapshotted domain: the archive-backed
+/// [`NaiveIdentityProvider`] over a read-only table reports a constant domain, and a provider
+/// whose domain grows after the snapshot violates the requirement.
 #[derive(Debug)]
 pub(crate) struct IdentityProviderResidual<K, R, P> {
     domain: RowDomain<R>,
@@ -152,7 +159,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
     }
 
     #[inline]
-    pub(crate) fn bind<'this, B>(&'this self, base: B) -> DeltaIdentityProvider<'this, B, K, R, P> {
+    pub(crate) const fn bind<B>(&self, base: B) -> DeltaIdentityProvider<'_, B, K, R, P> {
         DeltaIdentityProvider::from_parts(self, base)
     }
 
@@ -172,11 +179,8 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
             .chain(
                 self.inverse
                     .iter_enumerated()
-                    .filter_map(move |(delta, versioned)| {
-                        versioned
-                            .is_withdrawn(None)
-                            .then(|| R::from_u64(delta.get()).plus(base.size()))
-                    }),
+                    .filter(move |(_, versioned)| versioned.is_withdrawn(None))
+                    .map(move |(delta, _)| R::from_u64(delta.get()).plus(base.size())),
             )
     }
 
@@ -187,7 +191,8 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
     ///
     /// # Panics
     ///
-    /// Panics if `revision` precedes the key's latest recorded visibility transition.
+    /// Panics if `revision` precedes the key's latest recorded visibility transition, or if `base`
+    /// reports a domain past an added row of this residual.
     pub(crate) fn insert(
         &mut self,
         base: &impl VersionedIdentityProvider<K, R>,
@@ -237,7 +242,8 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
     ///
     /// # Panics
     ///
-    /// Panics if `revision` precedes the key's latest recorded visibility transition.
+    /// Panics if `revision` precedes the key's latest recorded visibility transition, or if `base`
+    /// reports a domain past an added row of this residual.
     pub(crate) fn withdraw(
         &mut self,
         base: &impl VersionedIdentityProvider<K, R>,
@@ -249,13 +255,10 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         R: Row,
     {
         if let Some(&row) = self.forward.get(&key) {
-            let Some(delta) = DeltaRowId::derive(base.provide_domain(), row) else {
-                tracing::warn!("todo");
-                return false;
-            };
+            let delta = DeltaRowId::derive(base.provide_domain(), row)
+                .expect("an added identity row must follow the fitted rows");
 
-            let inverse = &mut self.inverse[delta];
-            inverse.push(EntryKind::Withdrawn, revision)
+            self.inverse[delta].push(EntryKind::Withdrawn, revision)
         } else if let Some(row) = base.provide_allocated_row_of(key) {
             let mut has_changed = false;
 

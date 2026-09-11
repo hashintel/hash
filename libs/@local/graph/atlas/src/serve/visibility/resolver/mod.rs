@@ -41,8 +41,8 @@ impl ScopeResolver {
     /// Resolves the requested scope using the observation's admission time.
     ///
     /// Returns [`None`] when a filtered scope has no supplied or cached document, or when the
-    /// requested lifetime has no reusable entry and is no longer present. An already-admitted
-    /// resolution may finish after promotion.
+    /// requested [delta lifetime](crate::serve::delta::DeltaId) has no reusable entry and is no
+    /// longer present. An already-admitted resolution may finish after promotion.
     ///
     /// # Errors
     ///
@@ -98,6 +98,13 @@ impl ScopeResolver {
                     PendingCacheEntry::new(world, epoch, mask, document)
                         .await
                         .change_context(VisibilityProofError::ComputeView)
+                },
+                |error: Report<VisibilityProofError>| {
+                    // the fieldless context names the stage without rendering store or filter data.
+                    tracing::warn!(
+                        error = %error.current_context(),
+                        "Failed to refresh the cached visibility scope"
+                    );
                 },
             )
             .await

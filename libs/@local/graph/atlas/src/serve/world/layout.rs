@@ -5,7 +5,7 @@
 
 use core::{error::Error, fmt};
 
-use error_stack::{Report, ReportSink, TryReportTupleExt as _};
+use error_stack::{Report, TryReportTupleExt as _};
 use hashql_core::id::Id as _;
 
 use super::{
@@ -27,11 +27,12 @@ use crate::{
 };
 
 /// Visible node coordinates addressed by stable row identity.
-///
-/// Positions use the [wire frame](crate::salt::lod::stage::WIRE_FRAME). The allocated row count
-/// includes withdrawn and unplaced rows, whose position lookups return [`None`].
 pub(crate) trait LayoutProvider {
+    /// Returns the allocated row count, including withdrawn and unplaced rows.
     fn provide_node_count(&self) -> usize;
+    /// Returns the visible position in the [wire frame](crate::salt::lod::stage::WIRE_FRAME).
+    ///
+    /// Returns [`None`] for withdrawn or unplaced rows.
     fn provide_position(&self, node: NodeRowId) -> Option<Vec2>;
 }
 
@@ -54,8 +55,7 @@ pub(crate) enum LayoutRoundtripError {
         position: BasePosition,
         /// The rank the position carries.
         rank: ImportanceRank,
-        /// The position the reverse column holds at that rank, absent when the rank lies outside
-        /// the rank domain.
+        /// The rank's reverse position, absent outside the rank domain.
         roundtrip: Option<BasePosition>,
     },
     /// The row columns are not inverse.
@@ -64,8 +64,7 @@ pub(crate) enum LayoutRoundtripError {
         position: BasePosition,
         /// The row the position carries.
         row: NodeRowId,
-        /// The position the reverse column holds at that row, absent when the row lies outside
-        /// the row domain.
+        /// The row's reverse position, absent outside the row domain.
         roundtrip: Option<BasePosition>,
     },
 }
@@ -129,8 +128,7 @@ impl Layout {
     ///
     /// # Errors
     ///
-    /// Returns [`WorldError`] for artifact opening, count, row-domain or sampled roundtrip
-    /// failures.
+    /// Returns [`WorldError`] for artifact opening, count or sampled roundtrip failures.
     pub(crate) fn open(options: OpenOptions<'_>) -> Result<Self, Report<[WorldError]>> {
         let index = NodeIndex::open(options);
         let importance = NodeImportance::open(options);
@@ -144,26 +142,23 @@ impl Layout {
             geometry,
         };
 
-        let mut sink = ReportSink::new_armed();
-
         let nodes = this.index.len();
         if nodes != this.importance.len() || nodes != this.geometry.node_count() {
-            sink.capture(WorldError::LayoutCountMismatch {
+            return Err(Report::new(WorldError::LayoutCountMismatch {
                 index: nodes,
                 importance: this.importance.len(),
                 geometry: this.geometry.node_count(),
-            });
+            })
+            .expand());
         }
 
-        if let Err(error) = u32::try_from(nodes) {
-            sink.capture(Report::new(error).change_context(WorldError::TooManyNodes { nodes }));
-        }
+        this.try_roundtrip_sample().map_err(|error| {
+            Report::new(error)
+                .change_context(WorldError::LayoutRoundtrip)
+                .expand()
+        })?;
 
-        if let Err(error) = this.try_roundtrip_sample() {
-            sink.capture(Report::new(error).change_context(WorldError::LayoutRoundtrip));
-        }
-
-        sink.finish_ok(this)
+        Ok(this)
     }
 
     #[expect(
@@ -175,7 +170,7 @@ impl Layout {
         const SAMPLES: u64 = 64;
         let nodes = self.geometry.node_count() as u64;
 
-        // Validation reports the node bound rather than returning on it, and a position is a u32.
+        // A position is a u32, and the node index refuses a fitted count past that bound at open.
         if nodes == 0 || u32::try_from(nodes - 1).is_err() {
             return Ok(());
         }
@@ -355,6 +350,7 @@ mod tests {
         serve::{
             tests::fixture::{
                 NODES, TamperFixture, constant_u32_column, constant_u64_column, secret,
+                shorten_entities, shorten_u32_column,
             },
             world::{
                 OpenOptions,
@@ -419,8 +415,66 @@ mod tests {
         );
     }
 
-    /// Open refuses a position-of-rank column that is no permutation, under
-    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    /// Rejects empty rank columns beside nonempty geometry before sampling positions.
+    #[test]
+    fn open_empty_importance() {
+        let fixture = TamperFixture::publish("layout-empty-importance");
+        let files = &fixture.generation().repository().files;
+        let tampered = fixture.tamper(&files.rank_of_position.name(), |path| {
+            shorten_u32_column(path, 0);
+            shorten_u32_column(
+                path.with_file_name(files.position_of_rank.name().as_str()),
+                0,
+            );
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("should reject the mismatched layout counts");
+
+        let nodes = usize::try_from(NODES).expect("fixture node counts should fit usize");
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutCountMismatch { index, importance: 0, geometry }]
+                if *index == nodes && *geometry == nodes,
+        );
+    }
+
+    /// Rejects an empty node index beside nonempty geometry before sampling positions.
+    #[test]
+    fn open_empty_index() {
+        let fixture = TamperFixture::publish("layout-empty-index");
+        let files = &fixture.generation().repository().files;
+        let tampered = fixture.tamper(&files.row_of_position.name(), |path| {
+            constant_u64_column(path, 0, 0);
+            shorten_u32_column(
+                path.with_file_name(files.position_of_row.name().as_str()),
+                0,
+            );
+            shorten_entities::<NodeRowId>(
+                path.with_file_name(files.node_identities.name().as_str()),
+                0,
+                0,
+            );
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("should reject the mismatched layout counts");
+
+        let nodes = usize::try_from(NODES).expect("fixture node counts should fit usize");
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutCountMismatch { index: 0, importance, geometry }]
+                if *importance == nodes && *geometry == nodes,
+        );
+    }
+
+    /// Rejects a position-of-rank column that is not a permutation.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
     ///
     /// Every rank claiming position zero keeps the length and the format. The roundtrip sample
     /// therefore refuses the pairing at the first sampled position past zero.
@@ -452,8 +506,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a rank outside the position-of-rank column's domain, under
-    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    /// Rejects a rank outside the position-of-rank column's domain.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
     ///
     /// The sample reports the roundtrip as absent at the first sampled position.
     #[test]
@@ -484,8 +539,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a position-of-row column that is no permutation, under
-    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    /// Rejects a position-of-row column that is not a permutation.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
     ///
     /// Every node claiming position zero keeps the length and the format. Position zero's own node
     /// roundtrips, and the first sampled position past it does not.
@@ -517,8 +573,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a node row outside the position-of-row column's domain, under
-    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    /// Rejects a node row outside the position-of-row column's domain.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
     ///
     /// The sample reports the roundtrip as absent at the first sampled position.
     #[test]

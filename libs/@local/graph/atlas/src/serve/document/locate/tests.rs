@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{assert_matches, cell::RefCell, iter};
+use std::io;
 
 use arc_swap::Guard;
 use camino::Utf8Path;
@@ -19,6 +20,7 @@ use super::{
     trailer::{LocateTrailer, PropertyMap},
 };
 use crate::{
+    api::problem::{Problem, tests::assert_internal_diagnostic},
     bitset::CompressedBitSet,
     dataset::auxiliary::{Label, OwnedLegend},
     file::generation::Generation,
@@ -252,7 +254,9 @@ impl LocateResolver for FakeResolver {
                 Ok(response.source_properties)
             }
             Some(Answer::Unresolved) => Ok(None),
-            Some(Answer::Failure) => Err(Report::new(HydrateError::Query)),
+            Some(Answer::Failure) => Err(Report::new(io::Error::other("private-store-message"))
+                .change_context(HydrateError::Query)
+                .attach("private-property-value")),
             None => panic!("should receive no further request"),
         }
     }
@@ -992,7 +996,7 @@ fn hydrate_request_empty_links() {
     });
 }
 
-/// A failed hydration keeps [`HydrateError::Query`] under [`LocateDocumentError::Hydrate`].
+/// The log names [`HydrateError::Query`] but excludes the report's source text and attachments.
 #[test]
 fn hydrate_failure() {
     let fixture = Fixture::new("locate-hydrate-failure");
@@ -1008,10 +1012,26 @@ fn hydrate_failure() {
     ) else {
         panic!("should propagate the resolver's failure");
     };
-    assert_matches!(report.current_context(), LocateDocumentError::Hydrate);
+    assert_matches!(
+        report.current_context(),
+        LocateDocumentError::Hydrate(HydrateError::Query)
+    );
     assert_matches!(
         report.downcast_ref::<HydrateError>(),
         Some(HydrateError::Query)
+    );
+    assert!(
+        format!("{report:#}").contains("private-store-message"),
+        "should retain the supplied source text in the report"
+    );
+    assert!(
+        format!("{report:?}").contains("private-property-value"),
+        "should retain the supplied attachment in the report"
+    );
+    assert_internal_diagnostic(
+        move || Problem::from(report),
+        "locate detail resolution failed: the detail hydration query failed",
+        "the detail hydration failed",
     );
 }
 

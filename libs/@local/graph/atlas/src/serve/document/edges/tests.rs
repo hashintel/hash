@@ -1,5 +1,6 @@
 use alloc::sync::Arc;
 use core::{assert_matches, cell::RefCell, iter};
+use std::io;
 
 use arc_swap::Guard;
 use camino::Utf8Path;
@@ -17,6 +18,7 @@ use super::{
     EdgesLimits, EdgesTrailer,
 };
 use crate::{
+    api::problem::{Problem, tests::assert_internal_diagnostic},
     bitset::CompressedBitSet,
     dataset::auxiliary::{Label, OwnedLegend},
     file::generation::Generation,
@@ -48,7 +50,11 @@ impl TypeUrlResolver for FailingResolver {
     ) -> Result<impl IntoIterator<Item = (OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>
     {
         let _ = types;
-        Err::<iter::Empty<(OntologyTypeUuid, VersionedUrl)>, _>(Report::new(HydrateError::Query))
+        Err::<iter::Empty<(OntologyTypeUuid, VersionedUrl)>, _>(
+            Report::new(io::Error::other("private-store-message"))
+                .change_context(HydrateError::Query)
+                .attach("private-property-value"),
+        )
     }
 }
 
@@ -641,6 +647,7 @@ fn dispatch_reversed_answers() {
     }
 }
 
+/// The log names [`HydrateError::Query`] but excludes the report's source text and attachments.
 #[test]
 fn resolver_failure() {
     let fixture = Fixture::new("edges-resolver-failure");
@@ -655,10 +662,26 @@ fn resolver_failure() {
     ) else {
         panic!("should propagate the resolver's failure");
     };
-    assert_matches!(report.current_context(), EdgesDocumentError::Hydrate,);
+    assert_matches!(
+        report.current_context(),
+        EdgesDocumentError::Hydrate(HydrateError::Query)
+    );
     assert_matches!(
         report.downcast_ref::<HydrateError>(),
         Some(HydrateError::Query)
+    );
+    assert!(
+        format!("{report:#}").contains("private-store-message"),
+        "should retain the supplied source text in the report"
+    );
+    assert!(
+        format!("{report:?}").contains("private-property-value"),
+        "should retain the supplied attachment in the report"
+    );
+    assert_internal_diagnostic(
+        move || Problem::from(report),
+        "edge type URL resolution failed: the detail hydration query failed",
+        "the detail hydration failed",
     );
 }
 

@@ -112,9 +112,14 @@ where
             buckets.max_tile_depth(),
         )
         .ok();
+
         let offset = sealed_offset(density, rule, entry.occupancy.as_ref());
-        let scene = Scene::of(requested.world(), requested.epoch(), &entry, offset)
-            .map_err(|error| Problem::internal(error, "binding the manifest schedule failed"))?;
+        let scene =
+            Scene::of(requested.world(), requested.epoch(), &entry, offset).map_err(|error| {
+                tracing::error!(?error, "unable to bind manifest schedule");
+                Problem::internal(error, "binding the manifest schedule failed")
+            })?;
+
         let document = ManifestDocument::new(scene, &state.limits, state.visibility);
         let mut bytes = Vec::new();
         let envelope = document

@@ -1,5 +1,3 @@
 mod ontology;
 
-pub(crate) use self::ontology::{
-    OntologyMembership, OntologyMemberships, OntologySelection, SelectionSlot,
-};
+pub(crate) use self::ontology::{OntologySelection, SelectionSlot};

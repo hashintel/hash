@@ -3,10 +3,17 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::{assert_matches, num::NonZeroU64};
-use std::sync::Mutex;
+use alloc::sync::Arc;
+use core::{assert_matches, mem, num::NonZeroU64, time::Duration};
+use std::sync::{Condvar, Mutex};
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
+use tracing::{Dispatch, Event, Span, Subscriber, span::Id};
+use tracing_subscriber::{
+    Layer, Registry,
+    layer::{Context, SubscriberExt as _},
+    registry::LookupSpan,
+};
 
 use super::{
     FitConfig, FitError, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError, applicability,
@@ -264,8 +271,7 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     };
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture driving the fold fit directly,
-    // since a single-fold run is the point of this fixture.
+    // every row belongs to fold 0. Passing None fits the complete corpus at each strength.
     let folded = FoldedTraining {
         training,
         folds: IdSlice::from_raw(&[0, 0, 0]),
@@ -292,7 +298,7 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture driving the fold fit directly.
+    // every row belongs to fold 0. Passing None fits the complete corpus.
     let error = FoldedTraining {
         training: corpus.training(),
         folds: IdSlice::from_raw(&[0, 0]),
@@ -324,11 +330,13 @@ fn overconfident_logits_calibrate_above_one() {
 
     let temperature = calibration::fit_temperature(rows, logits);
 
-    // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
-    // interior optimum of the [0.05, 20] bracket. Near the optimum the
-    // cross-entropy is flat below f64 resolution over a relative
-    // window of √(2 · ε / 0.24) ~ 3e-8 in ln T, so the
-    // search cannot localize tighter than that.
+    // for x = ln T and a = 6e⁻ˣ, these identical rows have mean cross-entropy H(x) = ln(eᵃ + 2) −
+    // 0.6a near the optimum, where the probability floor is inactive. With p = eᵃ/(eᵃ + 2), Hₐ = p
+    // − 0.6 vanishes at a = ln 3. This gives T = 6/ln 3 inside [0.05, 20] and curvature Hₓₓ =
+    // 0.24(ln 3)². An absolute objective perturbation η gives the local scale √(2η/[0.24(ln 3)²])
+    // in ln T, approximately the relative change in T. Taking η = 2⁻⁵² gives about 3.9 × 10⁻⁸.
+    // Therefore the 10⁻⁶ relative tolerance leaves margin over this illustrative scale, without
+    // treating η as a bound on the implementation's rounding error.
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
     assert!((temperature - expected).abs() <= 1.0e-6 * expected);
@@ -382,7 +390,7 @@ fn metrics_match_hand_computed_values() {
     let metrics = calibration::metrics(IdSlice::from_raw(&rows), IdSlice::from_raw(&logits), 1.0)
         .expect("finite fixture rows have finite metrics");
 
-    // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 · (1/3)^2.
+    // uniform probabilities: CE = ln 3, Brier = (2/3)² + 2 · (1/3)².
     assert!((metrics.raw_cross_entropy.get() - 3.0_f64.ln()).abs() <= 1.0e-15);
     assert!((metrics.raw_brier.get() - 2.0 / 3.0).abs() <= 1.0e-15);
 }
@@ -415,8 +423,8 @@ fn applicability_matches_hand_computed_values() {
     assert!((scales[0] - expected_scales.0).abs() <= 1.0e-9 * expected_scales.0);
     assert!((scales[1] - expected_scales.1).abs() <= 1.0e-9 * expected_scales.1);
 
-    // Both rows sit one leading unit from the mean, so their distances
-    // agree: √(scale^2 / dimensions).
+    // both rows differ from the mean by one unit in the leading coordinate. Their distances agree:
+    // √(scale² / dimensions).
     let expected_distance = (expected_scales.0 * expected_scales.0 / 3072.0).sqrt();
     assert_eq!(fitted.distances.len(), 2);
     for &distance in &fitted.distances {
@@ -516,9 +524,8 @@ fn fit_recovers_the_generating_distributions() {
     assert!(fitted.evidence.regularization <= DPositive::ONE);
     assert!(fitted.evidence.iterations >= 1);
 
-    // The separable corpus rewards weak regularization out of fold, so the
-    // selection stays weak and the fitted raw posteriors reproduce the
-    // generating soft targets on the training rows.
+    // weak regularization minimizes out-of-fold loss for this separable corpus. The deployment
+    // fit's raw posteriors approximate the generating soft targets on its training rows.
     for (row, expected) in corpus.rows.iter_enumerated() {
         let prediction = fitted
             .classifier
@@ -574,8 +581,9 @@ fn fit_selects_regularization_and_records_the_curve() {
 
     let winner = regularization::winner(curve);
     assert_eq!(fitted.evidence.regularization, curve[winner].regularization);
-    // The winner's reading and the reported raw metric are the same reduction
-    // over the same logits, so the equality is exact.
+    // identical arithmetic over identical inputs gives identical results. The winner's reading and
+    // the raw metric use the same cross-entropy reduction over the same rows and logits at T = 1.
+    // Therefore the equality is exact.
     assert_eq!(
         fitted.evidence.raw_cross_entropy,
         curve[winner].cross_entropy
@@ -606,6 +614,116 @@ fn exhausted_outer_iteration_budget_is_an_error() {
     .expect_err("one outer iteration cannot converge");
 
     assert_matches!(error, FitError::Solver(SolverFailure::OuterIterationBudget));
+}
+
+struct SolveEvent {
+    worker: usize,
+    scope: Vec<Id>,
+}
+
+struct SolveScopes {
+    events: Arc<Mutex<Vec<SolveEvent>>>,
+    another_worker: Condvar,
+}
+
+impl<S: Subscriber + for<'lookup> LookupSpan<'lookup>> Layer<S> for SolveScopes {
+    fn on_event(&self, event: &Event<'_>, context: Context<'_, S>) {
+        if event.metadata().target() != "hash_graph_atlas::salt::policy::classifier::fit" {
+            return;
+        }
+
+        let scope = context.event_scope(event).map_or_else(Vec::new, |scope| {
+            scope.from_root().map(|span| span.id()).collect()
+        });
+        let both_workers = {
+            let mut events = self.events.lock().expect("should lock the solve events");
+            events.push(SolveEvent {
+                worker: rayon::current_thread_index().expect("should execute on a pool worker"),
+                scope,
+            });
+            self.another_worker.notify_all();
+
+            // hold the first diagnostic until another worker emits one, before either solve returns
+            // its error. The timeout bounds a failed rendezvous.
+            self.another_worker
+                .wait_timeout_while(events, Duration::from_secs(10), |events| events.len() < 2)
+                .map(|(events, _)| events.len() >= 2)
+                .expect("should await another worker's diagnostic")
+        };
+        assert!(both_workers, "should observe both workers before returning");
+    }
+}
+
+/// Nested fold solves retain the active span and release it after a solver error.
+#[test]
+fn select_tracing_context() {
+    let corpus = soft_corpus();
+    let config = FitConfig {
+        solver: SolverConfig {
+            maximum_outer_iterations: NonZeroU64::new(1).expect("should admit one iteration"),
+            ..
+        },
+        ..config()
+    };
+    let folds = grouped_folds(&corpus.rows, config.folds, config.seed)
+        .expect("should assign the corpus groups");
+    let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
+    let folded = FoldedTraining {
+        training: corpus.training(),
+        folds: &folds,
+        gram: &gram,
+    };
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let dispatch = Dispatch::new(Registry::default().with(SolveScopes {
+        events: Arc::clone(&events),
+        another_worker: Condvar::new(),
+    }));
+
+    tracing::dispatcher::with_default(&dispatch, || {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build_scoped(
+                |thread| tracing::dispatcher::with_default(&dispatch, || thread.run()),
+                |pool| {
+                    let requests = [
+                        tracing::info_span!("request"),
+                        tracing::info_span!("request"),
+                        Span::none(),
+                    ];
+                    for request in requests {
+                        let classifier = if request.is_none() {
+                            Span::none()
+                        } else {
+                            request.in_scope(|| tracing::info_span!("classifier-fit"))
+                        };
+                        let expected: Vec<_> = [request.id(), classifier.id()]
+                            .into_iter()
+                            .flatten()
+                            .collect();
+                        let result = pool
+                            .install(|| classifier.in_scope(|| folded.select(config, &NoProgress)));
+                        assert_eq!(
+                            result.err().expect("should exhaust the iteration budget"),
+                            FitError::Solver(SolverFailure::OuterIterationBudget)
+                        );
+
+                        let observed = mem::take(
+                            &mut *events.lock().expect("should lock the recorded diagnostics"),
+                        );
+                        let mut workers: Vec<_> =
+                            observed.iter().map(|event| event.worker).collect();
+                        workers.sort_unstable();
+                        workers.dedup();
+                        assert_eq!(workers, [0, 1]);
+                        for event in observed {
+                            assert_eq!(event.scope, expected);
+                        }
+                        assert_eq!(pool.broadcast(|_| Span::current().id()), [None, None]);
+                    }
+                },
+            )
+            .expect("should build and join the subscribed pool");
+    });
 }
 
 #[test]
@@ -657,7 +775,7 @@ impl RecordingProgress {
             .clone()
     }
 
-    /// The completed folds, ascending: the pool finishes them in its own order.
+    /// Returns completed folds in ascending order, independent of worker completion order.
     fn completed(&self) -> Vec<usize> {
         let mut folds = self
             .completed
@@ -671,7 +789,6 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The fixture watches folds, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -708,8 +825,9 @@ fn every_cross_validation_fold_reports_once() {
     )
     .expect("the separable corpus fits");
 
-    // The fit trains four models. The fourth holds nothing out and is the deployment model rather
-    // than a fold, so the counter's ceiling is the announced three.
+    // each of the 13 candidate strengths fits three held-out models, followed by one full-corpus
+    // deployment fit: 13 × 3 + 1 = 40. Progress counts folds. Each reports once after its last
+    // candidate succeeds, and the deployment fit adds no fold completion.
     assert_eq!(progress.announced(), [3]);
     assert_eq!(progress.completed(), [0, 1, 2]);
 }
@@ -732,9 +850,8 @@ fn a_fit_that_never_converges_completes_no_fold() {
     )
     .expect_err("one outer iteration cannot converge");
 
-    // The announcement is the workload, not a promise it will land: a
-    // model that failed has not completed, so the bar stays empty
-    // rather than filling as the failures arrive.
+    // a fold reports completion only after all of its candidates succeed. This iteration budget
+    // prevents convergence, and a failed solve returns before decrementing the pending count.
     assert_eq!(progress.announced(), [2]);
     assert_eq!(progress.completed(), [0_usize; 0]);
 }

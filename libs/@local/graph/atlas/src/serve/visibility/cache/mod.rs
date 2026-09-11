@@ -8,10 +8,10 @@ use std::time::Instant;
 use error_stack::{Report, ResultExt as _};
 use moka::ops::compute::{CompResult, Op};
 use serde_json::value::RawValue;
+use tracing::Instrument as _;
 use type_system::principal::actor::ActorId;
 
 use self::error::VisibilityCacheError;
-pub(crate) use self::filter::FilterDigest;
 use crate::{
     allocator::HeapMemoryUsage as _,
     file::generation::GenerationId,
@@ -30,6 +30,8 @@ mod filter;
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::filter::FilterDigest;
 
 fn weight_of(retained: u64, filter: Option<&RawValue>) -> u32 {
     let inline = size_of::<CacheEntry>() as u64 + size_of::<CacheKey>() as u64;
@@ -131,8 +133,14 @@ impl CacheEntry {
         now.saturating_duration_since(self.resolved_at) >= hard
     }
 
-    fn claim_refresh(&self) -> bool {
-        self.refreshing
+    /// Claims the exclusive right to refresh this entry until the returned guard drops.
+    ///
+    /// Returns [`None`] while another refresh holds the claim. A request that still holds an entry
+    /// a later refresh has already replaced can claim it again, and the publication comparison in
+    /// [`VisibilityCache::resolve`] rejects that redundant resolution's result.
+    fn claim_refresh(entry: &Arc<Self>) -> Option<RefreshClaim> {
+        entry
+            .refreshing
             .compare_exchange(
                 false,
                 true,
@@ -140,9 +148,41 @@ impl CacheEntry {
                 atomic::Ordering::Acquire,
             )
             .is_ok()
+            .then(|| RefreshClaim {
+                entry: Arc::clone(entry),
+            })
     }
 }
 
+/// One refresh's exclusive claim on a cache entry.
+///
+/// Dropping the guard clears that entry's claim. The refresh future owns the guard and releases
+/// it on completion, unwinding or future drop. Later refreshes remain subject to the retired-epoch
+/// checks in [`VisibilityCache::resolve`] and to the entry's expiry.
+struct RefreshClaim {
+    entry: Arc<CacheEntry>,
+}
+
+impl RefreshClaim {
+    /// The claimed entry's publication.
+    fn publication(&self) -> Publication {
+        self.entry.publication
+    }
+}
+
+impl Drop for RefreshClaim {
+    fn drop(&mut self) {
+        self.entry
+            .refreshing
+            .store(false, atomic::Ordering::Release);
+    }
+}
+
+/// An actor and filter scope within one generation and [delta lifetime](DeltaId).
+///
+/// A generation can reopen with a new [`DeltaId`]. Including both identifiers keeps its cache
+/// scopes separate. Excluding the revision permits cache reuse and refresh across publications
+/// within that lifetime.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct CacheKey {
     generation: GenerationId,
@@ -236,12 +276,23 @@ impl VisibilityCache {
             })
     }
 
+    /// Reuses a cached scope or resolves an eligible epoch.
+    ///
+    /// A stale eligible entry returns immediately and starts a detached refresh if its claim is
+    /// free. The task uses the current tracing span. On resolution failure, it releases the
+    /// entry's refresh claim before calling `on_refresh_error` with the error. The cached entry
+    /// retains its expiry.
+    ///
+    /// # Errors
+    ///
+    /// Returns the resolver's error when an eligible entry is missing or expired.
     pub(crate) async fn resolve<R, E>(
         &self,
         epoch: &Epoch,
         key: CacheKey,
         now: Instant,
         resolver: R,
+        on_refresh_error: impl FnOnce(E) + Send + 'static,
     ) -> Result<Option<Arc<CacheEntry>>, E>
     where
         R: for<'epoch> AsyncFnOnce(&'epoch Epoch) -> Result<PendingCacheEntry, E> + Send + 'static,
@@ -260,34 +311,43 @@ impl VisibilityCache {
             return Ok(Some(entry));
         }
 
-        if entry.is_stale(now, self.limits.soft) && entry.claim_refresh() {
+        if entry.is_stale(now, self.limits.soft)
+            && let Some(claim) = CacheEntry::claim_refresh(&entry)
+        {
             let entries = self.entries.clone();
             let publications = Arc::clone(&self.publications);
-            let refreshed = Arc::clone(&entry);
             let epoch = epoch.fork();
 
-            let _handle = tokio::spawn(async move {
-                let Ok(resolution) = resolver(&epoch).await else {
-                    refreshed.refreshing.store(false, atomic::Ordering::Release);
-                    return;
-                };
-
-                let _result = entries
-                    .entry(key)
-                    .and_compute_with(async |held| {
-                        if held.is_none_or(|held| held.value().publication != refreshed.publication)
-                        {
-                            return Op::Nop;
+            let _handle = tokio::spawn(
+                async move {
+                    let resolution = match resolver(&epoch).await {
+                        Ok(resolution) => resolution,
+                        Err(error) => {
+                            drop(claim);
+                            on_refresh_error(error);
+                            return;
                         }
+                    };
 
-                        Op::Put(Arc::new(CacheEntry::new(
-                            resolution,
-                            now,
-                            publications.next(),
-                        )))
-                    })
-                    .await;
-            });
+                    let _result = entries
+                        .entry(key)
+                        .and_compute_with(async |held| {
+                            if held
+                                .is_none_or(|held| held.value().publication != claim.publication())
+                            {
+                                return Op::Nop;
+                            }
+
+                            Op::Put(Arc::new(CacheEntry::new(
+                                resolution,
+                                now,
+                                publications.next(),
+                            )))
+                        })
+                        .await;
+                }
+                .in_current_span(),
+            );
         }
 
         Ok(Some(entry))

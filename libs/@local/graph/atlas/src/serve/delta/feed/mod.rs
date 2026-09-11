@@ -149,8 +149,9 @@ impl Publication {
     ) -> Result<(), Report<DeltaFeedError>> {
         let mut shutdown = pin!(shutdown);
 
-        // We try to keep the previous in the `Arc` for as long as possible, that way we have a
-        // change to reuse it
+        // `next` waits for notification before `Arc::unwrap_or_clone(previous)`. The wait allows
+        // holders of `previous` to drop their strong references. At one strong reference, the
+        // operation moves the `Delta` value without cloning it.
         loop {
             let next = tokio::select! {
                 biased;

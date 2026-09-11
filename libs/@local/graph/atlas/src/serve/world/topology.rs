@@ -16,21 +16,22 @@ use crate::{
     },
     serve::delta::{
         epoch::Epoch,
-        overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
+        overlay::{NaiveIdentityProvider, VersionedIdentityProvider as _},
         topology::provider::{NaiveTopologyProvider, VersionedTopologyProvider as _},
     },
 };
 
 /// Endpoint and adjacency lookups over allocated node and edge rows.
-///
-/// Node and edge rows occupy the zero-based domains bounded by their respective counts. Counts
-/// include absent rows. Adjacency lists contain existing edges in strictly ascending row order.
 pub(crate) trait TopologyProvider {
+    /// Returns the exclusive bound of the zero-based node domain, including absent rows.
     fn provide_node_count(&self) -> usize;
+    /// Returns the exclusive bound of the zero-based edge domain, including absent rows.
     fn provide_edge_count(&self) -> usize;
     /// Returns the visible `[source, target]` pair, or [`None`] for an absent edge.
     fn provide_endpoints(&self, edge: EdgeRowId) -> Option<[NodeRowId; 2]>;
+    /// Returns existing incoming edges in strictly ascending row order.
     fn provide_incoming(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId>;
+    /// Returns existing outgoing edges in strictly ascending row order.
     fn provide_outgoing(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId>;
 }
 
@@ -177,6 +178,11 @@ impl Topology {
             .filter(move |&edge| self.endpoints(epoch, edge).is_some())
     }
 
+    /// Returns the edge's row if its identity is live at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn row_of(&self, epoch: &Epoch, edge: ArchivedEntityId) -> Option<EdgeRowId> {
         epoch
             .edges(self)
@@ -184,6 +190,11 @@ impl Topology {
             .provide_row_of_at(edge, epoch.revision())
     }
 
+    /// Returns the edge's entity key if its identity is live at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn key_of(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<ArchivedEntityId> {
         epoch
             .edges(self)
@@ -191,6 +202,11 @@ impl Topology {
             .provide_key_of_at(edge, epoch.revision())
     }
 
+    /// Borrows the legend of a live edge identity at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn payload<'scene>(
         &'scene self,
         epoch: &'scene Epoch,
@@ -275,8 +291,9 @@ mod tests {
         },
     };
 
-    /// Open refuses an edge identity table short of the adjacency's edge domain, under
-    /// [`WorldError::TopologyCountMismatch`].
+    /// Rejects an edge identity table shorter than the adjacency's edge domain.
+    ///
+    /// Returns [`WorldError::TopologyCountMismatch`].
     #[test]
     fn edge_identities_short() {
         let fixture = TamperFixture::publish("topology-edge-identities-short");
@@ -301,8 +318,9 @@ mod tests {
         );
     }
 
-    /// Open refuses an endpoint column short of the adjacency's edge domain, under
-    /// [`WorldError::TopologyCountMismatch`].
+    /// Rejects an endpoint column shorter than the adjacency's edge domain.
+    ///
+    /// Returns [`WorldError::TopologyCountMismatch`].
     #[test]
     fn endpoint_column_short() {
         let fixture = TamperFixture::publish("topology-endpoint-column-short");

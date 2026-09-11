@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{panic::AssertUnwindSafe, pin, task};
 
 use error_stack::{Report, ResultExt as _};
-use futures::FutureExt;
+use futures::FutureExt as _;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use rand::rngs::SysRng;
 use tokio::runtime::Handle;

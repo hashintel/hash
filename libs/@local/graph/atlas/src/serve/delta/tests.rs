@@ -1,10 +1,14 @@
 use alloc::sync::Arc;
-use core::{iter, ptr};
+use core::{assert_matches, cell::RefCell, iter, ptr};
 
 use arc_swap::Guard;
+use error_stack::Report;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
-use type_system::principal::actor::{ActorId, ActorType};
+use type_system::{
+    knowledge::entity::EntityId,
+    principal::actor::{ActorId, ActorType},
+};
 use uuid::Uuid;
 
 use super::{
@@ -24,6 +28,12 @@ use crate::{
         lod::stage::{LodConfig, WIRE_FRAME},
     },
     serve::{
+        document::{
+            LocateDocument, LocateDocumentError, LocateDocumentOptions, LocateLimits, LocateSource,
+        },
+        hydrate::{HydrateError, LocateProperties, LocateRequest, LocateResolver},
+        membership::OntologySelection,
+        scene::Scene,
         schedule::{BucketSchedule, DeliveredNodes, DeliverySchedule, ScopeSchedule, ViewSchedule},
         tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
         visibility::{VisibilityActor, VisibilityMask},
@@ -1164,11 +1174,12 @@ fn bounds_extension() {
         &schedule_mask(&withdrawn, [row]),
     );
     assert_eq!(current.bounds(), None);
-    assert!(
+    assert_eq!(
         current
             .occupancy()
             .expect("an empty scope should have a profile")
-            .is_empty()
+            .occupied_cells(Depth::MIN),
+        0
     );
     assert_eq!(narrow.occupancy(), Some(occupancy));
     let current = ViewSchedule::of(Arc::clone(&world), &withdrawn, &admitted);
@@ -1467,8 +1478,9 @@ fn assert_partitioned(delivered: &DeliveredNodes) {
     );
 }
 
-/// A corpus walk subtracts the publication's current withdrawals that the recorded schedule
-/// preserves, and a revival restores the recorded delivery.
+/// A corpus walk subtracts current withdrawals from a recorded schedule.
+///
+/// The schedule preserves the withdrawn row, and a revival restores the recorded delivery.
 #[test]
 fn walk_corpus_withdrawal() {
     let (_fixture, mut delta) = fixture("walk-corpus-withdrawal");
@@ -1580,6 +1592,199 @@ fn walk_scope_withdrawal() {
     );
     assert_eq!(subtracted.rows.len() + 1, recorded.rows.len());
     assert_partitioned(&subtracted);
+}
+
+/// A resolver that records the delivered node identities and answers no details.
+struct RecordingResolver {
+    nodes: RefCell<Vec<ArchivedEntityId>>,
+}
+
+impl LocateResolver for RecordingResolver {
+    fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
+        self.nodes
+            .borrow_mut()
+            .extend(request.nodes.iter().map(|node| node.identity));
+        Ok(None)
+    }
+}
+
+/// A scene whose view schedule predates two partners linked to fixture node 4.
+///
+/// The scene captures the schedule at one revision and reads its epoch at the next. The next
+/// revision places the partners, and the schedule holds no delivery zoom for them.
+struct LaterEpochScene {
+    world: Arc<World>,
+    epoch: Epoch,
+    mask: VisibilityMask,
+    schedule: ViewSchedule,
+    source: ArchivedEntityId,
+    partners: [ArchivedEntityId; 2],
+    rows: [NodeRowId; 2],
+    _fixture: TamperFixture,
+}
+
+impl LaterEpochScene {
+    #[track_caller]
+    fn new(name: &str) -> Self {
+        let (files, mut delta) = fixture(name);
+        let world = Arc::clone(&delta.world);
+        let source_row = NodeRowId::new(4);
+        let source = world
+            .layout
+            .index
+            .identity
+            .key_of(source_row)
+            .expect("should resolve the fitted identity");
+        let captured = epoch(&delta);
+        let actor = VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        };
+        let mask = VisibilityMask::full(&captured, actor);
+        let schedule = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+
+        delta.revision.increment_by(1);
+        let partners = [entity(400), entity(401)];
+        let links = [entity(410), entity(411)];
+        let positions = [Vec2::new(0.25, 0.0), Vec2::new(0.5, 0.0)];
+        let mut rows = [NodeRowId::MIN; 2];
+        for (index, ((partner, link), position)) in
+            partners.into_iter().zip(links).zip(positions).enumerate()
+        {
+            assert_eq!(
+                delta.update_node(partner, legend("partner"), position),
+                Some(true)
+            );
+            let row = delta
+                .node_row(partner)
+                .expect("should allocate the partner");
+            assert_eq!(
+                delta.update_edge(link, legend("link"), Some([source_row, row])),
+                Some(true)
+            );
+            rows[index] = row;
+        }
+        let later = epoch(&delta);
+        let delivery = schedule
+            .cut(Zoom::MIN)
+            .expect("should bind the zero offset");
+        for row in rows {
+            assert!(
+                later.contains_node(row),
+                "the partner should have a placement"
+            );
+            assert_eq!(
+                delivery.first_zoom(row),
+                None,
+                "the captured schedule should hold no delivery zoom for the partner"
+            );
+        }
+
+        Self {
+            world,
+            epoch: later,
+            mask,
+            schedule,
+            source,
+            partners,
+            rows,
+            _fixture: files,
+        }
+    }
+
+    #[track_caller]
+    fn locate<'scene>(
+        &'scene self,
+        edges: u32,
+        resolver: &RecordingResolver,
+    ) -> Result<LocateDocument<'scene>, Report<LocateDocumentError>> {
+        let scene = Scene {
+            world: &self.world,
+            epoch: &self.epoch,
+            mask: &self.mask,
+            schedule: &self.schedule,
+            delivery: self
+                .schedule
+                .cut(Zoom::MIN)
+                .expect("should bind the zero offset"),
+        };
+        LocateDocument::new(
+            scene,
+            LocateSource::Key(EntityId::from(self.source)),
+            &LocateDocumentOptions {
+                types: OntologySelection::new(&[]),
+                limits: LocateLimits { edges, .. },
+                resolver,
+            },
+        )
+    }
+}
+
+/// A locate within capacity skips partner ranking.
+///
+/// Partners without a scheduled delivery zoom remain deliverable. A zero-capacity locate delivers
+/// the source alone, also without ranking.
+#[test]
+fn locate_partner_after_schedule_complete() {
+    let scene = LaterEpochScene::new("delta-locate-partner-after-schedule-complete");
+    let mut expected: Vec<_> = iter::once(scene.source).chain(scene.partners).collect();
+    expected.sort_unstable();
+
+    for capacity in [2, 512] {
+        let resolver = RecordingResolver {
+            nodes: RefCell::new(Vec::new()),
+        };
+        let _document = scene
+            .locate(capacity, &resolver)
+            .expect("should deliver the complete incident set without a delivery zoom");
+        let mut delivered = resolver.nodes.borrow().clone();
+        assert_eq!(
+            delivered[0], scene.source,
+            "should deliver the source first"
+        );
+        delivered.sort_unstable();
+        assert_eq!(
+            delivered, expected,
+            "should deliver both added partners at capacity {capacity}"
+        );
+    }
+
+    let resolver = RecordingResolver {
+        nodes: RefCell::new(Vec::new()),
+    };
+    let _document = scene
+        .locate(0, &resolver)
+        .expect("should deliver an empty edge set at zero capacity without ranking");
+    assert_eq!(
+        *resolver.nodes.borrow(),
+        [scene.source],
+        "should deliver the source alone at zero capacity"
+    );
+}
+
+/// A truncating locate rejects an unrankable partner before hydration.
+///
+/// Ranking requires a delivery zoom for the partner in the schedule.
+#[test]
+fn locate_partner_after_schedule_truncated() {
+    let scene = LaterEpochScene::new("delta-locate-partner-after-schedule-truncated");
+    let resolver = RecordingResolver {
+        nodes: RefCell::new(Vec::new()),
+    };
+    let Err(report) = scene.locate(1, &resolver) else {
+        panic!("should refuse to rank a partner without a delivery zoom");
+    };
+    assert_matches!(
+        report.current_context(),
+        LocateDocumentError::Node { row } if scene.rows.contains(row),
+    );
+    assert!(
+        resolver.nodes.borrow().is_empty(),
+        "should refuse before hydration"
+    );
 }
 
 /// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.

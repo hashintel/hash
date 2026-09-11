@@ -20,11 +20,11 @@ pub(super) enum EntryKind {
 
 impl EntryKind {
     pub(super) const fn is_live(self) -> bool {
-        matches!(self, EntryKind::Live)
+        matches!(self, Self::Live)
     }
 
     pub(super) const fn is_withdrawn(self) -> bool {
-        matches!(self, EntryKind::Withdrawn)
+        matches!(self, Self::Withdrawn)
     }
 }
 

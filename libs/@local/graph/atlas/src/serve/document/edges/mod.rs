@@ -1,7 +1,7 @@
 use alloc::alloc::Allocator;
 use core::{error::Error, fmt};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::Report;
 use hashql_core::id::IdVec;
 use type_system::ontology::{VersionedUrl, id::OntologyTypeUuid};
 
@@ -16,7 +16,7 @@ use crate::{
     postgres::id::ArchivedEntityId,
     serve::{
         codec::EncodedRowId,
-        hydrate::TypeUrlResolver,
+        hydrate::{HydrateError, TypeUrlResolver},
         intern::{InternTable, TableIndex},
         neighbourhood::{DeliveredEdge, Neighbourhood},
         scene::Scene,
@@ -31,13 +31,19 @@ hashql_core::id::newtype! {
     pub(crate) struct EdgeSlot(u32)
 }
 
+/// A failure to assemble an edges document.
 #[derive(Debug)]
 pub(crate) enum EdgesDocumentError {
+    /// The request lists more tiles than the configured limit.
     Tiles { count: usize, maximum: u32 },
+    /// A tile's zoom exceeds the generation's maximum served zoom.
     Zoom { zoom: Zoom, maximum: Zoom },
+    /// A tile lies outside its zoom's grid.
     Coordinate { tile: MortonTile },
+    /// An admitted edge has no captured display payload for its auxiliary detail.
     Display,
-    Hydrate,
+    /// Type-URL resolution failed at the recorded [`HydrateError`] stage.
+    Hydrate(HydrateError),
 }
 
 impl fmt::Display for EdgesDocumentError {
@@ -57,7 +63,7 @@ impl fmt::Display for EdgesDocumentError {
                 write!(fmt, "tile {}/{x}/{y} lies outside its zoom's grid", z.get())
             }
             Self::Display => fmt.write_str("an admitted edge has no display payload"),
-            Self::Hydrate => fmt.write_str("edge type URL resolution failed"),
+            Self::Hydrate(error) => write!(fmt, "edge type URL resolution failed: {error}"),
         }
     }
 }
@@ -124,7 +130,10 @@ impl<'details> EdgesTrailer<'details> {
         if !ontology_type_uuid_interner.is_empty() {
             let pairs = resolver
                 .resolve(ontology_type_uuid_interner.entries().iter().copied())
-                .change_context(EdgesDocumentError::Hydrate)?;
+                .map_err(|report| {
+                    let error = EdgesDocumentError::Hydrate(*report.current_context());
+                    report.change_context(error)
+                })?;
 
             for (uuid, url) in pairs {
                 if let Some(slot) = ontology_type_uuid_interner.index_of(&uuid) {
@@ -160,6 +169,12 @@ pub(crate) struct EdgesDocument<'details> {
 }
 
 impl<'details> EdgesDocument<'details> {
+    /// Assembles the edges induced by the nodes delivered in `tiles`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EdgesDocumentError`] for an invalid tile count or address, unavailable captured
+    /// display data, or failed type-URL hydration.
     pub(crate) fn new<R>(
         scene @ Scene {
             world, delivery, ..

@@ -39,12 +39,12 @@ use crate::{
     serve::visibility::VisibilityActor,
 };
 
-/// A detail hydration failed against the store.
-#[derive(Debug)]
+/// A failure during detail hydration against the store.
+#[derive(Debug, Copy, Clone)]
 pub(crate) enum HydrateError {
     /// No connection was available for the query.
     Connect,
-    /// The store rejected the query.
+    /// A store query failed.
     Query,
     /// The query returned too many rows.
     TooManyRows,
@@ -56,7 +56,7 @@ impl core::fmt::Display for HydrateError {
             Self::Connect => {
                 write!(fmt, "the detail hydration reached no store connection")
             }
-            Self::Query => write!(fmt, "the detail hydration failed"),
+            Self::Query => fmt.write_str("the detail hydration query failed"),
             Self::TooManyRows => fmt.write_str("the detail hydration returned too many rows"),
         }
     }
@@ -175,13 +175,13 @@ impl GraphDatabaseClient {
     ///
     /// # Errors
     ///
-    /// Returns [`HydrateError`] when the store rejects a query.
+    /// Returns [`HydrateError`] if no connection is available, a query fails, or the source-detail
+    /// query returns more than one row.
     ///
     /// # Panics
     ///
-    /// This panics when the store answers rows outside the request domain, when a column does
-    /// not decode at its assigned position, or when a stored URL does not parse as its domain
-    /// type.
+    /// Panics if the store returns a row outside the request domain, a column fails to decode, a
+    /// direct-type count is negative, or the scalar-property aggregate is not a JSON object.
     #[tracing::instrument(skip_all, fields(points = nodes.len()))]
     async fn read_locate_nodes(
         &self,
@@ -218,13 +218,12 @@ impl GraphDatabaseClient {
     ///
     /// # Errors
     ///
-    /// Returns [`HydrateError`] when the store rejects the query.
+    /// Returns [`HydrateError`] if no connection is available or a query fails.
     ///
     /// # Panics
     ///
-    /// This panics when the store answers rows outside the request domain, when a column does
-    /// not decode at its assigned position, or when a stored URL does not parse as its domain
-    /// type.
+    /// Panics if the store returns a row outside the request domain, a column fails to decode, a
+    /// direct-type count is negative, or the scalar-property aggregate is not a JSON object.
     #[tracing::instrument(skip_all, fields(edges = links.len()))]
     async fn read_locate_links(
         &self,

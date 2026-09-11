@@ -1,27 +1,22 @@
 use core::{error::Error, fmt, pin::pin};
 
-use error_stack::{Report, ResultExt};
-use futures::{StreamExt as _, TryStreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::policies::{
     MergePolicies, PolicyComponents,
     action::ActionName,
-    store::{PolicyStore, PrincipalStore, error::ContextCreationError},
+    store::{PolicyStore, PrincipalStore},
 };
-use hash_graph_postgres_store::store::{
-    AsClient, StoreProvider,
-    error::StoreError,
-    postgres::query::{SelectCompiler, SelectCompilerError},
-};
+use hash_graph_postgres_store::store::{AsClient, StoreProvider, postgres::query::SelectCompiler};
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{
-        Filter, ParameterConversionError,
+        Filter,
         protection::{PropertyProtectionFilterConfig, transform_filter},
     },
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_types::ontology::DataTypeLookup;
-use hashql_core::collections::fast_hash_set;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityUuid},
@@ -31,9 +26,7 @@ use uuid::Uuid;
 
 use crate::{
     bitset::CompressedBitSet,
-    offload::OffloadError,
     postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
-    salt::fit::prepare::IdentityProvider as _,
     serve::{
         delta::epoch::Epoch,
         visibility::{VisibilityActor, VisibilityMask},
@@ -43,7 +36,7 @@ use crate::{
 
 /// Resolving an actor's visible rows against the store failed.
 ///
-/// Each variant names one failing stage, so a caller can separate a request it can repair from a
+/// Each variant names one failing stage. A caller can separate a request it can repair from a
 /// condition it cannot. [`Filter`](Self::Filter) is the one variant a caller's own input produces.
 #[derive(Debug)]
 pub(crate) enum VisibilityProofError {
@@ -233,11 +226,7 @@ mod tests {
 
     /// The compiled tautology plus no caller filter is the unconstrained view.
     ///
-    /// The bug class is a short-circuit that reads a shape the policy compiler does not reserve for
-    /// unconstrained permits. The expectation therefore comes from
-    /// [`Filter::for_policies`](hash_graph_store::filter::Filter::for_policies) itself, not from a
-    /// hand-built filter, so a change in what that constructor emits fails here rather than
-    /// serving a scoped caller the operator's rows.
+    /// [`Filter::for_policies`] defines the unconstrained filter's compiled representation.
     #[test]
     fn only_an_unconstrained_permit_admits_every_row() {
         let optimization = OptimizationData::default();
@@ -298,11 +287,7 @@ mod tests {
         assert!(!admits_every_row(None, &scoped_with_forbid));
     }
 
-    /// A caller filter keeps the query even under the tautology.
-    ///
-    /// The bug class is a short-circuit that answers the filtered request with the whole
-    /// generation. An operator asking for a narrowed view would receive every row instead, which is
-    /// a wrong answer rather than a leak.
+    /// A caller filter must narrow the query even when the policy's tautology permits every row.
     #[test]
     fn caller_filter_keeps_the_query() {
         let optimization = OptimizationData::default();

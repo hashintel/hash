@@ -3,7 +3,7 @@
 //! Controlled feeds separate cancellation from completion. Supplied maintenance instants exercise
 //! retirement without sleeping.
 
-use alloc::sync::Arc;
+use alloc::{sync::Arc, task::Wake};
 use core::{
     any::Any,
     assert_matches, fmt,
@@ -14,7 +14,7 @@ use core::{
     task::{Context, Poll, Waker},
     time::Duration,
 };
-use std::{fs, task::Wake, time::Instant};
+use std::{fs, sync::Mutex, time::Instant};
 
 use error_stack::Report;
 use futures::FutureExt as _;
@@ -166,6 +166,49 @@ fn assert_wakeup(task: impl Future<Output = ()>, complete: impl FnOnce()) {
         "completion should wake the suspended shutdown"
     );
     assert_matches!(task.as_mut().poll(&mut context), Poll::Ready(()));
+}
+
+/// Captures WARN and ERROR events from `pass` without ANSI escapes.
+#[track_caller]
+fn captured_warnings(pass: impl FnOnce()) -> String {
+    struct Capture(Arc<Mutex<Vec<u8>>>);
+
+    impl std::io::Write for Capture {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0
+                .lock()
+                .expect("the capture lock is never poisoned")
+                .extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<'writer> tracing_subscriber::fmt::MakeWriter<'writer> for Capture {
+        type Writer = Self;
+
+        fn make_writer(&'writer self) -> Self::Writer {
+            Self(Arc::clone(&self.0))
+        }
+    }
+
+    let capture = Capture(Arc::new(Mutex::new(Vec::new())));
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::WARN)
+        .with_writer(Capture(Arc::clone(&capture.0)))
+        .with_ansi(false)
+        .finish();
+    tracing::subscriber::with_default(subscriber, pass);
+
+    let bytes = capture
+        .0
+        .lock()
+        .expect("the capture lock is never poisoned")
+        .clone();
+    String::from_utf8(bytes).expect("formatted log output is UTF-8")
 }
 
 /// A pool that never connects, for openings that must not reach a database.
@@ -410,7 +453,7 @@ async fn settle_removal(manager: &mut GenerationManager, generation: GenerationI
         .slots
         .get_mut(&generation)
         .expect("the generation should hold a slot");
-    if let Execution::Removed = slot.execution {
+    if matches!(slot.execution, Execution::Removed) {
         return;
     }
     let Execution::Removing(task) = mem::replace(&mut slot.execution, Execution::Removed) else {
@@ -601,6 +644,58 @@ async fn open_promotes_selection() {
         "the manager should publish the world its own opening produced"
     );
 
+    drain(&mut manager, []).await;
+}
+
+/// Opening a selected generation reaches its publication without a warning.
+#[tokio::test]
+async fn open_promotes_without_warning() {
+    let control = captured_warnings(|| {
+        tracing::warn!("warning capture control");
+        tracing::error!("error capture control");
+    });
+    assert!(control.contains("warning capture control"));
+    assert!(control.contains("error capture control"));
+
+    let fixture = Fixture::new("manager-open-promotes-without-warning");
+    let replacement = fixture.variant("pending opening");
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let registry = Arc::clone(manager.registry());
+    let base = Instant::now();
+    let generation = fixture.world.generation().id();
+    let candidate = replacement.generation().id();
+
+    manager.desired = Some(generation);
+    let absent = captured_warnings(|| manager.tick(base));
+
+    assert_eq!(
+        absent, "",
+        "the manager should not promote a generation whose slot this pass creates"
+    );
+
+    settle_opening(&mut manager, generation).await;
+    let promotion = captured_warnings(|| manager.tick(after(base, Duration::from_secs(1))));
+
+    assert_eq!(
+        promotion, "",
+        "a completed opening should promote without a warning"
+    );
+    let (_world, _lifetime) = published(&registry, generation);
+
+    // An opening that cannot finish, which is what makes the next pass an `Opening` pass rather
+    // than whatever a live opening has reached by now.
+    let (task, _opening_reply) = pending();
+    manager.slots.insert(candidate, opening(task));
+    manager.desired = Some(candidate);
+    let unfinished = captured_warnings(|| manager.tick(after(base, Duration::from_secs(2))));
+
+    assert_eq!(
+        unfinished, "",
+        "the manager should not promote a candidate without an initialized runtime"
+    );
+    let (_retained, _unchanged) = published(&registry, generation);
+
+    drop(manager.slots.remove(&candidate));
     drain(&mut manager, []).await;
 }
 
@@ -1666,7 +1761,11 @@ async fn fail_started_opening(manager: &mut GenerationManager, generation: Gener
             world
         }
         Execution::Ready(runtime) => Some(Arc::clone(runtime.world())),
-        execution => panic!("should hold a started recovery, found {execution:?}"),
+        execution @ (Execution::Running(_)
+        | Execution::Joining(_)
+        | Execution::Stopped(_)
+        | Execution::Removing(_)
+        | Execution::Removed) => panic!("should hold a started recovery, found {execution:?}"),
     };
 
     slot.execution = Execution::Opening {

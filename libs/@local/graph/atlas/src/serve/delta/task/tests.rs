@@ -229,7 +229,7 @@ async fn run_shutdown_active() {
         .clone();
     let (stop, shutdown) = oneshot::channel();
     let running = tokio::spawn(fixture.task.run(async move {
-        let _ = shutdown.await;
+        shutdown.await.expect("should receive the shutdown request");
     }));
     tokio::task::yield_now().await;
     assert!(!running.is_finished());

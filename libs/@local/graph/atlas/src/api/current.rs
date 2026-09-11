@@ -8,22 +8,21 @@ use axum::{
     response::{IntoResponse as _, Response},
 };
 
-use super::{
-    AppState, headers,
-    problem::{Problem, observe_problem},
-    saltile::DocumentResponse,
-};
+use super::{AppState, headers, problem::Problem, saltile::DocumentResponse};
 use crate::serve::document::{CurrentDocument, Document as _};
 
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
 ) -> Result<Response, Problem<'static>> {
-    let observation = state.registry.observe(None).map_err(observe_problem)?;
+    let observation = state.registry.observe(None)?;
+
     let document = CurrentDocument::new(observation.present().epoch().generation());
     let mut bytes = Vec::new();
-    let envelope = document
-        .encode(&mut bytes)
-        .map_err(|error| Problem::internal(error, "encoding the current generation failed"))?;
+    let envelope = document.encode(&mut bytes).map_err(|error| {
+        tracing::error!(?error, "unable to encode current generation");
+        Problem::internal(error, "encoding the current generation failed")
+    })?;
+
     let mut response = DocumentResponse::new(bytes, envelope.content_type()).into_response();
     response.headers_mut().insert(
         header::CACHE_CONTROL,

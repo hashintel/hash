@@ -8,11 +8,11 @@ use core::{
     error::Error,
     fmt,
     future::poll_fn,
-    task::{Context, Poll, ready},
+    task::{Context, Poll, Waker, ready},
 };
 
 use error_stack::{Report, ResultExt as _};
-use futures::{FutureExt as _, executor::block_on};
+use futures::FutureExt as _;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use rand::TryCryptoRng;
 use tokio::task::JoinHandle;
@@ -43,7 +43,7 @@ pub(crate) struct FeedOptions {
 pub(crate) enum RuntimeError {
     /// The generation's serving artifacts could not be opened.
     World,
-    /// Drawing the delta's lifetime identifier failed.
+    /// Drawing the [delta lifetime identifier](super::delta::DeltaId) failed.
     Entropy,
     /// Opening or running the generation feed failed.
     Feed,
@@ -74,6 +74,7 @@ struct Feed {
 enum FeedState {
     /// No runner exists, or an earlier join consumed its result.
     Absent,
+    /// A runner exists and its result is not available to this probe yet.
     Running,
     Finished,
 }
@@ -115,7 +116,7 @@ impl Runtime {
         Self::start(Arc::new(world), pool, rng, feed)
     }
 
-    /// Starts a fresh delta lifetime over an already-open world.
+    /// Starts a fresh [delta lifetime](super::delta::DeltaId) over an already-open world.
     ///
     /// `None` disables the feed. A generation without temporal axes also has a static reader.
     ///
@@ -176,6 +177,14 @@ impl Runtime {
         }
     }
 
+    /// Probes the runner without waiting, retaining the handle until a poll returns its result.
+    ///
+    /// A finished runner can still report [`FeedState::Running`], retaining the handle for a later
+    /// probe. Repeated probes can defer the result until a poll has cooperative budget to read it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError`] for a feed failure or a failed join.
     fn try_join(&mut self) -> Result<FeedState, Report<RuntimeError>> {
         let Some(feed) = self.feed.as_mut() else {
             return Ok(FeedState::Absent);
@@ -185,8 +194,13 @@ impl Runtime {
             return Ok(FeedState::Running);
         }
 
-        // We have just confirmed the task is finished, so blocking is safe.
-        let result = block_on(&mut feed.task);
+        // JoinHandle polls consume cooperative budget before reading the output, even after
+        // is_finished returns true. This probe uses a no-op waker, which discards notifications.
+        // A later pass must therefore poll again for any deferred result.
+        let mut probe = Context::from_waker(Waker::noop());
+        let Poll::Ready(result) = feed.task.poll_unpin(&mut probe) else {
+            return Ok(FeedState::Running);
+        };
 
         self.feed = None;
         result

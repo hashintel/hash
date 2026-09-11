@@ -2,7 +2,6 @@
 pub(crate) enum AuthorityError {
     Envelope,
     Decryption,
-    Stale,
     Actor,
     Generation,
     Expired,
@@ -14,7 +13,6 @@ impl core::fmt::Display for AuthorityError {
         match self {
             Self::Envelope => fmt.write_str("invalid authority envelope"),
             Self::Decryption => fmt.write_str("failed to decrypt authority"),
-            Self::Stale => fmt.write_str("authority is stale"),
             Self::Actor => fmt.write_str("authority actor mismatch"),
             Self::Generation => fmt.write_str("authority generation mismatch"),
             Self::Expired => fmt.write_str("authority has expired"),

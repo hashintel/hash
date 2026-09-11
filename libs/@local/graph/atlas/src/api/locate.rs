@@ -15,8 +15,8 @@ use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
-    extract::{Body, Generation, VariantPath},
-    problem::{Problem, ProblemType, reject_variant},
+    extract::Body,
+    problem::{Problem, ProblemType, unknown_entity},
     saltile::{DocumentResponse, Saltile, spawn},
     translate,
     visibility::Visibility,
@@ -26,9 +26,7 @@ use crate::{
     postgres::id::ArchivedOntologyTypeUuid,
     serve::{
         codec::EncodedRowId,
-        document::{
-            Document as _, LocateDocument, LocateDocumentError, LocateDocumentOptions, LocateSource,
-        },
+        document::{Document as _, LocateDocument, LocateDocumentOptions, LocateSource},
         membership::OntologySelection,
     },
 };
@@ -79,8 +77,8 @@ Filtering binds at the manifest. This body has no `filter` field, and an unknown
 
 /// The POST body of one locate read.
 ///
-/// Exactly one of `entityId` and `row` names the subject; [`handler`] rejects both and neither
-/// with `invalid-source` before any assembly runs.
+/// Exactly one of `entityId` and `row` names the subject. Specifying both or neither produces
+/// `invalid-source` before assembly.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct LocateRequest {
@@ -111,15 +109,12 @@ pub(super) struct LocateRequest {
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath { variant, .. }): Generation<VariantPath>,
     Body(LocateRequest {
         entity_id,
         row,
         colored_type_ids,
     }): Body<LocateRequest>,
 ) -> Result<Response, Problem<'static>> {
-    reject_variant(&variant)?;
-
     // Both/neither is the caller's own malformed request, `invalid-source`. A malformed
     // `entityId` string collapses into `unknown-entity` exactly as an unresolvable one does, since
     // an id that cannot name an entity is an entity that does not exist. An out-of-domain `row`
@@ -167,8 +162,7 @@ pub(super) async fn handler<R>(
                     limits,
                     resolver,
                 },
-            )
-            .map_err(|report| locate_problem(report.current_context()))?;
+            )?;
 
             let mut buffer = Vec::new();
             let envelope = document
@@ -181,44 +175,6 @@ pub(super) async fn handler<R>(
     .await??;
 
     Ok(DocumentResponse::new(bytes, content_type).into_response())
-}
-
-/// The uniform refusal for a source that does not name a visible node.
-///
-/// Nonexistent, inaccessible, unparsable, and out-of-range values are indistinguishable by design:
-/// missing equals denied, and an id that cannot name an entity is an entity that does not exist.
-fn unknown_entity() -> Problem<'static> {
-    Problem::new(
-        StatusCode::NOT_FOUND,
-        ProblemType::UnknownEntity,
-        "the source does not name a visible node",
-    )
-}
-
-/// `LocateDocumentError` <=> `Problem`
-///
-/// [`LocateDocumentError::Types`] is the caller's own oversize request: `too-many-types`.
-/// [`LocateDocumentError::UnknownEntity`] is [`unknown_entity`]. [`LocateDocumentError::Node`],
-/// [`LocateDocumentError::NodeDisplay`], and [`LocateDocumentError::LinkDisplay`] name a delivered
-/// row the captured scene cannot back with identity, position, or display data - a producer defect
-/// rather than a request one - and [`LocateDocumentError::Hydrate`] names a failed store read;
-/// both answer the sanitized internal problem.
-fn locate_problem(error: &LocateDocumentError) -> Problem<'static> {
-    match error {
-        LocateDocumentError::Types { .. } => Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::TooManyTypes,
-            error.to_string(),
-        ),
-        LocateDocumentError::UnknownEntity => unknown_entity(),
-        LocateDocumentError::Node { .. }
-        | LocateDocumentError::NodeDisplay { .. }
-        | LocateDocumentError::LinkDisplay { .. } => Problem::internal(
-            error,
-            "the locate assembly could not read a delivered row's captured data",
-        ),
-        LocateDocumentError::Hydrate => Problem::internal(error, "the detail hydration failed"),
-    }
 }
 
 /// Documents the operation.

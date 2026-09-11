@@ -33,7 +33,7 @@ use self::{
     },
     topology::{TopologyDelta, provider::NaiveTopologyProvider},
 };
-use super::world::World;
+use super::{codec::RowCodec, world::World};
 use crate::{
     dataset::auxiliary::{OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
@@ -46,6 +46,11 @@ hashql_core::id::newtype! {
     pub(crate) struct DeltaRevision(u64)
 }
 
+/// A random identifier for one delta lifetime.
+///
+/// A lifetime begins with [`Delta::new`] and includes its clones and published revisions. Cloning
+/// and revision changes preserve the identifier. Each initialization draws a 64-bit identifier,
+/// including when reusing the same [`World`].
 #[derive(
     Debug,
     Copy,
@@ -189,19 +194,28 @@ impl Delta {
     /// Activates a node and replaces its legend, retaining its first placement.
     ///
     /// `position` uses the [wire frame](crate::salt::lod::stage::WIRE_FRAME). Returns whether state
-    /// changed, or `None` when no node row remains available.
+    /// changed, or `None` when no node row remains available: the id space has no row left, or the
+    /// next row lies at [`WIRE_ROW_BOUND`](super::codec::WIRE_ROW_BOUND) and has no wire id. An
+    /// entity that already holds a row, live or withdrawn, updates and revives on that row at every
+    /// capacity.
     fn update_node(
         &mut self,
         entity: ArchivedEntityId,
         legend: OwnedLegend,
         position: Vec2,
     ) -> Option<bool> {
-        let (node, mut changed) = self.node.insert(
-            NaiveIdentityProvider::from_ref(&self.world.layout.index.identity),
-            self.revision,
-            entity,
-            legend,
-        )?;
+        let base = NaiveIdentityProvider::from_ref(&self.world.layout.index.identity);
+
+        // Allocation places a new row at the domain's bound, which must have a wire id. An
+        // allocated row already has one, and its entity passes whatever the bound.
+        let identities = DeltaIdentityProvider::from_parts(&self.node, base);
+        if identities.provide_allocated_row_of(entity).is_none()
+            && !RowCodec::<NodeRowId>::encodes(identities.provide_domain().bound())
+        {
+            return None;
+        }
+
+        let (node, mut changed) = self.node.insert(base, self.revision, entity, legend)?;
         self.topology
             .reserve_node(NaiveTopologyProvider::from_ref(&self.world.topology), node);
 

@@ -3,7 +3,7 @@ use core::hash::{BuildHasher as _, Hash};
 use hashbrown::HashTable;
 use hashql_core::{
     collections::FastHasher,
-    id::{Id, IdSlice, IdVec, newtype},
+    id::{Id as _, IdSlice, IdVec, newtype},
 };
 use moka::Equivalent;
 

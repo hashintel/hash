@@ -39,7 +39,7 @@ struct Fixture {
     _generation: TamperFixture,
     task: DeltaFeedTask,
     requests: mpsc::Receiver<PendingEntry<Initial>>,
-    _completed: mpsc::Sender<PendingEntry<Completed>>,
+    completed: mpsc::Sender<PendingEntry<Completed>>,
     publication: Publication,
 }
 
@@ -87,7 +87,7 @@ async fn fixture(name: &str) -> Fixture {
         _generation: generation,
         task,
         requests,
-        _completed: completed,
+        completed,
         publication,
     }
 }
@@ -276,7 +276,7 @@ async fn publication_shutdown() {
     let previous = current.load_full();
     let (stop, shutdown) = oneshot::channel();
     let mut publishing = pin!(fixture.publication.run(current, previous, async move {
-        let _ = shutdown.await;
+        shutdown.await.expect("should receive the shutdown request");
     }));
     assert!(publishing.as_mut().now_or_never().is_none());
     stop.send(()).expect("should request shutdown");
@@ -298,7 +298,7 @@ async fn publication_shutdown() {
         ControlFlow::Break(())
     );
     drop(fixture.task);
-    assert!(fixture._completed.is_closed());
+    assert!(fixture.completed.is_closed());
     assert!(fixture.requests.recv().await.is_none());
 }
 

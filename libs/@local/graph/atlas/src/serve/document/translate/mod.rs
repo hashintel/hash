@@ -75,7 +75,7 @@ impl TranslateDocument {
     ///
     /// Returns [`TranslateDocumentError`] when the input count exceeds the limit, before reading
     /// any identity.
-    #[tracing::instrument(level = "debug", skip_all, fields(ids), err)]
+    #[tracing::instrument(level = "debug", skip_all, fields(ids))]
     pub(crate) fn new(
         scene @ Scene {
             world, epoch, mask, ..

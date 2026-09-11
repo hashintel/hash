@@ -2,8 +2,8 @@
 //!
 //! [`GenerationManager`] keeps execution ownership separate from the request handles in
 //! [`UniverseRegistry`]. Opening failures preserve the last published world and delta. An ended
-//! present feed retries with a fresh delta lifetime, while an ended retained feed preserves its
-//! final publication until expiry or reactivation.
+//! present feed retries with a fresh [delta lifetime](crate::serve::delta::DeltaId), while an
+//! ended retained feed preserves its final publication until expiry or reactivation.
 
 use alloc::sync::Arc;
 use core::{
@@ -213,6 +213,7 @@ impl GenerationManager {
             .retain(|_generation, slot| !matches!(slot.execution, Execution::Removed));
 
         if let Some(desired) = self.desired
+            && self.has_runtime(desired)
             && (self.present != Some(desired) || self.is_ready(desired))
         {
             self.promote(desired, now);
@@ -246,6 +247,15 @@ impl GenerationManager {
         self.slots
             .get(&generation)
             .is_some_and(|slot| matches!(slot.execution, Execution::Ready(_)))
+    }
+
+    /// Whether `generation` holds an initialized runtime, ready or already running.
+    ///
+    /// Answers `false` for every other execution state, an absent slot among them.
+    fn has_runtime(&self, generation: GenerationId) -> bool {
+        self.slots
+            .get(&generation)
+            .is_some_and(|slot| slot.runtime().is_some())
     }
 
     fn reconcile(&mut self) {

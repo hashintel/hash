@@ -35,9 +35,13 @@ pub(crate) struct NodeIndex {
 impl NodeIndex {
     /// Opens the identity and permutation artifacts and checks their counts.
     ///
+    /// The open bounds the fitted row count by `u32::MAX` before any row encodes, which keeps every
+    /// fitted row inside the wire domain `[0, 2^32)`.
+    ///
     /// # Errors
     ///
-    /// Returns [`WorldError`] for artifact opening or mismatched row counts.
+    /// Returns [`WorldError`] for artifact opening, a fitted row count past `u32::MAX` or
+    /// mismatched row counts.
     pub(crate) fn open(
         options @ OpenOptions {
             generation,
@@ -67,11 +71,19 @@ impl NodeIndex {
                 file: files.position_of_row.name(),
             });
 
-        let encoding = lookup.map(|column: Column<BasePosition, NodeRowId>| {
-            (
-                Encoding::open(options, RowDomain::from_length(column.len())),
+        let encoding = lookup.and_then(|column: Column<BasePosition, NodeRowId>| {
+            let nodes = column.len();
+            // `Encoding::open` encodes every fitted row. The codec encodes the rows in `[0, 2^32)`,
+            // row `u32::MAX` included. This refusal bounds the count itself by `u32::MAX`, and
+            // every fitted row then lies below `u32::MAX`, inside the codec's domain.
+            u32::try_from(nodes).map_err(|error| {
+                Report::new(error).change_context(WorldError::TooManyNodes { nodes })
+            })?;
+
+            Ok((
+                Encoding::open(options, RowDomain::from_length(nodes)),
                 column,
-            )
+            ))
         });
 
         let (identity, (encoding, lookup), reverse) =
@@ -99,6 +111,11 @@ impl NodeIndex {
         sink.finish_ok(this)
     }
 
+    /// Returns the entity's row if its identity is live at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this index does not belong to the epoch's world.
     pub(crate) fn row_of(&self, epoch: &Epoch, entity_id: ArchivedEntityId) -> Option<NodeRowId> {
         let provider = epoch
             .nodes(self)
@@ -107,6 +124,11 @@ impl NodeIndex {
         provider.provide_row_of_at(entity_id, epoch.revision())
     }
 
+    /// Returns the row's entity key if its identity is live at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this index does not belong to the epoch's world.
     pub(crate) fn key_of(&self, epoch: &Epoch, row: NodeRowId) -> Option<ArchivedEntityId> {
         let provider = epoch
             .nodes(self)
@@ -115,6 +137,11 @@ impl NodeIndex {
         provider.provide_key_of_at(row, epoch.revision())
     }
 
+    /// Borrows the legend of a live node identity at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this index does not belong to the epoch's world.
     pub(crate) fn payload<'scene>(
         &'scene self,
         epoch: &'scene Epoch,
@@ -131,8 +158,13 @@ impl NodeIndex {
         self.lookup.view().get(index).copied()
     }
 
+    /// Returns a fitted position's row if its identity is live at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is in the fitted position domain and this node index does not belong to
+    /// the epoch's world.
     pub(crate) fn lookup(&self, epoch: &Epoch, index: BasePosition) -> Option<NodeRowId> {
-        // TODO: should `provider.permits_row` be public? I feel like it shouldn't?
         let row = self.base_lookup(index)?;
 
         let provider = epoch
@@ -144,6 +176,11 @@ impl NodeIndex {
             .then_some(row)
     }
 
+    /// Encodes a node row as its wire id, independent of liveness or allocation.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `row` lies at or beyond [`WIRE_ROW_BOUND`](crate::serve::codec::WIRE_ROW_BOUND).
     pub(crate) fn encode(&self, row: NodeRowId) -> EncodedRowId<NodeRowId> {
         self.encoding.encode(row)
     }
@@ -169,6 +206,13 @@ impl NodeIndex {
         self.reverse.view().get(index).copied()
     }
 
+    /// Returns a live node identity's fitted position at the captured revision.
+    ///
+    /// Returns [`None`] for rows without a fitted position or a live identity.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this index does not belong to the epoch's world.
     pub(crate) fn reverse(&self, epoch: &Epoch, index: NodeRowId) -> Option<BasePosition> {
         let provider = epoch
             .nodes(self)
@@ -220,8 +264,9 @@ mod tests {
         },
     };
 
-    /// Open refuses a node identity table short of the position columns, under
-    /// [`WorldError::NodeIndexCountMismatch`].
+    /// Rejects a node identity table shorter than the position columns.
+    ///
+    /// Returns [`WorldError::NodeIndexCountMismatch`].
     #[test]
     fn node_identities_short() {
         let fixture = TamperFixture::publish("node-index-identities-short");
@@ -247,8 +292,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a position-of-row column short of the node identity table, under
-    /// [`WorldError::NodeIndexCountMismatch`].
+    /// Rejects a position-of-row column shorter than the node identity table.
+    ///
+    /// Returns [`WorldError::NodeIndexCountMismatch`].
     #[test]
     fn row_positions_short() {
         let fixture = TamperFixture::publish("node-index-row-positions-short");
@@ -274,8 +320,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a published file rewritten in place, under [`WorldError::Open`] from
-    /// [`IntegrityVerificationError::Checksum`].
+    /// Rejects a published file rewritten in place.
+    ///
+    /// Returns [`WorldError::Open`] from [`IntegrityVerificationError::Checksum`].
     ///
     /// The rewrite keeps the table's format and would fail the count check if it reached it. The
     /// digest check runs first and names the file with both digests.
@@ -307,8 +354,9 @@ mod tests {
         );
     }
 
-    /// Open refuses a generation missing a published file, under [`WorldError::Open`] from
-    /// [`IntegrityVerificationError::Io`].
+    /// Rejects a generation missing a published file.
+    ///
+    /// Returns [`WorldError::Open`] from [`IntegrityVerificationError::Io`].
     #[test]
     fn corruption_missing_file() {
         let fixture = TamperFixture::publish("node-index-corruption-missing");

@@ -1,4 +1,4 @@
-//! [`Admission`] and [`Renewal`] extraction with disk-backed generations.
+//! [`AuthorityScope`] and [`Renewal`] extraction with disk-backed generations.
 //!
 //! Requests prepopulate [`ActorCache`] to isolate authority checks from authentication middleware.
 
@@ -23,7 +23,10 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
-use rand::{SeedableRng as _, rngs::StdRng};
+use rand::{
+    SeedableRng as _, TryCryptoRng,
+    rngs::{StdRng, SysRng},
+};
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
@@ -33,11 +36,11 @@ use uuid::Uuid;
 
 use super::{
     super::{AppState, headers},
-    Actor, ActorCache, Admission, Renewal,
+    Actor, ActorCache, AuthorityScope, Renewal,
 };
 use crate::{
     file::{
-        generation::{Generation, GenerationId, GenerationRoot},
+        generation::{Generation, GenerationId, GenerationRoot, ScratchDirectory},
         repository::Artifact as _,
         salt::artifact,
     },
@@ -151,21 +154,29 @@ async fn advance<T>(
     .expect("the maintenance pass should not stall")
 }
 
-fn scratch_dir(name: &str) -> Utf8PathBuf {
-    let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
+/// A generation root whose scratch directory the returned handle removes.
+#[track_caller]
+fn scratch_root(name: &str) -> (ScratchDirectory, GenerationRoot) {
+    let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
         .join(format!(
             "hash-graph-atlas-admission-test-{}-{name}",
             std::process::id()
         ));
-    drop(std::fs::remove_dir_all(&dir));
-    dir
+    if let Err(error) = std::fs::remove_dir_all(&path) {
+        assert_eq!(
+            error.kind(),
+            std::io::ErrorKind::NotFound,
+            "the scratch root at {path} should be removable: {error}"
+        );
+    }
+    let scratch = ScratchDirectory::new(path.clone());
+    let root = GenerationRoot::new(path).expect("the scratch root should open");
+
+    (scratch, root)
 }
 
-async fn test_state(
-    registry: Arc<UniverseRegistry>,
-    tokens: Arc<Authority<StdRng>>,
-) -> AppState<StdRng> {
+async fn test_state<R>(registry: Arc<UniverseRegistry>, tokens: Arc<Authority<R>>) -> AppState<R> {
     let visibility = VisibilityLimits {
         bytes: 1_000_000,
         soft: Duration::from_secs(1),
@@ -193,12 +204,12 @@ fn user_actor(id: u128) -> ActorId {
 
 #[track_caller]
 fn issue_token(
-    tokens: &Authority<StdRng>,
+    tokens: &Authority<impl TryCryptoRng>,
     registry: &UniverseRegistry,
     generation: GenerationId,
     actor: ActorId,
     filter: Option<FilterDigest>,
-    k: Zoom,
+    zoom: Zoom,
 ) -> String {
     let observation = registry
         .observe(Some(generation))
@@ -207,7 +218,11 @@ fn issue_token(
         .issue(
             observation.requested().epoch(),
             SystemTime::now(),
-            Issue { actor, filter, k },
+            Issue {
+                actor,
+                filter,
+                k: zoom,
+            },
         )
         .expect("issuing a token should succeed")
         .to_string()
@@ -241,7 +256,7 @@ fn expecting<T: Clone + Send + Sync + 'static>(
 }
 
 async fn admission_probe(
-    admission: Admission,
+    admission: AuthorityScope,
     Extension(expected): Extension<ExpectedAdmission>,
 ) -> Json<serde_json::Value> {
     assert_eq!(
@@ -269,11 +284,11 @@ async fn renewal_probe(
     Json(serde_json::json!({}))
 }
 
-fn router(state: &AppState<StdRng>) -> Router {
+fn router(state: AppState<impl Send + 'static>) -> Router {
     Router::new()
-        .route("/admission/{generation}", get(admission_probe))
+        .route("/admission/{generation}/{variant}", get(admission_probe))
         .route("/renewal/{generation}", get(renewal_probe))
-        .with_state(state.clone())
+        .with_state(state)
 }
 
 fn request(
@@ -282,15 +297,38 @@ fn request(
     actor: ActorId,
     token: Option<&str>,
 ) -> Request<RequestBody> {
+    let suffix = if prefix == "admission" { "/plain" } else { "" };
     let mut builder = Request::builder()
         .method("GET")
-        .uri(format!("/{prefix}/{generation}"))
+        .uri(format!("/{prefix}/{generation}{suffix}"))
         .extension(ActorCache(Ok(Actor(actor))));
     if let Some(token) = token {
         builder = builder.header(headers::AUTHORITY, token);
     }
     builder
         .body(RequestBody::empty())
+        .expect("the request should build")
+}
+
+#[track_caller]
+fn route_request(
+    path: &str,
+    actor: ActorId,
+    token: Option<&str>,
+    body: &serde_json::Value,
+) -> Request<RequestBody> {
+    let mut builder = Request::builder()
+        .method("POST")
+        .uri(path)
+        .header("content-type", "application/json")
+        .extension(ActorCache(Ok(Actor(actor))));
+    if let Some(token) = token {
+        builder = builder.header(headers::AUTHORITY, token);
+    }
+    builder
+        .body(RequestBody::from(
+            serde_json::to_vec(body).expect("the request body should serialize"),
+        ))
         .expect("the request should build")
 }
 
@@ -324,6 +362,160 @@ fn assert_problem(
     );
 }
 
+async fn missing_token_routes(app: &Router, generation_hex: &str, actor: ActorId) {
+    let (status, document) = call(app, request("admission", generation_hex, actor, None)).await;
+    assert_problem(
+        status,
+        &document,
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "admission without a token must refuse",
+    );
+
+    let (status, _document) = call(
+        app,
+        expecting(
+            request("renewal", generation_hex, actor, None),
+            ExpectedContinuity(None),
+        ),
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "renewal without a token should still admit"
+    );
+
+    let (status, document) = call(
+        app,
+        request("renewal", generation_hex, actor, Some("not-a-hex-token")),
+    )
+    .await;
+    assert_problem(
+        status,
+        &document,
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "a malformed token must refuse rather than bootstrap",
+    );
+}
+
+async fn actor_token_routes(
+    app: &Router,
+    registry: &UniverseRegistry,
+    generation_hex: &str,
+    generation: GenerationId,
+    actor: ActorId,
+    other_actor: ActorId,
+    token: &str,
+) {
+    let reference = expected_reference(registry, generation);
+    let (status, _document) = call(
+        app,
+        expecting(
+            request("admission", generation_hex, actor, Some(token)),
+            ExpectedAdmission {
+                generation,
+                reference,
+            },
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "a valid data token should admit");
+
+    let (status, document) = call(
+        app,
+        request("admission", generation_hex, other_actor, Some(token)),
+    )
+    .await;
+    assert_problem(
+        status,
+        &document,
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "a token presented by another actor must refuse",
+    );
+}
+
+async fn generation_rejections(app: &Router, actor: ActorId, token: &str) {
+    let unknown = "f".repeat(64);
+    for (generation, expected, kind) in [
+        (
+            "not-a-generation",
+            StatusCode::BAD_REQUEST,
+            "invalid-generation",
+        ),
+        (
+            unknown.as_str(),
+            StatusCode::NOT_FOUND,
+            "unknown-generation",
+        ),
+    ] {
+        for prefix in ["admission", "renewal"] {
+            let (status, document) =
+                call(app, request(prefix, generation, actor, Some(token))).await;
+            assert_problem(
+                status,
+                &document,
+                expected,
+                kind,
+                "generation failures should retain their problem classification",
+            );
+        }
+    }
+}
+
+async fn expired_token_routes(
+    registry: Arc<UniverseRegistry>,
+    generation: GenerationId,
+    generation_hex: &str,
+    actor: ActorId,
+) {
+    let expiring_tokens = Arc::new(
+        Authority::new(AUTH_SECRET, Duration::ZERO, StdRng::seed_from_u64(3))
+            .expect("the rng should draw a salt"),
+    );
+    let expiring_state = test_state(Arc::clone(&registry), Arc::clone(&expiring_tokens)).await;
+    let expiring_app = router(expiring_state);
+    let filter = FilterDigest::of(b"single-generation-expired-filter");
+    let zoom = Zoom::new(3).expect("3 should fit the zoom domain");
+    let expiring_token = issue_token(
+        &expiring_tokens,
+        &registry,
+        generation,
+        actor,
+        Some(filter),
+        zoom,
+    );
+
+    let (status, document) = call(
+        &expiring_app,
+        request("admission", generation_hex, actor, Some(&expiring_token)),
+    )
+    .await;
+    assert_problem(
+        status,
+        &document,
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "an expired token must refuse admission",
+    );
+
+    let (status, _document) = call(
+        &expiring_app,
+        expecting(
+            request("renewal", generation_hex, actor, Some(&expiring_token)),
+            ExpectedContinuity(Some((Some(filter), zoom))),
+        ),
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "renewal should still admit an expired token"
+    );
+}
+
 #[tokio::test]
 async fn token_lifecycle() {
     let (_files, mut manager) = boot("single-generation", RETENTION).await;
@@ -345,132 +537,105 @@ async fn token_lifecycle() {
             .expect("the rng should draw a salt"),
     );
     let state = test_state(Arc::clone(&registry), Arc::clone(&tokens)).await;
-    let app = router(&state);
+    let app = router(state);
 
     let actor = user_actor(1);
     let other_actor = user_actor(2);
 
-    let (status, document) = call(&app, request("admission", &generation_hex, actor, None)).await;
-    assert_problem(
-        status,
-        &document,
-        StatusCode::UNAUTHORIZED,
-        "unauthorized",
-        "admission without a token must refuse",
-    );
+    missing_token_routes(&app, &generation_hex, actor).await;
 
-    let (status, _document) = call(
-        &app,
-        expecting(
-            request("renewal", &generation_hex, actor, None),
-            ExpectedContinuity(None),
-        ),
-    )
-    .await;
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "renewal without a token should still admit"
-    );
-
-    let (status, document) = call(
-        &app,
-        request("renewal", &generation_hex, actor, Some("not-a-hex-token")),
-    )
-    .await;
-    assert_problem(
-        status,
-        &document,
-        StatusCode::UNAUTHORIZED,
-        "unauthorized",
-        "a malformed token must refuse rather than bootstrap",
-    );
-
-    let reference = expected_reference(&registry, generation);
     let token = issue_token(&tokens, &registry, generation, actor, None, Zoom::MIN);
-    let (status, _document) = call(
+    actor_token_routes(
         &app,
-        expecting(
-            request("admission", &generation_hex, actor, Some(&token)),
-            ExpectedAdmission {
-                generation,
-                reference,
-            },
-        ),
+        &registry,
+        &generation_hex,
+        generation,
+        actor,
+        other_actor,
+        &token,
     )
     .await;
-    assert_eq!(status, StatusCode::OK, "a valid data token should admit");
 
-    let (status, document) = call(
-        &app,
-        request("admission", &generation_hex, other_actor, Some(&token)),
-    )
-    .await;
-    assert_problem(
-        status,
-        &document,
-        StatusCode::UNAUTHORIZED,
-        "unauthorized",
-        "a token presented by another actor must refuse",
-    );
+    generation_rejections(&app, actor, &token).await;
 
-    let (status, document) = call(&app, request("renewal", &"f".repeat(64), actor, None)).await;
+    let mut unknown_variant = request("admission", &generation_hex, actor, Some(&token));
+    *unknown_variant.uri_mut() = format!("/admission/{generation_hex}/missing")
+        .parse()
+        .expect("the variant request should build");
+    let (status, document) = call(&app, unknown_variant).await;
     assert_problem(
         status,
         &document,
         StatusCode::NOT_FOUND,
-        "unknown-generation",
-        "an unpublished generation id must answer unknown-generation",
+        "unknown-variant",
+        "an unsupported variant should be rejected before the handler",
     );
 
-    let expiring_tokens = Arc::new(
-        Authority::new(AUTH_SECRET, Duration::ZERO, StdRng::seed_from_u64(3))
-            .expect("the rng should draw a salt"),
-    );
-    let expiring_state = test_state(Arc::clone(&registry), Arc::clone(&expiring_tokens)).await;
-    let expiring_app = router(&expiring_state);
-    let filter = FilterDigest::of(b"single-generation-expired-filter");
-    let k = Zoom::new(3).expect("3 should fit the zoom domain");
-    let expiring_token = issue_token(
-        &expiring_tokens,
-        &registry,
-        generation,
-        actor,
-        Some(filter),
-        k,
-    );
-
-    let (status, document) = call(
-        &expiring_app,
-        request("admission", &generation_hex, actor, Some(&expiring_token)),
-    )
-    .await;
-    assert_problem(
-        status,
-        &document,
-        StatusCode::UNAUTHORIZED,
-        "unauthorized",
-        "an expired token must refuse admission",
-    );
-
-    let (status, _document) = call(
-        &expiring_app,
-        expecting(
-            request("renewal", &generation_hex, actor, Some(&expiring_token)),
-            ExpectedContinuity(Some((Some(filter), k))),
-        ),
-    )
-    .await;
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "renewal should still admit an expired token"
-    );
+    expired_token_routes(registry, generation, &generation_hex, actor).await;
 
     shutdown.cancel();
     timeout(BUDGET, running.as_mut())
         .await
         .expect("the cancelled run should finish within its budget");
+}
+
+async fn generation_routes(
+    app: &Router,
+    actor: ActorId,
+    [(generation_a, token_a), (generation_b, token_b)]: [(GenerationId, &str); 2],
+) {
+    for (generation, token) in [(generation_a, token_b), (generation_b, token_a)] {
+        for (path, body) in [
+            (
+                format!("/v1/atlas/generation/{generation}/manifest"),
+                serde_json::json!(false),
+            ),
+            (
+                format!("/v1/atlas/tile/{generation}/plain/0/0/0"),
+                serde_json::json!({}),
+            ),
+            (
+                format!("/v1/atlas/edges/{generation}/plain"),
+                serde_json::json!({"tiles": []}),
+            ),
+            (
+                format!("/v1/atlas/locate/{generation}/plain"),
+                serde_json::json!({"row": 0}),
+            ),
+            (
+                format!("/v1/atlas/translate/{generation}/plain"),
+                serde_json::json!({"entityIds": []}),
+            ),
+        ] {
+            let (status, document) =
+                call(app, route_request(&path, actor, Some(token), &body)).await;
+            assert_problem(
+                status,
+                &document,
+                StatusCode::UNAUTHORIZED,
+                "unauthorized",
+                &format!("{path} must reject authority for another generation"),
+            );
+        }
+    }
+
+    for (generation, token) in [(generation_a, token_a), (generation_b, token_b)] {
+        let path = format!("/v1/atlas/generation/{generation}/manifest");
+        for token in [Some(token), None] {
+            let (status, document) = call(
+                app,
+                route_request(&path, actor, token, &serde_json::json!(false)),
+            )
+            .await;
+            assert_problem(
+                status,
+                &document,
+                StatusCode::BAD_REQUEST,
+                "invalid-body",
+                "manifest bootstrap and renewal should reach filter parsing without a variant",
+            );
+        }
+    }
 }
 
 #[tokio::test]
@@ -490,11 +655,17 @@ async fn token_retained() {
     .await;
 
     let tokens = Arc::new(
-        Authority::new(AUTH_SECRET, LONG_EXPIRATION, StdRng::seed_from_u64(4))
-            .expect("the rng should draw a salt"),
+        Authority::new(AUTH_SECRET, LONG_EXPIRATION, SysRng).expect("the rng should draw a salt"),
     );
     let state = test_state(Arc::clone(&registry), Arc::clone(&tokens)).await;
-    let app = router(&state);
+    let routes = super::super::router(
+        Arc::clone(&registry),
+        Arc::clone(&tokens),
+        state.limits,
+        pool().await,
+        state.visibility,
+    );
+    let app = router(state);
     let actor = user_actor(5);
 
     let token_a = issue_token(&tokens, &registry, generation_a, actor, None, Zoom::MIN);
@@ -509,46 +680,47 @@ async fn token_retained() {
     })
     .await;
 
-    let (status, document) = call(
-        &app,
-        request(
-            "admission",
-            &generation_b.to_string(),
-            actor,
-            Some(&token_a),
-        ),
+    let token_b = issue_token(&tokens, &registry, generation_b, actor, None, Zoom::MIN);
+    generation_routes(
+        &routes,
+        actor,
+        [(generation_a, &token_a), (generation_b, &token_b)],
     )
     .await;
-    assert_problem(
-        status,
-        &document,
-        StatusCode::UNAUTHORIZED,
-        "unauthorized",
-        "a token bound to another generation must refuse",
-    );
 
-    let reference = expected_reference(&registry, generation_a);
-    let (status, _document) = call(
-        &app,
-        expecting(
-            request(
-                "admission",
-                &generation_a.to_string(),
-                actor,
-                Some(&token_a),
+    for (generation, token) in [(generation_a, &token_b), (generation_b, &token_a)] {
+        let (status, document) = call(
+            &app,
+            request("admission", &generation.to_string(), actor, Some(token)),
+        )
+        .await;
+        assert_problem(
+            status,
+            &document,
+            StatusCode::UNAUTHORIZED,
+            "unauthorized",
+            "a token bound to another generation must refuse",
+        );
+    }
+
+    for (generation, token) in [(generation_a, &token_a), (generation_b, &token_b)] {
+        let (status, _document) = call(
+            &app,
+            expecting(
+                request("admission", &generation.to_string(), actor, Some(token)),
+                ExpectedAdmission {
+                    generation,
+                    reference: expected_reference(&registry, generation),
+                },
             ),
-            ExpectedAdmission {
-                generation: generation_a,
-                reference,
-            },
-        ),
-    )
-    .await;
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "a retained generation should still admit its own token",
-    );
+        )
+        .await;
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "present and retained generations should admit their own tokens",
+        );
+    }
 
     shutdown.cancel();
     timeout(BUDGET, running.as_mut())
@@ -558,8 +730,7 @@ async fn token_retained() {
 
 #[tokio::test]
 async fn renewal_empty() {
-    let scratch = scratch_dir("empty-registry");
-    let root = GenerationRoot::new(scratch.clone()).expect("the scratch root should open");
+    let (_scratch, root) = scratch_root("empty-registry");
     let source = RuntimeSource {
         root,
         secret: secret(),
@@ -581,7 +752,7 @@ async fn renewal_empty() {
             .expect("the rng should draw a salt"),
     );
     let state = test_state(registry, tokens).await;
-    let app = router(&state);
+    let app = router(state);
 
     let (status, document) = call(
         &app,
@@ -599,18 +770,29 @@ async fn renewal_empty() {
     timeout(BUDGET, manager.shutdown())
         .await
         .expect("the empty manager's shutdown should finish within its budget");
-    drop(std::fs::remove_dir_all(&scratch));
 }
 
 #[test]
 fn input_authority() {
     let mut admission_operation = Operation::default();
-    let _documented = TransformOperation::new(&mut admission_operation).input::<Admission>();
+    let _documented = TransformOperation::new(&mut admission_operation).input::<AuthorityScope>();
     let admission =
         serde_json::to_value(admission_operation).expect("the operation should serialize");
-    let admission_header = admission["parameters"]
+    let admission_parameters = admission["parameters"]
         .as_array()
-        .expect("admission should document parameters")
+        .expect("admission should document parameters");
+    assert_eq!(
+        admission_parameters
+            .iter()
+            .filter(|parameter| parameter["in"] == "path")
+            .map(|parameter| parameter["name"]
+                .as_str()
+                .expect("the name should be a string"))
+            .collect::<Vec<_>>(),
+        ["generation", "variant"],
+        "data admission should document both path parameters exactly once",
+    );
+    let admission_header = admission_parameters
         .iter()
         .find(|parameter| parameter["name"] == "Atlas-Authority")
         .expect("admission should document the authority header");
@@ -630,19 +812,21 @@ fn input_authority() {
         .iter()
         .find(|parameter| parameter["name"] == "Atlas-Authority")
         .expect("renewal should document the authority header");
-    // Omitted `required` and explicit `false` both mean an optional header.
+    // omitted `required` and explicit `false` both mean an optional header.
     assert_ne!(
         renewal_header["required"],
         serde_json::json!(true),
         "renewal's authority header must be optional",
     );
-    let generation_parameter = renewal_parameters
-        .iter()
-        .find(|parameter| parameter["name"] == "generation")
-        .expect("renewal should document its generation path parameter");
     assert_eq!(
-        generation_parameter["in"],
-        serde_json::json!("path"),
-        "the schema must document generation as a path parameter",
+        renewal_parameters
+            .iter()
+            .filter(|parameter| parameter["in"] == "path")
+            .map(|parameter| parameter["name"]
+                .as_str()
+                .expect("the name should be a string"))
+            .collect::<Vec<_>>(),
+        ["generation"],
+        "manifest renewal should document only its generation path parameter",
     );
 }

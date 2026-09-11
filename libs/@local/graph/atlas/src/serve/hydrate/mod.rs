@@ -12,11 +12,7 @@ pub(crate) mod visibility;
 pub(crate) use self::locate::{LocateLink, LocateNode, LocateProperties};
 pub(crate) use self::{
     client::{GraphDatabaseClient, HydrateError},
-    columns::{
-        EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeSlot,
-        NodeTrailerColumns, TypeSlot,
-    },
+    columns::{EdgeSlot, NodeSlot, TypeSlot},
     locate::{LocateEntity, LocateRequest, LocateResolver, LocateResponse},
-    ontology::OntologyResolver,
     type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

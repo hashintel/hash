@@ -8,22 +8,20 @@ use core::panic::AssertUnwindSafe;
 use aide::transform::TransformOperation;
 use axum::{
     extract::State,
-    http::StatusCode,
     response::{IntoResponse as _, Response},
 };
 
 use super::{
     AppState, clause,
-    extract::{Body, Generation, VariantPath},
-    problem::{Problem, ProblemType, reject_variant},
+    extract::Body,
+    problem::Problem,
     saltile::{DocumentResponse, Saltile, spawn},
     visibility::Visibility,
 };
 use crate::{
     morton::MortonTile,
     serve::document::{
-        Document as _, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError,
-        EdgesDocumentOptions,
+        Document as _, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentOptions,
     },
 };
 
@@ -99,11 +97,8 @@ pub(super) struct EdgesRequest {
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath { variant, .. }): Generation<VariantPath>,
     Body(request): Body<EdgesRequest>,
 ) -> Result<Response, Problem<'static>> {
-    reject_variant(&variant)?;
-
     let detail = request.detail.into_document_level();
     let limits = state.limits.edges;
     let resolver = Arc::clone(&state.type_urls);
@@ -123,8 +118,7 @@ pub(super) async fn handler<R>(
                     limits,
                     resolver,
                 },
-            )
-            .map_err(|report| edges_problem(report.current_context()))?;
+            )?;
 
             let mut buffer = Vec::new();
             let envelope = document
@@ -137,34 +131,6 @@ pub(super) async fn handler<R>(
     .await??;
 
     Ok(DocumentResponse::new(bytes, content_type).into_response())
-}
-
-/// Maps one construction failure onto the problem it earns.
-///
-/// [`EdgesDocumentError::Tiles`] is the caller's own oversize request: `too-many-tiles`.
-/// [`EdgesDocumentError::Zoom`] and [`EdgesDocumentError::Coordinate`] are the caller's own
-/// out-of-range address, both `invalid-coordinate`. [`EdgesDocumentError::Display`] names a
-/// delivered edge the captured scene cannot back with a display payload, and
-/// [`EdgesDocumentError::Hydrate`] names a failed type-URL resolution; both are producer defects
-/// rather than request ones and answer the sanitized internal problem.
-fn edges_problem(error: &EdgesDocumentError) -> Problem<'static> {
-    match error {
-        EdgesDocumentError::Tiles { .. } => Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::TooManyTiles,
-            error.to_string(),
-        ),
-        EdgesDocumentError::Zoom { .. } | EdgesDocumentError::Coordinate { .. } => Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::InvalidCoordinate,
-            error.to_string(),
-        ),
-        EdgesDocumentError::Display => Problem::internal(
-            error,
-            "the edges assembly could not read a delivered edge's captured data",
-        ),
-        EdgesDocumentError::Hydrate => Problem::internal(error, "the detail hydration failed"),
-    }
 }
 
 /// Documents the operation.

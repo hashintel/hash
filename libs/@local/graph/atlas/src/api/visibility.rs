@@ -18,7 +18,7 @@ use type_system::principal::actor::ActorId;
 
 use super::{
     AppState,
-    authorization::Admission,
+    authorization::AuthorityScope,
     problem::{Problem, ProblemType, unauthorized, visibility_unavailable},
 };
 use crate::{
@@ -64,7 +64,9 @@ impl<R: Send> FromRequestParts<AppState<R>> for Visibility {
         parts: &mut Parts,
         state: &AppState<R>,
     ) -> Result<Self, Self::Rejection> {
-        let Admission { observation, scope } = Admission::from_request_parts(parts, state).await?;
+        let AuthorityScope { observation, scope } =
+            AuthorityScope::from_request_parts(parts, state).await?;
+
         let entry = resolve(
             state,
             &observation,
@@ -73,6 +75,7 @@ impl<R: Send> FromRequestParts<AppState<R>> for Visibility {
             None,
         )
         .await?;
+
         Ok(Self {
             observation,
             entry,
@@ -83,7 +86,7 @@ impl<R: Send> FromRequestParts<AppState<R>> for Visibility {
 
 impl OperationInput for Visibility {
     fn operation_input(ctx: &mut GenContext, operation: &mut openapi::Operation) {
-        Admission::operation_input(ctx, operation);
+        AuthorityScope::operation_input(ctx, operation);
     }
 }
 

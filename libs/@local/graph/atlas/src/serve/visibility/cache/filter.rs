@@ -1,10 +1,11 @@
+use core::hash::{Hash, Hasher};
+
 use crate::integrity::{Sha256, Sha256Digest, Update as _};
 
 #[derive(
     Debug,
     Copy,
     Clone,
-    Hash,
     zerocopy::IntoBytes,
     zerocopy::FromBytes,
     zerocopy::Immutable,
@@ -32,3 +33,10 @@ const impl PartialEq for FilterDigest {
 }
 
 const impl Eq for FilterDigest {}
+
+impl Hash for FilterDigest {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}

@@ -10,8 +10,8 @@ use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
-    extract::{Body, Coordinates, Generation, VariantPath},
-    problem::{Problem, ProblemType, reject_variant},
+    extract::{Body, Coordinates},
+    problem::{Problem, ProblemType},
     saltile::{DocumentResponse, Saltile, spawn},
     visibility::Visibility,
 };
@@ -84,7 +84,7 @@ impl TileDetail {
     }
 }
 
-/// The query context of one tile request: the ratified POST body, every field optional.
+/// The query context of one tile request: the POST body, every field optional.
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct TileQuery {
@@ -109,17 +109,15 @@ pub(super) struct TileQuery {
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath { variant, .. }): Generation<VariantPath>,
-    Coordinates(CellPath { z, x, y }): Coordinates<CellPath>,
+    Coordinates(CellPath { z, x, y }): Coordinates,
     query: Option<Body<TileQuery>>,
 ) -> Result<Response, Problem<'static>> {
-    reject_variant(&variant)?;
-
     let TileQuery {
         mode,
         colored_type_ids,
         detail,
     } = query.map_or_else(TileQuery::default, |Body(query)| query);
+
     let coordinate = MortonTile { z, x, y };
     let detail = detail.into_document_level();
     let limits = state.limits.tile;

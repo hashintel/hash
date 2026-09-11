@@ -40,8 +40,8 @@ impl Deref for InternalEpoch {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Full(arc) => &arc,
-            Self::Shared(guard) => &guard,
+            Self::Full(arc) => arc,
+            Self::Shared(guard) => guard,
         }
     }
 }
@@ -94,6 +94,11 @@ impl Epoch {
         &self.delta.layout
     }
 
+    /// Borrows captured node identities after checking their world association.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` does not belong to the epoch's world.
     pub(crate) fn nodes(
         &self,
         index: &NodeIndex,
@@ -106,6 +111,11 @@ impl Epoch {
         &self.delta.node
     }
 
+    /// Borrows captured edge identities after checking their world association.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `topology` does not belong to the epoch's world.
     pub(crate) fn edges(
         &self,
         topology: &Topology,
@@ -169,8 +179,8 @@ impl Epoch {
 }
 
 impl core::fmt::Debug for Epoch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Epoch")
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.debug_struct("Epoch")
             .field("generation", &self.generation())
             .field("revision", &self.revision())
             .finish_non_exhaustive()

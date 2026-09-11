@@ -1,3 +1,7 @@
+use alloc::alloc::Allocator;
+
+use self::codec::Envelope;
+
 mod codec;
 mod current;
 mod edges;
@@ -8,15 +12,14 @@ mod masks;
 mod tile;
 mod translate;
 
-use alloc::alloc::Allocator;
-
-use self::codec::Envelope;
+#[cfg(test)]
+pub(crate) use self::tile::TileSlot;
 pub(crate) use self::{
     codec::Mode,
     current::CurrentDocument,
     edges::{
-        EdgeSlot, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError,
-        EdgesDocumentOptions, EdgesLimits, EdgesTrailer,
+        EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError, EdgesDocumentOptions,
+        EdgesLimits,
     },
     limits::DocumentLimits,
     locate::{
@@ -25,11 +28,8 @@ pub(crate) use self::{
     manifest::ManifestDocument,
     tile::{
         TileDocument, TileDocumentDetailLevel, TileDocumentError, TileDocumentOptions, TileLimits,
-        TileSlot, TileTrailer,
     },
-    translate::{
-        TranslateDocument, TranslateDocumentError, TranslateLimits, TranslatedEdge, TranslatedNode,
-    },
+    translate::{TranslateDocument, TranslateDocumentError, TranslateLimits},
 };
 
 pub(crate) const VARIANTS: [&str; 1] = ["plain"];

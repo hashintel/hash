@@ -1,8 +1,33 @@
-//! # HASH Graph Atlas
+//! Fits 2D maps of HASH Graph entities from their embeddings and relationships.
 //!
-//! Fits 2D maps over the entity embeddings stored in the HASH Graph, blending semantic similarity
-//! (what entities mean) with relational structure (how they connect), and distills each map into a
-//! small encoder that places new entities on an existing map without refitting.
+//! Fitting blends semantic similarity (what entities mean) with relational structure (how they
+//! connect). Each fit distills the map into a small encoder that places new entities on the
+//! existing map without refitting.
+//!
+//! For the HTTP request and response contracts, start with [`api`]. The graph binary serves the
+//! interactive API reference at `/v1/atlas/openapi`.
+//!
+//! This HTTP sketch requires a running deployment with a published generation and valid actor
+//! credentials. Replace `{generation}` with the `generation` field returned by the first response:
+//!
+//! ```text
+//! GET /v1/atlas/current
+//!     -> 200: JSON containing the generation ID
+//! POST /v1/atlas/generation/{generation}/manifest  (empty body)
+//!     -> 200: JSON manifest and an Atlas-Authority response header
+//! ```
+//!
+//! An empty manifest body requests an unfiltered view of the actor's permitted entities. Present
+//! the returned `Atlas-Authority` token on data requests. The manifest lists the variants and
+//! request limits.
+//!
+//! - [Modules](#modules)
+//! - [Using the crate](#using-the-crate)
+//! - [Crate features](#crate-features)
+//! - [Performance](#performance)
+//! - [Limitations](#limitations)
+//!
+//! # Modules
 //!
 //! The crate builds the SALT pipeline on top of a foundation of domain-independent modules:
 //!
@@ -27,23 +52,22 @@
 //!
 //! # Using the crate
 //!
-//! A caller outside this crate reaches a published generation over HTTP. [`cli`] carries the
-//! operator commands that fit a generation over the live store and serve the active one through the
-//! [`api`] router the graph binary hosts. The Rust items behind that router are crate-internal by
-//! design. [`serve::Atlas`] carries the worked example for the read path.
+//! Use [`cli`] for the operator commands that fit a generation over the live store and serve the
+//! active one through the graph binary. The Rust items behind the [`api`] router are crate-internal
+//! by design.
 //!
 //! # Crate features
 //!
 //! [`device::PinnedDevice`] selects CPU, CUDA, or Metal at runtime. CPU dispatches to `NdArray`,
-//! while CUDA and Metal dispatch to `CubeCL`. Cargo features expose tools around that runtime:
+//! while CUDA and Metal dispatch to `CubeCL`. Cargo features expose tools around that runtime. Both
+//! `bench` and `cli` are disabled by default:
 //!
 //! - `bench` exposes `bench`, the measurement hooks the five `[[bench]]` targets in `Cargo.toml`
-//!   consume. The lab instruments the standalone binary runs stay outside it and build with the
-//!   crate regardless.
+//!   consume. The standalone binary's lab commands build independently of this feature.
 //! - `cli` compiles in the standalone `hash-graph-atlas` binary's shell and its exclusive
 //!   dependencies, `ratatui`'s dashboard and `tracing-subscriber`'s log formatting. The operator
-//!   commands and the read-API routes build unconditionally, so the `hash-graph` binary consumes
-//!   them feature-free.
+//!   commands and the read-API routes build unconditionally. The `hash-graph` binary consumes them
+//!   feature-free.
 //!
 //! # Performance
 //!
@@ -119,8 +143,8 @@
     clippy::indexing_slicing
 )]
 // Operator-command machinery is unconditional library code whose one consumer, the command
-// shell, sits behind `cli`, so a build without `cli` marks that machinery dead rather than
-// finding real rot. Bench machinery carries `cfg(any(test, feature = "bench"))` per item, so the
+// shell, sits behind `cli`. A build without `cli` marks that machinery dead rather than
+// finding real rot. Bench machinery carries `cfg(any(test, feature = "bench"))` per item. The
 // dead-code lint is live on every other item in every unit with `cli` on.
 #![cfg_attr(not(feature = "cli"), allow(dead_code))]
 // The documentation's audience is the crate's developers. Module docs link private items on

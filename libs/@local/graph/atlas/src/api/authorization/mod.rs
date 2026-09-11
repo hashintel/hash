@@ -3,10 +3,14 @@
 //! Data requests require an unexpired scope. Manifest renewals retain the filter identity and
 //! delivery offset after expiry, while actor and generation-lifetime checks remain mandatory.
 
+#[cfg(test)]
+mod tests;
+
 use std::time::SystemTime;
 
 use aide::{generate::GenContext, openapi, operation::OperationInput};
 use axum::{
+    RequestPartsExt as _,
     extract::FromRequestParts,
     http::{HeaderValue, request::Parts},
 };
@@ -15,23 +19,17 @@ use type_system::principal::actor::ActorId;
 
 use super::{
     AppState,
-    extract::Generation,
+    extract::{Generation, Variant},
     headers,
-    problem::{Problem, observe_problem, unauthorized},
+    problem::{Problem, unauthorized},
 };
-use crate::{
-    file::generation::GenerationId,
-    serve::{
-        authorization::{
-            scope::{ContinuityScope, CurrentScope},
-            token::EncryptedToken,
-        },
-        runtime::registry::Observation,
+use crate::serve::{
+    authorization::{
+        scope::{ContinuityScope, CurrentScope, ScopeLease},
+        token::EncryptedToken,
     },
+    runtime::registry::Observation,
 };
-
-#[cfg(test)]
-mod tests;
 
 #[derive(Clone)]
 struct ActorCache(Result<Actor, AuthenticationRejection>);
@@ -70,23 +68,6 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
 
 impl OperationInput for Actor {}
 
-#[derive(serde::Deserialize, schemars::JsonSchema)]
-struct RequestedGeneration {
-    generation: GenerationId,
-}
-
-async fn observe<R: Send>(
-    parts: &mut Parts,
-    state: &AppState<R>,
-) -> Result<Observation, Problem<'static>> {
-    let Generation(RequestedGeneration { generation }) =
-        Generation::from_request_parts(parts, state).await?;
-    state
-        .registry
-        .observe(Some(generation))
-        .map_err(observe_problem)
-}
-
 fn presentation(header: &HeaderValue) -> Result<EncryptedToken, Problem<'static>> {
     header
         .to_str()
@@ -96,12 +77,12 @@ fn presentation(header: &HeaderValue) -> Result<EncryptedToken, Problem<'static>
 }
 
 /// A current authority scope with its request's captured publication.
-pub(super) struct Admission {
+pub(super) struct AuthorityScope {
     pub observation: Observation,
     pub scope: CurrentScope,
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for Admission {
+impl<R: Send> FromRequestParts<AppState<R>> for AuthorityScope {
     type Rejection = Problem<'static>;
 
     async fn from_request_parts(
@@ -115,7 +96,8 @@ impl<R: Send> FromRequestParts<AppState<R>> for Admission {
             .ok_or_else(unauthorized)
             .and_then(presentation)?;
 
-        let observation = observe(parts, state).await?;
+        let Variant { observation } = parts.extract_with_state::<Variant, _>(state).await?;
+
         let scope = state
             .tokens
             .decrypt(actor, observation.requested().epoch(), &token)
@@ -129,8 +111,10 @@ impl<R: Send> FromRequestParts<AppState<R>> for Admission {
     }
 }
 
-impl OperationInput for Admission {
-    fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
+impl OperationInput for AuthorityScope {
+    fn operation_input(ctx: &mut GenContext, operation: &mut openapi::Operation) {
+        Variant::operation_input(ctx, operation);
+
         operation
             .parameters
             .push(openapi::ReferenceOr::Item(headers::presented_authority()));
@@ -158,14 +142,15 @@ impl<R: Send> FromRequestParts<AppState<R>> for Renewal {
             .map(presentation)
             .transpose()?;
 
-        let observation = observe(parts, state).await?;
+        let Generation { observation } = parts.extract_with_state::<Generation, _>(state).await?;
+
         let carried = token
             .as_ref()
             .map(|token| {
                 state
                     .tokens
                     .decrypt(actor, observation.requested().epoch(), token)
-                    .map(|lease| lease.continuity())
+                    .map(ScopeLease::continuity)
                     .map_err(|error| {
                         tracing::warn!(?error, "unable to renew authority token");
                         unauthorized()
@@ -183,7 +168,8 @@ impl<R: Send> FromRequestParts<AppState<R>> for Renewal {
 
 impl OperationInput for Renewal {
     fn operation_input(ctx: &mut GenContext, operation: &mut openapi::Operation) {
-        Generation::<RequestedGeneration>::operation_input(ctx, operation);
+        Generation::operation_input(ctx, operation);
+
         let mut parameter = headers::presented_authority();
         parameter.parameter_data_mut().required = false;
         operation

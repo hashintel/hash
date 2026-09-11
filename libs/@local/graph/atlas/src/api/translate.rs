@@ -19,9 +19,9 @@ use type_system::{
 
 use super::{
     AppState, clause,
-    extract::{Body, Generation, VariantPath},
+    extract::Body,
     headers,
-    problem::{Problem, ProblemType, reject_variant},
+    problem::{Problem, ProblemType},
     saltile::{DocumentResponse, spawn},
     visibility::Visibility,
 };
@@ -73,11 +73,8 @@ pub(super) struct TranslateRequest {
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath { variant, .. }): Generation<VariantPath>,
     Body(request): Body<TranslateRequest>,
 ) -> Result<Response, Problem<'static>> {
-    reject_variant(&variant)?;
-
     let limits = state.limits.translate;
     if request.entity_ids.len() > limits.entity_ids as usize {
         return Err(too_many_entity_ids(

@@ -473,6 +473,45 @@ fn try_join_panic() {
     });
 }
 
+/// A completed runner survives a budget-exhausted probe and joins after a scheduler yield.
+///
+/// [`tokio::task::consume_budget`] spends the budget that the join probe also needs.
+#[test]
+fn try_join_exhausted_budget() {
+    /// Probes to spend on the drain, well past the budget one task poll starts with.
+    const DRAIN_PROBES: usize = 1024;
+
+    run_controlled(async {
+        let task = tokio::spawn(async { Ok(()) });
+        let (_fixture, mut runtime) = controlled(
+            "runtime-try-join-exhausted-budget",
+            Feed {
+                shutdown: CancellationToken::new(),
+                task,
+            },
+        );
+        feed_finished(&runtime).await;
+
+        let exhausted =
+            (0..DRAIN_PROBES).any(|_| tokio::task::consume_budget().now_or_never().is_none());
+        assert!(
+            exhausted,
+            "consuming budget should report pending once the drain spends it"
+        );
+
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Running));
+        assert!(runtime.feed.is_some());
+
+        tokio::task::yield_now().await;
+
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
+        assert!(runtime.feed.is_none());
+        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+        assert!(runtime.join().await.is_none());
+        runtime.shutdown().await.expect("should remain joined");
+    });
+}
+
 #[test]
 fn drop_graceful() {
     run_controlled(async {

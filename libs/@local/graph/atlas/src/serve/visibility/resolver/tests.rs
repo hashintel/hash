@@ -2,8 +2,9 @@
 //!
 //! A missing PostgreSQL socket makes attempted store resolution observable as a connection error.
 
-use alloc::sync::Arc;
+use alloc::{collections::BTreeMap, sync::Arc};
 use core::{
+    fmt,
     future::{Future, poll_fn},
     pin::{Pin, pin},
     task::Poll,
@@ -16,9 +17,19 @@ use hash_graph_postgres_store::store::{
     PostgresStoreSettings,
 };
 use serde_json::value::RawValue;
-use tokio::time::timeout;
+use tokio::{sync::mpsc, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
+use tracing::{
+    Dispatch, Event, Instrument as _, Level, Subscriber,
+    field::{Field, Visit},
+    span::Id,
+};
+use tracing_subscriber::{
+    Layer, Registry,
+    layer::{Context, SubscriberExt as _},
+    registry::LookupSpan,
+};
 use type_system::principal::actor::{ActorId, ActorType};
 use uuid::Uuid;
 
@@ -48,6 +59,32 @@ use crate::{
         world::World,
     },
 };
+
+struct Fields(BTreeMap<String, String>);
+
+impl Visit for Fields {
+    fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
+        self.0.insert(field.name().to_owned(), format!("{value:?}"));
+    }
+}
+
+struct Diagnostics(mpsc::UnboundedSender<(Level, Vec<Id>, BTreeMap<String, String>)>);
+
+impl<S: Subscriber + for<'lookup> LookupSpan<'lookup>> Layer<S> for Diagnostics {
+    fn on_event(&self, event: &Event<'_>, context: Context<'_, S>) {
+        if event.metadata().target() != "hash_graph_atlas::serve::visibility::resolver" {
+            return;
+        }
+        let mut fields = Fields(BTreeMap::new());
+        event.record(&mut fields);
+        let scope = context.event_scope(event).map_or_else(Vec::new, |scope| {
+            scope.from_root().map(|span| span.id()).collect()
+        });
+        self.0
+            .send((*event.metadata().level(), scope, fields.0))
+            .expect("should retain the diagnostic receiver");
+    }
+}
 
 const POLL_INTERVAL: Duration = Duration::from_millis(5);
 const BUDGET: Duration = Duration::from_secs(5);
@@ -159,21 +196,27 @@ async fn seed_full(
 ) -> Arc<CacheEntry> {
     let key = CacheKey::new(epoch, actor, None);
     cache
-        .resolve(epoch, key, now, async move |epoch: &Epoch| {
-            PendingCacheEntry::new(
-                world,
-                epoch,
-                VisibilityMask::full(
+        .resolve(
+            epoch,
+            key,
+            now,
+            async move |epoch: &Epoch| {
+                PendingCacheEntry::new(
+                    world,
                     epoch,
-                    VisibilityActor {
-                        id: actor,
-                        instance_admin: false,
-                    },
-                ),
-                None,
-            )
-            .await
-        })
+                    VisibilityMask::full(
+                        epoch,
+                        VisibilityActor {
+                            id: actor,
+                            instance_admin: false,
+                        },
+                    ),
+                    None,
+                )
+                .await
+            },
+            |_| panic!("should return foreground errors to the caller"),
+        )
         .await
         .expect("seeding an eligible key should not fail")
         .expect("an eligible key should seed an entry")
@@ -190,21 +233,27 @@ async fn seed_filtered(
 ) -> Arc<CacheEntry> {
     let key = CacheKey::new(epoch, actor, Some(digest));
     cache
-        .resolve(epoch, key, now, async move |epoch: &Epoch| {
-            PendingCacheEntry::new(
-                world,
-                epoch,
-                VisibilityMask::full(
+        .resolve(
+            epoch,
+            key,
+            now,
+            async move |epoch: &Epoch| {
+                PendingCacheEntry::new(
+                    world,
                     epoch,
-                    VisibilityActor {
-                        id: actor,
-                        instance_admin: false,
-                    },
-                ),
-                Some(document),
-            )
-            .await
-        })
+                    VisibilityMask::full(
+                        epoch,
+                        VisibilityActor {
+                            id: actor,
+                            instance_admin: false,
+                        },
+                    ),
+                    Some(document),
+                )
+                .await
+            },
+            |_| panic!("should return foreground errors to the caller"),
+        )
         .await
         .expect("seeding an eligible key should not fail")
         .expect("an eligible key should seed an entry")
@@ -249,6 +298,76 @@ async fn resolve_fresh_unfiltered_hit() {
     assert!(
         Arc::ptr_eq(&seeded, &answer),
         "the hit should return the seeded publication"
+    );
+}
+
+/// A failed store refresh logs its closed stage and keeps the stale scope available.
+#[tokio::test]
+async fn resolve_refresh_diagnostic() {
+    let (_files, pool, mut manager) = boot("resolver-refresh-diagnostic", RETENTION).await;
+    let registry = Arc::clone(manager.registry());
+    let shutdown = CancellationToken::new();
+
+    let (seeded, answer, event, expected_id) = {
+        let mut running = pin!(manager.run(shutdown.clone().cancelled_owned()));
+        let observation = advance(running.as_mut(), || registry.observe(None).ok()).await;
+        let resolver = ScopeResolver::new(pool, LIMITS);
+        let actor = actor_of(1);
+        let seeded = seed_full(
+            &resolver.cache,
+            Arc::clone(observation.present().world()),
+            observation.present().epoch(),
+            observation
+                .admitted_at()
+                .checked_sub(LIMITS.soft)
+                .expect("should backdate the cached scope"),
+            actor,
+        )
+        .await;
+        let (events, mut received) = mpsc::unbounded_channel();
+        let dispatch = Dispatch::new(Registry::default().with(Diagnostics(events)));
+        // this current-thread runtime polls both resolution and its refresh with this subscriber.
+        let _default = tracing::dispatcher::set_default(&dispatch);
+        let request = tracing::info_span!("request");
+        let expected_id = request.id().expect("should enable the request span");
+        let answer = resolver
+            .resolve(&observation, actor, None, None)
+            .instrument(request)
+            .await
+            .expect("should return the stale scope before the store failure")
+            .expect("should retain the stale scope");
+        let event = timeout(BUDGET, received.recv())
+            .await
+            .expect("should report the store refresh failure")
+            .expect("should retain the diagnostic sender");
+        core::assert_matches!(received.try_recv(), Err(mpsc::error::TryRecvError::Empty));
+        assert_eq!(tracing::Span::current().id(), None);
+
+        shutdown.cancel();
+        timeout(BUDGET, running.as_mut())
+            .await
+            .expect("should finish the cancelled run");
+        (seeded, answer, event, expected_id)
+    };
+    manager.shutdown().await;
+
+    assert!(Arc::ptr_eq(&seeded, &answer));
+    assert_eq!(
+        event,
+        (
+            Level::WARN,
+            vec![expected_id],
+            BTreeMap::from([
+                (
+                    "error".to_owned(),
+                    "the resolution reached no store connection".to_owned()
+                ),
+                (
+                    "message".to_owned(),
+                    "Failed to refresh the cached visibility scope".to_owned()
+                ),
+            ])
+        )
     );
 }
 

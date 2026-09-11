@@ -6,7 +6,7 @@
 use alloc::alloc::Allocator;
 use core::{error::Error, fmt};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::Report;
 use hashql_core::id::IdVec;
 use type_system::knowledge::entity::EntityId;
 
@@ -24,7 +24,8 @@ use crate::{
     serve::{
         codec::EncodedRowId,
         hydrate::{
-            EdgeSlot, LocateEntity, LocateRequest, LocateResolver, LocateResponse, NodeSlot,
+            EdgeSlot, HydrateError, LocateEntity, LocateRequest, LocateResolver, LocateResponse,
+            NodeSlot,
         },
         membership::OntologySelection,
         neighbourhood::DeliveredEdge,
@@ -80,7 +81,7 @@ pub(crate) enum LocateDocumentError {
     /// A resolved link has no captured display payload.
     LinkDisplay { row: EdgeRowId },
     /// The resolver failed to read the requested details.
-    Hydrate,
+    Hydrate(HydrateError),
 }
 
 impl fmt::Display for LocateDocumentError {
@@ -97,7 +98,7 @@ impl fmt::Display for LocateDocumentError {
             ),
             Self::NodeDisplay { row } => write!(fmt, "resolved node {row} has no display payload"),
             Self::LinkDisplay { row } => write!(fmt, "resolved link {row} has no display payload"),
-            Self::Hydrate => fmt.write_str("locate detail resolution failed"),
+            Self::Hydrate(error) => write!(fmt, "locate detail resolution failed: {error}"),
         }
     }
 }
@@ -207,7 +208,10 @@ impl<'details> LocateDocument<'details> {
                 link_type_ids: limits.link_type_ids,
                 link_properties: limits.link_properties,
             })
-            .change_context(LocateDocumentError::Hydrate)?;
+            .map_err(|report| {
+                let error = LocateDocumentError::Hydrate(*report.current_context());
+                report.change_context(error)
+            })?;
         let trailer = LocateTrailer::new(
             scene,
             &subgraph,

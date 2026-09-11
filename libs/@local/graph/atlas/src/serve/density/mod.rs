@@ -1,10 +1,27 @@
-#![expect(
-    clippy::empty_enums,
-    reason = "zerocopy's FromBytes derive expands to an empty enum for its validation machinery"
-)]
-
-#[cfg(test)]
-mod tests;
+//! Occupancy-based delivery cuts that target a cell-count band within the schedule's key width.
+//!
+//! For a view's multiset of [`MortonKey`] values V and integer depth 0 ≤ d ≤ 32, C(d, V) counts
+//! distinct leading 2d-bit prefixes. The distinct-key count is Q(V) = C(32, V), and the saturation
+//! depth is dₛₐₜ(V) = min { d : C(d, V) = Q(V) }. Empty views have C(d, V) = 0 at every depth.
+//! Nonempty views have C(0, V) = 1. Empty and single-distinct-key views both have dₛₐₜ(V) = 0.
+//!
+//! # Properties
+//!
+//! For every view, C(d, V) is nondecreasing in d and equals Q(V) from saturation through depth 32.
+//! Duplicate keys and input order leave the profile unchanged.
+//!
+//! A policy has integer band bounds 1 ≤ L ≤ U ≤ 2⁶⁴ − 1. Its schedule has integer span exponent 0 ≤
+//! s ≤ 63 and deepest tile zoom 0 ≤ z ≤ 32. Construction requires z > 0 and z + s ≤ 32. The offset
+//! ceiling is h = 32 − (z + s). An offset 0 ≤ k ≤ h selects the view cut at depth s + k.
+//!
+//! For an integer count 0 ≤ c ≤ 2⁶⁴ − 1, the band distance is δ(c) = max(L − c, 0, c − U).
+//! Resolution chooses the least integer k minimizing δ(C(s + k, V)) over 0 ≤ k ≤ min(max(dₛₐₜ(V) −
+//! s, 0), h). Counts and distances use exact integer arithmetic, and equal distances select the
+//! coarser offset. When dₛₐₜ(V) < s, the result is k = 0 and the cut at depth s is deeper than
+//! saturation.
+//!
+//! For every carried integer offset 0 ≤ k ≤ 32, rebinding returns min(k, resolve(V)) under the new
+//! policy and view.
 
 use core::{error::Error, fmt, num::NonZero};
 
@@ -15,13 +32,12 @@ use crate::{
     morton::{Depth, MortonKey, Zoom},
 };
 
-/// The inclusive occupied-cell band a scope's delivery aims for.
+#[cfg(test)]
+mod tests;
+
+/// The inclusive occupied-cell target for a scope's delivery cut.
 ///
-/// Both bounds are public configured constants, positive and ordered `lower ≤ upper`. A count
-/// inside the band lies at distance zero, and outside it the distance is the shortfall or the
-/// excess.
-///
-/// Unconfigured, the band runs 2,000 through 4,000 occupied cells.
+/// By default, the band runs from 2,000 through 4,000 occupied cells.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct DensityBand {
     lower: NonZero<u64>,
@@ -33,7 +49,9 @@ impl DensityBand {
     ///
     /// Returns [`None`] when `upper` lies below `lower`, a band that admits no count.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This example uses a test-only constructor on a crate-private type.
     ///
     /// ```ignore
     /// use core::num::NonZero;
@@ -97,8 +115,8 @@ impl fmt::Display for DensityPolicyError {
                 max_tile_depth,
             } => write!(
                 fmt,
-                "the schedule's deepest bucket {max_tile_depth} + {span} already exceeds the 32 \
-                 subdivisions a Morton key resolves, so no density policy applies to it"
+                "the schedule's deepest bucket {max_tile_depth} + {span} exceeds the 32 \
+                 subdivisions a Morton key resolves"
             ),
             Self::TerminalRoot => fmt.write_str(
                 "a generation whose deepest zoom is its root serves one catch-all tile, which no \
@@ -110,12 +128,10 @@ impl fmt::Display for DensityPolicyError {
 
 impl Error for DensityPolicyError {}
 
-/// The public rule resolving one scope's delivery cut.
+/// A band and schedule bound for choosing a scope's delivery cut.
 ///
-/// A policy fixes the band, the generation's span exponent, and the offset ceiling the schedule
-/// leaves. Those are everything a resolution reads besides the view's own occupancy. Policies
-/// differing in any of them are different public policies, and a resolved cut is comparable only
-/// within one of them.
+/// The band, span exponent and offset ceiling determine resolution from the view's occupied-cell
+/// profile.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct DensityPolicy {
     band: DensityBand,
@@ -124,6 +140,12 @@ pub(crate) struct DensityPolicy {
 }
 
 impl DensityPolicy {
+    /// Validates the schedule's room for density offsets.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DensityPolicyError::TerminalRoot`] when `max_tile_depth` is zero, then
+    /// [`DensityPolicyError::Schedule`] when `max_tile_depth + span` exceeds 32.
     pub(crate) fn new(
         band: DensityBand,
         span: Log2,
@@ -147,17 +169,29 @@ impl DensityPolicy {
         })
     }
 
+    /// Chooses the coarsest offset minimizing distance to the target band.
+    ///
+    /// # Complexity
+    ///
+    /// Finds saturation with [`ViewOccupancy::saturation_depth`] and examines at most 33 candidate
+    /// offsets, using constant additional space.
     #[must_use]
     pub(crate) fn resolve(self, occupancy: &ViewOccupancy) -> Zoom {
+        // counts equal the distinct-key count from saturation onward. Later offsets have the
+        // same distance, and the coarser tie-break retains the first. The saturation cap therefore
+        // omits only candidates that cannot change the result. Saturation below the span admits
+        // only offset zero, whose cut is already deeper than saturation.
         let saturation = occupancy.saturation_depth().zoom(self.span);
         let limit = saturation.min(self.ceiling);
 
         let mut resolved = Zoom::MIN;
         let mut distance = u64::MAX;
+
+        // occupancy can plateau before increasing again: counts 2, 2, 4 reach band [3, 4] only
+        // at the last offset. A non-improving offset alone therefore cannot terminate the search.
         for offset in Zoom::MIN..=limit {
             let depth = offset.saturating_depth(self.span);
 
-            // tie-break through first wins. occupancy is sorted.
             let candidate = self.band.distance(occupancy.occupied_cells(depth));
             if candidate < distance {
                 distance = candidate;
@@ -174,12 +208,20 @@ impl DensityPolicy {
     }
 }
 
+/// Distinct occupied-cell counts at every Morton depth.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ViewOccupancy {
     occupied: IdArray<Depth, u64, { Depth::MAX.as_usize() + 1 }>,
 }
 
 impl ViewOccupancy {
+    /// Builds the occupancy profile, sorting `keys` in ascending order in place.
+    ///
+    /// # Complexity
+    ///
+    /// For n keys, sorting takes O(n log n) worst-case time and allocates no heap storage.
+    /// The profile pass takes O(n + 33) time with a 33-entry result and a temporary 33-entry
+    /// separation table, excluding the input storage.
     #[must_use]
     pub(crate) fn of(keys: &mut [MortonKey]) -> Self {
         keys.sort_unstable();
@@ -196,13 +238,14 @@ impl ViewOccupancy {
                 continue;
             }
 
-            // The keys part one level below their deepest shared grid.
+            // Adjacent distinct keys first occupy separate cells one depth below their shared
+            // prefix.
             let depth = earlier.shared_depth(later).plus(1);
             separations[depth] += 1;
         }
 
-        // Every key shares the whole domain, so the profile starts at one cell and gains each
-        // depth's separations.
+        // Sorted prefixes form contiguous runs. Each adjacent separation starts one more occupied
+        // cell at its depth and every deeper depth.
         let mut cells = 1;
         for (count, separations) in occupied.iter_mut().zip(separations) {
             cells += separations;
@@ -212,16 +255,9 @@ impl ViewOccupancy {
         Self { occupied }
     }
 
-    /// Returns whether the view occupies nothing.
-    #[must_use]
-    #[cfg(test)] // The density, serve, and manifest tests assert emptiness directly.
-    pub(crate) const fn is_empty(&self) -> bool {
-        self.occupied[Depth::MIN] == 0
-    }
-
     /// Counts the distinct depth-`depth` cells the view occupies: `C(depth, V)`.
     ///
-    /// Zero for an empty view; one for every other view at [`Depth::MIN`], the whole domain.
+    /// Zero for an empty view. One for every other view at [`Depth::MIN`], the whole domain.
     #[must_use]
     pub(crate) const fn occupied_cells(&self, depth: Depth) -> u64 {
         self.occupied[depth]
@@ -233,16 +269,19 @@ impl ViewOccupancy {
         self.occupied_cells(Depth::MAX)
     }
 
-    /// Returns the coarsest depth at which every distinct key occupies its own cell: `d_sat(V)`.
+    /// Returns the coarsest depth at which every distinct key occupies its own cell: dₛₐₜ(V).
     ///
-    /// [`Depth::MIN`] when the view carries at most one distinct key, since the whole domain
-    /// already separates them - an empty view included.
+    /// Returns [`Depth::MIN`] for empty and single-distinct-key views.
+    ///
+    /// # Complexity
+    ///
+    /// Reads the distinct-key count, then scans at most 33 profile entries, using constant
+    /// additional space.
     #[must_use]
     pub(crate) fn saturation_depth(&self) -> Depth {
         let saturated = self.distinct_keys();
 
-        // The profile's deepest entry is the count itself, so the search is total; the fallback is
-        // that same depth.
+        // Depth::MAX always reaches the distinct-key count.
         Depth::all()
             .find(|&depth| self.occupied_cells(depth) == saturated)
             .unwrap_or(Depth::MAX)

@@ -316,6 +316,89 @@ fn insert_exhausted() {
     );
 }
 
+/// An added key retains one residual row through insertion, withdrawal and revival.
+///
+/// The base remains constant, and each step writes to that row's delta index.
+#[test]
+fn withdraw_added_constant_base() {
+    let base = NaiveIdentityProvider::new(Base::new());
+    let mut data = IdentityProviderResidual::new(&base);
+    let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
+    let (row, _) = data
+        .insert(
+            &base,
+            DeltaRevision::new(1),
+            key,
+            OwnedIcon::from("arrival"),
+        )
+        .expect("should allocate an arrival row");
+    assert_eq!(row, OntologyRowId::new(1));
+    assert_eq!(data.forward.get(&key), Some(&row));
+    assert!(
+        data.inverse[DeltaRowId::new(0)].is_live(None),
+        "should record the arrival live"
+    );
+
+    assert!(
+        data.withdraw(&base, DeltaRevision::new(2), key),
+        "should withdraw the added key"
+    );
+    assert!(
+        !data.inverse[DeltaRowId::new(0)].is_live(None),
+        "should record the withdrawal on the added row"
+    );
+    assert!(
+        !data.withdraw(&base, DeltaRevision::new(3), key),
+        "should leave a repeated withdrawal unchanged"
+    );
+
+    assert_eq!(
+        data.insert(
+            &base,
+            DeltaRevision::new(4),
+            key,
+            OwnedIcon::from("arrival")
+        ),
+        Some((row, true)),
+        "should revive the added key on its row"
+    );
+    assert!(data.inverse[DeltaRowId::new(0)].is_live(None));
+    assert_eq!(data.domain.size(), 2, "should allocate no second row");
+    let provider = DeltaIdentityProvider::from_parts(&data, &base);
+    assert_at(&provider, key, row, DeltaRevision::new(2), None);
+    assert_at(&provider, key, row, DeltaRevision::new(4), Some("arrival"));
+}
+
+/// Withdrawal panics when the base domain has grown past an added residual row.
+///
+/// The upper residual snapshots the lower's domain. After the lower allocates a row, the upper
+/// allocates its own row at the stale bound. The lower now reports a domain past that row.
+#[test]
+#[should_panic(expected = "an added identity row must follow the fitted rows")]
+fn withdraw_added_grown_base() {
+    let base = NaiveIdentityProvider::new(Base::new());
+    let mut lower_data = IdentityProviderResidual::new(&base);
+    let lower = DeltaIdentityProvider::from_parts(&lower_data, &base);
+    let mut upper_data = IdentityProviderResidual::new(&lower);
+    assert_eq!(upper_data.domain.size(), 1);
+
+    let _arrival = add_arrival(&mut lower_data, DeltaRevision::new(1));
+    let lower = DeltaIdentityProvider::from_parts(&lower_data, &base);
+    assert_eq!(lower.provide_domain().size(), 2);
+
+    let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(3));
+    let (row, _) = upper_data
+        .insert(&lower, DeltaRevision::new(2), key, OwnedIcon::from("upper"))
+        .expect("should allocate at the stale bound");
+    assert_eq!(
+        row,
+        OntologyRowId::new(1),
+        "should allocate at the snapshotted bound"
+    );
+
+    let _changed = upper_data.withdraw(&lower, DeltaRevision::new(3), key);
+}
+
 #[test]
 fn insert_hidden_origin() {
     let base = NaiveIdentityProvider::new(Base::new());

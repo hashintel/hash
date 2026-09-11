@@ -345,9 +345,8 @@ fn classify_fitted_revival() {
         .expect("should retain fitted coordinates");
     assert!(fixture.delta.withdraw(entity));
 
-    let mut event = match update(100, 1, false) {
-        EntityEvent::Updated(event) => event,
-        _ => unreachable!(),
+    let EntityEvent::Updated(mut event) = update(100, 1, false) else {
+        unreachable!()
     };
     event.entity = EntityId::from(entity);
     pending.observe(EntityEvent::Updated(event));
@@ -696,7 +695,12 @@ fn normalize_batch() {
         .project(&inputs)
         .try_collect()
         .expect("should project finite inputs");
-    assert!(positions.windows(2).all(|pair| pair[0] != pair[1]));
+    assert!(positions.windows(2).all(|pair| {
+        let [first, second] = pair else {
+            unreachable!("windows(2) should yield pairs")
+        };
+        first != second
+    }));
 
     for seed in 100..105 {
         pending.observe(update(seed, 1, false));

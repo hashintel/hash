@@ -72,7 +72,7 @@ impl TypeColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position.
+    /// Panics if a column fails to decode or the direct-type count is negative.
     pub(super) fn direct_type_urls(&self, row: &tokio_postgres::Row) -> Vec<VersionedUrl> {
         let direct: i32 = row.get(self.direct_types);
         let direct = usize::try_from(direct).expect("the store counts direct types non-negatively");
@@ -144,7 +144,7 @@ pub(super) struct DetailColumns {
 impl DetailColumns {
     /// Configures `masking` and adds the detail selections to `compiler`.
     ///
-    /// The masking configures first, so every property selection compiles against the masked
+    /// The masking configures first. Every property selection then compiles against the masked
     /// column.
     pub(super) fn select<'params, 'query: 'params>(
         compiler: &mut SelectCompiler<'params, 'query, Entity>,
@@ -180,7 +180,7 @@ impl DetailColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position.
+    /// Panics if a column fails to decode or the direct-type count is negative.
     pub(super) fn direct_type_urls(&self, row: &tokio_postgres::Row) -> Vec<VersionedUrl> {
         self.types.direct_type_urls(row)
     }
@@ -195,8 +195,7 @@ impl DetailColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position, and when a stored
-    /// key does not parse as a base URL.
+    /// Panics if a column fails to decode or the scalar-property aggregate is not a JSON object.
     pub(super) fn capped_properties(
         &self,
         row: &tokio_postgres::Row,
@@ -254,7 +253,7 @@ mod tests {
     /// The masked spelling is the subtraction inside `jsonb_each(`, which is the compiler's
     /// column hook firing inside each property subquery. The count is over the masked object
     /// too, because a whole-object count against a masked map would tell an actor how many
-    /// properties were withheld, the enumeration signal the protection exists to close.
+    /// properties the masking withheld, the enumeration signal the protection exists to close.
     #[test]
     fn detail_masked_both_subqueries() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -293,11 +292,10 @@ mod tests {
 
     /// The rendered type-URL read, pinned as the text the store receives.
     ///
-    /// The pin makes any rendering change - a selection edit here, or a change in the
-    /// compiler upstream - a visible snapshot diff in review instead of a silent swap of what
-    /// runs against the store. Each compiled pin holds the one-identity request, which is the
+    /// The snapshot detects rendering changes to the query selections or compiler output.
+    /// Each compiled pin holds the one-identity request, which is the
     /// shape the masking assertions read. A request naming more identities compiles its
-    /// membership as a row comparison over unnested arrays, so the pinned grammar belongs to
+    /// membership as a row comparison over unnested arrays. The pinned grammar belongs to
     /// the one-identity request alone.
     #[test]
     fn types_statement_text() {
@@ -338,8 +336,7 @@ mod tests {
 
     /// The rendered bare detail read, pinned without any masking configured.
     ///
-    /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
-    /// bare object, and the text carries no CASE subtraction.
+    /// Both property subqueries read the bare object, and the SQL contains no `CASE` subtraction.
     #[test]
     fn bare_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -356,9 +353,9 @@ mod tests {
 
     /// The rendered type-URL resolution read, pinned as the text the store receives.
     ///
-    /// The membership array binds as one parameter, so this text is the rendering at every
+    /// The membership array binds as one parameter. This text is the rendering at every
     /// batch width. The read carries no temporal condition on purpose. A type uuid derives
-    /// from the URL it names, so any row that exists answers correctly whatever its archival
+    /// from the URL it names. Any row that exists answers correctly whatever its archival
     /// state, and the pin makes an upstream compiler change that reintroduced a temporal
     /// predicate a visible snapshot diff.
     #[test]
