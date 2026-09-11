@@ -13,6 +13,7 @@ import {
   useExperimentResultsModel,
 } from "./experiment-results";
 import {
+  makeConstrainedSweepExperiment,
   makeExperiment,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
@@ -542,5 +543,48 @@ describe("experimentResultsModel with the optimizer", () => {
         },
       ).header.note?.content,
     ).toBe("worker crashed");
+  });
+});
+
+describe("experimentResultsModel with constraints", () => {
+  const constrained = makeConstrainedSweepExperiment();
+
+  it("gives the Parameters card no fold without constraints", () => {
+    expect(model(sweep).bands[0]!.more).toBeNull();
+  });
+
+  it("folds the constraints behind the Parameters card's footer from creation on", () => {
+    const more = model(constrained).bands[0]!.more;
+    expect(more).toMatchObject({
+      show: "Show 2 constraints",
+      hide: "Hide constraints",
+    });
+    expect(isValidElement(more!.content)).toBe(true);
+    expect(
+      model({
+        ...constrained,
+        constraints: constrained.constraints.slice(0, 1),
+      }).bands[0]!.more?.show,
+    ).toBe("Show 1 constraint");
+  });
+
+  it("changes nothing else about the model", () => {
+    const shape = (result: ReturnType<typeof model>) => ({
+      title: result.header.title,
+      headline: result.header.headline,
+      stats: result.header.stats.map((stat) => stat.label),
+      status: result.header.status,
+      bands: result.bands.map(({ more: _more, content, ...band }) => ({
+        ...band,
+        content: isValidElement(content),
+      })),
+      surface: isValidElement(result.surface),
+      metrics: result.metrics && {
+        ...result.metrics,
+        tiles: result.metrics.tiles.length,
+      },
+      after: result.after,
+    });
+    expect(shape(model(constrained))).toEqual(shape(model(sweep)));
   });
 });

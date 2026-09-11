@@ -1,5 +1,6 @@
 import {
   compileScenario,
+  constraintLabel,
   getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
@@ -75,6 +76,19 @@ export const assertExperimentInput = (input: CreateExperimentInput): void => {
     if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
       throw new Error(`Metric "${metricSpec.label}" code is required`);
     }
+  }
+
+  const constraintIds = new Set<string>();
+  for (const constraint of input.constraints ?? []) {
+    if (constraint.code.trim() === "") {
+      throw new Error(
+        `Constraint "${constraintLabel(constraint)}" code is required`,
+      );
+    }
+    if (constraintIds.has(constraint.id)) {
+      throw new Error(`Constraint id "${constraint.id}" is duplicated`);
+    }
+    constraintIds.add(constraint.id);
   }
 };
 
@@ -188,6 +202,8 @@ export type CompiledExperimentScenario = {
   sweptCompiler: SweptScenarioCompiler | null;
   /** The swept parameters, empty for a plain experiment. */
   axes: ExperimentParameterAxis[];
+  /** `parseFixedScenarioValues`' result; `{}` for an ad-hoc definition. */
+  fixedScenarioValues: Readonly<Record<string, number>>;
 };
 
 /**
@@ -264,6 +280,7 @@ export const compileExperimentScenario = async ({
       initialMarking: compiled.result.initialState,
       sweptCompiler,
       axes,
+      fixedScenarioValues: fixed,
     };
   }
 
@@ -299,6 +316,7 @@ export const compileExperimentScenario = async ({
           initialMarking: compiled.result.initialState,
           sweptCompiler,
           axes: adHocAxes.axes,
+          fixedScenarioValues: {},
         };
       }
     }
@@ -322,6 +340,7 @@ export const compileExperimentScenario = async ({
       initialMarking: compiled.result.initialState,
       sweptCompiler: null,
       axes: [],
+      fixedScenarioValues: {},
     };
   }
 
@@ -330,6 +349,7 @@ export const compileExperimentScenario = async ({
     initialMarking: {},
     sweptCompiler: null,
     axes: [],
+    fixedScenarioValues: {},
   };
 };
 
@@ -354,11 +374,13 @@ export const newExperimentRecord = ({
   input,
   scenarioName,
   axes,
+  fixedScenarioValues,
 }: {
   id: string;
   input: CreateExperimentInput;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
+  fixedScenarioValues: Readonly<Record<string, number>>;
 }): ExperimentRecord => ({
   id,
   name: input.name.trim(),
@@ -382,6 +404,9 @@ export const newExperimentRecord = ({
   sweepBatches: [],
   parameterAxes: axes,
   sweep: axes.length > 0 ? idleSweepState(axes) : null,
+  scenarioParameterValues: fixedScenarioValues,
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
 });
 
 /**

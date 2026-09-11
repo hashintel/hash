@@ -19,6 +19,7 @@ export type {
 } from "./sweep-session";
 import type {
   AdHocScenarioState,
+  Constraint,
   HirMetricArtifact,
   SDCPN,
   MonteCarloExpressionMetricSpec,
@@ -28,6 +29,7 @@ import type {
   MonteCarloWorkerProgress,
   ReadableStore,
 } from "@hashintel/petrinaut-core";
+import type { PetrinautOptimizationConstraintPolicy } from "@hashintel/petrinaut-core/optimization";
 
 export type ExperimentStatus =
   | "initializing"
@@ -97,6 +99,14 @@ export type CreateExperimentInput = {
    * one actually ran.
    */
   computeBackend?: ExperimentComputeBackend;
+  /**
+   * Lowered constraints a study started from this sweep enforces: a
+   * parameter constraint prunes a suggested point before it computes, a
+   * state constraint runs as a 0/1 indicator metric on every batch.
+   */
+  constraints?: readonly Constraint[];
+  /** Share of runs a state constraint may fail per step; omitted at alpha 0.05. */
+  constraintPolicy?: PetrinautOptimizationConstraintPolicy;
 };
 
 export type ExperimentRecord = {
@@ -159,6 +169,14 @@ export type ExperimentRecord = {
    * plain experiment and whenever nothing computes.
    */
   sweepBatches: readonly SweepBatchStatus[];
+  /**
+   * The scenario parameters' values as parsed at creation (swept ones at
+   * their fixed-form value). A study's manifest fixes the non-swept ones
+   * here and judges parameter constraints against them. Empty for ad-hoc.
+   */
+  scenarioParameterValues: Readonly<Record<string, number>>;
+  constraints: readonly Constraint[];
+  constraintPolicy: PetrinautOptimizationConstraintPolicy | null;
 };
 
 /** Navigator-facing state of a sweep experiment. */

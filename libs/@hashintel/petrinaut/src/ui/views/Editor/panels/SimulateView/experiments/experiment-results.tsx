@@ -3,10 +3,10 @@
  * one-line title, the status and the stat columns (errors and simulated time
  * for both kinds; runs and wall-clock time for a plain experiment, the
  * selection's sampling for a sweep), the computing chip and the compute
- * badge, the Parameters card with its optimizer control and, once a study
- * ran, the objective strip under its sliders, the surface for a sweep, one
- * metric card per configured metric, and Remove, Cancel and
- * Close in the footer. While a study drives a sweep the header reads from
+ * badge, the Parameters card with its optimizer control, its constraints
+ * folded behind its footer and, once a study ran, the objective strip under
+ * its sliders, the surface for a sweep, one metric card per configured
+ * metric, and Remove, Cancel and Close in the footer. While a study drives a sweep the header reads from
  * the study: Optimizing, its step as the progress, its step on the batch.
  */
 import { use } from "react";
@@ -26,6 +26,7 @@ import { type ComputeBatch } from "../shared/drawer-frame";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
+import { constraintsFold } from "./study-cards/constraints-fold";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
@@ -321,7 +322,12 @@ export const experimentResultsModel = (
                   driving={following !== null}
                 />
               ),
-            more: null,
+            // The constraints the experiment carries, from creation on; a
+            // property of the experiment, not of any study.
+            more:
+              experiment.constraints.length > 0
+                ? constraintsFold(experiment)
+                : null,
             tone,
           },
         ]

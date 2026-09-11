@@ -30,6 +30,7 @@ import {
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type {
+  Constraint,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
@@ -129,6 +130,9 @@ export function makeExperiment(
     parameterAxes: [],
     sweep: null,
     metricFrames: [],
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
     ...overrides,
   };
 }
@@ -277,6 +281,109 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
     metricFrames: frames,
     latestMetricFramesById: { infected: frames.at(-1)! },
   });
+}
+
+const constraintHirSpan = { start: 0, length: 0 };
+
+/**
+ * The sweep with one constraint of each kind, lowered as the language worker
+ * would lower them: the transmission rate capped below its interval's top,
+ * and the infected count held under 900 on every frame.
+ */
+export const sweepFixtureConstraints: Constraint[] = [
+  {
+    space: "parameters",
+    id: "transmission-cap",
+    name: "Parameter constraint 1",
+    code: "scenario.transmission_rate < 0.45",
+    hir: {
+      hirVersion: 1,
+      surface: "scenario-expression",
+      params: [],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<",
+        left: {
+          kind: "scenarioRef",
+          id: 1,
+          span: constraintHirSpan,
+          name: "transmission_rate",
+        },
+        right: {
+          kind: "numberLit",
+          id: 2,
+          span: constraintHirSpan,
+          value: 0.45,
+          raw: "0.45",
+        },
+      },
+    },
+  },
+  {
+    space: "state",
+    id: "infected-cap",
+    name: "State constraint 1",
+    code: "return state.places.Infected.count <= 900;",
+    hir: {
+      hirVersion: 1,
+      surface: "metric",
+      params: [{ name: "state", span: constraintHirSpan }],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<=",
+        left: {
+          kind: "fieldAccess",
+          id: 1,
+          span: constraintHirSpan,
+          field: "count",
+          fieldSpan: constraintHirSpan,
+          target: {
+            kind: "fieldAccess",
+            id: 2,
+            span: constraintHirSpan,
+            field: "Infected",
+            fieldSpan: constraintHirSpan,
+            target: {
+              kind: "fieldAccess",
+              id: 3,
+              span: constraintHirSpan,
+              field: "places",
+              fieldSpan: constraintHirSpan,
+              target: {
+                kind: "localRef",
+                id: 4,
+                span: constraintHirSpan,
+                name: "state",
+              },
+            },
+          },
+        },
+        right: {
+          kind: "numberLit",
+          id: 5,
+          span: constraintHirSpan,
+          value: 900,
+          raw: "900",
+        },
+      },
+    },
+  },
+];
+
+/** The two-axis sweep carrying both fixture constraints at a 90% pass threshold. */
+export function makeConstrainedSweepExperiment(): ExperimentRecord {
+  return {
+    ...makeParameterSweepExperiment(),
+    scenarioParameterValues: { transmission_rate: 0.3, recovery_days: 7 },
+    constraints: sweepFixtureConstraints,
+    constraintPolicy: { alpha: 0.1 },
+  };
 }
 
 type StoryMetricFrame = ExperimentRecord["metricFrames"][number];
@@ -435,6 +542,9 @@ const createFakeExperiment = (
   sweepBatches: [],
   parameterAxes: [],
   sweep: null,
+  scenarioParameterValues: {},
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
 });
 
 /**

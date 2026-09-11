@@ -2,6 +2,7 @@ import { use, useEffect, useRef } from "react";
 
 import { LanguageClientContext } from "../../../../../../../../react/lsp/context";
 
+import type { ScenarioParameter } from "@hashintel/petrinaut-core";
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 
 /**
@@ -11,7 +12,11 @@ import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/
  * through the language client's `diagnosticsByUri`. With the default (no-op)
  * language client no document exists and no diagnostics ever arrive.
  */
-export const useConstraintLspSession = (params: ConstraintSessionParams) => {
+export const useConstraintLspSession = (
+  params: Omit<ConstraintSessionParams, "scenarioParameters"> & {
+    scenarioParameters: readonly ScenarioParameter[];
+  },
+) => {
   const {
     initializeConstraintSession,
     updateConstraintSession,
@@ -21,7 +26,12 @@ export const useConstraintLspSession = (params: ConstraintSessionParams) => {
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    const sessionParams = { sessionId, space, code, scenarioParameters };
+    const sessionParams = {
+      sessionId,
+      space,
+      code,
+      scenarioParameters: [...scenarioParameters],
+    };
     if (!initializedRef.current) {
       initializeConstraintSession(sessionParams);
       initializedRef.current = true;

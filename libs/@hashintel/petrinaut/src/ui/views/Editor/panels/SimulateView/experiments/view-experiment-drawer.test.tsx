@@ -22,6 +22,7 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { frameLayoutSignature } from "../shared/drawer-frame.test-helpers";
 import {
+  makeConstrainedSweepExperiment,
   makeExperiment,
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
@@ -278,6 +279,38 @@ describe("ViewExperimentDrawer in the frame", () => {
     for (const signature of signatures.slice(1)) {
       expect(signature).toEqual(signatures[0]);
     }
+  });
+
+  it("keeps a sweep's constraints folded behind the Parameters card's footer", () => {
+    renderDrawer(makeConstrainedSweepExperiment());
+
+    const fold = document.querySelector<HTMLElement>(
+      "[data-frame-card-more]",
+    )!.parentElement!;
+    expect(fold.dataset.open).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: /Show 2 constraints/ }));
+
+    expect(fold.dataset.open).toBe("true");
+    const list = within(fold).getByText("Parameter constraint 1").parentElement!
+      .parentElement!;
+    expect(list.dataset.constraintList).toBe("true");
+    expect(within(list).getByText(/Parameters/)).toBeTruthy();
+    expect(within(list).getByText(/^\u200bState$/u)).toBeTruthy();
+    expect(within(list).getByText("State constraint 1")).toBeTruthy();
+    expect(
+      within(list).getByText("scenario.transmission_rate < 0.45"),
+    ).toBeTruthy();
+    expect(
+      within(list).getByText("return state.places.Infected.count <= 900;"),
+    ).toBeTruthy();
+    expect(
+      within(list).getByText("pass threshold 90% (alpha 0.1)"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Hide constraints/ }),
+    ).toBeTruthy();
+    // Nothing else of the frame knows about the constraints before a study.
+    expect(screen.queryByText("Steps clear")).toBeNull();
   });
 
   it("shows the error in the reserved note row without adding a row", () => {
