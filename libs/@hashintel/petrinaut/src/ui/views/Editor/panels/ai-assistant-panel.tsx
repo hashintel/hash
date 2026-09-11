@@ -64,6 +64,11 @@ import {
   summarizeApplyAutoLayout,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
+import {
+  pendingDiagnosticsContext,
+  type PendingMutationDiagnosticsVersion,
+  waitForDiagnosticsRefresh,
+} from "./ai-assistant-panel/wait-for-diagnostics-refresh";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
@@ -455,41 +460,6 @@ export const addMappedToolOutput = async ({
   }
 };
 
-const waitForDiagnosticsRefresh = async ({
-  consumePendingMutationDiagnosticsVersion,
-  diagnosticsVersionRef,
-}: {
-  consumePendingMutationDiagnosticsVersion: () => number | null;
-  diagnosticsVersionRef: { current: number };
-}) => {
-  const pendingVersion = consumePendingMutationDiagnosticsVersion();
-
-  if (
-    pendingVersion === null ||
-    diagnosticsVersionRef.current > pendingVersion
-  ) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const timeoutAt = Date.now() + 1_000;
-
-    const check = () => {
-      if (
-        diagnosticsVersionRef.current > pendingVersion ||
-        Date.now() >= timeoutAt
-      ) {
-        resolve();
-        return;
-      }
-
-      setTimeout(check, 25);
-    };
-
-    check();
-  });
-};
-
 const applyPetrinautAiCommand = async ({
   aiToolCall,
   instance,
@@ -620,6 +590,18 @@ const ConversationAiAssistantPanel = ({
   const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
   const diagnosticsVersionRef = useRef(0);
   const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
+  // Read and disarm through one pair so a timed-out diagnostics read leaves
+  // the version armed and only the wait that saw it pass may clear it. Built
+  // at each call over the ref alone, so the wrapped transport keeps closing
+  // over refs only.
+  const armedDiagnosticsVersion = (): PendingMutationDiagnosticsVersion => ({
+    peek: () => pendingMutationDiagnosticsVersionRef.current,
+    disarm: (version) => {
+      if (pendingMutationDiagnosticsVersionRef.current === version) {
+        pendingMutationDiagnosticsVersionRef.current = null;
+      }
+    },
+  });
 
   useEffect(() => {
     diagnosticsVersionRef.current += 1;
@@ -648,12 +630,7 @@ const ConversationAiAssistantPanel = ({
         transport,
         waitForDiagnosticsRefresh: () =>
           waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
+            pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
             diagnosticsVersionRef,
           }),
       }),
@@ -965,18 +942,19 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === getNetCompilationErrorsToolName) {
-      await waitForDiagnosticsRefresh({
-        consumePendingMutationDiagnosticsVersion: () => {
-          const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-          pendingMutationDiagnosticsVersionRef.current = null;
-          return pendingVersion;
-        },
+      const outcome = await waitForDiagnosticsRefresh({
+        pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
         diagnosticsVersionRef,
       });
+      // A read that timed out reports pending, never the previous version's
+      // diagnostics as if they described the change just applied.
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: diagnosticsContextRef.current,
+        output:
+          outcome === "pending"
+            ? pendingDiagnosticsContext
+            : diagnosticsContextRef.current,
       });
       return;
     }

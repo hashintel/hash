@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createDiagnosticsAwareAiTransport } from "./create-diagnostics-aware-ai-transport";
+import { pendingDiagnosticsContext } from "./wait-for-diagnostics-refresh";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
 import type { UIMessageChunk } from "ai";
@@ -38,7 +39,9 @@ const sendOptions = (messages: PetrinautAiMessage[]) =>
 describe("createDiagnosticsAwareAiTransport", () => {
   test("adds transient diagnostics context to completed tool-result sends", async () => {
     const { sendMessages, transport } = createFakeTransport();
-    const waitForDiagnosticsRefresh = vi.fn(() => Promise.resolve());
+    const waitForDiagnosticsRefresh = vi.fn(() =>
+      Promise.resolve("current" as const),
+    );
     const wrapped = createDiagnosticsAwareAiTransport({
       getDiagnosticsContext: () =>
         "Current TypeScript diagnostics (1 issue):\n- Transition: Infect lambda: error TS2304 at Ln 1, Col 1: Cannot find name 'x'.",
@@ -84,9 +87,58 @@ describe("createDiagnosticsAwareAiTransport", () => {
     expect(diagnosticsPart.text).toContain("Current TypeScript diagnostics");
   });
 
+  test("sends the pending notice, not the held diagnostics, when the refresh timed out", async () => {
+    const { sendMessages, transport } = createFakeTransport();
+    const getDiagnosticsContext = vi.fn(
+      () => "No errors detected in your model – everything compiles!",
+    );
+    const wrapped = createDiagnosticsAwareAiTransport({
+      getDiagnosticsContext,
+      transport,
+      waitForDiagnosticsRefresh: () => Promise.resolve("pending" as const),
+    });
+
+    await wrapped.sendMessages(
+      sendOptions([
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-updateTransition",
+              state: "output-available",
+              toolCallId: "tool-1",
+              input: {},
+              output: { applied: true, title: "Updated transition Infect" },
+            },
+          ],
+        } as PetrinautAiMessage,
+      ]),
+    );
+
+    // The stale "everything compiles" is never read, let alone sent.
+    expect(getDiagnosticsContext).not.toHaveBeenCalled();
+    const contextPart = sendMessages.mock.calls[0]![0].messages[1]?.parts[0];
+    if (contextPart?.type !== "text") {
+      throw new Error("Expected diagnostics context to be a text part.");
+    }
+    expect(contextPart.text).toBe(
+      [
+        "Petrinaut diagnostics context only; this is not a user request.",
+        "The following TypeScript diagnostics reflect the current Petrinaut model after client-side tool execution.",
+        "Use them to decide whether more tool calls are needed before replying to the user.",
+        "",
+        pendingDiagnosticsContext,
+      ].join("\n"),
+    );
+    expect(contextPart.text).not.toContain("everything compiles");
+  });
+
   test("delegates ordinary user-message sends unchanged", async () => {
     const { sendMessages, transport } = createFakeTransport();
-    const waitForDiagnosticsRefresh = vi.fn(() => Promise.resolve());
+    const waitForDiagnosticsRefresh = vi.fn(() =>
+      Promise.resolve("current" as const),
+    );
     const wrapped = createDiagnosticsAwareAiTransport({
       getDiagnosticsContext: () => "No current TypeScript diagnostics.",
       transport,
