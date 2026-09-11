@@ -62,7 +62,7 @@ export const LiveConversationControl = ({
             microphoneLevel: 0,
             microphoneMuted: false,
             errorMessage: null,
-            notice: `GPT-Live · Experimental · ${phase === "connected" ? "Connected" : "Connecting"}`,
+            notice: null,
           }
         : null,
     );

@@ -76,7 +76,7 @@ test("reuses setup, reports connectivity to the host dock, and clears it on fail
   expect(createLiveConversation).not.toHaveBeenCalled();
   await start();
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
-    expect.objectContaining({ phase: "connecting" }),
+    expect.objectContaining({ phase: "connecting", notice: null }),
   );
   const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
   act(() => onState({ phase: "connected", message: null }));
@@ -88,7 +88,7 @@ test("reuses setup, reports connectivity to the host dock, and clears it on fail
     microphoneLevel: 0,
     microphoneMuted: false,
     errorMessage: null,
-    notice: "GPT-Live · Experimental · Connected",
+    notice: null,
   });
   const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
   expect(Object.keys(controls).sort()).toEqual(["end", "pause"]);
