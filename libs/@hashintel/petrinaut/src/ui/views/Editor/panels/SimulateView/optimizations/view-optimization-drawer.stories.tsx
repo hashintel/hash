@@ -32,8 +32,6 @@ type Story = StoryObj<typeof meta>;
 const FakeConnectedStudy = (props: {
   /** Lands one step every 1.2 s and follows the next; else shows the complete study. */
   running: boolean;
-  /** The study with a parameter and a state constraint, results on every step. */
-  constrained?: boolean;
   /** Which fake study to mount; the 60-step one is past the importance floor. */
   study?: FakeStudyKind;
   /** The complete study with the optimizer's PED-ANOVA estimate attached. */
@@ -74,12 +72,12 @@ export const ConnectedWithConstraints: Story = {
       },
     },
   },
-  render: () => <FakeConnectedStudy running={false} constrained />,
+  render: () => <FakeConnectedStudy running={false} study="constrained" />,
 };
 
 export const ConnectedWithConstraintsRunning: Story = {
   name: "Connected study with constraints, following steps",
-  render: () => <FakeConnectedStudy running constrained />,
+  render: () => <FakeConnectedStudy running study="constrained" />,
 };
 
 export const ConnectedWithImportance: Story = {

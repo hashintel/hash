@@ -248,8 +248,9 @@ view on a laptop screen while the study streams:
   is past the floor. The line under the title names the statistic and says
   how many completed steps it is fitted on. Below the floor, 50 completed
   steps for a study of under 100 steps and 100 otherwise, the card is muted,
-  the bars fade and the line says **below the 50-step floor, treat as a
-  hint**: a confident ranking over a handful of steps would mislead. A
+  the bars fade and the line says **below the N-step floor, treat as a
+  hint**, N being the floor just named: a confident ranking over a handful of
+  steps would mislead. A
   **Correlation** column beside the bars gives each parameter's signed
   correlation with the objective over the completed steps (`+0.34`, `−0.12`),
   computed from the steps themselves, so it is there from the third completed

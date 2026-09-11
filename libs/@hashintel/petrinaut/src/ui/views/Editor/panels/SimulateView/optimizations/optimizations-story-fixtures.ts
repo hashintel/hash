@@ -797,16 +797,13 @@ const FAKE_STUDIES: Record<
 
 export function useFakeConnectedStudy({
   running,
-  constrained = false,
-  study = constrained ? "constrained" : "base",
+  study = "base",
   importance = false,
   fallbackReason = null,
   refinementError = null,
 }: {
   running: boolean;
-  /** Use the study with two constraints and constraint results on its trials. */
-  constrained?: boolean;
-  /** The fake study to mount; `constrained` picks the constrained one when unset. */
+  /** The fake study to mount. */
   study?: FakeStudyKind;
   /** Attach the PED-ANOVA estimate the optimizer would report once the study is over. */
   importance?: boolean;
