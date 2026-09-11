@@ -9,12 +9,16 @@ use aws_sdk_s3::{
     Client,
     config::{self, retry::RetryConfig},
     operation::{
-        get_object::GetObjectOutput, head_object::HeadObjectOutput, put_object::PutObjectOutput,
+        delete_objects::DeleteObjectsOutput, get_object::GetObjectOutput,
+        head_object::HeadObjectOutput, list_objects_v2::ListObjectsV2Output,
+        put_object::PutObjectOutput,
     },
     primitives::{ByteStream, Length},
+    types::{Delete, ObjectIdentifier},
 };
 use bytes::Bytes;
 use camino::Utf8Path;
+use futures::{Stream, TryStreamExt as _, stream};
 use tokio::{
     fs,
     io::{AsyncBufRead, AsyncWrite},
@@ -73,6 +77,12 @@ impl WriteCondition<'_> {
 #[derive(Debug)]
 pub(crate) struct S3 {
     client: Client,
+}
+
+#[derive(PartialEq, Eq)]
+enum ListStrategy {
+    Recursive,
+    Simple,
 }
 
 impl S3 {
@@ -135,6 +145,126 @@ impl S3 {
     ) -> Result<(Option<ETag>, impl AsyncBufRead + use<>), StorageError> {
         let output = self.get(path).await?;
         Ok((output.e_tag.map(ETag::new), output.body.into_async_read()))
+    }
+
+    fn list(
+        &self,
+        path: &BucketPath,
+        recursive: ListStrategy,
+    ) -> impl Stream<Item = Result<ListObjectsV2Output, StorageError>> {
+        let mut prefix = path.key().to_owned();
+        if !prefix.ends_with('/') {
+            prefix.push('/');
+        }
+
+        let mut paginator = self
+            .client
+            .list_objects_v2()
+            .bucket(path.bucket())
+            .prefix(prefix);
+
+        if recursive == ListStrategy::Simple {
+            paginator = paginator.delimiter("/");
+        }
+
+        let paginator = paginator.into_paginator().send();
+
+        stream::unfold(paginator, async move |mut paginator| {
+            let next = paginator.next().await;
+            next.map(|next| (next.map_err(From::from), paginator))
+        })
+    }
+
+    pub(crate) fn read_dir(
+        &self,
+        path: &BucketPath,
+    ) -> impl Stream<Item = Result<Box<BucketPath>, StorageError>> {
+        self.list(path, ListStrategy::Recursive)
+            .map_ok(|output| {
+                let files = output
+                    .contents
+                    .into_flat_iter()
+                    .filter_map(|object| object.key)
+                    .filter(|key| !key.ends_with('/'))
+                    .map(|key| BucketPath::from_parts(path.bucket(), &key));
+
+                let directories = output
+                    .common_prefixes
+                    .into_flat_iter()
+                    .filter_map(|common_prefix| common_prefix.prefix)
+                    .map(|rollup| {
+                        BucketPath::from_parts(
+                            path.bucket(),
+                            rollup.strip_suffix('/').unwrap_or(&rollup),
+                        )
+                    });
+
+                stream::iter(files.chain(directories)).err_into::<StorageError>()
+            })
+            .try_flatten()
+    }
+
+    pub(crate) async fn delete(
+        &self,
+        bucket: &str,
+        objects: impl IntoIterator<Item = ObjectIdentifier>,
+    ) -> Result<DeleteObjectsOutput, StorageError> {
+        const DELETE_CHUNK_SIZE: usize = 1000;
+
+        let mut delete = Delete::builder();
+        for object in objects.into_iter() {
+            delete = delete.objects(object);
+        }
+        let delete = delete.build()?;
+
+        self.client
+            .delete_objects()
+            .bucket(bucket)
+            .delete(delete)
+            .send()
+            .await
+            .map_err(From::from)
+    }
+
+    pub(crate) async fn remove_dir_all(&self, path: &BucketPath) -> Result<(), StorageError> {
+        const DELETE_CHUNK_SIZE: usize = 1000;
+
+        let remaining = self
+            .list(path, ListStrategy::Recursive)
+            .map_ok(|output| {
+                stream::iter(
+                    output
+                        .contents
+                        .into_flat_iter()
+                        .filter_map(|object| object.key)
+                        .map(|object| {
+                            ObjectIdentifier::builder()
+                                .key(object)
+                                .build()
+                                .unwrap_or_else(|_error| {
+                                    unreachable!("the only required field - the key is supplied")
+                                })
+                        })
+                        .map(Ok::<_, StorageError>),
+                )
+            })
+            .try_flatten()
+            .try_fold(Vec::new(), async |mut acc, object| {
+                acc.push(object);
+
+                if acc.len() == DELETE_CHUNK_SIZE {
+                    self.delete(path.bucket(), acc.drain(..)).await?;
+                }
+
+                Ok(acc)
+            })
+            .await?;
+
+        if !remaining.is_empty() {
+            self.delete(path.bucket(), remaining).await?;
+        }
+
+        Ok(())
     }
 
     /// Writes the object from an assembled body stream in one request attempt.

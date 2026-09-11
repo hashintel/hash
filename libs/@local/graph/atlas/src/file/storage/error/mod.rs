@@ -5,6 +5,8 @@ use aws_smithy_runtime_api::client::{orchestrator::HttpResponse, result::SdkErro
 use aws_smithy_types::byte_stream::error::Error as ByteStreamError;
 use tokio::task::JoinError;
 
+use super::path::error::FilePathError;
+
 #[cfg(test)]
 mod tests;
 
@@ -19,6 +21,8 @@ pub enum StorageError {
     Join(JoinError),
     /// The local destination has no file name or uses the reserved `.storage-` prefix.
     InvalidLocalDestination,
+    /// The file path is invalid.
+    InvalidFilePath(FilePathError),
     /// The revision belongs to a different storage backend.
     RevisionMismatch,
     /// The local destination failed its write precondition.
@@ -54,6 +58,7 @@ impl StorageError {
             Self::S3Unavailable
             | Self::Join(_)
             | Self::InvalidLocalDestination
+            | Self::InvalidFilePath(_)
             | Self::RevisionMismatch
             | Self::PreconditionFailed
             | Self::Body(_)
@@ -79,6 +84,7 @@ impl StorageError {
             | Self::Io(_)
             | Self::Join(_)
             | Self::InvalidLocalDestination
+            | Self::InvalidFilePath(_)
             | Self::RevisionMismatch
             | Self::Body(_)
             | Self::ObjectTooLarge { .. }
@@ -113,6 +119,7 @@ impl fmt::Display for StorageError {
             Self::MissingChecksum => fmt.write_str("S3 returned no requested part checksum"),
             Self::MissingUploadId => fmt.write_str("S3 returned no multipart upload identifier"),
             Self::Request(error) => write!(fmt, "S3 request failed: {error}"),
+            Self::InvalidFilePath(error) => write!(fmt, "invalid file path: {error}"),
         }
     }
 }
@@ -133,7 +140,14 @@ impl Error for StorageError {
             Self::Join(error) => Some(error),
             Self::Body(error) => Some(error),
             Self::Request(error) => Some(error.as_ref()),
+            Self::InvalidFilePath(error) => Some(error),
         }
+    }
+}
+
+impl From<FilePathError> for StorageError {
+    fn from(value: FilePathError) -> Self {
+        Self::InvalidFilePath(value)
     }
 }
 
