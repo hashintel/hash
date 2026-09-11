@@ -105,6 +105,7 @@ const editorContextValue: EditorContextValue = {
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
+  setAiAssistantDockHeight: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},

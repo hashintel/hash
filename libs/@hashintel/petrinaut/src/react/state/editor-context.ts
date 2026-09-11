@@ -87,6 +87,8 @@ export type EditorState = {
    * the surfaces that have to keep clear of it can read it.
    */
   aiAssistantWidth: number;
+  /** Rendered compact dock height; null when expanded or closed. */
+  aiAssistantDockHeight: number | null;
   activeBottomPanelTab: BottomPanelTab;
   componentSubnetId: string | null;
   selection: SelectionMap;
@@ -134,6 +136,7 @@ export type EditorActions = {
   setLeftSidebarWidth: (width: number) => void;
   setPropertiesPanelWidth: (width: number) => void;
   setAiAssistantWidth: (width: number) => void;
+  setAiAssistantDockHeight: (height: number | null) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
@@ -197,6 +200,7 @@ export const initialEditorState: EditorState = {
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
+  aiAssistantDockHeight: null,
   activeBottomPanelTab: "diagnostics",
   componentSubnetId: null,
   selection: new Map(),
@@ -224,6 +228,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
+  setAiAssistantDockHeight: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},

@@ -412,6 +412,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setAiAssistantWidth: (width) =>
       setState((prev) => ({ ...prev, aiAssistantWidth: width })),
+    setAiAssistantDockHeight: (height) =>
+      setState((prev) =>
+        prev.aiAssistantDockHeight === height
+          ? prev
+          : { ...prev, aiAssistantDockHeight: height },
+      ),
     setBottomPanelOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => ({
