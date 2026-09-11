@@ -4,7 +4,6 @@ use core::{pin::pin, str::FromStr as _};
 
 use bytes::Bytes;
 use futures::TryStreamExt;
-use hashql_core::symbol::sym::xor;
 use tokio::io::AsyncReadExt as _;
 
 use self::backend::GenerationUploadBackend;
@@ -22,16 +21,16 @@ mod tests;
 pub(crate) use self::error::UploadError;
 
 struct PromotionOptions {
-    delete_old_active_revisions: bool,
+    prune_active_generations: bool,
 }
 
 /// The destination's selected generation and the revision a promotion writes against.
-struct Current {
+struct RemoteGeneration {
     id: GenerationId,
     revision: Revision,
 }
 
-impl Current {
+impl RemoteGeneration {
     /// Reads the pointer object, returning [`None`] when no object exists.
     ///
     /// # Errors
@@ -65,7 +64,6 @@ impl Current {
 #[derive(Debug)]
 pub(crate) struct Promotion {
     pub id: GenerationId,
-    pub previous_error: Option<StorageError>,
 }
 
 /// A generation publisher with the current-pointer precondition captured before fitting.
@@ -77,7 +75,8 @@ pub(crate) struct Upload<'path, B> {
     backend: B,
     root: &'path GenerationRoot,
     remote: &'path RemoteRoot,
-    current: Option<Current>,
+    current: Option<RemoteGeneration>,
+    previous: Option<RemoteGeneration>,
 }
 
 impl<'path, B> Upload<'path, B>
@@ -102,9 +101,11 @@ where
             root,
             remote: RemoteRoot::from_ref(destination),
             current: None,
+            previous: None,
         };
 
-        this.current = Current::read(&this.backend, &this.remote.current()?).await?;
+        this.current = RemoteGeneration::read(&this.backend, &this.remote.current()?).await?;
+        this.previous = RemoteGeneration::read(&this.backend, &this.remote.previous()?).await?;
 
         Ok(this)
     }
@@ -228,46 +229,6 @@ where
         self.finish_object(destination, id.digest(), result).await
     }
 
-    async fn delete_old_active_revisions(
-        &self,
-        current: GenerationId,
-        previous: Option<GenerationId>,
-    ) -> Result<(), UploadError> {
-        let active = self.remote.active_root()?;
-
-        let files = self.backend.read_dir(&active);
-        let mut files = pin!(files);
-        while let Some(entry) = files.try_next().await? {
-            let Some(file_name) = entry.file_name() else {
-                tracing::warn!("todo");
-                continue;
-            };
-
-            let file_id = match GenerationId::from_str(file_name) {
-                Ok(file_id) => file_id,
-                Err(error) => {
-                    tracing::warn!("todo");
-                    continue;
-                }
-            };
-
-            if file_id == current {
-                continue;
-            }
-            if let Some(previous) = previous
-                && file_id == previous
-            {
-                continue;
-            }
-
-            if let Err(error) = self.backend.remove_dir_all(&entry).await {
-                tracing::warn!("todo");
-            }
-        }
-
-        Ok(())
-    }
-
     /// Completes an active prefix and selects it against the captured current pointer.
     ///
     /// A completed repository prefix supplies the copy sources. The current-pointer write makes one
@@ -323,7 +284,7 @@ where
             .current
             .as_ref()
             .map_or(WriteCondition::Absent, |current| {
-                WriteCondition::Match(current.revision)
+                WriteCondition::Match(&current.revision)
             });
 
         if let Err(error) = self
@@ -338,21 +299,34 @@ where
             });
         }
 
-        let previous_error = if let Some(id) = previous_id {
-            self.backend
+        if let Some(id) = previous_id {
+            if let Err(error) = self
+                .backend
                 .put(&previous, Bytes::from(id.to_string()), WriteCondition::Any)
                 .await
-                .err()
-        } else {
-            None
-        };
-
-        if options.delete_old_active_revisions {
-            if let Err(error) = self.delete_old_active_revisions(id, previous_id).await {
-                tracing::warn!("todo");
+            {
+                // TODO(BE-842): telemetry for failed pruning
+                tracing::error!(%error, generation = %id, "failed to update previous generation pointer, next update cycle will likely skip a generation to prune (if enabled)");
             }
         }
 
-        Ok(Promotion { id, previous_error })
+        if options.prune_active_generations
+            && let Some(prior_generation) = self.previous.as_ref()
+        {
+            let remote = self.remote.active(prior_generation.id)?;
+
+            // first delete the `metadata.json` which is used to track the generation's state
+            if let Err(error) = self.backend.remove(&remote.metadata()?).await {
+                // TODO(BE-842): telemetry for failed pruning
+                tracing::error!(%error, generation = %prior_generation.id, "failed to prune active generation, manual cleanup may be required");
+            }
+
+            if let Err(error) = self.backend.remove_dir_all(remote.directory()).await {
+                // TODO(BE-842): telemetry for failed pruning
+                tracing::error!(%error, generation = %prior_generation.id, "failed to prune active generation, manual cleanup may be required");
+            }
+        }
+
+        Ok(Promotion { id })
     }
 }

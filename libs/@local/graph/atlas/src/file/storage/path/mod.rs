@@ -266,6 +266,13 @@ impl FilePath {
         }
     }
 
+    pub(crate) async fn remove(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => tokio::fs::remove_file(path).await.map_err(From::from),
+            FilePathVariant::Bucket(path) => storage.s3()?.remove(path).await,
+        }
+    }
+
     pub(crate) async fn remove_dir_all(&self, storage: &Storage) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
