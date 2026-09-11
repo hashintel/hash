@@ -3,6 +3,8 @@ import { createContext } from "react";
 export type NotificationTone = "error" | "neutral" | "success";
 
 export type AddNotificationInput = {
+  id?: string;
+  action?: { label: string; onClick: () => void };
   detail?: string;
   message: string;
   tone?: NotificationTone;

@@ -13,6 +13,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
+import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -137,6 +138,7 @@ export const useCanvasInteractions = (
   } = use(EditorContext);
   const { snapToGrid } = use(UserSettingsContext);
   const readonly = useIsReadOnly();
+  const notifyReadOnly = useReadOnlyFeedback();
 
   const isAddMode =
     editionMode === "add-place" ||
@@ -234,6 +236,7 @@ export const useCanvasInteractions = (
 
   const createNodeAt = (kind: DraggedNodeKind, rawPosition: CanvasPoint) => {
     if (readonly) {
+      notifyReadOnly();
       return;
     }
     const id = `${kind}__${generateUuid()}`;

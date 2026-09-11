@@ -5,6 +5,7 @@ import { ActiveNetContext } from "../state/active-net-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { simulateModeAllowedMutationNames } from "../state/simulate-mode-allowed-mutation-names";
 import { useIsReadOnly } from "../state/use-is-read-only";
+import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
@@ -38,6 +39,7 @@ export function usePetrinautMutations(): PetrinautMutations {
   const { readonly } = use(SDCPNContext);
   const { activeSubnetId } = use(ActiveNetContext);
   const isReadOnly = useIsReadOnly();
+  const notifyReadOnly = useReadOnlyFeedback();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
@@ -50,6 +52,7 @@ export function usePetrinautMutations(): PetrinautMutations {
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
       if (allowedInSimulate ? readonly : isReadOnly) {
+        notifyReadOnly();
         return;
       }
       const nextInput =

@@ -9,6 +9,12 @@ move it between browsers.
 To edit a published example, choose **Make a local copy** in its top bar. The copy
 opens at its own local URL, and the published example stays unchanged.
 
+Trying to drag a node or use an editing shortcut on a read-only net shows a brief
+notice. Clicking to inspect a node, panning, and zooming remain available. On a
+published example, the notice also offers **Make a local copy**. In Simulate or
+Actual mode, it points you back to Edit; when a simulation holds the net, it asks
+you to reset the simulation first.
+
 ## Editor layout
 
 The editor is organized around a central canvas where you build your net:

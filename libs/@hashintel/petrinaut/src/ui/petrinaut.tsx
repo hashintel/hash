@@ -17,6 +17,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import {
+  ReadOnlyActionContext,
+  type ReadOnlyAction,
+} from "../react/state/read-only-action-context";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -82,6 +86,8 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
+  /** An action offered when an edit is blocked by a read-only document. */
+  readOnlyAction?: ReadOnlyAction;
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -148,6 +154,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle = noop,
   readonly = false,
+  readOnlyAction,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -178,31 +185,33 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   };
 
   return (
-    <PortalContainerContext value={portalContainerRef}>
-      <PetrinautProvider
-        instance={instance}
-        netManagement={netManagement}
-        simulationWorkerFactory={simulationWorkerFactory}
-        monteCarloWorkerFactory={monteCarloWorkerFactory}
-        lspWorkerFactory={lspWorkerFactory}
-        navigation={navigation}
-      >
-        <PetrinautPresentationProvider profile={presentationProfile}>
-          <MonacoProvider>
-            <Stack
-              className={cx(editorRootStyle, "petrinaut-root")}
-              ref={portalContainerRef}
-            >
-              <EditorView
-                aiAssistant={aiAssistant}
-                hideNetManagementControls={hideNetManagementControls}
-                slots={slots}
-                viewportActions={viewportActions}
-              />
-            </Stack>
-          </MonacoProvider>
-        </PetrinautPresentationProvider>
-      </PetrinautProvider>
-    </PortalContainerContext>
+    <ReadOnlyActionContext value={readOnlyAction}>
+      <PortalContainerContext value={portalContainerRef}>
+        <PetrinautProvider
+          instance={instance}
+          netManagement={netManagement}
+          simulationWorkerFactory={simulationWorkerFactory}
+          monteCarloWorkerFactory={monteCarloWorkerFactory}
+          lspWorkerFactory={lspWorkerFactory}
+          navigation={navigation}
+        >
+          <PetrinautPresentationProvider profile={presentationProfile}>
+            <MonacoProvider>
+              <Stack
+                className={cx(editorRootStyle, "petrinaut-root")}
+                ref={portalContainerRef}
+              >
+                <EditorView
+                  aiAssistant={aiAssistant}
+                  hideNetManagementControls={hideNetManagementControls}
+                  slots={slots}
+                  viewportActions={viewportActions}
+                />
+              </Stack>
+            </MonacoProvider>
+          </PetrinautPresentationProvider>
+        </PetrinautProvider>
+      </PortalContainerContext>
+    </ReadOnlyActionContext>
   );
 };
