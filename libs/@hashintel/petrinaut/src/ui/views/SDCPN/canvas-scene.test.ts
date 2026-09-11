@@ -7,6 +7,7 @@ import {
   getArcEndpointKey,
 } from "@hashintel/petrinaut-core";
 
+import { buildCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
 
 import type { Place, SDCPN, Transition } from "@hashintel/petrinaut-core";
@@ -61,8 +62,11 @@ const input: CanvasSceneInput = {
   dimensions: compactNodeDimensions,
   draggingStateByNodeId: {},
   isSelected: () => false,
-  isHovered: () => false,
-  isDimmed: () => false,
+  focus: buildCanvasFocus({
+    net: { ...sdcpn, componentInstances: [] },
+    hoveredId: null,
+    selectedIds: new Set(),
+  }),
 };
 
 describe("buildCanvasScene", () => {
@@ -97,18 +101,22 @@ describe("buildCanvasScene", () => {
     });
   });
 
-  it("carries selection, hover and dimming per item", () => {
+  it("carries selection, hover and focus roles per item", () => {
     const { nodes, arcs } = buildCanvasScene({
       ...input,
       isSelected: (id) => id === "p1",
-      isHovered: (id) => id === "t1",
-      isDimmed: (id) => id === "p2" || id === outputArcId,
+      focus: buildCanvasFocus({
+        net: input.net,
+        hoveredId: "t1",
+        selectedIds: new Set(["p1"]),
+      }),
     });
     expect(nodes.find((node) => node.id === "p1")?.selected).toBe(true);
     expect(nodes.find((node) => node.id === "t1")?.hovered).toBe(true);
-    expect(nodes.find((node) => node.id === "p2")?.dimmed).toBe(true);
-    expect(arcs.find((arc) => arc.id === outputArcId)?.dimmed).toBe(true);
-    expect(arcs.find((arc) => arc.id === inputArcId)?.dimmed).toBe(false);
+    expect(nodes.find((node) => node.id === "t1")?.focus).toBe("focused");
+    expect(nodes.find((node) => node.id === "p2")?.focus).toBe("downstream");
+    expect(arcs.find((arc) => arc.id === inputArcId)?.focus).toBe("incoming");
+    expect(arcs.find((arc) => arc.id === outputArcId)?.focus).toBe("outgoing");
   });
 
   it("builds one arc per input and output arc, oriented through the transition", () => {

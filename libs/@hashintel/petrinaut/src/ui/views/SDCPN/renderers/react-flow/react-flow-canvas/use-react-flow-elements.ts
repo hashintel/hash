@@ -2,7 +2,7 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
-import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../../../styles/styling";
+import { arcFocusColor, arcHaloColor } from "../../../styles/focus";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
 import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
@@ -11,10 +11,6 @@ import type { ArcEdgeType, NodeType } from "./react-flow-types";
 
 const ARC_STROKE_WIDTH = 2;
 const ARC_MARKER_SIZE = 20;
-
-/** Dimmed arcs are lightened towards white, matching the node overlay. */
-const dimmedArcColor = (color: string) =>
-  `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${color})`;
 
 const toReactFlowNode = (
   node: CanvasNode,
@@ -50,7 +46,11 @@ const toReactFlowEdge = (
   arc: CanvasArc,
   frameReader: SimulationFrameReader | null,
 ): ArcEdgeType => {
-  const color = arc.dimmed ? dimmedArcColor(arc.color) : arc.color;
+  const color = arcFocusColor(arc.focus, arc.color);
+  // The casing cannot wrap the arrowhead, so the arrowhead takes its colour:
+  // the cased arc then runs into a head of the same colour rather than
+  // stopping at a grey one.
+  const headColor = arcHaloColor(arc.focus) ?? color;
   return {
     id: arc.id,
     source: arc.sourceId,
@@ -65,7 +65,7 @@ const toReactFlowEdge = (
     selected: arc.selected,
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      color,
+      color: headColor,
       width: ARC_MARKER_SIZE,
       height: ARC_MARKER_SIZE,
     },
@@ -76,6 +76,7 @@ const toReactFlowEdge = (
     data: {
       kind: arc.kind,
       weight: arc.weight,
+      focus: arc.focus,
       frame: frameReader?.getTransitionState(arc.transitionId) ?? null,
     },
   };

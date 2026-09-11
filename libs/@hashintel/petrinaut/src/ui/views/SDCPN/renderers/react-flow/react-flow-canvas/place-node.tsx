@@ -6,13 +6,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
   NodeCard,
   nodeCardStyle,
-  type SelectionVariant,
 } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
@@ -55,21 +55,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    hoveredItem,
-    isNotHoveredConnection,
-    isHovered,
-  } = use(EditorContext);
+  const { globalMode } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
 
   // Show the visualizer on hover for places with a visualizer during simulation.
   const showStateTooltip =
-    data.hasColorType && data.hasVisualizer && totalFrames > 0 && isHovered(id);
+    data.hasColorType && data.hasVisualizer && totalFrames > 0 && data.hovered;
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;
@@ -81,16 +74,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
-  // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant: SelectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  // React Flow marks a node selected as a drag-selection is drawn, before the
+  // change reaches the editor's own selection.
+  const focus = selected ? "focused" : data.focus;
 
   const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
 
@@ -102,7 +88,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     <>
       {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
       <NodeCard
-        cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${placeCardStyle}`}
+        cardClassName={`${nodeCardStyle} ${placeCardStyle} ${nodeFocusStyle({ focus })}`}
         cardStyle={{
           borderColor: typeColorBorder,
           backgroundColor: placeBackgroundColor,

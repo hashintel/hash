@@ -75,13 +75,6 @@ const paneStyle = css({
   },
 });
 
-const fadeBgStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  background: "[rgba(255, 255, 255, 0.3)]",
-  pointerEvents: "none",
-});
-
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
@@ -90,7 +83,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const presentation = usePetrinautPresentation();
   const { compactNodes, showMinimap, partialSelection } =
     use(UserSettingsContext);
-  const { hasCanvasSelection, globalMode } = use(EditorContext);
+  const { globalMode } = use(EditorContext);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
@@ -217,7 +210,6 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           minZoom={minZoom}
         >
           <Background gap={SNAP_GRID_SIZE} size={1} />
-          {hasCanvasSelection && <div className={fadeBgStyle} />}
           {showMinimap && presentation.showMinimap && (
             <MiniMap pannable zoomable />
           )}

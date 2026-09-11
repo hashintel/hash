@@ -92,8 +92,6 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
-  /** Whether any items on the canvas are currently selected. */
-  hasCanvasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -141,12 +139,6 @@ export type EditorActions = {
   setAddComponentMode: (subnetId: string) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
-  /** Check whether a node/edge is connected to any selected item via an arc. */
-  isSelectedConnection: (id: string) => boolean;
-  /** Check whether a node/edge is not connected to any selected item via an arc. */
-  isNotSelectedConnection: (id: string) => boolean;
-  /** Map of all items connected to the current selection, keyed by id. */
-  selectedConnections: SelectionMap;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
     options?: { cause: "normalization" } | { batch: "react-flow" },
@@ -158,12 +150,6 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
-  /** Check whether a given ID is the currently hovered item. */
-  isHovered: (id: string) => boolean;
-  /** Check whether a given ID is connected to the currently hovered item. */
-  isHoveredConnection: (id: string) => boolean;
-  /** Check whether a given ID is not connected to the currently hovered item. */
-  isNotHoveredConnection: (id: string) => boolean;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -201,7 +187,6 @@ export const initialEditorState: EditorState = {
   componentSubnetId: null,
   selection: new Map(),
   hasSelection: false,
-  hasCanvasSelection: false,
   hoveredItem: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
@@ -230,9 +215,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,
-  isSelectedConnection: () => false,
-  isNotSelectedConnection: () => false,
-  selectedConnections: new Map(),
   setSelection: () => {},
   beginSelectionGesture: () => {},
   endSelectionGesture: () => {},
@@ -241,9 +223,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  isHovered: () => false,
-  isHoveredConnection: () => false,
-  isNotHoveredConnection: () => false,
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

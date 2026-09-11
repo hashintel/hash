@@ -1,16 +1,15 @@
-import { use, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import { nodeFocusStyle } from "../../../styles/focus";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
   NodeCard,
   nodeCardStyle,
-  type SelectionVariant,
 } from "./node-card";
 
 import type { TransitionNodeType } from "./react-flow-types";
@@ -21,7 +20,6 @@ const FIRING_ANIMATION_DURATION_MS = 300;
 const transitionCardStyle = css({
   borderColor: "neutral.s70",
   background: "neutral.s00",
-  transition: "[outline 0.2s ease, border-color 0.2s ease]",
   _hover: {
     borderColor: "neutral.s100",
   },
@@ -67,22 +65,21 @@ function useFiringAnimation(
       return;
     }
 
-    // Animate the box: flash yellow background and glow
+    // Flash the box yellow with a glow. Only the flash is a keyframe: the
+    // animation runs back to whatever the stylesheet says, so the focus ring's
+    // white band in `box-shadow` returns once it is over instead of staying
+    // replaced by the glow's transparent end.
     box.animate(
       [
         {
           background: "rgba(255, 224, 132, 0.7)",
           boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
-        },
-        {
-          background: "rgb(247, 247, 247)",
-          boxShadow: "0 0 0 0 rgba(255, 132, 0, 0)",
+          offset: 0,
         },
       ],
       {
         duration: FIRING_ANIMATION_DURATION_MS,
         easing: "ease-out",
-        fill: "forwards",
       },
     );
 
@@ -102,19 +99,11 @@ function useFiringAnimation(
 }
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
-  id,
   data,
   isConnectable,
   selected,
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
-
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-  } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -126,16 +115,9 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   // Animate when firing occurs
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
-  // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant: SelectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  // React Flow marks a node selected as a drag-selection is drawn, before the
+  // change reaches the editor's own selection.
+  const focus = selected ? "focused" : data.focus;
 
   const subtitle =
     data.lambdaType === "none"
@@ -146,7 +128,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 
   return (
     <NodeCard
-      cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${transitionCardStyle}`}
+      cardClassName={`${nodeCardStyle} ${transitionCardStyle} ${nodeFocusStyle({ focus })}`}
       cardRef={boxRef}
       iconContainer={
         <div

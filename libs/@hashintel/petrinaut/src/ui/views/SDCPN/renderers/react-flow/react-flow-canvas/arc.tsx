@@ -9,9 +9,13 @@ import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import {
+  ARC_HALO_OVERHANG,
+  ARC_WHITE_OVERHANG,
+  arcHaloColor,
+} from "../../../styles/focus";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -277,13 +281,9 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   data,
   style,
   markerEnd,
+  selected,
 }) => {
-  // Derive selected state from EditorContext
-  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
-
-  // Check if this arc is selected by its ID
-  const selected = isSelected(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
   const readMarkerId = `read-dot-${id}`;
@@ -326,9 +326,10 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             targetPosition,
           });
 
-  let strokeColor = style?.stroke ?? "#b1b1b7";
+  const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
+  const haloColor = arcHaloColor(data?.focus ?? "none");
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
   const markerEndOverride =
@@ -391,6 +392,32 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
           path={arcPath}
           style={selectionIndicatorStyle}
         />
+      )}
+
+      {/* Focus casing: white around the arc's own stroke, the role's colour
+          around that, both drawn beneath it so the arc keeps its token type's
+          colour. Matches the bands a highlighted node wears. */}
+      {haloColor !== undefined && (
+        <>
+          <path
+            d={arcPath}
+            fill="none"
+            stroke={haloColor}
+            strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
+            strokeDasharray={strokeDasharray}
+            strokeLinecap={arcType === "read" ? "round" : "butt"}
+            style={{ pointerEvents: "none" }}
+          />
+          <path
+            d={arcPath}
+            fill="none"
+            stroke="white"
+            strokeWidth={BASE_STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
+            strokeDasharray={strokeDasharray}
+            strokeLinecap={arcType === "read" ? "round" : "butt"}
+            style={{ pointerEvents: "none" }}
+          />
+        </>
       )}
 
       {/* Animated overlay path for firing visualization (no marker). */}
