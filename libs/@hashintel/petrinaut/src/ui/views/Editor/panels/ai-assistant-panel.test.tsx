@@ -1624,8 +1624,12 @@ describe("AiAssistantPanel composer submissions", () => {
     const rendered = renderTestPanel({
       aiAssistant,
       initialInteractionMode: "voice",
+      strictMode: true,
     });
     await screen.findByText("Voice mode voice");
+    expect(screen.getByTestId("canvas-right-inset").textContent).toBe(
+      String(initialEditorState.aiAssistantWidth + 12),
+    );
 
     rendered.rerenderPanelWithInitialRequest(
       "text",

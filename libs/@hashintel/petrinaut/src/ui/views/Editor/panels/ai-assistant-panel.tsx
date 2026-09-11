@@ -578,11 +578,17 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
-  const setVoiceDockCollapsedRef = useLatest(setVoiceDockCollapsed);
-  useLayoutEffect(
-    () => () => setVoiceDockCollapsedRef.current(false),
-    [setVoiceDockCollapsedRef],
-  );
+  const initializedLayoutRef = useRef(false);
+  useLayoutEffect(() => {
+    // A new conversation starts expanded. Effect replay preserves its voice setup.
+    if (initializedLayoutRef.current) {
+      return;
+    }
+    initializedLayoutRef.current = true;
+    if (voiceDockCollapsed) {
+      setVoiceDockCollapsed(false);
+    }
+  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
     (
