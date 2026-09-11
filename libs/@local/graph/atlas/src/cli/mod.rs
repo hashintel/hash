@@ -29,8 +29,8 @@
 //! rendered connection string.
 //!
 //! The fit command drives the run entry points live with the runner. This module re-exports their
-//! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`RunError`]) as the
-//! crate's operator API.
+//! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`RunError`]) as the crate's
+//! operator API.
 //!
 //! The commands carry no listener, lifecycle, or connection of their own beyond what their
 //! arguments name.

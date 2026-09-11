@@ -97,8 +97,13 @@ tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter"
 uuid                      = { workspace = true, features = ["v5"] }
 
 [features]
-bench = []
-cli   = ["dep:ratatui", "dep:tracing-subscriber"]
+bench      = []
+cli        = ["dep:ratatui", "dep:tracing-subscriber"]
+test-utils = []
+
+[[test]]
+name              = "generation_transfer"
+required-features = ["test-utils"]
 
 [[bin]]
 name              = "hash-graph-atlas"
