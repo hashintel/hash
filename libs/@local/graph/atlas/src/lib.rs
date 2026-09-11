@@ -162,6 +162,7 @@ pub(crate) mod api;
 pub mod bench;
 pub(crate) mod bitset;
 pub mod cli;
+mod cli2;
 pub(crate) mod dataset;
 pub mod device;
 pub(crate) mod file;
