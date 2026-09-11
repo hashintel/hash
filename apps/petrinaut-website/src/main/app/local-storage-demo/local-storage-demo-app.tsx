@@ -39,6 +39,7 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
+import { ShareSnapshotButton } from "../../../sharing/share-snapshot-button";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -703,6 +704,17 @@ export const LocalStorageDemoApp = ({
               readonly={false}
               setTitle={setTitle}
               title={currentNet.title}
+              slots={{
+                topBarEnd: (
+                  <ShareSnapshotButton
+                    getSnapshot={() => ({
+                      title: currentNet.title,
+                      definition: activeHandle.handle.doc() ?? currentNet.sdcpn,
+                    })}
+                    search={search}
+                  />
+                ),
+              }}
               viewportActions={[sentryFeedbackAction]}
             />
           </WalkthroughProvider>

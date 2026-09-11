@@ -963,6 +963,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:6.1.0"
     "@whatwg-node/server": "npm:0.10.18"
     ai: "npm:6.0.182"
+    brotli-wasm: "npm:3.0.1"
     fast-check: "npm:4.9.0"
     immer: "npm:10.1.3"
     oxc-transform-react: "npm:0.145.0"
@@ -23609,6 +23610,13 @@ __metadata:
   dependencies:
     fill-range: "npm:^7.1.1"
   checksum: 10c0/7c6dfd30c338d2997ba77500539227b9d1f85e388a5f43220865201e407e076783d0881f2d297b9f80951b4c957fcf0b51c1d2d24227631643c3f7c284b0aa04
+  languageName: node
+  linkType: hard
+
+"brotli-wasm@npm:3.0.1":
+  version: 3.0.1
+  resolution: "brotli-wasm@npm:3.0.1"
+  checksum: 10c0/b458b9fe7c31a5e8255133bd26a258f79fb1b816a8d609b45a662726476315e63c539bcb7d5b8bd542cc9a7d2c91fcd4ce27154d19c33d1932f5b1618e09f23b
   languageName: node
   linkType: hard
 
