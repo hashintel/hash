@@ -406,6 +406,48 @@ describe("createConnectedStudy", () => {
     expect(refinementRuns.runs).toHaveLength(0);
   });
 
+  it("refining the best while a pause drains follows a draining step that becomes the best, refining there", () => {
+    const { study, startTrial, latest, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.3));
+    const trial = startTrial(1, 0.02);
+    study.settle("paused");
+
+    study.refineBest();
+    const firstBestPosition = optimizationAxisPositionFor(axis, 0.05);
+    expect(latest()?.navigation.positions).toEqual({
+      infected_ratio: firstBestPosition,
+    });
+    expect(latest()?.selection?.key).toBe(
+      `infected_ratio=${firstBestPosition}`,
+    );
+    expect(refinementRuns.runs).toHaveLength(1);
+
+    // The draining step reports as the new best (the study minimizes): the
+    // parked navigation follows it there and the refinement moves with it.
+    const result = completedRunResult({
+      metricId,
+      frames: [distributionFrame(metricId, 180, [[0.1, 3]])],
+      runValues: [0.1, 0.1, 0.1],
+    });
+    study.trialSettled(1, result);
+    trial.settle(result);
+    study.trialReported(trialEvent(1, 0.02, 0.1));
+    const secondBestPosition = optimizationAxisPositionFor(axis, 0.02);
+    expect(latest()?.navigation.positions).toEqual({
+      infected_ratio: secondBestPosition,
+    });
+    expect(latest()?.selection?.key).toBe(
+      `infected_ratio=${secondBestPosition}`,
+    );
+    expect(refinementRuns.runs).toHaveLength(2);
+    expect(refinementRuns.runs[0]?.cancelled).toBe(true);
+    expect(refinementRuns.runs[1]?.request).toMatchObject({
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(axis, secondBestPosition),
+      },
+    });
+  });
+
   it("a pause the worker answers with complete refines the parked best; a repeated pause changes nothing", () => {
     const { study, startTrial, refinementRuns } = setup();
     study.trialReported(trialEvent(0, 0.05, 0.3));

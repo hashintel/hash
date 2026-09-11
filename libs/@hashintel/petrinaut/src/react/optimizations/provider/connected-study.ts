@@ -185,6 +185,8 @@ export const createConnectedStudy = ({
   let terminal: ConnectedStudyOutcome | null = null;
   /** Set while the navigation sits where settling put it, at the best; a user move clears it. */
   let parkedOnBest = false;
+  /** Whether the parked point refines, so a better step it moves to refines too. */
+  let parkedRefining = false;
   let disposed = false;
   /** Trials being evaluated, in the order they started. */
   const evaluating = new Map<number, EvaluatingTrial>();
@@ -356,6 +358,7 @@ export const createConnectedStudy = ({
       ? navigationAt(best.parameters, false)
       : { ...navigation, followTrials: false };
     parkedOnBest = true;
+    parkedRefining = refine;
     if (refine) {
       refineHere();
     } else {
@@ -482,9 +485,13 @@ export const createConnectedStudy = ({
         return;
       }
       // A step draining after a pause may turn out the best: the navigation
-      // settled on the best follows it there, still without refining.
+      // settled on the best follows it there, refining only if the parked
+      // point was already refining.
       if (parkedOnBest && best && terminal !== null && !refinesOnSettle()) {
         navigation = navigationAt(best.parameters, false);
+        if (parkedRefining) {
+          refineHere();
+        }
         publish();
         return;
       }
