@@ -118,6 +118,13 @@ export const NotificationsToaster = () => (
                 </Toast.Description>
               )}
             </div>
+            {toast.action && (
+              <Toast.ActionTrigger asChild>
+                <Button className={toastActionStyle} size="xs" variant="ghost">
+                  {toast.action.label}
+                </Button>
+              </Toast.ActionTrigger>
+            )}
             {dismissible && (
               <div className={toastActionsStyle}>
                 {detail && (

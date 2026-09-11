@@ -134,3 +134,42 @@ test("shows a way out only where a notification needs one", async () => {
   );
   expect(failure?.querySelector("[aria-label='Copy details']")).toBeTruthy();
 });
+
+test("deduplicates a notice and offers its action without stealing focus", async () => {
+  const onClick = vi.fn();
+  const Trigger = () => {
+    const { addNotification } = use(NotificationsContext);
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          for (let i = 0; i < 3; i++)
+            addNotification({
+              id: "read-only:test",
+              message: "This document is read-only.",
+              tone: "neutral",
+              durationMs: 4500,
+              action: { label: "Make a local copy", onClick },
+            });
+        }}
+      >
+        Try editing
+      </button>
+    );
+  };
+  render(
+    <NotificationsProvider>
+      <Trigger />
+    </NotificationsProvider>,
+  );
+  const trigger = screen.getByRole("button", { name: "Try editing" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const action = await screen.findByRole("button", {
+    name: "Make a local copy",
+  });
+  expect(screen.getAllByText("This document is read-only.")).toHaveLength(1);
+  expect(document.activeElement).toBe(trigger);
+  fireEvent.click(action);
+  expect(onClick).toHaveBeenCalledOnce();
+});

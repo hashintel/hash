@@ -23,12 +23,14 @@ export const NotificationsProvider = ({
   };
 
   const addNotification = ({
+    action,
+    id: suppliedId,
     detail,
     durationMs,
     message,
     tone = "success",
   }: AddNotificationInput) => {
-    const id = `notification-${nextNotificationId}`;
+    const id = suppliedId ?? `notification-${nextNotificationId}`;
     nextNotificationId += 1;
     const effectiveDurationMs =
       tone === "error"
@@ -36,12 +38,14 @@ export const NotificationsProvider = ({
         : (durationMs ?? DEFAULT_NOTIFICATION_DURATION_MS);
 
     queueMicrotask(() => {
+      if (notificationsToaster.isVisible(id)) return;
       notificationsToaster.create({
+        ...(action ? { action } : {}),
         description: detail,
         duration: effectiveDurationMs,
         id,
         title: message,
-        type: tone,
+        type: tone === "neutral" ? "info" : tone,
       });
     });
 
