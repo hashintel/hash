@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CACHED_RUN_POLICY } from "./calibration";
+import { CACHED_RUN_POLICY, rememberCalibration } from "./calibration";
 import { runCalibratedExperiment } from "./run-phase";
 
+import type { GpuCalibration } from "../backend";
 import type { CompiledNetShader } from "../compile-net-shader";
+import type { GpuNetProfile } from "../eligibility";
 import type { GpuExperimentResult } from "../runner";
 import type {
   AttemptResult,
@@ -29,7 +31,9 @@ const shaderAt = (
     summaryStatusOffset: 1,
     rngOffset: 2,
     statusOffset: 3,
-    derivedCapacityPlaceIndices: [...capacities.keys()].map(() => 0),
+    derivedCapacityPlaceIndices: [...capacities.keys()].map(
+      (_, index) => index,
+    ),
     metricIds: ["m0"],
     histogramBins: 64,
     runParameterIds: [],
@@ -37,25 +41,29 @@ const shaderAt = (
   };
 };
 
+/** A derived-capacity place per slab, in slab order. */
+const placeAt = ([id, capacity]: [
+  string,
+  number,
+]): GpuNetProfile["places"][number] => ({
+  id,
+  name: id.toUpperCase(),
+  capacity,
+  capacitySource: "derived",
+  declaredCapacity: 0xffffffff,
+  realFields: ["x", "y"],
+  discreteFields: [],
+  colored: true,
+  pairConsumed: false,
+});
+
 const session = (capacities: Record<string, number>): CalibrationSession => {
   const initial = new Map(Object.entries(capacities));
   return {
     backend: {
       recompile: (next) => ({ ok: true, shader: shaderAt(next) }),
       profile: {
-        places: [
-          {
-            id: "p",
-            name: "P",
-            capacity: initial.get("p") ?? 0,
-            capacitySource: "derived",
-            declaredCapacity: 0xffffffff,
-            realFields: ["x", "y"],
-            discreteFields: [],
-            colored: true,
-            pairConsumed: false,
-          },
-        ],
+        places: [...initial].map(placeAt),
         uncolouredOnly: false,
         bytesPerRun: 16,
       },
@@ -139,10 +147,14 @@ describe("runCalibratedExperiment", () => {
     // The probe runs a prefix without a preview tile; the full attempt runs
     // everything with one, at the slab the probe sized.
     expect(
-      attempts.map(({ runCount, preview }) => ({ runCount, preview })),
+      attempts.map(({ runCount, preview, probe }) => ({
+        runCount,
+        preview,
+        probe,
+      })),
     ).toEqual([
-      { runCount: 128, preview: false },
-      { runCount: 1000, preview: true },
+      { runCount: 128, preview: false, probe: true },
+      { runCount: 1000, preview: true, probe: false },
     ]);
     expect(attempts[1]?.shader.stateWordsPerRun).toBe(4 + 19 * 2);
     expect(remembered).toEqual([[{ lo: 14, stride: 1, integer: true }]]);
@@ -204,6 +216,61 @@ describe("runCalibratedExperiment", () => {
     expect(attempts[1]?.shader.stateWordsPerRun).toBe(4 + 40 * 2);
     expect(current.capacities.get("p")).toBe(154);
     expect(remembered).toHaveLength(1);
+    expect(result).toMatchObject({
+      kind: "calibrated",
+      result: { completedRuns: 1000, overflowRuns: 0 },
+    });
+  });
+
+  it("floors the re-probe at the grown slabs and replaces the stale entry", async () => {
+    // The re-probe sees a prefix of the runs, not necessarily the one that
+    // overflowed: a place it observes small keeps the grown slab, while the
+    // place it observes large is sized from the observation — so the fresh
+    // calibration is no smaller than the stale one anywhere and replaces it.
+    const current = session({ p: 10, q: 50 });
+    const key = "marking";
+    const calibrations = new Map<string, GpuCalibration>();
+    rememberCalibration(calibrations, key, session({ p: 10, q: 50 }), []);
+    const overflowing = Array.from(
+      { length: 1 + CACHED_RUN_POLICY.maxSlabGrowths },
+      () => ({ ok: true as const, result: outcome({ overflowRuns: 1 }) }),
+    );
+    const { execute, attempts } = scripted([
+      ...overflowing,
+      {
+        ok: true,
+        result: outcome({
+          derivedPlaceMaxes: [
+            { max: 100, meanRunMax: 90 },
+            { max: 10, meanRunMax: 8 },
+          ],
+        }),
+      },
+      { ok: true, result: outcome({ completedRuns: 1000 }) },
+    ]);
+
+    const { run } = runWith(current, execute, {
+      calibratedWindows: [{ lo: 0, stride: 1, integer: true }],
+      placeCounts: [3, 3],
+      remember: (windows) =>
+        rememberCalibration(calibrations, key, current, windows),
+    });
+    const result = await run;
+
+    const grown = new Map([
+      ["p", 40],
+      ["q", 200],
+    ]);
+    const probed = new Map([
+      ["p", 154],
+      ["q", 200],
+    ]);
+    expect(current.capacities).toEqual(probed);
+    expect(attempts.at(-1)?.shader.stateWordsPerRun).toBe(4 + (154 + 200) * 2);
+    for (const [placeId, capacity] of probed) {
+      expect(capacity).toBeGreaterThanOrEqual(grown.get(placeId)!);
+    }
+    expect(calibrations.get(key)?.capacities).toEqual(probed);
     expect(result).toMatchObject({
       kind: "calibrated",
       result: { completedRuns: 1000, overflowRuns: 0 },

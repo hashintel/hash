@@ -130,7 +130,9 @@ describe("runUntilCalibrated", () => {
     expect(attempts.map((attempt) => attempt.shader.stateWordsPerRun)).toEqual([
       24, 44,
     ]);
-    expect(attempts.every((attempt) => attempt.preview)).toBe(true);
+    expect(attempts.every((attempt) => attempt.preview && !attempt.probe)).toBe(
+      true,
+    );
   });
 
   it("gives up growing after the policy's budget and hands back the overflow", async () => {
@@ -332,6 +334,19 @@ describe("slabsFromProbe", () => {
     ).toEqual({ ok: true, capacities: new Map([["p", 40]]) });
   });
 
+  it("never sizes a slab below its floor", () => {
+    const current = session({ p: 64 });
+
+    expect(
+      slabsFromProbe(
+        current,
+        outcome({ derivedPlaceMaxes: [{ max: 20, meanRunMax: 15 }] }),
+        [3],
+        new Map([["p", 200]]),
+      ),
+    ).toEqual({ ok: true, capacities: new Map([["p", 200]]) });
+  });
+
   it("refuses a heavy tail whose slab would exceed the arena threshold", () => {
     const current = session({ p: 64 });
 
@@ -367,7 +382,7 @@ describe("probeDerivedCapacities", () => {
     });
 
     expect(attempts).toEqual([
-      expect.objectContaining({ runCount: 128, preview: false }),
+      expect.objectContaining({ runCount: 128, preview: false, probe: true }),
     ]);
     expect(current.capacities).toEqual(new Map([["p", 19]]));
     expect(current.shader.stateWordsPerRun).toBe(4 + 19 * 2);
@@ -525,7 +540,7 @@ describe("probeWindows", () => {
     // The caller sizes the prefix (`probeRunCount`), so an experiment of five
     // runs probes five, never a preview tile's worth it does not have.
     expect(attempts).toEqual([
-      expect.objectContaining({ runCount: 5, preview: false }),
+      expect.objectContaining({ runCount: 5, preview: false, probe: true }),
     ]);
     // 21 counts observed, margin ceil(21 × 0.25) = 6 → [14, 46] over 64 bins.
     expect(probed).toMatchObject({

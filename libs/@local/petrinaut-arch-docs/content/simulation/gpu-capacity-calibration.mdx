@@ -31,13 +31,14 @@ never blocks a firing over it.
 ![Probe, decide, grow](@diagrams/gpu-capacity-calibration.svg)
 
 1. **Probe.** As the first phase of the run — after `start()`, so its
-   chunks stream to the charts like every other attempt's — a small prefix of
-   the runs executes at generous slabs (four times each place's initial
-   tokens). Few runs afford big slabs, and the probe's shader tracks each
-   derived place's **per-run maximum count** (a register per place, folded
-   into the summary). A probe that overflows quadruples the slabs,
-   recompiles, and probes again — shedding runs to stay inside a 128 MB
-   probe budget, so seven growth attempts reach counts past a million
+   chunks stream to the charts like every other attempt's, though its run
+   counts are not reported as progress, being a prefix the full attempt runs
+   again — a small prefix of the runs executes at generous slabs (four times
+   each place's initial tokens). Few runs afford big slabs, and the probe's
+   shader tracks each derived place's **per-run maximum count** (a register
+   per place, folded into the summary). A probe that overflows quadruples
+   the slabs, recompiles, and probes again — shedding runs to stay inside a
+   128 MB probe budget, so seven growth attempts reach counts past a million
    (64 × 4⁷) before conceding.
 2. **Decide, per place.** The probe yields the largest per-run maximum and
    the mean of the per-run maxima. When the largest is close to typical, the
@@ -101,15 +102,21 @@ A stale calibration heals through the same escape/overflow re-runs that
 calibrate from scratch — a full attempt on a calibration another batch
 measured grows once, by the probe's factor, and a calibration it outgrows
 even then sends the batch back through the probe, from the grown slabs, as a
-first batch would — and the cache is updated with what each batch learned. Only a selection that changes the initial marking (a scenario axis
-that shapes the initial state) still builds a new setup.
+first batch would. That re-probe never sizes a slab below the grown ones: it
+sees only a prefix of the runs, possibly not the run that overflowed, so its
+result is at least the stale entry's on every place and replaces it. The
+cache is updated with what each batch learned. Only a selection that changes
+the initial marking (a scenario axis that shapes the initial state) still
+builds a new setup.
 
 Pipelined rungs lease the backend concurrently, and the ladder starts the
 next rung off the first streamed chunk — which, on a fresh marking, is the
 probe's. The backend therefore also tracks probes in flight per calibration
 key: a rung that starts while another still probes its marking waits for
 that calibration and adopts it instead of probing too, so one marking is
-probed once however the rungs overlap.
+probed once however the rungs overlap. A marking that needs no probe — every
+slab declared, every window bounded by a ceiling — is never claimed, so its
+rungs overlap as the ladder intends.
 
 Devices need explicit destruction and pipelined rungs lease the backend
 concurrently, so entries count leases: a displaced (or unsupported) entry
