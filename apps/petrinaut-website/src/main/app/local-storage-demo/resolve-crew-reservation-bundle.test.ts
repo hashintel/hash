@@ -79,6 +79,7 @@ const manifest: CrewReservationSettledManifest = {
 };
 
 const fallbackDocument: SDCPNInLocalStorage = {
+  uuid: "dbb1b22c-f595-4c1a-b348-89eec09b79c3",
   id: crewReservationDocumentId,
   title: "Prepared",
   sdcpn: preparedCrewReservationNet,

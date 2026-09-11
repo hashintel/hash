@@ -42,11 +42,17 @@ const linkStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export const NotFoundPage = () => (
+export const NotFoundPage = ({
+  title = "Page not found",
+  description = "The requested Petrinaut page does not exist.",
+}: {
+  title?: string;
+  description?: string;
+}) => (
   <main style={pageStyle}>
     <div style={panelStyle}>
-      <h1 style={headingStyle}>Page not found</h1>
-      <p style={bodyStyle}>The requested Petrinaut page does not exist.</p>
+      <h1 style={headingStyle}>{title}</h1>
+      <p style={bodyStyle}>{description}</p>
       <Link style={linkStyle} to="/">
         Back to Petrinaut
       </Link>
