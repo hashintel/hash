@@ -2,8 +2,11 @@
 
 **Sources and authorship.** The operational spine, dataset mappings, fitted
 values, declared assumptions, policy descriptions, scenarios and reference-net
-summary come from `[draft] Inventory purchasing of raw materials.docx`
-supplied by the HASH team on 2026-09-11. The established reference model is
+summary come from [`source.md`](source.md)
+(SHA-256 `4fd68ea384d5b940e731a5850639d90a5372455633f3de1f8aee73a630e9679a`)
+and its original `.docx`, supplied by the HASH team on 2026-09-11. The
+Markdown is the primary readable source; the `.docx` retains sections and
+table content absent from that conversion. The established reference model is
 `inventory-purchasing-sdcpn.json`, SHA-256
 `81329d7beb1babae64f525ab78b7f1da60b5e67921b76fed7cfde36554985c56`.
 The retained case source is [`reference-sdcpn.json`](reference-sdcpn.json) with
