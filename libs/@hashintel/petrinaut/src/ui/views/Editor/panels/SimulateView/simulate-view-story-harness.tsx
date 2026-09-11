@@ -358,15 +358,15 @@ export const AutoSweepStudy = ({
     use(ExperimentsContext);
   const [experimentId, setExperimentId] = useState<string | null>(null);
   const startRef = useLatest(async () => {
-    const id = await createExperiment(
+    const experiment = await createExperiment(
       buildAutoSweepExperimentInput(
         { title, petriNetDefinition },
         study,
         computeBackend,
       ),
     );
-    setSelectedExperimentId(id);
-    setExperimentId(id);
+    setSelectedExperimentId(experiment.id);
+    setExperimentId(experiment.id);
   });
   const startedRef = useRef(false);
 

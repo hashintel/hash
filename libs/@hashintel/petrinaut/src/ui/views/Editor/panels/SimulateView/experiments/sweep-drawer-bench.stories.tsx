@@ -75,7 +75,8 @@ const Session = ({
   computeBackend: ExperimentComputeBackend;
   runCount: number;
 }) => {
-  const { experiments, createExperiment } = use(ExperimentsContext);
+  const { experiments, createExperiment, setSelectedExperimentId } =
+    use(ExperimentsContext);
   const started = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,8 +114,10 @@ const Session = ({
         },
       ],
       computeBackend,
-    }).catch((cause: unknown) => setError(String(cause)));
-  }, [computeBackend, createExperiment, runCount]);
+    })
+      .then((experiment) => setSelectedExperimentId(experiment.id))
+      .catch((cause: unknown) => setError(String(cause)));
+  }, [computeBackend, createExperiment, runCount, setSelectedExperimentId]);
 
   const experiment = experiments.find((candidate) => candidate.sweep !== null);
   if (error) {

@@ -29,9 +29,15 @@ import {
   UserSettingsContext,
 } from "../../../../../../react/state/user-settings-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
-import { sirSdcpnContextValue } from "./experiments-story-fixtures";
+import {
+  makeExperiment,
+  sirSdcpnContextValue,
+} from "./experiments-story-fixtures";
 
-import type { CreateExperimentInput } from "../../../../../../react/experiments/context";
+import type {
+  CreateExperimentInput,
+  ExperimentRecord,
+} from "../../../../../../react/experiments/context";
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
@@ -165,18 +171,24 @@ function makeLanguageClient(): LanguageClientContextValue {
   };
 }
 
+/** What the real provider resolves: the record it created, selected by nobody yet. */
+const createdExperiment = (id: string): Promise<ExperimentRecord> =>
+  Promise.resolve(makeExperiment(0, { id }));
+
 const TestProviders = ({
   webGpuEnabled,
   enableParameterSweeps = false,
   sdcpnContextValue = sirSdcpnContextValue,
-  createExperiment = () => Promise.resolve("experiment-test"),
+  createExperiment = () => createdExperiment("experiment-test"),
   languageClient,
   optimizationSource = null,
 }: {
   webGpuEnabled: boolean;
   enableParameterSweeps?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
-  createExperiment?: (input: CreateExperimentInput) => Promise<string>;
+  createExperiment?: (
+    input: CreateExperimentInput,
+  ) => Promise<ExperimentRecord>;
   languageClient?: LanguageClientContextValue;
   /** The host's optimizer; the In-browser optimization setting follows it on. */
   optimizationSource?: PetrinautOptimizationSource | null;
@@ -517,7 +529,7 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
 
   it("hands the form's draft to the experiment with sweeps off, never as a sweep", async () => {
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-adhoc"),
+      createdExperiment("experiment-adhoc"),
     );
     render(
       <TestProviders
@@ -887,7 +899,7 @@ describe("CreateExperimentDrawer constraints", () => {
   it("lowers the rows under their labels and hands them to the experiment without a policy at the default threshold", async () => {
     const languageClient = makeLoweringLanguageClient();
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-constrained"),
+      createdExperiment("experiment-constrained"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -951,7 +963,7 @@ describe("CreateExperimentDrawer constraints", () => {
 
   it("writes a changed pass threshold to the experiment as alpha", async () => {
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-threshold"),
+      createdExperiment("experiment-threshold"),
     );
     await openConstrainedSweep({ createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -976,7 +988,7 @@ describe("CreateExperimentDrawer constraints", () => {
   it("ignores blank rows at submission", async () => {
     const languageClient = makeLoweringLanguageClient();
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-blank"),
+      createdExperiment("experiment-blank"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -1012,7 +1024,7 @@ describe("CreateExperimentDrawer constraints", () => {
       ),
     };
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("never"),
+      createdExperiment("never"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));

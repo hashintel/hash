@@ -451,9 +451,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
       fixedScenarioValues: compiled.fixedScenarioValues,
+      scenario: compiled.scenario,
     });
     setExperiments((prev) => [experiment, ...prev]);
-    setSelectedExperimentId(experimentId);
 
     const abortController = new AbortController();
     pendingRegistrationsRef.current.set(experimentId, { abortController });
@@ -575,7 +575,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     void initializeExperiment();
 
-    return experimentId;
+    return experiment;
   };
 
   const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (

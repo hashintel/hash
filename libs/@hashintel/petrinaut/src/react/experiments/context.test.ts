@@ -1,7 +1,12 @@
+import { createElement, use } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  type CreateExperimentInput,
   type ExperimentRecord,
+  ExperimentsContext,
+  type ExperimentsContextValue,
   type ExperimentStatus,
   getExperimentElapsedMs,
   isExperimentActive,
@@ -35,6 +40,7 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     scenarioParameterValues: {},
     constraints: [],
     constraintPolicy: null,
+    scenario: null,
     ...overrides,
   };
 }
@@ -102,5 +108,35 @@ describe("getExperimentElapsedMs", () => {
     const experiment = makeRecord({ startedAt: 5_000 });
 
     expect(getExperimentElapsedMs(experiment, 4_000)).toBe(0);
+  });
+});
+
+describe("ExperimentsContext default value", () => {
+  /** The value a consumer reads with no provider above it. */
+  const readDefaultValue = (): ExperimentsContextValue => {
+    let value: ExperimentsContextValue | null = null;
+    const Consumer = () => {
+      value = use(ExperimentsContext);
+      return null;
+    };
+    renderToStaticMarkup(createElement(Consumer));
+    return value!;
+  };
+
+  it("rejects creation instead of resolving a record nobody holds", async () => {
+    const input: CreateExperimentInput = {
+      name: "Orphan",
+      scenarioId: null,
+      scenarioParameterValues: {},
+      runCount: 1,
+      seed: 1,
+      dt: 1,
+      maxTime: 10,
+      metricSpecs: [],
+    };
+
+    await expect(readDefaultValue().createExperiment(input)).rejects.toThrow(
+      "createExperiment was called outside an ExperimentsProvider",
+    );
   });
 });
