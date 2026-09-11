@@ -196,3 +196,111 @@ describe("dependency changes invalidate untouched code", () => {
     expect(errors.every((error) => /level/u.test(error.message))).toBe(true);
   });
 });
+
+/**
+ * Removing net-level state that nothing reads leaves the model clean. Removing
+ * state that code or a place still refers to must either cascade completely in
+ * the canonical definition or surface as a compiler error on the code that
+ * depended on it; the two cases are separated so hidden damage cannot pass as
+ * a clean unused removal.
+ */
+describe("removing net-level state", () => {
+  const withUnused = (
+    mutations: ReturnType<typeof createPetrinaut>["mutations"],
+  ) => {
+    mutations.addType({
+      id: "pallet",
+      name: "Pallet",
+      iconSlug: "square",
+      displayColor: "#888888",
+      elements: [{ elementId: "slots", name: "slots", type: "integer" }],
+    });
+    mutations.addParameter({
+      id: "unused-rate",
+      name: "Unused rate",
+      variableName: "unused_rate",
+      type: "real",
+      defaultValue: "1",
+    });
+    mutations.addDifferentialEquation({
+      id: "idle-dynamics",
+      name: "Idle",
+      colorId: "pallet",
+      code: `export default Dynamics((tokens) => tokens.map(() => ({ slots: 0 })));`,
+    });
+  };
+
+  it("unused type, element, parameter and equation removals stay compiler-clean", () => {
+    const definition = mutated((mutations) => {
+      withUnused(mutations);
+      mutations.removeTypeElement({ typeId: "pallet", elementId: "slots" });
+      mutations.removeDifferentialEquation({ equationId: "idle-dynamics" });
+      mutations.removeParameter({ parameterId: "unused-rate" });
+      mutations.removeType({ typeId: "pallet" });
+    });
+    expect(definition.types.map(({ id }) => id)).toEqual(["item"]);
+    expect(definition.parameters.map(({ id }) => id)).toEqual(["decay"]);
+    expect(definition.differentialEquations.map(({ id }) => id)).toEqual([
+      "decay-dynamics",
+    ]);
+    expect(errorsOf(definition)).toEqual([]);
+  });
+
+  it("removing a referenced parameter dirties the dynamics that read it", () => {
+    const errors = errorsOf(
+      mutated((mutations) =>
+        mutations.removeParameter({ parameterId: "decay" }),
+      ),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.code).toBe(2339);
+    expect(errors[0]?.message).toContain("decay_rate");
+  });
+
+  it("removing a referenced token element dirties every reader of that element", () => {
+    const errors = errorsOf(
+      mutated((mutations) =>
+        mutations.removeTypeElement({ typeId: "item", elementId: "level" }),
+      ),
+    );
+    // Dynamics, lambda and kernel all read `level`; the kernel's output row
+    // additionally fails as `never` once the type has no elements.
+    expect(errors.length).toBeGreaterThanOrEqual(3);
+    expect(errors.every((error) => /level|never/u.test(error.message))).toBe(
+      true,
+    );
+    expect(
+      errors.filter((error) => /level/u.test(error.message)).length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("removing a referenced equation clears the place's dynamics reference and stays clean", () => {
+    const definition = mutated((mutations) =>
+      mutations.removeDifferentialEquation({ equationId: "decay-dynamics" }),
+    );
+    // The cascade is complete in the canonical definition: no place still
+    // names the removed equation, so nothing is left half-referenced.
+    expect(
+      definition.places.find(({ id }) => id === "store")
+        ?.differentialEquationId,
+    ).toBeNull();
+    expect(definition.differentialEquations).toEqual([]);
+    expect(errorsOf(definition)).toEqual([]);
+  });
+
+  it("removing a referenced type uncolours its places and equation and dirties the code that read its tokens", () => {
+    const definition = mutated((mutations) =>
+      mutations.removeType({ typeId: "item" }),
+    );
+    expect(definition.types).toEqual([]);
+    expect(definition.places.every(({ colorId }) => colorId === null)).toBe(
+      true,
+    );
+    expect(
+      definition.differentialEquations.every(({ colorId }) => colorId === null),
+    ).toBe(true);
+    const errors = errorsOf(definition);
+    expect(errors.length).toBeGreaterThanOrEqual(1);
+    expect(errors.every((error) => /level/u.test(error.message))).toBe(true);
+  });
+});

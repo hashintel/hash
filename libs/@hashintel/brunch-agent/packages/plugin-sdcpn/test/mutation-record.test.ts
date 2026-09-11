@@ -467,6 +467,116 @@ describe("root addArc transition semantics", () => {
     }
   });
 
+  test("a referenced removal accounts for every canonical cascade as derived and still verifies applied", () => {
+    const before: SDCPN = {
+      places: [
+        {
+          ...pre.places[0]!,
+          colorId: "item",
+          dynamicsEnabled: true,
+          differentialEquationId: "decay",
+        },
+      ],
+      transitions: [],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [{ elementId: "level", name: "level", type: "real" }],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "decay",
+          name: "Decay",
+          colorId: "item",
+          code: "return tokens.map(({ level }) => ({ level: -level }));",
+        },
+      ],
+      parameters: [],
+    };
+    const cases: {
+      toolName: ConstructionMutationRequest["toolName"];
+      input: ConstructionMutationRequest["input"];
+      path: string;
+      apply: (
+        mutations: ReturnType<typeof createPetrinaut>["mutations"],
+      ) => void;
+      derivedPaths: string[];
+    }[] = [
+      {
+        toolName: "removeDifferentialEquation",
+        input: { equationId: "decay" },
+        path: "/differentialEquations/0",
+        apply: (mutations) =>
+          mutations.removeDifferentialEquation({ equationId: "decay" }),
+        derivedPaths: ["/places/0/differentialEquationId"],
+      },
+      {
+        toolName: "removeType",
+        input: { typeId: "item" },
+        path: "/types/0",
+        apply: (mutations) => mutations.removeType({ typeId: "item" }),
+        derivedPaths: ["/differentialEquations/0/colorId", "/places/0/colorId"],
+      },
+    ];
+    for (const { toolName, input, path, apply, derivedPaths } of cases) {
+      const removeRequest: ConstructionMutationRequest = {
+        toolCallId: `drop-referenced-${toolName}`,
+        toolName,
+        binding: request.binding,
+        requestedBaseHash: observe(before).sha256,
+        input,
+      };
+      const instance = createPetrinaut({
+        document: createJsonDocHandle({
+          initial: before,
+          capabilities: { disabledExtensions: [] },
+        }),
+      });
+      apply(instance.mutations);
+      const after = instance.definition.get();
+      instance.dispose();
+      const effects = deriveMutationEffects(removeRequest, before, after);
+      expect(effects.deleted.map((change) => change.path)).toEqual([path]);
+      // The cascade is what Petrinaut actually cleared, recorded in full and
+      // never granted the removal's basis.
+      expect(effects.derived.map((change) => change.path).sort()).toEqual(
+        derivedPaths,
+      );
+      expect(
+        [
+          ...effects.created,
+          ...effects.updated,
+          ...effects.deleted,
+          ...effects.derived,
+        ].length,
+      ).toBe(1 + derivedPaths.length);
+      expect(
+        classifyMutationOutcome({
+          request: removeRequest,
+          binding: removeRequest.binding,
+          pre: observe(before),
+          post: observe(after),
+          effects,
+        }),
+      ).toEqual({ outcome: "applied" });
+      // A record that hides part of the cascade is refused at the boundary.
+      expect(() =>
+        assertMutationEffects({
+          request: removeRequest,
+          binding: removeRequest.binding,
+          pre: observe(before),
+          post: observe(after),
+          outcome: "applied",
+          effects: { ...effects, derived: [] },
+        }),
+      ).toThrow(/complete canonical diff/u);
+    }
+  });
+
   test("derives an input arc type change as one direct arc field update", () => {
     const before = applied().post!.definition;
     const typeInput = {
