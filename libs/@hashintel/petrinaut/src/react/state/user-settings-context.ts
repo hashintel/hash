@@ -16,6 +16,8 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
+export type CodeEditorPlacement = "fullscreen" | "properties" | "bottom";
+
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
 export type SubViewSectionSettings = {
@@ -55,6 +57,8 @@ export type UserSettings = {
   partialSelection: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
+  enableCodeEditorWorkspace: boolean;
+  codeEditorPlacement: CodeEditorPlacement;
   /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
@@ -131,6 +135,9 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
+
+  setEnableCodeEditorWorkspace: (value: boolean) => void;
+  setCodeEditorPlacement: (value: CodeEditorPlacement) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
@@ -168,6 +175,9 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   enableNetComponents: false,
   enableNotebookView: false,
+
+  enableCodeEditorWorkspace: false,
+  codeEditorPlacement: "fullscreen",
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
   showCompilationOutput: false,
@@ -204,6 +214,9 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
+
+  setEnableCodeEditorWorkspace: () => {},
+  setCodeEditorPlacement: () => {},
   setShowWalkthroughOnInit: () => {},
   setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},

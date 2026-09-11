@@ -287,6 +287,9 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
     setEnableNotebookView: () => {},
+
+    setEnableCodeEditorWorkspace: () => {},
+    setCodeEditorPlacement: () => {},
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},

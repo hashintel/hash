@@ -15,7 +15,10 @@ import {
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import {
+  useCodeEditorMenuItems,
+  SourceCodeEditor as CodeEditor,
+} from "../../../../../../../monaco/code-workspace";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { useTransitionPropertiesContext } from "../../context";
 
@@ -56,9 +59,13 @@ const aiMenuItemStyle = css({
 });
 
 const FiringTimeHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, updateTransition } =
+  const { logicAvailability, transition, updateTransition, isReadOnly } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
+
+  const codeEditorItems = useCodeEditorMenuItems(
+    getDocumentUri("transition-lambda", transition.id),
+  );
 
   if (globalMode !== "edit" || !logicAvailability.lambda) {
     return null;
@@ -81,9 +88,11 @@ const FiringTimeHeaderAction: React.FC = () => {
         />
       }
       items={[
+        ...codeEditorItems,
         {
           id: "load-default",
           text: "Load default template",
+          disabled: isReadOnly,
           onClick: () => {
             updateTransition({
               transitionId: transition.id,

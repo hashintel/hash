@@ -27,7 +27,7 @@ const containerStyle = css({
 
 const transitionFiringTimeSubView = createDeferredSubView({
   id: "transition-firing-time",
-  headerActionMutates: true,
+  headerActionMutates: false,
   title: "Firing Time",
   defaultCollapsed: true,
   tooltip:
@@ -45,7 +45,7 @@ const transitionFiringTimeSubView = createDeferredSubView({
 
 const transitionResultsSubView = createDeferredSubView({
   id: "transition-results",
-  headerActionMutates: true,
+  headerActionMutates: false,
   title: "Transition Results",
   defaultCollapsed: true,
   tooltip:
