@@ -10,6 +10,7 @@ import { type CSSProperties, use, useEffect, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
   ARC_HALO_OVERHANG,
@@ -289,7 +290,8 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   const readMarkerId = `read-dot-${id}`;
 
   // Track firing count delta for simulation visualization
-  const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
+  const frame = useTransitionFrame(data?.transitionId ?? "");
+  const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Ref for the main arc path to animate stroke width
   const arcPathRef = useRef<SVGPathElement | null>(null);

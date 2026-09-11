@@ -7,7 +7,7 @@ import {
   getArcEndpointKey,
 } from "@hashintel/petrinaut-core";
 
-import { buildCanvasFocus } from "./canvas-focus";
+import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
 
 import type { Place, SDCPN, Transition } from "@hashintel/petrinaut-core";
@@ -63,8 +63,8 @@ const input: CanvasSceneInput = {
   draggingStateByNodeId: {},
   isSelected: () => false,
   hoveredId: null,
-  focus: buildCanvasFocus({
-    net: { ...sdcpn, componentInstances: [] },
+  focus: resolveCanvasFocus({
+    adjacency: buildNetAdjacency({ ...sdcpn, componentInstances: [] }),
     hoveredId: null,
     selectedIds: new Set(),
   }),
@@ -107,8 +107,8 @@ describe("buildCanvasScene", () => {
       ...input,
       isSelected: (id) => id === "p1",
       hoveredId: "t1",
-      focus: buildCanvasFocus({
-        net: input.net,
+      focus: resolveCanvasFocus({
+        adjacency: buildNetAdjacency(input.net),
         hoveredId: "t1",
         selectedIds: new Set(["p1"]),
       }),

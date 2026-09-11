@@ -16,24 +16,9 @@ export type TransitionFrameState = NonNullable<
   ReturnType<SimulationFrameReader["getTransitionState"]>
 >;
 
-export type PlaceNodeData = CanvasPlaceNode & {
-  /**
-   * Tokens in the viewed frame, or the initial marking before a run. Null
-   * hides the badge. Carried on the node so a place does not subscribe to a
-   * frame source that changes on every playback frame.
-   */
-  tokenCount: number | null;
-  /** Whether any frame exists to visualize. */
-  framesAvailable: boolean;
-};
+export type PlaceNodeData = CanvasPlaceNode;
 
-export type TransitionNodeData = CanvasTransitionNode & {
-  /**
-   * State of this transition in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
-};
+export type TransitionNodeData = CanvasTransitionNode;
 
 export type ComponentInstanceNodeData = CanvasComponentInstanceNode;
 
@@ -51,12 +36,9 @@ export type NodeType =
   | PlaceNodeType
   | ComponentInstanceNodeType;
 
-export type ArcData = Pick<CanvasArc, "kind" | "weight" | "focus"> & {
-  /**
-   * State of the transition connected to this arc in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
-};
+export type ArcData = Pick<
+  CanvasArc,
+  "kind" | "weight" | "focus" | "transitionId"
+>;
 
 export type ArcEdgeType = Edge<ArcData>;
