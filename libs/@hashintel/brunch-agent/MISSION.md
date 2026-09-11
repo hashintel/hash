@@ -5,11 +5,15 @@
 Live mission for provider-free implementation and Kostandin's later manual testing.
 The accepted policy is committed separately in authority commit
 `10d8f5c11a951916767ac40be63cd5741943a021`. The short-turn integration has passing
-provider-free checks, but transcription credential creation rejects semantic VAD
-with HTTP 400, `invalid_value` on `session.audio.input.turn_detection`.
-No transcription SDP exchange is reached with semantic VAD. The owner accepts the
-narrow server-VAD recut for a separately committed authority change followed by
-local implementation and provider-free checks. The first real no-tool exchange and
+provider-free checks, but transcription credential creation rejects both tested VAD
+modes with HTTP 400, `invalid_value` on `session.audio.input.turn_detection`.
+The server-VAD recut is committed separately at
+[`eb7f72e156`](https://github.com/hashintel/hash/commit/eb7f72e156d890028219294ca1cdd40ba8fc46f7)
+and implemented locally; its manual connection test fails before SDP exchange.
+The provider explicitly reports that this transcription model does not support turn
+detection. The owner accepts replacing only that model with `gpt-4o-transcribe`,
+retaining server VAD, in a separate local authority commit before implementation.
+Compatibility of the exact WebRTC handshake, the first real no-tool exchange and
 manual acceptance remain unproved. No new push or provider-session authorization
 is granted by this recut.
 
@@ -41,11 +45,16 @@ Settlement gates supplied Brunch context, not all audible speech.
   hesitation into separate submissions, and authorizes its separate local
   mission-only authority commit before dependent implementation. Native Live
   speech, canonical admission and queue policy remain unchanged.
+- **2026-09-11:** After the provider explicitly rejects turn detection for
+  `gpt-live-transcribe`, Kostandin accepts replacing only the transcription model
+  with `gpt-4o-transcribe`, retaining default `server_vad`, and authorizes a separate
+  local mission-only authority commit before implementation. Exact WebRTC provider
+  compatibility remains a manual test, not a guarantee from schema membership.
 
 ### Selected experiment
 
 - **Input:** use a separate OpenAI transcription-only session for canonical user
-  text. The model is `gpt-live-transcribe`, using browser WebRTC and the
+  text. The model is `gpt-4o-transcribe`, using browser WebRTC and the
   existing server credential boundary. One consented microphone capture supplies
   Live and transcription; neither session starts automatically. Disclose the second
   stream and additional provider usage in the existing consent surface.
@@ -153,7 +162,7 @@ Paths below are relative to the repository root.
 | Live startup | `apps/petrinaut-website/api/voice/live-session.ts` composes `createOpenAILiveSessionHandler({environment, fetch})`. The server validates origin/SDP/enablement, creates client-delegated `gpt-live-1`, returns `{sessionId, sdp}` and does not retry unknown outcomes. |
 | Live media | `createLiveConversation(onState, connectionTimeoutMs, onFinalizedInput)` returns `{start, stop, appendCommentary}`. One consented capture feeds two WebRTC sessions. Transcription completed items are reconciled against committed predecessor IDs; Live deltas/delegations never admit input. Audio remains native and unbuffered. |
 | Live controls | `LiveConversationControl` receives canonical messages, submission resolution, settlements and response/Stop subscriptions. `LiveBrunchBridge` calls the existing admission helper and freezes correlated prose only at complete-turn settlement. Local end/pause silences both sessions; canonical Stop also invokes that local teardown. |
-| Transcription creation | `api/voice/transcription-session.ts` composes `createOpenAITranscriptionSessionHandler`, with the existing credentials and enablement boundary. `/v1/realtime/client_secrets` configures `type: transcription` and `gpt-live-transcribe`; the accepted recut requires server VAD with provider defaults instead of the rejected semantic VAD. The server uses that credential for a raw-SDP `/v1/realtime/calls` exchange. Neither credential reaches the browser. Origin, upload size, abort and timeout failures are bounded; unknown creation is never retried automatically. |
+| Transcription creation | `api/voice/transcription-session.ts` composes `createOpenAITranscriptionSessionHandler`, with the existing credentials and enablement boundary. The accepted recut requires `/v1/realtime/client_secrets` to configure `type: transcription`, `gpt-4o-transcribe` and server VAD with provider defaults. The server uses that credential for a raw-SDP `/v1/realtime/calls` exchange. Neither credential reaches the browser. Origin, upload size, abort and timeout failures are bounded; unknown creation is never retried automatically. |
 | Canonical entry | `voice-interview-control.tsx` exposes `submitVoiceInputWithAdmission`: subscribe before composer submission, correlate stable message identity to Flue admission, race abort, distinguish ambiguous/rejected/conflicting admission. `submitVoiceInput` retains at most one waiting input; abort withdraws only unsubmitted work. |
 | Canonical source | `canonical-speech.ts` selects non-streaming assistant prose, with message/part/hash/submission identity and a marked question only if it occurs in finalized prose. This is source selection, not whole-turn or playback approval. Workpiece, reasoning, basis and raw tool payloads are excluded. |
 | Baseline delivery | `realtime-brunch-bridge.ts` can call `speakCanonical` for completed segments while chat is streaming. Its test “speaks a completed canonical segment while chat remains streaming and settles separately” makes that intentional. Preserve Realtime; do not label this whole-turn-gated Live delivery. |
@@ -321,11 +330,14 @@ Official documentation inspected 2026-09-11:
 The selected input proposal additionally uses the current official
 [transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription)
 and [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad).
-They document `gpt-live-transcribe`, browser WebRTC, final transcript events and
-out-of-order completion. The creation schema, item-order reconciliation and
-dual-session cleanup are implemented and checked with mocks against that contract.
-Actual provider compatibility and transcription/Live disagreement remain manual-test
-obligations, not established results.
+The [client-secret reference](https://developers.openai.com/api/reference/resources/realtime/subresources/client_secrets)
+and SDK transcription schemas expose GPT-4o transcription models and server VAD;
+the [model card](https://developers.openai.com/api/docs/models/gpt-4o-transcribe.md)
+lists Realtime support. This makes `gpt-4o-transcribe` with server VAD the selected
+candidate, not proof of the exact transcription-only WebRTC handshake. Documentation
+examples do not establish that entire path. Completed-transcript events, out-of-order
+reconciliation and dual-session cleanup are checked with mocks. Actual provider
+compatibility and transcription/Live disagreement remain manual-test obligations.
 
 ### Input: no supported native finalization marker
 
@@ -384,17 +396,30 @@ Kostandin's supplied terminal record for request `09162724-a422-425f-82df-976960
 shows HTTP 400 at `reading-transcription-secret`, with `invalid_value` on
 `session.audio.input.turn_detection`, without timeout or cancellation. The submitted
 value is `semantic_vad`; the provider rejects that configuration before SDP exchange.
-This establishes neither that all transcription VAD is unsupported nor that a different
-VAD configuration will connect. The successful parent Live connection does not validate
+The server-VAD attempt, request `0acb496c-31e0-4944-bae5-7946a38f2049`, returns the
+same code and parameter at credential creation without timeout or cancellation.
+Its accompanying UI reports confirmed Live session closure. These observations reject
+both tested configurations for this model/session; they do not establish that every
+transcription model lacks VAD. The successful parent Live connection does not validate
 the added transcription connection.
 
-**Accepted recut:** replace only transcription's
-`semantic_vad` with provider-side `server_vad` using provider defaults, retaining
-`gpt-live-transcribe`, WebRTC, completed-transcript admission, ordering and the existing
-one-waiting-input policy. Keep native Live audio and best-effort speech control unchanged.
-The [client-secret reference](https://developers.openai.com/api/reference/resources/realtime/subresources/client_secrets)
-lists server VAD for transcription, but acceptance for this exact model/session remains
-unproved. Its silence-based boundaries may split hesitation or elaboration into separate
+The terminal record for request `ccbc17cf-b88e-495f-b004-eded34d60c96` supplies
+the decisive provider explanation: “Turn detection is not supported for this
+transcription model.” It rejects `gpt-live-transcribe` with server VAD before SDP
+exchange; changing VAD parameters does not address that reported incompatibility.
+
+**Accepted recut:** replace only `gpt-live-transcribe` with `gpt-4o-transcribe`,
+retaining provider-side `server_vad` with provider defaults, WebRTC,
+completed-transcript admission, ordering and the existing one-waiting-input policy.
+Keep native Live audio and best-effort speech control unchanged. The client-secret
+schema supports this candidate, but acceptance of the exact deployed model/session
+and WebRTC exchange remains unproved.
+The [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad) makes support
+model-dependent; the [transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription)
+shows `gpt-live-transcribe` with `turn_detection: null` and explicit audio commits.
+The current client waits for committed/completed items and does not send explicit commits;
+setting VAD to null alone would therefore not implement the required input throughline.
+Server VAD's silence-based boundaries may split hesitation or elaboration into separate
 canonical submissions; they are not evidence that the person has finished their thought.
 The alternative is explicit user-controlled commit, which changes hands-free interaction
 and is not selected. Commit this accepted authority recut separately before dependent
@@ -404,8 +429,9 @@ The change's first oracle is Kostandin's manual connection attempt reaching
 `answer-ready` and both ready sessions, followed by a short no-tool exchange. Compare
 completed transcript items and canonical admissions while hesitating and elaborating;
 premature or lost submissions fail the interaction test even if connection succeeds.
-If the replacement is also rejected, stop and resolve provider compatibility rather than
-silently disabling VAD, changing the model, or adding application silence timers.
+If the replacement is rejected, stop and inspect that provider failure rather than
+silently disabling VAD, changing the model again, or adding application silence timers.
+Any further model, transport or interaction-policy change requires an approved recut.
 Do not start a paid session to obtain this witness. Once connected, manually assess
 the short no-tool exchange rather than reopening strict speech control as its prerequisite.
 If the experiment fails, retaining Realtime is a recommendation, not a silent fallback.
