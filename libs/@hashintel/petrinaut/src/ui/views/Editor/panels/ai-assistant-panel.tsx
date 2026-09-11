@@ -44,7 +44,6 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
@@ -541,14 +540,8 @@ const ConversationAiAssistantPanel = ({
 
   const { diagnosticsByUri } = use(LanguageClientContext);
 
-  const {
-    hasSelection,
-    isAiAssistantOpen,
-    navigateTo,
-    propertiesPanelWidth,
-    selectItem,
-    setAiAssistantOpen,
-  } = use(EditorContext);
+  const { isAiAssistantOpen, navigateTo, selectItem, setAiAssistantOpen } =
+    use(EditorContext);
 
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
@@ -2181,7 +2174,6 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

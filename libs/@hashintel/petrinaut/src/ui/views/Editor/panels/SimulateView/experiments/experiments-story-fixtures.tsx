@@ -744,6 +744,7 @@ export function FakeEditorProvider({
       setLeftSidebarWidth: () => {},
       setPropertiesPanelWidth: () => {},
       setAiAssistantWidth: () => {},
+      setAiAssistantPlacement: () => {},
       setBottomPanelOpen: () => {},
       toggleBottomPanel: () => {},
       setBottomPanelHeight: () => {},

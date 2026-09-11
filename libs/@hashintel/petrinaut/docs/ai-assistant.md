@@ -12,6 +12,14 @@ There are two entry points:
 
 The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 
+### Docking and floating
+
+The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. The canvas makes room for the sidebar.
+
+Choose **Float AI assistant** in the header to detach it into a rounded panel over the canvas. Drag its **AI** header to move it, or focus **Move AI assistant** and use the arrow keys. Hold **Shift** with an arrow key to move farther. The floating panel stays within the editor when the window changes size.
+
+Choose **Dock AI assistant** to return it to the right sidebar. Switching between these layouts keeps your draft, conversation, and active response. Both layouts resize from the left edge. Closing and reopening the assistant keeps your layout choice for the editor session.
+
 ## The conversation
 
 While a response is streaming you can:

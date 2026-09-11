@@ -10,6 +10,7 @@ const closed: PanelLayoutState = {
   propertiesPanelWidth: 450,
   isAiAssistantOpen: false,
   aiAssistantWidth: 500,
+  aiAssistantPlacement: "docked",
   isBottomPanelOpen: false,
   bottomPanelHeight: 180,
 };
@@ -31,9 +32,9 @@ describe("getCanvasInsets", () => {
     expect(getCanvasInsets({ ...closed, hasSelection: true }).right).toBe(450);
   });
 
-  it("stacks the assistant on the properties panel, which it docks beside", () => {
+  it("leaves the docked assistant's separate column out of the canvas insets", () => {
     expect(getCanvasInsets({ ...closed, isAiAssistantOpen: true }).right).toBe(
-      500,
+      0,
     );
     expect(
       getCanvasInsets({
@@ -41,7 +42,23 @@ describe("getCanvasInsets", () => {
         hasSelection: true,
         isAiAssistantOpen: true,
       }).right,
-    ).toBe(950);
+    ).toBe(450);
+  });
+
+  it("reserves the larger of the floating assistant and properties panel", () => {
+    const floating = {
+      ...closed,
+      aiAssistantPlacement: "floating" as const,
+      isAiAssistantOpen: true,
+      hasSelection: true,
+    };
+    expect(getCanvasInsets(floating).right).toBe(512);
+    expect(
+      getCanvasInsets({ ...floating, propertiesPanelWidth: 600 }).right,
+    ).toBe(600);
+    expect(
+      getCanvasInsets({ ...floating, isAiAssistantOpen: false }).right,
+    ).toBe(450);
   });
 
   it("counts the bottom panel's height, not its open state alone", () => {

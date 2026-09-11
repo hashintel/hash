@@ -50,6 +50,7 @@ const editorContextValue = (
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
+  setAiAssistantPlacement: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},

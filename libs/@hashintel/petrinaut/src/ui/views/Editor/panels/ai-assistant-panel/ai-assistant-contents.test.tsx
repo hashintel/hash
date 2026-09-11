@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, useEffect, useState } from "react";
+import { createElement, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -20,6 +20,7 @@ import {
   type NotificationsContextValue,
 } from "../../../../../react/notifications/context";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
@@ -78,6 +79,71 @@ afterEach(() => {
 const HostContent = ({ onMount }: { onMount: () => void }) => {
   useEffect(onMount, [onMount]);
   return <p>Saved account</p>;
+};
+const HostControl = ({
+  onMount,
+  onUnmount,
+}: {
+  onMount: () => void;
+  onUnmount: () => void;
+}) => {
+  useEffect(() => {
+    onMount();
+    return onUnmount;
+  }, [onMount, onUnmount]);
+  return <span>Host control</span>;
+};
+const DockingHarness = ({
+  onMount,
+  onUnmount,
+  onStop,
+}: {
+  onMount: () => void;
+  onUnmount: () => void;
+  onStop: () => void;
+}) => {
+  const editor = use(EditorContext);
+  const [placement, setPlacement] = useState<"docked" | "floating">("docked");
+  const [isOpen, setOpen] = useState(true);
+  const [input, setInput] = useState("");
+  return (
+    <EditorContext
+      value={{
+        ...editor,
+        aiAssistantPlacement: placement,
+        setAiAssistantPlacement: setPlacement,
+      }}
+    >
+      <button type="button" onClick={() => setOpen(true)}>
+        Reopen assistant
+      </button>
+      <AiAssistantContents
+        composerControl={
+          <HostControl onMount={onMount} onUnmount={onUnmount} />
+        }
+        input={input}
+        isOpen={isOpen}
+        messages={[
+          {
+            id: "streaming-reply",
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: "The infection rate",
+                state: "streaming",
+              },
+            ],
+          },
+        ]}
+        onClose={() => setOpen(false)}
+        onInputChange={setInput}
+        onStop={onStop}
+        onSubmit={noop}
+        status="streaming"
+      />
+    </EditorContext>
+  );
 };
 
 describe("AiAssistantContents", () => {
@@ -285,6 +351,42 @@ describe("AiAssistantContents", () => {
       expect(screen.queryByText("Not applied")).toBeNull();
     },
   );
+  test("keeps the draft, transcript, and host controls mounted through docking and closing", () => {
+    const mount = vi.fn();
+    const unmount = vi.fn();
+    const stop = vi.fn();
+    render(
+      <NotificationsProvider>
+        <DockingHarness onMount={mount} onUnmount={unmount} onStop={stop} />
+      </NotificationsProvider>,
+    );
+    const panel = screen.getByRole("complementary", { name: "AI assistant" });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const transcript = screen.getByTestId("ai-transcript");
+    fireEvent.change(textarea, { target: { value: "Keep this draft" } });
+    expect(panel.getAttribute("data-placement")).toBe("docked");
+    fireEvent.click(screen.getByRole("button", { name: "Float AI assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("floating");
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("floating");
+    fireEvent.click(screen.getByRole("button", { name: "Dock AI assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("docked");
+    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
+      textarea,
+    );
+    expect((textarea as HTMLTextAreaElement).value).toBe("Keep this draft");
+    expect(screen.getByTestId("ai-transcript")).toBe(transcript);
+    expect(screen.getByText("The infection rate")).not.toBeNull();
+    expect(mount).toHaveBeenCalledTimes(1);
+    expect(unmount).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
       <NotificationsProvider>

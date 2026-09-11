@@ -20,6 +20,7 @@ export interface PanelLayoutState {
   readonly propertiesPanelWidth: number;
   readonly isAiAssistantOpen: boolean;
   readonly aiAssistantWidth: number;
+  readonly aiAssistantPlacement: "docked" | "floating";
   readonly isBottomPanelOpen: boolean;
   readonly bottomPanelHeight: number;
 }
@@ -27,17 +28,20 @@ export interface PanelLayoutState {
 /**
  * Each edge's rule is the one the panel on it renders by: search opens the
  * left sidebar without the toggle, a selection opens the properties panel, and
- * the assistant docks beside the properties panel rather than over it, so an
- * open pair covers the sum of the two.
+ * the floating assistant overlaps the properties panel. The docked assistant
+ * has its own column outside the canvas.
  */
 export const getCanvasInsets = (state: PanelLayoutState): CanvasInsets => ({
   left:
     state.isLeftSidebarOpen || state.isSearchOpen
       ? state.leftSidebarWidth + PANEL_MARGIN
       : 0,
-  right:
-    (state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0) +
-    (state.isAiAssistantOpen ? state.aiAssistantWidth : 0),
+  right: Math.max(
+    state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0,
+    state.isAiAssistantOpen && state.aiAssistantPlacement === "floating"
+      ? state.aiAssistantWidth + 12
+      : 0,
+  ),
   bottom: state.isBottomPanelOpen ? state.bottomPanelHeight + PANEL_MARGIN : 0,
 });
 
