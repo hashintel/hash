@@ -9,7 +9,9 @@ use core::{fmt, str::FromStr};
 
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
+use futures::{FutureExt, Stream, StreamExt, TryFutureExt, TryStreamExt, stream};
 use tokio::{fs, io::AsyncBufRead};
+use tokio_stream::wrappers::ReadDirStream;
 use tokio_util::either::Either;
 
 use self::error::FilePathError;
@@ -51,6 +53,13 @@ impl FilePath {
         match &self.variant {
             FilePathVariant::Local(_) => Ok(()),
             FilePathVariant::Bucket(_) => storage.s3().map(|_| ()),
+        }
+    }
+
+    pub(crate) fn file_name(&self) -> Option<&str> {
+        match &self.variant {
+            FilePathVariant::Local(path) => path.file_name(),
+            FilePathVariant::Bucket(path) => path.file_name(),
         }
     }
 
@@ -122,7 +131,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         body: Bytes,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
@@ -150,7 +159,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: impl AsRef<Utf8Path>,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
@@ -177,7 +186,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: &Self,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         if let (FilePathVariant::Bucket(source), FilePathVariant::Bucket(destination)) =
             (&source.variant, &self.variant)
@@ -221,6 +230,48 @@ impl FilePath {
                 .read(path)
                 .await
                 .map(|(_, reader)| Either::Right(reader)),
+        }
+    }
+
+    pub(crate) fn read_dir(
+        &self,
+        storage: &Storage,
+    ) -> impl Stream<Item = Result<FilePath, StorageError>> {
+        match &self.variant {
+            FilePathVariant::Local(path) => {
+                stream::once(tokio::fs::read_dir(path).map_ok(ReadDirStream::new))
+                    .try_flatten()
+                    .err_into::<StorageError>()
+                    .and_then(|entry| {
+                        core::future::ready(
+                            Utf8PathBuf::from_path_buf(entry.path())
+                                .map(|path| Self {
+                                    variant: FilePathVariant::Local(path),
+                                })
+                                .map_err(|path| {
+                                    StorageError::from(FilePathError::NonUtf8Path { path })
+                                }),
+                        )
+                    })
+                    .left_stream()
+            }
+            FilePathVariant::Bucket(path) => stream::iter([storage.s3()])
+                .err_into::<StorageError>()
+                .map_ok(|s3| s3.read_dir(path))
+                .try_flatten()
+                .map_ok(|bucket| FilePath {
+                    variant: FilePathVariant::Bucket(bucket),
+                })
+                .right_stream(),
+        }
+    }
+
+    pub(crate) async fn remove_dir_all(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => {
+                tokio::fs::remove_dir_all(path).await.map_err(From::from)
+            }
+            FilePathVariant::Bucket(path) => storage.s3()?.remove_dir_all(path).await,
         }
     }
 

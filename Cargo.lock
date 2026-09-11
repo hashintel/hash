@@ -6039,6 +6039,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
+ "tokio-stream",
  "tokio-util",
  "tower",
  "tracing",

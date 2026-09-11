@@ -71,7 +71,7 @@ impl<'path> LocalFile<'path> {
     pub(crate) async fn write(
         &self,
         source: impl AsyncRead,
-        condition: &WriteCondition,
+        condition: &WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         // we reserve `.storage-` names for the staging directory and shared lock.
         if self.path.file_name().is_none()

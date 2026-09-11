@@ -78,6 +78,7 @@ steppe                    = { workspace = true }
 subtle                    = { workspace = true }
 tiktoken-rs               = { workspace = true }
 time                      = { workspace = true }
+tokio-stream              = { workspace = true, features = ["fs"] }
 tokio-util                = { workspace = true }
 tower                     = { workspace = true }
 tracing                   = { workspace = true }

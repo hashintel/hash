@@ -88,4 +88,8 @@ impl RemoteRoot {
             path: self.0.join(&format!("generations/active/{id}"))?,
         })
     }
+
+    pub(crate) fn active_root(&self) -> Result<FilePath, FilePathError> {
+        self.0.join("generations/active")
+    }
 }
