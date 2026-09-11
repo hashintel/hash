@@ -62,6 +62,7 @@ const input: CanvasSceneInput = {
   dimensions: compactNodeDimensions,
   draggingStateByNodeId: {},
   isSelected: () => false,
+  hoveredId: null,
   focus: buildCanvasFocus({
     net: { ...sdcpn, componentInstances: [] },
     hoveredId: null,
@@ -105,6 +106,7 @@ describe("buildCanvasScene", () => {
     const { nodes, arcs } = buildCanvasScene({
       ...input,
       isSelected: (id) => id === "p1",
+      hoveredId: "t1",
       focus: buildCanvasFocus({
         net: input.net,
         hoveredId: "t1",

@@ -78,7 +78,6 @@ describe("buildCanvasFocus", () => {
     const focus = focusOn("t1");
 
     expect(focus.active).toBe(true);
-    expect(focus.hoveredId).toBe("t1");
     expect(focus.nodeFocus("t1")).toBe("focused");
     expect(focus.nodeFocus("p1")).toBe("upstream");
     expect(focus.nodeFocus("p2")).toBe("downstream");

@@ -28,14 +28,12 @@ export const useCanvasScene = (
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
   /*
-   * The neighbourhood follows the pointer only once it stops. Sweeping across
-   * the canvas passes over nodes without lighting any of them up, and what
+   * The hover follows the pointer only once it stops. Sweeping across the
+   * canvas passes over nodes without lighting any of them up, and what
    * settles is whatever the pointer came to rest on rather than everything it
    * crossed to get there.
    */
-  // Off, the canvas answers to the selection alone and the pointer changes
-  // nothing.
-  const hoveredId = highlightOnHover ? (hoveredItem?.id ?? null) : null;
+  const hoveredId = hoveredItem?.id ?? null;
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   if (pointerAtRest && settledHoverId !== hoveredId) {
@@ -49,9 +47,12 @@ export const useCanvasScene = (
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     draggingStateByNodeId,
     isSelected,
+    hoveredId: settledHoverId,
+    // With the highlight off, the neighbourhood answers to the selection
+    // alone; the hover still reaches the node it rests on.
     focus: buildCanvasFocus({
       net: activeNet,
-      hoveredId: settledHoverId,
+      hoveredId: highlightOnHover ? settledHoverId : null,
       selectedIds: new Set(selection.keys()),
     }),
   });

@@ -49,8 +49,6 @@ export type CanvasArcFocus =
 export type CanvasFocus = {
   /** Whether anything on the canvas is focused. */
   active: boolean;
-  /** The canvas item under the pointer, once the hover has settled. */
-  hoveredId: string | null;
   nodeFocus: (id: string) => CanvasNodeFocus;
   arcFocus: (id: string) => CanvasArcFocus;
 };
@@ -108,7 +106,6 @@ const directedArcs = (transitions: readonly Transition[]): DirectedArc[] => {
 
 const NOTHING_FOCUSED: CanvasFocus = {
   active: false,
-  hoveredId: null,
   nodeFocus: () => "none",
   arcFocus: () => "none",
 };
@@ -171,7 +168,6 @@ export const buildCanvasFocus = ({
 
   return {
     active: true,
-    hoveredId: hoveredId !== null && focusIds.has(hoveredId) ? hoveredId : null,
 
     nodeFocus: (id) => {
       if (isFocused(id)) {
