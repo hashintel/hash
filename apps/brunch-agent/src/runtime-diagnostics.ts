@@ -280,15 +280,38 @@ export interface DiagnosticSink {
 export const createRuntimeDiagnostics = (
   logger: DiagnosticSink,
   environment: LoggerConfig["environment"],
+  options?: { readonly local?: DiagnosticSink },
 ): RuntimeDiagnostics => {
   const verbose = environment !== "production";
+  const local = options?.local;
+  const exportableError = (classified: ClassifiedError): ClassifiedError =>
+    local === undefined
+      ? classified
+      : {
+          type: classified.type,
+          ...(classified.code === undefined ? {} : { code: classified.code }),
+          ...(classified.name === undefined ? {} : { name: classified.name }),
+        };
+  const exportableFields = (fields: DiagnosticFields): DiagnosticFields =>
+    local === undefined
+      ? fields
+      : Object.fromEntries(
+          Object.entries(fields).filter(([key]) => key !== "errorText"),
+        );
   const report: RuntimeDiagnostics["report"] = (stage, error, fields = {}) => {
     const classified = classifyError(error, verbose);
     logger.error(`[brunch] ${stage} failed: ${classified.type}`, {
       stage,
-      ...definedFields(fields),
-      error: classified,
+      ...definedFields(exportableFields(fields)),
+      error: exportableError(classified),
     });
+    if (verbose && local !== undefined) {
+      local.error(`[brunch] ${stage} failed: ${classified.type}`, {
+        stage,
+        ...definedFields(fields),
+        error: classified,
+      });
+    }
   };
   const note: RuntimeDiagnostics["note"] = (stage, fields) => {
     logger.warn(`[brunch] ${stage}`, { stage, ...definedFields(fields) });
@@ -312,8 +335,19 @@ export const createRuntimeDiagnostics = (
   };
 };
 
+/** Console-only verbose details; never attached to the shared remote logger. */
+const localDiagnostics: DiagnosticSink = {
+  error: (message, meta) => {
+    console.error(message, meta);
+  },
+  warn: (message, meta) => {
+    console.warn(message, meta);
+  },
+};
+
 /** The process-wide sink every server module reports to. */
 export const diagnostics = createRuntimeDiagnostics(
   logger,
   loggerEnvironment(),
+  { local: localDiagnostics },
 );

@@ -57,6 +57,8 @@ export {
 export { observedConstructionBrowserToolNames } from "./construction-tool-names";
 export {
   batchedConstructionMode,
+  mutatePetrinetAttemptCallId,
+  mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
   type MutatePetrinetOperation,

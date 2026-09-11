@@ -331,6 +331,29 @@ describe("runtime diagnostics observer", () => {
     });
   });
 
+  test("keeps verbose error text on the local sink only", () => {
+    const exported = createSink();
+    const local = createSink();
+    const diagnostics = createRuntimeDiagnostics(exported, "development", {
+      local,
+    });
+    void diagnostics.observe(toolObservation(true), undefined as never);
+    expect(exported.error).toHaveBeenCalledTimes(1);
+    expect(local.error).toHaveBeenCalledTimes(1);
+    const [, exportedMeta] = exported.error.mock.calls[0]!;
+    const [, localMeta] = local.error.mock.calls[0]!;
+    expect(exportedMeta.error).toEqual({
+      type: "ToolExecutionError",
+      name: "Error",
+    });
+    expect(exportedMeta).not.toHaveProperty("errorText");
+    expect(JSON.stringify(exportedMeta)).not.toContain(SENTINEL);
+    expect(localMeta.error).toMatchObject({
+      type: "ToolExecutionError",
+      message: expect.stringContaining(SENTINEL) as string,
+    });
+  });
+
   test("notes classify dropped external data without carrying it", () => {
     const sink = createSink();
     const diagnostics = createRuntimeDiagnostics(sink, "production");

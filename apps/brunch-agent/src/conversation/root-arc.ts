@@ -8,9 +8,13 @@ import {
   assertNodeIdentity,
   assertStateIdentity,
   isObservedStateMutation,
+  mutatePetrinetAttemptOperationId,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
   parseClientToolResultMetadata,
   parseObservedStateInput,
   type BrowserBinding,
+  type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
   type ObservedConstructionMutationName,
   type DefinitionObservation,
@@ -67,16 +71,31 @@ export const assertArcNotRetired = async (
     const mutationRecord = parseClientToolResultMetadata(
       result.metadata,
     )?.mutationRecord;
-    if (result.toolName !== "addArc" || mutationRecord === undefined) continue;
+    if (
+      mutationRecord === undefined ||
+      (result.toolName !== "addArc" &&
+        result.toolName !== mutatePetrinetToolName)
+    )
+      continue;
     const verified = await Promise.all(
       mutationRecord.attempts.map((raw) =>
-        verifyMutationAttempt(raw as ArcMutationAttempt),
+        verifyMutationAttempt(raw as ConstructionMutationAttempt),
       ),
     );
-    const reconciled = reconcileMutationAttempts(verified);
-    for (const attempt of verified) {
+    const addArcIds = new Set(
+      verified
+        .filter((attempt) => attempt.request.toolName === "addArc")
+        .map((attempt) => attempt.request.toolCallId),
+    );
+    for (const toolCallId of addArcIds) {
+      const group = verified.filter(
+        (attempt) => attempt.request.toolCallId === toolCallId,
+      );
+      const first = group[0];
+      if (!first) continue;
+      const reconciled = reconcileMutationAttempts(group);
       const previousInput = mutationActionInputSchemas.addArc.parse(
-        attempt.request.input,
+        first.request.input,
       );
       const sameTarget =
         previousInput.transitionId === input.transitionId &&
@@ -160,7 +179,8 @@ export const assertConstructionIdentity = async (
     if (
       !isObservedNodeMutation(result.toolName) &&
       !isObservedStateMutation(result.toolName) &&
-      !isObservedArcMutation(result.toolName)
+      !isObservedArcMutation(result.toolName) &&
+      result.toolName !== mutatePetrinetToolName
     )
       continue;
     await verifyRootArcResults({
@@ -196,6 +216,80 @@ export const assertConstructionIdentity = async (
   );
 };
 
+const verifyMutatePetrinetDelivery = async (input: {
+  delivery: ReturnType<typeof parseBrowserResults>[number];
+  call: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+  };
+  binding: BrowserBinding;
+  observationFor?: (
+    id: string,
+    beforeCallId: string,
+  ) => Promise<DefinitionObservation>;
+  history: ReturnType<typeof clientToolHistoryFrom>;
+}): Promise<void> => {
+  const batch = mutatePetrinetInputSchema.parse(input.call.input);
+  if (input.observationFor) {
+    const observed = await input.observationFor(
+      batch.observation.toolCallId,
+      input.call.toolCallId,
+    );
+    if (observed.sha256 !== batch.observation.baseHash)
+      throw new Error(
+        "Mutation does not cite its earlier verified raw browser base.",
+      );
+  }
+  const mutationRecord = parseClientToolResultMetadata(
+    input.delivery.metadata,
+  )?.mutationRecord;
+  if (mutationRecord === undefined)
+    throw new Error("The root arc result requires a browser mutation record.");
+  const verified = await Promise.all(
+    mutationRecord.attempts.map((attempt) =>
+      verifyMutationAttempt(attempt as ConstructionMutationAttempt),
+    ),
+  );
+  const groups = new Map<string, ConstructionMutationAttempt[]>();
+  for (const attempt of verified) {
+    if (canonicalContent(attempt.binding) !== canonicalContent(input.binding))
+      throw new Error(
+        "The browser record does not match the issued call or document incarnation.",
+      );
+    const operationId = mutatePetrinetAttemptOperationId(
+      input.call.toolCallId,
+      attempt.request.toolCallId,
+    );
+    const operation = batch.operations.find(
+      (entry) => entry.operationId === operationId,
+    );
+    if (
+      operation === undefined ||
+      attempt.request.toolName !== operation.type ||
+      canonicalContent(attempt.request.input) !==
+        canonicalContent(operation.input) ||
+      attempt.request.observationToolCallId !== batch.observation.toolCallId
+    )
+      throw new Error(
+        "The browser record does not match the issued call or document incarnation.",
+      );
+    const group = groups.get(attempt.request.toolCallId) ?? [];
+    group.push(attempt);
+    groups.set(attempt.request.toolCallId, group);
+  }
+  for (const group of groups.values()) {
+    reconcileMutationAttempts(group);
+  }
+  const earlier = input.history.results.filter(
+    (result) => result.toolCallId === input.call.toolCallId,
+  );
+  if (earlier.length > 1)
+    throw new Error(
+      "This browser call already has a result delivery; do not continue or reapply it.",
+    );
+};
+
 /** Verify the incoming sidecar against this instance's issued canonical call before model continuation. */
 export const verifyRootArcResults = async (input: {
   body: string;
@@ -228,6 +322,16 @@ export const verifyRootArcResults = async (input: {
         throw new Error(
           "The browser result has no matching admitted canonical call.",
         );
+      if (call.toolName === mutatePetrinetToolName) {
+        await verifyMutatePetrinetDelivery({
+          delivery,
+          call,
+          binding: input.binding,
+          observationFor: input.observationFor,
+          history,
+        });
+        return;
+      }
       if (
         call.toolName !== "addArc" &&
         !(

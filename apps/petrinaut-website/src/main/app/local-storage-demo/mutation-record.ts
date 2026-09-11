@@ -288,6 +288,7 @@ export const createBrowserMutationRecorder = ({
   return {
     executeMutation,
     records: () => [...attemptsByCall.values()].map(reconcileMutationAttempts),
+    retainAttempt: retain,
     /** External deliveries are verified before they can alter the first outcome. */
     acceptDelivery: async (attempt: ConstructionMutationAttempt) => {
       const verified = await verifyMutationAttempt(attempt);
@@ -404,6 +405,31 @@ export const createJoinedBrowserMutationRecorder = (input: {
       observedReads.set(result.toolCallId, observed.sha256);
       return {
         observation: { toolCallId: result.toolCallId, binding, observed },
+      } satisfies ClientToolResultMetadata;
+    }
+    if (result.toolName === mutatePetrinetToolName) {
+      const prefix = `${result.toolCallId}:`;
+      const attempts = recorder
+        .records()
+        .filter((record) =>
+          record.attempts[0]?.request.toolCallId.startsWith(prefix),
+        )
+        .flatMap((record) => record.attempts);
+      if (attempts.length === 0)
+        throw new Error(
+          "A mutate_petrinet result requires observed browser mutation records.",
+        );
+      const outcome = attempts.some((attempt) => attempt.outcome === "unknown")
+        ? "unknown"
+        : attempts.some((attempt) => attempt.outcome === "failed")
+          ? "failed"
+          : attempts.some((attempt) => attempt.outcome === "stale")
+            ? "stale"
+            : attempts.some((attempt) => attempt.outcome === "applied")
+              ? "applied"
+              : "no-op";
+      return {
+        mutationRecord: { attempts, outcome },
       } satisfies ClientToolResultMetadata;
     }
     if (

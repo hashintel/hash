@@ -101,11 +101,31 @@ export const executeSelectedMutationBatch = async (
     operation: SelectedMutationOperation,
     index: number,
   ) => Promise<SelectedMutationAttempt> | SelectedMutationAttempt,
+  options?: { readonly signal?: AbortSignal },
 ): Promise<SelectedMutationOutcome[]> => {
   const parsed = selectedMutationBatchSchema.parse(operations);
   const outcomes: SelectedMutationOutcome[] = [];
+  const pushUnattempted = (fromIndex: number) => {
+    for (
+      let suffixIndex = fromIndex;
+      suffixIndex < parsed.length;
+      suffixIndex++
+    ) {
+      const suffix = parsed[suffixIndex];
+      if (!suffix) throw new Error("Missing validated mutation operation.");
+      outcomes.push({
+        index: suffixIndex,
+        operationId: suffix.operationId,
+        status: "unattempted",
+      });
+    }
+  };
 
   for (const [index, operation] of parsed.entries()) {
+    if (options?.signal?.aborted) {
+      pushUnattempted(index);
+      break;
+    }
     let attempt: SelectedMutationAttempt;
     try {
       attempt = await apply(operation, index);
@@ -118,19 +138,7 @@ export const executeSelectedMutationBatch = async (
     }
     outcomes.push({ index, operationId: operation.operationId, ...attempt });
     if (attempt.status === "applied" || attempt.status === "no-op") continue;
-    for (
-      let suffixIndex = index + 1;
-      suffixIndex < parsed.length;
-      suffixIndex++
-    ) {
-      const suffix = parsed[suffixIndex];
-      if (!suffix) throw new Error("Missing validated mutation operation.");
-      outcomes.push({
-        index: suffixIndex,
-        operationId: suffix.operationId,
-        status: "unattempted",
-      });
-    }
+    pushUnattempted(index + 1);
     break;
   }
 

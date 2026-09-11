@@ -127,4 +127,27 @@ describe("selected mutation batch", () => {
     ]);
     expect(apply).toHaveBeenCalledTimes(2);
   });
+
+  test("marks the remaining operations unattempted when the signal is aborted", async () => {
+    const controller = new AbortController();
+    const apply = vi.fn().mockImplementation(() => {
+      controller.abort();
+      return {
+        status: "applied" as const,
+        preHash: "before",
+        postHash: "after",
+        effects: [],
+      };
+    });
+    const result = await executeSelectedMutationBatch(
+      [operation("add-p1", "p1"), operation("add-p2", "p2")],
+      apply,
+      { signal: controller.signal },
+    );
+    expect(result.map(({ status }) => status)).toEqual([
+      "applied",
+      "unattempted",
+    ]);
+    expect(apply).toHaveBeenCalledTimes(1);
+  });
 });

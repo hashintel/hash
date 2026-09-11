@@ -7,6 +7,23 @@ import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 export const batchedConstructionMode = "batched-construction";
 export const mutatePetrinetToolName = "mutate_petrinet";
 
+/** Per-operation attempt identity retained under one outer `mutate_petrinet` call. */
+export const mutatePetrinetAttemptCallId = (
+  toolCallId: string,
+  operationId: string,
+) => `${toolCallId}:${operationId}`;
+
+/** Inverse of {@link mutatePetrinetAttemptCallId}; `undefined` when the attempt is not from this batch. */
+export const mutatePetrinetAttemptOperationId = (
+  toolCallId: string,
+  attemptToolCallId: string,
+): string | undefined => {
+  const prefix = `${toolCallId}:`;
+  return attemptToolCallId.startsWith(prefix)
+    ? attemptToolCallId.slice(prefix.length)
+    : undefined;
+};
+
 const operationIdSchema = z.string().min(1).meta({
   description:
     "Unique identity for this logical operation inside the batch. Distinct from later execution-attempt identities.",

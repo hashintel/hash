@@ -936,6 +936,7 @@ export const LocalStorageDemoApp = ({
         batchedConstructionSelected && rootArcBrowser
           ? [
               createMutatePetrinetAutomaticTool(rootArcBrowser.binding, {
+                retainAttempt: mutationRecorder?.retainAttempt,
                 onOperationFailure: (failure) =>
                   reportBrunchFailure("mutate-petrinet", failure.error, {
                     toolCallId: failure.toolCallId,

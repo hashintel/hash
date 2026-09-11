@@ -792,6 +792,13 @@ const ConversationAiAssistantPanel = ({
     generation: number;
     kind: "stopped" | "failed";
   } | null>(null);
+  const automaticToolAbortsRef = useRef(new Set<AbortController>());
+  const abortAutomaticTools = () => {
+    for (const controller of automaticToolAbortsRef.current) {
+      controller.abort();
+    }
+    automaticToolAbortsRef.current.clear();
+  };
   const automaticToolExecutionTimersRef = useRef(
     new Map<ReturnType<typeof setTimeout>, string>(),
   );
@@ -891,14 +898,26 @@ const ConversationAiAssistantPanel = ({
         ({ toolName }) => toolName === toolCall.toolName,
       );
       if (automaticTool) {
-        const toolInput = automaticTool.inputSchema.parse(toolCall.input);
-        const output = automaticTool.outputSchema.parse(
-          await automaticTool.execute({
-            input: toolInput,
-            instance,
-            toolCallId: toolCall.toolCallId,
-          }),
-        );
+        const abortController = new AbortController();
+        automaticToolAbortsRef.current.add(abortController);
+        let output: unknown;
+        try {
+          const toolInput = automaticTool.inputSchema.parse(toolCall.input);
+          output = automaticTool.outputSchema.parse(
+            await automaticTool.execute({
+              input: toolInput,
+              mutations: instance.mutations,
+              handle: instance.handle,
+              toolCallId: toolCall.toolCallId,
+              signal: abortController.signal,
+            }),
+          );
+        } catch (error) {
+          automaticToolAbortsRef.current.delete(abortController);
+          throw error;
+        }
+        automaticToolAbortsRef.current.delete(abortController);
+        if (abortController.signal.aborted) return;
         await addAutomaticToolOutput({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
@@ -1291,6 +1310,7 @@ const ConversationAiAssistantPanel = ({
     submissionConversationIdRef.current = conversationId;
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
+    abortAutomaticTools();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
@@ -1668,6 +1688,7 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;
+      abortAutomaticTools();
       submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
@@ -1783,6 +1804,7 @@ const ConversationAiAssistantPanel = ({
 
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
+    abortAutomaticTools();
     stopRequestedRef.current = true;
     if (requestStop !== undefined) {
       try {
@@ -2028,6 +2050,7 @@ const ConversationAiAssistantPanel = ({
       isOpen={isAiAssistantOpen}
       messages={messages}
       onClearMessages={() => {
+        abortAutomaticTools();
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this

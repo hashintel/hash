@@ -101,4 +101,69 @@ describe("bound root-arc receiving boundary", () => {
       }),
     ).rejects.toThrow(/conflicts/iu);
   });
+  test("refuses a mutate_petrinet result without a mutation record", async () => {
+    const binding = {
+      conversationId: "conversation",
+      documentId: "document",
+      incarnationId: "incarnation",
+    };
+    const snapshot = {
+      messages: [
+        {
+          role: "assistant",
+          purpose: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "batch-1",
+              toolName: "mutate_petrinet",
+              state: "output-available",
+              input: {
+                observation: {
+                  toolCallId: "read-1",
+                  baseHash: "a".repeat(64),
+                },
+                bases: [
+                  {
+                    basisId: "basis-1",
+                    basis: { kind: "absent", reason: "Synthetic" },
+                  },
+                ],
+                operations: [
+                  {
+                    operationId: "add-queue",
+                    basisId: "basis-1",
+                    type: "addPlace",
+                    input: {
+                      id: "queue",
+                      name: "Queue",
+                      colorId: null,
+                      dynamicsEnabled: false,
+                      differentialEquationId: null,
+                      x: 0,
+                      y: 0,
+                    },
+                  },
+                ],
+              },
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+      ],
+    } as unknown as FlueConversationSnapshot;
+    await expect(
+      verifyRootArcResults({
+        snapshot,
+        binding,
+        body: JSON.stringify([
+          {
+            toolCallId: "batch-1",
+            toolName: "mutate_petrinet",
+            output: { execution: "ordered-stop" },
+          },
+        ]),
+      }),
+    ).rejects.toThrow(/mutation record/u);
+  });
 });

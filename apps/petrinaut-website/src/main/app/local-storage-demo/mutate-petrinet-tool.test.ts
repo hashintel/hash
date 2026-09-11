@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
   createJsonDocHandle,
   createPetrinaut,
   type SDCPN,
@@ -11,7 +15,10 @@ import {
   type MutatePetrinetOperationFailure,
   mutatePetrinetOutputSchema,
 } from "./mutate-petrinet-tool";
-import { observeBrowserDefinition } from "./mutation-record";
+import {
+  createBrowserMutationRecorder,
+  observeBrowserDefinition,
+} from "./mutation-record";
 
 const hash = "a".repeat(64);
 const binding = {
@@ -98,6 +105,21 @@ const removeArc = {
   },
 };
 
+const run = (
+  tool: ReturnType<typeof createMutatePetrinetAutomaticTool>,
+  instance: ReturnType<typeof createInstance>,
+  input: unknown,
+  toolCallId: string,
+  signal = new AbortController().signal,
+) =>
+  tool.execute({
+    input,
+    mutations: instance.mutations,
+    handle: instance.handle,
+    toolCallId,
+    signal,
+  });
+
 const inputFor = (
   instance: ReturnType<typeof createInstance>,
   operations: readonly (
@@ -126,11 +148,12 @@ describe("mutate_petrinet automatic host tool", () => {
     const tool = createMutatePetrinetAutomaticTool(binding);
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [place, transition, arc]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-1",
-      }),
+        inputFor(instance, [place, transition, arc]),
+        "batch-1",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -160,18 +183,20 @@ describe("mutate_petrinet automatic host tool", () => {
   test("removes a place, its connected arcs, and a transition", async () => {
     const instance = createInstance();
     const tool = createMutatePetrinetAutomaticTool(binding);
-    await tool.execute({
-      input: inputFor(instance, [place, transition, arc]),
+    await run(
+      tool,
       instance,
-      toolCallId: "batch-setup-remove",
-    });
+      inputFor(instance, [place, transition, arc]),
+      "batch-setup-remove",
+    );
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [removePlace, removeTransition]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-remove",
-      }),
+        inputFor(instance, [removePlace, removeTransition]),
+        "batch-remove",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -231,18 +256,20 @@ describe("mutate_petrinet automatic host tool", () => {
   test("removes one arc without deleting its endpoints", async () => {
     const instance = createInstance();
     const tool = createMutatePetrinetAutomaticTool(binding);
-    await tool.execute({
-      input: inputFor(instance, [place, transition, arc]),
+    await run(
+      tool,
       instance,
-      toolCallId: "batch-setup-unwire",
-    });
+      inputFor(instance, [place, transition, arc]),
+      "batch-setup-unwire",
+    );
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [removeArc]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-unwire",
-      }),
+        inputFor(instance, [removeArc]),
+        "batch-unwire",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual(["applied"]);
@@ -285,11 +312,12 @@ describe("mutate_petrinet automatic host tool", () => {
     };
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [place, transition, invalidArc, laterPlace]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-2",
-      }),
+        inputFor(instance, [place, transition, invalidArc, laterPlace]),
+        "batch-2",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -323,11 +351,12 @@ describe("mutate_petrinet automatic host tool", () => {
     };
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [place, transition, invalidArc]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-report",
-      }),
+        inputFor(instance, [place, transition, invalidArc]),
+        "batch-report",
+      ),
     );
 
     expect(output.outcomes.map(({ status }) => status)).toEqual([
@@ -349,18 +378,20 @@ describe("mutate_petrinet automatic host tool", () => {
   test("reports an unchanged duplicate arc as a no-op", async () => {
     const instance = createInstance();
     const tool = createMutatePetrinetAutomaticTool(binding);
-    await tool.execute({
-      input: inputFor(instance, [place, transition, arc]),
+    await run(
+      tool,
       instance,
-      toolCallId: "batch-setup",
-    });
+      inputFor(instance, [place, transition, arc]),
+      "batch-setup",
+    );
 
     const output = mutatePetrinetOutputSchema.parse(
-      await tool.execute({
-        input: inputFor(instance, [{ ...arc, operationId: "repeat-arc" }]),
+      await run(
+        tool,
         instance,
-        toolCallId: "batch-3",
-      }),
+        inputFor(instance, [{ ...arc, operationId: "repeat-arc" }]),
+        "batch-3",
+      ),
     );
 
     expect(output.outcomes).toEqual([
@@ -370,6 +401,76 @@ describe("mutate_petrinet automatic host tool", () => {
         effects: [],
       }),
     ]);
+    instance.dispose();
+  });
+
+  test("retains per-operation mutation attempts the receiving boundary can verify", async () => {
+    const instance = createInstance();
+    const recorder = createBrowserMutationRecorder({
+      handle: instance.handle,
+      binding,
+      requestFor: (toolCallId) => {
+        throw new Error(`Unexpected requestFor(${toolCallId})`);
+      },
+    });
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    await run(
+      tool,
+      instance,
+      inputFor(instance, [place, transition, arc]),
+      "batch-retain",
+    );
+    const records = recorder.records();
+    expect(records).toHaveLength(3);
+    const verified = await Promise.all(
+      records.flatMap((record) =>
+        record.attempts.map((attempt) => verifyMutationAttempt(attempt)),
+      ),
+    );
+    expect(verified.map(({ outcome }) => outcome)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+    ]);
+    for (const record of records) {
+      expect(reconcileMutationAttempts(record.attempts).outcome).toBe(
+        "applied",
+      );
+    }
+    instance.dispose();
+  });
+
+  test("leaves later operations unattempted when the signal aborts", async () => {
+    const instance = createInstance();
+    const controller = new AbortController();
+    const mutations = {
+      ...instance.mutations,
+      addPlace: (input: Parameters<typeof instance.mutations.addPlace>[0]) => {
+        instance.mutations.addPlace(input);
+        controller.abort();
+      },
+    };
+    const tool = createMutatePetrinetAutomaticTool(binding);
+    const output = mutatePetrinetOutputSchema.parse(
+      await tool.execute({
+        input: inputFor(instance, [place, transition, arc]),
+        mutations,
+        handle: instance.handle,
+        toolCallId: "batch-abort",
+        signal: controller.signal,
+      }),
+    );
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "unattempted",
+      "unattempted",
+    ]);
+    expect(instance.definition.get()).toMatchObject({
+      places: [{ id: "queue" }],
+      transitions: [],
+    });
     instance.dispose();
   });
 

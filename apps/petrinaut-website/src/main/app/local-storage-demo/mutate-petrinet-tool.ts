@@ -2,21 +2,26 @@ import { z } from "zod";
 
 import {
   deriveMutationEffects,
+  mutatePetrinetAttemptCallId,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
+  observedMutationOutcome,
   type MutationEffects,
   type BrowserBinding,
+  type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   executeSelectedMutationBatch,
   selectedMutationBatchSchema,
-  type Petrinaut,
+  type PetrinautMutations,
   type SelectedMutationEffect,
   type SelectedMutationOperation,
 } from "@hashintel/petrinaut-core";
 
 import { observeBrowserDefinition } from "./mutation-record";
+
+import type { PetrinautAiAutomaticTool } from "@hashintel/petrinaut/ui";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 const effectSchema = z.intersection(
@@ -95,27 +100,35 @@ export const mutatePetrinetOutputSchema = z
   });
 
 const executeCanonicalMutation = (
-  instance: Petrinaut,
+  mutations: Pick<
+    PetrinautMutations,
+    | "addPlace"
+    | "addTransition"
+    | "addArc"
+    | "removePlace"
+    | "removeTransition"
+    | "removeArc"
+  >,
   operation: SelectedMutationOperation,
 ): void => {
   switch (operation.type) {
     case "addPlace":
-      instance.mutations.addPlace(operation.input);
+      mutations.addPlace(operation.input);
       break;
     case "addTransition":
-      instance.mutations.addTransition(operation.input);
+      mutations.addTransition(operation.input);
       break;
     case "addArc":
-      instance.mutations.addArc(operation.input);
+      mutations.addArc(operation.input);
       break;
     case "removePlace":
-      instance.mutations.removePlace(operation.input);
+      mutations.removePlace(operation.input);
       break;
     case "removeTransition":
-      instance.mutations.removeTransition(operation.input);
+      mutations.removeTransition(operation.input);
       break;
     case "removeArc":
-      instance.mutations.removeArc(operation.input);
+      mutations.removeArc(operation.input);
       break;
     default: {
       operation satisfies never;
@@ -163,22 +176,18 @@ export const createMutatePetrinetAutomaticTool = (
     readonly onOperationFailure?: (
       failure: MutatePetrinetOperationFailure,
     ) => void;
+    readonly retainAttempt?: (
+      attempt: ConstructionMutationAttempt,
+      retainOptions?: { verifyEffects?: boolean },
+    ) => void;
   },
-) => ({
+): PetrinautAiAutomaticTool => ({
   toolName: mutatePetrinetToolName,
   inputSchema: mutatePetrinetInputSchema,
   outputSchema: mutatePetrinetOutputSchema,
-  async execute({
-    input,
-    instance,
-    toolCallId,
-  }: {
-    input: unknown;
-    instance: Petrinaut;
-    toolCallId: string;
-  }) {
+  async execute({ input, mutations, handle, toolCallId, signal }) {
     const request = mutatePetrinetInputSchema.parse(input);
-    const beforeBatch = observeBrowserDefinition(instance.handle);
+    const beforeBatch = observeBrowserDefinition(handle);
     if (request.observation.baseHash !== beforeBatch.sha256)
       throw new Error(
         "mutate_petrinet does not cite the current observed base",
@@ -188,12 +197,21 @@ export const createMutatePetrinetAutomaticTool = (
         ({ basisId: _basisId, ...operation }) => operation,
       ),
     );
+    const retainRecord = (
+      attempt: ConstructionMutationAttempt,
+      retainOptions?: { verifyEffects?: boolean },
+    ) => {
+      options?.retainAttempt?.(attempt, retainOptions);
+    };
     const outcomes = await executeSelectedMutationBatch(
       operations,
       (operation) => {
-        const pre = observeBrowserDefinition(instance.handle);
+        const pre = observeBrowserDefinition(handle);
         const mutationRequest: ConstructionMutationRequest = {
-          toolCallId: `${toolCallId}:${operation.operationId}`,
+          toolCallId: mutatePetrinetAttemptCallId(
+            toolCallId,
+            operation.operationId,
+          ),
           toolName: operation.type,
           input: operation.input,
           observationToolCallId: request.observation.toolCallId,
@@ -201,20 +219,32 @@ export const createMutatePetrinetAutomaticTool = (
           requestedBaseHash: pre.sha256,
         };
         try {
-          executeCanonicalMutation(instance, operation);
-          const post = observeBrowserDefinition(instance.handle);
-          const effects = structuralEffects(
-            deriveMutationEffects(
-              mutationRequest,
-              pre.definition,
-              post.definition,
-            ),
+          executeCanonicalMutation(mutations, operation);
+          const post = observeBrowserDefinition(handle);
+          const effects = deriveMutationEffects(
+            mutationRequest,
+            pre.definition,
+            post.definition,
           );
+          retainRecord({
+            request: mutationRequest,
+            binding,
+            pre,
+            post,
+            outcome: observedMutationOutcome({
+              request: mutationRequest,
+              binding,
+              pre,
+              post,
+              effects,
+            }),
+            effects,
+          });
           return {
             status: pre.sha256 === post.sha256 ? "no-op" : "applied",
             preHash: pre.sha256,
             postHash: post.sha256,
-            effects,
+            effects: structuralEffects(effects),
           } as const;
         } catch (error) {
           const reportFailure = (status: "failed" | "unknown") =>
@@ -225,33 +255,66 @@ export const createMutatePetrinetAutomaticTool = (
               status,
               error,
             });
+          const message =
+            error instanceof Error ? error.message : String(error);
           try {
-            const post = observeBrowserDefinition(instance.handle);
+            const post = observeBrowserDefinition(handle);
+            const effects = deriveMutationEffects(
+              mutationRequest,
+              pre.definition,
+              post.definition,
+            );
             const status = pre.sha256 === post.sha256 ? "failed" : "unknown";
             reportFailure(status);
+            retainRecord({
+              request: mutationRequest,
+              binding,
+              pre,
+              post,
+              outcome: status,
+              effects,
+              error: message,
+            });
             return {
               status,
               preHash: pre.sha256,
               postHash: post.sha256,
-              error: error instanceof Error ? error.message : String(error),
+              error: message,
             } as const;
           } catch {
             reportFailure("unknown");
+            retainRecord(
+              {
+                request: mutationRequest,
+                binding,
+                pre,
+                outcome: "unknown",
+                effects: {
+                  created: [],
+                  updated: [],
+                  deleted: [],
+                  derived: [],
+                },
+                error: message,
+              },
+              { verifyEffects: false },
+            );
             return {
               status: "unknown",
               preHash: pre.sha256,
-              error: error instanceof Error ? error.message : String(error),
+              error: message,
             } as const;
           }
         }
       },
+      { signal },
     );
     const withBases = outcomes.map((outcome) => {
       const operation = request.operations[outcome.index];
       if (!operation) throw new Error("Missing batch operation outcome.");
       return { ...outcome, basisId: operation.basisId };
     });
-    const afterBatch = observeBrowserDefinition(instance.handle);
+    const afterBatch = observeBrowserDefinition(handle);
     return {
       execution: "ordered-stop" as const,
       toolCallId,

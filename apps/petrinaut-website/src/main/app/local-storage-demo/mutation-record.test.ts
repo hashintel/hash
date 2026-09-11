@@ -15,6 +15,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
 import {
   createBrowserMutationRecorder,
   createJoinedBrowserMutationRecorder,
@@ -451,6 +452,66 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       /hash/u,
     );
     expect(fixture.recorder.records()[0]?.attempts).toHaveLength(1);
+    fixture.instance.dispose();
+  });
+
+  test("attaches verified mutate_petrinet attempts on the existing sidecar", async () => {
+    const fixture = setup();
+    const recorder = createJoinedBrowserMutationRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      construction: true,
+    });
+    const tool = createMutatePetrinetAutomaticTool(fixture.request.binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    const observed = observeBrowserDefinition(fixture.handle);
+    const input = {
+      observation: { toolCallId: "read-1", baseHash: observed.sha256 },
+      bases: [
+        {
+          basisId: "basis-1",
+          basis: { kind: "absent" as const, reason: "Synthetic sidecar" },
+        },
+      ],
+      operations: [
+        {
+          operationId: "add-queue",
+          basisId: "basis-1",
+          type: "addPlace" as const,
+          input: {
+            id: "queue",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        },
+      ],
+    };
+    await tool.execute({
+      input,
+      mutations: fixture.instance.mutations,
+      handle: fixture.handle,
+      toolCallId: "batch-sidecar",
+      signal: new AbortController().signal,
+    });
+    const metadata = recorder.clientToolResultMetadata({
+      toolCallId: "batch-sidecar",
+      toolName: mutatePetrinetToolName,
+      output: { execution: "ordered-stop" },
+    });
+    expect(metadata).toMatchObject({
+      mutationRecord: { outcome: "applied" },
+    });
+    const attempt = metadata?.mutationRecord?.attempts[0];
+    if (!attempt) throw new Error("Expected a retained batch attempt.");
+    await expect(verifyMutationAttempt(attempt)).resolves.toMatchObject({
+      outcome: "applied",
+      request: { toolName: "addPlace" },
+    });
     fixture.instance.dispose();
   });
 

@@ -5119,8 +5119,10 @@ describe("AiAssistantPanel host interactive tools", () => {
       await screen.findByText("Automatic result received.");
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
-        instance,
+        mutations: instance.mutations,
+        handle: instance.handle,
         toolCallId: "automatic-call-1",
+        signal: expect.any(AbortSignal) as AbortSignal,
       });
       expect(requestMessages[1]?.at(-1)?.parts).toContainEqual(
         expect.objectContaining({
