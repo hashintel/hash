@@ -361,6 +361,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       // and leave the rest of the UI most of each frame's budget.
       publishThrottleMs: 100,
       instantiateBatch: createSweepBatchInstantiator({
+        axes,
         registrations,
         buildRequest,
         compiler,

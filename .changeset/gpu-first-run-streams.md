@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut-core": patch
+"@hashintel/petrinaut": patch
 ---
 
-The GPU backend's capacity probe runs after the experiment starts, so a batch's first frames stream instead of arriving once the probe is done.
+A sweep's first frames on the GPU stream from the start of every selection: the capacity probe runs after the experiment starts, and every selection shares one compiled GPU setup.
