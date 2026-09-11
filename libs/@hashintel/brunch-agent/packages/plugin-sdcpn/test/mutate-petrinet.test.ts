@@ -306,26 +306,64 @@ describe("mutate_petrinet tool", () => {
           update: { variableName: "daily_demand", defaultValue: "12" },
         },
       },
+      {
+        operationId: "drop-age",
+        basisId: "queue-basis",
+        type: "removeTypeElement",
+        input: { typeId: "item", elementId: "age" },
+      },
+      {
+        operationId: "drop-rate",
+        basisId: "queue-basis",
+        type: "removeParameter",
+        input: { parameterId: "rate" },
+      },
+      {
+        operationId: "drop-decay",
+        basisId: "queue-basis",
+        type: "removeDifferentialEquation",
+        input: { equationId: "decay" },
+      },
+      {
+        operationId: "drop-item",
+        basisId: "queue-basis",
+        type: "removeType",
+        input: { typeId: "item" },
+      },
     ];
     expect(
       mutatePetrinetInputSchema
         .parse({ ...input, operations: edits })
         .operations.map(({ type }) => type),
     ).toEqual(edits.map(({ type }) => type));
-    for (const type of ["updatePlacePosition", "updateTransitionPosition"]) {
-      expect(() =>
-        mutatePetrinetInputSchema.parse({
-          ...input,
-          operations: [
-            {
-              operationId: "move",
-              basisId: "queue-basis",
-              type,
-              input: { placeId: "queue", position: { x: 1, y: 1 } },
-            },
-          ],
-        }),
-      ).toThrow(/type|invalid/iu);
+    // An unadmitted operation is refused at its own position with the admitted
+    // list spelled out, so the model sees which operation was unsupported and
+    // what it may send instead. Nothing is applied.
+    for (const type of [
+      "updatePlacePosition",
+      "updateTransitionPosition",
+      "addScenario",
+      "moveTypeElement",
+    ]) {
+      const refused = mutatePetrinetInputSchema.safeParse({
+        ...input,
+        operations: [
+          input.operations[0],
+          {
+            operationId: "unsupported",
+            basisId: "queue-basis",
+            type,
+            input: {},
+          },
+        ],
+      });
+      expect(refused.success).toBe(false);
+      const issue = refused.error?.issues[0];
+      expect(issue?.path).toEqual(["operations", 1, "type"]);
+      expect(issue?.message).toMatch(/Invalid discriminator value/u);
+      expect(issue?.message).toContain("'updateParameter'");
+      expect(issue?.message).toContain("'removeType'");
+      expect(issue?.message).not.toContain(`'${type}'`);
     }
     expect(() =>
       mutatePetrinetInputSchema.parse({
@@ -417,7 +455,7 @@ describe("mutate_petrinet tool", () => {
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(18);
+    expect(variants.length).toBe(22);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),

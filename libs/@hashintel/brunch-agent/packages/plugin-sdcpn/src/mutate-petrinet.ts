@@ -171,6 +171,26 @@ const rootUpdateParameterInputSchema =
     targetSubnetId: true,
   });
 
+// Removals of net-level state; Petrinaut clears the references they leave.
+const rootRemoveTypeInputSchema = mutationActionInputSchemas.removeType.omit({
+  targetSubnetId: true,
+});
+
+const rootRemoveTypeElementInputSchema =
+  mutationActionInputSchemas.removeTypeElement.omit({
+    targetSubnetId: true,
+  });
+
+const rootRemoveParameterInputSchema =
+  mutationActionInputSchemas.removeParameter.omit({
+    targetSubnetId: true,
+  });
+
+const rootRemoveDifferentialEquationInputSchema =
+  mutationActionInputSchemas.removeDifferentialEquation.omit({
+    targetSubnetId: true,
+  });
+
 const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
     operationId: operationIdSchema,
@@ -279,6 +299,30 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     basisId: basisIdSchema,
     type: z.literal("updateParameter"),
     input: rootUpdateParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeType"),
+    input: rootRemoveTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeTypeElement"),
+    input: rootRemoveTypeElementInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeParameter"),
+    input: rootRemoveParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeDifferentialEquation"),
+    input: rootRemoveDifferentialEquationInputSchema,
   }),
 ]);
 

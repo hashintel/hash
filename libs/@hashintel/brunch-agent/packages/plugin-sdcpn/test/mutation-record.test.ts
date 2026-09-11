@@ -374,6 +374,99 @@ describe("root addArc transition semantics", () => {
     ).toEqual({ outcome: "applied" });
   });
 
+  test("derives a type removal as one direct deletion and keeps the cleared place reference derived", () => {
+    const before: SDCPN = {
+      places: [{ ...pre.places[0]!, colorId: "item" }],
+      transitions: [],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [{ elementId: "age", name: "age", type: "real" }],
+        },
+      ],
+      differentialEquations: [],
+      parameters: [
+        {
+          id: "rate",
+          name: "Rate",
+          variableName: "rate",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
+    };
+    const cases: {
+      toolName: ConstructionMutationRequest["toolName"];
+      input: ConstructionMutationRequest["input"];
+      path: string;
+      apply: (
+        mutations: ReturnType<typeof createPetrinaut>["mutations"],
+      ) => void;
+      derivedPaths: string[];
+    }[] = [
+      {
+        toolName: "removeType",
+        input: { typeId: "item" },
+        path: "/types/0",
+        apply: (mutations) => mutations.removeType({ typeId: "item" }),
+        derivedPaths: ["/places/0/colorId"],
+      },
+      {
+        toolName: "removeTypeElement",
+        input: { typeId: "item", elementId: "age" },
+        path: "/types/0/elements/0",
+        apply: (mutations) =>
+          mutations.removeTypeElement({ typeId: "item", elementId: "age" }),
+        derivedPaths: [],
+      },
+      {
+        toolName: "removeParameter",
+        input: { parameterId: "rate" },
+        path: "/parameters/0",
+        apply: (mutations) =>
+          mutations.removeParameter({ parameterId: "rate" }),
+        derivedPaths: [],
+      },
+    ];
+    for (const { toolName, input, path, apply, derivedPaths } of cases) {
+      const removeRequest: ConstructionMutationRequest = {
+        toolCallId: `drop-${toolName}`,
+        toolName,
+        binding: request.binding,
+        requestedBaseHash: observe(before).sha256,
+        input,
+      };
+      const instance = createPetrinaut({
+        document: createJsonDocHandle({
+          initial: before,
+          capabilities: { disabledExtensions: [] },
+        }),
+      });
+      apply(instance.mutations);
+      const after = instance.definition.get();
+      instance.dispose();
+      const effects = deriveMutationEffects(removeRequest, before, after);
+      expect(effects.deleted.map((change) => change.path)).toEqual([path]);
+      expect(effects.created).toEqual([]);
+      expect(effects.updated).toEqual([]);
+      expect(effects.derived.map((change) => change.path)).toEqual(
+        derivedPaths,
+      );
+      expect(
+        classifyMutationOutcome({
+          request: removeRequest,
+          binding: removeRequest.binding,
+          pre: observe(before),
+          post: observe(after),
+          effects,
+        }),
+      ).toEqual({ outcome: "applied" });
+    }
+  });
+
   test("derives an input arc type change as one direct arc field update", () => {
     const before = applied().post!.definition;
     const typeInput = {

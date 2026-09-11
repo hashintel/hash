@@ -96,6 +96,27 @@ export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("updateParameter"),
     input: mutationActionInputSchemas.updateParameter,
   }),
+  // Removals of net-level state; Petrinaut clears the references they leave.
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeType"),
+    input: mutationActionInputSchemas.removeType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeTypeElement"),
+    input: mutationActionInputSchemas.removeTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeParameter"),
+    input: mutationActionInputSchemas.removeParameter,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeDifferentialEquation"),
+    input: mutationActionInputSchemas.removeDifferentialEquation,
+  }),
 ]);
 
 export const selectedMutationBatchSchema = z
