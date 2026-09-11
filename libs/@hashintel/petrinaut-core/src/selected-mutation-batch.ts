@@ -55,6 +55,47 @@ export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("updateDifferentialEquation"),
     input: mutationActionInputSchemas.updateDifferentialEquation,
   }),
+  // Edits to existing parts of the net. Canvas positions stay with layout.
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updatePlace"),
+    input: mutationActionInputSchemas.updatePlace,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateTransition"),
+    input: mutationActionInputSchemas.updateTransition,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateArcWeight"),
+    input: mutationActionInputSchemas.updateArcWeight,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateArcType"),
+    input: mutationActionInputSchemas.updateArcType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateType"),
+    input: mutationActionInputSchemas.updateType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addTypeElement"),
+    input: mutationActionInputSchemas.addTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateTypeElement"),
+    input: mutationActionInputSchemas.updateTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateParameter"),
+    input: mutationActionInputSchemas.updateParameter,
+  }),
 ]);
 
 export const selectedMutationBatchSchema = z

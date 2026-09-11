@@ -36,6 +36,14 @@ const executeCanonicalMutation = (
     | "addParameter"
     | "addDifferentialEquation"
     | "updateDifferentialEquation"
+    | "updatePlace"
+    | "updateTransition"
+    | "updateArcWeight"
+    | "updateArcType"
+    | "updateType"
+    | "addTypeElement"
+    | "updateTypeElement"
+    | "updateParameter"
   >,
   operation: SelectedMutationOperation,
 ): void => {
@@ -69,6 +77,30 @@ const executeCanonicalMutation = (
       break;
     case "updateDifferentialEquation":
       mutations.updateDifferentialEquation(operation.input);
+      break;
+    case "updatePlace":
+      mutations.updatePlace(operation.input);
+      break;
+    case "updateTransition":
+      mutations.updateTransition(operation.input);
+      break;
+    case "updateArcWeight":
+      mutations.updateArcWeight(operation.input);
+      break;
+    case "updateArcType":
+      mutations.updateArcType(operation.input);
+      break;
+    case "updateType":
+      mutations.updateType(operation.input);
+      break;
+    case "addTypeElement":
+      mutations.addTypeElement(operation.input);
+      break;
+    case "updateTypeElement":
+      mutations.updateTypeElement(operation.input);
+      break;
+    case "updateParameter":
+      mutations.updateParameter(operation.input);
       break;
     default: {
       operation satisfies never;

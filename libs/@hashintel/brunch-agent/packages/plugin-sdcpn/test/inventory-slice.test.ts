@@ -53,6 +53,22 @@ const applyOperation = (
       return mutations.removeTransition(operation.input);
     case "removeArc":
       return mutations.removeArc(operation.input);
+    case "updatePlace":
+      return mutations.updatePlace(operation.input);
+    case "updateTransition":
+      return mutations.updateTransition(operation.input);
+    case "updateArcWeight":
+      return mutations.updateArcWeight(operation.input);
+    case "updateArcType":
+      return mutations.updateArcType(operation.input);
+    case "updateType":
+      return mutations.updateType(operation.input);
+    case "addTypeElement":
+      return mutations.addTypeElement(operation.input);
+    case "updateTypeElement":
+      return mutations.updateTypeElement(operation.input);
+    case "updateParameter":
+      return mutations.updateParameter(operation.input);
   }
 };
 

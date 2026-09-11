@@ -155,6 +155,67 @@ const repairedDynamics = {
   },
 };
 
+/** Edits to parts the earlier constants create; a user correcting the first draft. */
+const edits = [
+  {
+    operationId: "rename-queue",
+    type: "updatePlace" as const,
+    input: { placeId: "queue", update: { name: "Backlog", colorId: "item" } },
+  },
+  {
+    operationId: "start-stochastic",
+    type: "updateTransition" as const,
+    input: {
+      transitionId: "start",
+      update: {
+        lambdaType: "stochastic" as const,
+        lambdaCode: "return parameters.arrival_rate;",
+      },
+    },
+  },
+  {
+    operationId: "double-weight",
+    type: "updateArcWeight" as const,
+    input: {
+      transitionId: "start",
+      arcDirection: "input" as const,
+      placeId: "queue",
+      weight: 2,
+    },
+  },
+  {
+    operationId: "read-arc",
+    type: "updateArcType" as const,
+    input: { transitionId: "start", placeId: "queue", type: "read" as const },
+  },
+  {
+    operationId: "rename-item",
+    type: "updateType" as const,
+    input: { typeId: "item", update: { name: "Lot" } },
+  },
+  {
+    operationId: "add-age",
+    type: "addTypeElement" as const,
+    input: {
+      typeId: "item",
+      element: { elementId: "age", name: "age", type: "real" as const },
+    },
+  },
+  {
+    operationId: "rename-age",
+    type: "updateTypeElement" as const,
+    input: { typeId: "item", elementId: "age", update: { name: "age_days" } },
+  },
+  {
+    operationId: "rename-rate",
+    type: "updateParameter" as const,
+    input: {
+      parameterId: "rate",
+      update: { variableName: "daily_demand", defaultValue: "12" },
+    },
+  },
+];
+
 const run = (
   tool: ReturnType<typeof createMutatePetrinetAutomaticTool>,
   instance: ReturnType<typeof createInstance>,
@@ -184,6 +245,7 @@ const inputFor = (
     | typeof dynamics
     | typeof invalidDynamics
     | typeof repairedDynamics
+    | (typeof edits)[number]
   )[],
 ) => {
   const observed = observeBrowserDefinition(instance.handle);
@@ -258,6 +320,73 @@ describe("mutate_petrinet automatic host tool", () => {
       parameters: [{ id: "rate", variableName: "arrival_rate" }],
       differentialEquations: [{ id: "decay", colorId: "item" }],
     });
+    instance.dispose();
+  });
+
+  test("edits existing parts by ID and every edit verifies as applied at the receiving boundary", async () => {
+    const instance = createInstance();
+    const recorder = createBrowserMutationRecorder({
+      handle: instance.handle,
+      binding,
+      requestFor: (toolCallId) => {
+        throw new Error(`Unexpected requestFor(${toolCallId})`);
+      },
+    });
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    await run(
+      tool,
+      instance,
+      inputFor(instance, [tokenType, parameter, place, transition, arc]),
+      "batch-draft",
+    );
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await run(tool, instance, inputFor(instance, edits), "batch-edits"),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual(
+      edits.map(() => "applied"),
+    );
+    expect(instance.definition.get()).toMatchObject({
+      places: [{ id: "queue", name: "Backlog", colorId: "item" }],
+      transitions: [
+        {
+          id: "start",
+          lambdaType: "stochastic",
+          lambdaCode: "return parameters.arrival_rate;",
+          inputArcs: [{ placeId: "queue", weight: 2, type: "read" }],
+        },
+      ],
+      types: [
+        {
+          id: "item",
+          name: "Lot",
+          elements: [{ elementId: "age", name: "age_days", type: "real" }],
+        },
+      ],
+      parameters: [
+        { id: "rate", variableName: "daily_demand", defaultValue: "12" },
+      ],
+    });
+
+    const editRecords = recorder
+      .records()
+      .filter((record) =>
+        record.attempts.some((attempt) =>
+          attempt.request.toolCallId.startsWith("batch-edits:"),
+        ),
+      );
+    expect(editRecords).toHaveLength(edits.length);
+    const verified = await Promise.all(
+      editRecords.flatMap((record) =>
+        record.attempts.map((attempt) => verifyMutationAttempt(attempt)),
+      ),
+    );
+    expect(verified.map(({ outcome }) => outcome)).toEqual(
+      edits.map(() => "applied"),
+    );
     instance.dispose();
   });
 

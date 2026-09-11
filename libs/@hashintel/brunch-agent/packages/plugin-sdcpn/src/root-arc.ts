@@ -22,6 +22,7 @@ export const isObservedArcMutation = (
 export const batchedArcMutationNames = [
   ...observedArcMutationNames,
   "removeArc",
+  "updateArcType",
 ] as const;
 export type BatchedArcMutationName = (typeof batchedArcMutationNames)[number];
 export const isBatchedArcMutation = (

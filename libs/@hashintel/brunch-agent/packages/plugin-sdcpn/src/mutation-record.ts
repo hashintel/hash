@@ -48,16 +48,21 @@ export type ObservedConstructionMutationName =
   | ObservedArcMutationName
   | ObservedNodeMutationName
   | ObservedStateMutationName;
+/** Edits to net-level state that only the batched carrier admits; located by ID, never created. */
+const batchedStateUpdateNames = [
+  "updateDifferentialEquation",
+  "updateParameter",
+] as const;
+type BatchedStateUpdateName = (typeof batchedStateUpdateNames)[number];
+
 export type ConstructionMutationName =
   | ObservedConstructionMutationName
   | BatchedArcMutationName
   | BatchedNodeMutationName
-  | "updateDifferentialEquation";
+  | BatchedStateUpdateName;
 
-const isBatchedDynamicsUpdate = (
-  name: string,
-): name is "updateDifferentialEquation" =>
-  name === "updateDifferentialEquation";
+const isBatchedStateUpdate = (name: string): name is BatchedStateUpdateName =>
+  batchedStateUpdateNames.some((entry) => entry === name);
 
 export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
@@ -259,7 +264,7 @@ export const deriveMutationEffects = (
   if (
     isBatchedNodeMutation(request.toolName) ||
     isObservedStateMutation(request.toolName) ||
-    isBatchedDynamicsUpdate(request.toolName)
+    isBatchedStateUpdate(request.toolName)
   )
     return deriveNodeEffects(request, pre, post);
   const input = mutationActionInputSchemas[request.toolName].parse(
@@ -273,7 +278,11 @@ export const deriveMutationEffects = (
   );
   const arcSource = request.toolName === "removeArc" ? pre : post;
   const transition = arcSource.transitions[transitionIndex];
-  const direction = input.arcDirection === "input" ? "inputArcs" : "outputArcs";
+  // Only input arcs carry a type, so updateArcType names no direction.
+  const direction =
+    !("arcDirection" in input) || input.arcDirection === "input"
+      ? "inputArcs"
+      : "outputArcs";
   const arcIndex =
     transition !== undefined && transition.id === input.transitionId
       ? transition[direction].findIndex(
@@ -335,6 +344,11 @@ export const expectedNodeDefinition = (
         ),
       );
       break;
+    case "updateParameter":
+      actions.updateParameter(
+        mutationActionInputSchemas.updateParameter.parse(request.input),
+      );
+      break;
     case "addPlace":
       actions.addPlace(
         mutationActionInputSchemas.addPlace.parse(request.input),
@@ -361,6 +375,11 @@ export const expectedNodeDefinition = (
     case "updateArcWeight":
       actions.updateArcWeight(
         mutationActionInputSchemas.updateArcWeight.parse(request.input),
+      );
+      break;
+    case "updateArcType":
+      actions.updateArcType(
+        mutationActionInputSchemas.updateArcType.parse(request.input),
       );
       break;
     case "addType":
@@ -424,22 +443,42 @@ const deriveNodeEffects = (
   pre: SDCPN,
   post: SDCPN,
 ): MutationEffects => {
-  const dynamicsUpdateState = (definition: SDCPN) => {
-    const parsed = mutationActionInputSchemas.updateDifferentialEquation.parse(
-      request.input,
-    );
+  const stateUpdateState = (definition: SDCPN) => {
+    const located =
+      request.toolName === "updateParameter"
+        ? (() => {
+            const parsed = mutationActionInputSchemas.updateParameter.parse(
+              request.input,
+            );
+            return {
+              kind: "parameter" as const,
+              name: parsed.parameterId,
+              fields: parsed.update,
+            };
+          })()
+        : (() => {
+            const parsed =
+              mutationActionInputSchemas.updateDifferentialEquation.parse(
+                request.input,
+              );
+            return {
+              kind: "differential-equation" as const,
+              name: parsed.equationId,
+              fields: parsed.update,
+            };
+          })();
     return {
       target: locateRootState(definition, {
-        kind: "differential-equation" as const,
-        name: parsed.equationId,
+        kind: located.kind,
+        name: located.name,
         field: "entity",
       }),
       creating: false,
-      fields: parsed.update,
+      fields: located.fields,
     };
   };
-  const state = isBatchedDynamicsUpdate(request.toolName)
-    ? dynamicsUpdateState(pre)
+  const state = isBatchedStateUpdate(request.toolName)
+    ? stateUpdateState(pre)
     : isObservedStateMutation(request.toolName)
       ? stateMutationTarget(
           request,
@@ -529,8 +568,8 @@ const deriveNodeEffects = (
           ? undefined
           : (expected as Record<string, unknown>)[field];
       const actualNode = state
-        ? isBatchedDynamicsUpdate(request.toolName)
-          ? dynamicsUpdateState(post).target.value
+        ? isBatchedStateUpdate(request.toolName)
+          ? stateUpdateState(post).target.value
           : stateMutationTarget(request, post).target.value
         : post[collection][index];
       const actualField =
@@ -610,7 +649,7 @@ export const classifyMutationOutcome = (
     isBatchedNodeMutation(attempt.request.toolName) ||
     attempt.request.toolName === "removeArc" ||
     isObservedStateMutation(attempt.request.toolName) ||
-    isBatchedDynamicsUpdate(attempt.request.toolName)
+    isBatchedStateUpdate(attempt.request.toolName)
   ) {
     try {
       return {
@@ -637,20 +676,30 @@ const observedArcEffectOutcome = (
   attempt: Omit<ConstructionMutationAttempt, "outcome">,
 ): ConstructionMutationAttempt["outcome"] => {
   const effects = attempt.effects;
-  if (attempt.request.toolName === "updateArcWeight") {
+  // An arc field update earns applied only as exactly one direct change to that field.
+  const singleFieldUpdate = (field: "weight" | "type", after: unknown) => {
     const change = effects.updated[0];
-    const input = mutationActionInputSchemas.updateArcWeight.parse(
-      attempt.request.input,
-    );
     return effects.derived.length === 0 &&
       effects.created.length === 0 &&
       effects.deleted.length === 0 &&
       effects.updated.length === 1 &&
       change?.kind === "updated" &&
-      change.path.endsWith("/weight") &&
-      change.after === input.weight
+      change.path.endsWith(`/${field}`) &&
+      change.after === after
       ? "applied"
       : "unknown";
+  };
+  if (attempt.request.toolName === "updateArcWeight") {
+    const input = mutationActionInputSchemas.updateArcWeight.parse(
+      attempt.request.input,
+    );
+    return singleFieldUpdate("weight", input.weight);
+  }
+  if (attempt.request.toolName === "updateArcType") {
+    const input = mutationActionInputSchemas.updateArcType.parse(
+      attempt.request.input,
+    );
+    return singleFieldUpdate("type", input.type);
   }
   if (
     effects.derived.length ||
@@ -746,7 +795,7 @@ export const verifyMutationAttempt = async <
     (!isBatchedArcMutation(attempt.request.toolName) &&
       !isBatchedNodeMutation(attempt.request.toolName) &&
       !isObservedStateMutation(attempt.request.toolName) &&
-      !isBatchedDynamicsUpdate(attempt.request.toolName)) ||
+      !isBatchedStateUpdate(attempt.request.toolName)) ||
     !sha256Pattern.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,
