@@ -3,7 +3,10 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  type LspWorkerFactory,
+} from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
@@ -18,9 +21,11 @@ import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { ServerMessage } from "@hashintel/petrinaut-core/workers/lsp";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
+  document.queryCommandSupported = () => false;
   window.matchMedia = (media) => ({
     media,
     matches: false,
@@ -49,12 +54,27 @@ const VoiceObserver = ({
   useLayoutEffect(() => onUpdate(current), [current, onUpdate]);
   return null;
 };
-const inertWorker = () => ({
-  postMessage() {},
-  addEventListener() {},
-  removeEventListener() {},
-  terminate() {},
-});
+const languageWorker: LspWorkerFactory = () => {
+  const listeners = new Set<(event: { data: ServerMessage }) => void>();
+  return {
+    postMessage(message) {
+      if (message.method === "sdcpn/diagnostics") {
+        for (const listener of listeners) {
+          listener({ data: { jsonrpc: "2.0", id: message.id, result: [] } });
+        }
+      }
+    },
+    addEventListener(_type, listener) {
+      listeners.add(listener);
+    },
+    removeEventListener(_type, listener) {
+      listeners.delete(listener);
+    },
+    terminate() {
+      listeners.clear();
+    },
+  };
+};
 const hosts: Array<() => void> = [];
 afterEach(() => {
   cleanup();
@@ -222,7 +242,7 @@ test.each([
     render(
       <Petrinaut
         handle={handle}
-        lspWorkerFactory={inertWorker}
+        lspWorkerFactory={languageWorker}
         aiAssistant={{
           conversationId: "test",
           requestStop: async () => {

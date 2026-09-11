@@ -1,0 +1,35 @@
+---
+title: Snapshot diagnostics
+description: Check a captured net through a correlated language-worker request.
+attachTo: core.lsp
+sidebar_order: 20
+---
+
+`LanguageClient.requestDiagnostics(sdcpn, extensions)` returns TypeScript
+diagnostics for the supplied net snapshot. Callers receive a response even
+when the diagnostics match the previous check.
+
+![Snapshot diagnostics flow](@diagrams/snapshot-diagnostics.svg)
+
+The [language worker](layer:core.lsp.worker) checks the snapshot separately
+from temporary editor sessions. Its response carries the request ID, so an
+editor diagnostic update cannot complete another caller's check. Worker
+errors and language-client disposal reject pending requests.
+
+The [React language provider](layer:react.lsp) exposes this method to the AI's
+`getNetCompilationErrors` tool. The tool captures the current net and formats
+the returned diagnostics. The editor continues to receive its own diagnostic
+updates. See [compiling user code](doc:simulation/user-code) for the distinction
+between TypeScript diagnostics and simulation compilation.
+
+:::danger[Important: worker timeout]
+Requests have no timeout. An unresponsive worker can leave a check pending
+until the language client is disposed.
+Tracked in [FE-1665](https://linear.app/hash/issue/FE-1665).
+:::
+
+:::danger[Important: instance API]
+AI diagnostics still use the React language provider. Exposing this capability
+through `PetrinautInstance` requires a headless diagnostics contract.
+Tracked separately in [FE-754](https://linear.app/hash/issue/FE-754).
+:::

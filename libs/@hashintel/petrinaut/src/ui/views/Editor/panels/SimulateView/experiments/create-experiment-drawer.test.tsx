@@ -74,6 +74,9 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
  */
 function makeLanguageClient(): LanguageClientContextValue {
   return {
+    requestDiagnostics: vi.fn(() =>
+      Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
+    ),
     diagnosticsByUri: new Map(),
     totalDiagnosticsCount: 0,
     errorDiagnosticsCount: 0,

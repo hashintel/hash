@@ -8,6 +8,7 @@ import type {
   LowerConstraintContext,
   LowerConstraintResult,
   Diagnostic,
+  DiagnosticsSnapshot,
   DocumentUri,
   HirCompileResult,
   Hover,
@@ -26,6 +27,10 @@ import type {
 } from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
+  requestDiagnostics: (
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ) => Promise<DiagnosticsSnapshot>;
   /** Per-URI diagnostics pushed from the language server. */
   diagnosticsByUri: Map<DocumentUri, Diagnostic[]>;
   /** Total number of diagnostics across all documents. */
@@ -111,8 +116,10 @@ export interface LanguageClientContextValue {
   killConstraintSession: (sessionId: string) => void;
 }
 
-/** The inert default: no worker wired — requests resolve to empty results. */
+/** The fallback used before a language worker is wired. */
 export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
+  requestDiagnostics: () =>
+    Promise.reject(new Error("Language client is unavailable")),
   diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
   errorDiagnosticsCount: 0,

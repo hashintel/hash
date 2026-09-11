@@ -338,6 +338,9 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
 
   return {
     diagnosticsByUri: new Map(),
+    requestDiagnostics: vi.fn(() =>
+      Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
+    ),
     totalDiagnosticsCount: 0,
     errorDiagnosticsCount: 0,
     notifyDocumentChanged: vi.fn(),

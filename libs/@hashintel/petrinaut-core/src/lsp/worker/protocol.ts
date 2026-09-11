@@ -188,6 +188,12 @@ type ClientRequest =
   | {
       jsonrpc: "2.0";
       id: number;
+      method: "sdcpn/diagnostics";
+      params: { sdcpn: SDCPN; extensions?: PetrinautExtensionSettings };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
       method: "textDocument/completion";
       params: TextDocumentPositionParams;
     }

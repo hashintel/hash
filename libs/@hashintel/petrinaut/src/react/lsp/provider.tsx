@@ -102,6 +102,7 @@ export const LanguageClientProvider: React.FC<{
   }
 
   const value = {
+    requestDiagnostics: client.requestDiagnostics,
     diagnosticsByUri,
     totalDiagnosticsCount,
     errorDiagnosticsCount,

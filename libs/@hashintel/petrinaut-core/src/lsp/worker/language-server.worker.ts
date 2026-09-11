@@ -34,6 +34,7 @@ import {
   lowerScenarioToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
+import { checkSnapshot } from "../lib/check-snapshot";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
@@ -448,6 +449,13 @@ let pendingConstraintInits: ConstraintSessionData[] = [];
 workerRuntime.onMessage((data) => {
   try {
     switch (data.method) {
+      case "sdcpn/diagnostics": {
+        respond(
+          data.id,
+          checkSnapshot(data.params.sdcpn, data.params.extensions),
+        );
+        break;
+      }
       // --- Notifications (no response) ---
 
       case "initialize": {

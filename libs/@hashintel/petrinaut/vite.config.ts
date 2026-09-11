@@ -8,8 +8,8 @@ const externalDependencies = [
   "@hashintel/ds-components",
   "@hashintel/ds-helpers",
   /^@hashintel\/petrinaut-core(\/.*)?$/,
-  "react",
-  "react-dom",
+  /^react(\/.*)?$/,
+  /^react-dom(\/.*)?$/,
   "@xyflow/react",
   "@babel/standalone",
   // Pure-CJS dep pulled in transitively by @tanstack/react-form →
