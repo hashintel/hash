@@ -1,16 +1,25 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { use, useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
+import { useFiringAnimation } from "../../../hooks/use-firing-animation";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import { useSelectionVariant } from "../../../hooks/use-selection-variant";
+import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
+import {
+  nodeSurfaceStyle,
+  transitionSurfaceStyle,
+} from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
 
 import type { TransitionNodeType } from "./react-flow-types";
-
-const FIRING_ANIMATION_DURATION_MS = 300;
 
 const containerStyle = css({
   position: "relative",
@@ -18,153 +27,34 @@ const containerStyle = css({
   height: "full",
 });
 
-const transitionBoxStyle = cva({
-  base: {
-    padding: "2",
-    borderRadius: "xl",
-    width: "full",
-    height: "full",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "neutral.s10",
-    border: "2px solid",
-    borderColor: "neutral.s80",
-    fontSize: "[15px]",
-    boxSizing: "border-box",
-    position: "relative",
-    cursor: "default",
-    transition: "[outline 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    _hover: {
-      borderColor:
-        "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
-      outline: "[4px solid rgba(75, 126, 156, 0.08)]",
-    },
-    _after: {
-      content: '""',
-      transition: "[all 0.1s ease]",
-      position: "absolute",
-      pointerEvents: "none",
-      borderRadius: "[inherit]",
-      inset: "[-2px]",
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      notSelectedConnection: {
-        _after: {
-          background: "[rgba(255, 255, 255, 0.5)]",
-        },
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
-  },
+const transitionBoxStyle = css({
+  // Tighter than the circle's, so four lines of a name and the two rows
+  // around them fit the square with room to spare.
+  padding: "[2px 10px]",
+  // The flat box leaves less room for a name than a circle does, so its
+  // three lines are set smaller.
+  fontSize: "[13px]",
+});
+
+const transitionRowStyle = css({
+  height: "[12px]",
+});
+
+const transitionLabelStyle = css({
+  lineClamp: "4",
 });
 
 const stochasticIconStyle = css({
-  position: "absolute",
-  top: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   color: "blue.s60",
   fontSize: "lg",
 });
 
-const labelStyle = css({
-  textAlign: "center",
-  maxWidth: "[100%]",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
-  lineClamp: "2",
-  lineHeight: "[1.25]",
-});
-
 const firingIndicatorStyle = css({
-  position: "absolute",
-  bottom: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   fontSize: "xl",
   color: "yellow.s60",
   opacity: "[0]",
   transform: "scale(0.5)",
 });
-
-/**
- * Hook to animate the transition box and lightning bolt when firing.
- * Uses Web Animations API for smooth, programmatic control.
- */
-function useFiringAnimation(
-  boxRef: React.RefObject<HTMLDivElement | null>,
-  boltRef: React.RefObject<HTMLDivElement | null>,
-  firingDelta: number | null,
-): void {
-  useEffect(() => {
-    // Only animate when there's an actual firing (delta > 0)
-    if (firingDelta === null || firingDelta <= 0) {
-      return;
-    }
-
-    const box = boxRef.current;
-    const bolt = boltRef.current;
-
-    if (!box || !bolt) {
-      return;
-    }
-
-    // Animate the box: flash yellow background and glow
-    box.animate(
-      [
-        {
-          background: "rgba(255, 224, 132, 0.7)",
-          boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
-        },
-        {
-          background: "rgb(247, 247, 247)",
-          boxShadow: "0 0 0 0 rgba(255, 132, 0, 0)",
-        },
-      ],
-      {
-        duration: FIRING_ANIMATION_DURATION_MS,
-        easing: "ease-out",
-        fill: "forwards",
-      },
-    );
-
-    // Animate the lightning bolt: appear then fade out
-    bolt.animate(
-      [
-        { opacity: 1, transform: "scale(1)" },
-        { opacity: 0, transform: "scale(0.5)" },
-      ],
-      {
-        duration: FIRING_ANIMATION_DURATION_MS * 3,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "forwards",
-      },
-    );
-  }, [firingDelta, boxRef, boltRef]);
-}
 
 export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   id,
@@ -172,14 +62,8 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<TransitionNodeType>) => {
-  const { label } = data;
-
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-  } = use(EditorContext);
+  // Wrap points let a long name break inside the square instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -191,15 +75,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   // Animate when firing occurs
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
-  // Determine selection state
-  const selectionVariant = isSelected(id)
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  const selectionVariant = useSelectionVariant(id, selected);
 
   return (
     <div className={containerStyle}>
@@ -211,18 +87,22 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       />
       <div
         ref={boxRef}
-        className={transitionBoxStyle({
-          selection: selectionVariant,
-        })}
+        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
-        {data.lambdaType === "stochastic" && (
-          <div className={stochasticIconStyle}>
-            <Icon name="lambda" size="sm" />
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
+          {data.lambdaType === "stochastic" ? (
+            <div className={stochasticIconStyle}>
+              <Icon name="lambda" size="sm" />
+            </div>
+          ) : null}
+        </div>
+        <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
+          {label}
+        </div>
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
+          <div ref={boltRef} className={firingIndicatorStyle}>
+            <Icon name="lightning" size="sm" />
           </div>
-        )}
-        <div className={labelStyle}>{label}</div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" size="sm" />
         </div>
       </div>
       <Handle

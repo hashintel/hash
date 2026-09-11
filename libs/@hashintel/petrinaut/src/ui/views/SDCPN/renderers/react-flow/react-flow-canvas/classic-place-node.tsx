@@ -2,12 +2,19 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { splitPascalCase } from "../../../../../lib/split-pascal-case";
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
+import { useSelectionVariant } from "../../../hooks/use-selection-variant";
+import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
+import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
@@ -19,100 +26,38 @@ const containerStyle = css({
   height: "full",
 });
 
-const placeCircleStyle = cva({
-  base: {
-    paddingY: "4",
-    paddingX: "2",
-    borderRadius: "[50%]",
-    width: "full",
-    height: "full",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "3",
-    minWidth: "0",
-    border: "2px solid color-mix(in oklab, black, white 35%)",
-    fontSize: "[15px]",
-    boxSizing: "border-box",
-    position: "relative",
-    textAlign: "center",
-    lineHeight: "[1.3]",
-    cursor: "default",
-    transition: "[outline 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    _hover: {
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-    },
-    _after: {
-      content: '""',
-      transition: "[all 0.1s ease]",
-      position: "absolute",
-      pointerEvents: "none",
-      borderRadius: "[inherit]",
-      inset: "[-2px]", // override to cover border, since parent uses box-sizing border-box
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      notSelectedConnection: {
-        borderColor: "neutral.s80",
-        _after: {
-          background: "[rgba(255, 255, 255, 0.5)]",
-        },
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
-  },
+const placeBoxStyle = css({
+  // A circle, since the node is square.
+  borderRadius: "[50%]",
+  // Wider than the transition's, to keep the name clear of the curve.
+  padding: "[8px 20px]",
+  fontSize: "[15px]",
+});
+
+const placeRowStyle = css({
+  height: "[18px]",
+});
+
+const placeLabelStyle = css({
+  lineClamp: "3",
 });
 
 const dynamicsIconStyle = css({
-  position: "absolute",
-  top: "[25px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  gap: "4",
-  justifyContent: "center",
   color: "blue.s110",
   fontSize: "lg",
 });
 
-const labelContainerStyle = css({
-  textAlign: "center",
-  padding: "[12px 0]",
-  lineHeight: "[1.1]",
-  maxWidth: "[100%]",
-  overflowWrap: "break-word",
-  lineClamp: "3",
-});
-
 const tokenCountBadgeStyle = css({
-  position: "absolute",
-  top: "[70%]",
-  fontSize: "base",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  height: "[18px]",
+  minWidth: "[22px]",
+  borderRadius: "[9px]",
+  padding: "[0 6px]",
+  fontSize: "sm",
   color: "neutral.s00",
   backgroundColor: "[black]",
-  minWidth: "[26px]",
-  height: "[26px]",
-  borderRadius: "[13px]",
-  padding: "[0 6px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -123,14 +68,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-    isHovered,
-  } = use(EditorContext);
+  const { globalMode, isHovered } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
@@ -149,19 +87,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
-  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
-  const label = splitPascalCase(data.label).join("\u200B");
+  // Wrap points let a long name break inside the box instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
-  // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  const selectionVariant = useSelectionVariant(id, selected);
 
   return (
     <div className={containerStyle}>
@@ -173,21 +102,29 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={handleStyling}
       />
       <div
-        className={placeCircleStyle({ selection: selectionVariant })}
-        style={{
-          borderColor: placeBorderColor(data.typeColor),
-          backgroundColor: placeFillColor(data.typeColor),
-        }}
+        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${classicNodeBoxStyle} ${placeBoxStyle}`}
+        style={
+          {
+            "--node-outline-color": placeBorderColor(data.typeColor),
+            backgroundColor: placeFillColor(data.typeColor),
+          } as React.CSSProperties
+        }
       >
-        {data.dynamicsEnabled && (
-          <div className={dynamicsIconStyle}>
-            <Icon name="function" size="sm" />
-          </div>
-        )}
-        <div className={labelContainerStyle}>{label}</div>
-        {tokenCount !== null && (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        )}
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+          {data.dynamicsEnabled ? (
+            <div className={dynamicsIconStyle}>
+              <Icon name="function" size="sm" />
+            </div>
+          ) : null}
+        </div>
+        <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
+          {label}
+        </div>
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+          {tokenCount === null ? null : (
+            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          )}
+        </div>
       </div>
       <Handle
         type="source"
