@@ -1,5 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { createPostgresWorkedModelStore as createPostgresStore } from "./worked-model-store/postgres.ts";
+
+import type { PostgresRunner } from "@flue/postgres";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -154,3 +157,9 @@ export const createInMemoryWorkedModelStore = (
     },
   };
 };
+
+export const createPostgresWorkedModelStore = (
+  runner: PostgresRunner,
+  createId: () => string = randomUUID,
+): WorkedModelStore =>
+  createPostgresStore(runner, fixtureSha256, definitionSha256, createId);
