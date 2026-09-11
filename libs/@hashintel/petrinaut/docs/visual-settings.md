@@ -33,6 +33,12 @@ Switch between two node rendering styles:
 
 Toggle freely -- this setting only affects rendering, not the underlying net.
 
+### Highlight on hover
+
+When enabled (the default), resting the pointer on a node highlights its [neighbourhood](drawing-a-net.md#neighbourhood-highlight): what feeds it, what it feeds, and the arcs between.
+
+Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
+
 ### Partial selection
 
 Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select-modes):

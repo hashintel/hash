@@ -104,6 +104,11 @@ export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
   dimensions: RenderNodeDimensions;
+  /**
+   * Whether anything is focused. Drives the muting of everything outside the
+   * neighbourhood from the pane, so a hover leaves the other items untouched.
+   */
+  focusActive: boolean;
 };
 
 export type CanvasSceneInput = {
@@ -114,6 +119,8 @@ export type CanvasSceneInput = {
   dimensions: RenderNodeDimensions;
   draggingStateByNodeId: DraggingStateByNodeId;
   isSelected: (id: string) => boolean;
+  /** The node under the pointer, once the hover has settled. */
+  hoveredId: string | null;
   focus: CanvasFocus;
 };
 
@@ -134,11 +141,12 @@ export const buildCanvasScene = ({
   dimensions,
   draggingStateByNodeId,
   isSelected,
+  hoveredId,
   focus,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
-    hovered: focus.hoveredId === id,
+    hovered: hoveredId === id,
     focus: focus.nodeFocus(id),
   });
 
@@ -272,5 +280,5 @@ export const buildCanvasScene = ({
     }
   }
 
-  return { nodes, arcs, dimensions };
+  return { nodes, arcs, dimensions, focusActive: focus.active };
 };

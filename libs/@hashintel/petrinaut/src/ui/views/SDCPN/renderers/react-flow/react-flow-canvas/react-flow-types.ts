@@ -16,7 +16,16 @@ export type TransitionFrameState = NonNullable<
   ReturnType<SimulationFrameReader["getTransitionState"]>
 >;
 
-export type PlaceNodeData = CanvasPlaceNode;
+export type PlaceNodeData = CanvasPlaceNode & {
+  /**
+   * Tokens in the viewed frame, or the initial marking before a run. Null
+   * hides the badge. Carried on the node so a place does not subscribe to a
+   * frame source that changes on every playback frame.
+   */
+  tokenCount: number | null;
+  /** Whether any frame exists to visualize. */
+  framesAvailable: boolean;
+};
 
 export type TransitionNodeData = CanvasTransitionNode & {
   /**

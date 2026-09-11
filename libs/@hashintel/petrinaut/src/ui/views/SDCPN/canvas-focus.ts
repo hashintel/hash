@@ -19,9 +19,13 @@ import {
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { Transition } from "@hashintel/petrinaut-core";
 
-/** Where a node sits relative to the focused item. */
+/**
+ * Where a node sits relative to the focused item. An unrelated node has no
+ * role: `active` tells the pane to mute everything that carries none, so a
+ * hover leaves those nodes' own data untouched.
+ */
 export type CanvasNodeFocus =
-  /** Nothing is focused: the net is drawn plainly. */
+  /** Nothing is focused, or nothing relates this node to what is. */
   | "none"
   /** The focused item itself. */
   | "focused"
@@ -30,9 +34,7 @@ export type CanvasNodeFocus =
   /** Fed by the focused item. */
   | "downstream"
   /** Both, so a cycle runs through the focused item. */
-  | "bidirectional"
-  /** Unrelated to the focused item. */
-  | "muted";
+  | "bidirectional";
 
 /** Where an arc sits relative to the focused item. */
 export type CanvasArcFocus =
@@ -42,14 +44,11 @@ export type CanvasArcFocus =
   /** Carries tokens into the focused item. */
   | "incoming"
   /** Carries tokens out of the focused item. */
-  | "outgoing"
-  | "muted";
+  | "outgoing";
 
 export type CanvasFocus = {
   /** Whether anything on the canvas is focused. */
   active: boolean;
-  /** The canvas item under the pointer, once the hover has settled. */
-  hoveredId: string | null;
   nodeFocus: (id: string) => CanvasNodeFocus;
   arcFocus: (id: string) => CanvasArcFocus;
 };
@@ -107,7 +106,6 @@ const directedArcs = (transitions: readonly Transition[]): DirectedArc[] => {
 
 const NOTHING_FOCUSED: CanvasFocus = {
   active: false,
-  hoveredId: null,
   nodeFocus: () => "none",
   arcFocus: () => "none",
 };
@@ -170,7 +168,6 @@ export const buildCanvasFocus = ({
 
   return {
     active: true,
-    hoveredId: hoveredId !== null && focusIds.has(hoveredId) ? hoveredId : null,
 
     nodeFocus: (id) => {
       if (isFocused(id)) {
@@ -187,7 +184,7 @@ export const buildCanvasFocus = ({
       if (fedByFocus) {
         return "downstream";
       }
-      return "muted";
+      return "none";
     },
 
     arcFocus: (id) => {
@@ -206,7 +203,7 @@ export const buildCanvasFocus = ({
       if (outOfFocus) {
         return "outgoing";
       }
-      return "muted";
+      return "none";
     },
   };
 };

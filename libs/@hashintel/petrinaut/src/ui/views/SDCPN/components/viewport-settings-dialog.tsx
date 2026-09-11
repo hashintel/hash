@@ -100,6 +100,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setShowMinimap,
     snapToGrid,
     setSnapToGrid,
+    highlightOnHover,
+    setHighlightOnHover,
     partialSelection,
     setPartialSelection,
     enableNetComponents,
@@ -154,6 +156,16 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         </SettingRow>
         <SettingRow label="Compact nodes">
           <Toggle value={compactNodes} onChange={setCompactNodes} size="sm" />
+        </SettingRow>
+        <SettingRow
+          label="Highlight on hover"
+          description="Highlight a node's inputs and outputs when the pointer rests on it"
+        >
+          <Toggle
+            value={highlightOnHover}
+            onChange={setHighlightOnHover}
+            size="sm"
+          />
         </SettingRow>
         <SettingRow
           label="Partial selection"

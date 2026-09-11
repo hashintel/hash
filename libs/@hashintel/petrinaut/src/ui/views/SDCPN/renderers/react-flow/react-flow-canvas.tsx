@@ -73,6 +73,28 @@ const paneStyle = css({
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
+  // A node outside the neighbourhood recedes from here, whole: card, label,
+  // token count and handles together, so nothing of it stays at full strength
+  // while the neighbourhood carries the colour. A node React Flow has marked
+  // selected is kept out of the fade as well: a drag-selection marks nodes
+  // before the change reaches the editor's selection, and until it does they
+  // wear the focus ring, so they must not be faded under it.
+  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected)":
+    {
+      opacity: "[0.4]",
+    },
+  // An arc outside the neighbourhood recedes from here, so a hover leaves
+  // every arc it did not touch alone. Only the strokes fade: an arc's weight
+  // is worth reading whether or not the arc carrying it is in focus.
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
+    {
+      opacity: "[0.45]",
+    },
+  // A minimap shape outside the neighbourhood drops right back: the map is
+  // small enough that anything short of that competes with the neighbourhood.
+  "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
+    opacity: "[0.12]",
+  },
 });
 
 const ReactFlowCanvasInner: CanvasRenderer = ({
@@ -147,6 +169,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         className={paneStyle}
+        data-focus-active={scene.focusActive ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,

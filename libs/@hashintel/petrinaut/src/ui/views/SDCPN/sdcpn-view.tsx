@@ -39,7 +39,7 @@ export const SDCPNView: React.FC<{
     containerSizeSettleMs,
   );
   const { petriNetId } = use(SDCPNContext);
-  const scene = useCanvasScene();
+  const scene = useCanvasScene(canvasContainer);
   const Renderer = canvasRenderers[defaultCanvasRenderer];
 
   return (

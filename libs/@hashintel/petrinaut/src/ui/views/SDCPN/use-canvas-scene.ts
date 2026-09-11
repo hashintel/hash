@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useState } from "react";
 
 import {
   classicNodeDimensions,
@@ -11,23 +11,34 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { buildCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
-import { useDebouncedValue } from "./hooks/util/use-debounced-value";
-import { HOVER_FOCUS_DELAY_MS } from "./styles/focus";
+import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
-/** The scene for the active net, as the editor currently shows it. */
-export const useCanvasScene = (): CanvasScene => {
+/**
+ * The scene for the active net, as the editor currently shows it. Takes the
+ * canvas element so the highlight can wait for the pointer to stop moving
+ * over it.
+ */
+export const useCanvasScene = (
+  canvasRef: React.RefObject<HTMLElement | null>,
+): CanvasScene => {
   const { activeNet } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, isSelected, selection, hoveredItem } =
     use(EditorContext);
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
-  // Trailing, so the neighbourhood only lights up once the pointer has come to
-  // rest: sweeping the canvas passes over nodes without any of them flashing.
-  const settledHoverId = useDebouncedValue(
-    hoveredItem?.id ?? null,
-    HOVER_FOCUS_DELAY_MS,
-  );
+  /*
+   * The hover follows the pointer only once it stops. Sweeping across the
+   * canvas passes over nodes without lighting any of them up, and what
+   * settles is whatever the pointer came to rest on rather than everything it
+   * crossed to get there.
+   */
+  const hoveredId = hoveredItem?.id ?? null;
+  const pointerAtRest = usePointerAtRest(canvasRef);
+  const [settledHoverId, setSettledHoverId] = useState(hoveredId);
+  if (pointerAtRest && settledHoverId !== hoveredId) {
+    setSettledHoverId(hoveredId);
+  }
 
   return buildCanvasScene({
     net: activeNet,
@@ -36,9 +47,12 @@ export const useCanvasScene = (): CanvasScene => {
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     draggingStateByNodeId,
     isSelected,
+    hoveredId: settledHoverId,
+    // With the highlight off, the neighbourhood answers to the selection
+    // alone; the hover still reaches the node it rests on.
     focus: buildCanvasFocus({
       net: activeNet,
-      hoveredId: settledHoverId,
+      hoveredId: highlightOnHover ? settledHoverId : null,
       selectedIds: new Set(selection.keys()),
     }),
   });

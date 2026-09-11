@@ -385,88 +385,95 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         </defs>
       )}
 
-      {/* Selection indicator: thick orange background stroke */}
-      {selected && (
-        <BaseEdge
-          id={`${id}-selection`}
-          path={arcPath}
-          style={selectionIndicatorStyle}
-        />
-      )}
-
-      {/* Focus casing: white around the arc's own stroke, the role's colour
-          around that, both drawn beneath it so the arc keeps its token type's
-          colour. Matches the bands a highlighted node wears. */}
-      {haloColor !== undefined && (
-        <>
-          <path
-            d={arcPath}
-            fill="none"
-            stroke={haloColor}
-            strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
-            strokeDasharray={strokeDasharray}
-            strokeLinecap={arcType === "read" ? "round" : "butt"}
-            style={{ pointerEvents: "none" }}
+      {/*
+        Everything that draws the arc, grouped so the pane can fade an arc
+        outside the neighbourhood without fading the weight label below,
+        which stays readable.
+      */}
+      <g className="arc-strokes">
+        {/* Selection indicator: thick orange background stroke */}
+        {selected && (
+          <BaseEdge
+            id={`${id}-selection`}
+            path={arcPath}
+            style={selectionIndicatorStyle}
           />
-          <path
-            d={arcPath}
-            fill="none"
-            stroke="white"
-            strokeWidth={BASE_STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
-            strokeDasharray={strokeDasharray}
-            strokeLinecap={arcType === "read" ? "round" : "butt"}
-            style={{ pointerEvents: "none" }}
-          />
-        </>
-      )}
+        )}
 
-      {/* Animated overlay path for firing visualization (no marker). */}
-      <path
-        ref={arcPathRef}
-        d={arcPath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={BASE_STROKE_WIDTH}
-        strokeDasharray={strokeDasharray}
-        strokeLinecap={arcType === "read" ? "round" : undefined}
-        style={{ pointerEvents: "none" }}
-      />
-
-      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
-      <BaseEdge
-        id={id}
-        path={arcPath}
-        markerEnd={markerEndOverride}
-        style={
-          strokeDasharray
-            ? {
-                ...style,
-                strokeDasharray,
-                strokeLinecap: arcType === "read" ? "round" : undefined,
-                stroke: strokeColor,
-              }
-            : { ...style, stroke: strokeColor }
-        }
-      />
-
-      {/* Perpendicular tick marks crossing inhibitor arcs */}
-      {arcType === "inhibitor" && tickMarks.length > 0 && (
-        <g style={{ pointerEvents: "none" }}>
-          {tickMarks.map((tick, index) => (
-            <line
-              // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
-              key={index}
-              x1={tick.x1}
-              y1={tick.y1}
-              x2={tick.x2}
-              y2={tick.y2}
-              stroke={strokeColor}
-              strokeWidth={BASE_STROKE_WIDTH}
-              strokeLinecap="round"
+        {/* Focus casing: white around the arc's own stroke, the role's colour
+            around that, both drawn beneath it so the arc keeps its token type's
+            colour. Matches the bands a highlighted node wears. */}
+        {haloColor !== undefined && (
+          <>
+            <path
+              d={arcPath}
+              fill="none"
+              stroke={haloColor}
+              strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
+              strokeDasharray={strokeDasharray}
+              strokeLinecap={arcType === "read" ? "round" : "butt"}
+              style={{ pointerEvents: "none" }}
             />
-          ))}
-        </g>
-      )}
+            <path
+              d={arcPath}
+              fill="none"
+              stroke="white"
+              strokeWidth={BASE_STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
+              strokeDasharray={strokeDasharray}
+              strokeLinecap={arcType === "read" ? "round" : "butt"}
+              style={{ pointerEvents: "none" }}
+            />
+          </>
+        )}
+
+        {/* Animated overlay path for firing visualization (no marker). */}
+        <path
+          ref={arcPathRef}
+          d={arcPath}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={BASE_STROKE_WIDTH}
+          strokeDasharray={strokeDasharray}
+          strokeLinecap={arcType === "read" ? "round" : undefined}
+          style={{ pointerEvents: "none" }}
+        />
+
+        {/* Main edge with marker - using BaseEdge for proper interaction handling */}
+        <BaseEdge
+          id={id}
+          path={arcPath}
+          markerEnd={markerEndOverride}
+          style={
+            strokeDasharray
+              ? {
+                  ...style,
+                  strokeDasharray,
+                  strokeLinecap: arcType === "read" ? "round" : undefined,
+                  stroke: strokeColor,
+                }
+              : { ...style, stroke: strokeColor }
+          }
+        />
+
+        {/* Perpendicular tick marks crossing inhibitor arcs */}
+        {arcType === "inhibitor" && tickMarks.length > 0 && (
+          <g style={{ pointerEvents: "none" }}>
+            {tickMarks.map((tick, index) => (
+              <line
+                // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
+                key={index}
+                x1={tick.x1}
+                y1={tick.y1}
+                x2={tick.x2}
+                y2={tick.y2}
+                stroke={strokeColor}
+                strokeWidth={BASE_STROKE_WIDTH}
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        )}
+      </g>
 
       {/* Labels container */}
       <g transform={`translate(${labelX}, ${labelY})`}>

@@ -3,10 +3,10 @@
  *
  * A focused node and its neighbours are ringed in colour — blue for what
  * feeds them, orange for what they feed, purple where a cycle makes a
- * neighbour both — and the rest of the net recedes only as far as a softer
- * border and label. This matches the Notebook's net graph, and it leaves
- * every node's own fill and token count as legible as it was before the
- * pointer arrived.
+ * neighbour both — and the rest of the net fades back whole, by a rule on
+ * the canvas pane that applies while a focus is active. The rings here are
+ * the only styles a highlighted item itself changes. This matches the
+ * Notebook's net graph.
  *
  * Panda reads the styles below statically, so the ring declarations are
  * spelled out rather than composed from the colour constants.
@@ -15,12 +15,6 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
 import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
-
-/**
- * How long the pointer has to rest before the neighbourhood lights up.
- * Sweeping across the canvas passes over nodes without any of them flashing.
- */
-export const HOVER_FOCUS_DELAY_MS = 100;
 
 const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
@@ -75,28 +69,10 @@ export const nodeFocusStyle = cva({
         outline:
           "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 25%)]",
       },
-      /**
-       * Border and label recede, the fill and the token count do not: the rest
-       * of the net stays readable, and stays put, while a neighbourhood is
-       * highlighted. A node's border colour is its own — a place's is its
-       * type's, set inline — so muting outranks it with `!important` rather
-       * than by stylesheet order. The label colour is inherited by a title;
-       * a subtitle already sits at this shade.
-       */
-      muted: { borderColor: "neutral.s45!", color: "neutral.s90" },
     },
   },
   defaultVariants: { focus: "none" },
 });
-
-/**
- * An arc's own stroke and arrowhead colour. An arc in the neighbourhood keeps
- * its token type's colour and takes the role's colour as a casing around it,
- * the way a node keeps its border inside its ring. Arcs away from the
- * neighbourhood keep that colour too, only lighter.
- */
-export const arcFocusColor = (focus: CanvasArcFocus, color: string): string =>
-  focus === "muted" ? `color-mix(in oklab, white 60%, ${color})` : color;
 
 /**
  * The colour of the casing drawn around an arc's stroke, or undefined for an
@@ -111,7 +87,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
       return UPSTREAM_COLOR;
     case "outgoing":
       return DOWNSTREAM_COLOR;
-    case "muted":
     case "none":
       return undefined;
   }
@@ -124,9 +99,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
  */
 export const ARC_WHITE_OVERHANG = 2;
 export const ARC_HALO_OVERHANG = ARC_WHITE_OVERHANG + 2;
-
-/** How far a shape off the neighbourhood recedes on the minimap. */
-export const MINI_MAP_MUTED_OPACITY = 0.3;
 
 /**
  * The ring colour for a shape on the minimap, or undefined for a shape that
@@ -145,7 +117,6 @@ export const miniMapFocusColor = (
       return DOWNSTREAM_COLOR;
     case "bidirectional":
       return BIDIRECTIONAL_COLOR;
-    case "muted":
     case "none":
       return undefined;
   }
