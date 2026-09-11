@@ -208,7 +208,6 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
     setEnableNotebookView: () => {},
-    setEnableAdHocScenarios: () => {},
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
