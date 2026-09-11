@@ -102,6 +102,13 @@ calibrate from scratch, and the cache is updated with what each batch
 learned. Only a selection that changes the initial marking (a scenario axis
 that shapes the initial state) still builds a new setup.
 
+Pipelined rungs lease the backend concurrently, and the ladder starts the
+next rung off the first streamed chunk — which, on a fresh marking, is the
+probe's. The backend therefore also tracks probes in flight per calibration
+key: a rung that starts while another still probes its marking waits for
+that calibration and adopts it instead of probing too, so one marking is
+probed once however the rungs overlap.
+
 Devices need explicit destruction and pipelined rungs lease the backend
 concurrently, so entries count leases: a displaced (or unsupported) entry
 destroys its device once the last lease ends. On the SIR bench story this
