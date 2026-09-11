@@ -100,11 +100,7 @@ impl ScopeResolver {
                         .change_context(VisibilityProofError::ComputeView)
                 },
                 |error: Report<VisibilityProofError>| {
-                    // the fieldless context names the stage without rendering store or filter data.
-                    tracing::warn!(
-                        error = %error.current_context(),
-                        "Failed to refresh the cached visibility scope"
-                    );
+                    tracing::warn!(?error, "failed to refresh the cached visibility scope");
                 },
             )
             .await

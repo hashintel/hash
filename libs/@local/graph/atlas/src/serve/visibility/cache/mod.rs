@@ -89,6 +89,30 @@ hashql_core::id::newtype! {
 
 hashql_core::id::newtype_producer!(struct PublicationProducer(Publication));
 
+/// One refresh's exclusive claim on a cache entry.
+///
+/// Dropping the guard clears that entry's claim. The refresh future owns the guard and releases
+/// it on completion, unwinding or future drop. Later refreshes remain subject to the retired-epoch
+/// checks in [`VisibilityCache::resolve`] and to the entry's expiry.
+struct RefreshClaim {
+    entry: Arc<CacheEntry>,
+}
+
+impl RefreshClaim {
+    /// The claimed entry's publication.
+    fn publication(&self) -> Publication {
+        self.entry.publication
+    }
+}
+
+impl Drop for RefreshClaim {
+    fn drop(&mut self) {
+        self.entry
+            .refreshing
+            .store(false, atomic::Ordering::Release);
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct CacheEntry {
     pub mask: VisibilityMask,
@@ -151,30 +175,6 @@ impl CacheEntry {
             .then(|| RefreshClaim {
                 entry: Arc::clone(entry),
             })
-    }
-}
-
-/// One refresh's exclusive claim on a cache entry.
-///
-/// Dropping the guard clears that entry's claim. The refresh future owns the guard and releases
-/// it on completion, unwinding or future drop. Later refreshes remain subject to the retired-epoch
-/// checks in [`VisibilityCache::resolve`] and to the entry's expiry.
-struct RefreshClaim {
-    entry: Arc<CacheEntry>,
-}
-
-impl RefreshClaim {
-    /// The claimed entry's publication.
-    fn publication(&self) -> Publication {
-        self.entry.publication
-    }
-}
-
-impl Drop for RefreshClaim {
-    fn drop(&mut self) {
-        self.entry
-            .refreshing
-            .store(false, atomic::Ordering::Release);
     }
 }
 
