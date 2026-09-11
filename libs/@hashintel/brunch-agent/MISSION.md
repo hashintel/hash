@@ -75,7 +75,8 @@ local persona-based development produces an accepted session + workpiece + net
 → getNetCompilationErrors returns clean | errors | pending for that version
 → Brunch repairs against a fresh observation when errors remain
 → applyAutoLayout records its pre/post hashes and position-only effects
-→ brunch_why locates the current revision and passage, or reports absence
+→ query_workpiece maps selected Petrinaut elements to their recorded mutation
+  revisions, workpiece passages and session turns, or reports absence
 → close/reopen resumes the same owned copy coherently
 ```
 
@@ -104,7 +105,8 @@ modes.
   — existing SQLite/Postgres adapter on which the catalogue and copy path
   must build.
 - [`docs/reference/architecture/topology.md`](docs/reference/architecture/topology.md)
-  — tool topology; reconcile it with the landed carrier, freshness and why
+  — tool topology; reconcile it with the landed carrier, freshness and
+  workpiece-query paths
   paths before acceptance.
 
 ## Proof
@@ -152,7 +154,7 @@ can count as acceptance:
 | The capability envelope is complete and honest | The canonical batch, plugin carrier and website-owned host executor admit the same operations. Every admitted shape verifies `applied` at the receiving boundary. An unadmitted shape is refused at its own position with the admitted names before anything applies. The dedicated [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) is the authority. |
 | Compiler feedback is version-correlated | A structurally applied dirty batch reports errors or pending, never stale success; repair begins from a fresh observation and reaches diagnostics for the repaired definition. Dependency changes invalidate all affected code. |
 | Layout is a recorded document mutation | `applyAutoLayout` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. |
-| Why uses recorded current-revision evidence | An ordinary why request obtains a fresh observation, locates the current workpiece revision and passage, and reports missing or ambiguous provenance without inventing a link. |
+| Workpiece query uses recorded current-revision evidence | An ordinary question about visible Petrinaut elements obtains a fresh observation, resolves element IDs to existing mutation-attempt revision IDs, maps those to current workpiece passages and relevant session turns, and reports missing or ambiguous provenance without inventing a link. |
 | Assistant modes are isolated | Host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. |
 
 Host-executor tests are not live-browser construction evidence. The portfolio
@@ -193,12 +195,14 @@ hold:
   wait may return `pending`; it never becomes clean by timeout.
 - Petrinaut's ELK layout is authoritative. Coordinates do not inherit
   operational basis, and nothing may mutate after the recorded final hash.
-- One model-facing explanation operation identifies the current workpiece
-  revision and passage and preserves absence or ambiguity. The Brunch app owns
-  canonical-history/current-document reconciliation; the SDCPN plugin owns
-  target location, mutation/effect interpretation and declared-basis meaning;
-  the workpiece layer owns revision and passage reads. Stable semantic
-  identity across arbitrary workpiece rewrites belongs to Missions 9 and 10.
+- `query_workpiece` is the one model-facing current-basis operation. Its
+  plugin-contributed selector accepts Petrinaut element IDs; the plugin resolves
+  them through recorded effects to existing per-operation mutation-attempt
+  tool-call IDs, which are the target mutation revision identities. Generic
+  workpiece code maps those IDs to workpiece revisions, passages and relevant
+  session turns. The Brunch app supplies authorized canonical history and
+  current-document reconciliation. Stable semantic identity across arbitrary
+  workpiece rewrites belongs to Missions 9 and 10.
 - Safeguards remain only when earned by an observed failure, external
   constraint or explicit owner requirement. The 30-operation maximum remains
   provisional; the retired 64 KiB schema threshold is not a provider limit.
@@ -229,7 +233,7 @@ hold:
 - The SDCPN plugin owns the selected carrier, formalism-specific operation
   policy, basis/effect interpretation and construction guidance.
 - The Brunch app owns composition, authorized history, browser/document
-  reconciliation, freshness, history-backed why execution, operational
+  reconciliation, freshness, workpiece-query history access, operational
   diagnostics and the Postgres catalogue/copy path.
 - The Petrinaut website owns browser execution, diagnostics/layout host
   integration, assistant selection and URL routing, including `?bundle=`.
@@ -282,15 +286,13 @@ hold:
   history is the product contract, not a predetermined module. The candidate
   projection is retained only if parity tests show that it removes duplicate
   interpretation without creating a store, identity scheme or authority.
-- **Why scope:** the current contract is limited to current-revision recorded
-  basis or an honest absent/ambiguous disposition. The one-tool/split-internals
-  authority shape is settled above; the model-facing name remains under owner
-  review.
-- **Workpiece query:** `query_workpiece` is the candidate replacement concept
-  for asking about target-formalism history: map named target-document
-  revisions through workpiece revision IDs to the relevant session-turn range.
-  Its input identity—whole-document revision/hash versus element/change
-  identity—must be settled before its schema or ownership is designed.
+- **Petrinaut tool family:** target operations should name the application they
+  actually wrap (`read_petrinaut`, `mutate_petrinaut`, and any separately
+  earned commands), not a generic Petri net. Settle whether document,
+  diagnostics, guide and layout operations are variants of fewer tools or
+  remain separate before renaming mounts. A possible package rename to
+  `@hashintel/brunch-plugin-process-petrinaut` follows that topology decision;
+  do not rename the package first.
 - **Question marker reliability:** `brunch_mark_question` supports Voice
   question replay when the model calls it with exact matching prose. Plumbing
   is proven; autonomous activation reliability is not. Decide whether this
