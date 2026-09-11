@@ -397,10 +397,9 @@ Only the pair case (`weight ≤ 2`) has a closed-form unranking that preserves
 the engine's ordering; wider arcs are refused. With kernels emitting too, the
 whole satellites net compiles once its places declare capacities — three
 lambdas, one dynamics, three kernels, 333 lines of WGSL over 552 bytes of
-state per run. (Its own experiment still runs on the CPU for an unrelated
-reason: two of its metrics reduce over token attributes, which only an
-expression metric can express, and the GPU serves only place-token-count
-metrics.)
+state per run. (Its two token-reducing metrics now compile as loops over the
+live slots; across the bundled examples only the two `.concat` metrics keep an
+experiment on the CPU.)
 
 Bring-up left five records worth keeping:
 
@@ -482,7 +481,9 @@ figure predates FE-1499: redrawing diverged against the then-inflated CPU
 test. With the CPU fixed, one consumed draw per enabled transition per frame
 is the shared rule, and FE-1553 aligned the shader to it — the committed
 `Dev / GpuParity` Storybook harness now measures the agreement instead of a
-hand-run comparison.)
+hand-run comparison. The harness also carries SIR's **Infected Fraction**
+expression metric beside the place count, so the same run checks a metric body
+evaluated in f32 on the device against the CPU's f64.)
 
 The run-count bound is gone: an experiment larger than the device's buffers
 runs as sequential tiles over one shared histogram buffer, which merges itself

@@ -182,12 +182,13 @@ value. After its start-up trials the TPE sampler conditions each proposal on
 the objectives it was told, so with **Parallel steps** at 1 the study proposes
 the same parameter values step for step while the objective values match;
 above 1 the constant-liar sampler also counts the trials in flight, and the
-proposals differ from a sequential study's. Every connected study runs on the
-CPU: the objective is an expression metric, which the GPU backend cannot
-compute, so `useGpuAvailability` reports it unavailable and the **Backend**
-switch stays disabled. `test_runtime_lock.py` in optimizer-core fails when the
-Optuna pin in `runtime-lock.json` differs from the version the package's own
-lockfile installs; the service resolves the same version range
-(`optuna>=4.9,<5`) in its own lockfile. The study lives in the tab: closing
-the page ends it, and because a connected run is kept in memory only, the next
-load shows no record for it.
+proposals differ from a sequential study's. A connected study runs on the GPU
+when its objective translates to WGSL (`useGpuAvailability` reads the
+compilation report); a study with state constraints still falls back to the
+CPU at run time, because their indicators aggregate over time.
+`test_runtime_lock.py` in optimizer-core fails when the Optuna pin in
+`runtime-lock.json` differs from the version the package's own lockfile
+installs; the service resolves the same version range (`optuna>=4.9,<5`) in
+its own lockfile. The study lives in the tab: closing the page ends it, and
+because a connected run is kept in memory only, the next load shows no record
+for it.
