@@ -126,8 +126,9 @@ export const PlanningTable = ({
           items={PLANNING_SORTERS}
           value={sortMenuValueOf(sort)}
           onChange={(key, direction) => applySort(sortFromMenu(key, direction))}
+          align="right"
           variant="ghost"
-          size="sm"
+          size="xs"
         />
       </div>
       <div className={threshold.tableScroll}>

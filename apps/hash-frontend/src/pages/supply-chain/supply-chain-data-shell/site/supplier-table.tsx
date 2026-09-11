@@ -90,8 +90,9 @@ export const SupplierTable = ({
             onChange={(key, direction) =>
               applySort(sortFromMenu(key, direction))
             }
+            align="right"
             variant="ghost"
-            size="sm"
+            size="xs"
           />
         </div>
         <div className={threshold.tableScroll}>
