@@ -8,7 +8,7 @@ const environment = {
   PETRINAUT_VOICE_PROVIDER: "live",
   OPENAI_VOICE_API_KEY: "server-only-secret",
 };
-const request = (overrides: RequestInit = {}) =>
+const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
   new Request("https://petrinaut.test/api/voice/live-session", {
     method: "POST",
     headers: {
@@ -77,6 +77,103 @@ describe("Live configuration and session creation", () => {
       expect(response.status).toBe(status);
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  test("cancels a chunked offer as soon as it exceeds the byte limit", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const cancel = vi.fn();
+    const chunks = [new TextEncoder().encode("v=0"), new Uint8Array(65_534)];
+    const pull = vi.fn(
+      (controller: ReadableStreamDefaultController<Uint8Array>) => {
+        const chunk = chunks.shift();
+        if (chunk) controller.enqueue(chunk);
+        else controller.close();
+      },
+    );
+    const body = new ReadableStream({ pull, cancel }, { highWaterMark: 0 });
+    const response = await createOpenAILiveSessionHandler({
+      environment,
+      fetch,
+    })(
+      request({
+        body,
+        duplex: "half",
+      }),
+    );
+    expect(response.status).toBe(413);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(pull).toHaveBeenCalledTimes(2);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("preserves an offer at the byte limit across split UTF-8 chunks", async () => {
+    const sdp = "v=0\r\n" + "x".repeat(65_529) + "é";
+    const encoded = new TextEncoder().encode(sdp);
+    expect(encoded.byteLength).toBe(65_536);
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoded.subarray(0, 65_535));
+        controller.enqueue(encoded.subarray(65_535));
+        controller.close();
+      },
+    });
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({
+        session: { id: "session" },
+        transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+      }),
+    );
+    const response = await createOpenAILiveSessionHandler({
+      environment,
+      fetch,
+    })(
+      request({
+        body,
+        duplex: "half",
+      }),
+    );
+    expect(response.status).toBe(201);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0]?.[1]?.body).toContain(
+      JSON.stringify({ type: "webrtc", sdp }),
+    );
+  });
+
+  test.each(["request", "deadline"])(
+    "cancels a stalled offer on %s abort without contacting the provider",
+    async (source) => {
+      const abort = new AbortController();
+      const timeout = vi.spyOn(AbortSignal, "timeout");
+      if (source === "deadline") timeout.mockReturnValue(abort.signal);
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      const cancel = vi.fn();
+      let controller!: ReadableStreamDefaultController<Uint8Array>;
+      const body = new ReadableStream<Uint8Array>({
+        start(streamController) {
+          controller = streamController;
+          controller.enqueue(new TextEncoder().encode("v=0"));
+        },
+        cancel,
+      });
+      const pending = createOpenAILiveSessionHandler({ environment, fetch })(
+        request({
+          body,
+          signal: source === "request" ? abort.signal : undefined,
+          duplex: "half",
+        }),
+      );
+      try {
+        abort.abort();
+        await vi.waitFor(() => expect(cancel).toHaveBeenCalledOnce());
+        expect((await pending).status).toBe(502);
+        expect(fetch).not.toHaveBeenCalled();
+      } finally {
+        // Release the broken implementation's read too, so a regression cannot leak work.
+        if (!cancel.mock.calls.length) controller.close();
+        await pending;
+        timeout.mockRestore();
+      }
     },
   );
 

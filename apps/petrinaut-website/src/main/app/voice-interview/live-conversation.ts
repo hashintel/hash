@@ -222,7 +222,16 @@ export const createLiveConversation = (
             ),
           );
       });
-      stream.getTracks().forEach((track) => connection.addTrack(track, stream));
+      stream.getTracks().forEach((track) => {
+        track.addEventListener(
+          "ended",
+          () => fail("Microphone disconnected."),
+          {
+            signal: abort.signal,
+          },
+        );
+        connection.addTrack(track, stream);
+      });
       await connection.setLocalDescription(await connection.createOffer());
       abort.signal.throwIfAborted();
       if (connection.iceGatheringState !== "complete") {
