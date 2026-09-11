@@ -752,6 +752,7 @@ describe("local storage demo prepared fixture", () => {
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
       "getLatestNetDefinition",
+      "getNetCompilationErrors",
       "mutate_petrinet",
       "readPetrinautDoc",
     ]);

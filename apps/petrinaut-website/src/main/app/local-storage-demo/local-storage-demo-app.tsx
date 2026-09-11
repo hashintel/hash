@@ -28,6 +28,7 @@ import {
 import {
   createJsonDocHandle,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
@@ -142,6 +143,7 @@ const constructionClientToolNames: ReadonlySet<string> = new Set([
 const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   mutatePetrinetToolName,
 ]);
 const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([

@@ -46,13 +46,51 @@ describe("selected mutation batch", () => {
         },
       ]),
     ).toThrow();
-    for (const type of [
-      "addType",
-      "addDifferentialEquation",
-      "addParameter",
-      "addScenario",
-      "addMetric",
-    ] as const) {
+    expect(
+      selectedMutationBatchSchema.parse([
+        {
+          operationId: "type",
+          type: "addType",
+          input: {
+            id: "item",
+            name: "Item",
+            iconSlug: "circle",
+            displayColor: "#1E90FF",
+            elements: [],
+          },
+        },
+        {
+          operationId: "parameter",
+          type: "addParameter",
+          input: {
+            id: "rate",
+            name: "Rate",
+            variableName: "arrival_rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        },
+        {
+          operationId: "dynamics",
+          type: "addDifferentialEquation",
+          input: {
+            id: "decay",
+            name: "Decay",
+            colorId: "item",
+            code: "return tokens.map(() => ({}));",
+          },
+        },
+        {
+          operationId: "repair-dynamics",
+          type: "updateDifferentialEquation",
+          input: {
+            equationId: "decay",
+            update: { code: "return tokens.map(() => ({}));" },
+          },
+        },
+      ]),
+    ).toHaveLength(4);
+    for (const type of ["addScenario", "addMetric"] as const) {
       expect(() =>
         selectedMutationBatchSchema.parse([
           {

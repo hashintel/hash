@@ -259,6 +259,66 @@ describe("root addArc transition semantics", () => {
     await verifyMutationAttempt(attempt);
   });
 
+  test("derives a dynamics-code update as a direct field change", () => {
+    const before: SDCPN = {
+      places: [],
+      transitions: [],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "decay",
+          name: "Decay",
+          colorId: "item",
+          code: "return definitelyNotDefined;",
+        },
+      ],
+      parameters: [],
+    };
+    const updateRequest: ConstructionMutationRequest = {
+      toolCallId: "repair-decay",
+      toolName: "updateDifferentialEquation",
+      binding: request.binding,
+      requestedBaseHash: observe(before).sha256,
+      input: {
+        equationId: "decay",
+        update: { code: "return tokens.map(() => ({}));" },
+      },
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.updateDifferentialEquation(updateRequest.input);
+    const after = instance.definition.get();
+    instance.dispose();
+    const effects = deriveMutationEffects(updateRequest, before, after);
+    expect(effects.updated).toEqual([
+      expect.objectContaining({
+        path: "/differentialEquations/0/code",
+        kind: "updated",
+      }),
+    ]);
+    expect(
+      classifyMutationOutcome({
+        request: updateRequest,
+        binding: updateRequest.binding,
+        pre: observe(before),
+        post: observe(after),
+        effects,
+      }),
+    ).toEqual({ outcome: "applied" });
+  });
+
   test("the first verified delivery stands unless a conflicting outcome makes it unknown", () => {
     const attempt = applied();
     expect(reconcileMutationAttempts([attempt, attempt]).outcome).toBe(
