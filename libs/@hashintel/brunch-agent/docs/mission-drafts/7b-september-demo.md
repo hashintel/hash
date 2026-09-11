@@ -147,11 +147,15 @@ The existing fourteen-operation catalog is departure evidence, not the selected 
 - Every reviewer role, authority hierarchy, contradiction and coexistence class.
 - The former full passage-edit/lifecycle/adversarial evaluation matrix or a population reliability claim.
 - General optimisation support or an accepted Chris/Yannis handoff.
+- Portable export or relocation beyond the database-backed template and working-copy path, generic identity-epoch breadth, or archive-lane hardening without observed history loss.
 
 ### Owner decisions before freezing the demo
 
 - Exact flagship and additional catalogue scenarios.
 - Required operation inventory and whether the model needs nested structure or deletion.
+- Exact identity guarantees for template origin, independent working copies and the correction path; general retirement epochs remain Mission 9 scope unless the selected trajectory requires them.
+- Whether the retained flagship history crosses compaction and therefore requires a forced-compaction/reopen proof; otherwise name the first later durability consumer.
+- Whether portable export or relocation beyond the database-backed scenario path is part of the demo claim.
 - Whether the live claim includes executable simulation and whether the correction must alter simulation results.
 - Whether optimisation is shown at all.
 - Whether Chris/Yannis participate as accepted consumers; if so, obtain their concrete input/output/question/execution/credibility contract rather than equating a UI action with handoff acceptance.
