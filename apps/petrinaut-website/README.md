@@ -147,10 +147,14 @@ Use headphones for the first trial. HTTPS or localhost and an OpenAI project
 with GPT-Live-1 access are required.
 
 Once connected, the existing Voice dock replaces the composer with
-**GPT-Live · Experimental · Connected**, collapse/expand and **End voice mode**.
-There is no separate experiment panel, replay menu, microphone toggle, or
-inferred listening/speaking turn state. Connection errors return to setup;
-starting again requires fresh consent.
+**Listening** or **Speaking**, collapse/expand and **End voice mode**.
+The experimental label appears only during consent. Local WebRTC audio levels
+drive the microphone ribbon and Speaking indicator; Listening means the session
+is open for input, including while output is active. These are activity indicators,
+not authoritative turn boundaries or proof of heard playback. Browsers without
+audio-level telemetry retain Listening without an animated input level.
+There is no separate experiment panel, replay menu, or microphone toggle.
+Connection errors return to setup; starting again requires fresh consent.
 
 **End voice mode**, **Exit experiment** during setup, closing the panel, switching to text,
 changing conversation, and leaving the page stop local experimental capture

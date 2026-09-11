@@ -60,7 +60,7 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
-test("reuses setup, reports connectivity to the host dock, and clears it on failure", async () => {
+test("reuses setup, reports listening and speaking to the host dock, and clears it on failure", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
   expect(
@@ -84,12 +84,45 @@ test("reuses setup, reports connectivity to the host dock, and clears it on fail
     screen.queryByRole("region", { name: "Voice mode consent" }),
   ).toBeNull();
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
-    phase: "connected",
+    phase: "listening",
     microphoneLevel: 0,
     microphoneMuted: false,
     errorMessage: null,
     notice: null,
   });
+  act(() =>
+    onState({
+      phase: "connected",
+      message: null,
+      activity: {
+        microphoneLevel: 0.24,
+        outputActive: true,
+      },
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "speaking",
+      microphoneLevel: 0.24,
+      microphoneMuted: false,
+    }),
+  );
+  act(() =>
+    onState({
+      phase: "connected",
+      message: null,
+      activity: {
+        microphoneLevel: 0.12,
+        outputActive: false,
+      },
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "listening",
+      microphoneLevel: 0.12,
+    }),
+  );
   const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
   expect(Object.keys(controls).sort()).toEqual(["end", "pause"]);
   act(() =>
