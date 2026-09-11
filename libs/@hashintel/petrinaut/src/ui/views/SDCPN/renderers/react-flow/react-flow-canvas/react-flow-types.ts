@@ -42,10 +42,7 @@ export type NodeType =
   | PlaceNodeType
   | ComponentInstanceNodeType;
 
-export type ArcData = Pick<
-  CanvasArc,
-  "kind" | "weight" | "selected" | "focus"
-> & {
+export type ArcData = Pick<CanvasArc, "kind" | "weight" | "focus"> & {
   /**
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.

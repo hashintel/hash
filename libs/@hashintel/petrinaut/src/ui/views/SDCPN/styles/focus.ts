@@ -47,11 +47,8 @@ export const nodeFocusStyle = cva({
     boxShadow:
       "[var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
     /**
-     * Only the ring and the glow fade. Muting changes a node's border and
-     * label, and all but a handful of nodes are muted, so animating those two
-     * would spend a hover's whole budget fading the nodes nobody is looking
-     * at: at 1000 nodes it cost around 95ms of script and 43ms of style
-     * recalculation per hover, for a change too small to watch.
+     * Only the ring and the glow fade. Muting recolours the border and label
+     * of most of the net at once, so those two switch rather than animate.
      */
     transition: "[outline-color 200ms ease, box-shadow 200ms ease]",
   },

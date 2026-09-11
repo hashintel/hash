@@ -281,10 +281,9 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   data,
   style,
   markerEnd,
+  selected,
 }) => {
   const { arcRendering } = use(UserSettingsContext);
-
-  const selected = data?.selected ?? false;
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
   const readMarkerId = `read-dot-${id}`;

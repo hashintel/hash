@@ -94,8 +94,8 @@ describe("buildCanvasFocus", () => {
   });
 
   it("marks a neighbour that is both a source and a sink as bidirectional", () => {
-    // p1 feeds t1 and t2 feeds p1, so from p1 the two transitions differ; from
-    // a place in a two-transition cycle the far place is reachable both ways.
+    // t1 consumes from p1 and produces into p1, so p1 is both upstream and
+    // downstream of it.
     const focus = buildCanvasFocus({
       net: {
         ...net,

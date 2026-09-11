@@ -54,7 +54,7 @@ export type CanvasFocus = {
   arcFocus: (id: string) => CanvasArcFocus;
 };
 
-export type CanvasFocusInput = {
+type CanvasFocusInput = {
   net: ActiveNetDefinition;
   /**
    * The hovered item, after the hover delay. Takes precedence over the

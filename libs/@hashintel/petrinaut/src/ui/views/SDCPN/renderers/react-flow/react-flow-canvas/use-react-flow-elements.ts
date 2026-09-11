@@ -76,7 +76,6 @@ const toReactFlowEdge = (
     data: {
       kind: arc.kind,
       weight: arc.weight,
-      selected: arc.selected,
       focus: arc.focus,
       frame: frameReader?.getTransitionState(arc.transitionId) ?? null,
     },
