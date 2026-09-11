@@ -511,7 +511,9 @@ const deriveNodeEffects = (
         ? Object.entries(change.after).map(
             ([field, after]): DefinitionChange => ({
               kind: "created",
-              path: `${path}/${field.replaceAll("~", "~0").replaceAll("/", "~1")}`,
+              path: `${path}/${field
+                .replaceAll("~", "~0")
+                .replaceAll("/", "~1")}`,
               after,
             }),
           )

@@ -213,15 +213,10 @@ const mutateCall = (
   );
 };
 
-const compilationText = (output: unknown) => {
-  assert.equal(typeof output, "string");
-  return output;
-};
-
 const mutationPostHash = (output: unknown) => {
   assert(output !== null && typeof output === "object");
   const record = output as { postHash?: unknown };
-  assert.equal(typeof record.postHash, "string");
+  assert(typeof record.postHash === "string");
   return record.postHash;
 };
 
