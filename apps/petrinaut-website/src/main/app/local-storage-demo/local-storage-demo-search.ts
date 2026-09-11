@@ -14,9 +14,15 @@ import {
  * coercing a fixture id into some other value; anything else drops out.
  */
 const optionalSearchStringSchema = z.string().optional().catch(undefined);
+const optionalBundleKeySchema = z
+  .string()
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
+  .optional()
+  .catch(undefined);
 
 const fixtureSearchSchema = z.object({
   [crewReservationFixtureQuery]: optionalSearchStringSchema,
+  bundle: optionalBundleKeySchema,
   brunchTracer: z
     .enum(["root-arc", "construction", "root-creation"])
     .optional()
@@ -27,8 +33,9 @@ export type LocalStorageDemoSearch = z.infer<typeof fixtureSearchSchema> &
   SharedExampleSearch;
 
 /**
- * The local demo URL names the prepared fixture it opened and speaks the
- * shared example contract for the location inside the net.
+ * The local demo URL names any prepared fixture, worked-model bundle or tracer
+ * it opened and speaks the shared example contract for the location inside
+ * the net.
  */
 export const validateLocalStorageDemoSearch = (
   input: Record<string, unknown>,
@@ -38,17 +45,17 @@ export const validateLocalStorageDemoSearch = (
 });
 
 /**
- * Replaces the contract part of the demo search and carries the fixture key
- * over. Every other route writes a contract-only search; here the fixture key
- * names the prepared conversation, and dropping it on the first selection
- * would silently swap the fixture's tools and conversation for the ordinary
+ * Replaces the contract part of the demo search while carrying the selected
+ * editor/session identity over. Dropping it on the first item selection would
+ * silently swap the bundle, fixture or tracer conversation for an ordinary
  * per-net conversation mid-session.
  */
-export const withBrunchFixtureKey = (
+export const withLocalStorageDemoIdentity = (
   current: LocalStorageDemoSearch,
   next: SharedExampleSearch,
 ): LocalStorageDemoSearch => ({
   [crewReservationFixtureQuery]: current[crewReservationFixtureQuery],
+  bundle: current.bundle,
   ...(current.brunchTracer === undefined
     ? {}
     : { brunchTracer: current.brunchTracer }),
@@ -76,6 +83,7 @@ export const localStorageDemoRouteIdentity = (
   search: LocalStorageDemoSearch,
 ):
   | "ordinary"
+  | "worked-model-bundle"
   | "root-arc-tracer"
   | "construction-candidate"
   | "root-creation-candidate"
@@ -88,4 +96,6 @@ export const localStorageDemoRouteIdentity = (
         ? "root-arc-tracer"
         : isCrewReservationFixtureSelected(search)
           ? crewReservationFixtureId
-          : "ordinary";
+          : search.bundle !== undefined
+            ? "worked-model-bundle"
+            : "ordinary";
