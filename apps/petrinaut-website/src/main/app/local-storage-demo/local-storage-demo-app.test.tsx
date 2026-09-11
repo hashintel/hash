@@ -50,6 +50,32 @@ const brunchPanelTransportOptions = vi.hoisted(() => ({
 }));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
+const workedModelHook = vi.hoisted(() => ({
+  current: {
+    copy: null as null | {
+      bundleKey: string;
+      copyId: string;
+      conversationId: string;
+      documentId: string;
+      incarnationId: string;
+      fixtureVersion: string;
+      principalKey: string;
+      title: string;
+      definition: {
+        places: unknown[];
+        transitions: unknown[];
+        types: unknown[];
+        parameters: unknown[];
+        differentialEquations: unknown[];
+      };
+      definitionSha256: string;
+    },
+    error: null as Error | null,
+    loading: false,
+    createCleanCopy: vi.fn(async () => undefined),
+    persistDefinition: vi.fn(async () => undefined),
+  },
+}));
 
 vi.mock("@flue/sdk", () => ({
   createFlueClient: () => flueClientMock.current,
@@ -66,16 +92,22 @@ vi.mock("./brunch-preview-config", () => ({
 const editorProps = vi.hoisted(() => ({
   current: null as {
     aiAssistant?: unknown;
-    navigation?: unknown;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
       title: string;
     }) => void;
+    existingNets?: unknown;
+    handle?: unknown;
+    navigation?: unknown;
+    title?: string;
   } | null,
 }));
 
 vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
+}));
+vi.mock("./use-worked-model-copy", () => ({
+  useWorkedModelCopy: () => workedModelHook.current,
 }));
 
 vi.mock("./brunch-panel-transport", async (importOriginal) => {
@@ -764,6 +796,84 @@ describe("local storage demo prepared fixture", () => {
     expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
       "mutate_petrinet",
     ]);
+  });
+});
+
+describe("worked-model bundle selection", () => {
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+    workedModelHook.current.copy = null;
+  });
+
+  test("opens the server-owned document and conversation selected by bundle", async () => {
+    stubStorage();
+    workedModelHook.current.createCleanCopy.mockClear();
+    workedModelHook.current.copy = {
+      bundleKey: "inventory-purchasing",
+      copyId: "copy-1",
+      conversationId: "bundle-conversation",
+      documentId: "bundle-document",
+      incarnationId: "bundle-incarnation",
+      fixtureVersion: "inventory-purchasing-v1",
+      principalKey: "test-principal",
+      title: "Inventory purchasing",
+      definition: {
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+      },
+      definitionSha256: "a".repeat(64),
+    };
+    flueClientMock.current = {
+      history: async () => ({
+        conversation: {
+          conversationId: "bundle-conversation",
+          settlements: [],
+          messages: [],
+        },
+        offset: "offset-0",
+      }),
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const assistant = editorProps.current?.aiAssistant as
+      | PetrinautAiAssistant
+      | undefined;
+    expect(assistant?.conversationId).toBe("bundle-conversation");
+    expect(assistant?.executeMutation).toBeDefined();
+    expect(editorProps.current?.existingNets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          netId: "bundle-document",
+          title: "Inventory purchasing",
+        }),
+      ]),
+    );
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Create a clean copy of this worked model/u,
+      }),
+    );
+    expect(workedModelHook.current.createCleanCopy).toHaveBeenCalledOnce();
   });
 });
 
