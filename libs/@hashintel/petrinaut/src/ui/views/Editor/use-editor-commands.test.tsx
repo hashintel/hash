@@ -51,7 +51,7 @@ describe("AI assistant command", () => {
   });
 
   it.each(["metaKey", "ctrlKey"])(
-    "opens from a text field with %s + Shift + K without a palette provider",
+    "opens before text-field handlers with %s + Shift + K without a palette provider",
     (modifier) => {
       const open = vi.fn();
       const { getByRole, unmount } = render(
@@ -61,6 +61,8 @@ describe("AI assistant command", () => {
         </>,
       );
       const input = getByRole("textbox");
+      const deleteLine = vi.fn((event: Event) => event.preventDefault());
+      input.addEventListener("keydown", deleteLine);
       input.focus();
       expect(
         fireEvent.keyDown(input, {
@@ -70,6 +72,7 @@ describe("AI assistant command", () => {
         }),
       ).toBe(false);
       expect(open).toHaveBeenCalledOnce();
+      expect(deleteLine).not.toHaveBeenCalled();
       unmount();
       fireEvent.keyDown(window, { key: "K", [modifier]: true, shiftKey: true });
       expect(open).toHaveBeenCalledOnce();

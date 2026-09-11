@@ -46,12 +46,14 @@ const useEditorCommands = (onOpenAiAssistant?: () => void): void => {
       event.key.toLowerCase() === "k"
     ) {
       event.preventDefault();
+      event.stopPropagation();
       onOpenAiAssistant();
     }
   });
   useEffect(() => {
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, []);
 
   // Listed whenever the document handle provides history; like the
