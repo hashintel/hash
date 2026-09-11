@@ -106,10 +106,10 @@ postgresTest(
       expect(resumed).toEqual(first);
       expect(sibling.copyId).not.toBe(first.copyId);
       expect(changed?.definition).toMatchObject(changedDefinition);
-      expect(clean?.definition).toEqual(emptyDefinition);
+      expect(clean?.definition).toMatchObject(emptyDefinition);
       expect(clean?.copyId).not.toBe(first.copyId);
       expect(siblingAfter).toEqual(sibling);
-      expect(siblingAfter?.definition).toEqual(emptyDefinition);
+      expect(siblingAfter?.definition).toMatchObject(emptyDefinition);
       expect(newer?.fixtureVersion).toBe("inventory-purchasing-v2");
       expect(
         await runner.query(

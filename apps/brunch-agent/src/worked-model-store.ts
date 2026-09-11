@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { parseSDCPNFile, type SDCPN } from "@hashintel/petrinaut-core";
+
 import { createPostgresWorkedModelStore as createPostgresStore } from "./worked-model-store/postgres.ts";
 
 import type { PostgresRunner } from "@flue/postgres";
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export interface WorkedModelFixture {
   readonly bundleKey: string;
@@ -52,6 +53,66 @@ export interface WorkedModelStore {
 
 export const definitionSha256 = (definition: SDCPN): string =>
   createHash("sha256").update(JSON.stringify(definition)).digest("hex");
+
+const nonBlank = (value: unknown, name: string): string => {
+  if (typeof value !== "string" || value.trim().length === 0)
+    throw new Error(`Worked-model fixture has no ${name}.`);
+  return value;
+};
+
+export const parseWorkedModelFixture = (value: unknown): WorkedModelFixture => {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    throw new Error("Worked-model fixture is not an object.");
+  const fixture = value as Record<string, unknown>;
+  const bundleKey = nonBlank(fixture.bundleKey, "bundleKey");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(bundleKey))
+    throw new Error(
+      "Worked-model fixture bundleKey is not lowercase kebab-case.",
+    );
+  const sourceManifestSha256 = nonBlank(
+    fixture.sourceManifestSha256,
+    "sourceManifestSha256",
+  );
+  if (!/^[0-9a-f]{64}$/u.test(sourceManifestSha256))
+    throw new Error("Worked-model fixture sourceManifestSha256 is invalid.");
+  const session = fixture.session;
+  if (
+    typeof session !== "object" ||
+    session === null ||
+    Array.isArray(session) ||
+    !("v" in session) ||
+    session.v !== 1 ||
+    !("conversationId" in session) ||
+    typeof session.conversationId !== "string" ||
+    !("messages" in session) ||
+    !Array.isArray(session.messages) ||
+    !("settlements" in session) ||
+    !Array.isArray(session.settlements)
+  )
+    throw new Error("Worked-model fixture session is invalid.");
+  const definitionValue = fixture.definition;
+  if (
+    typeof definitionValue !== "object" ||
+    definitionValue === null ||
+    Array.isArray(definitionValue)
+  )
+    throw new Error("Worked-model fixture definition is invalid.");
+  const parsedDefinition = parseSDCPNFile({
+    ...definitionValue,
+    title: "Worked-model fixture",
+  });
+  if (!parsedDefinition.ok) throw new Error(parsedDefinition.error);
+  const { title: _title, ...definition } = parsedDefinition.sdcpn;
+  return {
+    bundleKey,
+    fixtureVersion: nonBlank(fixture.fixtureVersion, "fixtureVersion"),
+    sourceManifestSha256,
+    title: nonBlank(fixture.title, "title"),
+    session: session as FlueConversationSnapshot,
+    workpiece: nonBlank(fixture.workpiece, "workpiece"),
+    definition,
+  };
+};
 
 const fixtureSha256 = (fixture: WorkedModelFixture): string =>
   createHash("sha256").update(JSON.stringify(fixture)).digest("hex");
@@ -106,7 +167,8 @@ export const createInMemoryWorkedModelStore = (
 
   return {
     seed: async (nextFixtures) => {
-      for (const fixture of nextFixtures) {
+      for (const nextFixture of nextFixtures) {
+        const fixture = parseWorkedModelFixture(nextFixture);
         const sha256 = fixtureSha256(fixture);
         const existing = fixtures.get(fixture.bundleKey);
         if (
@@ -163,5 +225,15 @@ export const createInMemoryWorkedModelStore = (
 export const createPostgresWorkedModelStore = (
   runner: PostgresRunner,
   createId: () => string = randomUUID,
-): WorkedModelStore =>
-  createPostgresStore(runner, fixtureSha256, definitionSha256, createId);
+): WorkedModelStore => {
+  const store = createPostgresStore(
+    runner,
+    fixtureSha256,
+    definitionSha256,
+    createId,
+  );
+  return {
+    ...store,
+    seed: (fixtures) => store.seed(fixtures.map(parseWorkedModelFixture)),
+  };
+};

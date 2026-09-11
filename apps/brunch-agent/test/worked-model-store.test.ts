@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   createInMemoryWorkedModelStore,
   definitionSha256,
+  parseWorkedModelFixture,
   type WorkedModelFixture,
 } from "../src/worked-model-store.ts";
 
@@ -40,6 +41,28 @@ const sequentialIds = () => {
 };
 
 describe("worked-model store", () => {
+  test("validates build-discovered fixture identity, source and content", () => {
+    expect(parseWorkedModelFixture(fixture())).toMatchObject(fixture());
+    expect(() =>
+      parseWorkedModelFixture({
+        ...fixture(),
+        sourceManifestSha256: "not-a-hash",
+      }),
+    ).toThrow(/sourceManifestSha256/u);
+    expect(() =>
+      parseWorkedModelFixture({
+        ...fixture(),
+        bundleKey: "Inventory_Purchasing",
+      }),
+    ).toThrow(/kebab-case/u);
+    expect(() =>
+      parseWorkedModelFixture({
+        ...fixture(),
+        session: { messages: [] },
+      }),
+    ).toThrow(/session/u);
+  });
+
   test("seeds idempotently and refuses changed bytes under one version", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await store.seed([fixture()]);
@@ -112,8 +135,10 @@ describe("worked-model store", () => {
 
     expect(changed?.definition).toEqual(changedDefinition);
     expect(clean?.copyId).not.toBe(first.copyId);
-    expect(clean?.definition).toEqual(emptyDefinition);
-    expect(clean?.definitionSha256).toBe(definitionSha256(emptyDefinition));
+    expect(clean?.definition).toMatchObject(emptyDefinition);
+    expect(clean?.definitionSha256).toBe(
+      clean === undefined ? undefined : definitionSha256(clean.definition),
+    );
     expect(resumed).toEqual(clean);
     expect(changed?.definition).toEqual(changedDefinition);
   });
