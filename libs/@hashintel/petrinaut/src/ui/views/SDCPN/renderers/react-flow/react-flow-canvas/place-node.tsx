@@ -54,8 +54,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  // Subscribed rather than carried on the node, so a frame re-renders this
-  // place only when its own count moves.
+  // A frame re-renders this place only when its own count moves.
   const tokenCount = usePlaceTokenCount(id);
   const framesAvailable = useFramesAvailable();
 

@@ -79,13 +79,6 @@ export type NetAdjacency = {
   arcEnds: ReadonlyMap<string, { sourceId: string; targetId: string }>;
 };
 
-const emptyAdjacency = (): NodeAdjacency => ({
-  upstream: [],
-  downstream: [],
-  incoming: [],
-  outgoing: [],
-});
-
 /**
  * Index one net. Walks its transitions once; every later question about a
  * neighbourhood is a map lookup.
@@ -100,7 +93,12 @@ export const buildNetAdjacency = (net: ActiveNetDefinition): NetAdjacency => {
     if (existing) {
       return existing;
     }
-    const created = emptyAdjacency();
+    const created: NodeAdjacency = {
+      upstream: [],
+      downstream: [],
+      incoming: [],
+      outgoing: [],
+    };
     byNode.set(id, created);
     return created;
   };

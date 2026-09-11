@@ -2,12 +2,10 @@
  * Per-frame values for the canvas, delivered by subscription rather than by
  * rebuilding the scene.
  *
- * A playback frame moves one number per place and one per transition. Those
- * used to ride on the React Flow node data, so a frame rebuilt every node and
- * arc and re-rendered the lot to move a handful of numbers. Here the values
- * live in a store whose identity never changes: the provider re-renders as
- * frames arrive, its `children` element does not, and an item subscribes to
- * its own value and re-renders only when that value moves.
+ * A playback frame moves one number per place and one per transition. The
+ * values live in a store whose identity never changes: the provider
+ * re-renders as frames arrive, its `children` element does not, and an item
+ * subscribes to its own value and re-renders only when that value moves.
  */
 
 import {
@@ -46,7 +44,7 @@ const EMPTY_SNAPSHOT: FrameSnapshot = {
   framesAvailable: false,
 };
 
-export type CanvasFrameStore = {
+type CanvasFrameStore = {
   subscribe: (listener: () => void) => () => void;
   /** Tokens to show on a place, or null for no badge. */
   getTokenCount: (placeId: string) => number | null;
@@ -69,11 +67,7 @@ const sameTransitionState = (
   right: TransitionFrameState | null,
 ): boolean =>
   left === right ||
-  (left !== null &&
-    right !== null &&
-    left.firingCount === right.firingCount &&
-    left.firedInThisFrame === right.firedInThisFrame &&
-    left.timeSinceLastFiringMs === right.timeSinceLastFiringMs);
+  (left !== null && right !== null && left.firingCount === right.firingCount);
 
 /**
  * Reads the frame source and publishes it to the canvas.
@@ -94,8 +88,8 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   const listeners = useRef(new Set<() => void>());
   /**
    * Read through on demand, so a frame costs the transitions actually
-   * mounted. Each entry is kept while its content holds, so a transition that
-   * did not move keeps its value and does not re-render.
+   * mounted. Each entry is kept while its firing count holds, so a transition
+   * that did not fire keeps its value and does not re-render.
    */
   const transitionCache = useRef(
     new Map<string, TransitionFrameState | null>(),
@@ -153,7 +147,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
     };
 
     // Re-read each transition that is mounted, and keep the previous value
-    // where the transition did not move, so only what changed re-renders.
+    // where the transition did not fire, so only what changed re-renders.
     const cache = transitionCache.current;
     for (const [transitionId, previous] of cache) {
       const next = currentFrameReader?.getTransitionState(transitionId) ?? null;

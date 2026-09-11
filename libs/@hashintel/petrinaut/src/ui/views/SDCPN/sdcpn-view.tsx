@@ -46,11 +46,6 @@ export const SDCPNView: React.FC<{
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
-        /*
-          The store re-renders as frames arrive; the renderer below it does
-          not, because this element is made here and handed down unchanged.
-          That is what keeps a playback frame off the canvas's render path.
-        */
         <CanvasFrameStoreProvider>
           <Renderer
             key={petriNetId}
