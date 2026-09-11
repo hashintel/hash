@@ -5,6 +5,7 @@
  * value entering the field as the runs complete. Pure; the card reads the
  * record and hands the pieces in.
  */
+import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
 import { sweepCellObjective } from "../../../../../../../react/experiments/sweep-cell-objective";
 import {
   type SurfaceField,
@@ -19,15 +20,6 @@ import type {
 } from "../../../../../../../react/experiments/parameter-grid";
 import type { ContourSurfaceMarker } from "../../../../../../components/contour-surface";
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
-
-/** The midpoint of a selection's range on one axis, in position space. */
-export const selectionMidpoint = (
-  selection: SweepSelection,
-  axis: ExperimentParameterAxis,
-): number => {
-  const range = selection[axis.identifier];
-  return range ? (range.from + range.to) / 2 : 0;
-};
 
 /** Whether the selection is a single point on every axis. */
 export const isPointSelection = (

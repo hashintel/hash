@@ -33,6 +33,7 @@ import {
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
+  selectionMidpoint,
 } from "./parameter-grid";
 import { type BatchStatus, createBatchRegistry } from "./shared/batch-registry";
 import { createThrottle } from "./shared/throttle";
@@ -214,18 +215,6 @@ const selectionPoint = (
   return position;
 };
 
-/** The midpoint position per axis, the value a ranged selection computes around. */
-const selectionMidpoint = (
-  axes: readonly ExperimentParameterAxis[],
-  selection: SweepSelection,
-): Readonly<Record<string, number>> =>
-  Object.fromEntries(
-    axes.map((axis) => {
-      const range = selection[axis.identifier]!;
-      return [axis.identifier, Math.round((range.from + range.to) / 2)];
-    }),
-  );
-
 type NavigationWaiter = {
   generation: number;
   /** Finished runs the waiter needs; the ladder's top when it cannot reach them. */
@@ -285,6 +274,14 @@ export function createSweepSession(
     snapshot: SweepCellSnapshot | null,
     ladderDone: boolean,
   ) => {
+    const position =
+      selectionPoint(axes, selection) ??
+      Object.fromEntries(
+        axes.map((axis) => [
+          axis.identifier,
+          Math.round(selectionMidpoint(selection, axis)),
+        ]),
+      );
     const remaining: NavigationWaiter[] = [];
     for (const waiter of waiters) {
       if (waiter.generation !== loopGeneration) {
@@ -300,9 +297,7 @@ export function createSweepSession(
           snapshot === null || snapshot.runsCompleted === 0
             ? null
             : {
-                position:
-                  selectionPoint(axes, selection) ??
-                  selectionMidpoint(axes, selection),
+                position,
                 runsCompleted: snapshot.runsCompleted,
                 means: snapshotMeans(snapshot.metricFrames),
               },

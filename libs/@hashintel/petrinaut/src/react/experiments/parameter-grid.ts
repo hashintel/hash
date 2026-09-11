@@ -74,6 +74,18 @@ export type SweepAxisSelection = { from: number; to: number };
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
 
 /**
+ * The midpoint of a selection's range on one axis, in position space. The
+ * selection is normalized, so every axis has a range.
+ */
+export const selectionMidpoint = (
+  selection: SweepSelection,
+  axis: ExperimentParameterAxis,
+): number => {
+  const range = selection[axis.identifier]!;
+  return (range.from + range.to) / 2;
+};
+
+/**
  * Cumulative run targets a combination climbs through as it is refined:
  * a small batch for a fast first picture, then progressively larger batches
  * so the viewed distributions sharpen quickly at first and keep improving
