@@ -424,7 +424,9 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         // The box is a portal but still a child of the node in the React
         // tree, so without this a press or a click anywhere on it, the
         // artwork, its scrollbar or the pin, also selects the place and opens
-        // its properties.
+        // its properties. The wrapper is only a surface for those, hence
+        // presentational: the pin inside it is the control.
+        role="presentation"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
