@@ -1,18 +1,14 @@
 //! Metadata-last publication preserves complete generations across independent object writes.
 
-use core::{fmt, pin::pin};
+use core::pin::pin;
 
 use bytes::Bytes;
 use tokio::io::AsyncReadExt as _;
 
 use self::backend::GenerationUploadBackend;
-use super::{Generation, GenerationId, GenerationRoot, METADATA_FILE};
+use super::{Generation, GenerationId, GenerationRoot, remote::RemoteRoot};
 use crate::{
-    file::storage::{
-        Revision, WriteCondition,
-        error::StorageError,
-        path::{FilePath, error::FilePathError},
-    },
+    file::storage::{Revision, WriteCondition, error::StorageError, path::FilePath},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -74,7 +70,7 @@ pub(crate) struct Promotion {
 pub(crate) struct Upload<'path, B> {
     backend: B,
     root: &'path GenerationRoot,
-    destination: &'path FilePath,
+    remote: &'path RemoteRoot,
     current: Option<Current>,
 }
 
@@ -98,17 +94,13 @@ where
         let mut this = Self {
             backend,
             root,
-            destination,
+            remote: RemoteRoot::from_ref(destination),
             current: None,
         };
 
-        this.current = Current::read(&this.backend, &this.path("generations/current")?).await?;
+        this.current = Current::read(&this.backend, &this.remote.current()?).await?;
 
         Ok(this)
-    }
-
-    fn path(&self, suffix: impl fmt::Display) -> Result<FilePath, FilePathError> {
-        self.destination.join(&suffix.to_string())
     }
 
     /// Opens the local publication `id` on a blocking worker.
@@ -195,10 +187,10 @@ where
     #[tracing::instrument(skip_all, fields(%id), err)]
     pub(crate) async fn upload(&self, id: GenerationId) -> Result<(), UploadError> {
         let mut generation = self.open(id).await?;
+        let repository = self.remote.repository(id)?;
 
         for file in generation.repository().files.files() {
-            let destination =
-                self.path(format_args!("generations/repository/{id}/{}", file.name))?;
+            let destination = repository.artifact(&file.name)?;
 
             // spawning in tokio not rayon as it's primarily I/O bound
             let hash = file.hash;
@@ -216,7 +208,7 @@ where
             self.finish_object(destination, hash, result).await?;
         }
 
-        let destination = self.path(format_args!("generations/repository/{id}/{METADATA_FILE}"))?;
+        let destination = repository.metadata()?;
 
         let result = self
             .backend
@@ -243,12 +235,14 @@ where
     #[tracing::instrument(skip_all, fields(%id), err)]
     pub(crate) async fn promote(self, id: GenerationId) -> Result<Promotion, UploadError> {
         let generation = self.open(id).await?;
-        let repository = self.path(format_args!("generations/repository/{id}/{METADATA_FILE}"))?;
+        let repository = self.remote.repository(id)?;
+        let active = self.remote.active(id)?;
 
-        self.verify_destination(repository, id.digest()).await?;
+        self.verify_destination(repository.metadata()?, id.digest())
+            .await?;
         for file in generation.repository().files.files() {
-            let source = self.path(format_args!("generations/repository/{id}/{}", file.name))?;
-            let destination = self.path(format_args!("generations/active/{id}/{}", file.name))?;
+            let source = repository.artifact(&file.name)?;
+            let destination = active.artifact(&file.name)?;
 
             let result = self
                 .backend
@@ -258,7 +252,7 @@ where
             self.finish_object(destination, file.hash, result).await?;
         }
 
-        let destination = self.path(format_args!("generations/active/{id}/{METADATA_FILE}"))?;
+        let destination = active.metadata()?;
 
         let result = self
             .backend
@@ -271,8 +265,8 @@ where
 
         self.finish_object(destination, id.digest(), result).await?;
 
-        let current = self.path("generations/current")?;
-        let previous = self.path("generations/previous")?;
+        let current = self.remote.current()?;
+        let previous = self.remote.previous()?;
 
         let previous_id = self.current.as_ref().map(|current| current.id);
         let condition = self.current.map_or(WriteCondition::Absent, |current| {

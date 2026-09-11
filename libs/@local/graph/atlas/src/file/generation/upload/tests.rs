@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::{
     super::{
         GenerationId, GenerationRoot, METADATA_FILE, ScratchDirectory,
-        tests::{make_writable, repository, root, stage_all},
+        tests::{make_writable, publish_noncanonical, repository, root},
     },
     Promotion, Upload,
     backend::GenerationUploadBackend,
@@ -68,14 +68,6 @@ fn seed(path: &Utf8Path, content: impl AsRef<[u8]>) {
     fs::create_dir_all(path.parent().expect("should have a parent"))
         .expect("should create the fixture directory");
     fs::write(path, content).expect("should write the fixture content");
-}
-
-fn make_readonly(path: &Utf8Path) {
-    let mut permissions = fs::metadata(path)
-        .expect("should stat the fixture artifact")
-        .permissions();
-    permissions.set_readonly(true);
-    fs::set_permissions(path, permissions).expect("should set the fixture artifact permissions");
 }
 
 /// A write precondition recorded without its revision.
@@ -297,26 +289,7 @@ impl GenerationUploadBackend for &Fixture {
 /// Publishes the fixture repository with noncanonical metadata.
 fn publish(root: &GenerationRoot) -> (SaltRepository, GenerationId) {
     let repository = repository();
-    let staging = root.stage().expect("should create the staging");
-    stage_all(&staging, &repository);
-    let published = staging.seal(&repository).expect("should seal the staging");
-
-    let sealed_path = root.generation_path(published.id());
-    let mut bytes =
-        fs::read(sealed_path.join(METADATA_FILE)).expect("should read the sealed metadata");
-    // Trailing JSON whitespace distinguishes the original encoding from reserialization.
-    bytes.extend_from_slice(b" \n");
-    let id = GenerationId::from_digest(Sha256Digest::of(&bytes));
-
-    let published_path = root.generation_path(id);
-    fs::rename(&sealed_path, &published_path)
-        .expect("should rename the generation directory to its recomputed identity");
-
-    let metadata_path = published_path.join(METADATA_FILE);
-    make_writable(&metadata_path);
-    fs::write(&metadata_path, &bytes).expect("should write the tampered metadata");
-    make_readonly(&metadata_path);
-
+    let id = publish_noncanonical(root, &repository);
     (repository, id)
 }
 

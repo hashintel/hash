@@ -21,10 +21,16 @@ use uuid::Uuid;
 use crate::integrity::{ParseHexError, Sha256Digest};
 
 mod document;
+pub(crate) mod download;
 mod error;
+#[cfg(any(test, feature = "test-utils"))]
+mod fixture;
 mod open;
+mod remote;
 pub(crate) mod scratch;
 mod staging;
+#[cfg(feature = "test-utils")]
+pub(crate) mod test_utils;
 #[cfg(test)]
 mod tests;
 pub(crate) mod upload;
@@ -75,7 +81,7 @@ pub(crate) struct GenerationId(Sha256Digest);
 impl GenerationId {
     #[inline]
     // salt/wire's tests.rs and fixtures.rs construct ids from raw digests
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
@@ -170,8 +176,8 @@ impl GenerationRoot {
     ///
     /// Returns an error when reading the pointer fails or its content does not name a generation.
     pub(crate) fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
-        // Parsed, never mapped: the pointer is one hex line, rewritten
-        // on every activation, and hand-editable for rollback.
+        // current is a hand-editable hexadecimal pointer for rollback. It is rewritten on every
+        // activation and never mapped.
         let content = match fs::read_to_string(self.path.join(CURRENT_FILE)) {
             Ok(content) => content,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -202,15 +208,56 @@ impl GenerationRoot {
             return Err(ActivateError::Unpublished(id));
         }
 
-        let temporary = self.path.join(format!(".current-{}", Uuid::now_v7()));
+        self.activate_locked(id)?;
+        Ok(())
+    }
 
-        let result = self.replace_pointer(&temporary, id);
-        if result.is_err() {
-            drop(fs::remove_file(&temporary));
+    /// Verifies a local publication before selecting it under the root lock.
+    ///
+    /// The lock excludes cooperating removal through metadata verification, artifact hashing and
+    /// pointer replacement. An existing directory with an incomplete or corrupt publication fails
+    /// verification. Only an absent directory returns [`ActivateError::Unpublished`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ActivateError`] for a missing publication, verification failure or filesystem
+    /// failure. An error after pointer rename can leave the new generation selected.
+    ///
+    /// # Complexity
+    ///
+    /// Reads every artifact in full while excluding other root mutations.
+    #[tracing::instrument(skip_all, err, fields(generation = %id))]
+    pub(crate) fn activate_verified(&self, id: GenerationId) -> Result<(), ActivateError> {
+        let _lock = self.lock()?;
+        match fs::metadata(self.generation_path(id)) {
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Err(ActivateError::Unpublished(id));
+            }
+            Err(error) => return Err(error.into()),
         }
 
-        result?;
+        let generation = self.open(id)?;
+        for file in generation.repository().files.files() {
+            file.verify(&generation)?;
+        }
+
+        self.activate_locked(id)?;
         Ok(())
+    }
+
+    fn activate_locked(&self, id: GenerationId) -> io::Result<()> {
+        let temporary = self.path.join(format!(".current-{}", Uuid::now_v7()));
+        let result = self.replace_pointer(&temporary, id);
+
+        if result.is_err()
+            && let Err(error) = fs::remove_file(&temporary)
+            && error.kind() != io::ErrorKind::NotFound
+        {
+            tracing::warn!(path = %temporary, ?error, "failed to remove temporary current pointer");
+        }
+
+        result
     }
 
     fn replace_pointer(&self, temporary: impl AsRef<Utf8Path>, id: GenerationId) -> io::Result<()> {
@@ -235,6 +282,7 @@ impl GenerationRoot {
             .create(true)
             .truncate(false)
             .open(self.path().join(LOCK_FILE))?;
+
         file.lock()?;
         Ok(file)
     }
