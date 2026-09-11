@@ -42,16 +42,15 @@ export const FavoriteMenuItem = ({
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const toggleFavorite = () => {
-    const newFavorites = isFavorite
-      ? preferences.favorites.filter(
-          (favorite) => !matchFavorite(favorite, item),
-        )
-      : [...preferences.favorites, item];
-
     void updateUser({
       preferences: {
-        ...preferences,
-        favorites: newFavorites,
+        favorites: (currentFavorites) => {
+          const withoutItem = currentFavorites.filter(
+            (favorite) => !matchFavorite(favorite, item),
+          );
+
+          return isFavorite ? withoutItem : [...withoutItem, item];
+        },
       },
     });
 
