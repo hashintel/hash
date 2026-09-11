@@ -41,6 +41,7 @@ const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
 
 const idleOptimizer: SweepOptimizer = {
   available: false,
+  studies: [],
   study: null,
   driving: null,
   start: () => Promise.resolve(),
