@@ -14,8 +14,7 @@ The same form appears in three places, always when **no scenario is selected**:
 
 1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, the **Parameters** and **Initial state** columns are the form's own tables: parameter overrides as a spreadsheet on the left, token counts and values in the middle -- no separate dialog. A **Clear** button appears next to the Initial state title once you have entries. There are no Variables in this embedding. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
 2. **Experiments** -- in the [create-experiment drawer](experiments.md#creating-an-experiment), choosing "No scenario" shows the form inside the Scenario section. The experiment's runs start from the state you defined, and the experiments table shows "Ad-hoc scenario" in its Scenario column. With [Parameter sweeps](experiments.md#parameter-sweeps) enabled, every numeric value carries a **Sweep** toggle (see below).
-3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **No scenario** too. This is the surface where the form shows **Optimize** controls (see below).
-4. **Scenario creation** -- [creating or editing a scenario](scenarios.md#creating-a-scenario) uses the same form with a **Scenario Parameter** toggle on each top-level Variable; see [Saved ad-hoc scenarios](#saved-ad-hoc-scenarios).
+3. **Scenario creation** -- [creating or editing a scenario](scenarios.md#creating-a-scenario) uses the same form with a **Scenario Parameter** toggle on each top-level Variable; see [Saved ad-hoc scenarios](#saved-ad-hoc-scenarios).
 
 ## The form
 
@@ -25,9 +24,9 @@ The form has up to three sections. Variables come first -- parameter overrides m
 - **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its value. An untouched parameter shows its default quietly, marked with a small `default` tag; enter an expression to override the value for this run -- it may read the Variables above. In the quick-simulation embedding this section is its own panel beside Initial state.
 - **Initial state** -- one block per place in the net. Each place's title carries its token colour dot (grey for untyped places).
 
-In the experiment and optimization drawers each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way everywhere, and a collapsed place shows a one-line summary of its rows and token total. In the quick-simulation embedding, places start collapsed.
+In the experiment drawer each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way everywhere, and a collapsed place shows a one-line summary of its rows and token total. In the quick-simulation embedding, places start collapsed.
 
-Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and -- in the optimization drawer -- the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor. Escape closes only the innermost thing that is open -- a completion list, a bound edit, the editor itself -- and never the drawer or dialog around the form; close those from their own buttons. Closing tidies a valid expression's formatting (spacing, redundant parentheses) without changing its meaning. A value may also be left **empty**: an empty cell reads as its type's neutral value -- 0 for numbers, `false` for booleans, `""` for text, the nil UUID -- shown grayed in the cell, and it is never an error. An empty dynamic-row count means 1 token; an empty place count means 0.
+Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and -- in the experiment drawer with sweeps enabled -- the Sweep control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor. Escape closes only the innermost thing that is open -- a completion list, a bound edit, the editor itself -- and never the drawer or dialog around the form; close those from their own buttons. Closing tidies a valid expression's formatting (spacing, redundant parentheses) without changing its meaning. A value may also be left **empty**: an empty cell reads as its type's neutral value -- 0 for numbers, `false` for booleans, `""` for text, the nil UUID -- shown grayed in the cell, and it is never an error. An empty dynamic-row count means 1 token; an empty place count means 0.
 
 Opening a value with Enter or a second click selects its whole content, so typing replaces it. Opening by typing keeps the caret right after what you typed.
 
@@ -37,7 +36,7 @@ Every table in the form is a keyboard grid: arrow keys move between cells, phant
 
 The walk does not stop at a table's edge: moving down from a table's last row continues to the next part of the form -- a section header, a place header, the next table -- and moving up continues backwards the same way. Collapsed sections are skipped.
 
-The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an Optimize toggle. Typing in one value counts as a single step, however long the pause; editing another value starts the next step. Redo restores exactly the state you undid from. An open text editor keeps its own text-level undo until you close it.
+The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, a Sweep toggle. Typing in one value counts as a single step, however long the pause; editing another value starts the next step. Redo restores exactly the state you undid from. An open text editor keeps its own text-level undo until you close it.
 
 ### Connections around the focused value
 
@@ -53,7 +52,7 @@ A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is 
 
 - **Fixed** (`#1`, `#2`, ...) -- the row emits exactly one token.
 - **Dynamic** (`i`, blue) -- the row emits many tokens: a quiet strip above the cells shows `×` and the row's **count expression**, and each cell is evaluated once per token with `i` running from `0` to `count - 1` (`count` is also available). The gutter's tooltip shows the row number.
-- **Count-optimized** (`i`, purple; optimizations only) -- a dynamic row whose count is an optimization parameter: the strip shows the count's bounds, `× 0 … 12`.
+- **Swept count** (`i`, purple; experiments with sweeps only) -- a dynamic row whose count is a swept parameter: the strip shows the count's bounds, `× 0 … 12`.
 
 Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**, and its cells follow the same selection model as every other cell: a first click selects one, and a second click (or Enter, or the row's `+` gutter) materializes a new fixed row. Remove a row from its gutter: the menu offers **Delete row**, and the Delete key removes it directly. In fixed rows, `i` is the row's position in the list and `count` is `1`.
 
@@ -71,15 +70,13 @@ A dynamic row's **count** may read the place's variables too, as long as their v
 
 ## Type checking
 
-Every expression is type-checked as you work. The open editor marks problems inline; a closed value with a problem underlines in red and shows the message when you hover it. Cells inherit their type from the token type's field; declared types exist on Variables and counts only. Structural rules (duplicate names, bounds that do not resolve, optimizing a text field) surface the same way, on the value they belong to.
+Every expression is type-checked as you work. The open editor marks problems inline; a closed value with a problem underlines in red and shows the message when you hover it. Cells inherit their type from the token type's field; declared types exist on Variables and counts only. Structural rules (duplicate names, bounds that do not resolve, sweeping a text field) surface the same way, on the value they belong to.
 
-## Optimize selections (optimizations only)
+## Sweep selections (experiments only)
 
-In the optimization drawer, every value slot -- cells, counts, variables, shared columns, and net parameters -- carries a labeled **Optimize** toggle, purple while on: under the open cell editor, and on the row for Variables and Parameters. Turning it on replaces the expression input with a small labeled spreadsheet: **Min**, **Max**, and **Scale** (linear or logarithmic) cells, plus **Step** for integer values other than counts. Each bound is an expression cell with the same selection model as the rest of the form -- select it, press Enter (or click again) to edit, Enter or Escape to leave; Escape from a selected cell closes the editor. A bound may be any expression, but it must resolve to a constant -- one that depends on a Variable or parameter shows an error. Turning Optimize off restores the expression you had, and the bounds are remembered too. An optimized value shows its bounds (`0 … 12`) on a purple slot.
+In the create-experiment drawer, with [Parameter sweeps](experiments.md#parameter-sweeps) enabled, every numeric value slot -- cells, counts, variables, shared columns, and net parameters -- carries a labeled **Sweep** toggle, purple while on: under the open cell editor, and on the row for Variables and Parameters. Turning it on replaces the expression with **Min** and **Max** cells; a sweep declares an interval and nothing else, so there is no Scale or Step. Each bound is an expression cell with the same selection model as the rest of the form -- select it, press Enter (or click again) to edit, Enter or Escape to leave; Escape from a selected cell closes the editor. Turning Sweep off restores the expression you had, and the bounds are remembered too. A swept value shows its bounds (`0 … 12`) on a purple slot. Boolean and text values offer no toggle, and changing a swept Variable to boolean turns its Sweep off; a cell muted by a shared column does not count. A row's gutter menu offers **Swept count** for a dynamic row's count.
 
-At least one Optimize selection is required to run; a cell muted by a shared column does not count. Text fields cannot be optimized; a boolean value optimizes as a true/false choice with no bounds; a ratio Variable's bounds, and the value behind them, must stay between 0 and 1.
-
-Each selection becomes a generated scenario parameter with a deterministic name, and optimization results attribute back to your selections by these names:
+Each selection becomes a swept parameter of the experiment with a deterministic name, shown in the sweep navigator under the value's path (`Space › item 0 › x`):
 
 - `adhoc_<place>_r<row>_<field>` -- a cell in a fixed or dynamic row.
 - `adhoc_<place>_col_<field>` -- a shared column value.
@@ -87,13 +84,7 @@ Each selection becomes a generated scenario parameter with a deterministic name,
 - `adhoc_var_net_<name>` -- a top-level Variable; place-scoped variables use the place's name as the scope.
 - `adhoc_param_<variable_name>` -- a net parameter override.
 
-Optimized values follow the same rules as [scenario parameter domains](optimization.md#search-domains): bounds must be expressions that resolve to finite constants, integer domains need integer bounds and a positive step, and logarithmic domains need a positive minimum. One optimized value cannot appear in another optimized value's bounds.
-
-## Sweep selections (experiments only)
-
-In the create-experiment drawer, with [Parameter sweeps](experiments.md#parameter-sweeps) enabled, every numeric value slot -- cells, counts, variables, shared columns, and net parameters -- carries a labeled **Sweep** toggle in the same places the Optimize toggle appears in the optimization drawer. Turning it on replaces the expression with **Min** and **Max** cells; a sweep declares an interval and nothing else, so there is no Scale or Step. Boolean and text values offer no toggle, and changing a swept Variable to boolean turns its Sweep off. A row's gutter menu offers **Swept count** in place of Optimized count.
-
-Each selection becomes a swept parameter of the experiment, named like an [Optimize selection](#optimize-selections-optimizations-only) and shown in the sweep navigator under the value's path (`Space › item 0 › x`). Bounds must resolve to constants, integer values need integer bounds, and the maximum must exceed the minimum; a value that does not run shows its problem on the bound, and the drawer's footer names it. The experiment then behaves like any [parameter sweep](experiments.md#parameter-sweeps): the initial state compiles at the navigator's selection, parameter overrides follow each run's draw.
+Bounds must resolve to constants, integer values need integer bounds, and the maximum must exceed the minimum; a value that does not run shows its problem on the bound, and the drawer's footer names it. The experiment then behaves like any [parameter sweep](experiments.md#parameter-sweeps): the initial state compiles at the navigator's selection, parameter overrides follow each run's draw.
 
 A saved scenario shown through the form in the experiment drawer offers the same toggle on each numeric scenario parameter row, so its parameters sweep exactly as they do in the classic rows.
 
@@ -107,4 +98,4 @@ Selecting a saved ad-hoc scenario in Simulation Settings shows it through the sa
 
 ## Errors
 
-Ad-hoc definitions are validated as you type, on the value they belong to, and again when you run. In quick simulation, compile problems also appear in the Simulation Settings error banner; in the experiment and optimization drawers, in the footer.
+Ad-hoc definitions are validated as you type, on the value they belong to, and again when you run. In quick simulation, compile problems also appear in the Simulation Settings error banner; in the experiment drawer, in the footer.

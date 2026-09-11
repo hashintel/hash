@@ -1,12 +1,12 @@
 /**
  * @layerRoot ui.views.editor.results
- * @role The one results surface an experiment drawer, an optimization drawer and the full study view render from a common view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame
+ * @role The one results surface the experiment drawer renders from a view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame, with the study's headline, columns, cards and steps filled in once a sweep has one
  *
  * The view renders a `ResultsModel` and nothing else: it reads no record and
- * no provider. The adapters that build the model live beside the records
- * they read; the panels only one kind has (a study's headline, its objective
- * by step, constraints, importance, steps, Pause and Resume) arrive filled in
- * as slots.
+ * no provider. The adapter that builds the model lives beside the record it
+ * reads; the members only a sweep with a study has (the headline, its
+ * step columns, the Constraints and Sensitivity cards, the steps table)
+ * arrive filled in or empty, and the view lays them out the same way.
  */
 import { Tooltip } from "@hashintel/ds-components";
 

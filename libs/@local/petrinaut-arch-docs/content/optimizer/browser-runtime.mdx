@@ -1,6 +1,6 @@
 ---
 title: The browser runtime
-description: How an optimization runs in the tab (Optuna in a Pyodide worker, trials as detached objective runs on the experiments backend), and what each side owns.
+description: How a sweep's study runs in the tab (Optuna in a Pyodide worker, each trial as one point of the sweep it drives), and what each side owns.
 sidebar_order: 10
 attachTo: core.optimization.browser
 ---
@@ -8,9 +8,11 @@ attachTo: core.optimization.browser
 Terms on this page: a **study** is one capability run, identified by its
 `runId`; a **step** in the UI is a **trial** in Optuna and in the contract; a
 **replicate** is one seeded simulation run of a trial; a **segment** is the
-trials between a run start or extension and a terminal event. A study
-evaluated in the tab is **connected**; one run by the optimizer service is
-**remote**.
+trials between a run start or extension and a terminal event. A source
+evaluated in the tab is **connected**; the optimizer service is **remote**.
+Since optimization folded into the Experiments tab, every study is started
+from a parameter sweep's Parameters card and evaluated through that sweep,
+and only a connected source can start one.
 
 An optimization needs an Optuna study that suggests parameter values and a
 simulator that scores them. The browser has both: Optuna runs under Pyodide,
@@ -21,28 +23,32 @@ between them. `createBrowserOptimization()` returns a
 to obtain a `PetrinautConnectedOptimizationCapability`: the
 `PetrinautOptimization` a remote service offers, plus `extendOptimizationRun`
 and `releaseOptimizationRun` for the study the worker keeps between segments.
-The drawers and the event schema ([the contract](layer:core.optimization)) are
-the same for both variants.
+The channel is the [sweep evaluator](layer:react.optimizations.sweep-evaluator),
+the one `PetrinautOptimizationChannel` left. The event schema
+([the contract](layer:core.optimization)) is the same for both variants.
 
 The provider reaches the source through `useOptimizationSource()`, which
 returns a connected source only while the experimental **In-browser
-optimization** user setting is on. Off, the hook returns `null`: the
-Optimizations tab hides, and the provider disposes the connection, which
-cancels every run made through it. A remote capability passes through the hook
-unchanged.
+optimization** user setting is on. Off, the hook returns `null`: the sweep's
+Optimize control and the Create Experiment drawer's Constraints section hide,
+and the provider disposes the connection, which cancels every run made
+through it. A remote capability passes through the hook unchanged, and the
+provider refuses to start a study on it.
 
 ![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 
 ## The data flow
 
-1. **Drawer → provider.** The create drawer builds an optimization manifest
-   (model snapshot, scenario, objective metric, parameter domains, study
-   settings including `seedsPerTrial`) and the provider calls
-   `createOptimizationRun(manifest, { parallelism })` on the connected
-   capability. `parallelism` comes from the create form's **Parallel steps**
-   field: 1 by default, at most `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`, and
-   fixed for the study's life. The requested compute backend travels beside
-   the manifest, on the record.
+1. **Parameters card → provider.** `useSweepOptimizer.start` builds the
+   manifest with `buildSweepOptimizationInput` (model snapshot, scenario,
+   the chosen metric and direction, one range domain per swept axis, the
+   record's `scenarioParameterValues` as the fixed bindings, the experiment's
+   constraints and pass threshold, `seedsPerTrial` at the run ladder's first
+   rung) and calls `createOptimization(input, { sweep })`; the provider
+   registers a sweep evaluator for the record and calls
+   `createOptimizationRun(manifest, { parallelism: 1 })` on the connected
+   capability. Steps run one at a time; the compute backend is the
+   experiment's own.
 2. **Capability → worker.** The capability parses the manifest
    (`parseOptimizationManifest`), describes the study with the
    `describeOptimization` the CLI uses, derives the trial seeds once
@@ -91,10 +97,11 @@ unchanged.
    provider consumes the log through `attachOptimizationRun`, which replays it
    from a cursor and then tails it, so a re-attach delivers each event once.
    The sweep the study drives carries the local side: its navigator follows
-   each step and its Surface gains a dot per step
+   each step, its Surface gains a dot per step, and its drawer shows the
+   study's headline, columns, cards and steps
    ([sweep orchestration](doc:experiments/sweep-orchestration)).
 
-## Stop, Continue and Remove
+## Stop, extension and Remove
 
 A run's log is a sequence of segments, each begun by `started` (carrying the
 cumulative `requestedTrials`) and ended by a terminal event. The capability
@@ -114,14 +121,16 @@ marks the run `finished-resumable`. The study stays in the worker. Every
 terminal event carries `resumable`: `true` when the study stays in the worker,
 `false` when the run failed or its first segment never reached the worker,
 as when a study is stopped while the runtime still loads or another study
-holds the worker. The host offers Continue from that flag alone.
+holds the worker.
 
-**Continue** calls `extendOptimizationRun(runId, trials)`. The capability
-computes the new total from the trials the log holds (`requestedTotal`),
-checks it against `PETRINAUT_OPTIMIZATION_MAX_TRIALS`, appends `started` with
-that total and queues `extend { runId, trials }`; the segment inherits the
-run's parallelism, and the trials continue Optuna's numbering. The provider
-then re-runs its attach loop from the record's `lastSeq`.
+**Extension** is `extendOptimizationRun(runId, trials)`, a capability method
+no editor surface calls since optimization moved into the Experiments tab (the
+old drawer's Continue and Resume went with it). The capability computes the new total from the trials the log
+holds (`requestedTotal`), checks it against
+`PETRINAUT_OPTIMIZATION_MAX_TRIALS`, appends `started` with that total and
+queues `extend { runId, trials }`; the segment inherits the run's parallelism,
+and the trials continue Optuna's numbering. A stopped sweep study is done: a
+further Optimize on the same sweep creates a new run.
 
 **Remove** calls `releaseOptimizationRun(runId)`, which cancels a running
 segment and posts `release { runId }`; the worker drops the study after the
@@ -150,15 +159,17 @@ run, drops every study and terminates the worker.
   retryable `optimizer_unavailable`, and the next queued run starts a fresh
   worker; an error raised by the Python study fails the run with
   `study_failed`.
-- **The channel** owns the mapping between a trial and a detached run: the
-  request, the outcome, and the `trialStarted`/`trialSettled` callbacks.
-- **The experiments provider** owns simulation: compilation cached per
-  `cacheKey`, the backend choice per study, seeding, frames and progress
-  streamed on a 100 ms throttle, and the per-`queueKey` queue.
-- **The sweep evaluator** owns the drawer's local state through the sweep it
-  drives: the navigator follows each step, the Surface gains a dot per step,
-  and the experiment drawer shows the study
+- **The sweep evaluator** (the channel) owns the mapping between a trial and
+  a point of the sweep: the snap, the parameter-constraint verdict, the
+  `navigateSweep` call with the trial's run cap, and the outcome with its
+  state-constraint counts. Through the sweep it drives it also owns the
+  drawer's local state: the navigator follows each step, the Surface gains a
+  dot per step, and the experiment drawer shows the study
   ([sweep orchestration](doc:experiments/sweep-orchestration)).
+- **The experiments provider** owns simulation: the sweep session's ladder,
+  the backend chosen at the experiment's creation, the sweep's common random
+  numbers, frames and progress streamed on a 100 ms throttle, and the
+  indicator metrics a state constraint adds to every request.
 
 ## Parity with the service
 
@@ -167,19 +178,21 @@ the sampler runs the same Optuna version with the same seed and the same
 number of start-up trials: `create_study` in
 [optimizer-core](layer:optimizer-core) sets the TPE sampler's
 `n_startup_trials` to `tpe_startup_trials(trials)`, a third of the requested
-trials, at least 2 and at most Optuna's default of 10. On the CPU pool the
-request pins every run's seed (`runs: [{ seed }]`), so a trial's replicates
-run on the seeds the CLI runs and the trial reports the service's objective
-value. After its start-up trials the TPE sampler conditions each proposal on
-the objectives it was told, so with **Parallel steps** at 1 the study proposes
-the same parameter values step for step while the objective values match;
-above 1 the constant-liar sampler also counts the trials in flight, and the
-proposals differ from a sequential study's. A connected study runs on the GPU
-when its objective translates to WGSL (`useGpuAvailability` reads the
-compilation report). The drawer's gate also carries one `min`-aggregated spec
-per drafted state constraint, as the run carries their indicators, so a study
-with state constraints is refused at the switch with the sentence the run-time
-gate would give rather than falling back after the switch was flipped.
+trials, at least 2 and at most Optuna's default of 10. After its start-up
+trials the TPE sampler conditions each proposal on the objectives it was
+told, so a study proposes the same parameter values as the CLI step for step
+while the objective values match. The objective values themselves come from
+the sweep: a trial's replicates are the sweep's runs at the snapped point,
+seeded by the experiment's seed and each run's position (common random
+numbers across every point), not the trial seeds
+`deriveOptimizationTrialSeeds` derives, so a sweep study's values are the
+sweep's, comparable across its own steps rather than with a CLI run. The
+study runs on the backend the experiment chose at creation; the Create
+Experiment drawer's GPU gate carries one `min`-aggregated spec per drafted
+state constraint, as the sweep's requests carry their indicators, so a sweep
+with state constraints is refused at the switch with the sentence the
+run-time gate would give rather than falling back after the switch was
+flipped.
 `test_runtime_lock.py` in optimizer-core fails when the Optuna pin in
 `runtime-lock.json` differs from the version the package's own lockfile
 installs; the service resolves the same version range (`optuna>=4.9,<5`) in

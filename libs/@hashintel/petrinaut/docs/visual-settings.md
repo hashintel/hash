@@ -48,7 +48,7 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ### Ad-hoc scenarios (experimental)
 
-Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment and optimization drawers, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
+Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment drawer, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
 
 ### WebGPU (experimental)
 
@@ -64,7 +64,7 @@ Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in t
 
 ### In-browser optimization (experimental)
 
-Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, a sweep's Parameters card offers **Optimize** and the Create Experiment drawer offers **Constraints**; each study's steps run on the experiments backend and the experiment drawer follows the step being evaluated (see [Running in the browser](optimization.md#running-in-the-browser)). Off, both hide and any running in-browser optimization is cancelled.
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, a sweep's Parameters card offers **Optimize** and the Create Experiment drawer offers **Constraints**; off, both hide and any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ### Arcs rendering
 

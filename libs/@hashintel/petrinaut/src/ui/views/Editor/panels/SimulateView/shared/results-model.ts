@@ -1,9 +1,9 @@
 /**
  * What a results surface shows, as plain data: the view-model `ResultsView`
- * renders for an experiment and for an optimization study alike. The
- * adapters (`experimentResultsModel`, `studyResultsModel`) map a record onto
- * it; the view knows neither record. What differs between the two kinds is
- * data and a few extra panels, so the panels only one kind has are slots.
+ * renders for an experiment, with or without a study driving its sweep. The
+ * adapter (`experimentResultsModel`) maps a record onto it; the view knows
+ * no record. What a study adds is data and a few extra panels, so the panels
+ * only a study has are optional members the adapter fills once one exists.
  */
 import type { ChartCardTone } from "./chart-card";
 import type { ComputeBackendSummary } from "./compute-backend-badge";
