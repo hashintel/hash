@@ -17,7 +17,10 @@ import {
   makeExperiment,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
-import { ViewExperimentDrawer } from "./view-experiment-drawer";
+import {
+  describeExperiment,
+  ViewExperimentDrawer,
+} from "./view-experiment-drawer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { ReactNode } from "react";
@@ -138,6 +141,43 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toMatch(/^\d+ active, \d+ complete$/u);
     expect(screen.getByText("Selection")).toBeTruthy();
     expect(screen.getByText("CPU")).toBeTruthy();
+  });
+
+  it("names the dialog after its one-line title", () => {
+    renderDrawer(sweep);
+
+    expect(
+      screen.getByRole("dialog", { name: describeExperiment(sweep) }),
+    ).toBeTruthy();
+  });
+
+  it("opens the next experiment's Parameters unfolded when the drawer swaps records in place", () => {
+    const view = renderDrawer(sweep);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse Parameters" }),
+    );
+    expect(
+      document
+        .querySelector("[data-frame-band]")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("true");
+
+    view.rerender(
+      <ViewExperimentDrawer
+        open
+        onClose={() => {}}
+        experiment={{ ...sweep, id: "experiment-5" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Collapse Parameters" }),
+    ).toBeTruthy();
+    expect(
+      document
+        .querySelector("[data-frame-band]")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("false");
     expect(screen.queryByText("Summary")).toBeNull();
     expect(document.querySelector("[data-frame-progress]")).toBeTruthy();
     expect(screen.getByText("Parameters")).toBeTruthy();

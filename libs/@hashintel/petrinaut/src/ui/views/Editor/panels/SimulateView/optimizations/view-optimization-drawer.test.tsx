@@ -263,6 +263,16 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.queryByTitle("Best step")).toBeNull();
   });
 
+  it("names the dialog after the study's one-line title", () => {
+    renderDrawer(remote);
+
+    expect(
+      screen.getByRole("dialog", {
+        name: /^Maximize profit · .+ · Maximize .+$/u,
+      }),
+    ).toBeTruthy();
+  });
+
   it("names the scenario and the objective in the one-line title", () => {
     renderDrawer(remote);
 
@@ -1098,7 +1108,10 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
 
     const note = document.querySelector<HTMLElement>("[data-frame-note]")!;
     expect(note.style.height).toBe("20px");
-    expect(note.querySelector("[data-resume-note]")).toBeTruthy();
+    expect(note.textContent).toMatch(
+      /^Resuming continues the study's history/u,
+    );
+    expect(note.title).toBe(note.textContent);
   });
 
   it("leaves the objective card's height alone when its aggregation changes", () => {

@@ -43,7 +43,8 @@ export {
 
 /** The reserved row under the header: a note in the muted or the error tone. */
 export type FrameNote = {
-  content: ReactNode;
+  /** One line; it is also the row's tooltip when the line clips. */
+  content: string;
   tone: "muted" | "error";
 };
 
@@ -210,7 +211,7 @@ export const DrawerFrame = ({
         data-frame-note
         data-tone={note?.tone ?? "muted"}
         style={{ height: FRAME_NOTE_HEIGHT }}
-        title={typeof note?.content === "string" ? note.content : undefined}
+        title={note?.content}
       >
         {note?.content}
       </div>
@@ -235,6 +236,8 @@ export const DrawerFrame = ({
       onClose={drawer.onClose}
       swapKey={drawer.swapKey}
       initialFocusRef={bodyRef}
+      // The header holds no ds Title, so the dialog takes its name from here.
+      aria-label={title}
     >
       <Drawer.Header className={drawerHeaderStyle}>{header}</Drawer.Header>
       <Drawer.Body withPadding={false} className={drawerBodyStyle}>

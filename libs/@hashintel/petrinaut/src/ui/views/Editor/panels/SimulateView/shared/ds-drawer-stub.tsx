@@ -7,7 +7,17 @@
 import type { ReactNode } from "react";
 
 export const Drawer = Object.assign(
-  ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ({
+    children,
+    "aria-label": ariaLabel,
+  }: {
+    children: ReactNode;
+    "aria-label"?: string;
+  }) => (
+    <div role="dialog" aria-label={ariaLabel}>
+      {children}
+    </div>
+  ),
   {
     Header: ({ children }: { children: ReactNode }) => (
       <header>{children}</header>

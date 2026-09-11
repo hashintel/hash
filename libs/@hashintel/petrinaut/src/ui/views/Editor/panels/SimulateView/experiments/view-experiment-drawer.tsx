@@ -110,7 +110,14 @@ export const ViewExperimentDrawer = ({
       }
     >
       {sweep ? (
-        <FrameBand title="Parameters" help={PARAMETERS_HELP} collapsible>
+        // Keyed so a fold never carries from one experiment into another when
+        // the drawer swaps records in place.
+        <FrameBand
+          key={experiment.id}
+          title="Parameters"
+          help={PARAMETERS_HELP}
+          collapsible
+        >
           <SweepNavigator
             axes={experiment.parameterAxes}
             selection={sweep.selection}

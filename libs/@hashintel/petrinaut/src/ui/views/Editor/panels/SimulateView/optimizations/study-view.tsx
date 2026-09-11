@@ -179,12 +179,8 @@ const studyNote = (optimization: OptimizationRecord): FrameNote | null => {
   }
   if (optimization.status === "paused" && optimization.connected) {
     return {
-      content: (
-        <span data-resume-note>
-          Resuming continues the study's history; it does not reproduce the
-          draws an uninterrupted run would have made.
-        </span>
-      ),
+      content:
+        "Resuming continues the study's history; it does not reproduce the draws an uninterrupted run would have made.",
       tone: "muted",
     };
   }
@@ -298,7 +294,10 @@ const ConnectedStudyBody = ({
 
   return (
     <>
+      {/* Keyed so a fold never carries from one study into another when the
+          drawer swaps records in place. */}
       <NavigatorBand
+        key={optimization.id}
         optimization={optimization}
         connected={connected}
         running={phase === "live"}
