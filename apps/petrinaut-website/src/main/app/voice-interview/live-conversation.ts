@@ -105,7 +105,7 @@ export const createLiveConversation = (
     peers.get("transcription")?.close();
     onState({
       phase: "stopping",
-      message: "Microphone and playback stopped. Closing Live…",
+      message: `${failure ? `${failure} ` : ""}Microphone and playback stopped. Closing Live…`,
     });
     const liveChannel = channels.get("live");
     if (liveChannel?.readyState === "open" && ready.has("live")) {
@@ -123,9 +123,14 @@ export const createLiveConversation = (
 
   const fail = (message: string) => {
     if (stopping) return;
+    // Only application-authored errors reach this function, never raw provider
+    // events, SDP, credentials or transcripts. Preserve the first failure even
+    // when the panel is collapsed or no longer showing the consent card.
+    // oxlint-disable-next-line no-console -- local connection diagnostics for the manual experiment.
+    console.warn("[Petrinaut Live]", message);
     failure = message;
-    stopping = true;
-    finish(false);
+    if (ready.has("live")) void stop();
+    else finish(false);
   };
 
   const sampleActivity = async () => {

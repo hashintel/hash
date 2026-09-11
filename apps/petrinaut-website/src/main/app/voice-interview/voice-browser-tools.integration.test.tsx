@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
@@ -21,6 +21,11 @@ import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
+  // jsdom has no clipboard commands. Monaco probes this API at module load.
+  document.queryCommandSupported = () => false;
+  // This fixture checks Voice/tool behavior, not editor icon CSS. Keep the
+  // style-only shim alive for Monaco's lazy initialization across test cases.
+  window.CSS = { ...window.CSS, escape: (value) => value };
   window.matchMedia = (media) => ({
     media,
     matches: false,
@@ -32,6 +37,13 @@ vi.hoisted(() => {
     dispatchEvent: () => true,
   });
 });
+
+beforeAll(async () => {
+  // The real panel loads Monaco lazily. Resolve its browser capability checks
+  // during setup, rather than letting an import failure race a later test.
+  // Cold transforms exceeded the default 10s when the full suite ran in parallel.
+  await import("monaco-editor");
+}, 30_000);
 
 const VoiceObserver = ({
   current,

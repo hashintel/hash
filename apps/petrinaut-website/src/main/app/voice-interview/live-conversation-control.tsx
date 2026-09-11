@@ -157,17 +157,20 @@ export const LiveConversationControl = ({
     reportVoiceSessionState(
       inputMode === "voice" &&
         isAiAssistantOpen &&
-        (phase === "connecting" || phase === "connected")
+        (phase === "connecting" || phase === "connected" || phase === "error")
         ? {
             phase:
-              phase === "connecting"
-                ? "connecting"
-                : activity?.outputActive
-                  ? "speaking"
-                  : "listening",
-            microphoneLevel: activity?.microphoneLevel ?? 0,
-            microphoneMuted: false,
-            errorMessage: null,
+              phase === "error"
+                ? "error"
+                : phase === "connecting"
+                  ? "connecting"
+                  : activity?.outputActive
+                    ? "speaking"
+                    : "listening",
+            microphoneLevel:
+              phase === "error" ? 0 : (activity?.microphoneLevel ?? 0),
+            microphoneMuted: phase === "error",
+            errorMessage: phase === "error" ? state.message : null,
             notice,
           }
         : null,
@@ -176,6 +179,7 @@ export const LiveConversationControl = ({
     inputMode,
     isAiAssistantOpen,
     phase,
+    state.message,
     activity,
     notice,
     reportVoiceSessionState,

@@ -126,7 +126,9 @@ export class LiveBrunchBridge {
     } catch {
       if (this.#turns.delete(turn)) {
         this.#dependencies.notice(
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+          turn.submissionId
+            ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
+            : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
         );
       }
     } finally {

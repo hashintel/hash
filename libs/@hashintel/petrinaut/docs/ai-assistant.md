@@ -81,6 +81,10 @@ flicker above the line. While the assistant speaks the ribbon takes on a restrai
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
 
+Session notices, including unconfirmed submissions and input that was not retained, appear in the
+existing persistent error notifications, even while the dock is collapsed. The dock keeps its short
+connection status and controls; dismissing a notification does not retry the input.
+
 Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
 stays current while the session runs and tools that edit the net remain visible. Select **Collapse
 voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and

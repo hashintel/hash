@@ -66,7 +66,7 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
-test("reuses setup, reports listening and speaking to the host dock, and clears it on failure", async () => {
+test("reuses setup and reports failure to the host dock and notification surface", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
   expect(
@@ -140,7 +140,13 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
       message: connectionError,
     }),
   );
-  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(null);
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    phase: "error",
+    errorMessage: connectionError,
+    microphoneLevel: 0,
+    microphoneMuted: true,
+    notice: null,
+  });
   expect(screen.getByText(connectionError)).toBeTruthy();
   expect(
     screen

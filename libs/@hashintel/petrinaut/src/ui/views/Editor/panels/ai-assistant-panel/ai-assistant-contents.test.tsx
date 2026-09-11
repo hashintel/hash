@@ -834,10 +834,60 @@ describe("AiAssistantContents", () => {
       });
     });
     expect(
-      within(dock).getAllByText("We didn't catch that. Please try again."),
-    ).not.toHaveLength(0);
-    expect(dock.getAttribute("data-voice-notice")).toBe("visible");
+      within(dock).queryByText("We didn't catch that. Please try again."),
+    ).toBeNull();
+    expect(within(dock).getByText("Listening")).toBeTruthy();
   });
+
+  test.each([
+    "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+    "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+  ])(
+    "shows a session notice once in the error area, outside collapsed controls: %s",
+    async (notice) => {
+      const store = createVoiceSessionStore();
+      const state = {
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        notice,
+        phase: "connected" as const,
+      };
+      store.setState(state);
+      const end = vi.fn();
+      store.setActions({ end, pause: noop });
+      render(
+        <NotificationsProvider>
+          <VoiceSessionContext.Provider value={store}>
+            <AiAssistantContents
+              input=""
+              inputMode="voice"
+              messages={[]}
+              onClose={noop}
+              onInputChange={noop}
+              onStop={noop}
+              onSubmit={noop}
+              status="ready"
+              voiceDockCollapsed
+            />
+          </VoiceSessionContext.Provider>
+        </NotificationsProvider>,
+      );
+      const dock = screen.getByTestId("ai-voice-dock");
+      expect(within(dock).getByText("Connected")).toBeTruthy();
+      expect(within(dock).queryByText(notice)).toBeNull();
+      const toast = await screen.findByText(notice);
+      expect(toast.closest('[data-scope="toast"]')).not.toBeNull();
+      act(() => {
+        store.setState({ ...state, phase: "thinking", microphoneLevel: 0.5 });
+      });
+      expect(screen.getAllByText(notice)).toHaveLength(1);
+      fireEvent.click(
+        within(dock).getByRole("button", { name: "End voice mode" }),
+      );
+      expect(end).toHaveBeenCalledOnce();
+    },
+  );
 
   test("shows a voice recovery failure as a toast", async () => {
     const store = createVoiceSessionStore();

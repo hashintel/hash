@@ -200,6 +200,21 @@ test("uncertain admission is visible and never automatically replayed", async ()
   );
 });
 
+test("a response failure after confirmed admission does not report uncertain admission or replay input", async () => {
+  const fixture = setup();
+  fixture.submit.mockImplementationOnce(async (input) => {
+    input.onAdmission("root");
+    throw new Error("401 invalid x-api-key");
+  });
+  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept({ id: "one", text: "First" });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made.",
+  );
+});
+
 test("admission frees the existing waiting-input slot, but finishing an earlier turn cannot free a newer wait", async () => {
   const fixture = setup();
   let finishFirst = () => {};

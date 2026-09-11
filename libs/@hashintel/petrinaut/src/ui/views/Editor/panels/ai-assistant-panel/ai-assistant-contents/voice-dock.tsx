@@ -8,7 +8,6 @@ import {
   useVoiceSessionCanTakeTurn,
   useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
-  useVoiceSessionNotice,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
@@ -294,7 +293,6 @@ export const LiveVoiceDock = ({
   const canTakeTurn = useVoiceSessionCanTakeTurn();
   const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
-  const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
 
   if (phase === null) {
@@ -310,7 +308,7 @@ export const LiveVoiceDock = ({
       collapsed={collapsed}
       interruptionBySpeaking={interruptionBySpeaking}
       microphoneMuted={microphoneMuted}
-      notice={notice}
+      notice={null}
       onCollapsedEnd={onCollapsedEnd}
       onCollapsedToggle={onCollapsedToggle}
       phase={phase}

@@ -363,6 +363,38 @@ export const VoiceSessionListening: Story = {
   ),
 };
 
+export const VoiceSessionLongNotice: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        phase: "connected",
+        notice:
+          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+      })}
+    />
+  ),
+};
+
+export const VoiceSessionInputNotRetained: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        phase: "connected",
+        notice:
+          "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+      })}
+    />
+  ),
+};
+
 export const VoiceSessionCollapsed: Story = {
   render: () => (
     <Frame

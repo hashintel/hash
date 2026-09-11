@@ -91,6 +91,7 @@ const setup = () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -197,6 +198,7 @@ test("conflicting transcript identity fails visibly, stops both connections, and
   });
   expect(fixture.input.stop).toHaveBeenCalledOnce();
   expect(fixture.audio.pause).toHaveBeenCalled();
+  fixture.emit(0, { type: "session.closed" });
   expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({ phase: "error" });
   fixture.emit(1, {
     type: "conversation.item.input_audio_transcription.completed",
@@ -207,19 +209,49 @@ test("conflicting transcript identity fails visibly, stops both connections, and
   expect(fixture.onFinalizedInput).toHaveBeenCalledTimes(1);
 });
 
-test("transcription failure stops the shared lifetime without fallback or retry", async () => {
-  const fixture = setup();
-  await connect(fixture);
-  fixture.emit(1, {
-    type: "conversation.item.input_audio_transcription.failed",
-    item_id: "one",
-  });
-  expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({ phase: "error" });
-  expect(fixture.fetch).toHaveBeenCalledTimes(2);
-  expect(
-    fixture.peers.every((peer) => peer.close.mock.calls.length === 1),
-  ).toBe(true);
-});
+test.each([true, false])(
+  "transcription failure silences immediately and gives ready Live bounded graceful closure (confirmed: %s)",
+  async (confirmed) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    await fixture.conversation.start();
+    fixture.emit(0, { type: "session.started" });
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.failed",
+      item_id: "one",
+    });
+    expect(fixture.input.stop).toHaveBeenCalledOnce();
+    expect(fixture.audio.muted).toBe(true);
+    expect(fixture.channels[1].close).toHaveBeenCalledOnce();
+    expect(fixture.channels[0].close).not.toHaveBeenCalled();
+    expect(fixture.sent[0]).toEqual([
+      JSON.stringify({ type: "session.close" }),
+    ]);
+    expect(fixture.onState.mock.lastCall?.[0].phase).toBe("stopping");
+    expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+      "Transcription failed",
+    );
+    fixture.emit(1, { type: "session.created" });
+    fixture.emit(0, { type: "session.started" });
+    expect(fixture.conversation.appendCommentary("Late answer")).toBe(false);
+    if (confirmed) fixture.emit(0, { type: "session.closed" });
+    else await vi.advanceTimersByTimeAsync(2_000);
+    expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+      phase: "error",
+    });
+    expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+      "Transcription failed",
+    );
+    expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+      confirmed
+        ? "Live confirmed session closure"
+        : "Remote Live session closure was not confirmed",
+    );
+    expect(fixture.fetch).toHaveBeenCalledTimes(2);
+    expect(fixture.peers[0]!.close).toHaveBeenCalledOnce();
+    expect(fixture.peers[1]!.close).toHaveBeenCalled();
+  },
+);
 
 test("appendCommentary sends the exact bounded Live event and reports only local send success", async () => {
   const fixture = setup();
@@ -270,9 +302,9 @@ test("a failure on either media connection stops both and remote audio remains n
   Object.assign(fixture.peers[1]!, { connectionState: "failed" });
   fixture.peers[1]!.dispatchEvent(new Event("connectionstatechange"));
   expect(fixture.input.stop).toHaveBeenCalledOnce();
-  expect(
-    fixture.peers.every((peer) => peer.close.mock.calls.length === 1),
-  ).toBe(true);
+  expect(fixture.peers[1]!.close).toHaveBeenCalledOnce();
+  fixture.emit(0, { type: "session.closed" });
+  expect(fixture.peers[0]!.close).toHaveBeenCalledOnce();
 });
 
 test("late transcription while waiting for Live closure cannot submit or revive the session", async () => {
@@ -335,6 +367,7 @@ test("a conflicting committed successor fails rather than silently dropping a co
     item_id: "three",
     previous_item_id: "one",
   });
+  fixture.emit(0, { type: "session.closed" });
   expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
 });
 
@@ -379,6 +412,7 @@ test.each([0, 1] as const)(
 );
 
 test("reports the failed endpoint and HTTP statuses without reflecting response content", async () => {
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
   const fixture = setup();
   fixture.fetch.mockImplementation(async (url) =>
     url.endsWith("live-session")
@@ -394,6 +428,10 @@ test("reports the failed endpoint and HTTP statuses without reflecting response 
     "live session request failed (HTTP 502, provider HTTP 401)",
   );
   expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
+  expect(warning).toHaveBeenCalledExactlyOnceWith(
+    "[Petrinaut Live]",
+    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.",
+  );
   expect(fixture.input.stop).toHaveBeenCalledOnce();
   expect(
     fixture.peers.every((peer) => peer.close.mock.calls.length === 1),
@@ -402,6 +440,7 @@ test("reports the failed endpoint and HTTP statuses without reflecting response 
 
 test("timeout identifies a pending transcription HTTP response rather than blaming microphone permission", async () => {
   vi.useFakeTimers();
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
   const fixture = setup();
   fixture.fetch.mockImplementation(async (url) =>
     url.endsWith("transcription-session")
@@ -412,6 +451,10 @@ test("timeout identifies a pending transcription HTTP response rather than blami
   await vi.advanceTimersByTimeAsync(15_000);
   expect(fixture.onState.mock.lastCall?.[0].message).toContain(
     "transcription: waiting for session HTTP response",
+  );
+  expect(warning).toHaveBeenCalledExactlyOnceWith(
+    "[Petrinaut Live]",
+    expect.stringContaining("transcription: waiting for session HTTP response"),
   );
   expect(fixture.input.stop).toHaveBeenCalledOnce();
 });
@@ -439,6 +482,7 @@ test("microphone loss shuts both transports and does not expose provider error t
   fixture.input.dispatchEvent(new Event("ended"));
   fixture.emit(0, { type: "error", error: { message: "secret" } });
   expect(fixture.audio.muted).toBe(true);
+  fixture.emit(0, { type: "session.closed" });
   expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
   expect(fixture.onState.mock.lastCall?.[0].message).toContain(
     "Microphone disconnected",

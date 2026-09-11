@@ -21,6 +21,7 @@ import {
 import { EditorContext } from "../../../../../react/state/editor-context";
 import {
   useVoiceSessionErrorMessage,
+  useVoiceSessionNotice,
   useVoiceSessionPhase,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
@@ -544,6 +545,7 @@ export const AiAssistantContents = ({
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
+  const voiceSessionNotice = useVoiceSessionNotice();
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
@@ -644,6 +646,19 @@ export const AiAssistantContents = ({
     notifiedVoiceErrorRef.current = voiceSessionErrorMessage;
     addNotification(errorNotification(voiceSessionErrorMessage));
   }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
+
+  // Admission and delivery failures need attention even while media stays connected.
+  // Keep them in the existing error area, not in the session's controls.
+  const notifiedVoiceNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isVoiceSessionLive || voiceSessionNotice === null) {
+      notifiedVoiceNoticeRef.current = null;
+      return;
+    }
+    if (notifiedVoiceNoticeRef.current === voiceSessionNotice) return;
+    notifiedVoiceNoticeRef.current = voiceSessionNotice;
+    addNotification(errorNotification(voiceSessionNotice));
+  }, [addNotification, isVoiceSessionLive, voiceSessionNotice]);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
