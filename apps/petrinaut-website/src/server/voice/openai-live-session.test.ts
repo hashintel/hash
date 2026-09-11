@@ -131,7 +131,9 @@ describe("Live configuration and session creation", () => {
         model: "gpt-live-1",
         delegation: { type: "client" },
         store: false,
-        instructions: expect.stringContaining("Do not operate") as unknown,
+        instructions: expect.stringMatching(
+          /Interview approach:[\s\S]*Backchannel policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:\nBackend tools:\n- None\.[\s\S]*Delegate to the backend when:\n- Never in this experiment[\s\S]*Do not delegate to the backend when:[\s\S]*Never claim that anything was changed, executed, or saved\./,
+        ) as unknown,
         audio: { output: { voice: "marin" } },
       },
       transport: { type: "webrtc", sdp: "v=0\r\no=offer" },
