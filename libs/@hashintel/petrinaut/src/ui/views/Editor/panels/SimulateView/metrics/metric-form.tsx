@@ -9,6 +9,8 @@ import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 
+import type { ExperimentComputeBackend } from "../../../../../../react/experiments/context";
+
 // -- Form state ---------------------------------------------------------------
 
 export interface MetricFormState {
@@ -63,9 +65,22 @@ export interface UseMetricFormOptions {
   validateOnSubmit?: (value: MetricFormState) => Promise<string | undefined>;
 }
 
+/**
+ * What the submitting control hands to `handleSubmit(meta)`, for values the
+ * submit callback cannot close over. The metric drawers pass none.
+ */
+export interface MetricFormSubmitMeta {
+  /** Backend an optimization's Run control chose for the objective. */
+  computeBackend?: ExperimentComputeBackend;
+}
+
+const emptySubmitMeta: MetricFormSubmitMeta = {};
+
 export interface MetricFormSubmitContext {
   /** Reset the form to its default values. */
   reset: () => void;
+  /** The meta `handleSubmit` was called with; empty when it was called bare. */
+  meta: MetricFormSubmitMeta;
 }
 
 export function useMetricForm(
@@ -79,9 +94,11 @@ export function useMetricForm(
   const existingNames = options.existingMetricNames ?? new Set<string>();
   return useForm({
     defaultValues,
-    onSubmit: async ({ value, formApi }) =>
+    onSubmitMeta: emptySubmitMeta,
+    onSubmit: async ({ value, formApi, meta }) =>
       await onSubmit(value, {
         reset: () => formApi.reset(),
+        meta,
       }),
     validators: {
       onChange: ({ value }) =>

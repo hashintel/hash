@@ -34,7 +34,7 @@ const badgeStyle = css({
 
 const describeComputeBackend = (backend: ComputeBackendSummary): string => {
   if (backend.computeBackend === "webgpu") {
-    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
+    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically — real-valued metrics are binned to a calibrated window; individual trajectories differ (different random generators).";
   }
   if (backend.computeBackendFallbackReason !== null) {
     // The notification that carried this is gone by the time anyone wonders
