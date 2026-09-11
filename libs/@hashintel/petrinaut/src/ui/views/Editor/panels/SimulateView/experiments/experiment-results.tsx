@@ -324,12 +324,18 @@ export const experimentResultsModel = (
   const displayStatus: ExperimentDisplayStatus = following
     ? "optimizing"
     : experiment.status;
-  const canCancel = isExperimentActive(experiment) || following !== null;
+  const canCancel =
+    experiment.requestActive === true ||
+    isExperimentActive(experiment) ||
+    following !== null;
   // The navigator and the surface only display while the selection is not
   // the user's to move: a study drives it, or the sweep was cancelled and its
   // session is gone. A failed selection locks nothing — the next selection
   // computes afresh — and a sweep never completes.
-  const locked = following !== null || experiment.status === "cancelled";
+  const locked =
+    experiment.requestActive === true ||
+    following !== null ||
+    experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
   // The study's displays are there from the drawer's first frame for an
   // experiment created with Optimize, whatever the study's status.
@@ -378,6 +384,7 @@ export const experimentResultsModel = (
                 iconName="stop"
                 tooltip="Stop optimizing; the sweep keeps its point"
                 data-sweep-optimizing
+                disabled={experiment.requestActive}
                 onClick={optimizer.stop}
               >
                 Stop
@@ -514,6 +521,7 @@ export const experimentResultsModel = (
         tone="neutral"
         size="sm"
         prefix={<Icon name="trash" size="sm" />}
+        disabled={experiment.requestActive}
         onClick={() => {
           optimizer.discard();
           actions.removeExperiment(experiment.id);

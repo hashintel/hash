@@ -1,0 +1,100 @@
+---
+title: Browser experiment host
+description: Validate and run bounded experiment requests in the browser.
+sidebar_order: 40
+attachTo: react.ai-experiments
+---
+
+`PetrinautExperimentHost` creates ordinary experiments from bounded requests.
+The browser validates the captured model, reports progress, and returns a
+captured result. Optimization uses the same request and experiment record.
+
+![Browser experiment architecture](@diagrams/ai-experiments-architecture.svg)
+
+## Request and result
+
+The [core contract](layer:core.ai) exports Zod schemas and the host interface
+from `@hashintel/petrinaut-core/ai`. The [browser provider](layer:react.ai-experiments)
+implements `createExperiment(request, { signal, onProgress })` and exposes it
+through `AiExperimentsContext` from `@hashintel/petrinaut/react`.
+
+Use saved scenario and metric IDs, and scenario parameter identifiers, from
+the document definition:
+
+```json
+{
+  "name": "Capacity check",
+  "scenarioId": "saved-scenario-id",
+  "scenarioParameterValues": {},
+  "runCount": 100,
+  "seed": 42,
+  "dt": 0.1,
+  "maxTime": 60,
+  "metricIds": ["saved-metric-id"],
+  "execution": { "mode": "simulate" }
+}
+```
+
+Omitted parameters use saved defaults. Simulation accepts fixed values such
+as `{ "mode": "fixed", "value": 4 }`. Optimization needs a numeric range such
+as `{ "mode": "range", "min": 1, "max": 8 }` and this execution object:
+
+```json
+{
+  "mode": "optimize",
+  "objectiveMetricId": "saved-metric-id",
+  "direction": "minimize",
+  "steps": 10,
+  "runsPerStep": 8
+}
+```
+
+`runCount` is the simulation budget or the final budget at the best point.
+`runsPerStep` controls each search trial. The schema bounds runs, steps,
+duration, and metric count. The host resolves references, checks parameter
+types, and runs [snapshot diagnostics](doc:ai/snapshot-diagnostics) before
+compiling the selected scenario and metrics. Execution uses CPU workers.
+
+The promise resolves with `status` (`complete`, `cancelled`, or `error`),
+experiment ID, name, completed runs, and metric values. Optimization adds
+selected parameter values, objective value, and completed steps. Failures
+include a message. Progress uses a local callback while the promise waits.
+
+## Execution and ownership
+
+![Browser experiment flow](@diagrams/ai-experiments-flow.svg)
+
+The host captures the model before asynchronous validation. Simulation runs
+to its budget. Optimization searches the ranges, then refines the best point
+to the requested final budget before returning.
+
+While the request runs, parameter changes, competing execution, and removal
+are blocked. The drawer still allows chart inspection. Aborting the request
+cancels its owned work. Completion captures the result, unlocks the controls,
+and shows a notification. Later exploration leaves the captured result unchanged.
+
+Experiments retain metric distributions, including at the optimizer's best
+point. The drawer shows heatmaps and histograms. Result values summarize the
+last sampled distribution as a mean. See [experiment execution](doc:simulation/experiments),
+[sweep orchestration](doc:experiments/sweep-orchestration), and the
+[browser optimizer](doc:optimizer/browser-runtime).
+
+:::danger[Important: host lifetime]
+Execution requires the mounted browser host. Durable jobs, recovery after
+reload, and background notifications need a persistence contract.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::
+
+:::danger[Important: objective semantics]
+Objectives and returned metrics use the last sampled frame. Runs that ended
+earlier can be absent. Terminal or time-integrated objectives need an explicit
+reduction contract and matching backend behavior.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::
+
+:::danger[Important: orchestration refactor]
+The coordinator reads experiment and optimization state from React providers.
+Extract a reusable implementation behind `PetrinautExperimentHost` when a
+second host needs this execution flow.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::
