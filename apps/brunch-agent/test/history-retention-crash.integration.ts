@@ -98,7 +98,7 @@ const markdown =
   "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
 const response = (id: string, content: string) =>
   fauxAssistantMessage(
-    fauxToolCall("update_workpiece", { markdown: content }, { id }),
+    fauxToolCall("mutate_workpiece", { markdown: content }, { id }),
     { stopReason: "toolUse" },
   );
 faux.setResponses(

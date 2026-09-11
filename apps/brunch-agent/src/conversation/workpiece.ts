@@ -5,7 +5,8 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 
 import {
-  UPDATE_WORKPIECE_TOOL_NAME,
+  LEGACY_UPDATE_WORKPIECE_TOOL_NAME,
+  MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceInputSchema,
   updateWorkpieceOutputSchema,
 } from "@hashintel/brunch-agent/flue";
@@ -23,7 +24,8 @@ const settledRevisionFromPart = (
 ): WorkpieceRevision | undefined => {
   if (
     part.type !== "dynamic-tool" ||
-    part.toolName !== UPDATE_WORKPIECE_TOOL_NAME ||
+    (part.toolName !== MUTATE_WORKPIECE_TOOL_NAME &&
+      part.toolName !== LEGACY_UPDATE_WORKPIECE_TOOL_NAME) ||
     part.state !== "output-available"
   )
     return undefined;

@@ -301,7 +301,7 @@ try {
     fauxAssistantMessage(
       [
         fauxToolCall(
-          "update_workpiece",
+          "mutate_workpiece",
           { markdown },
           { id: "m7-browser-revision" },
         ),

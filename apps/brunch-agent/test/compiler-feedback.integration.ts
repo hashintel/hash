@@ -161,7 +161,7 @@ const locateBasis = (context: Context) => {
   const locate = JSON.parse(
     context.messages
       .flatMap((message) =>
-        message.role === "toolResult" && message.toolName === "brunch_workpiece"
+        message.role === "toolResult" && message.toolName === "read_workpiece"
           ? typeof message.content === "string"
             ? [message.content]
             : message.content.flatMap((part) =>
@@ -227,16 +227,16 @@ try {
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
   faux.setResponses([
-    tool("update_workpiece", { markdown }, "revision-1"),
+    tool("mutate_workpiece", { markdown }, "revision-1"),
     (context: Context) => {
       const revision = context.messages.findLast(
         (message) =>
           message.role === "toolResult" &&
-          message.toolName === "update_workpiece",
+          message.toolName === "mutate_workpiece",
       );
       assert(revision?.role === "toolResult" && !revision.isError);
       return tool(
-        "brunch_workpiece",
+        "read_workpiece",
         { locateTexts: [markdown] },
         "revision-1-locate",
       );
@@ -245,7 +245,7 @@ try {
       const locate = context.messages.findLast(
         (message) =>
           message.role === "toolResult" &&
-          message.toolName === "brunch_workpiece",
+          message.toolName === "read_workpiece",
       );
       assert(locate?.role === "toolResult" && !locate.isError);
       return tool("getLatestNetDefinition", {}, "read-before-dirty");

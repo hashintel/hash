@@ -31,7 +31,7 @@ For a new account, follow one concrete case and re-evaluate the active gap after
 
 Treat the workpiece as the recoverable operational account construction will consume. Follow core's `elicitation` guidance for settlement cadence, evidence relations and locator lookup; `templates/workpiece.md` supplies the process-specific recording shape.
 
-Settle the current account with `update_workpiece` before construction. Wait for the returned `revisionId` and `sha256` before citing it in a separate browser construction proposal; never combine settlement and browser construction in one batch. After settlement, use `brunch_workpiece` with `locateTexts` without candidate Markdown to obtain the actual current revision/hash and spans for construction basis. An unsettled candidate lookup does not authorize construction. Label retained prepared or legacy fenced material honestly rather than treating it as a settled revision.
+Settle the current account with `mutate_workpiece` before construction. Wait for the returned `revisionId` and `sha256` before citing it in a separate browser construction proposal; never combine settlement and browser construction in one batch. After settlement, use `read_workpiece` with `locateTexts` without candidate Markdown to obtain the actual current revision/hash and spans for construction basis. An unsettled candidate lookup does not authorize construction. Label retained prepared or legacy fenced material honestly rather than treating it as a settled revision.
 
 ### Construct
 

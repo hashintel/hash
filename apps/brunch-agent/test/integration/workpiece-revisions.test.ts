@@ -27,7 +27,7 @@ beforeAll(async () => {
 test("the built agent settles a revision over the mounted route", () => {
   expect(result.settled).toContainEqual(
     expect.objectContaining({
-      toolName: "update_workpiece",
+      toolName: "mutate_workpiece",
       state: "output-available",
       output: {
         revisionId: "settled-revision",
@@ -46,7 +46,7 @@ test("the built agent settles a revision over the mounted route", () => {
 
 test("public history preserves the tool call identity", () => {
   const call = result.settled.find(
-    (part) => part.toolName === "update_workpiece",
+    (part) => part.toolName === "mutate_workpiece",
   );
   expect(call?.toolCallId).toBe("settled-revision");
   expect(call?.output).toMatchObject({ revisionId: call?.toolCallId });
@@ -57,7 +57,7 @@ test("mixed workpiece and browser tool batch does not apply a mutation", () => {
   // Keep this safety oracle red until production admission is enforced. A prompt
   // or a passing characterization of the unsafe behavior cannot discharge it.
   const workpieceBatches = result.mixed.filter(({ caseId }) =>
-    caseId.includes("update_workpiece"),
+    caseId.includes("mutate_workpiece"),
   );
   expect(
     workpieceBatches.map(({ caseId, mutationApplied, pendingMutationIds }) => ({

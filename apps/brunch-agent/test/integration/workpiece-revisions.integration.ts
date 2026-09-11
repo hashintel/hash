@@ -85,7 +85,7 @@ const probe = async () => {
       fauxAssistantMessage(
         [
           fauxToolCall(
-            "update_workpiece",
+            "mutate_workpiece",
             { markdown },
             { id: "settled-revision" },
           ),
@@ -113,7 +113,7 @@ const probe = async () => {
       fauxAssistantMessage(
         [
           fauxToolCall(
-            "update_workpiece",
+            "mutate_workpiece",
             { markdown: "# Second synthetic account" },
             { id: "second-revision" },
           ),
@@ -133,9 +133,9 @@ const probe = async () => {
     const mixed = [];
     for (const names of [
       ["brunch_mark_question", "addType"],
-      ["update_workpiece", "addType"],
-      ["brunch_mark_question", "update_workpiece", "addType"],
-      ["addType", "update_workpiece", "brunch_mark_question"],
+      ["mutate_workpiece", "addType"],
+      ["brunch_mark_question", "mutate_workpiece", "addType"],
+      ["addType", "mutate_workpiece", "brunch_mark_question"],
     ]) {
       const caseId = names.join("-");
       const typeInput = {
@@ -150,7 +150,7 @@ const probe = async () => {
           name,
           name === "addType"
             ? typeInput
-            : name === "update_workpiece"
+            : name === "mutate_workpiece"
               ? { markdown }
               : { question: "What remains unknown?" },
           { id: `${caseId}-${name}` },
