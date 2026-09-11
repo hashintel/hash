@@ -1,113 +1,361 @@
-# Mission 7a — Workpiece, construction and explanation groundwork
+# Experiment Live Full Brunch Integration
 
 ## Status
 
-**Part A closeout in progress; tabbed workpiece implemented, pending Lu's UI review and FE-1645 integration before merge. Not a demo or semantic-quality acceptance.** Lu has directed a split: this branch and [PR #9562](https://github.com/hashintel/hash/pull/9562) carry the mechanical groundwork; Mission 7b continues under the same FE-1573 issue on a child branch. The former full-region/100%-useful-explanation campaign is not a prerequisite to this engineering split, but the split does not authorize a narrow scripted demo: 7b requires a substantial worked scenario with broad explanation coverage across every consequential visible flagship element and human utility review across representative classes. The broader cross-scenario, passage/lifecycle and adversarial evaluation portfolio remains in the [after-demo evaluation draft](docs/mission-drafts/7-explainable-construction.md); the substantial product successor is the [Mission 7b draft](docs/mission-drafts/7b-september-demo.md).
+Live mission for provider-free implementation and Kostandin's later manual testing.
+The experiment policy and one separate local authority commit are accepted in the
+owner conversation. Product implementation and manual acceptance are not established.
 
-The current implementation saves and displays evolving workpieces, observes a bounded set of native Petrinaut mutations, and resolves their recorded basis through chat. Controlled browser tests exercise the broader surface. The retained persona session contains one parameter, one type and one equation, not a connected process model. Its lineage queries and original-store reopening were observed; semantic correspondence, automatic citation coverage, a complete construction flow, portability and demo readiness are not established. No persona, browser or paid run is active.
-
-**Local-only / not portable:** the actual-session oracle is `apps/brunch-agent/.data-wipe-me/persona-runs/run-7ceo9j/` and the original `apps/brunch-agent/.data-wipe-me/conversations.db`. Inspect the native history, saved revisions and observed definitions, not an invented reconstruction. These local records establish observed behaviour without claiming repository-reproducible fixtures or teammate access. Commits, tests and the PR are the engineering record.
+[FE-1664](https://linear.app/hash/issue/FE-1664/experiment-live-full-brunch-integration)
+depends on [FE-1663 / #9671](https://github.com/hashintel/hash/pull/9671) and retains
+[FE-1661](https://linear.app/hash/issue/FE-1661/evaluate-gpt-live-1-migration-effort-before-the-demo)
+as the migration assessment. This is the child branch's sole execution authority.
 
 ## Imperative
 
-Deliver the working integration from conversation to saved workpiece, browser-applied net edits and record-backed explanation, with a usable workpiece surface rather than an intrusive debug overlay. Make that bounded result reviewable and landable independently of the complete September demo and evaluation of the prompt/skill architecture's modelling effectiveness.
-
-The harness is structurally checked, not a semantic acceptance engine. A valid reference, applied edit or successful lookup is a mechanical result; a good model or persuasive rationale is a different judgment. Preserve that distinction without making the latter a universal execution gate.
+Preserve a fluid, realistic interview while Brunch directs it and performs real
+application work. The person has room to hesitate, elaborate, correct consequential
+details and continue while Brunch reasons or executes. Avoid repetitive
+acknowledgements, monologues, irrelevant questions, lost corrections and unsupported
+progress/completion claims. A possible release claim is “Talk naturally while Brunch
+updates the model, without losing corrections.” It is not established yet.
 
 ## Throughline
 
-```text
-Petrinaut Brunch chat / attached persona
-→ mounted Flue ChatAgent
-→ core workpiece revision + optional passage/source relations
-→ plugin mutation request + declared workpiece basis
-→ browser executes canonical Petrinaut operation and returns observed effects
-→ chat why resolves element/field → edit → revision/passage → linked source messages
-→ reopen the original session and continue querying
-```
+Finalized transcription → existing composer/submission path → one Flue admission
+→ Brunch reasoning and authorized Petrinaut execution → complete-turn settlement
+→ frozen canonical speech source → Live commentary and native unbuffered delivery.
+Settlement gates supplied Brunch context, not all audible speech.
 
-### Delivered construction boundary
+### Selected experiment
 
-In conversation-bound construction mode, the observed mutation catalog is:
+- **Input:** use a separate OpenAI transcription-only session for canonical user
+  text. The proposed model is `gpt-live-transcribe`, using browser WebRTC and the
+  existing server credential boundary. One consented microphone capture supplies
+  Live and transcription; neither session starts automatically. Disclose the second
+  stream and additional provider usage in the existing consent surface.
+- **Finalization:** consume `conversation.item.input_audio_transcription.completed`
+  for its `item_id` and `content_index`; deltas and Live delegation notices cannot
+  admit text. Use provider-supported turn detection to commit audio chunks, not
+  application silence timers. Start with semantic VAD's default eagerness rather
+  than unmeasured tuning. A final transcript is final for that audio item, not proof
+  the person has finished their thought or that transcription is semantically correct.
+- **Ordering:** transcription completions can arrive out of order. Reconcile them
+  against provider committed-item ordering before offering finalized text to the
+  existing composer. Keep session/item identity through duplicate detection and
+  admission correlation. This transport reconciliation is not a new application
+  FIFO: preserve the existing one-waiting-input policy, expose inability to retain
+  further input, and never silently replay uncertain admission or substitute Live's
+  transcript when transcription fails.
+- **Speech:** play native Live audio without an approval buffer. Instruct Live to
+  defer substantive questions/answers to Brunch and use only event-backed progress.
+  These are best-effort instructions, not an enforced output boundary. Independent
+  questions, lost corrections and unsupported claims are manual failure observations,
+  not canonical answers or evidence that work succeeded. No Live tool authority.
+- **Canonical result handoff:** retain complete-turn settlement and source freezing
+  before sending Brunch prose as commentary. This gates context supplied to Live,
+  not all audible speech. Commentary is paraphrasable and limited to 500 tokens;
+  keep full reports on screen and do not silently truncate or claim exact relay.
+  The first short exchange must fit; longer-source delivery remains a specific
+  follow-up design question, not grounds for a premature chunk/playback queue.
 
-| Object | Operations |
+The proposed browser path avoids a new service and reuses existing credentials.
+Before implementing it, verify the exact transcription WebRTC creation schema and
+committed-item ordering events against the reference. Keep both connections under
+one session lifetime: failure/Stop invalidates late callbacks and tears down media
+without an automatic standalone or Realtime fallback. Do not infer playback completion
+from commentary acceptance, use it to release pending work, or restore historical audio.
+Acoustic interruption remains native Live behavior; durable composer Stop still
+cancels canonical work separately and must immediately silence local playback.
+
+Commit this authority change separately before dependent product implementation.
+Only that local mission commit is authorized; subsequent product changes remain
+uncommitted unless separately requested.
+
+### Inspected departure and stack
+
+- Published parent: [b72c2ac9f83875d34f585bc672ef62496144fe6a](https://github.com/hashintel/hash/commit/b72c2ac9f83875d34f585bc672ef62496144fe6a),
+  branch `kostandin/fe-1663-experiment-live-full-duplex-migration`, #9671 open.
+  The authorized child-only restack includes the parent's media-activity indicators,
+  revised standalone instructions, microphone-loss shutdown and bounded/cancellable
+  SDP uploads. Activity remains telemetry, never a turn or playback-completion signal.
+  The original standalone comparison remains
+  [771712c1af](https://github.com/hashintel/hash/commit/771712c1afe2d4f3d3e5ee8fac39d17303bee7a1).
+- Remote main: [67f60d5446ed3224609161f938e1b36bc9d62f89](https://github.com/hashintel/hash/commit/67f60d5446ed3224609161f938e1b36bc9d62f89),
+  the initial inspected baseline and an ancestor of the parent. Local main is older at
+  [74f37ab517](https://github.com/hashintel/hash/commit/74f37ab517fc7f67eebc3514c863a1893807b782).
+  #9562 is merged; its inherited mission/PR pre-merge wording is stale status,
+  not evidence that its code is absent or that its deferred acceptance passed.
+- Main is now [35587f9dd2](https://github.com/hashintel/hash/commit/35587f9dd2a795d44aac1938aff74e0acab4d994),
+  including #9649's construction, host, recovery and mission changes. That main delta
+  is not included in this child or its parent. Coordinate the stack update before claiming
+  compatibility with those newer host contracts; do not restack the parent independently.
+- Child: `kostandin/fe-1664-experiment-live-full-brunch-integration` in
+  `/Users/kostandin/Projects/hashdev/worktrees/fe-1664-live-brunch-integration`.
+  Eventual PR targets the parent branch while #9671 remains unmerged. Recheck
+  both remote heads before resuming; inspect deltas and coordinate any stack update.
+  Do not rebase or modify the parent independently.
+- Only the published parent revision is imported. The protected parent worktree
+  and branch remain untouched by this child's restack.
+- Kostandin reports that the standalone experience looks fine. The exact tested
+  revision was not supplied. This supports proceeding, not comprehensive
+  acceptance. Keep the original comparison revision separately from the restacked base.
+
+The outgoing Mission 7a and Ex1 contracts remain preserved at the pinned published
+parent at their original paths. This independent child does not close either parent
+mission or claim its outstanding acceptance. The website mission is a pointer to
+this authority. The consumed integration draft is removed; 7b, after-demo evaluation,
+construction/reviewer/optimisation and shared recovery obligations retain their
+existing homes in [the future spine](MISSION.next.md).
+
+### Cold-start reads
+
+Read [AGENTS.md](AGENTS.md), this mission and the
+[retained Voice/recovery record](MISSION.next.md#voice-after-the-live-transport-cut).
+The parent commit above preserves the outgoing contracts at
+`libs/@hashintel/brunch-agent/MISSION.md` and `apps/petrinaut-website/MISSION.md`.
+Use the actual seams below for current signatures. Mission 6b's accepted causal
+Voice/mutation/Stop behavior is regression input, not proof of the explicitly
+deferred direct-user hydration, post-settlement withholding or latency claims.
+
+Reuse Ex1's session handler, WebRTC, consent, provider selection and cleanup; do
+not rebuild the standalone experience or add another panel. Use client delegation,
+not managed Responses. The first milestone is one short, no-tool exchange, not
+a tool-heavy interview. Only after inspecting that exchange should the line add
+one already-authorized operation, correction during work, acoustic interruption
+and durable Stop. Kostandin performs live testing; the agent runs mocks only.
+
+### Actual seams, not a ready-made adapter
+
+Paths below are relative to the repository root.
+
+| Boundary | Inspected contract and consequence |
 | --- | --- |
-| Root place / transition | `addPlace`, `updatePlace`, `addTransition`, `updateTransition` |
-| Root place–transition arc | `addArc`, `updateArcWeight` |
-| Type / ordered attribute | `addType`, `updateType`, `addTypeElement`, `updateTypeElement` |
-| Scenario | `addScenario`, `updateScenario` |
-| Root parameter / differential equation | `addParameter`, `addDifferentialEquation` |
-
-These fourteen operations are not stock-tool parity or fourteen genuine-persona demonstrations. Deletion, parameter/equation update, nested nets/components and component-port arcs are outside this observed surface. Typed-state operations also reject documents containing subnets/components. Canonical input/refinement rules still apply. Necessary native reads and compilation checks accompany this surface; compilation does not prove simulation.
-
-### UI closeout before merge
-
-[FE-1645 / PR #9634](https://github.com/hashintel/hash/pull/9634) gates the existing prepared-fixture selector behind an opt-in Brunch demo setting and moves it below the top bar. That selector is distinct from this branch's fixed `BrunchWorkpiecePane`. Preserve the colleague's selector/provider behaviour when integrating; do not restore default fixture chrome or copy a competing settings mechanism.
-
-The workpiece now uses AI / Workpiece tabs in the existing assistant panel, selected by Lu in place of the separate dock. Reuse Petrinaut's tab patterns and the assistant's existing resize/collapse behaviour. Keep chat mounted across tab switches so drafts, requests and Voice lifecycle survive; maintain reachable active controls. The additional-tab extension point is generic, while workpiece/provenance semantics stay in the website host. The surface remains readable as it evolves and does not obstruct the canvas, top bar, assistant opener or composer. Keep engineering IDs, hashes and raw why payloads out of the primary reading surface while preserving inspectable provenance and honest freshness/unknown-state reporting. Hiding the useful workpiece together with fixture controls is not the fix. Inspect integration against #9634 without rewriting the colleague's branch; no full editor redesign or construction-tool rewrite belongs in this closeout.
-
-### What is linked
-
-Petrinaut references connect net objects; they do not propagate provenance. Separately, workpiece evidence relations link revision-local text spans to authorized conversation message IDs. A construction request cites a saved revision/hash, passage locators and an operation-level rationale, or an explicit absent-basis reason. The matching browser result records actual changes. Why traverses those records; it does not infer source links from adjacency, graph connectivity or plausible prose. Brunch metadata remains outside canonical Petrinaut documents.
-
-The implemented positive declared-basis path reports `partially-supported`: operation-level links are not independently established field-level intention mappings or semantic grades. Queries can identify an object/field by unique name or ID; canvas-selection-to-source-navigation UX is not claimed by this part.
+| Live startup | `apps/petrinaut-website/api/voice/live-session.ts` composes `createOpenAILiveSessionHandler({environment, fetch})`. The server validates origin/SDP/enablement, creates client-delegated `gpt-live-1`, returns `{sessionId, sdp}` and does not retry unknown outcomes. |
+| Live media | `createLiveConversation(onState, connectionTimeoutMs)` returns only `{start, stop}`. It ignores transcript/delegation events and plays incoming media directly. No finalized-input, submission, settlement or tool contract exists. |
+| Live controls | `LiveConversationControl` receives a restricted `Pick<PetrinautAiVoiceModeContext>` without canonical messages or submission. It registers local end/pause, not canonical Stop. |
+| Canonical entry | `voice-interview-control.tsx` exposes `submitVoiceInputWithAdmission`: subscribe before composer submission, correlate stable message identity to Flue admission, race abort, distinguish ambiguous/rejected/conflicting admission. `submitVoiceInput` retains at most one waiting input; abort withdraws only unsubmitted work. |
+| Canonical source | `canonical-speech.ts` selects non-streaming assistant prose, with message/part/hash/submission identity and a marked question only if it occurs in finalized prose. This is source selection, not whole-turn or playback approval. Workpiece, reasoning, basis and raw tool payloads are excluded. |
+| Baseline delivery | `realtime-brunch-bridge.ts` can call `speakCanonical` for completed segments while chat is streaming. Its test “speaks a completed canonical segment while chat remains streaming and settles separately” makes that intentional. Preserve Realtime; do not label this whole-turn-gated Live delivery. |
+| Host history | `BrunchPanelConversationTracker.canReplaceMessages` rejects absent/in-flight/incomplete snapshots and resolves `answeredBySubmissionId`. `local-storage-demo-app.tsx` joins admissions, settlements, history and durable Stop. Keep these source contracts rather than substituting a latest-message lookup. |
+| Execution | `apps/brunch-agent/src/provider-admission.ts` buffers complete proposals and refuses mixed server/browser calls, multiple browser calls and inconsistent streamed/final arguments. Construction bindings and observed effects remain authoritative; a proposal approval is not settlement or speech eligibility. |
 
 ## Proof
 
-Review the existing code/tests and actual-session records under their respective claim scopes. No new model-quality campaign is required to submit Part A.
+### First real-turn milestone
 
-| Claim | Oracle and limit |
+One finalized input enters the existing composer with stable identity, produces
+one Flue admission and one correlated Brunch answer, settles completely, and is
+offered to Live as frozen commentary. Kostandin compares the actual audible answer
+with that source, including whether it was heard at all; append acceptance is not
+that witness. Record premature independent speech separately. No integrated
+implementation or manual witness exists yet. Supported transcription
+events enable a proposed input contract; they do not prove this application's
+ordering/admission integration. Strict native output eligibility is deliberately
+not a claim of the selected proposal. Mocked events cannot prove speech adherence.
+
+### Provider-free regression portfolio
+
+Use the existing suites, extending only the newly crossed boundary. These are
+candidate checks, not results of this documentation-only preparation:
+
+| Claim to test | Existing oracle / required discriminator |
 | --- | --- |
-| Saved workpiece is visible and remains queryable | `packages/core/test/update-workpiece.test.ts`, `apps/brunch-agent/test/workpiece-revisions.test.ts`, website `brunch-workpiece-pane.test.tsx`, and actual persona history/display observations. Pointer-only historical results remain readable but do not invent Markdown. |
-| Native mutations carry shape, binding and complete effects | Plugin `test/root-node.test.ts`, `test/root-state.test.ts`, `test/declared-basis.test.ts`; app `test/root-creation.integration.ts` and `test/typed-state.integration.ts`. Broader controlled-browser evidence, not a claim of a complete persona-built model. |
-| Why resolves recorded changes and citations honestly | App `test/reconciliation.test.ts`, `test/reopened-why.integration.ts` and the retained ordinary persona-session why results. Source linkage may be absent; prose quality is not guaranteed by the structured result. |
-| All authorized source IDs remain discoverable | Core `test/update-workpiece.test.ts` and app `test/reopened-why-retention.integration.ts`, implemented in `367d4994fa`. Source text may be clipped; IDs are not windowed. |
-| Original-store stop/reopen preserves the actual conversation | Native session history and browser observations under the run above. This is verified local-only evidence, not a fresh-store import, clone or remote durability claim. |
-| Persona launching and shutdown use the maintained entrypoint | `src/evaluations/persona/launch.test.ts`, `test/persona-browser.integration.ts`, actual launcher cleanup observations. Run-local Pi trust does not add persona tools or persistent trust. |
-| Workpiece UI is usable and compatible with FE-1645 | A real-browser witness at the integrated revision: ordinary mode has no unsolicited fixture chrome; demo mode retains the selector; a long evolving workpiece remains readable with canvas/chat controls reachable; saved-query/freshness behaviour survives. Use the website workpiece and host tests for regression, then Lu reviews the placement before merge. No provider run is required solely to test layout. |
-| The PR accurately states the bounded result | Review #9562's purpose, tests, known issues and six-section mission summary against this contract; retain existing package checks and changed-package publication obligations. Review/merge acceptance remains external. |
+| Realtime default, pinning, consent, isolation and cleanup | Website `src/server/voice/openai-live-session.test.ts`, `src/main/app/voice-interview/live-conversation.test.ts`, `live-conversation-control.test.tsx`, `voice-interview-control.test.tsx`. No provider creation before consent; no mid-session provider change or fallback. |
+| Input identity and admission | `realtime-brunch-bridge.test.ts`, `voice-interview-control.test.tsx`; approved Live input tests must distinguish incomplete input, repeated text with different identity, duplicate identity, stale session and uncertain admission without replay. |
+| Complete-turn source freeze | `canonical-speech.test.ts`, `buffered-admission.integration.test.ts`, bridge/controller tests; add Live-specific root plus textless/failed continuation cases. A completed earlier segment, a later correction, or `ready` without positive correlated settlement must not authorize sending the final Brunch source to Live. This does not gate independent native speech. |
+| Stop and reconstruction | `voice-turn-controller.test.ts`, `brunch-panel-transport.test.ts`; Stop before admission, during work and after settlement; late events cannot revive speech, stale replacement cannot erase current output, reconnect cannot replay history. |
+| Rejected proposals and effects | Brunch `test/provider-admission.test.ts`, `test/reconciliation.test.ts`, `test/integration/admission-controls.test.ts`; reject before browser execution and never narrate conflicting/unknown effects as successful or reapply them. |
+| Mounted UI | Petrinaut `ai-assistant-panel.test.tsx` and `ai-assistant-panel/ai-assistant-contents.test.tsx`; switch AI/Workpiece during work, retain draft/Voice/Stop and verify cleanup. Inspect rendered changed states with provider endpoints mocked and real microphone blocked. |
 
-Before the branch transition, retain unresolved obligations in the future record, remove the consumed ownership side quest after recording its outcome, and archive this contract with the engineering-split status explicit. Do not mark the former full Step A acceptance programme passed.
+Run affected `test:unit`, `lint:tsc`, `lint:eslint` and formatting checks via Yarn/Turbo
+after actual code changes; read evaluation execution safety before hermetic runs.
+Do not port the synthetic audio harness. Provider-free tests do not establish
+speech fidelity, native full duplex, naturalness or migration readiness.
+
+### Manual witness once an approved integrated implementation exists
+
+Allow about 15–20 minutes, with a familiar process and a disposable local document:
+
+1. Give an account and answer one short Brunch clarification. Compare spoken
+   questions and answers against the canonical Brunch text.
+2. Hesitate, give a short answer, then elaborate. Correct a consequential number,
+   negation or condition. Check that subsequent questions preserve it.
+3. Request one operation available in the current authorized mode. Add one
+   follow-up while work proceeds. Inspect admission order, workpiece and actual
+   tool effects; a queued correction does not retroactively cancel execution.
+4. Interrupt speech acoustically, then separately exercise composer Stop during
+   work. Verify the microphone/audio state, queued input and canonical stop state
+   separately. “Your turn” is not an acoustic-interruption witness.
+5. Compare history, effects and audible responses. Record excess acknowledgements,
+   missed answers, lost corrections and whether the interview advances. Separate
+   backend work duration, queue wait and provider/playback delay. No numerical
+   latency/naturalness threshold has been approved.
+6. Before migration-readiness closure, include typed-origin, Voice-origin and
+   durably aborted entries, close and reopen in a second tab without concurrent
+   editing, and inspect per-message provenance/stopped presentation. Separately
+   reproduce locally withheld post-settlement work. No autoplay or automatic
+   resubmission is allowed. These remain unproved; FE-1604's waiver does not transfer.
+
+The last recovery checks gate readiness, not unrelated hardening before the first
+tracer. Failure remains visible and returns to the owner rather than becoming a
+new store, cross-store transaction or concurrency project by default.
 
 ## Constraints
 
-### Earned data and execution contracts
-
-- Core owns `brunch_mark_question`, durable nonterminating `update_workpiece` and current-workpiece query semantics. Keep one current revision: native tool-call ID, Markdown/hash and display ordinal. A saved version is not an owner-approved meaning.
-- Preserve settled revision/basis/locators/rationale/scope or an explicit absent reason in canonical history. Source relations resolve to authorized true-user messages in the same conversation; assistant, signal, prepared and foreign material is not elicited testimony. `brunch_workpiece` returns every authorized source ID; per-source text may be truncated. Unique unchanged same-span carry is bounded; candidate locator queries create no revision, authority or semantic-continuity claim.
-- Preserve the current complete-proposal checks, single-browser-call continuation and refusal of mixed browser/server proposals. A future tool-surface redesign must explicitly revisit those contracts where necessary; this split does not weaken or canonize them as the only future design.
-- Browser edits use the bound document/incarnation and a prior verified full read. Account independently for all direct and derived effects. Defaults, coercions, generated values and migrations do not inherit testimony or declared intent automatically. Duplicate/retired IDs and conflicting/unknown outcomes remain explicit; failed, no-op, stale and unknown attempts are not causes or permission to replay.
-- Keep origin, current changes and attempts distinct. Why uses a verified observation or an explicit as-of scope; a historical call ID alone is not live evidence. Object-key-order equivalence does not relax arrays, field presence, values or mutation base hashes. Outside edits are not attributed to Brunch.
-- Petrinaut owns canonical schemas, native input semantics/refinements, mutations, compilation and simulation. Preserve the maintained Flue/Pi carriage/recovery patches, stock-assistant isolation, capacity absence/null/zero/positive semantics, visible Not applied outcomes and publication obligations. No copied schema catalog, second provenance store, graph, observer, runner or generic projection engine.
-- Preserve Mission 6b's causal Voice/tool results and active Stop. Direct spoken-user attribution after hydration, durable withholding after settled steps and comparative latency remain unproved. Workpiece/basis/tool payloads are not spoken assistant prose.
-- Keep `useBrunchAgent()` plus `useSdcpnPlugin()`, inward dependencies and dedicated `./flue` resources. Prepared fixtures stay test-authored; diagnostic exports are not restoration APIs. No content-bearing telemetry, hidden persona-pack leakage or guessed operational facts labelled as testimony.
-
-### Continuing operating limits
-
-The persona's pack grounds a realistic role, not a closed factual whitelist. Natural improvisation, uncertainty and correction are allowed. Only the actor receives private background; it supplies interview utterances, not construction instructions. Keep persona and operator submissions serial, distinguish operator technical choices from testimony, and never replay old unanswered browser requests.
-
-The maintained launcher uses Pi's run-local `--approve` with its explicit tool/extension allowlist and disabled context/skill/template discovery. Both persona and ChatAgent use `anthropic/claude-sonnet-4-6` with `BRUNCH_STEP_A_ACCOUNTING` unset. Do not revive retired per-request holds, response deadlines, call-count gates or ledger writes; the historical ledger retains its unresolved row and released hold. Existing owner spending/escalation policy remains; this documentation split starts no provider run. Remote writes, release and Linear writes remain separately authorized.
-
 ### Owner decisions
 
-- **2026-09-10 — Part A/7b split.** Lu directs this engineering groundwork to its own PR and a substantial worked-scenario Mission 7b child branch under the same FE-1573 issue. This is the specific exception to one-issue/one-PR bookkeeping; one live mission per branch remains. It supersedes treating the former semantic-quality/full-region programme as the condition for landing Part A, not the validity of its historical findings.
-- **2026-09-10 — UI before Part A merge.** Lu requires UI remediation before merging 7a, coordinated with FE-1645/#9634. This moves the workpiece-placement fix from the proposed 7b scope into Part A closeout. Lu initially selected a separate dock, then replaced it with AI / Workpiece tabs in the existing assistant panel to conserve visual space and limit implementation. The tab choice is current.
-- **2026-09-10 — Demo priority, strengthened after scope reconciliation.** Mission 7b is not one narrow prepared interaction. A PM must open and explore a database-seeded substantial scenario bundle containing a retained realistic conversation, multiple workpiece revisions, a handoff-quality current workpiece, a connected operational Petri net and broad element-level explanation coverage; then ask ordinary why questions, correct the account, observe bounded workpiece/net change, inspect updated why and reopen/continue. A companion recording must show persona-driven elicitation through visible native construction. Scenario URLs, independently owned working copies, the selected model's required operation classes and scenario-specific dynamics/simulation where claimed are pre-demo concerns. The crew-reservation tracer is not demo content. Optimisation and Chris/Yannis handoff require separate explicit admission. The tool approach remains a required discussion; neither allowlist expansion nor a replacement construction tool is selected here. The [7b draft](docs/mission-drafts/7b-september-demo.md) owns the ranges, oracles and unresolved choices.
+- **2026-09-11 — Native best-effort experiment.** The owner conversation accepts
+  native Live with best-effort speech instructions, separate authoritative
+  transcription and the mission recut, including one local mission-only commit.
+  This explicitly replaces strict audible-output enforcement for this experiment,
+  not canonical answer/tool ownership, queue policy or production acceptance.
+  Independent questions and unsupported claims remain manual-test failures.
+  No paid sessions, automatic microphone access, product commits or publication
+  are authorized. Manual testing belongs to Kostandin.
+
+### Continuing boundaries
+
+- Brunch owns interpretation, substantive questions/answers, evidence sufficiency,
+  workpiece meaning and tool selection. Flue owns canonical identity, admission,
+  ordering, settlement and reconstruction. Petrinaut owns authorized native
+  execution and observed effects. Live is conversational delivery, not a second
+  domain agent in the intended division of responsibility. The selected experiment
+  permits unbuffered speech that may violate that intention;
+  measure those violations without granting canonical or tool authority. Never
+  insert its paraphrase as another canonical assistant answer.
+- Exactly `PETRINAUT_VOICE_PROVIDER=realtime|live`, unset `realtime`; reuse current
+  enablement/credentials. Pin provider and delivery policy for the session. No
+  `live-experience`, `live-brunch`, new provider framework, automatic replay or
+  standalone fallback. The child must not advertise integrated Live until these
+  contracts hold; inherited `live` currently remains Ex1, not this milestone.
+- Retain current host queue policy. The one-waiting-input contract is not #9638's
+  FIFO. Realtime's interruption preference and echo/noise filtering are transport
+  behavior, not proof that native Live establishes input ordering. Interrupting
+  audio, retaining/admitting speech, correcting pending work and durable Stop are
+  four different actions. Corrections are subsequent Brunch input, not silent
+  modification of an in-flight operation; if that strains the interview, surface
+  the policy decision instead of changing it.
+- Preserve #9562's complete proposal validation, bindings, actual effects, tool
+  result metadata, history replacement and mounted controls. Unknown/conflicting
+  execution cannot be reapplied or spoken as success. A completed explanation of
+  a rejected operation differs from a failed/unfinished agent continuation.
+- Exact relay and settlement-gated faithful rephrasing are different policies.
+  The selected policy is best-effort paraphrasing from settlement-gated context,
+  not settlement-gated audio. Fidelity is a manual criterion: preserve facts,
+  quantities, negation, uncertainty, corrections and Brunch-authored questions;
+  prompting cannot guarantee that. Keep complete
+  reports visible. No truncation to fit 500 tokens and no private reasoning/raw
+  payloads sent as “progress.” Only real application events may ground permitted
+  acknowledgements. Keep them brief and non-repetitive as a prompting objective,
+  with no claimed deterministic wording/frequency enforcement.
+- No agent-started provider sessions/inference/microphone, synthetic recordings,
+  audio harness, Brunch model/prompt edits, new service/infrastructure, donor host
+  overwrite, parent-worktree changes, product commits, pushes, published PR, merge, deploy
+  or Notion writes. Local provider-free work remains allowed within current authority.
 
 ## Fog-line
 
-- **Construction surface:** individual instrumented operations work; a smooth complete conversation-driven construction sequence remains unproved. Mission 7b must settle the tool approach before broadening or redesigning it.
-- **Link coverage:** optional relations preserve supplied links, not automatic completeness. The demo needs ordinary interaction that creates and retrieves the links it shows, without operator citation-offset instructions.
-- **UI:** the tabbed surface is implemented and browser-tested; Lu's placement review and combined verification with #9634 remain pre-merge. Source-navigation polish and the complete correction interaction remain successor work. Confirm #9634 integration/landing order rather than copying its selector/settings changes.
-- **Delivery:** original-store recovery is observed. Actual demo host, independent-copy requirements, source selection and current deployed frontend/backend revisions remain to be inspected/decided.
-- **Modelling:** the inert clock is an exercised native operation, not an adopted stochastic/dynamics strategy. Modelling effectiveness and broader semantic acceptance remain separate evaluation work.
+Official documentation inspected 2026-09-11:
+[migration](https://developers.openai.com/api/docs/guides/live-migration),
+[Live reference](https://developers.openai.com/api/reference/resources/live/),
+[server controls](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live).
+
+The selected input proposal additionally uses the current official
+[transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription)
+and [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad).
+They document `gpt-live-transcribe`, browser WebRTC, final transcript events and
+out-of-order completion. Exact endpoint/schema compatibility, item-order
+reconciliation, dual-session cleanup and practical transcription/Live disagreement
+remain implementation and manual-test obligations, not established results.
+
+### Input: no supported native finalization marker
+
+`session.input_transcript.delta` explicitly has no transcript-done event.
+`session.delegation.created` carries an ID/timing/target, not final text. The
+migration example's `readContext()` is an application callback that assumes a
+ready context; it does not provide the missing finalizer. Silence, timeout,
+delegation and transcript timestamps cannot serve as authoritative admission.
+
+Input alternatives considered:
+
+1. **Explicit review and composer submission:** the user approves the displayed
+   draft text, making that frozen text authoritative. Late deltas cannot silently
+   extend a submitted message. Not selected: it changes hands-free interaction
+   and does not solve output eligibility.
+2. **Separate authoritative transcription:** route consented input to a supported
+   transcription lifecycle as well as Live, with stable capture identity and an
+   explicit final event. This is a hybrid, with extra cost, timing/ordering,
+   disagreement and cleanup obligations. Selected by Kostandin, with the concrete
+   OpenAI proposal above; not implemented or live-tested.
+
+### Output: context acceptance is not permission to hear speech
+
+Live chooses when to speak even while Brunch works. `session.commentary.append`
+supplies up to 500 tokens of paraphrasable context; `session.commentary.appended`
+only acknowledges acceptance. It supplies neither exact relay, a response-scoped
+audio association, nor speech/playback completion. `session.thinking.append` is
+not a secrecy boundary. Sideband output timestamps describe audio ranges, not
+which frozen Brunch answer authorized them or word-level playback. Live has no
+Realtime-style per-response terminal event. Input mute does not stop output.
+
+Output alternatives considered:
+
+1. **Keep strict ownership:** retaining Realtime remains the application fallback,
+   not an automatic session fallback or the selected experiment. A controlled hybrid
+   could use authoritative transcription and bounded speech delivery; Live audio
+   must remain muted/dropped unless eligible. Replacing Live's audible path would
+   change what the experiment tests. Buffering native Live is only a feasibility
+   candidate: source/audio association, coverage of late transcripts, approval,
+   cancellation, completion, stale-audio removal and suppressed-context recovery
+   must be justified before release. Its latency may defeat the goal.
+2. **Change the speech policy explicitly:** permit native unbuffered Live speech
+   with best-effort prompting and post-hoc inspection. This accepts the possibility
+   of independent substantive questions/claims before settlement. This is the
+   accepted experimental exception. Protected
+   tool execution does not itself enforce speech ownership. This is not exact relay
+   or enforced faithful rephrasing.
+
+Neither input alternative fixes output, and output approval does not finalize input.
+Both alternatives are now explicitly selected by Kostandin. Do not attribute this
+to a production acceptance or extend the single authority-commit permission to
+product commits or publishing.
 
 ## Stop or reorient
 
-Stop Part A expansion if a task is building the full demo rather than fixing the explicitly admitted UI blocker or a defect in the PR's stated mechanical claim. Preserve and report source/identity corruption, false effect attribution and unavailable native state; a fluently explained result must not conceal them. Do not gate this engineering split on full model fidelity, a new persona campaign, an optimiser, a new tool design or every historical proof-matrix row. Do not claim the deferred evaluation or demo passed.
+After the separate authority commit, start with the short real no-tool exchange
+and manually assess the
+best-effort speech behavior rather than reopening strict control as its prerequisite.
+If the experiment fails, retaining Realtime is a recommendation, not a silent fallback.
+Do not reopen FE-1624 based on Ex1's pleasant conversation. During later testing,
+premature speech, lost corrections, reordered admissions, invented progress,
+replayed uncertain execution or revived stopped speech require reassessment.
+
+### Carry-over classification
+
+Heads below were rechecked through GitHub; no donor code is imported.
+
+| Source | Required data/authority contract | Realtime mechanism or policy disposition |
+| --- | --- | --- |
+| [#9585](https://github.com/hashintel/hash/pull/9585), [038e7471be](https://github.com/hashintel/hash/commit/038e7471be3f654d3612e411e8a3fc868eb348cd), open/paused | Full reports stay canonical and visible; delivery is not another answer. | Bounded offers/exact replay and Voice-specific prompting are experiment mechanisms, not copied. Negative short-answer naturalness is not a passing baseline. Brunch prompts stay unchanged. |
+| [#9638](https://github.com/hashintel/hash/pull/9638), [a2d01de0b2](https://github.com/hashintel/hash/commit/a2d01de0b2a500164448b8d215609edde0e799e0), open/paused | Whole-turn settlement including textless continuations; frozen source; event-backed notices; no history autoplay or late speech revival. | Isolated `response.create`/response terminal machinery is Realtime-specific and cannot be fabricated in Live. Rephrasing fidelity and FIFO/Resume/Discard are explicit policies, not inherited authority here. |
+| [#9651](https://github.com/hashintel/hash/pull/9651), [6af148d2eb](https://github.com/hashintel/hash/commit/6af148d2eb05e7d78a534aafa325189c3c309654), open | Distinguish canonical evidence, acknowledgements, actual audible answer and application effects. | No harness or synthetic recordings. Published evidence does not establish a successful live sweep; attribution, silent containers, pre-admission failures and playback wait must not become success claims. |
+| [#9622](https://github.com/hashintel/hash/pull/9622), [1677453c87](https://github.com/hashintel/hash/commit/1677453c874eb94300e01f05ce79be1f543609d8), closed/unmerged | Model adherence is not proved by mocked routing. | Negative speech-authoring control, not a donor or permission for another Brunch prompt/tool variant. |
+| [#9571](https://github.com/hashintel/hash/pull/9571), [8e45c9edc1](https://github.com/hashintel/hash/commit/8e45c9edc19171ea3721fdc8ca07fcf2bdf6e1de), closed/unmerged | Domain/conversation/execution boundaries and honest reconstruction remain required. | Planning only, not permission for autonomous interviewing or a second dialogue store. |
 
 ## Deferred
 
-- [Mission 7b](docs/mission-drafts/7b-september-demo.md): substantial database-seeded worked scenarios, PM exploration/correction, broad flagship explanation coverage, persona-driven construction recording, selected-model tool/dynamics/simulation needs and necessary delivery joins.
-- [After-demo construction/explanation evaluation](docs/mission-drafts/7-explainable-construction.md): full-region semantic/behavioural and useful-explanation evaluation, broad passage/adversarial and lifecycle matrices. These remain evaluation questions, not automatic runtime semantic gates.
-- [Future spine](MISSION.next.md): broader cross-scenario evaluation; Missions 9/10 general repeat/change/retirement/concurrency/reviewer classes beyond the flagship; Mission 11 consumer-defined optimisation; assumption-preview and other plugin/source work. The scenario catalogue and coherent template-to-working-copy path are now 7b obligations, not conditional future polish.
+The shared [recovery obligation](MISSION.next.md#voice-after-the-live-transport-cut)
+remains in the future spine. This experiment consumes its readiness witness, not
+the old waiver. Broader construction, demo content, deployment, concurrency and
+optimisation remain in their existing planning homes. Native naturalness and live
+end-to-end compatibility remain Kostandin's manual observations, not agent verdicts.
+
+- [Mission 7b](docs/mission-drafts/7b-september-demo.md) retains substantial worked
+  scenarios, exploration/correction, explanation coverage, persona construction
+  recording and selected-model tool/dynamics/delivery obligations on this pinned base.
+- [After-demo evaluation](docs/mission-drafts/7-explainable-construction.md) retains
+  full-region semantic, behavioural, passage, adversarial and lifecycle evaluation.
+- [Future spine](MISSION.next.md) retains general repeat/change/retirement,
+  concurrency/reviewer, optimisation and other source/plugin work. Reconcile these
+  homes with #9649 on a coordinated stack update, without resurrecting consumed drafts.

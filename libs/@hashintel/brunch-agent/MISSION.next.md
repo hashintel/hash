@@ -496,6 +496,16 @@ Before claiming long-running provenance, prove panel/transcript/workpiece recove
 
 ### Voice after the live transport cut
 
+The FE-1664 integration draft is consumed into this child branch's
+[mission](MISSION.md): native best-effort Live speech plus authoritative
+transcription, with canonical Brunch/Flue/Petrinaut authority retained. Its accepted
+recut permits one separate local authority commit before product implementation;
+no paid run or publication is authorized. The recovery obligation below remains a
+readiness gate, not a transferred waiver. Outgoing Mission 7a and standalone Ex1
+contracts remain at their original paths in the pinned published parent
+[771712c1af](https://github.com/hashintel/hash/commit/771712c1afe2d4f3d3e5ee8fac39d17303bee7a1);
+this independent child does not adjudicate their acceptance or alter their branches.
+
 The Mission 5 contract, recut on 2026-09-03, owns the single-route consolidation: the typed panel's browser `ChatTransport` over `@flue/sdk`, removal of the server-side `/api/chat` door, repurposing `transport-aisdk` as the browser-side adapter, direct Voice/Flue reconciliation, its selected external-PR evidence, and the bounded local tracer. Its 2026-09-04 human witness passed typed and Voice admission, spoken playback, barge-in, and durable Stop, then failed faithful reopen: per-message typed/Voice provenance disappeared and the stopped entry returned as ordinary truncated content. On 2026-09-04 the owner explicitly waived the fresh-human re-check and closed Mission 6; its fresh product-manager conversation contained neither record. A subsequent source/artifact audit could not substantiate the earlier mechanical-coverage claim: both retained outer-witness bundles contain only completed settlements and no recorded Voice origins, and the analyzed history projector did not reconstruct either per-message property. Preserve the historical close and immutable records, but neither the waiver nor those bundles establish a presentation pass. Mission 6b's accepted parent-branch authority, pinned in [cold-start reads](MISSION.md#cold-start-reads), closes the combined foundation check and distinguishes supported client-tool attribution from explicitly deferred direct-user attribution after hydration.
 
 On 2026-09-10 the owner explicitly deferred this gate for FE-1604's
