@@ -108,4 +108,22 @@ describe("compileVisualizer caching", () => {
     expect(first).toBeInstanceOf(Error);
     expect(second).toBe(first);
   });
+
+  it("evicts the visualizer used least recently, not the one made first", () => {
+    const kept = `export default Visualization(() => <p>kept</p>);`;
+    const dropped = `export default Visualization(() => <p>dropped</p>);`;
+    const first = compileVisualizer(kept);
+    compileVisualizer(dropped);
+
+    // A keystroke's worth of drafts, with the kept one looked at halfway.
+    for (let draft = 0; draft < 30; draft++) {
+      if (draft === 15) {
+        compileVisualizer(kept);
+      }
+      compileVisualizer(`export default Visualization(() => <i>${draft}</i>);`);
+    }
+
+    expect(compileVisualizer(kept)).toBe(first);
+    expect(compileVisualizer(dropped)).not.toBe(compileVisualizer(kept));
+  });
 });
