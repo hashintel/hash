@@ -23,6 +23,7 @@ import {
 import {
   assertStateIdentity,
   isObservedStateMutation,
+  locateRootState,
   stateMutationTarget,
   type ObservedStateMutationName,
 } from "./root-state";
@@ -50,7 +51,13 @@ export type ObservedConstructionMutationName =
 export type ConstructionMutationName =
   | ObservedConstructionMutationName
   | BatchedArcMutationName
-  | BatchedNodeMutationName;
+  | BatchedNodeMutationName
+  | "updateDifferentialEquation";
+
+const isBatchedDynamicsUpdate = (
+  name: string,
+): name is "updateDifferentialEquation" =>
+  name === "updateDifferentialEquation";
 
 export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
@@ -205,7 +212,8 @@ export const deriveMutationEffects = (
 ): MutationEffects => {
   if (
     isBatchedNodeMutation(request.toolName) ||
-    isObservedStateMutation(request.toolName)
+    isObservedStateMutation(request.toolName) ||
+    isBatchedDynamicsUpdate(request.toolName)
   )
     return deriveNodeEffects(request, pre, post);
   const input = mutationActionInputSchemas[request.toolName].parse(
@@ -272,6 +280,13 @@ export const expectedNodeDefinition = (
     case "addDifferentialEquation":
       actions.addDifferentialEquation(
         mutationActionInputSchemas.addDifferentialEquation.parse(request.input),
+      );
+      break;
+    case "updateDifferentialEquation":
+      actions.updateDifferentialEquation(
+        mutationActionInputSchemas.updateDifferentialEquation.parse(
+          request.input,
+        ),
       );
       break;
     case "addPlace":
@@ -363,12 +378,28 @@ const deriveNodeEffects = (
   pre: SDCPN,
   post: SDCPN,
 ): MutationEffects => {
-  const state = isObservedStateMutation(request.toolName)
-    ? stateMutationTarget(
-        request,
-        request.toolName.startsWith("add") ? post : pre,
-      )
-    : undefined;
+  const dynamicsUpdateState = (definition: SDCPN) => {
+    const parsed = mutationActionInputSchemas.updateDifferentialEquation.parse(
+      request.input,
+    );
+    return {
+      target: locateRootState(definition, {
+        kind: "differential-equation" as const,
+        name: parsed.equationId,
+        field: "entity",
+      }),
+      creating: false,
+      fields: parsed.update,
+    };
+  };
+  const state = isBatchedDynamicsUpdate(request.toolName)
+    ? dynamicsUpdateState(pre)
+    : isObservedStateMutation(request.toolName)
+      ? stateMutationTarget(
+          request,
+          request.toolName.startsWith("add") ? post : pre,
+        )
+      : undefined;
   if (!state && !isBatchedNodeMutation(request.toolName))
     throw new Error("Not an entity mutation.");
   const input = isBatchedNodeMutation(request.toolName)
@@ -450,7 +481,9 @@ const deriveNodeEffects = (
           ? undefined
           : (expected as Record<string, unknown>)[field];
       const actualNode = state
-        ? stateMutationTarget(request, post).target.value
+        ? isBatchedDynamicsUpdate(request.toolName)
+          ? dynamicsUpdateState(post).target.value
+          : stateMutationTarget(request, post).target.value
         : post[collection][index];
       const actualField =
         field === undefined || !actualNode
@@ -528,7 +561,8 @@ export const classifyMutationOutcome = (
   if (
     isBatchedNodeMutation(attempt.request.toolName) ||
     attempt.request.toolName === "removeArc" ||
-    isObservedStateMutation(attempt.request.toolName)
+    isObservedStateMutation(attempt.request.toolName) ||
+    isBatchedDynamicsUpdate(attempt.request.toolName)
   ) {
     try {
       return {
@@ -663,7 +697,8 @@ export const verifyMutationAttempt = async <
   if (
     (!isBatchedArcMutation(attempt.request.toolName) &&
       !isBatchedNodeMutation(attempt.request.toolName) &&
-      !isObservedStateMutation(attempt.request.toolName)) ||
+      !isObservedStateMutation(attempt.request.toolName) &&
+      !isBatchedDynamicsUpdate(attempt.request.toolName)) ||
     !sha256Pattern.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,

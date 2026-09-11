@@ -54,6 +54,18 @@ const executeCanonicalMutation = (
     case "removeArc":
       mutations.removeArc(operation.input);
       break;
+    case "addType":
+      instance.mutations.addType(operation.input);
+      break;
+    case "addParameter":
+      instance.mutations.addParameter(operation.input);
+      break;
+    case "addDifferentialEquation":
+      instance.mutations.addDifferentialEquation(operation.input);
+      break;
+    case "updateDifferentialEquation":
+      instance.mutations.updateDifferentialEquation(operation.input);
+      break;
     default: {
       operation satisfies never;
       throw new Error("Unsupported mutate_petrinet operation");

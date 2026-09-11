@@ -909,6 +909,8 @@ const ConversationAiAssistantPanel = ({
         ({ toolName }) => toolName === toolCall.toolName,
       );
       if (automaticTool) {
+        pendingMutationDiagnosticsVersionRef.current =
+          diagnosticsVersionRef.current;
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
         let output: unknown;
