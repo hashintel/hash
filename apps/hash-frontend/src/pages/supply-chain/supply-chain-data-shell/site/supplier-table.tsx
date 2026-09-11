@@ -50,6 +50,8 @@ export const SupplierTable = ({
   onSort,
   onRowClick,
   filterBar,
+  headerTabs,
+  filtersActive = false,
 }: {
   rows: VendorOtifStats[];
   sort: { key: SortKey; dir: SortDir };
@@ -57,6 +59,10 @@ export const SupplierTable = ({
   onRowClick: (vendor: VendorOtifStats) => void;
   /** Filter controls rendered in the card's pinned header band. */
   filterBar?: React.ReactNode;
+  /** Tab cluster rendered on the header band's leading side. */
+  headerTabs?: React.ReactNode;
+  /** Whether any filter chip is active (drives the filter bar's placement). */
+  filtersActive?: boolean;
 }) => {
   const sorted = useMemo(() => sortSupplierRows(rows, sort), [rows, sort]);
   const applySort = (next: { key: SortKey; dir: SortDir }) => {
@@ -83,17 +89,25 @@ export const SupplierTable = ({
         style={{ maxHeight: threshold.TABLE_MAX_HEIGHT }}
       >
         <div className={threshold.filterHeader}>
-          <div className={threshold.filterHeaderBar}>{filterBar}</div>
-          <SortMenu
-            items={SUPPLIER_SORTERS}
-            value={sortMenuValueOf(sort)}
-            onChange={(key, direction) =>
-              applySort(sortFromMenu(key, direction))
-            }
-            align="right"
-            variant="ghost"
-            size="xs"
-          />
+          <div className={threshold.filterHeaderRow}>
+            {headerTabs}
+            <div className={threshold.filterHeaderActions}>
+              {!filtersActive && filterBar}
+              <SortMenu
+                items={SUPPLIER_SORTERS}
+                value={sortMenuValueOf(sort)}
+                onChange={(key, direction) =>
+                  applySort(sortFromMenu(key, direction))
+                }
+                align="right"
+                variant="ghost"
+                size="xs"
+              />
+            </div>
+          </div>
+          {filtersActive && (
+            <div className={threshold.filterChipsRow}>{filterBar}</div>
+          )}
         </div>
         <div className={threshold.tableScroll}>
           <table className={threshold.table}>

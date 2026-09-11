@@ -89,6 +89,8 @@ export const PlanningTable = ({
   statusHistory = {},
   onStatus,
   filterBar,
+  headerTabs,
+  filtersActive = false,
 }: {
   rows: PlanningRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -100,6 +102,10 @@ export const PlanningTable = ({
   onStatus: (node: SiteNode, title: string) => void;
   /** Filter controls rendered in the card's pinned header band. */
   filterBar?: React.ReactNode;
+  /** Tab cluster rendered on the header band's leading side. */
+  headerTabs?: React.ReactNode;
+  /** Whether any filter chip is active (drives the filter bar's placement). */
+  filtersActive?: boolean;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
@@ -121,15 +127,25 @@ export const PlanningTable = ({
       style={{ maxHeight: threshold.TABLE_MAX_HEIGHT }}
     >
       <div className={threshold.filterHeader}>
-        <div className={threshold.filterHeaderBar}>{filterBar}</div>
-        <SortMenu
-          items={PLANNING_SORTERS}
-          value={sortMenuValueOf(sort)}
-          onChange={(key, direction) => applySort(sortFromMenu(key, direction))}
-          align="right"
-          variant="ghost"
-          size="xs"
-        />
+        <div className={threshold.filterHeaderRow}>
+          {headerTabs}
+          <div className={threshold.filterHeaderActions}>
+            {!filtersActive && filterBar}
+            <SortMenu
+              items={PLANNING_SORTERS}
+              value={sortMenuValueOf(sort)}
+              onChange={(key, direction) =>
+                applySort(sortFromMenu(key, direction))
+              }
+              align="right"
+              variant="ghost"
+              size="xs"
+            />
+          </div>
+        </div>
+        {filtersActive && (
+          <div className={threshold.filterChipsRow}>{filterBar}</div>
+        )}
       </div>
       <div className={threshold.tableScroll}>
         <table className={threshold.table}>
