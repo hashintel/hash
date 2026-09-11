@@ -93,7 +93,8 @@ export type ConnectedStudy = {
    * best trial's point and following ends; a navigation the user moved
    * earlier stays where it is. Only a completed study refines its point:
    * a pause, a stop or a failure starts no refinement, and `refineBest` is
-   * the explicit way to run at the best configuration.
+   * the explicit way to run at the best configuration. A pause is
+   * provisional: the outcome the worker reports afterwards replaces it.
    */
   settle(
     this: void,
@@ -494,7 +495,10 @@ export const createConnectedStudy = ({
       }
     },
     settle: (outcome, settledBest) => {
-      if (disposed || terminal !== null) {
+      // A pause is optimistic: the worker may answer it with the outcome the
+      // segment really ended with (complete, once the last step was already
+      // asked), so only a pause yields to a later settle.
+      if (disposed || (terminal !== null && terminal !== "paused")) {
         return;
       }
       terminal = outcome;

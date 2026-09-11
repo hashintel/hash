@@ -406,6 +406,45 @@ describe("createConnectedStudy", () => {
     expect(refinementRuns.runs).toHaveLength(0);
   });
 
+  it("a pause the worker answers with complete refines the parked best; a repeated pause changes nothing", () => {
+    const { study, startTrial, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.3));
+    const trial = startTrial(1, 0.02);
+    study.settle("paused");
+    const result = completedRunResult({
+      metricId,
+      frames: [distributionFrame(metricId, 180, [[0.4, 3]])],
+      runValues: [0.4, 0.4, 0.4],
+    });
+    study.trialSettled(1, result);
+    trial.settle(result);
+    expect(refinementRuns.runs).toHaveLength(0);
+
+    // The pause landed after the last ask, so the segment ends complete: the
+    // study is done and its best refines as any completed study's does.
+    study.settle("complete", {
+      trial: 0,
+      parameters: { infected_ratio: 0.05 },
+      objective: 0.3,
+    });
+    expect(refinementRuns.runs).toHaveLength(1);
+    expect(refinementRuns.runs[0]?.request).toMatchObject({
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(
+          axis,
+          optimizationAxisPositionFor(axis, 0.05),
+        ),
+      },
+    });
+
+    const paused = setup();
+    paused.study.trialReported(trialEvent(0, 0.05, 0.3));
+    paused.study.settle("paused");
+    paused.study.settle("paused");
+    expect(paused.refinementRuns.runs).toHaveLength(0);
+    expect(paused.latest()?.selection).toBeNull();
+  });
+
   it("refineBest moves to the best step's point and climbs the ladder there; settling a failed study starts nothing", () => {
     const { study, latest, refinementRuns } = setup();
     study.trialReported(trialEvent(0, 0.05, 0.3));
