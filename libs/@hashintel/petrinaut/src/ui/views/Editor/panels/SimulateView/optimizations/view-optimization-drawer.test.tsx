@@ -49,18 +49,7 @@ import type { ReactNode } from "react";
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: ({ children }: { children: ReactNode }) => (
-        <header>{children}</header>
-      ),
-      Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
-      Footer: ({ actions }: { actions: ReactNode }) => (
-        <footer>{actions}</footer>
-      ),
-    },
-  );
+  const { Drawer } = await import("../shared/ds-drawer-stub");
   const Slider = ({
     value,
     disabled,
@@ -77,7 +66,22 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       onChange={(event) => onChange?.(Number(event.target.value))}
     />
   );
-  const Tooltip = ({ children }: { children: ReactNode }) => <>{children}</>;
+  // The Ark tooltip opens on hover; this one keeps its content in a tooltip
+  // element in the document body, out of the trigger's text, so the badge's
+  // reason can be read.
+  const { createPortal } = await import("react-dom");
+  const Tooltip = ({
+    children,
+    content,
+  }: {
+    children: ReactNode;
+    content: ReactNode;
+  }) => (
+    <>
+      {children}
+      {createPortal(<span role="tooltip">{content}</span>, document.body)}
+    </>
+  );
   // The Ark menu positions itself with a ResizeObserver jsdom lacks; this one
   // lists the items as buttons once the trigger is clicked.
   type FlatItem = {
@@ -492,9 +496,13 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       },
     });
 
-    // The reason lives in the badge's tooltip, which the mock does not render.
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(screen.queryByText("GPU")).toBeNull();
+    expect(
+      screen.getByRole("tooltip", {
+        name: /could not run this net: the GPU cannot compute expression metrics/,
+      }),
+    ).toBeTruthy();
   });
 
   it("badges a study that ran on the GPU", () => {

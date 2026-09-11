@@ -25,18 +25,7 @@ import type { ReactNode } from "react";
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: ({ children }: { children: ReactNode }) => (
-        <header>{children}</header>
-      ),
-      Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
-      Footer: ({ actions }: { actions: ReactNode }) => (
-        <footer>{actions}</footer>
-      ),
-    },
-  );
+  const { Drawer } = await import("../shared/ds-drawer-stub");
   const Tooltip = ({ children }: { children: ReactNode }) => <>{children}</>;
   type FlatItem = {
     id?: string;
@@ -95,27 +84,11 @@ vi.mock("./sweep-surface", async () => {
 });
 
 // uPlot cannot mount in jsdom; the menu and the subtitle are real.
-vi.mock("./experiment-metric-timeline", async () => {
-  const [menu, describeView, viewState] = await Promise.all([
-    vi.importActual<
-      typeof import("./experiment-metric-timeline/metric-view-menu")
-    >("./experiment-metric-timeline/metric-view-menu"),
-    vi.importActual<
-      typeof import("./experiment-metric-timeline/describe-metric-view")
-    >("./experiment-metric-timeline/describe-metric-view"),
-    vi.importActual<typeof import("./experiment-metric-timeline/view-state")>(
-      "./experiment-metric-timeline/view-state",
-    ),
-  ]);
-  return {
-    MetricViewMenu: menu.MetricViewMenu,
-    describeMetricView: describeView.describeMetricView,
-    DEFAULT_METRIC_VIEW_SETTINGS: viewState.DEFAULT_METRIC_VIEW_SETTINGS,
-    ExperimentMetricTimeline: ({ plotHeight }: { plotHeight: number }) => (
-      <div data-testid="metric-timeline" data-plot-height={plotHeight} />
-    ),
-  };
-});
+vi.mock("./experiment-metric-timeline", () =>
+  import("../shared/metric-timeline-test-stubs").then((stubs) =>
+    stubs.mockExperimentMetricTimelineModule(),
+  ),
+);
 
 // The navigator's Ark sliders measure themselves with a ResizeObserver jsdom
 // lacks; nothing here depends on a measurement.

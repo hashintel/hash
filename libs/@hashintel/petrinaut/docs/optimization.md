@@ -157,9 +157,10 @@ The body arranges its parts by its width. The **Parameters** band spans the
 body under the header; the chevron before its title folds the controls away
 and back without losing their positions. Beneath it, in the drawer at its full
 width and in the full view, the **Objective surface** sits on the left and the
-other chart cards on the right, two to a row; in a narrower drawer the chart
-cards come first, then the surface. The steps table follows at a fixed height
-and scrolls on its own. Every card keeps its height whatever it shows.
+other chart cards on the right, as many 320 px cards per row as fit (two at
+the extra-large drawer's width); in a narrower drawer the chart cards come
+first, then the surface. The steps table follows at a fixed height and
+scrolls on its own. Every card keeps its height whatever it shows.
 
 The **Objective by step** card draws every step's objective value as a dot
 over the step number, with the best so far as a line stepping up (or down,
@@ -245,9 +246,7 @@ in view on a laptop screen while the study streams:
   offers the same views as an experiment's [metric
   charts](experiments.md#metric-charts).
 - The **Objective by step** card follows these two, so the surface, the point
-  in flight and the study's history are read together. In the drawer, the
-  three cards wrap to two rows when the drawer is not wide enough for all
-  three; the full view shows them in one row.
+  in flight and the study's history are read together.
 - A study with [constraints](#constraints) adds a **Constraints** card as the
   fourth. Its headline is the steps **clear** across the study over the steps
   that simulated, `14 / 20 · 70%`, with the infeasible draws counted in the
@@ -283,9 +282,8 @@ in view on a laptop screen while the study streams:
   muted, and only the correlation column carries information. The card only
   appears for a study run in the browser; a study on the service has no
   sensitivity analysis yet.
-- The steps table fills whatever height is left, the best step starred and
-  tinted. It shows a row or two on a laptop screen and a page of them on a
-  taller one; the strip's step count and best value stay in view either way.
+- The steps table follows in a fixed-height box that scrolls on its own, the
+  best step starred and tinted.
 
 ## The surface view
 

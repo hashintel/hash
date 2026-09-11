@@ -140,7 +140,7 @@ const REMOTE_SURFACE_HELP =
   "The objective over two optimized parameters, computed locally on this machine; the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere.";
 
 /** The scenario and the objective, the title's second and third parts. */
-export const describeStudy = (optimization: OptimizationRecord): string => {
+const describeStudy = (optimization: OptimizationRecord): string => {
   const { input } = optimization;
   const scenario = input.model.definition.scenarios?.find(
     (candidate) => candidate.id === input.scenario.id,
@@ -154,7 +154,7 @@ export const describeStudy = (optimization: OptimizationRecord): string => {
 };
 
 /** The frame's one-line title: `Supply chain · Base scenario · Maximize Profit`. */
-export const studyTitle = (optimization: OptimizationRecord): string =>
+const studyTitle = (optimization: OptimizationRecord): string =>
   `${optimization.input.name} · ${describeStudy(optimization)}`;
 
 /**
@@ -162,7 +162,7 @@ export const studyTitle = (optimization: OptimizationRecord): string =>
  * study is followed, otherwise the point the navigation holds. A settled
  * study never follows, so its title never reads as live.
  */
-export const objectiveAtPointTitle = (
+const objectiveAtPointTitle = (
   phase: StudyPhase,
   selection: ConnectedStudyState["selection"],
 ): string =>
@@ -173,9 +173,7 @@ export const objectiveAtPointTitle = (
     : "Objective at the selected point";
 
 /** The frame's note row: the error when the study failed, else the resume note while paused. */
-export const studyNote = (
-  optimization: OptimizationRecord,
-): FrameNote | null => {
+const studyNote = (optimization: OptimizationRecord): FrameNote | null => {
   if (optimization.error) {
     return { content: optimization.error, tone: "error" };
   }
@@ -367,11 +365,7 @@ const ConnectedStudyBody = ({
 };
 
 /** The body of a study in either surface, arranged by the frame's width. */
-export const StudyBody = ({
-  optimization,
-}: {
-  optimization: OptimizationRecord;
-}) =>
+const StudyBody = ({ optimization }: { optimization: OptimizationRecord }) =>
   optimization.connected ? (
     <ConnectedStudyBody
       optimization={optimization}
@@ -456,7 +450,7 @@ const PausedStudyActions = ({
  * is called when the surface should leave the record: after Remove, and from
  * the drawer's Close button.
  */
-export const StudyActions = ({
+const StudyActions = ({
   optimization,
   presentation,
   onPresentationChange,

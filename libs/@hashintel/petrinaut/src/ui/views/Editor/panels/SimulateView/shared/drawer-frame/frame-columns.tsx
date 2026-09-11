@@ -11,25 +11,12 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import type { ReactNode } from "react";
 
-/**
- * The body width, in pixels, from which the two-column arrangement applies.
- * The extra-large ds drawer is 1060px wide and its body's content box 1010px,
- * 995px beside a classic scrollbar; the threshold sits under that with room
- * for a viewport that clamps the drawer a little.
- */
-export const FRAME_TWO_COLUMN_MIN_WIDTH = 960;
-
-/**
- * The secondary column's minimum width in pixels: two chart cards at
- * `CHART_CARD_MIN_WIDTH` and the grid's 12px gap between them. The primary
- * column yields until the body is wide enough for the 3:5 split.
- */
-export const FRAME_SECONDARY_MIN_WIDTH = 652;
-
 // The body is the `drawer-frame-body` size container (declared in
 // drawer-frame.tsx); Panda extracts the query statically, so the threshold
-// and the column minimum are written out here and mirrored by the constants
-// above.
+// and the column minimum are written out here. The threshold sits under the
+// extra-large drawer's body width (1010px, 995px beside a classic scrollbar)
+// with room for a viewport that clamps the drawer a little; the column
+// minimum is two chart cards at `CHART_CARD_MIN_WIDTH` and the grid's gap.
 const columnsStyle = css({
   display: "grid",
   gap: "4",

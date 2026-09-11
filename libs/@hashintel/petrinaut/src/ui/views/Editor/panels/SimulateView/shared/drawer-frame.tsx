@@ -30,11 +30,7 @@ export {
   FrameStatusPill,
   type FrameStatusTone,
 } from "./drawer-frame/frame-header";
-export {
-  FRAME_SECONDARY_MIN_WIDTH,
-  FRAME_TWO_COLUMN_MIN_WIDTH,
-  FrameColumns,
-} from "./drawer-frame/frame-columns";
+export { FrameColumns } from "./drawer-frame/frame-columns";
 export { FrameBand } from "./drawer-frame/frame-band";
 export {
   type FrameLayoutSignature,
