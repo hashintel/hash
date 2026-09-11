@@ -11,17 +11,21 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 3. Fill in the configuration (see below).
 4. Click **Run**.
 
-### Experiments started by an integration
+### Experiments created by the assistant
 
-An application embedding Petrinaut can start an experiment with a saved
-scenario and metrics, including a search over numeric parameter ranges.
-These experiments appear in the Experiments list.
+If your host enables experiment tools, the [AI assistant](ai-assistant.md#experiments-from-chat)
+can run a saved scenario with saved metrics and fixed parameter values. It
+can also optimize numeric parameter ranges. These requests create ordinary
+experiments in this list and show a progress card in chat.
 
-While the request runs, parameter changes and removal are locked. You can
-inspect the charts. Controls become available when the request finishes.
-Later exploration leaves the result returned to the application unchanged.
+While the assistant's request runs, parameter changes and removal are locked.
+You can inspect the charts and cancel the experiment. When it finishes, the
+assistant receives its results and the controls become available again.
+Later exploration does not change the result already recorded in chat.
+
 An optimization finishes after its search and the final runs at its best
-parameter values. Keep the browser page open until the request finishes.
+parameter values. Keep the browser page open until the request finishes;
+experiments are not restored after a reload.
 
 ### Configuration
 

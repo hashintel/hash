@@ -1,0 +1,27 @@
+---
+title: Experiments in AI chat
+description: Dispatch experiment tools and show live progress in the conversation.
+attachTo: ui.views.editor.ai
+sidebar_order: 20
+---
+
+Petrinaut AI dispatches `createExperiment` to the [browser experiment host](doc:experiments/ai-created-experiments).
+Its chat card shows live progress while the client tool waits for its final result.
+
+![Experiment chat flow](@diagrams/ai-experiment-chat.svg)
+
+The tool definition in `petrinautAiTools` supplies the canonical request schema.
+The embedding application admits the tool and preserves its call ID through
+transport and continuation. Browser progress updates the existing card;
+completion supplies one captured tool result to the same conversation.
+
+Simulation cards use blue. Optimization cards use purple and glow while
+running. Progress transitions respect reduced-motion preferences. **Cancel**
+aborts the request; **View experiment** opens the drawer for chart inspection.
+The chat stays mounted across Edit, Simulate, and Notebook modes so opening
+an experiment preserves the active conversation.
+
+The [host guide](doc:experiments/ai-created-experiments#execution-and-ownership)
+describes input locks, final refinement, result semantics, and browser lifetime.
+The [user guide](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/docs/ai-assistant.md#experiments-from-chat)
+describes the controls.

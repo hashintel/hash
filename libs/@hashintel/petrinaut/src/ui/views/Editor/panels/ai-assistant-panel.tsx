@@ -17,6 +17,10 @@ import {
 
 import {
   aiCommandActionInputSchemas,
+  createExperimentToolName,
+  petrinautExperimentRequestSchema,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
   type AiCommandActionName,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -29,6 +33,7 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import { AiExperimentsContext } from "../../../../react/ai-experiments/context";
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
@@ -502,10 +507,29 @@ const ConversationAiAssistantPanel = ({
   }, [readOnlyReason]);
 
   const { requestDiagnostics } = use(LanguageClientContext);
+  const experimentHost = use(AiExperimentsContext);
   const diagnosticsHostRef = useLatest({ instance, requestDiagnostics });
+  const experimentControllersRef = useRef(new Map<string, AbortController>());
+  const [experimentStates, setExperimentStates] = useState<
+    Record<
+      string,
+      {
+        progress?: PetrinautExperimentProgress;
+        result?: PetrinautExperimentResult;
+      }
+    >
+  >({});
+  useEffect(() => {
+    const controllers = experimentControllersRef.current;
+    return () => {
+      for (const controller of controllers.values()) controller.abort();
+      controllers.clear();
+    };
+  }, []);
 
   const {
     hasSelection,
+    globalMode,
     isAiAssistantOpen,
     navigateTo,
     propertiesPanelWidth,
@@ -615,7 +639,6 @@ const ConversationAiAssistantPanel = ({
   );
 
   const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
-    // eslint-disable-next-line react-hooks-js/refs -- Construction stores callbacks; refs are read only when the transport sends.
     () => ({
       source: aiAssistant.transport,
       transport: buildWrappedTransport(aiAssistant.transport),
@@ -905,6 +928,48 @@ const ConversationAiAssistantPanel = ({
         toolCall.input,
         aiAssistant.interactiveTools ?? [],
       );
+      return;
+    }
+
+    if (toolCall.toolName === createExperimentToolName) {
+      const request = petrinautExperimentRequestSchema.parse(toolCall.input);
+      const controller = new AbortController();
+      experimentControllersRef.current.set(toolCall.toolCallId, controller);
+      const isCurrentRequest = () =>
+        generation === submissionGenerationRef.current &&
+        executionConversationId === toolHostIdentityRef.current &&
+        experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller;
+      try {
+        const result = await experimentHost.createExperiment(request, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            if (!isCurrentRequest()) return;
+            setExperimentStates((states) => ({
+              ...states,
+              [toolCall.toolCallId]: { progress },
+            }));
+          },
+        });
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { result },
+          }));
+        }
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: result,
+        });
+      } finally {
+        if (
+          experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller
+        ) {
+          experimentControllersRef.current.delete(toolCall.toolCallId);
+        }
+      }
       return;
     }
 
@@ -1269,6 +1334,10 @@ const ConversationAiAssistantPanel = ({
   const submissionConversationIdRef = useRef(conversationId);
   useLayoutEffect(() => {
     if (submissionConversationIdRef.current === conversationId) return;
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
+    experimentControllersRef.current.clear();
+    setExperimentStates({});
     submissionConversationIdRef.current = conversationId;
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
@@ -1767,6 +1836,8 @@ const ConversationAiAssistantPanel = ({
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
     abortAutomaticTools();
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
     stopRequestedRef.current = true;
     if (requestStop !== undefined) {
       try {
@@ -1978,9 +2049,6 @@ const ConversationAiAssistantPanel = ({
     stop: stopComposer,
     submitText,
   };
-  /* eslint-disable react-hooks-js/refs -- The public render prop receives
-     stable event callbacks that read their refs only when the host invokes
-     them from an event handler or effect. */
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
@@ -1995,7 +2063,6 @@ const ConversationAiAssistantPanel = ({
     setVoiceActive,
     submitVoiceInput,
   });
-  /* eslint-enable react-hooks-js/refs */
 
   return (
     <AiAssistantContents
@@ -2006,6 +2073,10 @@ const ConversationAiAssistantPanel = ({
       composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
+      experimentStates={experimentStates}
+      onCancelExperiment={(toolCallId) =>
+        experimentControllersRef.current.get(toolCallId)?.abort()
+      }
       input={input}
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
@@ -2013,6 +2084,10 @@ const ConversationAiAssistantPanel = ({
       messages={messages}
       onClearMessages={() => {
         abortAutomaticTools();
+        for (const controller of experimentControllersRef.current.values())
+          controller.abort();
+        experimentControllersRef.current.clear();
+        setExperimentStates({});
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this
@@ -2124,7 +2199,11 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
+      rightOffset={
+        globalMode === "edit" && hasSelection
+          ? propertiesPanelWidth + PANEL_MARGIN
+          : 0
+      }
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
