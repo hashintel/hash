@@ -36,10 +36,16 @@ metadata:
 - For comprehensive verification, run the complete test suite
 - Database seeding can be performed using yarn commands in the project's package.json
 
+## Test Subject
+
+Test behavior implemented by our code or its composition. Assume dependencies implement their documented behavior correctly. Do not add tests whose only subject is a dependency's parser, serializer or generated implementation. Deriving or wrapping that API on an application type does not make its implementation ours.
+
+A test that only calls `try_parse_from` on a `#[derive(clap::Parser)]` type and checks the declared fields or built-in validation re-tests clap. Test the logic of an application-owned value parser, validation rule or use of the parsed options when the case can expose a bug in our behavior with clap's behavior held fixed. Parsing can be setup for the test without being its whole assertion. Moving a dependency-conformance case into an integration target does not change its subject.
+
 ## Test Design Principles
 
-- Test both happy paths and error conditions for each function
-- For each error case in your code, write a corresponding test
+- Choose success and error cases that distinguish our intended behavior from a plausible defect
+- Do not add a test merely to mirror a trivial mapping or immediate rejection branch
 - Test boundary conditions and edge cases explicitly
 - Include tests for invalid or malformed inputs
 - For streaming encoders/decoders, test partial data handling and buffer management
@@ -76,11 +82,11 @@ A test name is a short label with the shape `<subject>_<case>[_<variant>]`:
 - `<case>` is what distinguishes this test from its siblings under the same subject: an operand shape, an input class or a code path.
 - `<variant>` narrows the case further when two tests share one, and is otherwise absent.
 
-The shape buys two things. Tests of one subject share a prefix, so a module's test list reads as a table of subject × case and `cargo nextest run -E 'test(<subject>_)'` selects the family. And the name says what the test covers while the doc comment says what it asserts and why, so neither repeats the other.
+Tests of one subject share a prefix, so a module's test list reads as a table of subject × case and `cargo nextest run -E 'test(<subject>_)'` selects the family. The name identifies the case and the assertions establish its result. A comment adds setup, reasoning or a contract that those do not explain. A self-explanatory test needs no comment.
 
 What a name never carries:
 
-- A `test_` prefix, an article, a narration verb (`should`, `works`, `correctly`) or a `when`/`with`/`that` clause. The story a sentence-name would tell belongs in the test's doc comment and its assertion messages.
+- A `test_` prefix, an article, a narration verb (`should`, `works`, `correctly`) or a `when`/`with`/`that` clause. Put necessary explanation in a comment or assertion message rather than in the name.
 - More than about six words. Three to five is the norm, and a longer name is a test doing too much, where the fix is one test per case.
 - The rejection, for a negative case. The name is the input class (`ice_invalid_subscript_type`, `rank_positions_short`, `rows_out_of_domain`), with no `err_` prefix or `_err` suffix. An outcome word is the final token only when the case alone is ambiguous (`eq_same_type_accepted`).
 
@@ -107,11 +113,7 @@ async fn node_identities_short() { /* … */ }
 
 - Follow the same code quality standards in test code as in production code
 - Add appropriate assertions for array/slice access to avoid clippy warnings
-- Document test scenarios with clear comments explaining:
-  - The setup (input and environment)
-  - The action being tested
-  - The expected outcome
-  - Why the outcome is expected
+- Add comments for non-obvious setup, reasoning or contracts that the test's name and body leave unclear. Self-explanatory tests may omit comments.
 - Consider adding custom test utilities to simplify common testing patterns
 - Use the `json!` macro from `serde_json` instead of constructing JSON as raw strings
 
