@@ -44,6 +44,12 @@ import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dial
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import {
+  CodeWorkspaceMenu,
+  CodeWorkspacePanel,
+  CodeWorkspaceProvider,
+  useCodeWorkspace,
+} from "../../monaco/code-workspace";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -116,7 +122,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = ({
+const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
@@ -130,6 +136,10 @@ export const EditorView = ({
   slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
 }) => {
+  const { activePath } = useCodeWorkspace();
+  const { codeEditorPlacement } = use(UserSettingsContext);
+  const codeReplacesCanvas =
+    activePath !== null && codeEditorPlacement === "fullscreen";
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
   // otherwise offer an item that silently does nothing.
@@ -159,6 +169,8 @@ export const EditorView = ({
     setAiAssistantOpen,
     isBottomPanelOpen,
     bottomPanelHeight,
+    isLeftSidebarOpen,
+    leftSidebarWidth,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
 
@@ -515,10 +527,14 @@ export const EditorView = ({
               <LeftSideBar />
 
               {/* Properties Panel - Right Side */}
-              <PropertiesPanel />
+              {!activePath || codeEditorPlacement === "bottom" ? (
+                <PropertiesPanel />
+              ) : null}
 
               {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+              {!codeReplacesCanvas && (
+                <SDCPNView viewportActions={viewportActions} />
+              )}
 
               {showEmptyAiHero && (
                 <AiCtaModal
@@ -537,17 +553,35 @@ export const EditorView = ({
                 />
               )}
 
-              {/* Bottom Panel */}
-              <BottomPanel />
+              <CodeWorkspacePanel />
+              {!codeReplacesCanvas && (
+                <div
+                  className={css({
+                    position: "absolute",
+                    top: "3",
+                    zIndex: "[calc(var(--z-index-sticky) - 2)]",
+                  })}
+                  style={{
+                    left: (isLeftSidebarOpen ? leftSidebarWidth : 0) + 12,
+                  }}
+                >
+                  <CodeWorkspaceMenu />
+                </div>
+              )}
 
-              <BottomBar
-                mode={effectiveMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
+              {/* Bottom Panel */}
+              {!activePath && <BottomPanel />}
+
+              {!activePath && (
+                <BottomBar
+                  mode={effectiveMode}
+                  editionMode={editionMode}
+                  onEditionModeChange={setEditionMode}
+                  cursorMode={cursorMode}
+                  onCursorModeChange={setCursorMode}
+                  hasAiAssistant={aiAssistant !== undefined}
+                />
+              )}
 
               {aiAssistant && (
                 <AiAssistantPanel
@@ -573,3 +607,11 @@ export const EditorView = ({
     </>
   );
 };
+
+export const EditorView = (
+  props: React.ComponentProps<typeof EditorViewContent>,
+) => (
+  <CodeWorkspaceProvider>
+    <EditorViewContent {...props} />
+  </CodeWorkspaceProvider>
+);

@@ -9,7 +9,10 @@ import {
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import {
+  useCodeEditorMenuItems,
+  SourceCodeEditor as CodeEditor,
+} from "../../../../../../../monaco/code-workspace";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { useTransitionPropertiesContext } from "../../context";
 
@@ -78,9 +81,20 @@ const createTransitionArcPlaceResolver = (
 };
 
 const ResultsHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
-    useTransitionPropertiesContext();
+  const {
+    logicAvailability,
+    transition,
+    sdcpn,
+    net,
+    types,
+    updateTransition,
+    isReadOnly,
+  } = useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
+
+  const codeEditorItems = useCodeEditorMenuItems(
+    getDocumentUri("transition-kernel", transition.id),
+  );
 
   if (globalMode !== "edit" || !logicAvailability.transitionKernel) {
     return null;
@@ -98,9 +112,11 @@ const ResultsHeaderAction: React.FC = () => {
         />
       }
       items={[
+        ...codeEditorItems,
         {
           id: "load-default",
           text: "Load default template",
+          disabled: isReadOnly,
           onClick: () => {
             const resolveArcPlace = createTransitionArcPlaceResolver(
               sdcpn,

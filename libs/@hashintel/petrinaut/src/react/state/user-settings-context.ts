@@ -16,6 +16,8 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
+export type CodeEditorPlacement = "fullscreen" | "properties" | "bottom";
+
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
 export type SubViewSectionSettings = {
@@ -48,6 +50,8 @@ export type UserSettings = {
   partialSelection: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
+  enableCodeEditorWorkspace: boolean;
+  codeEditorPlacement: CodeEditorPlacement;
   /**
    * Experimental: offer the ad-hoc scenario form — inline Initial State +
    * Parameters — in Simulation Settings, experiments, optimizations, and
@@ -130,6 +134,8 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
+  setEnableCodeEditorWorkspace: (value: boolean) => void;
+  setCodeEditorPlacement: (value: CodeEditorPlacement) => void;
   setEnableAdHocScenarios: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setWebGpuEnabled: (value: boolean) => void;
@@ -166,6 +172,8 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   enableNetComponents: false,
   enableNotebookView: false,
+  enableCodeEditorWorkspace: false,
+  codeEditorPlacement: "fullscreen",
   enableAdHocScenarios: false,
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
@@ -201,6 +209,8 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
+  setEnableCodeEditorWorkspace: () => {},
+  setCodeEditorPlacement: () => {},
   setEnableAdHocScenarios: () => {},
   setShowWalkthroughOnInit: () => {},
   setWebGpuEnabled: () => {},

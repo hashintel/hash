@@ -20,6 +20,8 @@ import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useCodeEditorMenuItems } from "../../../../../../monaco/code-workspace";
+import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { useDiffEqPropertiesContext } from "../context";
 
@@ -242,7 +244,11 @@ const DiffEqCodeAction: React.FC = () => {
     useDiffEqPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
-  if (isReadOnly) {
+  const codeEditorItems = useCodeEditorMenuItems(
+    getDocumentUri("differential-equation", differentialEquation.id),
+  );
+
+  if (isReadOnly && codeEditorItems.length === 0) {
     return null;
   }
 
@@ -258,9 +264,11 @@ const DiffEqCodeAction: React.FC = () => {
         />
       }
       items={[
+        ...codeEditorItems,
         {
           id: "load-default",
           text: "Load default template",
+          disabled: isReadOnly,
           onClick: () => {
             const equationType = types.find(
               (tp) => tp.id === differentialEquation.colorId,
@@ -306,6 +314,6 @@ export const diffEqMainContentSubView: SubView = {
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,
-  headerActionMutates: true,
+  headerActionMutates: false,
   alwaysShowHeaderAction: true,
 };
