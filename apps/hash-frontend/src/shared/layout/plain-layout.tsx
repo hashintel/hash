@@ -10,6 +10,12 @@ import { CommandBar } from "../command-bar";
 import type { DefaultSeoProps } from "next-seo";
 import type { FunctionComponent, ReactNode } from "react";
 
+const nextNProgressImport = NextNProgress as typeof NextNProgress & {
+  default?: typeof NextNProgress;
+};
+const NextNProgressComponent =
+  nextNProgressImport.default ?? nextNProgressImport;
+
 const defaultSeoProps: DefaultSeoProps = {
   defaultTitle: "HASH",
   titleTemplate: "%s | HASH",
@@ -51,7 +57,7 @@ export const PlainLayout: FunctionComponent<{
         ]}
         dangerouslySetAllPagesToNoIndex={!isProduction}
       />
-      <NextNProgress
+      <NextNProgressComponent
         color={palette.primary.main}
         height={2}
         options={{ showSpinner: false }}

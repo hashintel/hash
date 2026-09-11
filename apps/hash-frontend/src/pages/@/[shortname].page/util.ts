@@ -4,7 +4,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import type { ParsedUrlQuery } from "node:querystring";
 
 export type ProfilePageTab =
   | {
@@ -26,7 +26,7 @@ export type ProfilePageTab =
     };
 
 export const parseProfilePageUrlQueryParams = (
-  queryParams: NextParsedUrlQuery | undefined,
+  queryParams: ParsedUrlQuery | undefined,
 ) => {
   const profileShortname = queryParams?.shortname;
 
