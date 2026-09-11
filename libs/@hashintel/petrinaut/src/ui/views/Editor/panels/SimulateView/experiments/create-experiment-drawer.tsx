@@ -20,10 +20,6 @@ import {
 import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import {
-  ExperimentsActionsContext,
-  type ExperimentMetricSpecInput,
-} from "../../../../../../react/experiments/context";
-import {
   axisDisplayName,
   buildAdHocSweepAxes,
   buildParameterAxis,
@@ -55,11 +51,24 @@ import {
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import { useCreateOptimizedExperiment } from "./create-experiment-drawer/create-optimized-experiment";
+import {
+  fieldStyle,
+  gridStyle,
+  labelStyle,
+} from "./create-experiment-drawer/form-field-styles";
 import {
   constraintPolicyFor,
   lowerConstraintDrafts,
   stateConstraintGateSpecs,
 } from "./create-experiment-drawer/lower-constraint-drafts";
+import { ObjectiveSection } from "./create-experiment-drawer/objective-section";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "./create-experiment-drawer/sweep-objective";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -67,7 +76,9 @@ import {
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
+import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type { AdHocFormSelection } from "../../../../../components/ad-hoc-scenario-form/form-context";
 import type {
   AdHocScenarioState,
@@ -77,24 +88,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
-});
 
 const sweepSummaryStyle = css({
   fontSize: "xs",
@@ -792,9 +785,7 @@ export const CreateExperimentDrawer = ({
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
   const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
-  const { createExperiment, setSelectedExperimentId } = use(
-    ExperimentsActionsContext,
-  );
+  const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = useOptimizationSource();
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
@@ -813,6 +804,7 @@ export const CreateExperimentDrawer = ({
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
   const [constraintDrafts, setConstraintDrafts] =
     useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
+  const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
   );
@@ -900,8 +892,13 @@ export const CreateExperimentDrawer = ({
       return null;
     }
     const names = axes.map(axisDisplayName).join(", ");
+    const intervals =
+      axes.length === 1 ? "over its interval" : "over their intervals";
     return {
-      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the sweep computes only the points you select, click on the Surface or hand to the optimizer`,
+      text:
+        selection === "optimize"
+          ? `${names} optimized ${intervals} — the study picks the points`
+          : `${names} swept ${intervals} — the sweep computes only the points you select, click on the Surface`,
       tone: "neutral",
       error: false,
     };
@@ -909,38 +906,60 @@ export const CreateExperimentDrawer = ({
 
   // Shown under whichever scenario body is on screen: the form, or a saved
   // scenario shown through it.
-  // A sweep computes nothing at creation: it waits for a selection.
-  const submitLabel = sweepSummary
-    ? isSubmitting
-      ? "Creating"
-      : "Create sweep"
-    : isSubmitting
-      ? "Starting"
-      : "Run";
   const sweepSummaryLine = sweepSummary ? (
     <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
       {sweepSummary.text}
     </span>
   ) : null;
 
-  // Constraints are authored only where a study could ever read them: a
-  // saved scenario's sweep, with the in-browser optimizer to drive it — the
-  // same facts that make the Parameters card offer Optimize. The rows stay
-  // in state while the section is hidden and are never lowered.
-  const constraintsEnabled =
-    selection === "optimize" &&
-    selectedScenario !== undefined &&
-    sweepSummary !== null;
+  // An interval toggle is on and the in-browser optimizer can drive the
+  // sweep: creating the experiment starts its study, so the drawer asks for
+  // the objective. Constraints are authored only where a study could read
+  // them by name: a saved scenario's sweep (an ad-hoc definition's generated
+  // names are not authorable). The rows stay in state while the section is
+  // hidden and are never lowered.
+  const objectiveEnabled = selection === "optimize" && sweepSummary !== null;
+  const constraintsEnabled = objectiveEnabled && selectedScenario !== undefined;
   const constraintLspError = constraintsEnabled
     ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
     : null;
+  const objectiveMetrics = metricDrafts.map((metric, index) => ({
+    id: metric.id,
+    label:
+      metric.label.trim() === "" ? `Metric ${index + 1}` : metric.label.trim(),
+  }));
+  const objectiveMetricId = resolveObjectiveMetricId(
+    objectiveDraft,
+    objectiveMetrics,
+  );
+  const objectiveExecution = {
+    dt: Number(dt),
+    maxTime: Number(maxTime),
+    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
+  };
+  const objectiveError = objectiveEnabled
+    ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
+    : null;
 
-  const footerError = error ?? metricFormError ?? constraintLspError;
+  const footerError =
+    error ?? metricFormError ?? objectiveError ?? constraintLspError;
   const canRun =
     !isSubmitting &&
     metricFormError === null &&
+    objectiveError === null &&
     constraintLspError === null &&
     sweepSummary?.error !== true;
+  const submitLabel = objectiveEnabled
+    ? isSubmitting
+      ? "Starting"
+      : "Optimize"
+    : sweepSummary
+      ? isSubmitting
+        ? "Creating"
+        : "Create sweep"
+      : isSubmitting
+        ? "Starting"
+        : "Run";
 
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
   // judge yet, and Run is disabled for the same reason. A drafted state
@@ -985,6 +1004,7 @@ export const CreateExperimentDrawer = ({
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
+    setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1090,31 +1110,45 @@ export const CreateExperimentDrawer = ({
             },
           })
         : [];
-      const experiment = await createExperiment({
-        name,
-        scenarioId:
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? null
-            : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramInputs,
-        adHocScenario:
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE ? adHocState : null,
-        adHocSweeps: adHocSweeping,
-        runCount: Number(runCount),
-        seed: Number(seed),
-        dt: Number(dt),
-        maxTime: Number(maxTime),
-        metricSpecs,
-        // Read here rather than in ExperimentsProvider, which is mounted outside
-        // UserSettingsProvider and so cannot see this setting.
-        computeBackend,
-        constraints,
-        constraintPolicy:
-          constraints.length > 0
-            ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
-            : undefined,
-      });
-      setSelectedExperimentId(experiment.id);
+      // Create, start the study when there is an objective, then select:
+      // the results drawer mounts with the study already in place, and a
+      // study that cannot start leaves no experiment behind.
+      await createOptimizedExperiment(
+        {
+          name,
+          scenarioId:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? null
+              : effectiveSelectedScenarioId,
+          scenarioParameterValues: paramInputs,
+          adHocScenario:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? adHocState
+              : null,
+          adHocSweeps: adHocSweeping,
+          runCount: Number(runCount),
+          seed: Number(seed),
+          dt: Number(dt),
+          maxTime: Number(maxTime),
+          metricSpecs,
+          // Read here rather than in ExperimentsProvider, which is mounted outside
+          // UserSettingsProvider and so cannot see this setting.
+          computeBackend,
+          constraints,
+          constraintPolicy:
+            constraints.length > 0
+              ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
+              : undefined,
+        },
+        objectiveEnabled
+          ? sweepObjectiveFor(
+              objectiveDraft,
+              objectiveMetricId,
+              objectiveExecution,
+            )
+          : null,
+      );
+      // A no-op on the unmounted drawer once the selection navigated away.
       resetForm();
     } catch (submitError) {
       setIsSubmitting(false);
@@ -1283,6 +1317,17 @@ export const CreateExperimentDrawer = ({
             )}
           </Section>
 
+          {objectiveEnabled ? (
+            <ObjectiveSection
+              draft={objectiveDraft}
+              metricId={objectiveMetricId}
+              metrics={objectiveMetrics}
+              error={objectiveError}
+              onChange={setObjectiveDraft}
+              disabled={isSubmitting}
+            />
+          ) : null}
+
           {constraintsEnabled ? (
             <ConstraintsSection
               drafts={constraintDrafts}
@@ -1353,10 +1398,17 @@ export const CreateExperimentDrawer = ({
               tone="neutral"
               size="sm"
               disabled={!canRun}
-              tooltip={metricFormError ?? constraintLspError ?? undefined}
+              tooltip={
+                metricFormError ??
+                objectiveError ??
+                constraintLspError ??
+                undefined
+              }
               prefix={
                 isSubmitting ? (
                   <LoadingSpinner size="sm" variant="bars" />
+                ) : objectiveEnabled ? (
+                  <Icon name="sparkles" size="sm" />
                 ) : sweepSummary ? undefined : (
                   <Icon name="play" size="sm" />
                 )

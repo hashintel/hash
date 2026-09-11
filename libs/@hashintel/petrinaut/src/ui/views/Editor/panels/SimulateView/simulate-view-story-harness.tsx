@@ -1,9 +1,10 @@
 /**
  * The harness behind the SimulateView stories that run real simulations: the
  * provider stack around a real example model, the settings a story pins, and
- * a sweep whose study starts itself once the stack is mounted.
+ * a sweep created with its study once the stack is mounted, as the Create
+ * Experiment drawer's Optimize does.
  */
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,12 +14,6 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import {
-  type CreateExperimentInput,
-  type ExperimentComputeBackend,
-  type ExperimentRecord,
-  ExperimentsContext,
-} from "../../../../../react/experiments/context";
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { useLatest } from "../../../../../react/hooks/use-latest";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
@@ -37,13 +32,14 @@ import {
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
+import { useCreateOptimizedExperiment } from "./experiments/create-experiment-drawer/create-optimized-experiment";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import {
-  type SweepOptimizationChoice,
-  useSweepOptimizer,
-} from "./experiments/sweep-optimizer";
 import { SimulateView } from "./simulate-view";
 
+import type {
+  CreateExperimentInput,
+  ExperimentComputeBackend,
+} from "../../../../../react/experiments/context";
 import type { SimulateViewMode } from "../../../../../react/state/editor-context";
 import type { PetrinautOptimizationSource } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
@@ -317,34 +313,11 @@ export const buildAutoSweepExperimentInput = (
   };
 };
 
-/** Starts the study driving `experiment` once its sweep can be optimized. Renders nothing. */
-const AutoSweepOptimize = ({
-  experiment,
-  choice,
-}: {
-  experiment: ExperimentRecord;
-  choice: SweepOptimizationChoice;
-}) => {
-  const optimizer = useSweepOptimizer(experiment);
-  const startRef = useLatest(() => optimizer.start(choice));
-  const startedRef = useRef(false);
-  const { available } = optimizer;
-
-  useEffect(() => {
-    if (!available || startedRef.current) {
-      return;
-    }
-    startedRef.current = true;
-    void startRef.current();
-  }, [available, startRef]);
-
-  return null;
-};
-
 /**
- * Creates the described sweep once through the enclosing ExperimentsProvider,
- * selects it so its drawer opens, then starts the study driving it as the
- * Parameters card's Optimize would. Renders nothing.
+ * Creates the described sweep once through the enclosing providers with the
+ * study that drives it, and selects it so its drawer opens already
+ * optimizing — the Create Experiment drawer's Optimize, without the form.
+ * Renders nothing.
  */
 export const AutoSweepStudy = ({
   study,
@@ -354,20 +327,21 @@ export const AutoSweepStudy = ({
   computeBackend?: ExperimentComputeBackend;
 }) => {
   const { petriNetDefinition, title } = use(SDCPNContext);
-  const { experiments, createExperiment, setSelectedExperimentId } =
-    use(ExperimentsContext);
-  const [experimentId, setExperimentId] = useState<string | null>(null);
-  const startRef = useLatest(async () => {
-    const experiment = await createExperiment(
+  const createOptimizedExperiment = useCreateOptimizedExperiment();
+  const startRef = useLatest(() =>
+    createOptimizedExperiment(
       buildAutoSweepExperimentInput(
         { title, petriNetDefinition },
         study,
         computeBackend,
       ),
-    );
-    setSelectedExperimentId(experiment.id);
-    setExperimentId(experiment.id);
-  });
+      {
+        metricId: AUTO_SWEEP_OBJECTIVE_ID,
+        direction: study.objective.direction,
+        steps: study.steps,
+      },
+    ),
+  );
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -385,16 +359,5 @@ export const AutoSweepStudy = ({
     return () => window.clearTimeout(timer);
   }, [startRef]);
 
-  const experiment =
-    experiments.find((candidate) => candidate.id === experimentId) ?? null;
-  return experiment ? (
-    <AutoSweepOptimize
-      experiment={experiment}
-      choice={{
-        metricId: AUTO_SWEEP_OBJECTIVE_ID,
-        direction: study.objective.direction,
-        steps: study.steps,
-      }}
-    />
-  ) : null;
+  return null;
 };
