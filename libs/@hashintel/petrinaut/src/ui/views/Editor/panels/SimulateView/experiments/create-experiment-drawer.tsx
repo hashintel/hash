@@ -791,7 +791,9 @@ export const CreateExperimentDrawer = ({
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
   const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
-  const { createExperiment } = use(ExperimentsActionsContext);
+  const { createExperiment, setSelectedExperimentId } = use(
+    ExperimentsActionsContext,
+  );
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = useOptimizationSource();
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
@@ -1079,7 +1081,7 @@ export const CreateExperimentDrawer = ({
             },
           })
         : [];
-      await createExperiment({
+      const experiment = await createExperiment({
         name,
         scenarioId:
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
@@ -1103,6 +1105,7 @@ export const CreateExperimentDrawer = ({
             ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
             : undefined,
       });
+      setSelectedExperimentId(experiment.id);
       resetForm();
     } catch (submitError) {
       setIsSubmitting(false);

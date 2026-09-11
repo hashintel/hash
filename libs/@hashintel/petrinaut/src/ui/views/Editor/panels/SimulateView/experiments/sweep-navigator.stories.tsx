@@ -429,8 +429,12 @@ const RealSweepSession = ({
 }: RealSweepConfig & {
   computeBackend: ExperimentComputeBackend;
 }) => {
-  const { experiments, createExperiment, setSweepSelection } =
-    use(ExperimentsContext);
+  const {
+    experiments,
+    createExperiment,
+    setSelectedExperimentId,
+    setSweepSelection,
+  } = use(ExperimentsContext);
   const startedRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [metricSettings, setMetricSettings] = useState(
@@ -464,8 +468,17 @@ const RealSweepSession = ({
         },
       ],
       computeBackend,
-    }).catch((cause: unknown) => setCreateError(String(cause)));
-  }, [computeBackend, createExperiment, dt, maxTime, runCount]);
+    })
+      .then((experiment) => setSelectedExperimentId(experiment.id))
+      .catch((cause: unknown) => setCreateError(String(cause)));
+  }, [
+    computeBackend,
+    createExperiment,
+    dt,
+    maxTime,
+    runCount,
+    setSelectedExperimentId,
+  ]);
 
   const experiment = experiments.find((candidate) => candidate.sweep !== null);
 

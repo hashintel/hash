@@ -23,6 +23,7 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
+  Scenario,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautOptimizationConstraintPolicy } from "@hashintel/petrinaut-core/optimization";
 
@@ -172,6 +173,14 @@ export type ExperimentRecord = {
   scenarioParameterValues: Readonly<Record<string, number>>;
   constraints: readonly Constraint[];
   constraintPolicy: PetrinautOptimizationConstraintPolicy | null;
+  /**
+   * The scenario the runs compile from, as it was at creation: the saved
+   * scenario's snapshot, or the generated ad-hoc scenario (id
+   * "adhoc-scenario", one parameter per interval toggle). A study of this
+   * sweep binds its parameters. Null when the experiment runs the net's own
+   * marking.
+   */
+  scenario: Scenario | null;
 };
 
 /** Navigator-facing state of a sweep experiment. */
@@ -231,7 +240,12 @@ export type ExperimentsContextValue = {
   selectedExperimentId: string | null;
   selectedExperiment: ExperimentRecord | null;
   setSelectedExperimentId: (experimentId: string | null) => void;
-  createExperiment: (input: CreateExperimentInput) => Promise<string>;
+  /**
+   * Creates the experiment and starts its compute; resolves with the record
+   * once a sweep's session is registered (or a plain run's backend selection
+   * has begun). Selects nothing: the caller decides what opens, and when.
+   */
+  createExperiment: (input: CreateExperimentInput) => Promise<ExperimentRecord>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection up to the run count. */
@@ -255,7 +269,10 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   selectedExperimentId: null,
   selectedExperiment: null,
   setSelectedExperimentId: () => {},
-  createExperiment: () => Promise.resolve(""),
+  createExperiment: () =>
+    Promise.reject(
+      new Error("createExperiment was called outside an ExperimentsProvider"),
+    ),
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},

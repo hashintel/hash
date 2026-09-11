@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { selectExperimentBackend } from "@hashintel/petrinaut-core/experiments";
+import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 import { createWebGpuExperimentBackend } from "@hashintel/petrinaut-core/webgpu";
 
 import { sirOptimizationConstraints } from "../../optimizations/sir-optimization-input.fixtures";
@@ -17,7 +18,12 @@ import {
 
 import type { CreateExperimentInput } from "../context";
 import type { CompiledExperimentScenario } from "./create-experiment";
-import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
+import type {
+  AdHocScenarioState,
+  Constraint,
+  Scenario,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const span = { start: 0, length: 0 };
 
@@ -110,6 +116,40 @@ describe("assertExperimentInput", () => {
   });
 });
 
+/** A one-place net for the ad-hoc definitions below. */
+const queueSdcpn: SDCPN = {
+  places: [
+    {
+      id: "place-queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+/** The queue's count with an interval toggle on it. */
+const toggledAdHocScenario: AdHocScenarioState = {
+  variables: [],
+  netParameters: [],
+  places: {
+    "place-queue": {
+      kind: "uncoloured",
+      count: {
+        expression: "4",
+        optimize: { min: "2", max: "8", scale: "linear" },
+      },
+    },
+  },
+};
+
 describe("compileExperimentScenario", () => {
   const requestScenarioHir = vi.fn(() =>
     Promise.resolve({
@@ -118,6 +158,21 @@ describe("compileExperimentScenario", () => {
       placeExpressions: {},
     }),
   );
+  const compileAdHoc = (adHocSweeps: boolean) =>
+    compileExperimentScenario({
+      input: {
+        ...input,
+        scenarioId: null,
+        adHocScenario: toggledAdHocScenario,
+        adHocSweeps,
+      },
+      scenario: null,
+      fixedValues: {},
+      axes: [],
+      sdcpn: queueSdcpn,
+      requestScenarioHir: (adHocScenario, adHocContext) =>
+        Promise.resolve(lowerScenarioToHir(adHocScenario, { adHocContext })),
+    });
 
   it("surfaces every scenario parameter's parsed value, swept ones at their fixed form", async () => {
     const { fixedValues, axes } = buildSweepAxes(scenario, {
@@ -142,6 +197,29 @@ describe("compileExperimentScenario", () => {
       population: 1000,
       vaccinated: 0,
     });
+    expect(compiled.scenario).toBe(scenario);
+  });
+
+  it("keeps the generated scenario of a toggled ad-hoc definition, one parameter per axis", async () => {
+    const compiled = await compileAdHoc(true);
+
+    expect(compiled.scenario?.id).toBe("adhoc-scenario");
+    expect(compiled.axes.map((axis) => axis.identifier)).toEqual([
+      "adhoc_count_Queue",
+    ]);
+    expect(
+      compiled.scenario?.scenarioParameters.map(
+        (parameter) => parameter.identifier,
+      ),
+    ).toEqual(compiled.axes.map((axis) => axis.identifier));
+  });
+
+  it("keeps the generated scenario of a plain ad-hoc definition", async () => {
+    const compiled = await compileAdHoc(false);
+
+    expect(compiled.scenario?.id).toBe("adhoc-scenario");
+    expect(compiled.scenario?.scenarioParameters).toEqual([]);
+    expect(compiled.axes).toEqual([]);
   });
 
   it("surfaces no values for an experiment without a scenario", async () => {
@@ -154,6 +232,7 @@ describe("compileExperimentScenario", () => {
       requestScenarioHir,
     });
     expect(compiled.fixedScenarioValues).toEqual({});
+    expect(compiled.scenario).toBeNull();
   });
 });
 
@@ -169,8 +248,10 @@ describe("newExperimentRecord", () => {
       scenarioName: "Swept",
       axes: [],
       fixedScenarioValues: { transmission_rate: 0.4, population: 1000 },
+      scenario,
     });
 
+    expect(record.scenario).toBe(scenario);
     expect(record.constraints).toEqual([parameterConstraint, stateConstraint]);
     expect(record.constraintPolicy).toEqual({ alpha: 0.1 });
     expect(record.scenarioParameterValues).toEqual({
@@ -186,8 +267,10 @@ describe("newExperimentRecord", () => {
       scenarioName: null,
       axes: [],
       fixedScenarioValues: {},
+      scenario: null,
     });
 
+    expect(record.scenario).toBeNull();
     expect(record.constraints).toEqual([]);
     expect(record.constraintPolicy).toBeNull();
     expect(record.scenarioParameterValues).toEqual({});
@@ -205,6 +288,7 @@ describe("createExperimentRequestBuilder", () => {
     sweptCompiler: null,
     axes: [],
     fixedScenarioValues: {},
+    scenario: null,
   };
   const requestHirArtifacts = vi.fn(() =>
     Promise.resolve({
@@ -257,6 +341,7 @@ describe("createExperimentRequestBuilder", () => {
       scenarioName: null,
       axes: [],
       fixedScenarioValues: {},
+      scenario: null,
     });
     expect(record.metricSpecs).toEqual(constrainedInput.metricSpecs);
     expect(sdcpn.metrics).toEqual([]);

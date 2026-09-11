@@ -23,7 +23,7 @@ import {
 } from "../../../../../../react/state/editor-context";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { Constraint } from "@hashintel/petrinaut-core";
+import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
@@ -123,9 +123,22 @@ export function makeExperiment(
     scenarioParameterValues: {},
     constraints: [],
     constraintPolicy: null,
+    scenario: null,
     ...overrides,
   };
 }
+
+/** The scenario the sweep fixture's axes belong to: its two swept rates and nothing else. */
+export const sweepFixtureScenario: Scenario = {
+  id: "scenario__seasonal_flu",
+  name: "Seasonal Flu",
+  scenarioParameters: [
+    { identifier: "transmission_rate", type: "real", default: 0.3 },
+    { identifier: "recovery_days", type: "integer", default: 7 },
+  ],
+  parameterOverrides: {},
+  initialState: { type: "per_place", content: {} },
+};
 
 /**
  * The synthetic objective every fake visit measures: a smooth bump over the
@@ -271,6 +284,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
     },
     metricFrames: frames,
     latestMetricFramesById: { infected: frames.at(-1)! },
+    scenario: sweepFixtureScenario,
   });
 }
 
@@ -496,17 +510,12 @@ export const multipleExperiments: ExperimentRecord[] = [
   }),
 ];
 
-const getScenarioName = (scenarioId: string | null): string | null => {
-  if (!scenarioId) {
-    return null;
-  }
-
-  return (
-    sirModel.petriNetDefinition.scenarios?.find(
-      (scenario) => scenario.id === scenarioId,
-    )?.name ?? null
-  );
-};
+const getScenario = (scenarioId: string | null): Scenario | null =>
+  scenarioId
+    ? (sirModel.petriNetDefinition.scenarios?.find(
+        (scenario) => scenario.id === scenarioId,
+      ) ?? null)
+    : null;
 
 const createFakeExperiment = (
   input: CreateExperimentInput,
@@ -517,7 +526,7 @@ const createFakeExperiment = (
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
-  scenarioName: getScenarioName(input.scenarioId),
+  scenarioName: getScenario(input.scenarioId)?.name ?? null,
   runCount: input.runCount,
   seed: input.seed,
   dt: input.dt,
@@ -536,6 +545,7 @@ const createFakeExperiment = (
   scenarioParameterValues: {},
   constraints: input.constraints ?? [],
   constraintPolicy: input.constraintPolicy ?? null,
+  scenario: getScenario(input.scenarioId),
 });
 
 export function FakeExperimentsProvider({
@@ -734,7 +744,7 @@ export function FakeExperimentsProvider({
     createExperiment: (input) => {
       const experiment = createFakeExperiment(input);
       setExperiments((current) => [experiment, ...current]);
-      return Promise.resolve(experiment.id);
+      return Promise.resolve(experiment);
     },
     cancelExperiment: (experimentId) => {
       setExperiments((current) =>
