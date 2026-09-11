@@ -28,8 +28,15 @@ import {
   sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
 import {
+  fakeConstrainedStudyInput,
+  fakeConstrainedStudyTrials,
+  fakeLongStudyInput,
+  fakeLongStudyTrials,
+  fakeShortStudyInput,
+  fakeShortStudyTrials,
   fakeStudyInput,
   fakeStudyTrials,
+  makeImportance,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
 } from "./study-fixtures";
@@ -168,25 +175,28 @@ const WithInBrowserOptimizer = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/** A study started from the sweep, driving or settled: four steps, one of them pruned. */
+/** A study started from `experiment`: the shared fake study unless the options say otherwise. */
 const sweepStudy = (
   experiment: ExperimentRecord,
-  status: "running" | "cancelled",
-  overrides: Partial<OptimizationRecord> = {},
-): OptimizationRecord => ({
-  ...makeOptimizationRecord({
-    input: fakeStudyInput,
+  {
+    id = "sweep-study",
     status,
-    trials: fakeStudyTrials.trials.slice(0, 4),
-    best: { trial: 2, parameters: {}, objective: 650.5 },
-  }),
-  origin: { kind: "sweep" as const, experimentId: experiment.id },
-  completedTrials: 3,
-  prunedTrials: 1,
+    input = fakeStudyInput,
+    trials = fakeStudyTrials.trials.slice(0, 4),
+    best = { trial: 2, parameters: {}, objective: 650.5 },
+    importance = null,
+    ...overrides
+  }: Pick<OptimizationRecord, "status"> &
+    Partial<Omit<OptimizationRecord, "status" | "origin">>,
+): OptimizationRecord => ({
+  ...makeOptimizationRecord({ input, status, trials, best, importance }),
+  id,
+  error: status === "error" ? "The optimizer lost its worker" : null,
+  origin: { kind: "sweep", experimentId: experiment.id },
   ...overrides,
 });
 
-/** The sweep's drawer over the host's studies, in the order the provider lists them. */
+/** The sweep's drawer over the host's studies, newest first as the provider keeps them. */
 const renderDrawerWithStudies = (
   experiment: ExperimentRecord,
   [first, ...rest]: readonly [OptimizationRecord, ...OptimizationRecord[]],
@@ -215,11 +225,14 @@ const renderDrawerWithStudies = (
     </WithInBrowserOptimizer>,
   );
 
-/** The sweep's drawer with a study started from it, driving or settled. */
+/** The sweep's drawer with one study started from it, four steps landed (one pruned), driving or settled. */
 const renderDrawerWithStudy = (
   experiment: ExperimentRecord,
   status: "running" | "cancelled",
-) => renderDrawerWithStudies(experiment, [sweepStudy(experiment, status)]);
+) =>
+  renderDrawerWithStudies(experiment, [
+    sweepStudy(experiment, { status, completedTrials: 3, prunedTrials: 1 }),
+  ]);
 
 /** The sweep in each state a drawer can show it. */
 const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
@@ -398,7 +411,12 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.getByText("Idle")).toBeTruthy();
     expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
     expect(screen.getByRole("button", { name: /Optimize$/u })).toBeTruthy();
-    expect(screen.getByText(/^Cancelled after 4 of 30 steps/u)).toBeTruthy();
+    // The headline and the navigator's status line read the same outcome.
+    const outcome = screen.getAllByText(/^Stopped after 4 of 30 steps/u);
+    expect(outcome).toHaveLength(2);
+    expect(
+      outcome.some((line) => line.closest("[data-study-header]") !== null),
+    ).toBe(true);
   });
 
   it("shows no objective strip before any study", () => {
@@ -507,14 +525,12 @@ describe("ViewExperimentDrawer in the frame", () => {
 
 describe("the Optimize control", () => {
   /** A study driving the sweep, three steps landed and one pruned. */
-  const drivingStudy = {
+  const drivingStudy = sweepStudy(sweep, {
     id: "study",
     status: "running",
-    requestedTrials: 30,
     completedTrials: 3,
     prunedTrials: 1,
-    failedTrials: 0,
-  } as NonNullable<SweepOptimizer["study"]>;
+  });
 
   const openPrompt = () => {
     fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
@@ -600,12 +616,16 @@ describe("the Optimize control", () => {
   it("orders the host's studies by creation, summarises the strip from the later one and stops it", () => {
     const cancelOptimization = vi.fn();
     const experiment = { ...sweep, status: "idle" as const };
-    const earlier = sweepStudy(experiment, "cancelled", {
+    const earlier = sweepStudy(experiment, {
       id: "study-1",
+      status: "cancelled",
       createdAt: Date.now() - 200_000,
+      completedTrials: 3,
+      prunedTrials: 1,
     });
-    const later = sweepStudy(experiment, "running", {
+    const later = sweepStudy(experiment, {
       id: "study-2",
+      status: "running",
       trials: fakeStudyTrials.trials.slice(0, 3),
       completedTrials: 3,
       prunedTrials: 0,
@@ -631,5 +651,266 @@ describe("the Optimize control", () => {
 
     expect(cancelOptimization).toHaveBeenCalledTimes(1);
     expect(cancelOptimization).toHaveBeenCalledWith("study-2");
+  });
+});
+
+describe("ViewExperimentDrawer with a study", () => {
+  const idleSweep: ExperimentRecord = { ...sweep, status: "idle" };
+
+  it("shows nothing of a study before one exists", () => {
+    renderDrawer(idleSweep);
+
+    expect(document.querySelector("[data-study-header]")).toBeNull();
+    expect(screen.queryByText("Steps")).toBeNull();
+    expect(screen.queryByText("Sensitivity analysis")).toBeNull();
+    expect(document.querySelector("[data-steps-table]")).toBeNull();
+  });
+
+  it("puts the study's progress line in the headline, Steps in the strip, the Sensitivity card after the tiles and the steps table beneath", () => {
+    renderDrawerWithStudy(idleSweep, "running");
+
+    expect(document.querySelector("[data-study-header]")?.textContent).toMatch(
+      /^Step 5 of 30 · best step so far: step 3/u,
+    );
+    expect(
+      screen
+        .getByText("Steps")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
+    ).toBe("4 / 30");
+    expect(screen.queryByText("Best step so far")).toBeNull();
+    expect(screen.getByText("Sensitivity analysis")).toBeTruthy();
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getAllByRole("row")).toHaveLength(5);
+    expect(screen.getByTitle("Best step")).toBeTruthy();
+    // Every card, tile and study alike, is one row of the grid.
+    const cards = frameLayoutSignature(document).cards;
+    expect(cards.map(([title]) => title)).toEqual([
+      "Parameters",
+      "Surface",
+      "Infected",
+      "Sensitivity analysis",
+    ]);
+    expect(cards.at(-1)![1]).toBe("220px");
+  });
+});
+
+describe("ViewExperimentDrawer with a constrained study", () => {
+  const constrainedSweep: ExperimentRecord = {
+    ...makeConstrainedSweepExperiment(),
+    status: "idle",
+  };
+  const settled = sweepStudy(constrainedSweep, {
+    status: "complete",
+    input: fakeConstrainedStudyInput,
+    trials: fakeConstrainedStudyTrials.trials,
+    best: fakeConstrainedStudyTrials.best,
+  });
+
+  it("adds the Constraints card with the steps clear, the latest step's verdict and one bar per state constraint", () => {
+    renderDrawerWithStudies(constrainedSweep, [settled]);
+
+    const card = screen
+      .getByText("Constraints")
+      .closest<HTMLElement>("[data-chart-card]")!;
+    expect(card.textContent).toContain("pass threshold 95% (alpha 0.05)");
+    expect(card.textContent).toMatch(
+      /\d+ \/ \d+ · \d+%steps clear across the study/u,
+    );
+    expect(card.textContent).toMatch(/infeasible draws?/u);
+    expect(card.textContent).toMatch(/Step 30: (clear|limited|infeasible)/u);
+    expect(card.querySelectorAll("[data-constraint-row]")).toHaveLength(1);
+    expect(card.textContent).toContain("Finished goods under 500");
+    expect(card.textContent).toContain(
+      "1 parameter constraint is checked before each step runs.",
+    );
+    expect(card.querySelector("[data-chart-card-body]")).toHaveProperty(
+      "style.height",
+      "220px",
+    );
+  });
+
+  it("puts the steps clear in the strip and a Runs passed column in the table, greying the infeasible draws", () => {
+    renderDrawerWithStudies(constrainedSweep, [settled]);
+
+    expect(screen.getByText("Steps clear")).toBeTruthy();
+    expect(screen.getByText("Runs passed")).toBeTruthy();
+    expect(screen.getAllByText(/^\d+ \/ 60 · \d+%$/u).length).toBeGreaterThan(
+      0,
+    );
+    const infeasible = screen.getAllByTitle(/^Infeasible: /u);
+    expect(infeasible.length).toBeGreaterThan(0);
+    expect(infeasible[0]?.getAttribute("data-state")).toBe("infeasible");
+    expect(infeasible[0]?.getAttribute("title")).toBe(
+      "Infeasible: Production rate under 320",
+    );
+  });
+
+  it("shows none of it for a study without constraints", () => {
+    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+      sweepStudy(sweep, {
+        status: "complete",
+        trials: fakeStudyTrials.trials,
+        best: fakeStudyTrials.best,
+      }),
+    ]);
+
+    expect(screen.queryByText("Constraints")).toBeNull();
+    expect(screen.queryByText("Steps clear")).toBeNull();
+    expect(screen.queryByText("Runs passed")).toBeNull();
+    expect(screen.getByText("Sensitivity analysis")).toBeTruthy();
+  });
+});
+
+describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
+  const idleSweep: ExperimentRecord = { ...sweep, status: "idle" };
+
+  const importanceCard = () =>
+    screen
+      .getByText("Sensitivity analysis")
+      .closest<HTMLElement>("[data-chart-card]")!;
+
+  it("lists the optimized parameters in binding order with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
+    renderDrawerWithStudies(idleSweep, [
+      sweepStudy(idleSweep, {
+        status: "complete",
+        input: fakeLongStudyInput,
+        trials: fakeLongStudyTrials.trials,
+        best: fakeLongStudyTrials.best,
+        importance: makeImportance(
+          fakeLongStudyInput,
+          fakeLongStudyTrials.trials,
+        ),
+      }),
+    ]);
+
+    const card = importanceCard();
+    expect(card.getAttribute("data-tone")).toBe("default");
+    expect(
+      card.querySelector("[data-chart-card-subtitle]")?.textContent,
+    ).toMatch(
+      /^PED-ANOVA importance estimated from \d+ completed steps · how much/u,
+    );
+    expect(card.textContent).not.toContain("floor");
+    const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
+    expect([...rows].map((row) => row.dataset.importanceRow)).toEqual([
+      "production_rate",
+      "selling_price",
+      "marketing_spend",
+    ]);
+    const widths = [
+      ...card.querySelectorAll<HTMLElement>("[data-importance-bar]"),
+    ].map((bar) => Number.parseFloat(bar.style.width));
+    expect(widths[0]).toBe(100);
+    expect(widths.every((width) => width > 0)).toBe(true);
+    expect(card.textContent).toContain("Correlation");
+    expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
+
+  it("mutes the card and fades the bars below the floor, and says so in the subtitle", () => {
+    renderDrawerWithStudies(idleSweep, [
+      sweepStudy(idleSweep, {
+        status: "complete",
+        input: fakeShortStudyInput,
+        trials: fakeShortStudyTrials.trials,
+        best: fakeShortStudyTrials.best,
+        importance: makeImportance(
+          fakeShortStudyInput,
+          fakeShortStudyTrials.trials,
+        ),
+      }),
+    ]);
+
+    const card = importanceCard();
+    expect(card.getAttribute("data-tone")).toBe("muted");
+    expect(
+      card.querySelector("[data-chart-card-subtitle]")?.textContent,
+    ).toContain("below the 50-step floor, treat as a hint");
+    expect(
+      card
+        .querySelector("[data-importance-panel]")
+        ?.getAttribute("data-below-floor"),
+    ).toBe("true");
+    // Faded bars do not set the scale: the largest bar is its raw share, not full width.
+    const widths = [
+      ...card.querySelectorAll<HTMLElement>("[data-importance-bar]"),
+    ].map((bar) => Number.parseFloat(bar.style.width));
+    expect(Math.max(...widths)).toBeLessThan(100);
+  });
+
+  it("shows dashed rows and the correlations while no estimate has arrived", () => {
+    renderDrawerWithStudies(idleSweep, [
+      sweepStudy(idleSweep, {
+        status: "running",
+        input: fakeShortStudyInput,
+        trials: fakeShortStudyTrials.trials,
+        best: fakeShortStudyTrials.best,
+      }),
+    ]);
+
+    const card = importanceCard();
+    const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
+    expect(rows).toHaveLength(2);
+    expect([...rows].every((row) => row.dataset.estimated === "false")).toBe(
+      true,
+    );
+    expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
+});
+
+describe("ViewExperimentDrawer holds every box still across a study's states", () => {
+  const constrainedSweep: ExperimentRecord = {
+    ...makeConstrainedSweepExperiment(),
+    status: "idle",
+  };
+  const studyIn = (
+    status: OptimizationRecord["status"],
+    id = "sweep-study",
+  ): OptimizationRecord =>
+    sweepStudy(constrainedSweep, {
+      id,
+      status,
+      input: fakeConstrainedStudyInput,
+      trials: fakeConstrainedStudyTrials.trials.slice(0, 4),
+      best: fakeConstrainedStudyTrials.best,
+    });
+
+  it("gives the header, the note row, every card and the steps table one height while running, stopped and failed, and on a second study", () => {
+    const signatures = (
+      [
+        [studyIn("running")],
+        [studyIn("cancelled")],
+        [studyIn("error")],
+        [studyIn("running", "sweep-study-2"), studyIn("cancelled")],
+      ] as const
+    ).map((studies) => {
+      const view = renderDrawerWithStudies(constrainedSweep, studies);
+      const signature = frameLayoutSignature(view.container);
+      view.unmount();
+      return signature;
+    });
+
+    expect(signatures[0]!.header).toBe("false");
+    expect(signatures[0]!.note).toBe("20px");
+    expect(signatures[0]!.steps).toBe("320px");
+    expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
+      "Parameters",
+      "Surface",
+      "Infected",
+      "Constraints",
+      "Sensitivity analysis",
+    ]);
+    for (const signature of signatures.slice(1)) {
+      expect(signature).toEqual(signatures[0]);
+    }
+  });
+
+  it("puts a failed study's error in the reserved note row", () => {
+    renderDrawerWithStudies(constrainedSweep, [studyIn("error")]);
+
+    const note = document.querySelector<HTMLElement>("[data-frame-note]")!;
+    expect(note.textContent).toBe("The optimizer lost its worker");
+    expect(note.dataset.tone).toBe("error");
+    expect(note.style.height).toBe("20px");
   });
 });

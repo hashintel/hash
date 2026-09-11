@@ -39,7 +39,7 @@ import {
 } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { ParameterImportancePanel } from "../experiments/study-cards/parameter-importance-panel";
-import { ConstraintSummaryCard } from "../experiments/study-cards/study-constraints-card";
+import { StudyConstraintsCard } from "../experiments/study-cards/study-constraints-card";
 import { StudyHeader } from "../experiments/study-cards/study-header";
 import { StudySteps } from "../experiments/study-cards/study-steps";
 import {
@@ -274,9 +274,8 @@ const studyMetrics = (
           tone={tone}
         />
         {connected && rates !== null ? (
-          <ConstraintSummaryCard
+          <StudyConstraintsCard
             optimization={optimization}
-            selection={selection}
             rates={rates}
             plotHeight={OBJECTIVE_PLOT_HEIGHT}
             tone={tone}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { fakeConstrainedStudyInput } from "../study-fixtures";
-import { describeStep } from "./study-constraints-card";
+import { describedStep, describeStep } from "./study-constraints-card";
 
 import type {
   PetrinautOptimizationTrialConstraints,
@@ -75,5 +75,17 @@ describe("describeStep", () => {
       head: "Step 3: infeasible",
       detail: "Finished goods under 500",
     });
+  });
+});
+
+describe("describedStep", () => {
+  it("describes the latest step whose event landed, whatever its state, and none before any", () => {
+    const pruned = {
+      ...trial({ parameters: [], state: [], infeasible: "rate-cap" }, "pruned"),
+      trial: 4,
+    };
+    expect(describedStep([trial(undefined), pruned])).toBe(pruned);
+    expect(describedStep([pruned, trial(undefined)])).toBe(pruned);
+    expect(describedStep([])).toBeNull();
   });
 });

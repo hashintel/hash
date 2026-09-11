@@ -18,13 +18,9 @@ import {
   stepVerdict,
   type StudyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
-import { followedTrial } from "../../../../../../../react/optimizations/context";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
 
-import type {
-  ConnectedStudyState,
-  OptimizationRecord,
-} from "../../../../../../../react/optimizations/context";
+import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
 const bodyStyle = css({
   display: "flex",
@@ -146,27 +142,17 @@ const VERDICT_WORD: Record<StepVerdict, string> = {
 };
 
 /**
- * The step the card describes beneath the headline: the followed step once
- * its event landed, else the latest reported step. Null before any step.
+ * The step the card describes beneath the headline: the latest step whose
+ * event landed. Null before any step.
  */
 export const describedStep = (
   trials: OptimizationRecord["trials"],
-  selection: ConnectedStudyState["selection"],
-): OptimizationRecord["trials"][number] | null => {
-  const followed = selection === null ? null : followedTrial(selection.key);
-  const followedEvent =
-    followed === null
-      ? undefined
-      : trials.find((trial) => trial.trial === followed);
-  if (followedEvent) {
-    return followedEvent;
-  }
-  return trials.reduce<OptimizationRecord["trials"][number] | null>(
+): OptimizationRecord["trials"][number] | null =>
+  trials.reduce<OptimizationRecord["trials"][number] | null>(
     (latest, trial) =>
       latest === null || trial.trial > latest.trial ? trial : latest,
     null,
   );
-};
 
 /** The step line's parts: the verdict word, the `Step 12: limited` head and what follows it. */
 export type DescribedStep = {
@@ -206,20 +192,18 @@ export const describeStep = (
   };
 };
 
-export const ConstraintSummaryCard = ({
+export const StudyConstraintsCard = ({
   optimization,
-  selection,
   rates,
   plotHeight,
   tone,
 }: {
   optimization: OptimizationRecord;
-  selection: ConnectedStudyState["selection"];
   /** The study's rates, computed once by the model for the strip and this card. */
   rates: StudyConstraintRates;
   /** The body's height in pixels; the card is exactly as tall as its neighbours. */
   plotHeight: number;
-  /** How the card reads: `paused` while the study is paused. */
+  /** How the card reads: `optimizing` while the study drives the sweep. */
   tone?: ChartCardTone;
 }) => {
   const { input, trials } = optimization;
@@ -229,7 +213,7 @@ export const ConstraintSummaryCard = ({
   const stateConstraints = constraints.filter(
     (constraint) => constraint.space === "state",
   );
-  const step = describedStep(trials, selection);
+  const step = describedStep(trials);
   const described = step === null ? null : describeStep(input, step, alpha);
   const infeasibleNote =
     rates.infeasibleDraws === 0
