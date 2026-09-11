@@ -64,26 +64,10 @@ export const PlaceStateVisualization: React.FC<
   }, [place.visualizerCode]);
 
   /*
-   * The picture, held against what it is drawn from.
-   *
-   * Rendering it runs user code, and the tokens it takes are derived fresh
-   * each time, so without this every re-render of the surface it sits on — a
-   * hover settling, a pin, a box being measured — redrew the picture too.
-   * Keeping the element lets React reuse the subtree until the frame, the
-   * marking, the parameters or the code itself move. Measured on a scrub with
-   * a 100ms picture pinned to the canvas: 45 to 63 frames per second, worst
-   * frame 92ms to 51ms.
-   *
-   * `useDeferredValue` on the frame does NOT belong on top of this, though it
-   * looks like it should. Measured the same way it took 63 down to 54-59, and
-   * on its own, without this memo, 45 down to 35: the update that moves the
-   * frame is the one that has to redraw, so there is nothing left to defer
-   * that the memo has not already skipped, and the second priority pass costs
-   * a whole extra draw. That was a scrub against a picture whose cost is in
-   * its render; a picture whose cost is in the nodes it produces pays that in
-   * the commit, which no priority can interrupt either. Somewhere the frame
-   * is not what changed — code being typed in the visualizer editor, say — a
-   * transition may still be the right tool.
+   * Rendering the picture runs user code and derives its tokens afresh, so
+   * the element is kept until the frame, the marking, the parameters or the
+   * code change; a re-render of the surface it sits on, a hover settling, a
+   * pin, a box being measured, reuses it.
    */
   const picture = useMemo(() => {
     if (!VisualizerComponent || !placeType) {

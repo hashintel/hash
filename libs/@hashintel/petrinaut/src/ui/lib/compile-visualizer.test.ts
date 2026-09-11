@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { compileVisualizer } from "./compile-visualizer";
 
+const compileError = (code: string): unknown => {
+  try {
+    compileVisualizer(code);
+    return null;
+  } catch (error) {
+    return error;
+  }
+};
+
 const emptyProps = { tokens: [], parameters: {} };
 
 describe("compileVisualizer", () => {
@@ -93,22 +102,8 @@ describe("compileVisualizer caching", () => {
   it("keeps a failure rather than recompiling it", () => {
     const broken = `export default Visualization(() => <div />; // unbalanced`;
 
-    const first = (() => {
-      try {
-        compileVisualizer(broken);
-        return null;
-      } catch (error) {
-        return error;
-      }
-    })();
-    const second = (() => {
-      try {
-        compileVisualizer(broken);
-        return null;
-      } catch (error) {
-        return error;
-      }
-    })();
+    const first = compileError(broken);
+    const second = compileError(broken);
 
     expect(first).toBeInstanceOf(Error);
     expect(second).toBe(first);

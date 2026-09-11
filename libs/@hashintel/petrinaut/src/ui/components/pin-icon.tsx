@@ -1,10 +1,3 @@
-import type { SVGProps } from "react";
-
-type PinIconProps = SVGProps<SVGSVGElement> & {
-  size?: number | string;
-  title?: string;
-};
-
 /**
  * A thumbtack, for holding a floating surface open.
  *
@@ -12,18 +5,15 @@ type PinIconProps = SVGProps<SVGSVGElement> & {
  * throughout and stroked thinly: it sits over a visualizer's own artwork, so
  * it has to read as a mark rather than compete as a picture.
  */
-export const PinIcon = ({ size = 13, title, ...props }: PinIconProps) => (
+export const PinIcon = () => (
   <svg
-    aria-hidden={title === undefined ? true : undefined}
+    aria-hidden
     fill="none"
-    height={size}
-    role={title === undefined ? undefined : "img"}
+    height={13}
     viewBox="0 0 16 16"
-    width={size}
+    width={13}
     xmlns="http://www.w3.org/2000/svg"
-    {...props}
   >
-    {title && <title>{title}</title>}
     {/* Cap: a rounded bar across the head of the tack. */}
     <path
       d="M5.6 2.6H10.4"

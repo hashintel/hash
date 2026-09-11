@@ -96,12 +96,9 @@ function compile(code: string): VisualizerComponent {
 /**
  * Compiled visualizers, kept by their source.
  *
- * A visualizer is compiled wherever it is shown, and it is shown on every
- * hover of its place on the canvas as well as in the properties panel, so the
- * same few hundred lines went through Babel again and again. Compiling is a
- * pure function of the code, so the result is kept — the failure too, since a
- * visualizer that does not compile is asked for just as often as one that
- * does.
+ * Compiling is a pure function of the code, so each source is compiled once
+ * and its result kept, the failure too: a visualizer that does not compile is
+ * asked for as often as one that does.
  *
  * Bounded, and least-recently-used first: editing the code produces an entry
  * per keystroke, so evicting by arrival would throw out the visualizers being

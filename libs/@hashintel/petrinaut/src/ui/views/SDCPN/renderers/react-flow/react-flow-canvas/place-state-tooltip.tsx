@@ -137,44 +137,19 @@ const tooltipStyle = css({
 });
 
 /**
- * The pin sits over the visualizer's top-right corner rather than beside it,
- * so the box stays the size of the artwork.
- *
- * A pane of frosted glass around the button, not the button's own surface: a
- * visualizer draws whatever it likes underneath — black, in the satellites
- * example — and every button variant in the system paints in translucent ink
- * meant for the app's own background, so a bare glyph disappears into the
- * artwork. Blurring what is behind it and tinting that pale gives the disc
- * the artwork's own colour while lifting it enough for a dark glyph to read
- * over anything, and leaves the button's hover and pressed ink to sit on top
- * of it as designed.
- *
- * Held back until the pointer or the keyboard reaches the box, and at full
- * strength while pinned, which is when it has to be found again to release
- * it.
- *
- * Anchored on the wrapper rather than inside the box, so it keeps its corner
- * while a tall visualizer scrolls underneath.
- */
-/**
  * The button that pointing at a place offers, before the visualizer itself.
  *
  * A place's picture is worth a panel, and a panel that opens on hover alone
  * covers the net while somebody is only passing over it. So the hover offers
- * this instead: one small round button, in the slot the panel will occupy, and
- * the panel is what clicking it produces.
- */
-/**
+ * this instead: one small round button, astride the node's edge, and the
+ * panel is what clicking it produces.
+ *
  * The white surface belongs to this wrapper, not to the button inside it.
  * Every button variant in the system paints its hover in translucent ink
  * meant for the app's own background, and that ink beats a background set on
- * the button itself: pointing at the button turned it transparent and the
- * node showed straight through. Held out here, the ink lands on an opaque
- * surface as designed.
- *
- * The button sits astride the node's edge rather than clear of it, so it
- * needs none of the panel's padding either: the pointer reaches it off the
- * node without crossing the canvas in between.
+ * the button itself, so the opaque surface lives here and the ink lands on
+ * it. Sitting astride the node's edge, the button needs none of the panel's
+ * padding: the pointer reaches it off the node without crossing the canvas.
  */
 const triggerStyle = css({
   display: "flex",
@@ -216,6 +191,26 @@ const pinButtonStyle = css({
   borderRadius: "[calc(var(--visualizer-radius) - 9px)]",
 });
 
+/**
+ * The pin sits over the visualizer's top-right corner rather than beside it,
+ * so the box stays the size of the artwork.
+ *
+ * A pane of frosted glass around the button, not the button's own surface: a
+ * visualizer draws whatever it likes underneath — black, in the satellites
+ * example — and every button variant in the system paints in translucent ink
+ * meant for the app's own background, so a bare glyph disappears into the
+ * artwork. Blurring what is behind it and tinting that pale gives the glass
+ * the artwork's own colour while lifting it enough for a dark glyph to read
+ * over anything, and leaves the button's hover and pressed ink to sit on top
+ * of it as designed.
+ *
+ * Held back until the pointer or the keyboard reaches the box, and at full
+ * strength while pinned, which is when it has to be found again to release
+ * it.
+ *
+ * Anchored on the wrapper rather than inside the box, so it keeps its corner
+ * while a tall visualizer scrolls underneath.
+ */
 const pinStyle = cva({
   base: {
     position: "absolute",
@@ -234,11 +229,9 @@ const pinStyle = cva({
     backdropFilter: "[blur(8px) saturate(140%)]",
     transition: "[opacity 120ms ease, background-color 150ms ease]",
     /*
-     * The focus ring belongs to the disc, not to the button inside it: the
-     * button draws its own at no offset, which lands on the disc's rim and is
-     * indistinguishable from it. Ringing the disc from outside also means
-     * nothing has to be clipped to keep the button's ink in, which is what
-     * erased the ring in the first place.
+     * The focus ring belongs to the glass, not to the button inside it: the
+     * button draws its own at no offset, which lands on the glass's rim and is
+     * indistinguishable from it.
      */
     "&:has(:focus-visible)": {
       // Two tones, because the ring floats over the visualizer's artwork:
@@ -358,12 +351,9 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     // without this, reaching for either would end the hover and take it away.
     onPointerEnter: () => setHoveredItem({ type: "place", id: nodeId }),
     /*
-     * Leaving onto a node is not leaving. React routes enter and leave
-     * through its own tree, and the toolbar is a portal inside the node's
-     * subtree there, so coming back to the node fires this leave and no enter
-     * at all: clearing here dropped the hover, and the highlight with it, on
-     * the node the pointer had just returned to. Landing on another node is
-     * that node's business, and its own enter arrives.
+     * Leaving onto a node is not leaving: the toolbar is a portal inside the
+     * node's React subtree, so returning to the node fires this leave with no
+     * enter to follow. Another node's own enter sets the hover for it.
      */
     onPointerLeave: (event: React.PointerEvent) => {
       const landedOn = event.relatedTarget;
