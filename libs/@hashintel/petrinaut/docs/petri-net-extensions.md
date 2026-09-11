@@ -109,6 +109,10 @@ export default Visualization(({ tokens, parameters }) => {
 
 The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
 
+It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
+
+Opening it belongs to that hover: move the pointer away and it closes, and pointing at the place again offers the button rather than the visualizer. A **pin** in the visualizer's top-right corner is what makes it stay -- faint until you point at the box, solid once pinned. A pinned box stays up with the pointer somewhere else entirely, which is what makes it possible to watch one place while scrubbing the [timeline](simulation.md#timeline) or editing the initial state. Click the pin again to release it. Pin as many places as you want to watch at once; pins last until the page is reloaded.
+
 <img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
 
 Use the menu in the code editor header to **Load default template** for a starting point.

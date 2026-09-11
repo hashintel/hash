@@ -33,7 +33,6 @@ type FrameSnapshot = {
   viewedFrame: SimulationFrameState | null;
   initialMarking: InitialMarking;
   simulateMode: boolean;
-  framesAvailable: boolean;
 };
 
 type CanvasFrameStore = {
@@ -42,14 +41,12 @@ type CanvasFrameStore = {
   getTokenCount: (placeId: string) => number | null;
   /** A transition's state in the viewed frame, or null when no run exists. */
   getTransitionFrame: (transitionId: string) => TransitionFrameState | null;
-  getFramesAvailable: () => boolean;
 };
 
 const EMPTY_STORE: CanvasFrameStore = {
   subscribe: () => () => {},
   getTokenCount: () => null,
   getTransitionFrame: () => null,
-  getFramesAvailable: () => false,
 };
 
 const CanvasFrameStoreContext = createContext<CanvasFrameStore>(EMPTY_STORE);
@@ -70,7 +67,7 @@ const sameTransitionState = (
 export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
-  const { currentViewedFrame, currentFrameReader, totalFrames } = use(
+  const { currentViewedFrame, currentFrameReader } = use(
     ExecutionFrameSourceContext,
   );
   const { initialMarking } = use(SimulationContext);
@@ -83,7 +80,6 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
     viewedFrame: currentViewedFrame,
     initialMarking,
     simulateMode: globalMode === "simulate",
-    framesAvailable: totalFrames > 0,
   });
   const listeners = useRef(new Set<() => void>());
   /**
@@ -131,8 +127,6 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       cache.set(transitionId, state);
       return state;
     },
-
-    getFramesAvailable: () => snapshot.current.framesAvailable,
   }));
 
   // Publishing happens after the commit, so a subscriber re-reads a store the
@@ -143,7 +137,6 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       viewedFrame: currentViewedFrame,
       initialMarking,
       simulateMode: globalMode === "simulate",
-      framesAvailable: totalFrames > 0,
     };
 
     // Re-read each transition that is mounted, and keep the previous value
@@ -160,13 +153,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
     for (const listener of listeners.current) {
       listener();
     }
-  }, [
-    currentViewedFrame,
-    currentFrameReader,
-    totalFrames,
-    initialMarking,
-    globalMode,
-  ]);
+  }, [currentViewedFrame, currentFrameReader, initialMarking, globalMode]);
 
   return (
     <CanvasFrameStoreContext value={store}>{children}</CanvasFrameStoreContext>
@@ -192,15 +179,5 @@ export const useTransitionFrame = (
     store.subscribe,
     () => store.getTransitionFrame(transitionId),
     () => null,
-  );
-};
-
-/** Whether any frame exists to visualize. */
-export const useFramesAvailable = (): boolean => {
-  const store = use(CanvasFrameStoreContext);
-  return useSyncExternalStore(
-    store.subscribe,
-    store.getFramesAvailable,
-    () => false,
   );
 };

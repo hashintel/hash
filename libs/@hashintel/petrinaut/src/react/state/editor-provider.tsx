@@ -424,10 +424,33 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
+    // An opened visualizer belongs to the hover that opened it, so both of
+    // these drop it as soon as the pointer is somewhere else.
     setHoveredItem: (item: SelectionItem) =>
-      setState((prev) => ({ ...prev, hoveredItem: item })),
+      setState((prev) => ({
+        ...prev,
+        hoveredItem: item,
+        openVisualizerPlaceId:
+          prev.openVisualizerPlaceId === item.id
+            ? prev.openVisualizerPlaceId
+            : null,
+      })),
     clearHoveredItem: () =>
-      setState((prev) => ({ ...prev, hoveredItem: null })),
+      setState((prev) => ({
+        ...prev,
+        hoveredItem: null,
+        openVisualizerPlaceId: null,
+      })),
+    openPlaceVisualizer: (placeId: string) =>
+      setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
+    toggleVisualizerPin: (placeId: string) =>
+      setState((prev) => {
+        const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);
+        if (!pinnedVisualizerPlaceIds.delete(placeId)) {
+          pinnedVisualizerPlaceIds.add(placeId);
+        }
+        return { ...prev, pinnedVisualizerPlaceIds };
+      }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
