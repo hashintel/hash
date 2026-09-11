@@ -24,6 +24,7 @@ import { VoiceSessionContext } from "../../../../../react/voice-session/context"
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import { AiAssistantContents } from "./ai-assistant-contents";
+import { VoiceDock } from "./ai-assistant-contents/voice-dock";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -79,6 +80,37 @@ const HostContent = ({ onMount }: { onMount: () => void }) => {
   useEffect(onMount, [onMount]);
   return <p>Saved account</p>;
 };
+
+test("session-only dock shows Connected and End without unsupported controls", () => {
+  const end = vi.fn();
+  const collapse = vi.fn();
+  render(
+    <VoiceDock
+      actions={{ end, pause: noop }}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span />}
+      microphoneMuted={false}
+      notice={null}
+      onCollapsedToggle={collapse}
+      phase="connected"
+    />,
+  );
+  expect(screen.getByText("Connected")).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Voice playback options" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Mute microphone" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Collapse voice session" }),
+  );
+  expect(collapse).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "End voice mode" }));
+  expect(end).toHaveBeenCalledOnce();
+});
 
 describe("AiAssistantContents", () => {
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {

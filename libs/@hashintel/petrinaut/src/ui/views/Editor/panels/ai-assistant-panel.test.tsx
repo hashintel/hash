@@ -2344,9 +2344,6 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: async () => undefined,
             pause: vi.fn(),
-            reconnect: vi.fn(),
-            resume: vi.fn(),
-            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -2376,19 +2373,13 @@ describe("AiAssistantPanel composer submissions", () => {
     const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
 
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Voice playback options" }),
-    );
+    await screen.findByRole("region", { name: "Voice session" });
     expect(
-      (
-        await screen.findByRole("menuitem", { name: "Repeat question" })
-      ).getAttribute("aria-disabled"),
-    ).toBe("true");
+      screen.queryByRole("button", { name: "Voice playback options" }),
+    ).toBeNull();
     expect(
-      screen
-        .getByRole("menuitem", { name: "Read full response" })
-        .getAttribute("aria-disabled"),
-    ).toBe("true");
+      screen.queryByRole("button", { name: "Mute microphone" }),
+    ).toBeNull();
 
     rendered.rerenderPanel(aiAssistant(false), editorContextValue);
 

@@ -19,6 +19,7 @@ describe("OpenAI voice config handler", () => {
     expect(await response.json()).toEqual({
       available: true,
       connectionTimeoutMs: 15_000,
+      provider: "realtime",
     });
   });
 

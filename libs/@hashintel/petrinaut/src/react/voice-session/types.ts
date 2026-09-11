@@ -1,5 +1,6 @@
-/** Which side of a Voice session currently holds the turn. */
+/** Session connectivity or, when known, which side holds the turn. */
 export type PetrinautAiVoiceSessionPhase =
+  | "connected"
   | "connecting"
   | "error"
   | "listening"
