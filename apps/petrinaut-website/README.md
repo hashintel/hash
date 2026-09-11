@@ -41,7 +41,11 @@ Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
 third-party framing. Every page also sends `upgrade-insecure-requests`: the deployed Brunch agent runs behind a proxy,
 sees plain HTTP and returns `http://` stream URLs, which an HTTPS page would otherwise block as mixed
 content. The returned iframe is sandboxed with
-`allow-scripts allow-same-origin` and does not send a referrer.
+`allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox`
+and does not send a referrer. The popup permissions are what let the preview's
+**Full view** link open the model in a new tab: a sandbox without them drops
+the navigation, and without `allow-popups-to-escape-sandbox` the full page
+would inherit the embed's sandbox.
 
 Because this is a client-rendered SPA, a static `index.html` discovery link
 cannot include the current example URL. `FullExamplePage` adds the standard
