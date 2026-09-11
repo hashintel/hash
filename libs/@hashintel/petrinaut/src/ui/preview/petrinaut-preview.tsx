@@ -72,9 +72,13 @@ const previewRootStyle = css({
   backgroundColor: "neutral.s25",
   color: "neutral.fg.body",
   // A drag on an embed pans the canvas or draws a selection box, so a text
-  // highlight is always accidental. Fields that still take typing keep theirs.
+  // highlight is always accidental. A field that still takes typing keeps its
+  // own selection; a disabled one carries a value to read, not to edit.
+  //
+  // Blink ignores `user-select` inside a form control either way, so this
+  // governs only the engines that honour it.
   userSelect: "none",
-  "& :is(input, textarea)": {
+  "& :is(input, textarea):enabled": {
     userSelect: "text",
   },
 });
