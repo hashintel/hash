@@ -31,10 +31,7 @@ export const SupplyChainSearchInput = ({
         size={size}
         width="fullWidth"
         prefix={{ iconName: "search", variant: "subtle" }}
-        clearable={{
-          clearable: value.length > 0,
-          onClear: () => onChange(""),
-        }}
+        clearable
         placeholder={placeholder}
         aria-label={ariaLabel}
         onChange={onChange}

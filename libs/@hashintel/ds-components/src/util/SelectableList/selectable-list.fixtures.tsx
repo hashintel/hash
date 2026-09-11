@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Button } from "../../Button/button";
+import { Button } from "../../components/Button/button";
 import { type Item, type ItemOrGroup } from "./selectable-list";
 
 const tones = ["neutral", "brand", "error"] as const;
@@ -8,7 +8,7 @@ const selectedStyles = ["tick", "checkbox", "highlight"] as const;
 
 const noop = () => {};
 
-const simpleItem: Item = {
+export const simpleItem: Item = {
   id: "simple",
   text: "Simple item",
   onClick: noop,
@@ -394,3 +394,31 @@ export const itemsWithCustomRows: ItemOrGroup<Item>[] = [
   { id: "custom-regular-4", text: "Fourth regular item", onClick: noop },
   customItemFooter,
 ];
+
+// Undecorated: the slot's own padding and margin, emphasis by weight
+export const demoHeader = (
+  <span className={css({ fontWeight: "semibold" })}>
+    Header — outside the scroll area
+  </span>
+);
+
+// The slots are undecorated; dividers are the consumer's to draw. For an
+// edge-to-edge one, pull out of the slot AND container padding with the
+// list's padding vars, re-applying them as own padding.
+export const demoFooter = (
+  <span
+    className={css({
+      display: "block",
+      marginX:
+        "[calc(-1 * (var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x)))]",
+      paddingX:
+        "[calc(var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x))]",
+      marginTop: "[calc(-1 * var(--selectable-list-header-footer-padding-y)))]",
+      paddingTop:
+        "[calc(var(--selectable-list-item-padding-y) + var(--selectable-list-container-padding-y))]",
+      borderTop: "1px solid {colors.neutral.s30}",
+    })}
+  >
+    Footer — outside the scroll area
+  </span>
+);

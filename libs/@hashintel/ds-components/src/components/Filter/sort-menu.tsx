@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import {
   Button,
   type ButtonElementProps,
@@ -9,8 +11,6 @@ import {
 } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
-import { SelectableListSearch } from "../Menu/SelectableList/selectable-list-search";
-import { searchEmpty } from "../Menu/SelectableList/selectable-list-search.recipe";
 import {
   readSavedSort,
   type SortDirection,

@@ -4,7 +4,8 @@ import { formInputSizes } from "../../util/form-shared";
 import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -127,6 +128,100 @@ const SingleOperatorOperators: Array<
   ItemOrGroup<FilterOperator<SingleOperatorValues>>
 > = [{ key: "contains", label: "contains", input: { type: "string" } }];
 
+type Status = "todo" | "inProgress" | "done";
+
+type SelectValues = {
+  is: Status;
+  isAnyOf: string[];
+  hasAllOf: string[];
+  assignedTo: string;
+  became: [Status, number];
+};
+
+const statusItems: Array<ItemOrGroup<SelectItem<Status>>> = [
+  { value: "todo", text: "To do" },
+  { value: "inProgress", text: "In progress" },
+  { value: "done", text: "Done" },
+];
+
+const tagItems: Array<ItemOrGroup<MultiSelectItem<string>>> = [
+  { value: "bug", text: "Bug" },
+  { value: "feature", text: "Feature" },
+  { value: "docs", text: "Docs" },
+  { value: "infra", text: "Infra" },
+  { value: "design", text: "Design" },
+];
+
+const loadTags = () =>
+  new Promise<Array<ItemOrGroup<MultiSelectItem<string>>>>((resolve) => {
+    setTimeout(() => {
+      resolve(tagItems);
+    }, 1500);
+  });
+
+const loadAssignees = () =>
+  new Promise<Array<ItemOrGroup<SelectItem<string>>>>((resolve) => {
+    setTimeout(() => {
+      resolve([
+        { value: "alex", text: "Alex" },
+        { value: "jamie", text: "Jamie" },
+        { value: "sam", text: "Sam" },
+        { value: "robin", text: "Robin" },
+      ]);
+    }, 1500);
+  });
+
+const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
+  {
+    key: "is",
+    label: "is",
+    input: { type: "select", items: statusItems },
+  },
+  {
+    key: "isAnyOf",
+    label: "is any of",
+    input: {
+      type: "select",
+      multiple: true,
+      items: tagItems,
+      placeholder: "Tags…",
+      searchable: true,
+    },
+  },
+  {
+    key: "hasAllOf",
+    label: "has all of",
+    input: {
+      type: "select",
+      multiple: true,
+      // Async so the summary demonstrates the loading state: the committed
+      // names (or "X selected") show until the option total is known.
+      items: loadTags,
+      placeholder: "Tags…",
+      overflow: "summary",
+    },
+  },
+  {
+    key: "assignedTo",
+    label: "is assigned to (async items)",
+    input: {
+      type: "select",
+      items: loadAssignees,
+      placeholder: "Anyone",
+      searchable: true,
+    },
+  },
+  {
+    key: "became",
+    label: "became",
+    input: [
+      { type: "select", items: statusItems },
+      "within",
+      { type: "int", min: 1, placeholder: "days" },
+    ],
+  },
+];
+
 const noop = () => {};
 
 const maxWidthContainerStyle: React.CSSProperties = {
@@ -172,7 +267,6 @@ const Demo = <ValueMap extends Record<string, unknown>>({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
         removeable={{
-          removeable: true,
           onRemove: () => {
             setValue(null);
             setChanges((previous) => [...previous.slice(-4), "onRemove()"]);
@@ -209,7 +303,7 @@ const KitchenSinkState = ({
       propertyLabel="Value"
       operators={KitchenSinkOperators}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
       {...filterProps}
     />
   </>
@@ -250,7 +344,7 @@ export const Default: Story = () => (
       operators={SingleOperatorOperators}
       value={null}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>single operator, with value</span>
     <Filter<SingleOperatorValues>
@@ -259,7 +353,7 @@ export const Default: Story = () => (
       operators={SingleOperatorOperators}
       value={{ key: "contains", value: "hello" }}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>no operators</span>
     <Filter<Record<string, never>>
@@ -267,7 +361,7 @@ export const Default: Story = () => (
       propertyLabel="Archived"
       operators={[]}
       onChange={noop}
-      removeable={{ removeable: true, onRemove: noop }}
+      removeable={{ onRemove: noop }}
     />
     <span style={stateLabelStyle}>
       responsive, long content in a max-width container
@@ -285,13 +379,13 @@ export const Default: Story = () => (
           ],
         }}
         onChange={noop}
-        removeable={{ removeable: true, onRemove: noop }}
+        removeable={{ onRemove: noop }}
       />
     </div>
     <KitchenSinkState
       label="not removeable"
       value={{ key: "equals", value: "fixed filter" }}
-      removeable={{ removeable: false, onRemove: noop }}
+      removeable={false}
     />
     <KitchenSinkState
       label="disabled"
@@ -310,6 +404,84 @@ export const Default: Story = () => (
         "Latitude must be between -90 and 90",
         "Longitude must be between -180 and 180",
       ]}
+    />
+  </div>
+);
+
+const SelectState = ({
+  label,
+  ...filterProps
+}: { label: string } & Partial<
+  React.ComponentProps<typeof Filter<SelectValues>>
+>) => (
+  <>
+    <span style={stateLabelStyle}>{label}</span>
+    <Filter<SelectValues>
+      property="status"
+      propertyLabel="Status"
+      operators={SelectOperators}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+      {...filterProps}
+    />
+  </>
+);
+
+export const Selects: Story = () => (
+  <div style={columnStyle}>
+    <span style={stateLabelStyle}>
+      empty — single, multi (searchable), async and tuple select operators
+    </span>
+    <Demo<SelectValues>
+      property="status"
+      propertyLabel="Status"
+      operators={SelectOperators}
+    />
+    <SelectState
+      label="single select with value"
+      value={{ key: "is", value: "inProgress" }}
+    />
+    <SelectState
+      label="single select, no value"
+      value={{ key: "is", value: null }}
+    />
+    <SelectState
+      label="multi select with values"
+      value={{ key: "isAnyOf", value: ["bug", "docs"] }}
+    />
+    <SelectState
+      label='multi select, overflow="summary" — every option selected renders "any"'
+      value={{
+        key: "hasAllOf",
+        value: ["bug", "feature", "docs", "infra", "design"],
+      }}
+    />
+    <span style={stateLabelStyle}>
+      multi select, overflow=&quot;summary&quot; in a max-width container —
+      names fall back to &quot;x of y&quot; once they no longer fit
+    </span>
+    <div style={maxWidthContainerStyle}>
+      <Filter<SelectValues>
+        property="status"
+        propertyLabel="Status"
+        operators={SelectOperators}
+        value={{ key: "hasAllOf", value: ["bug", "feature", "docs", "infra"] }}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+      />
+    </div>
+    <SelectState
+      label="async items (1.5s), searchable — the committed value shows while options load"
+      value={{ key: "assignedTo", value: "alex" }}
+    />
+    <SelectState
+      label="select in a tuple with a number input"
+      value={{ key: "became", value: ["done", 7] }}
+    />
+    <SelectState
+      label="disabled"
+      value={{ key: "is", value: "done" }}
+      disabled
     />
   </div>
 );
@@ -383,7 +555,6 @@ const GroupDemo = () => {
               );
             }}
             removeable={{
-              removeable: true,
               onRemove: () =>
                 setFilters((previous) =>
                   previous.filter((entry) => entry.id !== filter.id),
@@ -425,7 +596,7 @@ export const Sizes: Story = () => (
           value={{ key: "between", value: [10, 50, 90] }}
           onChange={noop}
           size={size}
-          removeable={{ removeable: true, onRemove: noop }}
+          removeable={{ onRemove: noop }}
         />
       </div>
     ))}

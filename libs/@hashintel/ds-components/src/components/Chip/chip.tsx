@@ -47,10 +47,7 @@ export type ChipProps = {
   prefix?: PrefixOrSuffix;
 } & ExclusifyUnion<
   | {
-      removeable?: {
-        removeable: boolean;
-        onRemove: () => void;
-      };
+      removeable?: false | { onRemove: () => void };
     }
   | { suffix?: PrefixOrSuffix }
 > &
@@ -137,7 +134,7 @@ export const Chip = ({
   removeable,
   ...ariaAttributes
 }: ChipProps) => {
-  const showRemove = !!removeable?.removeable;
+  const showRemove = !!removeable;
   const prefixInteractive = !!prefix?.onClick;
   const suffixInteractive = !!suffix?.onClick;
 

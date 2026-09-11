@@ -5,22 +5,24 @@ export const searchRow = cva({
     display: "flex",
     alignItems: "center",
     gap: "1.5",
-    marginTop:
-      "[calc(-1 * (var(--selectable-list-content-padding) + var(--selectable-list-padding-y)))]",
     marginInline:
-      "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
-    marginBottom: "0.5",
-    paddingInline: "[var(--selectable-list-padding-x)]",
+      "[calc(-1 * (var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x)))]",
+    paddingInline:
+      "[calc(var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x))]",
+    marginTop:
+      "[calc(-1 * (var(--selectable-list-container-padding-y) + var(--selectable-list-header-footer-padding-y)))]",
+    marginBottom: "0",
     paddingTop: "1.5",
     paddingBottom: "1",
     background: "neutral.s10",
     borderBottom: "1px solid {colors.neutral.s35}",
-    // Inside a swap-on-flip header of an upward-opening dropdown the search
-    // lands on the bottom edge; mirror its chrome vertically
+    "& svg": {
+      "--icon-size": "1.143em",
+    },
     "[data-placement^='top'] [data-selectable-list-swap-on-flip] &": {
-      marginTop: "0.5",
+      marginTop: "0",
       marginBottom:
-        "[calc(-1 * (var(--selectable-list-content-padding) + var(--selectable-list-padding-y)))]",
+        "[calc(-1 * (var(--selectable-list-container-padding-y) + var(--selectable-list-header-footer-padding-y)))]",
       paddingTop: "1",
       paddingBottom: "1.5",
       borderBottom: "none",

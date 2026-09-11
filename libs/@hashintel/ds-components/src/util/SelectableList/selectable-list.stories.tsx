@@ -1,13 +1,19 @@
 import { Menu } from "@ark-ui/react/menu";
+import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../../util/form-shared";
+import { formInputSizes } from "../form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
+import { SelectableListSearch } from "./selectable-list-search";
+import { SelectableListSelectionSummary } from "./selectable-list-selection-summary";
 import {
   defaultSelected,
+  demoFooter,
+  demoHeader,
   groupedItems,
   itemsWithCustomRows,
+  simpleItem,
 } from "./selectable-list.fixtures";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -64,7 +70,7 @@ const disabledGroupedItems: ItemOrGroup<Item>[] =
 const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
-  title: "Internal/SelectableList",
+  title: "Primitives/SelectableList",
   argTypes: {
     size: {
       control: { type: "select" },
@@ -78,7 +84,13 @@ export default {
 
 export const Default: Story<SelectableListProps> = (args) => (
   <StaticMenu>
-    <SelectableList {...args} items={groupedItems} selected={defaultSelected} />
+    <SelectableList
+      {...args}
+      items={groupedItems}
+      selected={defaultSelected}
+      header={demoHeader}
+      footer={demoFooter}
+    />
   </StaticMenu>
 );
 
@@ -99,60 +111,65 @@ export const CustomItems: Story<SelectableListProps> = (args) => (
   </div>
 );
 
-export const HeaderAndFooter: Story<SelectableListProps> = (args) => (
-  <div
-    className={css({
-      // The static menu has no positioner to set --available-height, so
-      // provide it here — short enough that the items must scroll, showing
-      // the header and footer stay pinned outside the scroll area (but tall
-      // enough for the scroll area's 200px floor).
-      "--available-height": "320px",
-    })}
-  >
+const searchableFruits = [
+  "Apple",
+  "Banana",
+  "Cherry",
+  "Dragonfruit",
+  "Elderberry",
+  "Fig",
+  "Grape",
+  "Honeydew",
+];
+
+export const SearchWithSelectionSummary: Story<SelectableListProps> = (
+  args,
+) => {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>(["Apple", "Cherry"]);
+
+  const toggle = (id: string) =>
+    setSelected((current) =>
+      current.includes(id)
+        ? current.filter((selectedId) => selectedId !== id)
+        : [...current, id],
+    );
+
+  const visibleFruits = searchableFruits.filter((fruit) =>
+    fruit.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+
+  return (
     <StaticMenu>
       <SelectableList
         {...args}
-        items={groupedItems}
-        selected={defaultSelected}
+        items={visibleFruits.map((fruit) => ({
+          id: fruit,
+          text: fruit,
+          selectedStyle: "checkbox",
+          onClick: toggle,
+        }))}
+        selected={selected}
+        emptyState={<span>No matches</span>}
         header={
-          // The slots are undecorated; dividers are the consumer's to draw.
-          // For an edge-to-edge one, pull out of the slot AND content padding
-          // with the list's padding vars, re-applying them as own padding.
-          <span
-            className={css({
-              display: "block",
-              marginX:
-                "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
-              marginBottom: "[calc(-1 * var(--selectable-list-padding-y))]",
-              paddingX:
-                "[calc(var(--selectable-list-padding-x) + var(--selectable-list-content-padding))]",
-              paddingBottom: "[var(--selectable-list-padding-y)]",
-              borderBottom: "1px solid {colors.neutral.s30}",
-            })}
-          >
-            Header — outside the scroll area
-          </span>
+          <SelectableListSearch
+            value={search}
+            onChange={setSearch}
+            aria-label="Search fruits"
+          />
         }
         footer={
-          <span
-            className={css({
-              display: "block",
-              marginX:
-                "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
-              marginTop: "[calc(-1 * var(--selectable-list-padding-y))]",
-              paddingX:
-                "[calc(var(--selectable-list-padding-x) + var(--selectable-list-content-padding))]",
-              paddingTop: "[var(--selectable-list-padding-y)]",
-              borderTop: "1px solid {colors.neutral.s30}",
-            })}
-          >
-            Footer — outside the scroll area
-          </span>
+          <SelectableListSelectionSummary
+            selectedCount={selected.length}
+            totalCount={searchableFruits.length}
+            onSelectAll={() => setSelected(searchableFruits)}
+            onClearAll={() => setSelected([])}
+          />
         }
       />
     </StaticMenu>
-  </div>
-);
+  );
+};
 
 export const Disabled: Story<SelectableListProps> = (args) => (
   <StaticMenu>
@@ -160,6 +177,8 @@ export const Disabled: Story<SelectableListProps> = (args) => (
       {...args}
       items={disabledGroupedItems}
       selected={disabledSelected}
+      header={demoHeader}
+      footer={demoFooter}
     />
   </StaticMenu>
 );
@@ -209,6 +228,26 @@ export const Sizes: Story<SelectableListProps> = (args) => (
               size={size}
               items={groupedItems.map((entry) => prefixIds(entry, size))}
               selected={defaultSelected.map((id) => `${size}-${id}`)}
+              header={demoHeader}
+              footer={demoFooter}
+            />
+          </StaticMenu>
+        </div>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "[8px]",
+          })}
+        >
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            single item
+          </span>
+          <StaticMenu>
+            <SelectableList
+              {...args}
+              size={size}
+              items={[prefixIds(simpleItem, size)]}
             />
           </StaticMenu>
         </div>

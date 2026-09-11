@@ -7,8 +7,8 @@ import { createContext, use, useEffect, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../../util/portal-container-context";
-import { isEmptyString } from "../../../util/string";
+import { usePortalContainerRef } from "../portal-container-context";
+import { isEmptyString } from "../string";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
@@ -26,7 +26,7 @@ import {
 } from "./selectable-list-util";
 import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
-import type { FormInputSize } from "../../../util/form-shared";
+import type { FormInputSize } from "../form-shared";
 
 export { type CustomItem, isCustomItem, isGroup, type Item, type ItemOrGroup };
 

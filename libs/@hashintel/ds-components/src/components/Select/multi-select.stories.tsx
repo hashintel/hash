@@ -6,7 +6,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
 import type { FormInputWidth } from "../../util/form-shared";
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -207,6 +207,19 @@ const suffixItems: Array<MultiSelectItem> = [
   { value: "date", text: "Date", suffix: "282 kcal" },
 ];
 
+const overflowModes = ["scroll", "truncate", "summary"] as const;
+
+const overflowItems: Array<MultiSelectItem> = [
+  { value: "apple", text: "Apple" },
+  { value: "banana", text: "Banana" },
+  { value: "cherry", text: "Cherry" },
+  { value: "date", text: "Date" },
+  { value: "elderberry", text: "Elderberry" },
+  { value: "fig", text: "Fig" },
+  { value: "grape", text: "Grape" },
+  { value: "honeydew", text: "Honeydew" },
+];
+
 export const Multiple: Story<MultiSelectProps> = (args) => {
   const spreadArgs = args as Omit<
     MultiSelectProps,
@@ -235,6 +248,13 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
     "banana",
   ]);
   const [colors, setColors] = useState<ColorValue[]>(["red", "blue"]);
+  const [overflowByMode, setOverflowByMode] = useState<
+    Record<string, string[]>
+  >({
+    scroll: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+    truncate: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+    summary: ["apple", "banana", "cherry", "date", "elderberry", "fig"],
+  });
   const [clearableValues, setClearableValues] = useState<string[]>(["cherry"]);
   const [searchableValues, setSearchableValues] = useState<string[]>(["apple"]);
   const [lastSearch, setLastSearch] = useState("");
@@ -350,7 +370,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
           {...spreadArgs}
           multiple
           maxItems={2}
-          searchable={{ searchable: true, onSearch: noop }}
+          searchable
           items={sampleItems}
           value={capped}
           onChange={setCapped}
@@ -381,6 +401,26 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
           )}
         />
       </div>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        {overflowModes.map((mode) => (
+          <div key={mode} className={groupStyle}>
+            <span style={subheadingStyle}>overflow="{mode}"</span>
+            <div style={{ width: 220 }}>
+              <Select
+                {...spreadArgs}
+                multiple
+                overflow={mode}
+                items={overflowItems}
+                value={overflowByMode[mode] ?? []}
+                onChange={(next) =>
+                  setOverflowByMode((current) => ({ ...current, [mode]: next }))
+                }
+                placeholder="Select fruits..."
+              />
+            </div>
+          </div>
+        ))}
+      </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>
           Searchable — onSearch reported: "{lastSearch}"
@@ -388,7 +428,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
         <Select
           {...spreadArgs}
           multiple
-          searchable={{ searchable: true, onSearch: setLastSearch }}
+          searchable={{ onSearch: setLastSearch }}
           items={sampleItems}
           value={searchableValues}
           onChange={setSearchableValues}
@@ -402,7 +442,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
           items={sampleItems}
           value={clearableValues}
           onChange={setClearableValues}
-          clearable={{ clearable: true, onClear: () => setClearableValues([]) }}
+          clearable
         />
       </div>
       <div className={groupStyle}>
