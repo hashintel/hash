@@ -516,7 +516,7 @@ export const runReopenedWhyWitness = async ({
             ? [tool("getLatestNetDefinition", {}, readId)]
             : []),
           tool(
-            "brunch_why",
+            "query_workpiece",
             {
               ...query,
               ...extra,
@@ -527,7 +527,7 @@ export const runReopenedWhyWitness = async ({
           (modelContext) => {
             const answer = toolOutput(
               modelContext,
-              "brunch_why",
+              "query_workpiece",
             ) as unknown as RootArcExplanation;
             assert.equal(
               answer.disposition,

@@ -48,6 +48,10 @@ const workpieceReadToolNames: ReadonlySet<string> = new Set([
   "read_workpiece",
   "brunch_workpiece",
 ]);
+const workpieceQueryToolNames: ReadonlySet<string> = new Set([
+  "query_workpiece",
+  "brunch_why",
+]);
 
 /** A view of actual model-facing results, never a second current-state authority. */
 export const BrunchWorkpiecePane = ({
@@ -111,11 +115,11 @@ export const BrunchWorkpiecePane = ({
       }
       if (
         (workpieceReadToolNames.has(part.toolName) ||
-          part.toolName === "brunch_why") &&
+          workpieceQueryToolNames.has(part.toolName)) &&
         record(part.output)
       ) {
         if (
-          part.toolName === "brunch_why" &&
+          workpieceQueryToolNames.has(part.toolName) &&
           canonicalContent(part.output.binding) !== canonicalContent(binding)
         )
           continue;
@@ -127,7 +131,7 @@ export const BrunchWorkpiecePane = ({
             : undefined,
         };
         stateChangedSinceReport = false;
-        if (part.toolName === "brunch_why") {
+        if (workpieceQueryToolNames.has(part.toolName)) {
           why = { toolCallId: part.toolCallId, output: part.output };
           whyPredatesSettlement = false;
         }

@@ -391,7 +391,7 @@ try {
         foreign.send({
           message: {
             kind: "user",
-            body: "TEST forbidden request for read_workpiece and brunch_why",
+            body: "TEST forbidden request for read_workpiece and query_workpiece",
           },
         }),
       );
@@ -422,7 +422,7 @@ try {
         .filter(
           (part) =>
             part.toolName === "read_workpiece" ||
-            part.toolName === "brunch_why",
+            part.toolName === "query_workpiece",
         )
         .map((part) => part.toolCallId);
       const beforeContext = contexts.length;
@@ -436,14 +436,14 @@ try {
           { locateTexts: [retentionQuote] },
           readId,
         ),
-        retentionCall("brunch_why", retentionQuery, whyId),
+        retentionCall("query_workpiece", retentionQuery, whyId),
         retentionCall(
-          "brunch_why",
+          "query_workpiece",
           { ...retentionQuery, observationToolCallId: "retention-live-read" },
           oldId,
         ),
         retentionCall(
-          "brunch_why",
+          "query_workpiece",
           {
             ...retentionQuery,
             observationToolCallId: "TEST-not-an-observed-read",
@@ -506,9 +506,9 @@ try {
         .filter((entry) => entry.purpose === "agent");
       for (const [name, id, expected] of [
         ["read_workpiece", readId, read],
-        ["brunch_why", whyId, why],
-        ["brunch_why", oldId, old],
-        ["brunch_why", refusedId, refused],
+        ["query_workpiece", whyId, why],
+        ["query_workpiece", oldId, old],
+        ["query_workpiece", refusedId, refused],
       ] as const) {
         assert(
           actual.some((entry) =>
@@ -553,7 +553,7 @@ try {
             (message) =>
               message.role === "toolResult" &&
               (message.toolName === "read_workpiece" ||
-                message.toolName === "brunch_why"),
+                message.toolName === "query_workpiece"),
           ),
           "No prior workpiece/why tool result may substitute for authorized history",
         );

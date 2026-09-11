@@ -14,7 +14,7 @@ import {
   assertArcNotRetired,
   assertConstructionIdentity,
 } from "../src/conversation/root-arc.ts";
-import { explainRootArc } from "../src/conversation/why.ts";
+import { queryWorkpiece } from "../src/conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -325,7 +325,7 @@ test("requires a delivered observation for a currently cited unanswered read", a
 });
 
 test("labels an answer as of the last reconciled state when the live hash is unavailable", async () => {
-  const answer = await explainRootArc({ snapshot, current, browser, query });
+  const answer = await queryWorkpiece({ snapshot, current, browser, query });
   expect(answer.target?.kind).toBe("arc");
   expect(answer.reconciliation.status).toBe("as-of");
   expect(answer.governing?.revisionId).toBe(current.revisionId);
@@ -334,7 +334,7 @@ test("labels an answer as of the last reconciled state when the live hash is una
 });
 
 test("refuses unknown current state instead of reconstructing it from history", async () => {
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot,
     current: null,
     browser,
@@ -350,7 +350,7 @@ test("refuses a mismatched conversation or document incarnation", async () => {
     "documentId",
     "incarnationId",
   ] as const) {
-    const answer = await explainRootArc({
+    const answer = await queryWorkpiece({
       snapshot,
       current,
       browser: { ...browser, binding: { ...browser.binding, [key]: "other" } },
@@ -366,7 +366,7 @@ test("conflicting deliveries are attempts, never causes", async () => {
   for (const part of conflicting.parts)
     if (part.type === "text")
       part.text = part.text.replace('"applied":true', '"applied":false');
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot: { ...snapshot, messages: [...messages, conflicting] },
     current,
     browser,
@@ -439,7 +439,7 @@ test.each(["no-op", "failed", "stale", "unknown"] as const)(
     row.output.applied = false;
     for (const part of negative.parts)
       if (part.type === "text") part.text = JSON.stringify(rows);
-    const answer = await explainRootArc({
+    const answer = await queryWorkpiece({
       snapshot: {
         ...snapshot,
         messages: messages.map((message) =>
@@ -500,7 +500,7 @@ test("a repeated read delivery cannot become a fresh live observation", async ()
 });
 
 test("exact recorded basis resolves actual sources while an overbroad locator does not manufacture support", async () => {
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot: a5Snapshot,
     current: a5Current,
     browser: a5Browser,
@@ -525,7 +525,7 @@ test("exact recorded basis resolves actual sources while an overbroad locator do
           { start: 0, end: a5Current.markdown.indexOf("\n\nUnrelated") },
         ];
       }
-  const unsupported = await explainRootArc({
+  const unsupported = await queryWorkpiece({
     snapshot: broad,
     current: a5Current,
     browser: a5Browser,

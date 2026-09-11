@@ -54,7 +54,7 @@ import {
   verifyRootArcResults,
   assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
-import { createRootArcWhyTool } from "../../conversation/why.ts";
+import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -151,7 +151,7 @@ export function ChatAgent({ id }: AgentProps) {
       if (browserContext) {
         useTool(createWorkpieceReadTool({ currentRevision, readSources }));
         useTool(
-          createRootArcWhyTool({
+          createQueryWorkpieceTool({
             current: currentRevision,
             browser: browserContext,
             history,
@@ -234,7 +234,7 @@ A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call getLatestNetDefinition and nothing else, then end your response; brunch_why is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call brunch_why citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call getLatestNetDefinition and nothing else, then end your response; query_workpiece is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call query_workpiece citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

@@ -9,7 +9,7 @@ import {
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
-  explainRootArc,
+  queryWorkpiece,
   type RootArcExplanation,
 } from "../src/conversation/why.ts";
 import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
@@ -38,7 +38,7 @@ const binding = (
 if (!binding) throw new Error("Missing actual document binding");
 const browser = { binding, construction: true as const };
 const explain = (query: unknown) =>
-  explainRootArc({
+  queryWorkpiece({
     snapshot,
     current,
     browser,
@@ -56,7 +56,7 @@ test("supports an entity origin without inheriting its derived child fields", as
   );
   if (!creationRevision) throw new Error("Missing creation revision");
 
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot: creationSnapshot,
     current: creationRevision,
     browser,
@@ -69,6 +69,7 @@ test("supports an entity origin without inheriting its derived child fields", as
 
   expect(answer.disposition).toBe("partially-supported");
   expect(answer.originToolCallId).toBe("typed-scenario");
+  expect(answer.targetMutationRevisionIds).toEqual(["typed-scenario"]);
   expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
   expect(
     answer.recordedChange?.effects.derived.some(({ path }) =>
@@ -151,6 +152,20 @@ test("keeps explicit and derived leaf causes separate beneath the refused row", 
   expect(explicit.recordedChange?.toolCallId).toBe("typed-explicit-initial");
   expect(explicit.governing?.revisionId).toBe("typed-revision-two");
   expect(explicit.originToolCallId).toBe("typed-scenario");
+  expect(explicit.targetMutationRevisionIds).toEqual([
+    "typed-scenario",
+    "typed-active",
+    "typed-integer",
+    "typed-explicit-initial",
+  ]);
+  expect(explicit.workpieceRevisionTurns).toEqual({
+    revisionId: "typed-revision-two",
+    startTurn: 2,
+    endTurn: 2,
+    userMessageIds: [
+      "entry_direct_c3ViX2lrX2U1ZGE2NTYwN2UwMGEyMjRiOTdiMTJlOGM4NTgxMTZi",
+    ],
+  });
   const derived = await explain({
     kind: "scenario",
     name: "TestInitial",
@@ -191,7 +206,7 @@ test("existing transition arc aggregates cannot inherit their empty creation bas
   ) as RootArcExplanation[];
   if (!prior) throw new Error("Missing actual root explanation fixture");
   const explainField = (field: string) =>
-    explainRootArc({
+    queryWorkpiece({
       snapshot: rootSnapshot,
       current: prior.currentWorkpiece,
       browser: { binding: prior.binding, construction: true },
@@ -225,14 +240,14 @@ test("preserves exact live observation reconciliation while refusing aggregate b
     field: "initialState",
     observationToolCallId: "typed-reopened-read",
   });
-  const answer = await explainRootArc({
+  const answer = await queryWorkpiece({
     snapshot,
     current,
     browser,
     query,
     activeObservationCallIds: ["typed-reopened-read"],
   });
-  const leaf = await explainRootArc({
+  const leaf = await queryWorkpiece({
     snapshot,
     current,
     browser,
