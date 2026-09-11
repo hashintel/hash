@@ -11,6 +11,7 @@ const closed: PanelLayoutState = {
   isAiAssistantOpen: false,
   aiAssistantWidth: 500,
   aiAssistantPlacement: "docked",
+  isAiAssistantCollapsed: false,
   isBottomPanelOpen: false,
   bottomPanelHeight: 180,
 };
@@ -59,6 +60,28 @@ describe("getCanvasInsets", () => {
     expect(
       getCanvasInsets({ ...floating, isAiAssistantOpen: false }).right,
     ).toBe(450);
+  });
+
+  it("leaves room for a compact voice dock until it expands or closes", () => {
+    const compact = {
+      ...closed,
+      isAiAssistantOpen: true,
+      isAiAssistantCollapsed: true,
+    };
+    expect(getCanvasInsets(compact).right).toBe(512);
+    expect(
+      getCanvasInsets({ ...compact, isAiAssistantCollapsed: false }).right,
+    ).toBe(0);
+    expect(
+      getCanvasInsets({ ...compact, isAiAssistantOpen: false }).right,
+    ).toBe(0);
+    expect(
+      getCanvasInsets({
+        ...compact,
+        hasSelection: true,
+        propertiesPanelWidth: 600,
+      }).right,
+    ).toBe(600);
   });
 
   it("counts the bottom panel's height, not its open state alone", () => {

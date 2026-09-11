@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
@@ -37,6 +37,7 @@ import {
   SDCPNContext,
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
+import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-tool";
 import {
   addMappedToolOutput,
@@ -56,6 +57,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { UIMessageChunk } from "ai";
+import type { ReactNode } from "react";
 
 let voiceModeMounts = 0;
 let voiceModeUnmounts = 0;
@@ -110,6 +112,7 @@ const editorContextValue: EditorContextValue = {
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
   setAiAssistantPlacement: () => {},
+  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
@@ -216,6 +219,33 @@ const SubmitForSecondConversation = ({
 
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
+const CanvasInsetProbe = () => {
+  const canvasInsets = useCanvasInsets();
+  return <output data-testid="canvas-right-inset">{canvasInsets.right}</output>;
+};
+
+const EditorTestProvider = ({
+  children,
+  value,
+}: {
+  children: ReactNode;
+  value: EditorContextValue;
+}) => {
+  const [collapsed, setCollapsed] = useState(value.isAiAssistantCollapsed);
+  return (
+    <EditorContext
+      value={{
+        ...value,
+        isAiAssistantCollapsed: collapsed,
+        setAiAssistantCollapsed: setCollapsed,
+      }}
+    >
+      {children}
+      <CanvasInsetProbe />
+    </EditorContext>
+  );
+};
+
 const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
@@ -263,7 +293,7 @@ const renderTestPanel = ({
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
         <NotificationsProvider>
-          <EditorContext.Provider value={nextEditorContext}>
+          <EditorTestProvider value={nextEditorContext}>
             <SDCPNContext.Provider value={sdcpnContext}>
               <AiAssistantPanel
                 aiAssistant={nextAiAssistant}
@@ -274,7 +304,7 @@ const renderTestPanel = ({
                 }
               />
             </SDCPNContext.Provider>
-          </EditorContext.Provider>
+          </EditorTestProvider>
         </NotificationsProvider>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
@@ -2560,11 +2590,15 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(composerWrap?.className).toContain("d_none");
 
     const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    expect(screen.getByTestId("canvas-right-inset").textContent).toBe(
+      String(initialEditorState.aiAssistantWidth + 12),
+    );
     fireEvent.click(
       within(setupDock).getByRole("button", { name: "Expand voice setup" }),
     );
 
     expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+    expect(screen.getByTestId("canvas-right-inset").textContent).toBe("0");
     expect(composerWrap?.className).not.toContain("d_none");
     expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
       composer,
@@ -4987,14 +5021,14 @@ describe("AiAssistantPanel host interactive tools", () => {
     try {
       render(
         <PetrinautInstanceContext.Provider value={instance}>
-          <EditorContext.Provider value={editorContextValue}>
+          <EditorTestProvider value={editorContextValue}>
             <SDCPNContext.Provider value={sdcpnContext}>
               <AiAssistantPanel
                 aiAssistant={{ interactiveTools: [hostTool], transport }}
                 initialMessage="Start the review"
               />
             </SDCPNContext.Provider>
-          </EditorContext.Provider>
+          </EditorTestProvider>
         </PetrinautInstanceContext.Provider>,
       );
 

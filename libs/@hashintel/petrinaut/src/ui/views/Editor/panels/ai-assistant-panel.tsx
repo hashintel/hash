@@ -540,8 +540,14 @@ const ConversationAiAssistantPanel = ({
 
   const { diagnosticsByUri } = use(LanguageClientContext);
 
-  const { isAiAssistantOpen, navigateTo, selectItem, setAiAssistantOpen } =
-    use(EditorContext);
+  const {
+    isAiAssistantOpen,
+    isAiAssistantCollapsed: voiceDockCollapsed,
+    navigateTo,
+    selectItem,
+    setAiAssistantCollapsed: setVoiceDockCollapsed,
+    setAiAssistantOpen,
+  } = use(EditorContext);
 
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
@@ -572,7 +578,10 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
-  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
+  useLayoutEffect(
+    () => () => setVoiceDockCollapsed(false),
+    [setVoiceDockCollapsed],
+  );
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
     (
@@ -589,7 +598,7 @@ const ConversationAiAssistantPanel = ({
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [],
+    [setVoiceDockCollapsed],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;

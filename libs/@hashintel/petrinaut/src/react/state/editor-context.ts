@@ -88,6 +88,7 @@ export type EditorState = {
    */
   aiAssistantWidth: number;
   aiAssistantPlacement: "docked" | "floating";
+  isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   componentSubnetId: string | null;
   selection: SelectionMap;
@@ -147,6 +148,7 @@ export type EditorActions = {
   setPropertiesPanelWidth: (width: number) => void;
   setAiAssistantWidth: (width: number) => void;
   setAiAssistantPlacement: (placement: "docked" | "floating") => void;
+  setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
@@ -203,6 +205,7 @@ export const initialEditorState: EditorState = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   aiAssistantPlacement: "docked",
+  isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentSubnetId: null,
   selection: new Map(),
@@ -232,6 +235,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
   setAiAssistantPlacement: () => {},
+  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
