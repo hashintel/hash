@@ -1,0 +1,57 @@
+---
+title: AI client integration
+description: What Petrinaut provides and what each integrating application owns.
+attachTo: core.ai
+sidebar_order: 10
+---
+
+Petrinaut provides experiment schemas, browser execution, progress, and captured
+results. An integrating application selects the tools its agent may call and
+decides how to continue after each result.
+
+![Client and host responsibilities](@diagrams/ai-client-integration.svg)
+
+## Brunch integration
+
+Brunch sends client tool calls through its AI SDK transport and resumes the
+conversation with a `client-tool-result` signal correlated by `toolCallId`.
+This supports browser experiments: Petrinaut owns the document and compute;
+Brunch owns the conversation. See the [route contract](https://github.com/hashintel/hash/blob/main/apps/brunch-agent/README.md#panel-and-voice-conversation-route)
+and [package topology](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/brunch-agent/docs/reference/architecture/topology.md).
+
+Brunch selects tools by integration mode. Its configured panel includes
+`readPetrinautDoc`, `getLatestNetDefinition`, and `mutate_petrinet`; other modes
+admit individual construction tools. These explicit catalogs let Brunch adopt
+experiments independently.
+
+| Owner                                                  | Responsibility                                                                                |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [Core](layer:core.ai)                                  | Define request/result schemas and host/progress types.                                        |
+| [Browser host](doc:experiments/ai-created-experiments) | Validate, run, cancel, protect inputs, and capture results.                                   |
+| [AI chat](doc:ai/experiment-chat)                      | Dispatch calls, show progress, and return terminal results.                                   |
+| Integrating application                                | Select tools, carry schemas, preserve call identity, persist history, and continue the agent. |
+
+To adopt experiments, register `createExperiment` in Brunch's tool catalog and
+client-result admission boundary. Supply the canonical input schema to the
+model and return the browser result with the original call ID. Test continuation
+through the real Flue transport. Progress remains local while the call waits.
+
+:::danger[Important: tool schema conversion]
+Several legacy headless construction tools use an open Valibot object and
+embed JSON Schema in the description, with Zod validation at runtime.
+The document and compilation readers already pass canonical schemas directly.
+An experiment adapter should also preserve its nested input schema.
+The [legacy conversion](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts)
+needs a separate integration change, tracked in
+[FE-1484](https://linear.app/hash/issue/FE-1484/ai-assisted-parameterization-and-creation-of-experiments).
+:::
+
+## Integration demo
+
+The [website demo](layer:website.ai-experiments) uses scripted conversation and
+real browser execution. It exercises Petrinaut's contract and chat presentation.
+Brunch retains ownership of production prompts, tool selection, persistence,
+and result interpretation. Its production catalog is unchanged.
+
+Follow the [demo steps](doc:experiments/ai-created-experiments#try-the-demo) to
+verify Petrinaut's part. Brunch adoption needs its own transport integration test.

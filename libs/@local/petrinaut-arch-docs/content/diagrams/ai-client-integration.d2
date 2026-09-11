@@ -1,0 +1,11 @@
+direction: down
+vars: {d2-config: {theme-id: 0}}
+app: "Application agent"
+transport: "Client transport"
+demo: "Scripted demo"
+chat: "Petrinaut AI chat"
+host: "Browser host"
+app <-> transport: "calls / results"
+transport <-> chat
+demo -> chat: "demo only" {style.stroke-dash: 4}
+chat <-> host: "request / progress / result"

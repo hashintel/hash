@@ -82,6 +82,36 @@ last sampled distribution as a mean. See [experiment execution](doc:simulation/e
 [sweep orchestration](doc:experiments/sweep-orchestration), and the
 [browser optimizer](doc:optimizer/browser-runtime).
 
+## Try the demo
+
+From the repository root:
+
+```sh
+turbo run dev --filter @apps/petrinaut-website
+```
+
+Open [the experiment demo](http://localhost:5173/ai-experiments), using the
+port printed by the server if it differs.
+
+1. Open the AI assistant and ask **How can I see the variation in this outbreak model?**
+   Read the baseline proposal, then send **run**. Watch the card, select
+   **View experiment**, and click a heatmap time step to see its histogram.
+2. Enable **Parameter sweeps** and **In-browser optimization** in Settings.
+   Ask to compare starting infection levels, then send **optimize**. Inspect
+   progress, the final result, and the best point's distribution.
+3. Select **Cancel** during an optimization and confirm its card stops updating.
+4. After completion, change a parameter in the drawer and confirm the earlier
+   chat result stays unchanged.
+
+The [demo layer](layer:website.ai-experiments) streams scripted replies with
+short pauses. Completion figures come from the host's returned result.
+The SIR example produces simulated model data and is not calibrated to measured
+flu data. Searching initial infection levels demonstrates parameter search.
+
+The demo requires no LLM or Brunch server. The website development command
+builds its Petrinaut dependencies before starting. [AI client integration](doc:ai/client-integration)
+describes Brunch adoption and application responsibilities.
+
 :::danger[Important: host lifetime]
 Execution requires the mounted browser host. Durable jobs, recovery after
 reload, and background notifications need a persistence contract.
