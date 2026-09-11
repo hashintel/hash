@@ -25,8 +25,8 @@ stay in rung order. Run ranges are disjoint and per-run draws and seeds are
 prefix-stable, which is what makes overlapping rungs sound.
 
 Each rung asks the provider to instantiate a batch. The provider builds an
-`ExperimentRequest` (per-run parameter draws travel as a typed-array plan;
-pinned per-run seeds as run records) and lets the backend selection choose
+`ExperimentRequest` (per-run parameter draws travel as a typed-array plan)
+and lets the backend selection choose
 between the CPU worker pool and the WebGPU backend the first time; later
 rungs reuse the chosen backend.
 

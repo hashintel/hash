@@ -130,9 +130,8 @@ export const SweepOptimizeControl = ({
       setOpen(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setStarting(false);
     }
+    setStarting(false);
   };
 
   return (

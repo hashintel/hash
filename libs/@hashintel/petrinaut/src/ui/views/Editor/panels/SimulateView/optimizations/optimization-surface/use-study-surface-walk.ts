@@ -10,12 +10,12 @@ import {
   SURFACE_CELL_RUNS,
   surfacePositions,
 } from "../../shared/surface-sampling";
-import { useSurfaceWalk } from "../../shared/use-surface-walk";
 import {
   type OptimizationSurfaceView,
   surfaceWalkKey,
 } from "./navigation-slice";
 import { sampleStudyCell, type StudyCellCache } from "./sample-study-cell";
+import { useSurfaceWalk } from "./use-study-surface-walk/use-surface-walk";
 
 import type { ExperimentsContextValue } from "../../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";

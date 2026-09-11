@@ -17,6 +17,7 @@ import {
   axisDisplayName,
   axisStep,
   axisValueAt,
+  selectionMidpoint,
 } from "../../../../../../react/experiments/parameter-grid";
 import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
@@ -36,7 +37,6 @@ import { surfacePositions } from "../shared/surface-sampling";
 import {
   computingSurfaceField,
   describeVisitedSurface,
-  selectionMidpoint,
   visitedSurfaceField,
 } from "./sweep-surface/visited-field";
 

@@ -42,10 +42,6 @@ export const expandRunPlan = (
   const width = plan.ids.length;
   return Array.from({ length: runCount }, (_, run) => {
     const config: MonteCarloRunConfig = {};
-    const seed = plan.seeds?.[run];
-    if (seed !== undefined) {
-      config.seed = seed;
-    }
     if (width > 0) {
       const parameterValues = createUserKeyedRecord<string>();
       plan.ids.forEach((id, index) => {
