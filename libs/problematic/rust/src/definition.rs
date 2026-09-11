@@ -1,7 +1,9 @@
-use alloc::{borrow::Cow, string::String};
+use alloc::borrow::Cow;
 
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+
+use crate::serialization::serialize_extensions;
 
 /// An empty object for problem types without extensions.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -49,7 +51,7 @@ pub struct ProblemType {
     derive(schemars::JsonSchema),
     schemars(title = "Problem Details")
 )]
-pub struct ProblemDetails<E> {
+pub struct ProblemDetails<'kind, 'occurrence, E> {
     /// A URI reference identifying the problem type. `about:blank` means the problem has no
     /// additional semantics beyond its HTTP status code.
     #[serde(rename = "type")]
@@ -60,12 +62,12 @@ pub struct ProblemDetails<E> {
             example = "https://example.com/problems/wrong-actor-type"
         )
     )]
-    pub type_uri: Cow<'static, str>,
+    pub type_uri: Cow<'kind, str>,
 
     /// A short, human-readable summary of the problem type. It should remain the same across
     /// occurrences, except for localization.
     #[cfg_attr(feature = "schemars", schemars(example = "Wrong actor type"))]
-    pub title: Cow<'static, str>,
+    pub title: Cow<'kind, str>,
 
     /// The HTTP status code sent by the origin server for this occurrence.
     #[cfg_attr(
@@ -81,7 +83,7 @@ pub struct ProblemDetails<E> {
         feature = "schemars",
         schemars(required, example = "This operation requires a machine actor.")
     )]
-    pub detail: Option<String>,
+    pub detail: Option<Cow<'occurrence, str>>,
 
     /// A URI reference identifying this occurrence. It may identify the occurrence without
     /// resolving to further information.
@@ -94,9 +96,17 @@ pub struct ProblemDetails<E> {
             example = "https://example.com/problem-occurrences/01J8M6Y7P9"
         )
     )]
-    pub instance: Option<String>,
+    pub instance: Option<Cow<'occurrence, str>>,
 
     /// Problem-specific members included alongside the standard fields.
-    #[serde(flatten)]
+    ///
+    /// Serialization fails if the extensions are not an object, contain `type`, `title`, `status`,
+    /// `detail`, or `instance` at their top level, or fail to serialize themselves. Nested members
+    /// may use these names. The extension type must support Serde flattening for deserialization.
+    #[serde(
+        flatten,
+        serialize_with = "serialize_extensions",
+        bound(serialize = "E: Serialize")
+    )]
     pub extensions: E,
 }
