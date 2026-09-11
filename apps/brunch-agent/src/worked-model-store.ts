@@ -9,6 +9,8 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 export interface WorkedModelFixture {
   readonly bundleKey: string;
   readonly fixtureVersion: string;
+  /** SHA-256 of the reviewed persona evidence manifest that produced it. */
+  readonly sourceManifestSha256: string;
   readonly title: string;
   /** The accepted local session retained as immutable fixture input. */
   readonly session: FlueConversationSnapshot;

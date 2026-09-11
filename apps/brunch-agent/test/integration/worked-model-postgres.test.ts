@@ -25,6 +25,7 @@ const fixture = (
 ): WorkedModelFixture => ({
   bundleKey: "inventory-purchasing",
   fixtureVersion,
+  sourceManifestSha256: "f".repeat(64),
   title: "Inventory purchasing",
   session: {
     v: 1,
