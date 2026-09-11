@@ -27,18 +27,42 @@ export const tableCard = css({
   bg: "bgSolid.min",
   overflow: "hidden",
 });
+// Padding lives on the rows, not this container, for two reasons: the filter
+// row's top border must reach the card edges, and the tab row's own height
+// (top padding included via `tabButtons`) is what the filter/sort controls
+// centre against — container padding would visually unbalance them.
 export const filterHeader = css({
   flexShrink: "0",
-  px: "4",
-  py: "3",
   borderBottomWidth: "1px",
   borderColor: "bd.subtle",
   display: "flex",
-  alignItems: "flex-start",
-  gap: "1",
+  flexDirection: "column",
 });
-/** Grows the filter bar so the sort menu stays pinned to the band's right edge. */
-export const filterHeaderBar = css({ flex: "1", minW: "0" });
+/**
+ * Leading tab cluster left, filter/sort controls right, centre-aligned. The
+ * tab cluster opts out via `alignSelf: stretch` (see `tabButtons`) so its
+ * underline still anchors to the border beneath the row.
+ */
+export const filterHeaderRow = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  px: "4",
+});
+export const filterHeaderActions = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  flexShrink: "0",
+});
+/** Active-filter row: a full-width top border keeps a rule under the tabs. */
+export const filterChipsRow = css({
+  px: "4",
+  py: "3",
+  borderTopWidth: "1px",
+  borderColor: "bd.subtle",
+});
 export const tableScroll = css({ flex: "1", minH: "0", overflow: "auto" });
 export const table = css({ w: "full", textStyle: "sm", lineHeight: "normal" });
 export const theadRow = css({

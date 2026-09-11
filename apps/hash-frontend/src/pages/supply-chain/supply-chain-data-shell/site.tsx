@@ -145,21 +145,19 @@ const content = css({
 });
 // The carry-cost chart keeps its natural height between the two tables.
 const chartShrink = css({ flexShrink: "0" });
-// Tab bar directly above the detail table; the table's sticky header parks
-// beneath it once the table scrolls internally. No bottom border of its own —
-// the table card's top border sits directly beneath, and doubling them up
-// reads as two lines. The active tab keeps its own dark underline.
-const tabBar = css({
-  flexShrink: "0",
+// Tab cluster inside the active table's header band. It owns the band's top
+// padding so the filter/sort controls centre against the row's full height;
+// stretching keeps the tab buttons anchored to the row's bottom edge, and the
+// -1px margin drops the active tab's 2px underline onto the 1px rule below the
+// row, so the two read as one line.
+const tabButtons = css({
   display: "flex",
   alignItems: "flex-end",
-  justifyContent: "space-between",
-  gap: "4",
-  minH: "11",
-  bg: "bgSolid.min",
-  pb: "[1px]",
+  alignSelf: "stretch",
+  gap: "3",
+  pt: "3",
+  mb: "[-1px]",
 });
-const tabButtons = css({ display: "flex", alignItems: "flex-end", gap: "3" });
 // Groups the tab bar with its active table so they stack tightly.
 const tableSection = css({ display: "flex", flexDirection: "column", pb: "6" });
 
@@ -531,6 +529,46 @@ export const SiteOverview = ({
       skippedKeys={activeTabSkippedKeys}
     />
   );
+  const changeTab = (nextTab: Tab) => {
+    trackSupplyChainInteraction({
+      interaction: "site_tab_changed",
+      siteId,
+      source: "site_overview",
+    });
+    setTab(nextTab);
+  };
+  // Tab cluster handed to the active table's header band, so switching tables
+  // keeps the tabs inline with the filter and sort controls.
+  const siteTabs = (
+    <div className={tabButtons}>
+      <TabButton
+        active={tab === "dwell"}
+        onClick={() => changeTab("dwell")}
+        label="Dwell Time / Cost"
+        count={filteredDwellRows.length}
+      />
+      <TabButton
+        active={tab === "planning"}
+        onClick={() => changeTab("planning")}
+        label="Planning Parameters"
+        count={filteredPlanningRows.length}
+      />
+      <TabButton
+        active={tab === "trends"}
+        onClick={() => changeTab("trends")}
+        label="Trend"
+        count={filteredTrendRows.length}
+      />
+      {supplierPerformanceEnabled && (
+        <TabButton
+          active={tab === "suppliers"}
+          onClick={() => changeTab("suppliers")}
+          label="Supplier Performance"
+          count={filteredSupplierRows.length}
+        />
+      )}
+    </div>
+  );
 
   const overPlanCount = useMemo(
     () =>
@@ -794,71 +832,9 @@ export const SiteOverview = ({
           />
         </div>
 
-        {/* Tab selector + active table — grouped so both stick together */}
+        {/* Active detail table; the tab cluster lives inside its header band */}
         <div className={tableSection}>
-          <div className={tabBar}>
-            <div className={tabButtons}>
-              <TabButton
-                active={tab === "dwell"}
-                onClick={() => {
-                  trackSupplyChainInteraction({
-                    interaction: "site_tab_changed",
-                    siteId,
-                    source: "site_overview",
-                  });
-                  setTab("dwell");
-                }}
-                label="Dwell Time / Cost"
-                count={filteredDwellRows.length}
-              />
-
-              <TabButton
-                active={tab === "planning"}
-                onClick={() => {
-                  trackSupplyChainInteraction({
-                    interaction: "site_tab_changed",
-                    siteId,
-                    source: "site_overview",
-                  });
-                  setTab("planning");
-                }}
-                label="Planning Parameters"
-                count={filteredPlanningRows.length}
-              />
-
-              <TabButton
-                active={tab === "trends"}
-                onClick={() => {
-                  trackSupplyChainInteraction({
-                    interaction: "site_tab_changed",
-                    siteId,
-                    source: "site_overview",
-                  });
-                  setTab("trends");
-                }}
-                label="Trend"
-                count={filteredTrendRows.length}
-              />
-
-              {supplierPerformanceEnabled && (
-                <TabButton
-                  active={tab === "suppliers"}
-                  onClick={() => {
-                    trackSupplyChainInteraction({
-                      interaction: "site_tab_changed",
-                      siteId,
-                      source: "site_overview",
-                    });
-                    setTab("suppliers");
-                  }}
-                  label="Supplier Performance"
-                  count={filteredSupplierRows.length}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Detail tables, each hosting the shared filter bar in its header band */}
+          {/* Detail tables, each hosting the tabs + shared filter bar in their header band */}
           {tab === "dwell" && (
             <DwellTable
               rows={filteredDwellRows}
@@ -871,6 +847,8 @@ export const SiteOverview = ({
               timeRange={timeRange}
               currency={siteCurrency}
               filterBar={activeTabFilterBar}
+              headerTabs={siteTabs}
+              filtersActive={stepFilters.length > 0}
             />
           )}
           {tab === "planning" && (
@@ -883,6 +861,8 @@ export const SiteOverview = ({
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
               filterBar={activeTabFilterBar}
+              headerTabs={siteTabs}
+              filtersActive={stepFilters.length > 0}
             />
           )}
           {tab === "trends" && (
@@ -895,6 +875,8 @@ export const SiteOverview = ({
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
               filterBar={activeTabFilterBar}
+              headerTabs={siteTabs}
+              filtersActive={stepFilters.length > 0}
             />
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (
@@ -906,6 +888,8 @@ export const SiteOverview = ({
                 value.vendor_id && setSelectedVendorId(value.vendor_id)
               }
               filterBar={activeTabFilterBar}
+              headerTabs={siteTabs}
+              filtersActive={stepFilters.length > 0}
             />
           )}
         </div>

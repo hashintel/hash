@@ -54,6 +54,8 @@ export const DwellTable = ({
   timeRange,
   currency,
   filterBar,
+  headerTabs,
+  filtersActive = false,
 }: {
   rows: DwellRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -67,6 +69,10 @@ export const DwellTable = ({
   currency: string | null;
   /** Filter controls rendered in the card's pinned header band. */
   filterBar?: React.ReactNode;
+  /** Tab cluster rendered on the header band's leading side. */
+  headerTabs?: React.ReactNode;
+  /** Whether any filter chip is active (drives the filter bar's placement). */
+  filtersActive?: boolean;
 }) => {
   const { measure } = useBaseMeasure();
 
@@ -86,15 +92,25 @@ export const DwellTable = ({
       style={{ maxHeight: threshold.TABLE_MAX_HEIGHT }}
     >
       <div className={threshold.filterHeader}>
-        <div className={threshold.filterHeaderBar}>{filterBar}</div>
-        <SortMenu
-          items={DWELL_SORTERS}
-          value={sortMenuValueOf(sort)}
-          onChange={(key, direction) => applySort(sortFromMenu(key, direction))}
-          align="right"
-          variant="ghost"
-          size="xs"
-        />
+        <div className={threshold.filterHeaderRow}>
+          {headerTabs}
+          <div className={threshold.filterHeaderActions}>
+            {!filtersActive && filterBar}
+            <SortMenu
+              items={DWELL_SORTERS}
+              value={sortMenuValueOf(sort)}
+              onChange={(key, direction) =>
+                applySort(sortFromMenu(key, direction))
+              }
+              align="right"
+              variant="ghost"
+              size="xs"
+            />
+          </div>
+        </div>
+        {filtersActive && (
+          <div className={threshold.filterChipsRow}>{filterBar}</div>
+        )}
       </div>
       <div className={threshold.tableScroll}>
         <table className={threshold.table}>
