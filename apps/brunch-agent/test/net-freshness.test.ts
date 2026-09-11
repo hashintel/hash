@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 
 import {
+  applyAutoLayoutToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
@@ -483,6 +484,50 @@ test("an unverifiable observation is not a read", async () => {
       browser,
     ),
   ).toEqual({ kind: "never-read" });
+});
+
+test("a recorded layout is a known change, not an unrecorded one", async () => {
+  const movedNet: SDCPN = {
+    ...oneHopNet,
+    places: [{ ...oneHopNet.places[0]!, x: 120, y: 40 }],
+  };
+  const layoutTurn: FlueConversationMessage[] = [
+    assistantCall("layout-1", applyAutoLayoutToolName, { askUserFirst: false }),
+    resultDelivery(
+      "layout-1",
+      applyAutoLayoutToolName,
+      { commitCount: 1 },
+      {
+        layoutRecord: {
+          toolCallId: "layout-1",
+          binding,
+          pre: observationOf(oneHopNet),
+          post: observationOf(movedNet),
+          effects: [],
+        },
+      },
+    ),
+  ];
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([...readTurn("read-1", oneHopNet), ...layoutTurn]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(oneHopNet),
+    lastKnownHash: sha256Of(movedNet),
+  });
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", oneHopNet),
+        ...layoutTurn,
+        ...readTurn("read-2", movedNet),
+      ]),
+      browser,
+    ),
+  ).toEqual({ kind: "current", hash: sha256Of(movedNet) });
 });
 
 test("a read belonging to another document incarnation is not a read", async () => {

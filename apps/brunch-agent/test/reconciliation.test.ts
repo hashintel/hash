@@ -9,14 +9,12 @@ import {
   type ClientToolResult,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
+import { recordedBrowserObservation } from "../src/conversation/net-ledger.ts";
 import {
   assertArcNotRetired,
   assertConstructionIdentity,
 } from "../src/conversation/root-arc.ts";
-import {
-  explainRootArc,
-  recordedBrowserObservation,
-} from "../src/conversation/why.ts";
+import { explainRootArc } from "../src/conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
