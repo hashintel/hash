@@ -1,4 +1,4 @@
-import { type ReactNode, use, useState } from "react";
+import { type ComponentProps, type ReactNode, use, useState } from "react";
 import { userEvent, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
@@ -245,6 +245,7 @@ const HostVoiceSlotPreview = () => (
 );
 
 const Frame = ({
+  additionalTab,
   error,
   initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
@@ -256,6 +257,7 @@ const Frame = ({
   voiceModeAvailable = false,
   voiceSession,
 }: {
+  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
   error?: Error;
   initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
@@ -311,6 +313,7 @@ const Frame = ({
           }}
         >
           <AiAssistantContents
+            additionalTab={additionalTab}
             error={error}
             input={input}
             inputMode={inputMode}
@@ -352,6 +355,23 @@ export const Floating: Story = {
   render: () => (
     <Frame
       initialPlacement="floating"
+      messages={[userMessage, assistantMarkdownMessage]}
+    />
+  ),
+};
+
+export const WithWorkpieceTab: Story = {
+  render: () => (
+    <Frame
+      additionalTab={{
+        label: "Workpiece",
+        content: (
+          <div>
+            <h2>Model account</h2>
+            <p>A saved description of the process being modeled.</p>
+          </div>
+        ),
+      }}
       messages={[userMessage, assistantMarkdownMessage]}
     />
   ),

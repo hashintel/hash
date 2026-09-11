@@ -861,7 +861,9 @@ export const AiAssistantContents = ({
                     { id: hostTabId, title: additionalTab.label },
                   ]}
                   activeTabId={showingHostTab ? hostTabId : aiTabId}
-                  onTabChange={(tabId) => setHostTabSelected(tabId === hostTabId)}
+                  onTabChange={(tabId) =>
+                    setHostTabSelected(tabId === hostTabId)
+                  }
                 />
               </div>
             )}

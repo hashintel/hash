@@ -118,6 +118,10 @@ const DockingHarness = ({
         Reopen assistant
       </button>
       <AiAssistantContents
+        additionalTab={{
+          label: "Workpiece",
+          content: <p>Saved model account</p>,
+        }}
         composerControl={
           <HostControl onMount={onMount} onUnmount={onUnmount} />
         }
@@ -410,6 +414,8 @@ describe("AiAssistantContents", () => {
     });
     const transcript = screen.getByTestId("ai-transcript");
     fireEvent.change(textarea, { target: { value: "Keep this draft" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Workpiece" }));
+    const workpiece = screen.getByRole("tabpanel", { name: "Workpiece" });
     expect(panel.getAttribute("data-placement")).toBe("docked");
     fireEvent.click(screen.getByRole("button", { name: "Float AI assistant" }));
     expect(panel.getAttribute("data-placement")).toBe("floating");
@@ -427,6 +433,10 @@ describe("AiAssistantContents", () => {
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
     expect(panel.hasAttribute("inert")).toBe(false);
+    expect(screen.getByRole("tabpanel", { name: "Workpiece" })).toBe(workpiece);
+    expect(workpiece.textContent).toContain("Saved model account");
+    expect(transcript.hidden).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
     expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
       textarea,
     );
