@@ -37,7 +37,8 @@ export type RunPhaseOutcome =
 /**
  * Probes when nothing is calibrated yet — derived capacities first, which
  * also observes the metric ranges; else the blind windows alone — then runs
- * the full attempt under `RUN_POLICY`.
+ * the full attempt under `RUN_POLICY`. A cached calibration the full attempt
+ * outgrows even after growth sends the run back through the probe.
  */
 export const runCalibratedExperiment = async (options: {
   session: CalibrationSession;
@@ -134,6 +135,17 @@ export const runCalibratedExperiment = async (options: {
   });
   if (!calibrated.ok) {
     return { kind: "failed", reason: calibrated.reason };
+  }
+  if (
+    calibratedWindows !== null &&
+    calibrated.result.overflowRuns > 0 &&
+    !calibrated.result.cancelled &&
+    !stopped()
+  ) {
+    // A calibration learned on another selection undersizes this one past
+    // what growth covers: probe afresh, as a first batch would, from the
+    // grown slabs. The probe's result outranks the stale entry.
+    return runCalibratedExperiment({ ...options, calibratedWindows: null });
   }
   return {
     kind: "calibrated",
