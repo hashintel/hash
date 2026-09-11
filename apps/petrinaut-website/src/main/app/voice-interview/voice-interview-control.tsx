@@ -30,7 +30,7 @@ import {
 } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { AgentSendResult } from "@flue/sdk";
+import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
@@ -570,6 +570,7 @@ const PinnedVoiceInterviewControl = ({
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
+  snapshot,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
   subscribeToResponseMessageCompleted,
@@ -581,6 +582,7 @@ const PinnedVoiceInterviewControl = ({
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly snapshot?: FlueConversationState;
   readonly subscribeToAdmission?: SubscribeToAdmission;
   readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
   readonly subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
@@ -597,6 +599,7 @@ const PinnedVoiceInterviewControl = ({
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         resolveResponseSubmission={resolveResponseSubmission}
         settlements={settlements}
+        snapshot={snapshot}
         subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
         subscribeToResponseMessageCompleted={
           subscribeToResponseMessageCompleted

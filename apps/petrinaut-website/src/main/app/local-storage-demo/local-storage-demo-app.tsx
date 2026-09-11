@@ -3,7 +3,11 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
+import {
+  createFlueClient,
+  type FlueConversationSettlement,
+  type FlueConversationState,
+} from "@flue/sdk";
 import { castDraft, produce } from "immer";
 import {
   use,
@@ -148,6 +152,7 @@ export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
   tracker?: BrunchPanelConversationTracker,
   settlements?: readonly FlueConversationSettlement[],
+  snapshot?: FlueConversationState,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -175,6 +180,7 @@ export const getBrunchVoiceMode = (
       {...context}
       config={config}
       settlements={settlements}
+      snapshot={tracker?.canReplaceMessages(snapshot) ? snapshot : undefined}
       resolveInputSubmission={resolveInputSubmission}
       resolveResponseSubmission={resolveResponseSubmission}
       subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
@@ -730,8 +736,14 @@ export const LocalStorageDemoApp = ({
         openAIVoiceConfig,
         conversationTracker,
         flueHistory.settlements,
+        flueHistory.snapshot,
       ),
-    [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
+    [
+      conversationTracker,
+      flueHistory.settlements,
+      flueHistory.snapshot,
+      openAIVoiceConfig,
+    ],
   );
   const crewReservationSession = useCrewReservationFixtureSession({
     clientPromise: flueClientPromise,

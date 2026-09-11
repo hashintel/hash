@@ -122,6 +122,7 @@ describe("OpenAI transcription WebRTC session", () => {
     })(request());
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("x-voice-upstream-status")).toBe("429");
     expect(await response.text()).not.toContain("server-only-secret");
     expect(fetch).toHaveBeenCalledOnce();
   });

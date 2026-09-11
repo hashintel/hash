@@ -89,10 +89,20 @@ describe("local storage demo Brunch voice integration", () => {
     expect(getBrunchVoiceMode(null)).toBeUndefined();
   });
 
-  test("installs the app-owned voice control for a configured Brunch transport", () => {
+  test("installs the app-owned voice control for a configured Brunch transport", async () => {
     const config = { available: true as const, connectionTimeoutMs: 15_000 };
     const tracker = new BrunchPanelConversationTracker();
-    const voiceMode = getBrunchVoiceMode(config, tracker);
+    const snapshot = {
+      conversationId: "petrinaut-preview:net-1",
+      messages: [],
+      settlements: [],
+    };
+    const voiceMode = getBrunchVoiceMode(
+      config,
+      tracker,
+      snapshot.settlements,
+      snapshot,
+    );
     const renderControl = () =>
       voiceMode?.({
         canAcceptVoiceInput: true,
@@ -121,6 +131,20 @@ describe("local storage demo Brunch voice integration", () => {
     if (!isValidElement(control)) {
       throw new Error("Expected the configured composer control to render.");
     }
+    expect(control.props).toHaveProperty("snapshot", snapshot);
+    let finishSubmission = () => {};
+    const pending = tracker.trackSubmission(
+      new Promise<void>((resolve) => {
+        finishSubmission = resolve;
+      }),
+    );
+    const whilePending = renderControl();
+    expect(isValidElement(whilePending) && whilePending.props).toHaveProperty(
+      "snapshot",
+      undefined,
+    );
+    finishSubmission();
+    await pending;
     const failureListener = vi.fn();
     const responseCompletedListener = vi.fn();
     const responseStartedListener = vi.fn();

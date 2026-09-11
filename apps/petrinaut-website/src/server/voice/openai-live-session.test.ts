@@ -249,6 +249,7 @@ describe("Live configuration and session creation", () => {
       fetch,
     })(request());
     expect(response.status).toBe(502);
+    expect(response.headers.get("x-voice-upstream-status")).toBe("429");
     expect(await response.text()).not.toContain("server-only-secret");
     expect(fetch).toHaveBeenCalledTimes(1);
   });

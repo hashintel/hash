@@ -22,6 +22,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     Parameters<typeof VoiceInterviewControl>[0],
     | "resolveResponseSubmission"
     | "settlements"
+    | "snapshot"
     | "subscribeToResponseMessageStarted"
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
@@ -47,6 +48,7 @@ export const LiveConversationControl = ({
   canAcceptVoiceInput,
   resolveResponseSubmission,
   settlements,
+  snapshot,
   subscribeToResponseMessageStarted,
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
@@ -70,6 +72,7 @@ export const LiveConversationControl = ({
       canAcceptVoiceInput,
       segments: selectCanonicalSpeech(messages).segments,
       settlements: settlements ?? [],
+      snapshot,
     },
   });
   useLayoutEffect(() => {
@@ -87,6 +90,7 @@ export const LiveConversationControl = ({
         canAcceptVoiceInput,
         segments,
         settlements: settlements ?? [],
+        snapshot,
       },
     };
     bridge.current?.update(latest.current.chat);
@@ -98,6 +102,7 @@ export const LiveConversationControl = ({
     canAcceptVoiceInput,
     resolveResponseSubmission,
     settlements,
+    snapshot,
   ]);
 
   useEffect(

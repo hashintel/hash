@@ -1,8 +1,11 @@
+import { selectCanonicalSpeech } from "./canonical-speech";
+
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
+import type { FlueConversationState } from "@flue/sdk";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -13,12 +16,14 @@ interface Chat {
   readonly canAcceptVoiceInput: boolean;
   readonly segments: readonly CanonicalSpeechSegment[];
   readonly settlements: readonly VoiceSubmissionSettlement[];
+  readonly snapshot?: FlueConversationState;
   readonly status: PetrinautAiVoiceModeContext["status"];
   readonly stopped?: boolean;
 }
 
 interface Turn {
   readonly baseline: ReadonlySet<string>;
+  readonly baselineMessages: ReadonlySet<string>;
   submissionId?: string;
   sawBusy: boolean;
 }
@@ -37,6 +42,7 @@ export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
   readonly #abort = new AbortController();
   readonly #seenInputs = new Set<string>();
+  readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
   readonly #responses = new Map<
     string,
@@ -48,7 +54,7 @@ export class LiveBrunchBridge {
       }
     >
   >();
-  #waitingForComposer = false;
+  #waitingForComposer: Turn | undefined;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -82,13 +88,17 @@ export class LiveBrunchBridge {
       );
       return;
     }
-    this.#waitingForComposer = true;
     this.#dependencies.notice(null);
     const turn: Turn = {
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
+      baselineMessages: new Set([
+        ...this.#chat.segments.map((segment) => segment.messageId),
+        ...(this.#chat.snapshot?.messages.map((message) => message.id) ?? []),
+      ]),
       sawBusy:
         this.#chat.status === "submitted" || this.#chat.status === "streaming",
     };
+    this.#waitingForComposer = turn;
     this.#turns.add(turn);
     try {
       const result = await this.#dependencies.submit({
@@ -97,6 +107,10 @@ export class LiveBrunchBridge {
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {
           turn.submissionId = submissionId;
+          // The submission promise includes the response stream. Admission,
+          // not response completion, frees the composer's waiting-input slot.
+          if (this.#waitingForComposer === turn)
+            this.#waitingForComposer = undefined;
         },
       });
       this.#abort.signal.throwIfAborted();
@@ -116,7 +130,8 @@ export class LiveBrunchBridge {
         );
       }
     } finally {
-      this.#waitingForComposer = false;
+      if (this.#waitingForComposer === turn)
+        this.#waitingForComposer = undefined;
     }
   }
 
@@ -183,6 +198,16 @@ export class LiveBrunchBridge {
       let expanded = true;
       while (expanded) {
         expanded = false;
+        for (const settlement of this.#chat.settlements) {
+          if (
+            required.has(settlement.submissionId) &&
+            settlement.answeredBySubmissionId &&
+            !required.has(settlement.answeredBySubmissionId)
+          ) {
+            required.add(settlement.answeredBySubmissionId);
+            expanded = true;
+          }
+        }
         for (const [messageId, submissions] of this.#responses) {
           if (
             messages.has(messageId) ||
@@ -219,19 +244,104 @@ export class LiveBrunchBridge {
         )
       )
         continue;
-      const segments = this.#chat.segments.filter(
+      let sourceSegments = this.#chat.segments.filter(
         (segment) =>
           messages.has(segment.messageId) &&
           !turn.baseline.has(segment.id) &&
           segment.submissionIds?.some((id) => required.has(id)),
       );
+      const unobservedAnswer = settlements.some(
+        (settlement) =>
+          settlement?.answeredBySubmissionId &&
+          ![...this.#responses.values()].some((submissions) =>
+            submissions.has(settlement.answeredBySubmissionId!),
+          ),
+      );
+      if (unobservedAnswer) {
+        // Another submission's stream is not projected onto this admission.
+        // Recover from one host-approved snapshot, never invent response events
+        // or combine newer settlements with older snapshot prose.
+        const snapshot = this.#chat.snapshot;
+        if (
+          !snapshot ||
+          settlements.some(
+            (settlement) =>
+              !snapshot.settlements.some(
+                (entry) =>
+                  entry.submissionId === settlement!.submissionId &&
+                  entry.outcome === "completed" &&
+                  entry.answeredBySubmissionId ===
+                    settlement!.answeredBySubmissionId,
+              ),
+          )
+        )
+          continue;
+        const snapshotMessages = snapshot.messages.filter(
+          (message) =>
+            message.submissionId &&
+            required.has(message.submissionId) &&
+            message.role === "assistant" &&
+            message.purpose === "assistant" &&
+            message.display === "visible",
+        );
+        if (
+          !snapshotMessages.length ||
+          settlements.some(
+            (settlement) =>
+              settlement?.answeredBySubmissionId &&
+              !snapshotMessages.some(
+                (message) =>
+                  message.submissionId === settlement.answeredBySubmissionId,
+              ),
+          ) ||
+          snapshotMessages.some((message) =>
+            message.parts.some(
+              (part) => part.type === "text" && part.state === "streaming",
+            ),
+          )
+        )
+          continue;
+        const recovered = selectCanonicalSpeech(
+          snapshotMessages.map(({ id, parts }) => ({
+            id,
+            role: "assistant",
+            // Preserve canonical part indices without exposing tools/reasoning.
+            parts: parts.map((part) =>
+              part.type === "text" ? part : { type: "step-start" as const },
+            ),
+          })),
+        ).segments;
+        // The canonical snapshot supplies identity; rendering only confirms
+        // that the same finalized prose is visible (continuations may fold IDs).
+        if (
+          recovered.some(
+            (segment) =>
+              !this.#chat.segments.some(
+                (visible) => visible.text === segment.text,
+              ),
+          )
+        )
+          continue;
+        sourceSegments = recovered.filter(
+          (segment) =>
+            !turn.baselineMessages.has(segment.messageId) &&
+            !turn.baseline.has(segment.id),
+        );
+      }
       this.#turns.delete(turn);
-      if (!segments.length) {
+      if (!sourceSegments.length) {
         this.#dependencies.notice(
           "Brunch settled without a spoken answer. Check the conversation.",
         );
         continue;
       }
+      // Coalesced admissions can share an answer. Offer each frozen segment
+      // only once, even if the connection/size limit refuses it.
+      const segments = sourceSegments.filter(
+        (segment) => !this.#offeredSegments.has(segment.id),
+      );
+      if (!segments.length) continue;
+      for (const segment of segments) this.#offeredSegments.add(segment.id);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
       const source = segments.map((segment) => segment.text).join("\n\n");
       if (!this.#dependencies.appendCommentary(source)) {

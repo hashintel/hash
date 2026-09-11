@@ -355,6 +355,67 @@ test("permission resolving after Stop cannot start either provider", async () =>
   expect(fixture.fetch).not.toHaveBeenCalled();
 });
 
+test.each([0, 1] as const)(
+  "identifies the unfinished connection after the other session is ready: %s",
+  async (readyConnection) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    await fixture.conversation.start();
+    fixture.emit(readyConnection, {
+      type: readyConnection === 0 ? "session.started" : "session.created",
+    });
+    await vi.advanceTimersByTimeAsync(15_000);
+    const message = fixture.onState.mock.lastCall?.[0].message;
+    expect(message).toContain(
+      readyConnection === 0
+        ? "transcription: waiting for session.created"
+        : "live: waiting for session.started",
+    );
+    expect(message).not.toContain(
+      readyConnection === 0 ? "live: waiting" : "transcription: waiting",
+    );
+    expect(fixture.fetch).toHaveBeenCalledTimes(2);
+  },
+);
+
+test("reports the failed endpoint and HTTP statuses without reflecting response content", async () => {
+  const fixture = setup();
+  fixture.fetch.mockImplementation(async (url) =>
+    url.endsWith("live-session")
+      ? new Response("sensitive provider response", {
+          status: 502,
+          headers: { "x-voice-upstream-status": "401" },
+        })
+      : new Promise<Response>(() => {}),
+  );
+  await fixture.conversation.start();
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("error");
+  expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+    "live session request failed (HTTP 502, provider HTTP 401)",
+  );
+  expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
+  expect(fixture.input.stop).toHaveBeenCalledOnce();
+  expect(
+    fixture.peers.every((peer) => peer.close.mock.calls.length === 1),
+  ).toBe(true);
+});
+
+test("timeout identifies a pending transcription HTTP response rather than blaming microphone permission", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.fetch.mockImplementation(async (url) =>
+    url.endsWith("transcription-session")
+      ? new Promise<Response>(() => {})
+      : Response.json({ sdp: "v=0\r\no=answer" }),
+  );
+  void fixture.conversation.start();
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(fixture.onState.mock.lastCall?.[0].message).toContain(
+    "transcription: waiting for session HTTP response",
+  );
+  expect(fixture.input.stop).toHaveBeenCalledOnce();
+});
+
 test("both connection timeout and unconfirmed closure remain bounded without retry", async () => {
   vi.useFakeTimers();
   const timedOut = setup();

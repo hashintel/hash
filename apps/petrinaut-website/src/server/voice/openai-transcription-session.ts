@@ -92,7 +92,9 @@ export const createOpenAITranscriptionSessionHandler =
       });
       if (!upstream.ok) {
         await upstream.body?.cancel();
-        return respond("Transcription session creation failed.", 502);
+        return respond("Transcription session creation failed.", 502, {
+          "x-voice-upstream-status": String(upstream.status),
+        });
       }
       const contentType = upstream.headers
         .get("content-type")

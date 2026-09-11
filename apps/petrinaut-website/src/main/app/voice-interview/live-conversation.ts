@@ -32,6 +32,14 @@ export const createLiveConversation = (
   const peers = new Map<ConnectionKind, RTCPeerConnection>();
   const channels = new Map<ConnectionKind, RTCDataChannel>();
   const ready = new Set<ConnectionKind>();
+  const connectionStages = new Map<ConnectionKind, string>();
+  const connectionProgress = () =>
+    connectionStages.size === 0
+      ? "waiting for microphone access"
+      : [...connectionStages]
+          .filter(([kind]) => !ready.has(kind))
+          .map(([kind, stage]) => `${kind}: ${stage}`)
+          .join("; ");
   const committedPrevious = new Map<string, string | null>();
   const completed = new Map<string, FinalizedInput>();
   const emitted = new Set<string>();
@@ -316,6 +324,7 @@ export const createLiveConversation = (
     stream: MediaStream,
   ) => {
     abort.signal.throwIfAborted();
+    connectionStages.set(kind, "creating local WebRTC offer");
     const connection = new RTCPeerConnection();
     peers.set(kind, connection);
     const channel = connection.createDataChannel("oai-events");
@@ -362,6 +371,7 @@ export const createLiveConversation = (
     stream.getTracks().forEach((track) => connection.addTrack(track, stream));
     await connection.setLocalDescription(await connection.createOffer());
     abort.signal.throwIfAborted();
+    connectionStages.set(kind, "gathering ICE candidates");
     if (connection.iceGatheringState !== "complete") {
       await new Promise<void>((resolve, reject) => {
         const check = () => {
@@ -384,13 +394,26 @@ export const createLiveConversation = (
     const sdp = connection.localDescription?.sdp;
     if (!sdp) throw new Error("Missing local SDP");
     if (kind === "live") liveCreationRequested = true;
+    connectionStages.set(kind, "waiting for session HTTP response");
     const response = await fetch(`/api/voice/${kind}-session`, {
       method: "POST",
       headers: { "content-type": "application/sdp" },
       body: sdp,
       signal: abort.signal,
     });
-    if (!response.ok) throw new Error("Session creation failed");
+    if (!response.ok) {
+      // Only expose numeric status metadata, never provider text, credentials or SDP.
+      const upstreamStatus = response.headers.get("x-voice-upstream-status");
+      const providerStatus =
+        upstreamStatus && /^[45]\d{2}$/u.test(upstreamStatus)
+          ? `, provider HTTP ${upstreamStatus}`
+          : "";
+      fail(
+        `${kind} session request failed (HTTP ${response.status}${providerStatus}). No automatic retry was made.`,
+      );
+      throw new Error("Session creation failed");
+    }
+    connectionStages.set(kind, "reading session HTTP response");
     const answer: unknown = await response.json();
     abort.signal.throwIfAborted();
     if (
@@ -401,7 +424,14 @@ export const createLiveConversation = (
       !answer.sdp.trimStart().startsWith("v=0")
     )
       throw new Error("Invalid SDP answer");
+    connectionStages.set(kind, "applying remote SDP answer");
     await connection.setRemoteDescription({ type: "answer", sdp: answer.sdp });
+    connectionStages.set(
+      kind,
+      kind === "live"
+        ? "waiting for session.started"
+        : "waiting for session.created",
+    );
   };
 
   const start = async (): Promise<void> => {
@@ -409,7 +439,10 @@ export const createLiveConversation = (
     started = true;
     onState({ phase: "connecting", message: null });
     connectionTimer = setTimeout(
-      () => fail("Voice connections timed out. No automatic retry was made."),
+      () =>
+        fail(
+          `Voice connections timed out (${connectionProgress()}). No automatic retry was made.`,
+        ),
       connectionTimeoutMs,
     );
     try {
@@ -435,7 +468,7 @@ export const createLiveConversation = (
       ]);
     } catch {
       fail(
-        "Voice could not connect. Check microphone, audio permissions and server configuration. No automatic retry was made.",
+        `Voice could not connect (${connectionProgress()}). No automatic retry was made.`,
       );
     }
   };

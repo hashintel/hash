@@ -104,6 +104,7 @@ export const createOpenAILiveSessionHandler =
         return respond(
           "Live session creation failed. No automatic retry was made.",
           502,
+          { "x-voice-upstream-status": String(upstream.status) },
         );
       }
       const answer: unknown = await upstream.json();
