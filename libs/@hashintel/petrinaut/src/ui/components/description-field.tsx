@@ -3,7 +3,9 @@ import { useLayoutEffect, useRef } from "react";
 import { Form, TextArea, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import { useDraftField } from "../hooks/use-draft-field";
+import { PropertyValue } from "./property-value";
 
 interface DescriptionTextAreaProps {
   /** Stable identifier of the entity owning this field; switching it discards stale drafts. */
@@ -38,6 +40,7 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
   const canonicalValue = sourceValue ?? "";
   const field = useDraftField({ sourceId, sourceValue: canonicalValue });
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const isReadOnly = useIsReadOnly();
 
   useLayoutEffect(() => {
     const textArea = textAreaRef.current;
@@ -51,25 +54,29 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
     const borderHeight = box.offsetHeight - box.clientHeight;
     const contentHeight = textArea.scrollHeight + borderHeight;
     box.style.height = `${Math.min(Math.max(contentHeight, minHeight), initialMaxHeight)}px`;
-  }, [sourceId]);
+    // A read-only net renders the value as text instead, so the box is
+    // remounted when editing resumes and has to be measured again.
+  }, [sourceId, isReadOnly]);
 
   return (
-    <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
-      <TextArea
-        inputRef={textAreaRef}
-        className={textAreaStyle}
-        size="sm"
-        rows={1}
-        value={field.value}
-        onChange={field.setValue}
-        onBlur={() => {
-          if (field.value !== canonicalValue) {
-            onCommit(field.value === "" ? undefined : field.value);
-          }
-        }}
-        disabled={disabled}
-      />
-    </Tooltip>
+    <PropertyValue text={sourceValue} emptyText="No description">
+      <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
+        <TextArea
+          inputRef={textAreaRef}
+          className={textAreaStyle}
+          size="sm"
+          rows={1}
+          value={field.value}
+          onChange={field.setValue}
+          onBlur={() => {
+            if (field.value !== canonicalValue) {
+              onCommit(field.value === "" ? undefined : field.value);
+            }
+          }}
+          disabled={disabled}
+        />
+      </Tooltip>
+    </PropertyValue>
   );
 };
 
@@ -79,8 +86,16 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
 export const DescriptionField: React.FC<DescriptionTextAreaProps> = ({
   disabled = false,
   ...textAreaProps
-}) => (
-  <Form.Field label="Description" size="sm" disabled={disabled}>
-    <DescriptionTextArea {...textAreaProps} disabled={disabled} />
-  </Form.Field>
-);
+}) => {
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <Form.Field
+      label="Description"
+      size="sm"
+      disabled={disabled && !isReadOnly}
+    >
+      <DescriptionTextArea {...textAreaProps} disabled={disabled} />
+    </Form.Field>
+  );
+};

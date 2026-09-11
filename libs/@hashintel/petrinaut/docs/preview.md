@@ -21,7 +21,9 @@ looking at.
 
 Select a place, transition, arc, or other supported item to inspect it. The
 preview presents the same property information as Petrinaut's inspector,
-without source editing or other authoring controls. On a wide embed the
+without source editing or other authoring controls. A field's name, description and
+type are shown as text rather than as filled-in fields; the remaining controls
+are still rendered, and simply do nothing. On a wide embed the
 inspector docks to the right of the canvas. On a narrow embed it sits under
 the canvas so the canvas remains usable.
 
