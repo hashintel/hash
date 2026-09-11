@@ -214,10 +214,9 @@ const pinButtonStyle = css({
 const pinStyle = cva({
   base: {
     position: "absolute",
-    // 8px inside the box's top-right corner. The 12px on top clears the
-    // wrapper's own padding, which holds the gap to the node, so it has to
-    // stay in step with `TOOLTIP_OFFSET_PX`.
-    top: "[20px]",
+    // 8px inside the box's top-right corner, past the wrapper's gap to the
+    // node when that gap is on top; the wrapper sets the variable.
+    top: "[calc(8px + var(--node-gap-top, 0px))]",
     right: "[8px]",
     display: "flex",
     // Inset 8px from the box's corner, so it curves 8px tighter.
@@ -274,6 +273,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     openVisualizerPlaceId,
     toggleVisualizerPin,
     openPlaceVisualizer,
+    hoveredItem,
     setHoveredItem,
     clearHoveredItem,
   } = use(EditorContext);
@@ -334,6 +334,14 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const showVisualizer =
     (pinned || openVisualizerPlaceId === nodeId) &&
     PlaceStateVisualization !== null;
+
+  // The button is offered while the pointer is on the place or its toolbar,
+  // not for the settled hover that mounts this component: leaving an open
+  // panel clears the hover at once, and the settled hover only follows once
+  // the pointer rests, so without this the button would pop in on the way out.
+  if (!showVisualizer && hoveredItem?.id !== nodeId) {
+    return null;
+  }
 
   const nodeTopY = flowToScreenPosition({
     x: node.internals.positionAbsolute.x,
@@ -414,9 +422,13 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         data-animated={showAnimations}
         data-open={boxSize !== null}
         style={{
-          // The gap between node and box is the wrapper's own padding, so the
-          // pointer crosses it without touching the canvas.
-          padding: `${TOOLTIP_OFFSET_PX}px 0`,
+          // The gap between node and box is the wrapper's own padding, on the
+          // side facing the node only, so the pointer crosses it without
+          // touching the canvas and no dead strip sits on the far side.
+          paddingTop: placeBelow ? `${TOOLTIP_OFFSET_PX}px` : 0,
+          paddingBottom: placeBelow ? 0 : `${TOOLTIP_OFFSET_PX}px`,
+          // @ts-expect-error CSS variables work at runtime, but are not in the type system
+          "--node-gap-top": `${placeBelow ? TOOLTIP_OFFSET_PX : 0}px`,
           // Grows from whichever edge faces the node.
           transformOrigin: placeBelow ? "top center" : "bottom center",
         }}
