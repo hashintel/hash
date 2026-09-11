@@ -3,10 +3,12 @@
 ## Status
 
 Live on PR #9637 and reconciled with `origin/main` after
-[PR #9562](https://github.com/hashintel/hash/pull/9562) landed. Mission 7a's
-construction validation, immutable bindings, observed effects, declared
-provenance, and settled-workpiece authority are the inherited foundation.
-This mission adds an ordinary read-only capability without broadening those
+[PR #9562](https://github.com/hashintel/hash/pull/9562) landed. The
+[archived Mission 7a contract](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md)
+preserves its construction validation, immutable bindings, observed effects,
+declared provenance, settled-workpiece authority, UI decisions, owner
+decisions, and successor obligations as the inherited foundation. This
+mission adds an ordinary read-only capability without broadening those
 construction modes or changing Voice behavior.
 
 ## Imperative
@@ -64,7 +66,8 @@ reader and current-net reader.
 - `apps/petrinaut-website/src/main/app/local-storage-demo/use-flue-chat-history.test.ts`
   proves a correlated current-net result hydrates as an output-available tool
   part.
-- The Mission 7a plugin and website tests, including `root-node.test.ts`,
+- The [archived Mission 7a contract](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md)
+  and its plugin and website tests, including `root-node.test.ts`,
   `root-state.test.ts`, `declared-basis.test.ts`, `transition-record.test.ts`,
   and the workpiece tests, remain the oracles for construction binding,
   provenance, complete effects, and workpiece authority. The ordinary-reader

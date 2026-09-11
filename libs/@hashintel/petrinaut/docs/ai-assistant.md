@@ -139,11 +139,13 @@ When no interview is active and the host permits clearing, **Clear AI chat** via
 
 The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
-For requests that explain, review, or interview about the current net, Brunch gives the assistant
-an on-demand current-net reader and instructs it to call the reader before answering. Typed input
-and completed Voice input use this same capability. This enables responses grounded in the live
-net, but does not mechanically guarantee that every response reads it, automatically construct a
-net, or provide provenance for the information read.
+In ordinary Brunch conversations, requests that explain, review, or interview about the current net
+give the assistant an on-demand current-net reader and instruct it to call the reader before
+answering. Typed input and completed Voice input use this same capability. This enables responses
+grounded in the live net, but does not mechanically guarantee that every response reads it or
+automatically constructs a net. The ordinary read result does not itself attach construction basis
+or provenance and does not authorize mutation. Explicit construction modes separately retain their
+bound observations, settled-workpiece basis, recorded effects, and mutation gates.
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
