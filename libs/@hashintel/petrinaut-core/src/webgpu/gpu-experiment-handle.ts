@@ -31,6 +31,7 @@ import { createFrameMerger } from "./gpu-experiment-handle/frame-merge";
 import { metricFailure } from "./gpu-experiment-handle/metric-failure";
 import { deriveRunParameters } from "./gpu-experiment-handle/run-parameters";
 import { runCalibratedExperiment } from "./gpu-experiment-handle/run-phase";
+import { shareCalibration } from "./gpu-experiment-handle/shared-calibration";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import { anyEscapes, calibrationKey } from "./metric-windows";
 import { GPU_PREVIEW_RUNS, runGpuExperiment } from "./runner";
@@ -378,7 +379,17 @@ export async function createGpuMonteCarloExperiment(
     placeTokenWords,
     metricIds,
   });
-  const cachedCalibration = backend.calibration.get(batchCalibrationKey);
+  const adoptCalibration = (): MetricWindow[] | null => {
+    const cached = backend.calibration.get(batchCalibrationKey);
+    if (cached === undefined) {
+      return null;
+    }
+    session.shader = cached.shader;
+    for (const [placeId, capacity] of cached.capacities) {
+      session.capacities.set(placeId, capacity);
+    }
+    return [...cached.windows];
+  };
   const storeCalibration = (windows: readonly MetricWindow[]) => {
     if (metricIds.length === 0 && session.capacities.size === 0) {
       return;
@@ -468,20 +479,27 @@ export async function createGpuMonteCarloExperiment(
       runCount,
     });
 
-  const calibratedWindows: MetricWindow[] | null = cachedCalibration
-    ? [...cachedCalibration.windows]
-    : null;
-  if (cachedCalibration) {
-    session.shader = cachedCalibration.shader;
-    for (const [placeId, capacity] of cachedCalibration.capacities) {
-      session.capacities.set(placeId, capacity);
-    }
-  }
-
   const run = async () => {
     // The probes run here, after `start()`, so their chunks stream like
     // every other attempt's: the first picture a batch shows is the probe's,
-    // overwritten progressively as the full attempt lands.
+    // overwritten progressively as the full attempt lands. A batch that
+    // starts while another on this marking still probes waits for that
+    // calibration rather than probing too.
+    let calibratedWindows = adoptCalibration();
+    let settle = () => {};
+    if (calibratedWindows === null) {
+      const share = shareCalibration(backend.calibrating, batchCalibrationKey);
+      if (share.inFlight !== undefined) {
+        await share.inFlight;
+        if (isDisposed()) {
+          return;
+        }
+        calibratedWindows = adoptCalibration();
+      }
+      if (calibratedWindows === null) {
+        settle = share.claim();
+      }
+    }
     const calibrated = await runCalibratedExperiment({
       session,
       calibratedWindows,
@@ -490,9 +508,12 @@ export async function createGpuMonteCarloExperiment(
       runCount: config.runCount,
       execute: executeAttempt,
       stopped: () => isDisposed() || signal.aborted,
-      remember: storeCalibration,
+      remember: (windows) => {
+        storeCalibration(windows);
+        settle();
+      },
       metricFailure: metricFailureIn,
-    });
+    }).finally(settle);
 
     if (isDisposed()) {
       return;
