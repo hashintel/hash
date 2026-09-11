@@ -37,8 +37,7 @@ const helperStyle = css({
   "&[data-tone='error']": { color: "red.s100" },
 });
 
-const SECTION_TOOLTIP =
-  "What the optimizer searches the swept intervals for: one experiment metric, pushed up or down, over this many steps. Each step computes eight runs at one point of the sweep before the optimizer reads the metric there; once the search settles the best point refines to the experiment's run budget.";
+const SECTION_TOOLTIP = `What the optimizer searches the swept intervals for: one experiment metric, pushed up or down, over this many steps. Each step computes ${SWEEP_OPTIMIZATION_RUNS_PER_STEP} runs at one point of the sweep before the optimizer reads the metric there; once the search settles the best point refines to the experiment's run budget.`;
 
 const directionItems: {
   value: PetrinautOptimizationDirection;

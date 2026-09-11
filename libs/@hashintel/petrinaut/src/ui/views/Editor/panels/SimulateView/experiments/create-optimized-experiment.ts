@@ -2,7 +2,6 @@
  * The Create Experiment drawer's one submit gesture, in one order: create the
  * experiment, start the study that drives it when an objective is given,
  * then select it — so the results drawer's first frame carries the study.
- * Shared with the story harness so the order lives in one place.
  */
 import { use } from "react";
 
@@ -10,8 +9,8 @@ import {
   type CreateExperimentInput,
   type ExperimentRecord,
   ExperimentsActionsContext,
-} from "../../../../../../../react/experiments/context";
-import { type SweepObjective, useStartSweepStudy } from "../sweep-optimizer";
+} from "../../../../../../react/experiments/context";
+import { type SweepObjective, useStartSweepStudy } from "./sweep-optimizer";
 
 /**
  * Creates, starts and selects. A study that cannot start removes the

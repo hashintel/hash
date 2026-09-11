@@ -1410,6 +1410,39 @@ describe("CreateExperimentDrawer objective", () => {
     expect(footerButton("Optimize")).toBeTruthy();
   });
 
+  it("keeps the Objective section and the Optimize word while an ad-hoc bound is being edited", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+    expect(await screen.findByText("Objective")).toBeTruthy();
+
+    // Blanking Max leaves the definition unable to synthesize: the form
+    // reports it at the slot and the summary line repeats it, the section
+    // and the word stay, the footer waits.
+    fireEvent.click(screen.getByRole("button", { name: "Rate" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Max of Rate" }));
+    const slab = document.querySelector("[data-adhoc-slab]");
+    if (!(slab instanceof HTMLElement)) {
+      throw new Error("expected the bounds slab to be open");
+    }
+    fireEvent.change(within(slab).getByRole("textbox"), {
+      target: { value: "" },
+    });
+
+    expect(screen.getByText("Objective")).toBeTruthy();
+    expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
+    expect(submitButton().disabled).toBe(true);
+    expect(
+      screen.getAllByText(/^The maximum of "param__rate"/).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   it("defaults the metric to the first draft and follows its removal", async () => {
     await openConstrainedSweep();
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));

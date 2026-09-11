@@ -32,7 +32,7 @@ import {
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
-import { useCreateOptimizedExperiment } from "./experiments/create-experiment-drawer/create-optimized-experiment";
+import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
 import { SimulateView } from "./simulate-view";
 
