@@ -6,7 +6,6 @@
     "@rust/hash-codec",
     "@rust/hash-graph-authorization",
     "@rust/hash-graph-embeddings",
-    "@rust/hash-graph-migrations",
     "@rust/hash-graph-store",
     "@rust/hash-graph-temporal-versioning",
     "@rust/hash-graph-test-data",

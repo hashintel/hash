@@ -380,24 +380,23 @@ fn bench_json_queries(crit: &mut Criterion) {
 
     let runtime = Runtime::new().expect("runtime should be creatable");
 
-    let pool = runtime
-        .block_on(PostgresStorePool::new(
-            &DatabaseConnectionInfo::new(
-                DatabaseType::Postgres,
-                env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned()),
-                env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
-                env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned()),
-                env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
-                    port.parse::<u16>()
-                        .unwrap_or_else(|_| panic!("{port} is not a valid port"))
-                }),
-                env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned()),
-            ),
-            &DatabasePoolConfig::default(),
-            NoTls,
-            PostgresStoreSettings::default(),
-        ))
-        .expect("pool should be able to be created");
+    let pool = PostgresStorePool::new(
+        &DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned()),
+            env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+            env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned()),
+            env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
+                port.parse::<u16>()
+                    .unwrap_or_else(|_| panic!("{port} is not a valid port"))
+            }),
+            env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned()),
+        ),
+        &DatabasePoolConfig::default(),
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .expect("pool should be able to be created");
 
     // `query_entity_subgraph` takes `&mut self` to run the read in a single transaction; the
     // `RefCell` provides the mutable borrow from within the benchmark closures.

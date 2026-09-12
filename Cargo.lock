@@ -3867,20 +3867,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "deadpool-postgres"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d697d376cbfa018c23eb4caab1fd1883dd9c906a8c034e8d9a3cb06a7e0bef9"
-dependencies = [
- "async-trait",
- "deadpool",
- "getrandom 0.2.17",
- "tokio",
- "tokio-postgres",
- "tracing",
-]
-
-[[package]]
 name = "deadpool-runtime"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6217,7 +6203,6 @@ dependencies = [
  "bytes",
  "clap",
  "deadpool",
- "deadpool-postgres",
  "derive-where",
  "derive_more",
  "dotenv-flow",
@@ -6227,7 +6212,6 @@ dependencies = [
  "hash-codec",
  "hash-graph-authorization",
  "hash-graph-embeddings",
- "hash-graph-migrations",
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",

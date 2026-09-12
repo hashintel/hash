@@ -19,6 +19,21 @@ pub(crate) fn init_logging() {
         .try_init();
 }
 
+/// The database the tests run against, as the `HASH_GRAPH_PG_*` environment names it.
+pub(crate) fn connection_info() -> DatabaseConnectionInfo {
+    load_env(Environment::Test);
+
+    let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
+    let password = std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
+    let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
+    let port = std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
+        port.parse::<u16>().expect("could not parse port")
+    });
+    let database = std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());
+
+    DatabaseConnectionInfo::new(DatabaseType::Postgres, user, password, host, port, database)
+}
+
 pub struct DatabaseTestWrapper {
     _pool: PostgresStorePool,
     pub connection: <PostgresStorePool as StorePool>::Store<'static>,
@@ -26,36 +41,15 @@ pub struct DatabaseTestWrapper {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
-        load_env(Environment::Test);
         init_logging();
 
-        let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
-        let password =
-            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
-        let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
-        let port = std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
-            port.parse::<u16>().expect("could not parse port")
-        });
-        let database =
-            std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());
-
-        let connection_info = DatabaseConnectionInfo::new(
-            DatabaseType::Postgres,
-            user,
-            password,
-            host,
-            port,
-            database,
-        );
-
         let pool = PostgresStorePool::new(
-            &connection_info,
+            &connection_info(),
             &DatabasePoolConfig::default(),
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
-        .expect("could not connect to database");
+        .expect("should build the connection pool");
 
         let connection = pool
             .acquire_owned(None)

@@ -27,7 +27,6 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");
