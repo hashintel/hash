@@ -380,7 +380,7 @@ describe("probeDerivedCapacities", () => {
     });
   });
 
-  it("hands the probe's halted-metric counts back with the windows, over the runs it executed", async () => {
+  it("hands the probe's halted-metric counts back over the runs it executed, without sizing or recompiling", async () => {
     const current = session({ p: 64 });
     const { execute, attempts } = scripted([
       {
@@ -405,8 +405,10 @@ describe("probeDerivedCapacities", () => {
       metricErrors: [2],
       probeRuns: attempts[0]!.runCount,
     });
-    // The probe still calibrates: the handle reports the halt, not the probe.
-    expect(current.capacities).toEqual(new Map([["p", 19]]));
+    // The handle reports the halt without running, so the probed slabs are
+    // never sized or compiled at.
+    expect(current.capacities).toEqual(new Map([["p", 64]]));
+    expect(current.shader.stateWordsPerRun).toBe(4 + 64 * 2);
   });
 
   it("hands the halted-metric counts back when the probe also overflowed, instead of refusing for the CPU", async () => {
@@ -450,6 +452,32 @@ describe("probeDerivedCapacities", () => {
     ).toBe(
       `Metric "Infected" returned a non-finite value in 2 of ${attempts[0]!.runCount} runs, expected a finite number.`,
     );
+  });
+
+  it("hands the halted-metric counts back ahead of an arena refusal", async () => {
+    const current = session({ p: 64 });
+    const heavyTail = outcome({
+      derivedPlaceMaxes: [{ max: 20_000, meanRunMax: 10 }],
+      metricErrors: [1],
+    });
+    expect(slabsFromProbe(current, heavyTail, [3])).toMatchObject({
+      ok: false,
+      reason: /outlier runs/,
+    });
+    const { execute } = scripted([{ ok: true, result: heavyTail }]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    // The CPU would fail on the same sample, so the halt is what the handle
+    // reports — not the arena case that would send the experiment there.
+    expect(probed).toMatchObject({ ok: true, metricErrors: [1] });
+    expect(current.capacities).toEqual(new Map([["p", 64]]));
   });
 
   it("hands back an abandoned probe without recompiling", async () => {

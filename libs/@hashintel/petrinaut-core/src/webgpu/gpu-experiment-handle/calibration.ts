@@ -296,8 +296,10 @@ export const slabsFromProbe = (
  * place's slab from the observed maxima, and recompiles at those. The same
  * probe observes the metric ranges, seeding the histogram windows, and counts
  * the runs a non-finite metric sample halted, which the handle reports as the
- * full run would — ahead of an overflow the same probe may show, since the
- * CPU would fail on the same sample.
+ * full run would. A halted probe is handed back before its slabs are sized:
+ * the CPU would fail on the same sample, so neither an overflow nor the arena
+ * case the same probe shows pre-empts the halt, and nothing is recompiled for
+ * a run the handle will not start.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -344,16 +346,30 @@ export const probeDerivedCapacities = async (options: {
       reason: "The capacity probe was abandoned before it finished.",
     };
   }
-  if (probe.result.overflowRuns > 0 && !anyMetricHalted(probe.result)) {
+  // The last attempt ran at the shader still in force here, before the
+  // recompile at the probed slabs changes what a probe would run.
+  const probeRuns = probeRunCount(session.shader, runCount);
+  const observed = () => ({
+    ok: true as const,
+    windows: windowsFromObserved(
+      probe.result.metricRanges,
+      probeWindows,
+      session.shader.histogramBins,
+      PROBE_WINDOW_MARGIN,
+    ),
+    metricErrors: probe.result.metricErrors,
+    probeRuns,
+  });
+  if (anyMetricHalted(probe.result)) {
+    return observed();
+  }
+  if (probe.result.overflowRuns > 0) {
     const largest = Math.max(0, ...session.capacities.values());
     return {
       ok: false,
       reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place; running on the CPU, which sizes its buffers dynamically.`,
     };
   }
-  // The last attempt ran at the shader still in force here, before the
-  // recompile at the probed slabs changes what a probe would run.
-  const probeRuns = probeRunCount(session.shader, runCount);
   const slabs = slabsFromProbe(session, probe.result, placeCounts);
   if (!slabs.ok) {
     return slabs;
@@ -366,17 +382,7 @@ export const probeDerivedCapacities = async (options: {
   if (!recompiled.ok) {
     return recompiled;
   }
-  return {
-    ok: true,
-    windows: windowsFromObserved(
-      probe.result.metricRanges,
-      probeWindows,
-      session.shader.histogramBins,
-      PROBE_WINDOW_MARGIN,
-    ),
-    metricErrors: probe.result.metricErrors,
-    probeRuns,
-  };
+  return observed();
 };
 
 /**
