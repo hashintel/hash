@@ -20,6 +20,7 @@ import {
 import { adHocStateFromScenario } from "./scenario-to-ad-hoc-state";
 
 import type {
+  AdHocPlaceState,
   AdHocScenarioState,
   Color,
   Parameter,
@@ -129,6 +130,13 @@ describe("adHocStateFromScenario", () => {
       },
     },
   };
+  /** A coloured block without rows: well-formed on any place the net colours. */
+  const emptyColouredBlock: AdHocPlaceState = {
+    kind: "coloured",
+    variables: [],
+    rows: [],
+    sharedColumns: {},
+  };
 
   it("returns an adhoc scenario's stored definition", () => {
     const result = adHocStateFromScenario(
@@ -165,6 +173,50 @@ describe("adHocStateFromScenario", () => {
           kind: "uncoloured",
           count: { expression: "1", optimize: null },
         },
+      },
+    };
+    expect(synthesizeAdHocScenario(content, CONTEXT).ok).toBe(false);
+
+    const result = adHocStateFromScenario(
+      scenario({ type: "adhoc", content }),
+      CONTEXT,
+    );
+
+    expect(result.state.places).toEqual(stored.places);
+    expect(synthesizeAdHocScenario(result.state, CONTEXT).ok).toBe(true);
+  });
+
+  it("drops a stored coloured block from a place that lost its colour", () => {
+    const content: AdHocScenarioState = {
+      ...stored,
+      netParameters: [gravityOverride],
+      places: {
+        "place-debris": emptyColouredBlock,
+        "place-space": emptyColouredBlock,
+      },
+    };
+    expect(synthesizeAdHocScenario(content, CONTEXT).ok).toBe(false);
+
+    const result = adHocStateFromScenario(
+      scenario({ type: "adhoc", content }),
+      CONTEXT,
+    );
+
+    expect(result.state.places).toEqual({ "place-space": emptyColouredBlock });
+    expect(synthesizeAdHocScenario(result.state, CONTEXT).ok).toBe(true);
+  });
+
+  it("drops a stored uncoloured block from a place that gained a colour, and a coloured block from a place whose colour the net lost", () => {
+    const content: AdHocScenarioState = {
+      ...stored,
+      netParameters: [gravityOverride],
+      places: {
+        ...stored.places,
+        "place-space": {
+          kind: "uncoloured",
+          count: { expression: "3", optimize: null },
+        },
+        "place-orphan": emptyColouredBlock,
       },
     };
     expect(synthesizeAdHocScenario(content, CONTEXT).ok).toBe(false);

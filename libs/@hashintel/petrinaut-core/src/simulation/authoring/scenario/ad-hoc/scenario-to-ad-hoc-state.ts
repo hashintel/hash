@@ -1,11 +1,11 @@
 /**
  * The form state a saved scenario edits through. The scenario form is the
  * one scenario editor, so a scenario stored in any format must open in it:
- * an `adhoc` scenario as its stored definition minus the overrides and
- * places the net no longer has, a `per_place` scenario converted losslessly
- * (saving stores it as `adhoc`), a `code` scenario with its Variables and
- * Parameters only — the code body stays with the caller, who shows it
- * read-only and writes it back verbatim.
+ * an `adhoc` scenario as its stored definition minus the overrides, places
+ * and place blocks the net no longer matches, a `per_place` scenario
+ * converted losslessly (saving stores it as `adhoc`), a `code` scenario with
+ * its Variables and Parameters only — the code body stays with the caller,
+ * who shows it read-only and writes it back verbatim.
  */
 
 import { adHocNeutralExpression } from "./ad-hoc-scenario";
@@ -25,7 +25,7 @@ import type {
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 export type AdHocStateFromScenario =
-  /** The stored definition, minus the overrides and places the net no longer has. */
+  /** The stored definition, minus the overrides, places and place blocks the net no longer matches. */
   | { kind: "adhoc"; state: AdHocScenarioState }
   /** A lossless conversion; saving the form stores the scenario as `adhoc`. */
   | { kind: "per_place"; state: AdHocScenarioState }
@@ -63,25 +63,45 @@ const netParameterEntries = (
     }));
 
 /**
- * The stored form state with the entries for parameters and places the net
- * no longer has dropped: synthesis rejects either, and the form — whose rows
- * and place blocks come from the net — has nowhere to clear them from.
+ * Whether a stored place block still fits its place as the net has it: an
+ * uncoloured block on a place without a colour, a coloured block on a place
+ * whose colour the net knows.
+ */
+const matchesPlace = (
+  place: Place,
+  block: AdHocPlaceState,
+  types: readonly Color[],
+): boolean =>
+  block.kind === "uncoloured"
+    ? place.colorId === null
+    : types.some((type) => type.id === place.colorId);
+
+/**
+ * The stored form state minus the entries the net no longer matches: an
+ * override for a parameter it lacks, a block for a place it lacks, and a
+ * block whose kind no longer fits its place (coloured on a place without a
+ * colour the net knows, uncoloured on one that gained a colour). Synthesis
+ * rejects the first three and the form would show the last as a count on a
+ * coloured place, with nowhere to clear any of them from: its rows and place
+ * blocks come from the net. A dropped place reads back as the empty block
+ * of the net's kind, so dropping is the reset.
  */
 const storedAdHocState = (
   content: AdHocScenarioState,
   context: AdHocSynthesisContext,
 ): AdHocScenarioState => {
   const parameterIds = knownParameterIds(context);
-  const placeIds = new Set(context.places.map((place) => place.id));
+  const placeById = new Map(context.places.map((place) => [place.id, place]));
   return {
     ...content,
     netParameters: content.netParameters.filter(({ parameterId }) =>
       parameterIds.has(parameterId),
     ),
     places: Object.fromEntries(
-      Object.entries(content.places).filter(([placeId]) =>
-        placeIds.has(placeId),
-      ),
+      Object.entries(content.places).filter(([placeId, block]) => {
+        const place = placeById.get(placeId);
+        return place !== undefined && matchesPlace(place, block, context.types);
+      }),
     ),
   };
 };
@@ -145,16 +165,17 @@ const perPlaceStates = (
 };
 
 /**
- * An `adhoc` scenario keeps its stored definition, minus the overrides and
- * places the net no longer has ({@link storedAdHocState}). In the other
- * formats, scenario parameters become exposed top-level Variables named by
- * their identifier verbatim (schema identifiers are snake_case, so
- * `adHocExposedParameterIdentifier` is the identity) with the default as a
- * literal (`true`/`false` for booleans); parameter overrides become one
- * net-parameter entry per key the net knows, expression verbatim
- * ({@link netParameterEntries}); per-place content converts through
- * {@link perPlaceStates}. Places absent from the content stay absent: in
- * both formats an absent place keeps the canvas marking.
+ * An `adhoc` scenario keeps its stored definition, minus the overrides,
+ * places and place blocks the net no longer matches
+ * ({@link storedAdHocState}). In the other formats, scenario parameters
+ * become exposed top-level Variables named by their identifier verbatim
+ * (schema identifiers are snake_case, so `adHocExposedParameterIdentifier`
+ * is the identity) with the default as a literal (`true`/`false` for
+ * booleans); parameter overrides become one net-parameter entry per key the
+ * net knows, expression verbatim ({@link netParameterEntries}); per-place
+ * content converts through {@link perPlaceStates}. Places absent from the
+ * content stay absent: in both formats an absent place keeps the canvas
+ * marking.
  */
 export const adHocStateFromScenario = (
   scenario: Scenario,
