@@ -219,6 +219,19 @@ describe("experimentResultsModel for an idle sweep", () => {
     expect(model(fresh).header.progress).toBe(0);
   });
 
+  it("keeps every run at the end of the simulated time once the sweep is cancelled, and at zero when it computed nothing", () => {
+    expect(statTexts({ ...idleSweep, status: "cancelled" }).Time).toBe(
+      "180 / 180",
+    );
+    const fresh: ExperimentRecord = {
+      ...idleSweep,
+      status: "cancelled",
+      finishedAt: null,
+      sweep: { ...idleSweep.sweep!, runsCompleted: 0, runsSampled: 0 },
+    };
+    expect(statTexts(fresh).Time).toBe("0 / 180");
+  });
+
   it("locks the sliders and the surface once the sweep is cancelled, not after a failed selection", () => {
     const cancelled = model({ ...idleSweep, status: "cancelled" });
     expect(navigatorOf(cancelled).disabled).toBe(true);
