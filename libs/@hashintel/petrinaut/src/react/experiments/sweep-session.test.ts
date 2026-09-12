@@ -194,7 +194,9 @@ function makeFakeBatch(request: {
 function makeHarness(
   runCount: number,
   initialSelection?: SweepSelection,
-  options: Partial<Pick<CreateSweepSessionOptions, "startComputing">> = {},
+  options: Partial<
+    Pick<CreateSweepSessionOptions, "startComputing" | "axes">
+  > = {},
 ) {
   const batches: ReturnType<typeof makeFakeBatch>[] = [];
   const updates: SweepSessionUpdate[] = [];
@@ -334,6 +336,29 @@ describe("createSweepSession", () => {
 
     const last = updates.at(-1)!;
     expect(last.runsCompleted).toBe(8);
+    session.dispose();
+  });
+
+  it("rounds a ranged integer axis's midpoint to an integer", async () => {
+    /** Positions 0..3 map to the integers 10..13. */
+    const countAxis: ExperimentParameterAxis = {
+      identifier: "n",
+      min: 10,
+      max: 13,
+      stepCount: 3,
+      integer: true,
+    };
+    const { session, batches, settle } = makeHarness(
+      25,
+      { n: { from: 0, to: 1 } },
+      { axes: [countAxis] },
+    );
+    await settle();
+
+    // The endpoints 10 and 11 average to 10.5, which no integer parameter
+    // accepts; the compile gets 11.
+    expect(batches).toHaveLength(1);
+    expect(batches[0]!.request.parameterValues.n).toBe(11);
     session.dispose();
   });
 

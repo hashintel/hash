@@ -10,7 +10,9 @@
  * point on its Surface, and the runs use the sweep's common random numbers.
  * Once the study settles the evaluator parks the sweep, uncapped, on the best
  * point, or on the point it was trying when the study was stopped, so that
- * point refines to the experiment's run count.
+ * point refines to the experiment's run count. A stop parks at once; the
+ * terminal event that lands afterwards may carry the best, which re-parks
+ * the sweep there.
  */
 import { axisPositionFor } from "../../experiments/parameter-grid";
 import { prunedTrialOutcome } from "../channel/create-optimization-channel/trial-outcome";
@@ -35,7 +37,9 @@ export const SWEEP_TRIAL_RUNS = 8;
 export type SweepTrialEvaluator = PetrinautOptimizationChannel & {
   /**
    * The study is over: the sweep settles, uncapped, on the best point, or on
-   * the last point tried when the study has none.
+   * the last point tried when the study has none. A settle carrying a best
+   * supersedes one without, so a completion that lands after a stop re-parks
+   * the sweep on the best step; any later settle changes nothing.
    */
   settle: (best: OptimizationBest | null | undefined) => void;
 };
@@ -73,14 +77,15 @@ export const createSweepTrialEvaluator = ({
   runCap?: number;
   navigateSweep: ExperimentsActionsValue["navigateSweep"];
 }): SweepTrialEvaluator => {
-  let settled = false;
+  /** Where the sweep is parked once the study is over; "none" while it runs. */
+  let parked: "none" | "last" | "best" = "none";
   /** The point the latest trial moved the sweep to. */
   let lastPoint: SweepSelection | null = null;
 
   const evaluateTrial = async (request: PetrinautOptimizationTrialRequest) => {
     // Read through a call so the flag is re-checked after the await.
     const isCancelled = () => request.signal.aborted;
-    if (settled || isCancelled()) {
+    if (parked !== "none" || isCancelled()) {
       return prunedTrialOutcome("cancelled");
     }
     const point = sweepPointFor(axes, request.suggestedValues);
@@ -114,8 +119,13 @@ export const createSweepTrialEvaluator = ({
   return {
     evaluateTrial,
     settle: (best) => {
-      settled = true;
-      const point = best ? sweepPointFor(axes, best.parameters) : lastPoint;
+      const bestPoint = best ? sweepPointFor(axes, best.parameters) : null;
+      const next = bestPoint === null ? "last" : "best";
+      if (parked === "best" || (parked === "last" && next === "last")) {
+        return;
+      }
+      parked = next;
+      const point = bestPoint ?? lastPoint;
       if (point !== null) {
         void navigateSweep(experimentId, point);
       }

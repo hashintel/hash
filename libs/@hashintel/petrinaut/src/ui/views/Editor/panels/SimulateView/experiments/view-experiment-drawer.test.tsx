@@ -144,10 +144,12 @@ afterEach(() => {
   optimizer.current = null;
 });
 
+const drawerElement = (experiment: ExperimentRecord) => (
+  <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />
+);
+
 const renderDrawer = (experiment: ExperimentRecord) =>
-  render(
-    <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />,
-  );
+  render(drawerElement(experiment));
 
 const sweep = makeParameterSweepExperiment();
 
@@ -283,6 +285,32 @@ describe("the Optimize control", () => {
     });
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
+    });
+  });
+
+  it("seeds the prompt from the experiment the drawer swapped to", () => {
+    const start = vi.fn<SweepOptimizer["start"]>(() => Promise.resolve());
+    optimizer.current = { ...idleOptimizer, available: true, start };
+    const view = renderDrawer(sweep);
+    openPrompt();
+
+    // The drawer swaps records in place; the open prompt, its metric and
+    // its steps belong to the previous experiment.
+    const recovered = {
+      ...sweep.metricSpecs[0]!,
+      id: "recovered",
+      label: "Recovered",
+    };
+    view.rerender(
+      drawerElement({ ...sweep, id: "other", metricSpecs: [recovered] }),
+    );
+
+    expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
+    fireEvent.click(openPrompt());
+    expect(start).toHaveBeenCalledWith({
+      metricId: "recovered",
+      direction: "maximize",
+      steps: 30,
     });
   });
 

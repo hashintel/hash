@@ -133,6 +133,57 @@ describe("createSweepTrialEvaluator", () => {
     });
   });
 
+  it("re-parks a stopped study's sweep on the best step when the completion lands after the stop", async () => {
+    const navigateSweep = vi.fn().mockResolvedValue(null);
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    });
+
+    await evaluator.evaluateTrial(request({ rate: 0.5, days: 7 }));
+    // Stop parks on the point being tried; the worker's complete event,
+    // carrying the best, arrives afterwards.
+    evaluator.settle(null);
+    evaluator.settle({
+      trial: 1,
+      parameters: { rate: 0.2, days: 4 },
+      objective: 3,
+    });
+
+    expect(navigateSweep).toHaveBeenCalledTimes(3);
+    expect(navigateSweep).toHaveBeenLastCalledWith("exp", {
+      rate: { from: 10, to: 10 },
+      days: { from: 2, to: 2 },
+    });
+
+    // Once parked on the best, further settles change nothing.
+    evaluator.settle(null);
+    evaluator.settle({
+      trial: 2,
+      parameters: { rate: 0.9, days: 19 },
+      objective: 4,
+    });
+    expect(navigateSweep).toHaveBeenCalledTimes(3);
+  });
+
+  it("parks a stopped study's sweep once, however many settles carry no best", async () => {
+    const navigateSweep = vi.fn().mockResolvedValue(null);
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    });
+
+    await evaluator.evaluateTrial(request({ rate: 0.5, days: 7 }));
+    evaluator.settle(null);
+    evaluator.settle(undefined);
+
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+  });
+
   it("leaves the sweep alone when a study settles before any trial", () => {
     const navigateSweep = vi.fn();
     createSweepTrialEvaluator({
