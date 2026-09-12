@@ -148,6 +148,30 @@ const adHocScenario: Scenario = {
   },
 };
 
+// The stored definition carries an override for a parameter the net no
+// longer has; the form has no row to clear it, so it must be dropped on open.
+const staleOverrideScenario: Scenario = {
+  id: "scenario-stale",
+  name: "Stale override",
+  scenarioParameters: [],
+  parameterOverrides: { "param-gone": "3" },
+  initialState: {
+    type: "adhoc",
+    content: {
+      variables: [],
+      netParameters: [
+        { parameterId: "param-gone", expression: "3", optimize: null },
+      ],
+      places: {
+        "place-queue": {
+          kind: "uncoloured",
+          count: { expression: "4", optimize: null },
+        },
+      },
+    },
+  },
+};
+
 const perPlaceScenario: Scenario = {
   id: "scenario-per-place",
   name: "Morning rush",
@@ -202,7 +226,12 @@ const sdcpn: SDCPN = {
     },
   ],
   differentialEquations: [],
-  scenarios: [adHocScenario, perPlaceScenario, codeScenario],
+  scenarios: [
+    adHocScenario,
+    staleOverrideScenario,
+    perPlaceScenario,
+    codeScenario,
+  ],
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
@@ -263,6 +292,17 @@ describe("ViewScenarioDrawer", () => {
     ).toBe("true");
     expect(screen.queryByText(perPlaceMigrationNote)).toBe(null);
     expect(screen.queryByLabelText("Code")).toBe(null);
+  });
+
+  it("drops a stored override for a parameter the net no longer has and keeps Save enabled", () => {
+    renderDrawer(staleOverrideScenario);
+
+    expect(saveButton().disabled).toBe(false);
+
+    fireEvent.click(saveButton());
+
+    const { update } = savedUpdate();
+    expect(update.parameterOverrides).toEqual({});
   });
 
   it("opens a per-place scenario converted and saves it in the form's format", () => {

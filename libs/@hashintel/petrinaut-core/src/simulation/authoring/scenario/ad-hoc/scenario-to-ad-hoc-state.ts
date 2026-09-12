@@ -1,10 +1,11 @@
 /**
  * The form state a saved scenario edits through. The scenario form is the
  * one scenario editor, so a scenario stored in any format must open in it:
- * an `adhoc` scenario as its stored definition, a `per_place` scenario
- * converted losslessly (saving stores it as `adhoc`), a `code` scenario with
- * its Variables and Parameters only — the code body stays with the caller,
- * who shows it read-only and writes it back verbatim.
+ * an `adhoc` scenario as its stored definition minus the overrides for
+ * parameters the net no longer has, a `per_place` scenario converted
+ * losslessly (saving stores it as `adhoc`), a `code` scenario with its
+ * Variables and Parameters only — the code body stays with the caller, who
+ * shows it read-only and writes it back verbatim.
  */
 
 import { adHocNeutralExpression } from "./ad-hoc-scenario";
@@ -24,7 +25,7 @@ import type {
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 export type AdHocStateFromScenario =
-  /** The stored definition, verbatim. */
+  /** The stored definition, minus overrides for parameters the net no longer has. */
   | { kind: "adhoc"; state: AdHocScenarioState }
   /** A lossless conversion; saving the form stores the scenario as `adhoc`. */
   | { kind: "per_place"; state: AdHocScenarioState }
@@ -37,25 +38,40 @@ type PerPlaceContent = Extract<
 >["content"];
 
 /**
- * One net-parameter entry per override key the net knows, expression
- * verbatim. A key for a parameter the net no longer has (or every key, when
- * the context carries no net parameters) is dropped: compilation skips such
- * an override, but synthesis rejects it and the form has no row to clear it
- * from.
+ * The ids of the parameters the net has. An override for any other id (or
+ * every override, when the context carries no net parameters) is dropped on
+ * the way into the form: compilation skips such an override, but synthesis
+ * rejects it and the form has no row to clear it from.
+ */
+const knownParameterIds = (context: AdHocSynthesisContext): Set<string> =>
+  new Set(context.netParameters.map((parameter) => parameter.id));
+
+/**
+ * One net-parameter entry per override key in `knownIds`, expression
+ * verbatim.
  */
 const netParameterEntries = (
   scenario: Scenario,
-  netParameters: readonly { id: string }[],
+  knownIds: ReadonlySet<string>,
 ): AdHocNetParameter[] =>
   Object.entries(scenario.parameterOverrides)
-    .filter(([parameterId]) =>
-      netParameters.some((parameter) => parameter.id === parameterId),
-    )
+    .filter(([parameterId]) => knownIds.has(parameterId))
     .map(([parameterId, expression]) => ({
       parameterId,
       expression,
       optimize: null,
     }));
+
+/** The stored form state with the entries for unknown parameter ids dropped. */
+const storedAdHocState = (
+  content: AdHocScenarioState,
+  knownIds: ReadonlySet<string>,
+): AdHocScenarioState => ({
+  ...content,
+  netParameters: content.netParameters.filter(({ parameterId }) =>
+    knownIds.has(parameterId),
+  ),
+});
 
 /**
  * Per-place content as form blocks, walked in the net's place order so a
@@ -116,8 +132,10 @@ const perPlaceStates = (
 };
 
 /**
- * Scenario parameters become exposed top-level Variables named by their
- * identifier verbatim (schema identifiers are snake_case, so
+ * An `adhoc` scenario keeps its stored definition, minus the overrides for
+ * parameters the net no longer has ({@link storedAdHocState}). In the other
+ * formats, scenario parameters become exposed top-level Variables named by
+ * their identifier verbatim (schema identifiers are snake_case, so
  * `adHocExposedParameterIdentifier` is the identity) with the default as a
  * literal (`true`/`false` for booleans); parameter overrides become one
  * net-parameter entry per key the net knows, expression verbatim
@@ -130,11 +148,15 @@ export const adHocStateFromScenario = (
   context: AdHocSynthesisContext,
 ): AdHocStateFromScenario => {
   const { initialState } = scenario;
+  const knownIds = knownParameterIds(context);
   if (initialState.type === "adhoc") {
-    return { kind: "adhoc", state: initialState.content };
+    return {
+      kind: "adhoc",
+      state: storedAdHocState(initialState.content, knownIds),
+    };
   }
   const variables = classicRunVariables(scenario, {});
-  const netParameters = netParameterEntries(scenario, context.netParameters);
+  const netParameters = netParameterEntries(scenario, knownIds);
   if (initialState.type === "code") {
     return {
       kind: "code",
