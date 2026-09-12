@@ -1630,6 +1630,53 @@ describe("OptimizationsProvider driving a sweep", () => {
     expect(navigateSweep).toHaveBeenCalledTimes(2);
     expect(fake.runs).toHaveLength(0);
   });
+
+  it("parks the sweep, uncapped, on the point it was trying when In-browser optimization is switched off mid-study", async () => {
+    const { source } = createEvaluatingSource([0.05, 0.02], {
+      manifest: sweepInput,
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    let releaseStep: (cell: SweepVisitedCell | null) => void = () => {};
+    const navigateSweep = vi.fn(
+      (
+        _experimentId: string,
+        _selection: SweepSelection,
+        options?: { runCap?: number },
+      ) =>
+        options
+          ? new Promise<SweepVisitedCell | null>((resolve) => {
+              releaseStep = resolve;
+            })
+          : Promise.resolve(null),
+    );
+    const { getValue, setEnabled } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      navigateSweep,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(sweepInput, { sweep });
+    });
+    await waitFor(() => expect(navigateSweep).toHaveBeenCalledTimes(1));
+
+    act(() => setEnabled(false));
+    // The source is gone before the aborted step reports, so the study's own
+    // cancel finds no evaluator: the sweep still parks, uncapped, on the point
+    // the step was trying.
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+    expect(navigateSweep).toHaveBeenLastCalledWith(
+      "experiment-sweep",
+      sweepPointOf(0.05),
+      undefined,
+    );
+
+    releaseStep(null);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("cancelled"),
+    );
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+  });
 });
 
 /**

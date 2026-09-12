@@ -411,8 +411,10 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   /**
    * Everything the provider holds outside React ends with the source, and
    * with the provider: the connection to a connected source, the attach
-   * loops (aborting settles each record as cancelled) and the studies' own
-   * batches.
+   * loops (aborting settles each record as cancelled), the studies' own
+   * batches and the sweeps the studies drove. Each sweep evaluator parks its
+   * sweep here: the cancel the aborted loop settles lands after the map is
+   * cleared, so it would find no evaluator to park.
    */
   useEffect(
     () => () => {
@@ -427,6 +429,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         study.dispose();
       }
       studiesRef.current.clear();
+      for (const evaluator of sweepEvaluatorsRef.current.values()) {
+        evaluator.settle(null);
+      }
       sweepEvaluatorsRef.current.clear();
     },
     [source],

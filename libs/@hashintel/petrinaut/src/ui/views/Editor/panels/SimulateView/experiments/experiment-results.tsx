@@ -93,13 +93,15 @@ const experimentComputeBatches = (
 
 /**
  * Simulated time to show when no batch is publishing progress: a complete
- * run has taken every run to the end, and so has an idle sweep once a batch
- * of its selection finished; a sweep that never computed sits at zero.
+ * run has taken every run to the end, and so has an idle or cancelled sweep
+ * once a batch of its selection finished; a sweep that never computed sits
+ * at zero.
  */
 const settledTime = (experiment: ExperimentRecord): number =>
   experiment.status === "complete" ||
-  (experiment.status === "idle" &&
-    (experiment.sweep === null || experiment.sweep.runsCompleted > 0))
+  (experiment.sweep !== null &&
+    experiment.sweep.runsCompleted > 0 &&
+    (experiment.status === "idle" || experiment.status === "cancelled"))
     ? experiment.maxTime
     : 0;
 
