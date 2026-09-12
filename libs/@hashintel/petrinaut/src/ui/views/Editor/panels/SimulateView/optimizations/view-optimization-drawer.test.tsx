@@ -18,11 +18,7 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  frameLayoutSignature,
-} from "../shared/drawer-frame";
+import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
   scrollFrameBody,
@@ -162,7 +158,7 @@ vi.mock("./optimization-surface", () => ({
 }));
 
 // uPlot cannot mount in jsdom; the card around the objective history is real.
-vi.mock("./study-view/objective-history-chart", () =>
+vi.mock("./study-results/objective-history-chart", () =>
   import("../shared/metric-timeline-test-stubs").then((stubs) =>
     stubs.mockObjectiveHistoryCardModule(),
   ),
@@ -195,25 +191,27 @@ const SurfaceSetting = ({
   );
 };
 
-const renderDrawer = (
+type DrawerOptions = {
+  enableOptimizationSurface?: boolean;
+} & Partial<
+  Pick<
+    OptimizationsContextValue,
+    | "setOptimizationNavigation"
+    | "cancelOptimization"
+    | "extendOptimization"
+    | "pauseOptimization"
+    | "resumeOptimization"
+    | "refineOptimizationBest"
+    | "removeOptimization"
+  >
+>;
+
+const drawerElement = (
   optimization: OptimizationRecord,
-  options: {
-    enableOptimizationSurface?: boolean;
-  } & Partial<
-    Pick<
-      OptimizationsContextValue,
-      | "setOptimizationNavigation"
-      | "cancelOptimization"
-      | "extendOptimization"
-      | "pauseOptimization"
-      | "resumeOptimization"
-      | "refineOptimizationBest"
-      | "removeOptimization"
-    >
-  > = {},
+  options: DrawerOptions = {},
 ) => {
   const { enableOptimizationSurface = false, ...actions } = options;
-  return render(
+  return (
     <OptimizationsContext
       value={makeOptimizationsContextValue(optimization, actions)}
     >
@@ -224,9 +222,14 @@ const renderDrawer = (
           optimization={optimization}
         />
       </SurfaceSetting>
-    </OptimizationsContext>,
+    </OptimizationsContext>
   );
 };
+
+const renderDrawer = (
+  optimization: OptimizationRecord,
+  options: DrawerOptions = {},
+) => render(drawerElement(optimization, options));
 
 const input = makeOptimizationInput(optimizedBindingSets.base);
 const { trials, best } = makeTrials(input, 5);
@@ -234,6 +237,12 @@ const { trials, best } = makeTrials(input, 5);
 /** The Best stat prints the objective as the table does. */
 const formatObjective = (value: number): string =>
   Number.isInteger(value) ? String(value) : value.toPrecision(6);
+
+/** The Steps column's whole value; its short form beside it reads the same when the study runs one run per step. */
+const stepsValue = (): string | undefined =>
+  document.querySelector(
+    '[data-frame-stats] [data-frame-stat][title="Steps"] [data-frame-stat-value]',
+  )?.textContent;
 
 describe("ViewOptimizationDrawer for a remote study", () => {
   const remote = makeOptimizationRecord({
@@ -247,7 +256,7 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     renderDrawer(remote);
 
     expect(screen.getByText("Complete")).toBeTruthy();
-    expect(screen.getByText("5 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("5 / 30");
     expect(
       screen
         .getByText("Best step so far")
@@ -380,12 +389,30 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     ).toBeTruthy();
   });
 
+  it("opens the next study's fixed parameters folded when the drawer swaps records in place", () => {
+    const view = renderDrawer(connected);
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Show \d+ fixed parameters/u }),
+    );
+    expect(
+      screen.getByRole("button", { name: /^Hide fixed parameters/u }),
+    ).toBeTruthy();
+
+    view.rerender(drawerElement({ ...connected, id: `${connected.id}-next` }));
+
+    expect(
+      screen
+        .getByRole("button", { name: /^Show \d+ fixed parameters/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+
   it("summarizes the study in one strip and stars the best step in the table", () => {
     renderDrawer(connected);
 
     expect(screen.queryByText("Best parameters")).toBeNull();
     expect(screen.getByText("Running")).toBeTruthy();
-    expect(screen.getByText("3 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("3 / 30");
     expect(
       screen
         .getByText("Best step so far")
@@ -559,9 +586,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     const view = renderDrawer(connected);
 
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
+    expect(frameHeader().dataset.condensed).toBe("true");
     scrollFrameBody(0);
 
     // Focus lands on the chip while a batch computes, then the batch ends and
@@ -609,9 +634,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       </OptimizationsContext>,
     );
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
+    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("lists the batches computing from the computing chip", () => {
@@ -632,7 +655,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       },
     });
 
-    expect(screen.getByText("3 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("3 / 30");
     fireEvent.click(screen.getByRole("button", { name: /2 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();
     expect(screen.getByText("0 / 1 runs")).toBeTruthy();
@@ -715,11 +738,14 @@ describe("ViewOptimizationDrawer for a paused connected study", () => {
     expect(
       screen.getByText(/Resuming continues the study's history/u),
     ).toBeTruthy();
-    const cards = document.querySelectorAll<HTMLElement>("[data-chart-card]");
-    expect(cards.length).toBeGreaterThanOrEqual(3);
-    expect([...cards].every((card) => card.dataset.tone === "paused")).toBe(
-      true,
+    // The Parameters card stays live: its controls navigate a paused study.
+    const cards = [
+      ...document.querySelectorAll<HTMLElement>("[data-chart-card]"),
+    ].filter(
+      (card) => card.querySelector("span")?.textContent !== "Parameters",
     );
+    expect(cards.length).toBeGreaterThanOrEqual(3);
+    expect(cards.every((card) => card.dataset.tone === "paused")).toBe(true);
     expect(screen.getByText("Objective at the selected point")).toBeTruthy();
     expect(screen.getByText("Objective by step")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
@@ -1082,10 +1108,11 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(signatures[0]!.header).toBe("false");
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.steps).toBe("320px");
     expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
+      "Parameters",
       "Objective at the step in flight",
       "Objective by step",
       "Sensitivity analysis",

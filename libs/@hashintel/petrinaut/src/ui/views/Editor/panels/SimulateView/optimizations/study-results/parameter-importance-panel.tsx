@@ -42,7 +42,6 @@ const headerRowStyle = css({
 
 const headerCellStyle = css({
   fontSize: "xs",
-  fontWeight: "medium",
   color: "neutral.s80",
   whiteSpace: "nowrap",
   "&[data-align='right']": { textAlign: "right" },
@@ -65,8 +64,6 @@ const rowStyle = css({
 
 const nameStyle = css({
   fontSize: "xs",
-  fontWeight: "medium",
-  fontFamily: "mono",
   color: "neutral.s110",
   minWidth: "[0]",
   overflow: "hidden",

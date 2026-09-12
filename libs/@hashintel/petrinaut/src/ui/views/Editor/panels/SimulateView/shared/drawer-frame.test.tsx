@@ -14,9 +14,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
   FrameBand,
+  FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
@@ -54,7 +53,7 @@ const frame = ({
   stats?: ReactNode;
 } = {}) => (
   <DrawerFrame
-    title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
+    title="SIR transmission sweep · Seasonal Flu · 100 runs"
     headline={<span>Step 3 of 30</span>}
     stats={
       <>
@@ -85,12 +84,9 @@ describe("DrawerFrame", () => {
   it("renders the title, the stat columns sized by their widest value, the badge column, the bar and the footer at rest", () => {
     renderFrame();
 
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("false");
     expect(
-      screen.getByText(
-        "SIR transmission sweep · Seasonal Flu · 100 runs · dt 1",
-      ),
+      screen.getByText("SIR transmission sweep · Seasonal Flu · 100 runs"),
     ).toBeTruthy();
     expect(screen.getByText("Step 3 of 30")).toBeTruthy();
     const runs = screen.getByText("Runs").nextElementSibling!;
@@ -102,7 +98,7 @@ describe("DrawerFrame", () => {
     );
     // The stats are labelled columns; the badge is the last of them.
     const columns = [
-      ...document.querySelectorAll("[data-frame-stats] > [data-frame-stat]"),
+      ...document.querySelectorAll("[data-frame-stats] [data-frame-stat]"),
     ];
     expect(
       columns.map((column) => column.querySelector("span")?.textContent),
@@ -120,7 +116,6 @@ describe("DrawerFrame", () => {
     renderFrame();
 
     scrollBodyTo(48);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("true");
     // The compact copy sits in the title line; the stats line is folded away.
     const compact = document.querySelector("[data-frame-compact-stats]")!;
@@ -136,14 +131,14 @@ describe("DrawerFrame", () => {
     ).toBe("true");
 
     fireEvent.pointerEnter(header());
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
     expect(document.querySelector("[data-frame-compact-stats]")).toBeNull();
 
     fireEvent.pointerLeave(header());
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
 
     scrollBodyTo(0);
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
   });
 
   it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {
@@ -153,12 +148,11 @@ describe("DrawerFrame", () => {
 
     // Keyboard focus on a header control holds the header open.
     scrollBodyTo(48);
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
 
     // The chip goes idle under the focus: disabled, so it fires no blur.
     view.rerender(frame({ stats: computingChip(false) }));
     scrollBodyTo(60);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("true");
     view.unmount();
 
@@ -167,7 +161,69 @@ describe("DrawerFrame", () => {
     act(() => screen.getByRole("button", { name: "1 computing" }).focus());
     removed.rerender(frame());
     scrollBodyTo(60);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
+  });
+
+  it("lays a stat's short form beside the whole one, so the header's width picks which shows", () => {
+    render(
+      <FrameStat
+        label="Steps"
+        widest="30 / 30 · 3 runs each"
+        short={{ text: "4 / 30", widest: "30 / 30" }}
+      >
+        4 / 30 · 3 runs each
+      </FrameStat>,
+    );
+
+    const stat = document.querySelector<HTMLElement>("[data-frame-stat]")!;
+    expect(stat.dataset.short).toBe("true");
+    expect(stat.getAttribute("title")).toBe("Steps");
+    expect(stat.querySelector("[data-frame-stat-value]")?.textContent).toBe(
+      "4 / 30 · 3 runs each",
+    );
+    expect(stat.querySelector("[data-frame-stat-short]")?.textContent).toBe(
+      "4 / 30",
+    );
+    expect(
+      [...stat.querySelectorAll("[aria-hidden]")].map(
+        (sizer) => sizer.textContent,
+      ),
+    ).toEqual(["30 / 30 · 3 runs each", "30 / 30"]);
+  });
+
+  it("makes the stats line a labelled tab stop only while it overflows, so the keyboard can scroll it", () => {
+    const view = render(frame());
+    const line = document.querySelector<HTMLElement>(
+      "[data-frame-stats-line]",
+    )!;
+
+    expect(line.hasAttribute("tabindex")).toBe(false);
+    expect(line.dataset.overflowEnd).toBe("false");
+
+    // jsdom lays nothing out: give the line more content than width.
+    Object.defineProperty(line, "scrollWidth", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(line, "clientWidth", {
+      configurable: true,
+      value: 400,
+    });
+    view.rerender(frame());
+
+    expect(line.getAttribute("tabindex")).toBe("0");
+    expect(line.getAttribute("aria-label")).toBe("Header statistics");
+    expect(line.dataset.overflowEnd).toBe("true");
+
+    // Scrolled to the end it stays reachable but the fade goes.
+    Object.defineProperty(line, "scrollLeft", {
+      configurable: true,
+      value: 200,
+    });
+    fireEvent.scroll(line);
+
+    expect(line.getAttribute("tabindex")).toBe("0");
+    expect(line.dataset.overflowEnd).toBe("false");
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {
@@ -260,6 +316,47 @@ describe("DrawerFrame", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
     expect(content.hasAttribute("inert")).toBe(false);
     expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+  });
+
+  it("keeps a card's fixed part folded until its footer button opens it, mounted throughout", () => {
+    render(
+      <FrameCard
+        title="Parameters"
+        subtitle="1 optimized · 1 fixed"
+        more={{
+          show: "Show 1 fixed parameter",
+          hide: "Hide fixed parameters",
+          content: <input aria-label="population" defaultValue="1000" />,
+        }}
+      >
+        <input aria-label="infection_rate" defaultValue="0.3" />
+      </FrameCard>,
+    );
+
+    expect(screen.getByText("1 optimized · 1 fixed")).toBeTruthy();
+    const more = document.querySelector<HTMLElement>("[data-frame-card-more]")!;
+    expect(more.hasAttribute("inert")).toBe(true);
+    expect(more.getAttribute("aria-hidden")).toBe("true");
+    expect(more.querySelector("input")?.value).toBe("1000");
+    expect(
+      screen.getByRole("textbox", { name: "infection_rate" }),
+    ).toBeTruthy();
+
+    // The button's name ends in the icon's zero-width joiner.
+    const toggle = screen.getByRole("button", {
+      name: /^Show 1 fixed parameter/u,
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+
+    expect(more.hasAttribute("inert")).toBe(false);
+    expect(more.getAttribute("aria-hidden")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: /^Hide fixed parameters/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 
   it("gives the secondary column the whole width when there is no primary", () => {

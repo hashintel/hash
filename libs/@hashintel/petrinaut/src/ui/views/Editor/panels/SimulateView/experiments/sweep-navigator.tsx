@@ -61,8 +61,7 @@ const rowStyle = css({
 
 const nameStyle = css({
   fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s120",
+  color: "neutral.s110",
   width: "[140px]",
   flexShrink: 0,
   overflow: "hidden",
@@ -72,8 +71,9 @@ const nameStyle = css({
 
 const readoutStyle = css({
   fontSize: "xs",
+  fontWeight: "medium",
   fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
+  color: "neutral.s120",
   width: "[128px]",
   flexShrink: 0,
   textAlign: "right",

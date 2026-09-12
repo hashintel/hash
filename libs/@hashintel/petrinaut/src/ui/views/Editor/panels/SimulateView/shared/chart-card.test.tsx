@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   CHART_CARD_BODY_PADDING,
+  CHART_CARD_FOOTER_CHROME,
   CHART_CARD_HEADER_HEIGHT,
   ChartCard,
   ChartCardGrid,
@@ -111,7 +112,7 @@ describe("chartCardHeight", () => {
     const without = chartCardHeight({ bodyHeight: 100 });
     expect(chartCardHeight({ bodyHeight: 100, footerHeight: 0 })).toBe(without);
     expect(chartCardHeight({ bodyHeight: 100, footerHeight: 20 })).toBe(
-      without + 20 + 13,
+      without + 20 + CHART_CARD_FOOTER_CHROME,
     );
   });
 });
