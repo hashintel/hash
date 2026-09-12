@@ -203,6 +203,7 @@ export const ObjectiveHistoryChart = ({
   style = defaultObjectiveHistoryStyle,
   xMax,
   dividers = noDividers,
+  emptyLabel = "Waiting for the first step",
 }: {
   points: readonly ObjectiveHistoryPoint[];
   /** The plot's height in pixels; the component is exactly this tall. */
@@ -212,6 +213,8 @@ export const ObjectiveHistoryChart = ({
   xMax?: number;
   /** Steps a dashed vertical line is drawn before: where a new study began. */
   dividers?: readonly number[];
+  /** What the plot says while there is no point to draw. */
+  emptyLabel?: string;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef);
@@ -267,7 +270,7 @@ export const ObjectiveHistoryChart = ({
     >
       <div ref={chartRootRef} className={chartStyle} />
       {points.length === 0 ? (
-        <span className={waitingStyle}>Waiting for the first step</span>
+        <span className={waitingStyle}>{emptyLabel}</span>
       ) : null}
     </div>
   );
