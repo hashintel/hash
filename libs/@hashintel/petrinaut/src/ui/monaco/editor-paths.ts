@@ -6,6 +6,5 @@ export {
   getConstraintDocumentUri,
   getDocumentUri,
   getMetricDocumentUri,
-  getScenarioDocumentUri,
   parseDocumentUri,
 } from "@hashintel/petrinaut-core";

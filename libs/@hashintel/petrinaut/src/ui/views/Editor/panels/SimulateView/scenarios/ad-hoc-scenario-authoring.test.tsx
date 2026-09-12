@@ -14,6 +14,7 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useAdHocScenarioAuthoring } from "./ad-hoc-scenario-authoring";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
+import type { UseAdHocScenarioAuthoringOptions } from "./ad-hoc-scenario-authoring";
 import type { AdHocScenarioState, SDCPN } from "@hashintel/petrinaut-core";
 
 const sdcpn: SDCPN = {
@@ -81,17 +82,20 @@ const draftState: AdHocScenarioState = {
 };
 
 const Harness = ({
-  existingNames,
+  options,
   onValue,
 }: {
-  existingNames: ReadonlySet<string>;
+  options: UseAdHocScenarioAuthoringOptions;
   onValue: (value: ReturnType<typeof useAdHocScenarioAuthoring>) => void;
 }) => {
-  onValue(useAdHocScenarioAuthoring({ existingScenarioNames: existingNames }));
+  onValue(useAdHocScenarioAuthoring(options));
   return null;
 };
 
-function renderAuthoring(existingNames: ReadonlySet<string> = new Set()) {
+function renderAuthoring(
+  existingNames: ReadonlySet<string> = new Set(),
+  code?: UseAdHocScenarioAuthoringOptions["code"],
+) {
   const holder: {
     current: ReturnType<typeof useAdHocScenarioAuthoring> | null;
   } = { current: null };
@@ -100,7 +104,10 @@ function renderAuthoring(existingNames: ReadonlySet<string> = new Set()) {
   };
   render(
     <SDCPNContext value={sdcpnContextValue}>
-      <Harness existingNames={existingNames} onValue={capture} />
+      <Harness
+        options={{ existingScenarioNames: existingNames, code }}
+        onValue={capture}
+      />
     </SDCPNContext>,
   );
   return holder as { current: ReturnType<typeof useAdHocScenarioAuthoring> };
@@ -140,5 +147,104 @@ describe("useAdHocScenarioAuthoring", () => {
     expect(authoring.current.canSave).toBe(false);
     expect(authoring.current.firstError).toContain("already exists");
     expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+  });
+
+  it("keeps a code scenario's code verbatim and guards the parameters it reads", () => {
+    const code = {
+      body: "return { Queue: range(scenario.base_load).map(() => ({})) };",
+      parameters: [
+        { type: "integer" as const, identifier: "base_load", default: 6 },
+      ],
+    };
+    const authoring = renderAuthoring(new Set(), code);
+    act(() => {
+      authoring.current.setName("Constellation");
+      authoring.current.setState({ ...draftState, places: {} });
+    });
+
+    expect(authoring.current.code).toBe(code.body);
+    expect(authoring.current.canSave).toBe(true);
+    const scenario = authoring.current.buildScenario("scenario-1");
+    expect(scenario?.initialState).toEqual({
+      type: "code",
+      content: code.body,
+    });
+    expect(scenario?.scenarioParameters).toEqual([
+      { type: "integer", identifier: "base_load", default: 6 },
+    ]);
+
+    // Renaming the exposed Variable the code reads leaves `scenario.base_load`
+    // dangling, so saving is refused until it is exposed again by that name.
+    act(() => {
+      authoring.current.setState({
+        ...draftState,
+        places: {},
+        variables: [{ ...draftState.variables[0]!, name: "load" }],
+      });
+    });
+    expect(authoring.current.canSave).toBe(false);
+    expect(authoring.current.firstError).toBe(
+      'Variable "base_load" is read by the scenario\'s code as scenario.base_load; keep it exposed with that name and type.',
+    );
+    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+  });
+
+  it("refuses to save a code scenario with a Variable that is not exposed", () => {
+    const code = {
+      body: "return { Queue: range(scenario.base_load).map(() => ({})) };",
+      parameters: [
+        { type: "integer" as const, identifier: "base_load", default: 6 },
+      ],
+    };
+    const authoring = renderAuthoring(new Set(), code);
+    act(() => {
+      authoring.current.setName("Constellation");
+      authoring.current.setState({
+        ...draftState,
+        places: {},
+        variables: [
+          ...draftState.variables,
+          {
+            name: "spare",
+            type: "integer",
+            expression: "2",
+            optimize: null,
+            exposed: false,
+          },
+        ],
+      });
+    });
+
+    // A code scenario stores no form state, so an unexposed Variable would
+    // be inlined into the overrides and lost on the next open.
+    expect(authoring.current.canSave).toBe(false);
+    expect(authoring.current.firstError).toBe(
+      'Variable "spare" cannot be kept with code-defined initial state; turn Scenario Parameter on or delete it.',
+    );
+    expect(authoring.current.buildScenario("scenario-1")).toBeNull();
+
+    act(() => {
+      authoring.current.setState({
+        ...draftState,
+        places: {},
+        variables: [
+          ...draftState.variables,
+          {
+            name: "spare",
+            type: "integer",
+            expression: "2",
+            optimize: null,
+            exposed: true,
+          },
+        ],
+      });
+    });
+    expect(authoring.current.canSave).toBe(true);
+    expect(
+      authoring.current.buildScenario("scenario-1")?.scenarioParameters,
+    ).toEqual([
+      { type: "integer", identifier: "base_load", default: 6 },
+      { type: "integer", identifier: "spare", default: 2 },
+    ]);
   });
 });

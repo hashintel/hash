@@ -46,10 +46,6 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
 
-### Ad-hoc scenarios (experimental)
-
-Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment drawer, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
-
 ### WebGPU (experimental)
 
 Off by default. Offers a GPU option when creating an experiment; each experiment then chooses its own backend. See [Compute backend](experiments.md#compute-backend-experimental).

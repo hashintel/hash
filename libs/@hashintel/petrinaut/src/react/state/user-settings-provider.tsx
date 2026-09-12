@@ -38,6 +38,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * went with the Optimizations tab. Dropped on the next write.
    */
   enableOptimizationSurface?: boolean;
+  /**
+   * Gated the scenario form while it was experimental. The form is the only
+   * scenario form, so the key is dropped on the next write.
+   */
+  enableAdHocScenarios?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -50,6 +55,7 @@ const loadSettings = (): UserSettings => {
         computeBackend,
         useEntitiesTreeView: _useEntitiesTreeView,
         enableOptimizationSurface: _enableOptimizationSurface,
+        enableAdHocScenarios: _enableAdHocScenarios,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -116,8 +122,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setEnableNotebookView: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNotebookView: value })),
-    setEnableAdHocScenarios: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableAdHocScenarios: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setWebGpuEnabled: (value: boolean) =>

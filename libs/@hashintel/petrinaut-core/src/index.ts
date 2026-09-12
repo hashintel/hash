@@ -552,6 +552,10 @@ export {
   initialMarkingToAdHocPlaces,
   type TruncatedPlace,
 } from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
+export {
+  adHocStateFromScenario,
+  type AdHocStateFromScenario,
+} from "./simulation/authoring/scenario/ad-hoc/scenario-to-ad-hoc-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {

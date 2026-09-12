@@ -1,12 +1,11 @@
 /**
- * The experiment drawer's scenario body when a saved scenario is selected
- * (behind the ad-hoc scenarios setting): the scenario shows through the
- * ad-hoc form in run mode — its scenario parameters editable in worksheet
- * style — above a collapsed "Computed state" sub-section that materializes
- * the exact parameter values and initial tokens each run will start with.
- * The materialization (lowering, compiling, converting the marking to
- * literal rows) only happens while that sub-section is open, and recomputes
- * as the values above change.
+ * The experiment drawer's scenario body when a saved scenario is selected:
+ * the scenario shows through the form in run mode — its scenario parameters
+ * editable in worksheet style — above a collapsed "Computed state"
+ * sub-section that materializes the exact parameter values and initial
+ * tokens each run will start with. The materialization (lowering, compiling,
+ * converting the marking to literal rows) only happens while that
+ * sub-section is open, and recomputes as the values above change.
  */
 
 import { useState } from "react";
@@ -273,6 +272,11 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
     netParameters: computed?.ready ? computed.netParameters : [],
     places: computed?.ready ? computed.places : {},
   };
+  // The run form's rows render only the exposed Variables, so a scenario
+  // exposing none leaves the group empty rather than absent.
+  const exposesParameters = renderState.variables.some(
+    (variable) => variable.exposed,
+  );
 
   return (
     <AdHocScenarioForm
@@ -284,7 +288,9 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       mode="run"
       renderLayout={({ variables, parameters, places }) => (
         <FormLayoutColumn>
-          {variables ?? (
+          {exposesParameters ? (
+            variables
+          ) : (
             <div className={emptyMessageStyle}>
               This scenario exposes no parameters
             </div>

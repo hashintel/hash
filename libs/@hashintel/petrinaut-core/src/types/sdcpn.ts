@@ -252,7 +252,7 @@ export type AdHocScenarioState = {
   variables: AdHocVariable[];
   /** Overrides for net parameters; empty expression keeps the default. */
   netParameters: AdHocNetParameter[];
-  /** Keyed by `Place.id`; places absent here keep an empty initial state. */
+  /** Keyed by `Place.id`; places absent here keep the canvas marking. */
   places: Record<string, AdHocPlaceState>;
 };
 

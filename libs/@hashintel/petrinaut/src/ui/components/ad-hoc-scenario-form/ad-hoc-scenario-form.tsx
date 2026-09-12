@@ -1,20 +1,21 @@
 /**
  * @layerRoot ui.adhoc-form
- * @role The inline Initial State + Parameters form compiling to a generated, never-persisted scenario
+ * @role The inline Initial State + Parameters form: the one scenario form, compiling to a generated scenario or persisting as a saved one
  *
  * The ad-hoc scenario form: define Initial State + Parameters inline and let
  * the caller compile them through `synthesizeAdHocScenario` (plain runs) or
- * `synthesizeAdHocOptimization` (optimization). The generated scenario is
- * never persisted; this component only edits `AdHocScenarioState`.
+ * `synthesizeAdHocOptimization` (optimization), or save them as a scenario
+ * (`initialState.type: "adhoc"`). The generated scenario is never persisted;
+ * this component only edits `AdHocScenarioState`.
  *
- * Four consumers share it: Quick Simulation renders it with `selection`
+ * It is the one scenario form. Quick Simulation renders it with `selection`
  * "none"; experiment creation renders it with "sweep", which grows a Sweep
  * toggle on every numeric value slot — each selection becomes a swept
- * parameter of the experiment; optimizations render it with "optimize",
- * which grows an Optimize toggle on every value slot; the scenario creation
- * form renders it with "expose", which offers a "Scenario Parameter" toggle
- * on each top-level Variable — the saved scenario exposes those Variables
- * as its tunable parameters.
+ * parameter of the experiment; scenario creation and editing render it with
+ * "expose", which offers a "Scenario Parameter" toggle on each top-level
+ * Variable — the saved scenario exposes those Variables as its tunable
+ * parameters. Simulation Settings and the experiment drawer also reuse it
+ * with `mode="run"` to show a saved scenario for a run.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
@@ -98,19 +99,11 @@ export interface AdHocScenarioFormProps {
    */
   mode?: AdHocFormMode;
   /**
-   * Whether the Variables section is offered. Embeddings that provide no
-   * scenario Variables (quick simulation's Simulation Settings) turn it
-   * off; an expression referencing `scenario.<name>` then fails as unknown,
-   * exactly as it should. The Parameters section hides itself the same way
-   * when the context carries no net parameters.
-   */
-  withVariables?: boolean;
-  /**
    * Custom arrangement: the host receives each group — already wired to the
    * form's contexts — and lays them out itself (e.g. Simulation Settings
    * places Variables + Parameters and Initial state in separate panel
-   * columns). The groups render without section chrome; a group the props
-   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * columns). The groups render without section chrome; the Parameters
+   * group is `null` when the context carries no net parameters. The
    * host's own chrome may render inside too — the wrapper only carries the
    * form's keyboard handling. Wrap each visual column of the layout in a
    * `FormLayoutColumn`: vertical arrows chain the column's groups, and
@@ -177,7 +170,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   mode = "author",
-  withVariables = true,
   renderLayout,
   className,
   sessionId: externalSessionId,
@@ -320,13 +312,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const variableRows =
     mode === "run" ? (
       <ScenarioParameterRows variables={state.variables} />
-    ) : withVariables ? (
+    ) : (
       <VariableRows
         scopeLabel="Top-level variables"
         placeId={null}
         variables={state.variables}
       />
-    ) : null;
+    );
 
   const placesList = (
     <div className={placesListStyle}>
@@ -386,14 +378,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           ) : (
             <FocusStack axis="vertical">
               <SectionList>
-                {variableRows ? (
-                  <NavigableSection
-                    title="Variables"
-                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                  >
-                    {variableRows}
-                  </NavigableSection>
-                ) : null}
+                <NavigableSection
+                  title="Variables"
+                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                >
+                  {variableRows}
+                </NavigableSection>
 
                 {parameterRows ? (
                   <NavigableSection

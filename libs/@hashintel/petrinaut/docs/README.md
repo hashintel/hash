@@ -34,7 +34,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
-- [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- Define initial state and parameters inline for one run, without saving a scenario.
+- [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- The scenario form: define initial state and parameters inline for one run, or save them as a scenario.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.

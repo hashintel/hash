@@ -1,6 +1,7 @@
 /**
  * Helper functions available to user-authored scenario code (parameter
- * override expressions and "Define as code" initial state).
+ * override expressions, the scenario form's cells and code-mode initial
+ * state).
  *
  * Scenario code compiles through the HIR: `range(...)` lowers to a
  * `rangeCall` node and the interpreter (`hir/interpret.ts`) calls the
