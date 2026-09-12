@@ -191,6 +191,13 @@ export const SweepObjectiveStrip = ({
             style={sweepObjectiveStyle}
             xMax={history.xMax}
             dividers={history.dividers}
+            // A study about to draw its first step is waited for; a history
+            // whose every study failed at start has run none.
+            emptyLabel={
+              history.studyCount === 0
+                ? "No steps run"
+                : "Waiting for the first step"
+            }
           />
         </div>
       </Fold>

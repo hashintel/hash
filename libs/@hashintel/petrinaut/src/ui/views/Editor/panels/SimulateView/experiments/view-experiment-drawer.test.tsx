@@ -145,16 +145,19 @@ vi.mock("../shared/objective-history-chart", () => ({
     plotHeight,
     xMax,
     dividers,
+    emptyLabel,
   }: {
     plotHeight: number;
     xMax: number | undefined;
     dividers: readonly number[];
+    emptyLabel: string;
   }) => (
     <div
       data-testid="objective-history"
       style={{ height: plotHeight }}
       data-x-max={xMax}
       data-dividers={dividers.join(" ")}
+      data-empty-label={emptyLabel}
     />
   ),
 }));
@@ -389,6 +392,25 @@ describe("ViewExperimentDrawer in the frame", () => {
 
     const row = screen.getByRole("button", { name: /^Objective by step/u });
     expect(row.textContent).toMatch(/step0 steps$/u);
+    // Nothing is coming: the fold says so instead of waiting for a step.
+    expect(screen.getByTestId("objective-history").dataset.emptyLabel).toBe(
+      "No steps run",
+    );
+  });
+
+  it("waits for the first step in the strip's fold while the driving study has drawn none yet", () => {
+    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+      sweepStudy(sweep, "running", {
+        trials: [],
+        best: null,
+        completedTrials: 0,
+        prunedTrials: 0,
+      }),
+    ]);
+
+    expect(screen.getByTestId("objective-history").dataset.emptyLabel).toBe(
+      "Waiting for the first step",
+    );
   });
 
   it("draws the study's objective under the sliders while it drives the sweep and once it settles, at one layout", () => {
