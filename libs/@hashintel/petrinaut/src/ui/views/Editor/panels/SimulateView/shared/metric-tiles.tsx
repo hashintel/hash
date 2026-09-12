@@ -3,9 +3,15 @@
  * whatever cards follow them. Every card is the same height whatever it
  * draws, so changing a chart's view moves nothing around it, and before any
  * frame has arrived the cards are stable shells per configured metric, so
- * the first data causes no layout shift.
+ * the first data causes no layout shift. The one thing that resizes a card
+ * is its Enlarge button: the card then spans the grid's full row at twice
+ * the row height, the cards after it fill the cells its row has left, and
+ * the rest move below.
  */
 import { type ReactNode, useState } from "react";
+
+import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   DEFAULT_METRIC_VIEW_SETTINGS,
@@ -15,8 +21,10 @@ import {
   type MetricViewSettings,
 } from "../experiments/experiment-metric-timeline";
 import {
+  CHART_CARD_GRID_GAP,
   CHART_CARD_MIN_WIDTH,
   ChartCard,
+  chartCardBodyHeight,
   ChartCardGrid,
   chartCardHeight,
   type ChartCardTone,
@@ -40,6 +48,14 @@ export type MetricTile = {
 
 /** The plot's height inside an experiment's metric cards; the smallest the axes and labels fit in. */
 export const METRIC_PLOT_HEIGHT = 220;
+
+/** "large" spans the grid's full row and two of its rows; "default" is one cell. */
+type MetricCardSize = "default" | "large";
+
+const largeTileStyle = css({
+  gridColumn: "[1 / -1]",
+  gridRow: "[span 2]",
+});
 
 export const MetricTiles = ({
   tiles,
@@ -66,15 +82,21 @@ export const MetricTiles = ({
   const [settingsById, setSettingsById] = useState<
     Record<string, MetricViewSettings>
   >({});
+  const [sizeById, setSizeById] = useState<Record<string, MetricCardSize>>({});
+  const rowHeight = chartCardHeight({ bodyHeight: plotHeight });
+  // Two rows and the gap between them, less the card's own chrome.
+  const largePlotHeight = chartCardBodyHeight(
+    2 * rowHeight + CHART_CARD_GRID_GAP,
+  );
 
   return (
-    <ChartCardGrid
-      minColumnWidth={CHART_CARD_MIN_WIDTH}
-      rowHeight={chartCardHeight({ bodyHeight: plotHeight })}
-    >
+    <ChartCardGrid minColumnWidth={CHART_CARD_MIN_WIDTH} rowHeight={rowHeight}>
       {tiles.map((tile) => {
         const settings = settingsById[tile.id] ?? DEFAULT_METRIC_VIEW_SETTINGS;
         const view = describeMetricView(settings, tile.outputType);
+        const large = (sizeById[tile.id] ?? "default") === "large";
+        const tilePlotHeight = large ? largePlotHeight : plotHeight;
+        const sizeLabel = large ? "Shrink" : "Enlarge";
         return (
           <ChartCard
             key={tile.id}
@@ -83,19 +105,36 @@ export const MetricTiles = ({
               tile.metricName === null ? view : `${tile.metricName} · ${view}`
             }
             actions={
-              <MetricViewMenu
-                outputType={tile.outputType}
-                value={settings}
-                onChange={(next) =>
-                  setSettingsById((previous) => ({
-                    ...previous,
-                    [tile.id]: next,
-                  }))
-                }
-              />
+              <>
+                <MetricViewMenu
+                  outputType={tile.outputType}
+                  value={settings}
+                  onChange={(next) =>
+                    setSettingsById((previous) => ({
+                      ...previous,
+                      [tile.id]: next,
+                    }))
+                  }
+                />
+                <Button
+                  iconName={large ? "collapse" : "expand"}
+                  variant="ghost"
+                  size="xs"
+                  pressed={large}
+                  aria-label={sizeLabel}
+                  tooltip={sizeLabel}
+                  onClick={() =>
+                    setSizeById((previous) => ({
+                      ...previous,
+                      [tile.id]: large ? "default" : "large",
+                    }))
+                  }
+                />
+              </>
             }
-            bodyHeight={plotHeight}
+            bodyHeight={tilePlotHeight}
             tone={tone}
+            className={large ? largeTileStyle : undefined}
           >
             <ExperimentMetricTimeline
               frames={tile.frames}
@@ -103,7 +142,7 @@ export const MetricTiles = ({
               expectedOutputType={tile.outputType}
               timeDomain={timeDomain}
               contentEpoch={contentEpoch}
-              plotHeight={plotHeight}
+              plotHeight={tilePlotHeight}
             />
           </ChartCard>
         );

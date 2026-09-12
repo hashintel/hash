@@ -261,9 +261,10 @@ in view on a laptop screen while the study streams:
   follows its steps, and **Objective at the selected point** otherwise; the
   line under the title names the metric and the current view. It streams
   again whenever the position changes, so the surface and the chart always
-  describe the same point. Its **Chart options** menu, in the card's header,
-  offers the same views as an experiment's [metric
-  charts](experiments.md#metric-charts).
+  describe the same point. Its **Chart options** menu and **Enlarge** button,
+  in the card's header, work as on an experiment's [metric
+  charts](experiments.md#metric-charts); enlarged, the card takes the whole
+  metrics column at twice its height and the cards after it move beneath.
 - The **Objective by step** card follows these two, so the surface, the point
   in flight and the study's history are read together.
 - A study with [constraints](#constraints) adds a **Constraints** card as the

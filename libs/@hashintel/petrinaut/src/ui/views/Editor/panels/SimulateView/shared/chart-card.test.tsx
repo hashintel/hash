@@ -13,6 +13,7 @@ import {
   CHART_CARD_FOOTER_CHROME,
   CHART_CARD_HEADER_HEIGHT,
   ChartCard,
+  chartCardBodyHeight,
   ChartCardGrid,
   chartCardHeight,
 } from "./chart-card";
@@ -117,6 +118,13 @@ describe("chartCardHeight", () => {
   });
 });
 
+describe("chartCardBodyHeight", () => {
+  it("inverts chartCardHeight for a card without a footer", () => {
+    expect(chartCardBodyHeight(chartCardHeight({ bodyHeight: 220 }))).toBe(220);
+    expect(chartCardBodyHeight(2 * 307 + 16)).toBe(543);
+  });
+});
+
 describe("ChartCardGrid", () => {
   it("fixes every row's height and fits as many columns as the width allows", () => {
     render(
@@ -136,5 +144,19 @@ describe("ChartCardGrid", () => {
       "repeat(auto-fill, minmax(min(100%, 360px), 1fr))",
     );
     expect(grid.querySelectorAll("[data-chart-card]")).toHaveLength(2);
+  });
+
+  it("declares reading-flow so Tab follows the packed order where the browser supports it", () => {
+    render(
+      <ChartCardGrid minColumnWidth={360} rowHeight={295}>
+        <ChartCard title="One" bodyHeight={220}>
+          <span />
+        </ChartCard>
+      </ChartCardGrid>,
+    );
+
+    const grid = document.querySelector<HTMLElement>("[data-chart-card-grid]")!;
+    expect(grid.className).toContain("grid-af_row_dense");
+    expect(grid.className).toContain("reading-flow_grid-order");
   });
 });
