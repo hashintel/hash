@@ -2,7 +2,9 @@ use core::{error::Error, fmt};
 use std::io;
 
 use aws_smithy_runtime_api::client::{orchestrator::HttpResponse, result::SdkError};
-use aws_smithy_types::byte_stream::error::Error as ByteStreamError;
+use aws_smithy_types::{
+    byte_stream::error::Error as ByteStreamError, error::operation::BuildError,
+};
 use tokio::task::JoinError;
 
 use super::path::error::FilePathError;
@@ -42,6 +44,13 @@ pub enum StorageError {
     MissingChecksum,
     /// The S3 response omitted the multipart upload identifier.
     MissingUploadId,
+    /// Constructing a required S3 request field failed.
+    Build(BuildError),
+    /// S3 accepted a deletion request but refused individual objects.
+    DeleteRefused {
+        /// Every per-object error from the response, in response order.
+        failures: Vec<aws_sdk_s3::types::Error>,
+    },
     /// An S3 request failed, retaining its service response or transport failure.
     Request(Box<SdkError<aws_sdk_s3::Error, HttpResponse>>),
 }
@@ -66,7 +75,9 @@ impl StorageError {
             | Self::InvalidContentLength
             | Self::MissingEntityTag
             | Self::MissingChecksum
-            | Self::MissingUploadId => false,
+            | Self::MissingUploadId
+            | Self::Build(_)
+            | Self::DeleteRefused { .. } => false,
         }
     }
 
@@ -91,7 +102,9 @@ impl StorageError {
             | Self::InvalidContentLength
             | Self::MissingEntityTag
             | Self::MissingChecksum
-            | Self::MissingUploadId => false,
+            | Self::MissingUploadId
+            | Self::Build(_)
+            | Self::DeleteRefused { .. } => false,
         }
     }
 }
@@ -118,6 +131,33 @@ impl fmt::Display for StorageError {
             Self::MissingEntityTag => fmt.write_str("S3 returned no entity tag"),
             Self::MissingChecksum => fmt.write_str("S3 returned no requested part checksum"),
             Self::MissingUploadId => fmt.write_str("S3 returned no multipart upload identifier"),
+            Self::Build(error) => write!(fmt, "constructing the S3 request failed: {error}"),
+            Self::DeleteRefused { failures } => {
+                write!(fmt, "S3 refused {} object deletions: ", failures.len())?;
+                for (position, failure) in failures.iter().enumerate() {
+                    if position > 0 {
+                        fmt.write_str(", ")?;
+                    }
+
+                    write!(
+                        fmt,
+                        "{} ({}",
+                        failure.key().unwrap_or("<no key>"),
+                        failure.code().unwrap_or("<no code>")
+                    )?;
+
+                    if let Some(version) = failure.version_id() {
+                        write!(fmt, ", version {version}")?;
+                    }
+
+                    if let Some(message) = failure.message() {
+                        write!(fmt, ": {message}")?;
+                    }
+
+                    fmt.write_str(")")?;
+                }
+                Ok(())
+            }
             Self::Request(error) => write!(fmt, "S3 request failed: {error}"),
             Self::InvalidFilePath(error) => write!(fmt, "invalid file path: {error}"),
         }
@@ -135,10 +175,12 @@ impl Error for StorageError {
             | Self::InvalidContentLength
             | Self::MissingEntityTag
             | Self::MissingChecksum
-            | Self::MissingUploadId => None,
+            | Self::MissingUploadId
+            | Self::DeleteRefused { .. } => None,
             Self::Io(error) => Some(error),
             Self::Join(error) => Some(error),
             Self::Body(error) => Some(error),
+            Self::Build(error) => Some(error),
             Self::Request(error) => Some(error.as_ref()),
             Self::InvalidFilePath(error) => Some(error),
         }
@@ -166,6 +208,12 @@ impl From<JoinError> for StorageError {
 impl From<ByteStreamError> for StorageError {
     fn from(value: ByteStreamError) -> Self {
         Self::Body(value)
+    }
+}
+
+impl From<BuildError> for StorageError {
+    fn from(value: BuildError) -> Self {
+        Self::Build(value)
     }
 }
 

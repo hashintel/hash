@@ -9,9 +9,7 @@ use core::{fmt, str::FromStr};
 
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
-use futures::{FutureExt, Stream, StreamExt, TryFutureExt, TryStreamExt, stream};
 use tokio::{fs, io::AsyncBufRead};
-use tokio_stream::wrappers::ReadDirStream;
 use tokio_util::either::Either;
 
 use self::error::FilePathError;
@@ -53,13 +51,6 @@ impl FilePath {
         match &self.variant {
             FilePathVariant::Local(_) => Ok(()),
             FilePathVariant::Bucket(_) => storage.s3().map(|_| ()),
-        }
-    }
-
-    pub(crate) fn file_name(&self) -> Option<&str> {
-        match &self.variant {
-            FilePathVariant::Local(path) => path.file_name(),
-            FilePathVariant::Bucket(path) => path.file_name(),
         }
     }
 
@@ -233,39 +224,12 @@ impl FilePath {
         }
     }
 
-    pub(crate) fn read_dir(
-        &self,
-        storage: &Storage,
-    ) -> impl Stream<Item = Result<FilePath, StorageError>> {
-        match &self.variant {
-            FilePathVariant::Local(path) => {
-                stream::once(tokio::fs::read_dir(path).map_ok(ReadDirStream::new))
-                    .try_flatten()
-                    .err_into::<StorageError>()
-                    .and_then(|entry| {
-                        core::future::ready(
-                            Utf8PathBuf::from_path_buf(entry.path())
-                                .map(|path| Self {
-                                    variant: FilePathVariant::Local(path),
-                                })
-                                .map_err(|path| {
-                                    StorageError::from(FilePathError::NonUtf8Path { path })
-                                }),
-                        )
-                    })
-                    .left_stream()
-            }
-            FilePathVariant::Bucket(path) => stream::iter([storage.s3()])
-                .err_into::<StorageError>()
-                .map_ok(|s3| s3.read_dir(path))
-                .try_flatten()
-                .map_ok(|bucket| FilePath {
-                    variant: FilePathVariant::Bucket(bucket),
-                })
-                .right_stream(),
-        }
-    }
-
+    /// Removes this file or object.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if the backend is unavailable or deletion fails. An absent local
+    /// file returns a not-found error. S3 accepts an absent object.
     pub(crate) async fn remove(&self, storage: &Storage) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => tokio::fs::remove_file(path).await.map_err(From::from),
@@ -273,6 +237,15 @@ impl FilePath {
         }
     }
 
+    /// Removes a local directory recursively or every S3 object under its slash-delimited prefix.
+    ///
+    /// Retains an S3 object whose key equals this path without a trailing slash.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if the backend is unavailable or listing or deletion fails. Removal
+    /// may be partial. An absent local directory returns a not-found error. An empty S3 prefix
+    /// succeeds.
     pub(crate) async fn remove_dir_all(&self, storage: &Storage) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {

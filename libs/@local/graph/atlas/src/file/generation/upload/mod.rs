@@ -1,9 +1,8 @@
 //! Metadata-last publication preserves complete generations across independent object writes.
 
-use core::{pin::pin, str::FromStr as _};
+use core::pin::pin;
 
 use bytes::Bytes;
-use futures::TryStreamExt;
 use tokio::io::AsyncReadExt as _;
 
 use self::backend::GenerationUploadBackend;
@@ -20,17 +19,29 @@ mod tests;
 
 pub(crate) use self::error::UploadError;
 
-struct PromotionOptions {
-    prune_active_generations: bool,
+/// Retention settings applied after a confirmed promotion.
+#[derive(Debug)]
+pub(crate) struct PromotionOptions {
+    /// Removes the captured old previous active prefix after updating both pointers.
+    ///
+    /// Enabled by default. Pruning preserves the new current and previous identities and every
+    /// repository prefix.
+    pub prune_active_generations: bool = true,
 }
 
-/// The destination's selected generation and the revision a promotion writes against.
-struct RemoteGeneration {
+const impl Default for PromotionOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
+/// A selected generation identity and the revision of its pointer object.
+struct GenerationPointer {
     id: GenerationId,
     revision: Revision,
 }
 
-impl RemoteGeneration {
+impl GenerationPointer {
     /// Reads the pointer object, returning [`None`] when no object exists.
     ///
     /// # Errors
@@ -39,12 +50,12 @@ impl RemoteGeneration {
     /// fails.
     async fn read(
         backend: &impl GenerationUploadBackend,
-        path: &FilePath,
+        path: FilePath,
     ) -> Result<Option<Self>, UploadError> {
         // read one byte beyond the hex identity to detect trailing data.
         const LIMIT: u64 = (Sha256Digest::BYTES * 2 + 1) as u64;
 
-        let contents = match backend.get(path).await {
+        let contents = match backend.get(&path).await {
             Ok(output) => output,
             Err(error) if error.is_not_found() => return Ok(None),
             Err(error) => return Err(error.into()),
@@ -52,15 +63,21 @@ impl RemoteGeneration {
         let (reader, revision) = contents.into_parts();
 
         let mut body = String::new();
-        let mut reader = pin!(reader.take(LIMIT));
-        reader.read_to_string(&mut body).await?;
-        let id = body.parse()?;
+
+        {
+            let mut reader = pin!(reader.take(LIMIT));
+            reader.read_to_string(&mut body).await?;
+        }
+
+        let id = body
+            .parse()
+            .map_err(|error| UploadError::Pointer { path, error })?;
 
         Ok(Some(Self { id, revision }))
     }
 }
 
-/// A confirmed current-pointer update and its advisory previous-pointer result.
+/// A confirmed current-pointer update.
 #[derive(Debug)]
 pub(crate) struct Promotion {
     pub id: GenerationId,
@@ -75,17 +92,19 @@ pub(crate) struct Upload<'path, B> {
     backend: B,
     root: &'path GenerationRoot,
     remote: &'path RemoteRoot,
-    current: Option<RemoteGeneration>,
-    previous: Option<RemoteGeneration>,
+    current: Option<GenerationPointer>,
+    previous: Option<GenerationPointer>,
 }
 
 impl<'path, B> Upload<'path, B>
 where
     B: GenerationUploadBackend,
 {
-    /// Captures the current-pointer value and its write precondition.
+    /// Captures the current and previous pointers before fitting.
     ///
-    /// `destination` is the parent path of the `generations/` namespace.
+    /// `destination` is the parent path of the `generations/` namespace. The current revision
+    /// supplies the selection precondition. The previous identity supplies the optional pruning
+    /// target.
     ///
     /// # Errors
     ///
@@ -104,8 +123,8 @@ where
             previous: None,
         };
 
-        this.current = RemoteGeneration::read(&this.backend, &this.remote.current()?).await?;
-        this.previous = RemoteGeneration::read(&this.backend, &this.remote.previous()?).await?;
+        this.current = GenerationPointer::read(&this.backend, this.remote.current()?).await?;
+        this.previous = GenerationPointer::read(&this.backend, this.remote.previous()?).await?;
 
         Ok(this)
     }
@@ -229,10 +248,43 @@ where
         self.finish_object(destination, id.digest(), result).await
     }
 
+    /// Removes an active prefix, metadata first.
+    ///
+    /// Missing metadata or an absent prefix permits cleanup to complete.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UploadError`] if constructing a path or removing its contents fails. A metadata
+    /// removal failure stops cleanup before any artifact removal.
+    async fn prune(&self, id: GenerationId) -> Result<(), UploadError> {
+        let remote = self.remote.active(id)?;
+
+        // metadata marks a complete generation. remove it before dismantling the artifacts.
+        if let Err(error) = self.backend.remove(&remote.metadata()?).await
+            && !error.is_not_found()
+        {
+            return Err(error.into());
+        }
+
+        if let Err(error) = self.backend.remove_dir_all(remote.directory()).await
+            && !error.is_not_found()
+        {
+            return Err(error.into());
+        }
+
+        Ok(())
+    }
+
     /// Completes an active prefix and selects it against the captured current pointer.
     ///
     /// A completed repository prefix supplies the copy sources. The current-pointer write makes one
-    /// attempt. A successful [`Promotion`] retains any error from updating advisory previous.
+    /// attempt. After selection, the captured current identity replaces previous. If updating
+    /// previous fails, promotion logs the error and skips pruning.
+    ///
+    /// Pruning removes only the captured old previous active prefix, preserving the new current and
+    /// previous identities. An absent captured current leaves previous and its prefix untouched.
+    /// Promotion logs cleanup failures and still returns success. Interrupted cleanup can require
+    /// manual removal of the remaining prefix.
     ///
     /// # Errors
     ///
@@ -299,31 +351,36 @@ where
             });
         }
 
-        if let Some(id) = previous_id {
-            if let Err(error) = self
-                .backend
-                .put(&previous, Bytes::from(id.to_string()), WriteCondition::Any)
-                .await
-            {
-                // TODO(BE-842): telemetry for failed pruning
-                tracing::error!(%error, generation = %id, "failed to update previous generation pointer, next update cycle will likely skip a generation to prune (if enabled)");
-            }
+        let Some(previous_id) = previous_id else {
+            return Ok(Promotion { id });
+        };
+
+        if let Err(error) = self
+            .backend
+            .put(
+                &previous,
+                Bytes::from(previous_id.to_string()),
+                WriteCondition::Any,
+            )
+            .await
+        {
+            // TODO(BE-842): telemetry for failed pruning
+            tracing::error!(%error, generation = %previous_id, "failed to update previous generation pointer; skipping pruning");
+            return Ok(Promotion { id });
         }
 
+        #[expect(
+            clippy::collapsible_if,
+            reason = "side effect is better expressed through nested if"
+        )]
         if options.prune_active_generations
             && let Some(prior_generation) = self.previous.as_ref()
+            && prior_generation.id != id
+            && prior_generation.id != previous_id
         {
-            let remote = self.remote.active(prior_generation.id)?;
-
-            // first delete the `metadata.json` which is used to track the generation's state
-            if let Err(error) = self.backend.remove(&remote.metadata()?).await {
+            if let Err(error) = self.prune(prior_generation.id).await {
                 // TODO(BE-842): telemetry for failed pruning
-                tracing::error!(%error, generation = %prior_generation.id, "failed to prune active generation, manual cleanup may be required");
-            }
-
-            if let Err(error) = self.backend.remove_dir_all(remote.directory()).await {
-                // TODO(BE-842): telemetry for failed pruning
-                tracing::error!(%error, generation = %prior_generation.id, "failed to prune active generation, manual cleanup may be required");
+                tracing::error!(%error, generation = %prior_generation.id, "failed to prune active generation; check remaining objects for manual cleanup");
             }
         }
 

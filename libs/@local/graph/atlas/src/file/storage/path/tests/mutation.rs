@@ -60,7 +60,7 @@ async fn get_replaced_contents() {
     path.put(
         &storage,
         Bytes::from_static(b"new"),
-        WriteCondition::Match(revision),
+        WriteCondition::Match(&revision),
     )
     .await
     .expect("should replace the observed contents");
@@ -120,7 +120,7 @@ async fn put_match_missing() {
         .put(
             &storage,
             Bytes::from_static(b"new"),
-            WriteCondition::Match(revision),
+            WriteCondition::Match(&revision),
         )
         .await
         .expect_err("should refuse the missing revision");
@@ -203,12 +203,12 @@ async fn put_match_competing() {
         path.put(
             &storage,
             Bytes::from_static(b"first"),
-            WriteCondition::Match(first_revision)
+            WriteCondition::Match(&first_revision)
         ),
         path.put(
             &storage,
             Bytes::from_static(b"second"),
-            WriteCondition::Match(second_revision)
+            WriteCondition::Match(&second_revision)
         ),
     );
     let expected = match (first, second) {
