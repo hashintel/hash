@@ -26,7 +26,6 @@ const bodyStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2.5",
-  padding: "3",
   width: "[312px]",
 });
 
@@ -62,7 +61,7 @@ export const MetricViewMenu = ({
           onClose={() => setOpen(false)}
         >
           <Popover.Container>
-            <Popover.Body withPadding={false} className={bodyStyle}>
+            <Popover.Body className={bodyStyle}>
               {outputType === "distribution" ? (
                 <AggregationDimension
                   label="Runs"
