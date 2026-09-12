@@ -1,4 +1,4 @@
-import { isValidElement } from "react";
+import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -36,6 +36,32 @@ const model = (
   experiment: ExperimentRecord,
   overrides: Partial<ExperimentResultsDependencies> = {},
 ) => experimentResultsModel(experiment, { ...dependencies, ...overrides });
+
+type LabelledElement = ReactElement<{
+  children?: ReactNode;
+  onClick?: () => void;
+}>;
+
+/** The first element under `node` whose only child is the text `label`, e.g. a button. */
+const elementLabelled = (
+  node: ReactNode,
+  label: string,
+): LabelledElement | null => {
+  if (!isValidElement<{ children?: ReactNode; onClick?: () => void }>(node)) {
+    return null;
+  }
+  if (node.props.children === label) {
+    return node;
+  }
+  const children = node.props.children;
+  for (const child of Array.isArray(children) ? children : [children]) {
+    const found = elementLabelled(child, label);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+};
 
 const statTexts = (experiment: ExperimentRecord) =>
   Object.fromEntries(
@@ -214,5 +240,26 @@ describe("experimentResultsModel with the optimizer", () => {
     expect(
       (result.surface as { props: { following: boolean; tone: string } }).props,
     ).toMatchObject({ following: true, tone: "optimizing" });
+  });
+
+  it("stops the study before cancelling the sweep", () => {
+    const stop = vi.fn();
+    const cancelExperiment = vi.fn();
+    const result = model(sweep, {
+      actions: { ...dependencies.actions, cancelExperiment },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study,
+        driving: true,
+        stop,
+      },
+    });
+    elementLabelled(result.footer, "Cancel")?.props.onClick?.();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(cancelExperiment).toHaveBeenCalledWith(sweep.id);
+    expect(stop.mock.invocationCallOrder[0]).toBeLessThan(
+      cancelExperiment.mock.invocationCallOrder[0]!,
+    );
   });
 });
