@@ -198,15 +198,9 @@ export const EditorView = ({
   const effectiveMode = useEffectiveGlobalMode();
 
   const toggleAiAssistant = () => {
-    if (
-      isAiAssistantOpen &&
-      (effectiveMode === "edit" || effectiveMode === "actual")
-    ) {
+    if (isAiAssistantOpen) {
       setAiAssistantOpen(false);
       return;
-    }
-    if (effectiveMode !== "edit" && effectiveMode !== "actual") {
-      setGlobalMode("edit");
     }
     setAiAssistantCollapsed(false);
     setAiAssistantOpen(true);
@@ -584,35 +578,35 @@ export const EditorView = ({
 
               {/* Bottom Panel */}
               <BottomPanel />
-
-              <BottomBar
-                mode={effectiveMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
             </Box>
           )}
-          {aiAssistant &&
-            (effectiveMode === "edit" || effectiveMode === "actual") && (
-              <AiAssistantPanel
-                /** Reset state (e.g. initial messages) when the active net changes */
-                key={petriNetId ?? "no-net"}
-                aiAssistant={aiAssistant}
-                focusRequest={aiAssistantFocusRequest}
-                initialMessage={pendingAiAssistantMessage}
-                initialInteractionMode={pendingAiInteractionMode}
-                offerStartPosture={offerStartPosture}
-                onInitialMessageConsumed={() =>
-                  setPendingAiAssistantMessage(null)
-                }
-                onInitialInteractionModeConsumed={() =>
-                  setPendingAiInteractionMode(null)
-                }
-              />
-            )}
+          {(effectiveMode === "edit" || effectiveMode === "actual") && (
+            <BottomBar
+              mode={effectiveMode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+              hasAiAssistant={aiAssistant !== undefined}
+            />
+          )}
+          {aiAssistant && (
+            <AiAssistantPanel
+              /** Reset state (e.g. initial messages) when the active net changes */
+              key={`ai-assistant-${petriNetId ?? "no-net"}`}
+              aiAssistant={aiAssistant}
+              focusRequest={aiAssistantFocusRequest}
+              initialMessage={pendingAiAssistantMessage}
+              initialInteractionMode={pendingAiInteractionMode}
+              offerStartPosture={offerStartPosture}
+              onInitialMessageConsumed={() =>
+                setPendingAiAssistantMessage(null)
+              }
+              onInitialInteractionModeConsumed={() =>
+                setPendingAiInteractionMode(null)
+              }
+            />
+          )}
         </Stack>
       </VoiceSessionProvider>
 
