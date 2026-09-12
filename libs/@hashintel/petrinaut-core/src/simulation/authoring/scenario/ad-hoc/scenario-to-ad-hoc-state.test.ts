@@ -20,6 +20,7 @@ import {
 import { adHocStateFromScenario } from "./scenario-to-ad-hoc-state";
 
 import type {
+  AdHocScenarioState,
   Color,
   Parameter,
   Place,
@@ -100,23 +101,68 @@ const EXPECTED_NET_PARAMETERS = [
 ];
 
 describe("adHocStateFromScenario", () => {
-  it("returns an adhoc scenario's stored definition verbatim", () => {
-    const stored = {
-      variables: [],
-      netParameters: [],
-      places: {
-        "place-debris": {
-          kind: "uncoloured" as const,
-          count: { expression: "scenario.satellites * 2", optimize: null },
-        },
+  const gravityOverride = {
+    parameterId: "param-gravity",
+    expression: "9.81",
+    optimize: null,
+  };
+  const goneOverride = {
+    parameterId: "param-gone",
+    expression: "3",
+    optimize: null,
+  };
+  const stored: AdHocScenarioState = {
+    variables: [
+      {
+        name: "boost",
+        type: "real",
+        expression: "1.5",
+        exposed: true,
+        optimize: null,
       },
-    };
+    ],
+    netParameters: [gravityOverride, goneOverride],
+    places: {
+      "place-debris": {
+        kind: "uncoloured",
+        count: { expression: "scenario.satellites * 2", optimize: null },
+      },
+    },
+  };
+
+  it("returns an adhoc scenario's stored definition", () => {
+    const result = adHocStateFromScenario(
+      scenario({
+        type: "adhoc",
+        content: { ...stored, netParameters: [gravityOverride] },
+      }),
+      CONTEXT,
+    );
+    expect(result.kind).toBe("adhoc");
+    expect(result.state).toEqual({
+      ...stored,
+      netParameters: [gravityOverride],
+    });
+  });
+
+  it("drops a stale override from an adhoc scenario's stored definition", () => {
     const result = adHocStateFromScenario(
       scenario({ type: "adhoc", content: stored }),
       CONTEXT,
     );
-    expect(result.kind).toBe("adhoc");
-    expect(result.state).toBe(stored);
+    expect(result.state.netParameters).toEqual([gravityOverride]);
+    expect(result.state.variables).toEqual(stored.variables);
+    expect(result.state.places).toEqual(stored.places);
+  });
+
+  it("drops every adhoc override when the context carries no net parameters", () => {
+    const result = adHocStateFromScenario(
+      scenario({ type: "adhoc", content: stored }),
+      { ...CONTEXT, netParameters: [] },
+    );
+    expect(result.state.netParameters).toEqual([]);
+    expect(result.state.variables).toEqual(stored.variables);
+    expect(result.state.places).toEqual(stored.places);
   });
 
   it("returns a code scenario's body verbatim with Variables and Parameters only", () => {

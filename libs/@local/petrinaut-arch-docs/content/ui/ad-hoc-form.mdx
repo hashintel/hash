@@ -43,7 +43,8 @@ identifiers verbatim so value pushes bypass the ad-hoc snake_case mapping.
 
 The edit drawer opens every stored kind in the same expose-mode form,
 seeded by `adHocStateFromScenario` (petrinaut-core): an `adhoc` scenario
-verbatim; a `per_place` scenario converted losslessly — parameters as
+as stored, minus overrides for parameters the net no longer has; a
+`per_place` scenario converted losslessly — parameters as
 exposed Variables, expressions and token rows as the form's blocks — and
 rewritten as `adhoc` only when the user saves; a `code` scenario as its
 Variables and Parameters, with the code body shown read-only in the
