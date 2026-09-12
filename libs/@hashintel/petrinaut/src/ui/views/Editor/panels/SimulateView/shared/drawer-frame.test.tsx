@@ -28,6 +28,15 @@ import {
 
 import type { ReactNode } from "react";
 
+// The computing list's popover positions itself on the next frame through a
+// ResizeObserver jsdom lacks; nothing here depends on a measurement.
+class ObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
+
 afterEach(cleanup);
 
 /** The computing chip's shape: a button in the stats line, disabled once nothing computes. */
