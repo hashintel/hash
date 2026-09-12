@@ -115,7 +115,8 @@ objective by step, the shared `ObjectiveHistoryChart`
 `buildObjectiveHistory` (`SimulateView/shared/objective-history-data.ts`)
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
-(`[steps, objectives, bestSoFar]`), and the chart draws the objectives as
+(`[steps, objectives, bestSoFar]`, with a null gap sample half a step before
+each divider so the best line breaks between studies), and the chart draws the objectives as
 dots and the best as a stepped line, in the palette and sizes its
 `ObjectiveHistoryStyle` names, with an optional pinned right edge (`xMax`)
 and dashed `dividers` between studies for the sweep's objective strip
@@ -224,7 +225,8 @@ and yields the `xMax` and `dividers` the chart takes: a divider at the first
 step of every further study that drew a step or is about to, and the right
 edge pinned to the last study's `requestedTrials` while it is active, so the
 axis stops at the last step run once Stop or an error ended it. A study that
-failed before its first step counts nowhere.
+failed before its first step counts nowhere; a sweep whose only study did
+gets the empty summary, and the row reads `0 steps` with no metric.
 
 ## The steps table
 
