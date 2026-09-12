@@ -145,4 +145,18 @@ describe("ChartCardGrid", () => {
     );
     expect(grid.querySelectorAll("[data-chart-card]")).toHaveLength(2);
   });
+
+  it("declares reading-flow so Tab follows the packed order where the browser supports it", () => {
+    render(
+      <ChartCardGrid minColumnWidth={360} rowHeight={295}>
+        <ChartCard title="One" bodyHeight={220}>
+          <span />
+        </ChartCard>
+      </ChartCardGrid>,
+    );
+
+    const grid = document.querySelector<HTMLElement>("[data-chart-card-grid]")!;
+    expect(grid.className).toContain("grid-af_row_dense");
+    expect(grid.className).toContain("reading-flow_grid-order");
+  });
 });

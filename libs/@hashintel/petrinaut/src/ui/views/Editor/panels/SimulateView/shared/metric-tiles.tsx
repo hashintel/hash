@@ -120,6 +120,7 @@ export const MetricTiles = ({
                   iconName={large ? "collapse" : "expand"}
                   variant="ghost"
                   size="xs"
+                  pressed={large}
                   aria-label={sizeLabel}
                   tooltip={sizeLabel}
                   onClick={() =>

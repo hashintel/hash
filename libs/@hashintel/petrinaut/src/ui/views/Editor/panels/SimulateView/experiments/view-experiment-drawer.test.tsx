@@ -317,7 +317,9 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(metricCards.length).toBeGreaterThan(0);
     expect(before.cards.length).toBeGreaterThan(metricCards.length);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Enlarge" })[0]!);
+    const enlarge = screen.getAllByRole("button", { name: "Enlarge" })[0]!;
+    expect(enlarge.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(enlarge);
 
     // Two 307px rows and the 16px gap between them, less the card's chrome.
     const after = frameLayoutSignature(view.container);
@@ -329,7 +331,9 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(
       screen.getAllByTestId("metric-timeline")[0]!.dataset.plotHeight,
     ).toBe("543");
-    expect(screen.getByRole("button", { name: "Shrink" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Shrink", pressed: true }),
+    ).toBeTruthy();
     expect(after.cards.filter(([title]) => title !== enlarged![0])).toEqual(
       before.cards.filter(([title]) => title !== enlarged![0]),
     );

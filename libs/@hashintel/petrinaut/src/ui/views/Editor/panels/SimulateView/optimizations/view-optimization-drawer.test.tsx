@@ -1140,14 +1140,18 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     const others = (cards: typeof before.cards) =>
       cards.filter(([title]) => title !== objectiveTitle);
 
-    fireEvent.click(screen.getByRole("button", { name: "Enlarge" }));
+    const enlarge = screen.getByRole("button", { name: "Enlarge" });
+    expect(enlarge.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(enlarge);
 
     // Two 408px rows and the 16px gap between them, less the card's chrome.
     const after = frameLayoutSignature(view.container);
     expect(after.cards.find(([title]) => title === objectiveTitle)![1]).toBe(
       "745px",
     );
-    expect(screen.getByRole("button", { name: "Shrink" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Shrink", pressed: true }),
+    ).toBeTruthy();
     expect(others(after.cards)).toEqual(others(before.cards));
     expect(after.gridRows).toEqual(before.gridRows);
 
