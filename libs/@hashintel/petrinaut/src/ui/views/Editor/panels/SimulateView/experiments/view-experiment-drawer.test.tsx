@@ -826,14 +826,15 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
       },
     });
     const singleParameter = makeTrials(singleParameterInput, 30);
-    renderDrawerWithStudies(idleSweep, [
+    renderDrawerWithStudies(
+      idleSweep,
       sweepStudy(idleSweep, {
         status: "complete",
         input: singleParameterInput,
         trials: singleParameter.trials,
         best: singleParameter.best,
       }),
-    ]);
+    );
 
     const card = importanceCard();
     expect(card.getAttribute("data-tone")).toBe("default");
