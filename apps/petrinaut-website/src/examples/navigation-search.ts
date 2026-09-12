@@ -2,9 +2,10 @@
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
  * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section, and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run or
- * a record inside the open document rather than a place in the app.
+ * the focused item, the editor's mode, its Simulate section, the overlay it
+ * has open and how it presents an open optimization. It deliberately leaves
+ * out `simulateResource`, which names a run or a record inside the open
+ * document rather than a place in the app.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is
@@ -20,6 +21,7 @@ import {
   type SharedExampleSearch,
   type SharedMode,
   type SharedOverlay,
+  type SharedPresentation,
   type SharedSimulateView,
 } from "./example-search";
 
@@ -29,6 +31,7 @@ import type {
   PetrinautNavigationOverlay,
   PetrinautNavigationState,
   PetrinautNavigationUpdater,
+  PetrinautSimulatePresentation,
   SimulateViewMode,
 } from "@hashintel/petrinaut/react";
 
@@ -73,6 +76,14 @@ const overlayFromSearch = (
   overlay: SharedOverlay,
 ): PetrinautNavigationOverlay => ({ type: overlay });
 
+const presentationToSearch = (
+  presentation: PetrinautSimulatePresentation,
+): SharedPresentation => presentation;
+
+const presentationFromSearch = (
+  presentation: SharedPresentation,
+): PetrinautSimulatePresentation => presentation;
+
 export const sharedSearchToNavigationState = (
   search: SharedExampleSearch,
   baseline: PetrinautNavigationState = defaultPetrinautNavigationState,
@@ -87,6 +98,10 @@ export const sharedSearchToNavigationState = (
     search.overlay === undefined
       ? baseline.overlay
       : overlayFromSearch(search.overlay),
+  simulatePresentation:
+    search.present === undefined
+      ? baseline.simulatePresentation
+      : presentationFromSearch(search.present),
 });
 
 export const navigationStateToSharedSearch = (
@@ -96,6 +111,7 @@ export const navigationStateToSharedSearch = (
   const mode = modeToSearch(state.mode);
   const view = simulateViewToSearch(state.simulateView);
   const overlay = overlayToSearch(state.overlay);
+  const present = presentationToSearch(state.simulatePresentation);
   return {
     scenario: scenarioToSearch(state.scenarioId),
     subnet: state.subnetId ?? undefined,
@@ -106,6 +122,10 @@ export const navigationStateToSharedSearch = (
       view === simulateViewToSearch(baseline.simulateView) ? undefined : view,
     overlay:
       overlay === overlayToSearch(baseline.overlay) ? undefined : overlay,
+    present:
+      present === presentationToSearch(baseline.simulatePresentation)
+        ? undefined
+        : present,
     ...selectionToSearch(state.selection),
   };
 };
@@ -127,10 +147,10 @@ export const navigationStateToPreviewSearch = (
  * Applies a Preview navigation to a search, keeping the fields the Preview
  * does not navigate.
  *
- * Writing the projection alone would drop `mode`, `view` and `overlay` on the
- * first selection, and an embed can arrive carrying them: oEmbed copies the
- * source page's `mode` into the iframe URL. A surface that does not understand
- * a field must not destroy it.
+ * Writing the projection alone would drop `mode`, `view`, `overlay` and
+ * `present` on the first selection, and an embed can arrive carrying them:
+ * oEmbed copies the source page's `mode` into the iframe URL. A surface that
+ * does not understand a field must not destroy it.
  */
 export const applyPreviewNavigationUpdate = (
   search: SharedExampleSearch,
@@ -139,6 +159,7 @@ export const applyPreviewNavigationUpdate = (
   mode: search.mode,
   view: search.view,
   overlay: search.overlay,
+  present: search.present,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),

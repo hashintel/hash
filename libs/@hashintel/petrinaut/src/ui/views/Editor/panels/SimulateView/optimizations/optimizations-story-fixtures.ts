@@ -533,6 +533,119 @@ export function useFakeStudyClock({
   };
 }
 
+/** The study the drawer and full-view stories share: three optimized parameters, one on a log scale. */
+export const fakeStudyInput = makeOptimizationInput(
+  optimizedBindingSets.logScale,
+);
+export const fakeStudyTrials = makeTrials(fakeStudyInput, 30);
+
+/** The refinement ladder a navigated point climbs in the stories, one rung per 900 ms. */
+const REFINEMENT_LADDER = [8, 25, 100];
+
+/**
+ * A connected study for the drawer and full-view stories: while `running`,
+ * one step lands every 1.2 s and the navigation follows the next; otherwise
+ * the complete study. Picking a point by hand stops following, and the
+ * selection stream is faked from the synthetic objective, refining in three
+ * batches after every move. Returns the record and the context value the
+ * story mounts.
+ */
+export function useFakeConnectedStudy({
+  running,
+  fallbackReason = null,
+  refinementError = null,
+}: {
+  running: boolean;
+  fallbackReason?: string | null;
+  /** Set to have every navigated point fail with this reason instead of refining. */
+  refinementError?: string | null;
+}): { optimization: OptimizationRecord; value: OptimizationsContextValue } {
+  const input = fakeStudyInput;
+  const allTrials = fakeStudyTrials;
+  const clock = useFakeStudyClock({
+    steps: running ? allTrials.trials.length : 0,
+    ticksPerStep: 8,
+    tickMs: 150,
+  });
+  const landed = running ? clock.landed : allTrials.trials.length;
+  const trials = allTrials.trials.slice(0, landed);
+  const inFlight = running ? allTrials.trials[landed] : undefined;
+
+  const [chosen, setChosen] = useState<OptimizationNavigation>(() =>
+    navigationAtTrial(input, allTrials.trials[0]!, true),
+  );
+  // While following, the navigation is wherever the optimizer is evaluating;
+  // once every step has landed it holds at the last one.
+  const navigation = chosen.followTrials
+    ? navigationAtTrial(input, inFlight ?? allTrials.trials.at(-1)!, true)
+    : chosen;
+  const key = navigationKey(input, navigation);
+
+  const [refinement, setRefinement] = useState({ key, rung: 0 });
+  if (refinement.key !== key) {
+    setRefinement({ key, rung: 0 });
+  }
+  useEffect(() => {
+    if (refinement.rung >= REFINEMENT_LADDER.length - 1) {
+      return;
+    }
+    const timer = setTimeout(
+      () =>
+        setRefinement((previous) =>
+          previous.key === key ? { key, rung: previous.rung + 1 } : previous,
+        ),
+      900,
+    );
+    return () => clearTimeout(timer);
+  }, [key, refinement.rung]);
+
+  const rung = refinement.key === key ? refinement.rung : 0;
+  const selection =
+    inFlight && navigation.followTrials
+      ? makeSelectionStream({
+          input,
+          navigation,
+          followedTrial: inFlight.trial,
+          runsCompleted: 1,
+          computing: true,
+          progress: clock.progress,
+        })
+      : refinementError !== null
+        ? makeSelectionStream({
+            input,
+            navigation,
+            runsCompleted: 0,
+            error: refinementError,
+          })
+        : makeSelectionStream({
+            input,
+            navigation,
+            runsCompleted: REFINEMENT_LADDER[rung]!,
+            runTarget: REFINEMENT_LADDER[rung + 1] ?? null,
+            computing: rung < REFINEMENT_LADDER.length - 1,
+          });
+
+  const optimization = makeOptimizationRecord({
+    input,
+    trials,
+    best: trials.at(-1)?.best ?? null,
+    status: inFlight ? "running" : "complete",
+    connected: makeConnectedStudyState(input, {
+      navigation,
+      selection,
+      resumable: !inFlight,
+      computeBackendFallbackReason: fallbackReason,
+    }),
+  });
+
+  const value = makeOptimizationsContextValue(optimization, {
+    setOptimizationNavigation: (_optimizationId, patch) =>
+      setChosen({ ...navigation, ...patch }),
+  });
+
+  return { optimization, value };
+}
+
 /**
  * The remote surface stories' local compute: the same synthetic objective
  * the fake trials used, returned as a single-bin distribution frame after

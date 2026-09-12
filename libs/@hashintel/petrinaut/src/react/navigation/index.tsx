@@ -19,10 +19,13 @@ import { ActualModeContext } from "../actual-mode-context";
 
 import type {
   EditorGlobalMode,
+  PetrinautSimulatePresentation,
   SimulateDrawerState,
   SimulateViewMode,
 } from "../state/editor-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
+
+export type { PetrinautSimulatePresentation } from "../state/editor-context";
 
 export type PetrinautSimulateResource =
   | { type: "scenario"; id: string }
@@ -49,6 +52,8 @@ export type PetrinautNavigationState = {
   mode: EditorGlobalMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
+  /** Ignored unless `simulateResource` is an optimization; `drawer` everywhere else. */
+  simulatePresentation: PetrinautSimulatePresentation;
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
@@ -59,6 +64,7 @@ export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   mode: "edit",
   simulateView: "experiments",
   simulateResource: null,
+  simulatePresentation: "drawer",
   scenarioId: undefined,
   subnetId: null,
   selection: [],
@@ -71,6 +77,7 @@ export type PetrinautNavigationAction =
   | "mode"
   | "simulation-view"
   | "simulation-resource"
+  | "simulation-presentation"
   | "scenario"
   | "subnet"
   | "selection"
@@ -169,6 +176,7 @@ export const petrinautNavigationStatesMatch = (
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&
+  left.simulatePresentation === right.simulatePresentation &&
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&

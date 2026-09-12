@@ -39,9 +39,13 @@ export const sharedOverlays = [
   "create-optimization",
 ] as const;
 
+/** How the Simulate section presents an open optimization. */
+export const sharedPresentations = ["drawer", "full"] as const;
+
 export type SharedMode = (typeof sharedModes)[number];
 export type SharedSimulateView = (typeof sharedSimulateViews)[number];
 export type SharedOverlay = (typeof sharedOverlays)[number];
+export type SharedPresentation = (typeof sharedPresentations)[number];
 
 /**
  * Search params understood by every example surface. A URL carries at most one
@@ -60,6 +64,7 @@ export type SharedExampleSearch = {
   mode?: SharedMode;
   view?: SharedSimulateView;
   overlay?: SharedOverlay;
+  present?: SharedPresentation;
 };
 
 /** The keys this contract owns. Anything else in a URL is foreign. */
@@ -71,6 +76,7 @@ const sharedSearchKeys = [
   "mode",
   "view",
   "overlay",
+  "present",
 ] as const satisfies readonly (keyof SharedExampleSearch)[];
 
 // `.catch(undefined)` is the contract's whole validation story: anything a URL
@@ -88,6 +94,10 @@ const optionalSimulateView = z
   .optional()
   .catch(undefined);
 const optionalOverlay = z.enum(sharedOverlays).optional().catch(undefined);
+const optionalPresentation = z
+  .enum(sharedPresentations)
+  .optional()
+  .catch(undefined);
 
 /** The focused item, when the URL names a complete one. */
 export const selectionFromInput = (
@@ -119,6 +129,7 @@ export const validateSharedExampleSearch = (
   mode: optionalMode.parse(input.mode),
   view: optionalSimulateView.parse(input.view),
   overlay: optionalOverlay.parse(input.overlay),
+  present: optionalPresentation.parse(input.present),
   ...selectionToSearch(selectionFromInput(input)),
 });
 

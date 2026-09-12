@@ -35,9 +35,12 @@ export const OBJECTIVE_PLOT_HEIGHT =
 export const OptimizationMetrics = ({
   optimization,
   selection,
+  title,
 }: {
   optimization: OptimizationRecord;
   selection: OptimizationSelectionStream | null;
+  /** The card's title: what point the chart describes. */
+  title: string;
 }) => {
   const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const input = optimization.input;
@@ -50,8 +53,8 @@ export const OptimizationMetrics = ({
 
   return (
     <ChartCard
-      title={metric.name}
-      subtitle={describeMetricView(settings, "distribution")}
+      title={title}
+      subtitle={`${metric.name} · ${describeMetricView(settings, "distribution")}`}
       actions={
         <MetricViewMenu
           outputType="distribution"

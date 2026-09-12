@@ -1,0 +1,111 @@
+/**
+ * The study body's first line: where the study is and which step is the
+ * best so far, with a verdict chip while it runs. Once settled the line says
+ * how the study ended and nothing pretends to still be following.
+ */
+import { Chip, type ChipColor } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { formatNumber } from "../../shared/format-value";
+import {
+  assessConvergence,
+  type ConvergenceVerdict,
+  describeConvergence,
+} from "./convergence";
+import { finishedStepCount } from "./shared/study-progress";
+import { studyPhase } from "./study-phase";
+
+import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
+
+const headerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minWidth: "[0]",
+  minHeight: "[24px]",
+  fontSize: "sm",
+  color: "neutral.s100",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const textStyle = css({
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const bestPart = (best: OptimizationRecord["best"]): string =>
+  best
+    ? `best step so far: step ${best.trial + 1} (${formatNumber(best.objective)})`
+    : "no best step yet";
+
+/**
+ * "Step 17 of 30 · best step so far: step 12 (650.5)" while live;
+ * "Stopped after 17 of 30 steps · best step so far: step 12 (650.5)" once
+ * settled.
+ */
+export const describeStudyProgress = (
+  optimization: Pick<
+    OptimizationRecord,
+    | "status"
+    | "connected"
+    | "requestedTrials"
+    | "completedTrials"
+    | "prunedTrials"
+    | "failedTrials"
+    | "best"
+  >,
+): string => {
+  const finished = finishedStepCount(optimization);
+  const requested = optimization.requestedTrials;
+  const best = bestPart(optimization.best);
+  switch (optimization.status) {
+    case "initializing":
+      return `Starting · ${best}`;
+    case "running":
+      return `Step ${Math.min(finished + 1, requested)} of ${requested} · ${best}`;
+    case "complete":
+      return finished === requested
+        ? `Finished ${requested} steps · ${best}`
+        : `Finished ${finished} of ${requested} steps · ${best}`;
+    case "cancelled":
+      return `${optimization.connected === null ? "Cancelled" : "Stopped"} after ${finished} of ${requested} steps · ${best}`;
+    case "error":
+      return `Failed after ${finished} of ${requested} steps · ${best}`;
+  }
+};
+
+const VERDICT_COLOR: Record<ConvergenceVerdict["kind"], ChipColor> = {
+  "too-early": "grey",
+  improving: "blue",
+  converging: "green",
+};
+
+export const StudyHeader = ({
+  optimization,
+}: {
+  optimization: OptimizationRecord;
+}) => {
+  const verdict =
+    studyPhase(optimization) === "live" && optimization.status === "running"
+      ? assessConvergence(
+          optimization.trials,
+          optimization.input.objective.direction,
+          optimization.requestedTrials,
+        )
+      : null;
+
+  return (
+    <div className={headerStyle} data-study-header>
+      <span className={textStyle}>{describeStudyProgress(optimization)}</span>
+      {verdict === null ? null : (
+        <span data-verdict={verdict.kind}>
+          <Chip size="xs" variant="soft" color={VERDICT_COLOR[verdict.kind]}>
+            {describeConvergence(verdict)}
+          </Chip>
+        </span>
+      )}
+    </div>
+  );
+};

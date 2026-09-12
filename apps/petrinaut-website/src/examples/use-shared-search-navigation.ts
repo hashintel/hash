@@ -38,6 +38,7 @@ const mergeSharedSearch = (
     mode: shared.mode,
     simulateView: shared.simulateView,
     overlay: shared.overlay,
+    simulatePresentation: shared.simulatePresentation,
   };
 };
 
@@ -62,8 +63,9 @@ export const withClearedSharedLocation = (
 
 /**
  * Navigation controller for pages whose URL carries the shared location: the
- * scenario, the subnet, the focused item, the mode, the Simulate section and
- * the open overlay. The editor navigates one field more than that — the
+ * scenario, the subnet, the focused item, the mode, the Simulate section, the
+ * open overlay and the presentation of an open optimization. The editor
+ * navigates one field more than that — the
  * resource open inside Simulate — so the full location still lives in page
  * state and only its shared projection reaches the URL.
  *

@@ -100,14 +100,46 @@ running in the browser, which can then be continued (see [Running in the
 browser](#running-in-the-browser)). Completed, cancelled, stopped, and failed
 records can be removed from their result drawer.
 
-Every study's drawer opens with a **Summary** card: the status, the steps
-finished over the steps requested (with the runs per step when above one), and
-the best value so far (hover it for the best step's parameters), with a
-progress bar for the steps beneath. The steps table sits at the bottom of the
-drawer, newest steps first, each with its parameters, objective value and a
-state mark (complete, pruned or failed). It scrolls on its own while the
-sections above it hold still, and a long study shows its newest 200 steps
-while the strip keeps the totals and the best.
+The drawer's footer offers **Open full view**, which gives the whole
+Optimizations section to the study: the same summary, controls, charts and
+steps, spread over the section's width so the three chart cards sit side by
+side. Its top bar holds **Back to list**, which returns to the list, and
+**Show in drawer**, which shows the same study in the drawer again. Both
+presentations are places in the app, so the browser's Back button undoes the
+switch. Once you are in the full presentation, opening another row from the
+list opens it full too.
+
+Every study opens with a summary band that holds still while the rest
+scrolls beneath it. Its first line says where the study is: **Step 17 of 30 ·
+best step so far: step 12 (650.5)** while it runs, or **Stopped after 17 of
+30 steps** (or **Finished**, **Cancelled**, **Failed**) once it is over.
+While it runs, a chip beside the line says whether the study is still finding
+better steps: **Still improving** when the best moved within the last few
+completed steps (a tenth of the requested steps, five at least),
+**Converging** when that many steps passed without a better one, and **Too
+early to say** before one such window has completed.
+
+Beneath the line, the band shows the status, the steps finished over the
+steps requested (with the runs per step when above one), and **Best step so
+far**, the best value seen so far (hover it for the best step's parameters),
+with a progress bar for the steps beneath. The value is named for what it
+is: the best of the steps tried, not a confirmed result at that
+configuration.
+
+The **Objective by step** card draws every step's objective value as a dot
+over the step number, with the best so far as a line stepping up (or down,
+for a minimized objective) through them. Pruned and failed steps have no dot.
+The line under the title counts the completed steps.
+
+The steps table sits at the bottom, newest steps first, each with its
+parameters, objective value and a state mark (complete, pruned or failed). It
+scrolls on its own, and a long study shows its newest 200 steps while the
+strip keeps the totals and the best.
+
+Once a study is over, whether it finished, was stopped, or failed, its
+charts show the results: the objective by step and the surface keep their
+final data, the objective's chart describes the point you pick, and nothing
+in the view claims to still be following a step.
 
 ### On the optimization service
 
@@ -128,8 +160,9 @@ browser](#running-in-the-browser)) shows more, because the machine computing
 it is yours, and lays it out so the strip, the controls and the plots stay in
 view on a laptop screen while the study streams:
 
-- The summary strip also shows the parallel steps when above one, and a badge
-  saying where the steps run. It reads **CPU**, because the GPU backend cannot
+- The summary band also shows the parallel steps when above one, and, at the
+  right of its first line, a badge saying where the steps run. It reads
+  **CPU**, because the GPU backend cannot
   compute an expression objective (see step 4 of
   [Creating an optimization](#creating-an-optimization)). Under the steps bar,
   a thinner bar tracks the runs of the step in flight, and an **N computing**
@@ -149,7 +182,7 @@ view on a laptop screen while the study streams:
   state line reads **Could not compute** followed by the reason, and the
   objective's chart stays empty; a step that fails this way is pruned. Moving
   to another point, or back to this one, tries again.
-- The **Objective surface** card, on the left below the band, whenever two
+- The **Objective surface** card, below the band, whenever two
   or more numeric parameters are optimized (the **Optimization surface**
   setting applies to studies on the service only). It draws the study's
   steps: each step is a dot at its parameters, the best emphasized, pruned
@@ -164,13 +197,18 @@ view on a laptop screen while the study streams:
   Parameters band holds: click or drag the plot to move it, and the point's
   value enters the field as it refines.
 - The objective metric's chart, in a card of the same height beside the
-  surface: its distribution over simulation time at that position: the step
-  being evaluated while following, otherwise the point you picked. It streams
+  surface: its distribution over simulation time at that position. The card
+  is titled **Objective at the step in flight** while the study runs and
+  follows its steps, and **Objective at the selected point** otherwise; the
+  line under the title names the metric and the current view. It streams
   again whenever the position changes, so the surface and the chart always
   describe the same point. Its **Chart options** menu, in the card's header,
   offers the same views as an experiment's [metric
-  charts](experiments.md#metric-charts), and the line under the title reads
-  the current choice.
+  charts](experiments.md#metric-charts).
+- The **Objective by step** card follows these two, so the surface, the point
+  in flight and the study's history are read together. In the drawer, the
+  three cards wrap to two rows when the drawer is not wide enough for all
+  three; the full view shows them in one row.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.
