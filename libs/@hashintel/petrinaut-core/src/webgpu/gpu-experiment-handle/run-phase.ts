@@ -9,6 +9,7 @@
  */
 import { planInitialWindows } from "../metric-windows";
 import {
+  anyMetricHalted,
   CACHED_RUN_POLICY,
   probeDerivedCapacities,
   probeRunCount,
@@ -27,7 +28,7 @@ export type RunPhaseOutcome =
   | { kind: "failed"; reason: string }
   /**
    * The full attempt's last result — possibly cancelled midway, possibly
-   * still overflowing — with the windows it ran at.
+   * still overflowing or halted by a metric — with the windows it ran at.
    */
   | {
       kind: "calibrated";
@@ -53,7 +54,8 @@ export const needsProbe = (
  * also observes the metric ranges; else the blind windows alone — then runs
  * the full attempt under `RUN_POLICY`. A cached calibration runs under
  * `CACHED_RUN_POLICY` instead, and outgrowing it sends the run back through
- * the probe.
+ * the probe — unless a metric halted a run, which a fresh probe would only
+ * halt again.
  */
 export const runCalibratedExperiment = async (options: {
   session: CalibrationSession;
@@ -159,6 +161,7 @@ export const runCalibratedExperiment = async (options: {
   if (
     calibratedWindows !== null &&
     calibrated.result.overflowRuns > 0 &&
+    !anyMetricHalted(calibrated.result) &&
     !calibrated.result.cancelled &&
     !stopped()
   ) {
