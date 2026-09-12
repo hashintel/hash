@@ -284,7 +284,7 @@ describe("runCalibratedExperiment", () => {
     });
   });
 
-  it("ends the run on a metric the capacity probe halted, before the full attempt", async () => {
+  it("ends the run on a metric the capacity probe halted, before the full attempt and without remembering the probe", async () => {
     const current = session({ p: 64 });
     const { execute, attempts } = scripted([
       { ok: true, result: outcome({ metricErrors: [2] }) },
@@ -300,8 +300,9 @@ describe("runCalibratedExperiment", () => {
       reason: "halted 2 of 128 runs",
     });
     expect(attempts).toHaveLength(1);
-    // The slabs and windows the probe settled still serve the next batch.
-    expect(remembered).toHaveLength(1);
+    // A halted probe is not remembered: the next batch on the marking would
+    // adopt it, skip its probe and meet the halt only after a full attempt.
+    expect(remembered).toHaveLength(0);
   });
 
   it("ends the run on a metric the window probe halted, before the full attempt", async () => {

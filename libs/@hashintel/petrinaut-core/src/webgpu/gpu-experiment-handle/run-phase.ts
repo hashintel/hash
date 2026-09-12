@@ -67,7 +67,11 @@ export const runCalibratedExperiment = async (options: {
   execute: ExecuteAttempt;
   /** Whether the caller has abandoned the run, checked between attempts. */
   stopped: () => boolean;
-  /** Hears each calibration a probe settles, for later batches on this marking. */
+  /**
+   * Hears each calibration a probe settles, for later batches on this
+   * marking. A probe a metric halted settles none: a batch adopting it would
+   * skip its own probe and meet the halt only after a full attempt.
+   */
   remember: (windows: readonly MetricWindow[]) => void;
   /**
    * The failure an attempt's halted-metric counts amount to over the runs it
@@ -119,12 +123,12 @@ export const runCalibratedExperiment = async (options: {
     if (!probed.ok) {
       return { kind: "failed", reason: probed.reason };
     }
-    windows = probed.windows;
-    remember(windows);
     const probedFailure = metricFailure(probed.metricErrors, probed.probeRuns);
     if (probedFailure !== null) {
       return { kind: "failed", reason: probedFailure };
     }
+    windows = probed.windows;
+    remember(windows);
   } else {
     const probeRuns = probeRunCount(session.shader, runCount);
     const probe = await probeWindows({
