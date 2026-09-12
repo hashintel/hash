@@ -77,6 +77,7 @@ def test_runs_a_study_from_json_with_javascript_style_callbacks(
         "failedTrials": 0,
         "best": events[-1]["best"],
         "cancelled": False,
+        "paused": False,
     }
     assert handle.requested == 3
     assert handle.running is False
@@ -122,6 +123,7 @@ def test_a_stopped_study_continues_from_the_trials_it_holds(
         "failedTrials": 0,
         "best": events[-1]["best"],
         "cancelled": False,
+        "paused": False,
     }, "the stopped trial appears in no counter, so 3 of 3 steps read as finished"
     assert handle.requested == 3
     assert handle.study is not None
@@ -131,6 +133,61 @@ def test_a_stopped_study_continues_from_the_trials_it_holds(
         TrialState.COMPLETE,
         TrialState.COMPLETE,
     ]
+
+
+def test_a_paused_study_reports_the_trial_in_flight_and_continues(
+    optimization_description: dict[str, Any],
+) -> None:
+    handle = create_browser_study(json.dumps(optimization_description))
+    events: list[dict[str, Any]] = []
+    evaluations = 0
+    paused = False
+
+    async def evaluate_then_pause(values: dict[str, Any]) -> dict[str, Any]:
+        nonlocal evaluations, paused
+        evaluations += 1
+        paused = evaluations == 2
+        return await evaluate(values)
+
+    first = asyncio.run(
+        run_browser_study(
+            handle,
+            4,
+            evaluate_then_pause,
+            events.append,
+            never_cancelled,
+            lambda: paused,
+        )
+    )
+    requested_after_pause = handle.requested
+    paused = False
+    resumed = asyncio.run(
+        run_browser_study(
+            handle,
+            2,
+            evaluate_then_pause,
+            events.append,
+            never_cancelled,
+            lambda: paused,
+        )
+    )
+
+    assert first["paused"] is True
+    assert first["cancelled"] is False
+    assert first["requestedTrials"] == 4
+    # The second trial was in flight when the pause landed: told and reported,
+    # not failed, so the study heads for the trials it was told.
+    assert first["completedTrials"] == 2
+    assert first["failedTrials"] == 0
+    assert requested_after_pause == 2
+    assert [event["trial"] for event in events] == [0, 1, 2, 3]
+    assert resumed["paused"] is False
+    assert resumed["requestedTrials"] == 4
+    assert resumed["completedTrials"] == 4
+    assert handle.study is not None
+    assert [trial.state for trial in handle.study.get_trials(deepcopy=False)] == [
+        TrialState.COMPLETE
+    ] * 4
 
 
 def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
@@ -176,6 +233,7 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
         "failedTrials": 0,
         "best": events[-1]["best"],
         "cancelled": False,
+        "paused": False,
     }
     assert handle.requested == 3
 

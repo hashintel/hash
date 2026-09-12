@@ -48,6 +48,33 @@ describe("createOptimizationRunLog", () => {
     );
   });
 
+  it("treats paused as terminal for the segment, and lets a started event follow it", async () => {
+    const log = createOptimizationRunLog();
+    log.append({ type: "started", requestedTrials: 4 });
+    log.append(trial(0));
+    const paused = log.append({
+      type: "paused",
+      requestedTrials: 4,
+      completedTrials: 1,
+      prunedTrials: 0,
+      failedTrials: 0,
+      best: null,
+      resumable: true,
+    });
+
+    expect(paused.seq).toBe(3);
+    expect(() => log.append(trial(1))).toThrow(
+      "a settled optimization run log accepts only a started event",
+    );
+    expect((await collect(log.replay())).map((event) => event.type)).toEqual([
+      "started",
+      "trial",
+      "paused",
+    ]);
+    expect(log.append({ type: "started", requestedTrials: 4 }).seq).toBe(4);
+    expect(log.append(trial(1)).seq).toBe(5);
+  });
+
   it("begins a new segment with a started event after a terminal one", () => {
     const log = createOptimizationRunLog();
     log.append({ type: "started", requestedTrials: 2 });

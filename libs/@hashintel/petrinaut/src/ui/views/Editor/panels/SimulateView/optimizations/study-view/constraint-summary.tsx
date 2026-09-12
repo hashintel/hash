@@ -19,7 +19,7 @@ import {
   studyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { followedTrial } from "../../../../../../../react/optimizations/context";
-import { ChartCard } from "../../shared/chart-card";
+import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
 
 import type {
   ConnectedStudyState,
@@ -208,11 +208,14 @@ export const ConstraintSummaryCard = ({
   optimization,
   selection,
   plotHeight,
+  tone,
 }: {
   optimization: OptimizationRecord;
   selection: ConnectedStudyState["selection"];
   /** The body's height in pixels; the card is exactly as tall as its neighbours. */
   plotHeight: number;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const { input, trials } = optimization;
   const alpha = constraintAlpha(input);
@@ -235,6 +238,7 @@ export const ConstraintSummaryCard = ({
       subtitle={`pass threshold ${threshold}% (alpha ${alpha})${infeasibleNote}`}
       help="A run passes a state constraint when the condition held on every sampled frame. A step is clear when every state constraint held on at least the threshold share of its runs, limited otherwise, and infeasible when its parameters broke a parameter constraint before anything ran. The objective counts every run whatever the verdicts; nothing is excluded."
       bodyHeight={plotHeight}
+      tone={tone}
     >
       <div className={bodyStyle} data-constraint-summary>
         <div className={headlineStyle}>

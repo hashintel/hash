@@ -32,8 +32,14 @@ const SectionFrame = ({ children }: { children: ReactNode }) => (
   <div style={{ height: "100vh", display: "flex" }}>{children}</div>
 );
 
-const FakeConnectedStudy = ({ running }: { running: boolean }) => {
-  const { optimization, value } = useFakeConnectedStudy({ running });
+const FakeConnectedStudy = ({
+  running,
+  paused = false,
+}: {
+  running: boolean;
+  paused?: boolean;
+}) => {
+  const { optimization, value } = useFakeConnectedStudy({ running, paused });
 
   return (
     <OptimizationsContext value={value}>
@@ -52,6 +58,11 @@ export const ConnectedRunning: Story = {
 export const ConnectedComplete: Story = {
   name: "Connected study, complete",
   render: () => <FakeConnectedStudy running={false} />,
+};
+
+export const ConnectedPaused: Story = {
+  name: "Connected study, paused",
+  render: () => <FakeConnectedStudy running={false} paused />,
 };
 
 const RemoteStudy = () => {

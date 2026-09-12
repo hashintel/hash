@@ -19,9 +19,12 @@ yields a source: a remote capability, or a connected one with the experimental
 ## Status words
 
 `describeOptimizationStatus` names a record's status for the chip and the
-drawer: Initializing, Running, Complete, Error, and for `cancelled` either
-**Cancelled** (remote) or **Stopped** (connected), because a stopped connected
-study keeps its sampler and can be continued. The strip appends
+drawer: Initializing, Running, Paused, Complete, Error, and for `cancelled`
+either **Cancelled** (remote) or **Stopped** (connected), because a stopped
+connected study keeps its sampler and can be continued. `paused` is the
+simulation layer's word: a connected study drained on request, its steps in
+flight landed, its sampler kept; the record reads `paused` from the click and
+becomes resumable when the segment's `paused` event lands. The strip appends
 "(reconnecting…)" while a remote stream reconnects.
 
 ## The study body: drawer and full view
@@ -47,8 +50,9 @@ own, so the band never moves the body's scroll offset. The band has no title:
 it is the header continued, not a section. Its first row is `StudyHeader`
 (`study-view/study-header.tsx`):
 `describeStudyProgress` (`Step 17 of 30 · best step so far: step 12 (650.5)`
-while running; `Finished`, `Stopped`, `Cancelled` or `Failed after …` once
-settled) and, while running, a verdict chip from `assessConvergence`
+while running; `Paused at 12 of 30 steps · 1 step finishing · …` with a grey
+**Paused** chip while paused; `Finished`, `Stopped`, `Cancelled` or `Failed
+after …` once settled) and, while running, a verdict chip from `assessConvergence`
 (`study-view/convergence.ts`): best-so-far stagnation over the last
 `convergenceWindow(requestedTrials)` completed steps, `too-early`, `improving`
 or `converging`. `studyPhase` (`study-view/study-phase.ts`) is `live` while
@@ -139,12 +143,20 @@ in view while the study streams:
 
 `StudyActions` offers the switch to the other presentation (**Open full view**
 in the drawer, **Show in drawer** in the full view, through
-`setSimulatePresentation`), **Remove** once the study is inactive, **Stop**
-(connected) or **Cancel** (remote) while it is active, `ContinueControl` while
-`connected.resumable` (a count starting at the study's own step count and
-capped by `remainingOptimizationSteps`, the distance to
-`PETRINAUT_OPTIMIZATION_MAX_TRIALS`), **Retry** on an error, and in the drawer
-**Close**.
+`setSimulatePresentation`), **Pause** (primary) and **Stop** for an active
+connected study or **Cancel** for a remote one, **Remove** and **Run at the
+best configuration** (`refineOptimizationBest`) once a connected study is
+settled, `ContinueControl` while `connected.resumable` (a count starting at
+the study's own step count and capped by `remainingOptimizationSteps`, the
+distance to `PETRINAUT_OPTIMIZATION_MAX_TRIALS`), **Retry** on an error, and
+in the drawer **Close**. A paused study gets `PausedStudyActions` instead:
+**Resume** (`resumeOptimization`, the requested count minus the steps told,
+enabled once `connected.resumable`), **Run at the best configuration**, and a
+`ChartCardMenu` ellipsis labelled **More actions** holding **Remove**, so
+Remove never sits beside the primary actions; no Restart. The paused body is
+the running body with `tone="paused"` on every chart card and a resume note
+in the summary band. Settling on a pause, a stop or a failure never starts the
+point refinement; only a completed study refines where it parks.
 
 ## The steps table
 

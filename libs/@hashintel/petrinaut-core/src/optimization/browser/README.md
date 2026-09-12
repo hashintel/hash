@@ -31,15 +31,15 @@ worker's evaluate callback and tells the outcome back.
 A run advances in segments. `start` runs the manifest's trial count on a new
 study; `extend` runs more trials on the kept study, numbering onwards. Each
 segment begins with a `started` event in the run log and ends with a terminal
-`complete` or `error` event.
+`complete`, `paused` or `error` event.
 
 ```text
-queued ──worker ready──▶ running ──complete / cancelled──▶ finished-resumable
-  │                        │                                     │
-  │ cancel (first run)     │ trial evaluation failed,            │ extend
-  │                        │ study error, worker error           ▼
-  ▼                        ▼                                   queued
-finished ◀──────────── finished                                (again)
+queued ──worker ready──▶ running ──complete / paused / cancelled──▶ finished-resumable
+  │                        │                                              │
+  │ cancel (first run)     │ trial evaluation failed,                     │ extend
+  │                        │ study error, worker error                    ▼
+  ▼                        ▼                                            queued
+finished ◀──────────── finished                                         (again)
                           ▲
                           └── release, from any status
 ```
@@ -58,6 +58,13 @@ shared worker.
   Python loop tells the trials in flight as failed without reporting them, then
   returns early. The capability appends the cancelled error event when the
   worker confirms with `cancelled`.
+- **Pausing** is the capability's too. `pauseOptimizationRun` posts `pause`
+  and leaves the segment's signal alone; the worker flags the loop, which asks
+  no further trial and waits for the evaluations in flight to settle with their
+  real outcomes, tells and reports each, then returns early with `paused` set.
+  The capability appends the `paused` event when the worker confirms, with the
+  study kept, so `extendOptimizationRun` continues it. A pause asked of a
+  segment still queued is posted right after the segment reaches the worker.
 - **Trial numbering** is the study runner's. Optuna numbers trials densely in
   ask order and every ask leads to one evaluate call, so the count of evaluate
   calls made for a study is the next trial's number, across segments and across

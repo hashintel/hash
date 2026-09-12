@@ -130,6 +130,7 @@ const createQuietConnectedSource = () => {
         },
         cancelOptimizationRun: () => Promise.resolve(),
         extendOptimizationRun: () => Promise.resolve(),
+        pauseOptimizationRun: () => Promise.resolve(),
         releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {
           calls.dispose += 1;
@@ -196,6 +197,7 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
         },
         cancelOptimizationRun: () => Promise.resolve(),
         extendOptimizationRun: () => Promise.resolve(),
+        pauseOptimizationRun: () => Promise.resolve(),
         releaseOptimizationRun: (runId) => {
           calls.release.push(runId);
           return Promise.resolve();
@@ -1424,7 +1426,7 @@ const createResumableSource = (
   ratiosBySegment: readonly (readonly number[])[],
   { rejectExtension }: { rejectExtension?: string } = {},
 ) => {
-  const calls = { extend: [] as number[], cancel: 0 };
+  const calls = { extend: [] as number[], cancel: 0, pause: 0 };
   // The cancelled terminal is the worker's own message, sent once the steps
   // in flight have been resolved; a test decides when it arrives, before or
   // after the segment gets there.
@@ -1446,9 +1448,11 @@ const createResumableSource = (
       let requested = 0;
       let running = false;
       let cancelled = false;
+      let paused = false;
       // Read through a call so the flag is re-checked after each await (a
       // plain property read would be control-flow-narrowed to `false`).
       const isCancelled = () => cancelled;
+      const isPaused = () => paused;
       const append = (event: UnsequencedEvent) => {
         events.push({
           ...event,
@@ -1461,9 +1465,11 @@ const createResumableSource = (
       const runSegment = async (ratios: readonly number[]) => {
         running = true;
         cancelled = false;
+        paused = false;
         closeRequested = false;
         for (const ratio of ratios) {
-          if (isCancelled()) {
+          // A pause stops the asking; the step in flight below still lands.
+          if (isCancelled() || isPaused()) {
             break;
           }
           const suggestedValues = { infected_ratio: ratio };
@@ -1512,15 +1518,25 @@ const createResumableSource = (
                 retryable: false,
                 resumable: true,
               }
-            : {
-                type: "complete",
-                requestedTrials: requested,
-                completedTrials: trial,
-                prunedTrials: 0,
-                failedTrials: 0,
-                best: null,
-                resumable: true,
-              },
+            : isPaused()
+              ? {
+                  type: "paused",
+                  requestedTrials: requested,
+                  completedTrials: trial,
+                  prunedTrials: 0,
+                  failedTrials: 0,
+                  best: null,
+                  resumable: true,
+                }
+              : {
+                  type: "complete",
+                  requestedTrials: requested,
+                  completedTrials: trial,
+                  prunedTrials: 0,
+                  failedTrials: 0,
+                  best: null,
+                  resumable: true,
+                },
         );
       };
       return {
@@ -1557,7 +1573,11 @@ const createResumableSource = (
             if (event) {
               index += 1;
               yield event;
-              if (event.type === "complete" || event.type === "error") {
+              if (
+                event.type === "complete" ||
+                event.type === "paused" ||
+                event.type === "error"
+              ) {
                 return;
               }
               continue;
@@ -1579,6 +1599,11 @@ const createResumableSource = (
           calls.cancel += 1;
           cancelled = true;
           controller.abort();
+          return Promise.resolve();
+        },
+        pauseOptimizationRun: () => {
+          calls.pause += 1;
+          paused = true;
           return Promise.resolve();
         },
         releaseOptimizationRun: () => Promise.resolve(),
@@ -1638,13 +1663,11 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
         connected: { resumable: false, navigation: { followTrials: true } },
       }),
     );
-    // The stop settled the study on a point, which began refining (the
-    // second run); the continuation cancels that and runs the new trial,
-    // numbered after the one the stop consumed.
-    await waitFor(() => expect(fake.runs).toHaveLength(3));
-    expect(fake.runs[1]!.request.cacheKey).toBe(optimizationId);
-    expect(fake.runs[1]!.cancelled).toBe(true);
-    expect(fake.runs[2]!.request).toMatchObject({
+    // The stop settled the study on a point without refining it, so the
+    // continuation's trial is the next run, numbered after the one the stop
+    // consumed.
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
+    expect(fake.runs[1]!.request).toMatchObject({
       queueKey: "run-resumable:trial:1",
       scenarioParameterValues: { infected_ratio: 0.01 },
     });
@@ -1653,6 +1676,141 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
         "trial:1",
       ),
     );
+  });
+
+  it("pauses a study: the step in flight still lands, the paused event makes it resumable, and Resume runs the steps still owed", async () => {
+    const { source, calls } = createResumableSource([
+      [0.05, 0.02, 0.01],
+      [0.03, 0.04],
+    ]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+
+    act(() => getValue().pauseOptimization(optimizationId));
+    expect(calls.pause).toBe(1);
+    expect(calls.cancel).toBe(0);
+    // The step in flight keeps computing: nothing is discarded.
+    expect(fake.runs[0]!.cancelled).toBe(false);
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "paused",
+      connected: { resumable: false },
+    });
+    await expect(getValue().resumeOptimization(optimizationId)).rejects.toThrow(
+      "cannot be continued",
+    );
+
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.connected?.resumable).toBe(true),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "paused",
+      requestedTrials: 3,
+      completedTrials: 1,
+      trials: [expect.objectContaining({ trial: 0, state: "complete" })],
+      connected: { navigation: { followTrials: false } },
+    });
+    // Settling on a pause starts no refinement at the best.
+    expect(fake.runs).toHaveLength(1);
+
+    await act(async () => {
+      await getValue().resumeOptimization(optimizationId);
+    });
+    // Three steps were asked and one landed, so two are owed.
+    expect(calls.extend).toEqual([2]);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "running",
+        connected: { resumable: false, navigation: { followTrials: true } },
+      }),
+    );
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
+    expect(fake.runs[1]!.request).toMatchObject({
+      queueKey: "run-resumable:trial:1",
+      scenarioParameterValues: { infected_ratio: 0.03 },
+    });
+  });
+
+  it("keeps warning before unload while a paused study drains its step in flight, and stops once the paused event lands", async () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const { source } = createResumableSource([[0.05, 0.02]]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    try {
+      let optimizationId = "";
+      await act(async () => {
+        optimizationId = await getValue().createOptimization(input);
+      });
+      await waitFor(() => expect(fake.runs).toHaveLength(1));
+      const beforeUnloadCall = addEventListenerSpy.mock.calls.find(
+        ([eventName]) => eventName === "beforeunload",
+      );
+      expect(beforeUnloadCall).toBeDefined();
+      const beforeUnloadHandler = beforeUnloadCall![1] as (
+        event: BeforeUnloadEvent,
+      ) => void;
+
+      act(() => getValue().pauseOptimization(optimizationId));
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "paused",
+        connected: { resumable: false },
+      });
+      // The step in flight keeps computing: closing the tab would lose it.
+      expect(removeEventListenerSpy).not.toHaveBeenCalledWith(
+        "beforeunload",
+        beforeUnloadHandler,
+      );
+      const beforeUnloadEvent = new Event("beforeunload", {
+        cancelable: true,
+      }) as BeforeUnloadEvent;
+      Object.defineProperty(beforeUnloadEvent, "returnValue", {
+        configurable: true,
+        value: undefined,
+        writable: true,
+      });
+      beforeUnloadHandler(beforeUnloadEvent);
+      expect(beforeUnloadEvent.defaultPrevented).toBe(true);
+
+      fake.runs[0]!.settle(
+        completedRunResult({
+          metricId,
+          frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+          runValues: [0.25, 0.25, 0.25],
+        }),
+      );
+      await waitFor(() =>
+        expect(getValue().optimizations[0]?.connected?.resumable).toBe(true),
+      );
+      // Drained: nothing computes, so the guard is gone.
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        "beforeunload",
+        beforeUnloadHandler,
+      );
+    } finally {
+      unmount();
+      addEventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    }
   });
 
   it("puts a refused continuation on the record and leaves the study resumable", async () => {
@@ -1713,6 +1871,7 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
           return Promise.resolve();
         },
         extendOptimizationRun: () => Promise.resolve(),
+        pauseOptimizationRun: () => Promise.resolve(),
         releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {},
       }),
@@ -1772,6 +1931,7 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
           return Promise.resolve();
         },
         extendOptimizationRun: () => Promise.resolve(),
+        pauseOptimizationRun: () => Promise.resolve(),
         releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {},
       }),

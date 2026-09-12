@@ -32,6 +32,8 @@ type Story = StoryObj<typeof meta>;
 const FakeConnectedStudy = (props: {
   /** Lands one step every 1.2 s and follows the next; else shows the complete study. */
   running: boolean;
+  /** The study paused after twelve steps, resumable, parked at its best step. */
+  paused?: boolean;
   /** Which fake study to mount; the 60-step one is past the importance floor. */
   study?: FakeStudyKind;
   /** The complete study with the optimizer's PED-ANOVA estimate attached. */
@@ -60,6 +62,19 @@ export const ConnectedRunning: Story = {
 export const ConnectedComplete: Story = {
   name: "Connected study, complete",
   render: () => <FakeConnectedStudy running={false} />,
+};
+
+export const ConnectedPaused: Story = {
+  name: "Connected study, paused",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The study paused after twelve of thirty steps: the steps in flight finished and landed, the header carries a Paused chip and the resume note, every card keeps its place in the paused tone, the controls are parked at the best step with nothing computed there, and the footer offers Resume and Run at the best configuration, with Remove in the overflow menu.",
+      },
+    },
+  },
+  render: () => <FakeConnectedStudy running={false} paused />,
 };
 
 export const ConnectedWithConstraints: Story = {

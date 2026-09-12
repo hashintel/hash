@@ -20,6 +20,7 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
+import { ChartCardMenu, type ChartCardTone } from "../shared/chart-card";
 import { formatScalar } from "../shared/format-value";
 import {
   NavigatedOptimizationSurface,
@@ -311,6 +312,9 @@ const ConnectedStudyBody = ({
   const onNavigationChange = (patch: Partial<OptimizationNavigation>) =>
     setOptimizationNavigation(optimization.id, patch);
   const phase = studyPhase(optimization);
+  // The paused study keeps the running layout: the same cards, frozen.
+  const tone: ChartCardTone =
+    optimization.status === "paused" ? "paused" : "default";
 
   return (
     <div className={bodyStyle}>
@@ -335,6 +339,7 @@ const ConnectedStudyBody = ({
               connected={connected}
               onNavigationChange={onNavigationChange}
               actions={<HelpTooltip content={SURFACE_HELP} align="center" />}
+              tone={tone}
             />
           ) : null}
           {/* Keyed so faded previous pictures never leak from one study into
@@ -344,16 +349,19 @@ const ConnectedStudyBody = ({
             optimization={optimization}
             selection={connected.selection}
             title={objectiveAtPointTitle(phase, connected.selection)}
+            tone={tone}
           />
           <ObjectiveHistoryCard
             optimization={optimization}
             plotHeight={OBJECTIVE_PLOT_HEIGHT}
+            tone={tone}
           />
           {(optimization.input.constraints ?? []).length > 0 ? (
             <ConstraintSummaryCard
               optimization={optimization}
               selection={connected.selection}
               plotHeight={OBJECTIVE_PLOT_HEIGHT}
+              tone={tone}
             />
           ) : null}
           {/* Only a study evaluated here receives importances; a remote study
@@ -361,6 +369,7 @@ const ConnectedStudyBody = ({
           <ParameterImportancePanel
             optimization={optimization}
             plotHeight={OBJECTIVE_PLOT_HEIGHT}
+            tone={tone === "paused" ? tone : undefined}
           />
         </div>
         <div className={connectedStepsStyle}>
@@ -402,10 +411,80 @@ export const StudyBody = ({
     <RemoteStudyBody optimization={optimization} layout={layout} />
   );
 
+/** The button that moves the navigation to the best step and computes there. */
+const RefineBestButton = ({
+  optimization,
+}: {
+  optimization: OptimizationRecord;
+}) => {
+  const { refineOptimizationBest } = use(OptimizationsContext);
+  return (
+    <Button
+      variant="subtle"
+      tone="neutral"
+      size="sm"
+      prefix={<Icon name="bullseye" size="sm" />}
+      disabled={optimization.best === null}
+      onClick={() => refineOptimizationBest(optimization.id)}
+    >
+      Run at the best configuration
+    </Button>
+  );
+};
+
 /**
- * Stop or Cancel, Continue, Remove and Retry as the study allows, plus the
- * switch to the other presentation. `onClose` is called when the surface
- * should leave the record: after Remove, and from the drawer's Close button.
+ * The footer of a paused connected study: Resume (once the segment has
+ * drained and the study is resumable), Run at the best configuration, and an
+ * overflow menu holding Remove so it never sits beside the primary actions.
+ */
+const PausedStudyActions = ({
+  optimization,
+  onClose,
+}: {
+  optimization: OptimizationRecord;
+  onClose?: () => void;
+}) => {
+  const { resumeOptimization, removeOptimization } = use(OptimizationsContext);
+  const owed = optimization.requestedTrials - optimization.trials.length;
+  const resumable = (optimization.connected?.resumable ?? false) && owed > 0;
+  return (
+    <>
+      <ChartCardMenu
+        label="More actions"
+        items={[
+          {
+            id: "remove",
+            text: "Remove",
+            onClick: () => {
+              removeOptimization(optimization.id);
+              onClose?.();
+            },
+          },
+        ]}
+      />
+      <RefineBestButton optimization={optimization} />
+      <Button
+        variant="solid"
+        tone="neutral"
+        size="sm"
+        prefix={<Icon name="play" size="sm" />}
+        disabled={!resumable}
+        onClick={() => {
+          void resumeOptimization(optimization.id).catch(() => undefined);
+        }}
+      >
+        Resume
+      </Button>
+    </>
+  );
+};
+
+/**
+ * Pause and Stop (connected) or Cancel (remote) while active; Resume and Run
+ * at the best configuration while paused; Continue, Remove and Retry as a
+ * settled study allows; plus the switch to the other presentation. `onClose`
+ * is called when the surface should leave the record: after Remove, and from
+ * the drawer's Close button.
  */
 export const StudyActions = ({
   optimization,
@@ -420,11 +499,13 @@ export const StudyActions = ({
 }) => {
   const {
     cancelOptimization,
+    pauseOptimization,
     removeOptimization,
     extendOptimization,
     retryOptimization,
   } = use(OptimizationsContext);
   const active = isOptimizationActive(optimization);
+  const paused = optimization.status === "paused";
   const { connected } = optimization;
 
   return (
@@ -450,7 +531,10 @@ export const StudyActions = ({
           Show in drawer
         </Button>
       )}
-      {!active ? (
+      {paused ? (
+        <PausedStudyActions optimization={optimization} onClose={onClose} />
+      ) : null}
+      {!active && !paused ? (
         <Button
           variant="subtle"
           tone="error"
@@ -464,9 +548,12 @@ export const StudyActions = ({
           Remove
         </Button>
       ) : null}
+      {!active && !paused && connected ? (
+        <RefineBestButton optimization={optimization} />
+      ) : null}
       {active ? (
         <Button
-          variant="subtle"
+          variant={connected ? "ghost" : "subtle"}
           tone="neutral"
           size="sm"
           prefix={<Icon name="stop" size="sm" />}
@@ -475,7 +562,18 @@ export const StudyActions = ({
           {connected ? "Stop" : "Cancel"}
         </Button>
       ) : null}
-      {connected?.resumable ? (
+      {active && connected ? (
+        <Button
+          variant="solid"
+          tone="neutral"
+          size="sm"
+          prefix={<Icon name="pause" size="sm" />}
+          onClick={() => pauseOptimization(optimization.id)}
+        >
+          Pause
+        </Button>
+      ) : null}
+      {connected?.resumable && !paused ? (
         <ContinueControl
           // Reset with the segment, so the count starts fresh after each
           // continuation.

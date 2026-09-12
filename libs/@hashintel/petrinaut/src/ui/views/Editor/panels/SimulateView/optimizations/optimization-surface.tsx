@@ -67,6 +67,7 @@ import type {
   OptimizationRecord,
 } from "../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
+import type { ChartCardTone } from "../shared/chart-card";
 
 const sliderRowStyle = css({
   display: "flex",
@@ -332,6 +333,7 @@ export const NavigatedOptimizationSurface = ({
   connected,
   onNavigationChange,
   actions,
+  tone,
 }: {
   optimization: OptimizationRecord;
   /** The study's local state: its navigation, the stream at the navigated point (or the followed step) and the trials in flight. */
@@ -339,6 +341,8 @@ export const NavigatedOptimizationSurface = ({
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
   /** The card header's right side, e.g. a help tooltip. */
   actions?: ReactNode;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const { input, axes } = optimization;
   const { navigation, selection } = connected;
@@ -412,6 +416,7 @@ export const NavigatedOptimizationSurface = ({
       })}
       actions={actions}
       fixedHeight
+      tone={tone}
     />
   );
 };

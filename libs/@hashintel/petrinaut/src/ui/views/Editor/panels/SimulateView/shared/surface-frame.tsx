@@ -6,7 +6,7 @@
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ChartCard } from "./chart-card";
+import { ChartCard, type ChartCardTone } from "./chart-card";
 
 import type { ReactNode } from "react";
 
@@ -42,6 +42,7 @@ export const SurfaceFrame = ({
   actions,
   bodyHeight,
   footer,
+  tone,
   children,
 }: {
   title: string;
@@ -53,6 +54,7 @@ export const SurfaceFrame = ({
   bodyHeight?: number;
   /** The axis selects and whatever else the view controls. */
   footer: ReactNode;
+  tone?: ChartCardTone;
   children: ReactNode;
 }) => (
   <ChartCard
@@ -62,6 +64,7 @@ export const SurfaceFrame = ({
     bodyHeight={bodyHeight}
     footer={footer}
     footerHeight={SURFACE_FOOTER_HEIGHT}
+    tone={tone}
   >
     {children}
   </ChartCard>

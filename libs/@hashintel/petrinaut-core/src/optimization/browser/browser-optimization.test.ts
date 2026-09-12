@@ -486,6 +486,92 @@ describe("createBrowserOptimization", () => {
     });
   });
 
+  it("pauses a running study through the worker, keeps the trial in flight, ends with a resumable paused event and extends from it", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+    const events = collectEvents(
+      context.capability.attachOptimizationRun(runId),
+    );
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+    await flush();
+
+    await context.capability.pauseOptimizationRun(runId);
+    await context.capability.pauseOptimizationRun(runId);
+    expect(context.worker.sentOfType("pause")).toEqual([
+      { type: "pause", runId },
+    ]);
+    expect(context.worker.sentOfType("cancel")).toHaveLength(0);
+    // The evaluation in flight is answered as usual: nothing is discarded.
+    expect(context.worker.sentOfType("evaluated")).toEqual([
+      {
+        type: "evaluated",
+        requestId: 1,
+        outcome: { kind: "objective", objective: 1 },
+      },
+    ]);
+
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    context.worker.emit({
+      type: "paused",
+      runId,
+      summary: { ...summary, paused: true },
+    });
+    expect((await events).slice(1)).toEqual([
+      expect.objectContaining({ type: "trial", trial: 0, seq: 2 }),
+      {
+        type: "paused",
+        requestedTrials: 20,
+        completedTrials: 1,
+        prunedTrials: 0,
+        failedTrials: 0,
+        best: summary.best,
+        resumable: true,
+        seq: 3,
+      },
+    ]);
+
+    await context.capability.extendOptimizationRun(runId, 19);
+    await flush();
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId, trials: 19 },
+    ]);
+    // The new segment is live, so read its first event and let the tail go.
+    const tail = context.capability
+      .attachOptimizationRun(runId, { cursor: 3 })
+      [Symbol.asyncIterator]();
+    expect((await tail.next()).value).toEqual({
+      type: "started",
+      requestedTrials: 20,
+      seq: 4,
+    });
+    await tail.return?.(undefined);
+  });
+
+  it("a pause asked of a run still waiting for the runtime is posted right after its segment", async () => {
+    const context = setUp();
+    const { runId } = await context.capability.createOptimizationRun(
+      createOptimizationManifestInput(),
+    );
+    await context.capability.pauseOptimizationRun(runId);
+    expect(context.worker.sent.map((message) => message.type)).toEqual([
+      "init",
+    ]);
+
+    context.worker.emit({ type: "ready" });
+    await flush();
+    expect(context.worker.sent.map((message) => message.type)).toEqual([
+      "init",
+      "start",
+      "pause",
+    ]);
+  });
+
   it("ignores an evaluation of a stopped segment that settles after the next segment started", async () => {
     let rejectStale: (error: Error) => void = () => {};
     const context = setUp({
