@@ -13,7 +13,13 @@ import { NotificationsProvider } from "../../../../../../react/notifications/pro
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../../monaco/provider";
-import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
+import { ChartCard } from "../shared/chart-card";
+import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
+  ExperimentMetricTimeline,
+  MetricViewMenu,
+} from "./experiment-metric-timeline";
 import {
   sirInfectedFrame,
   sirSdcpnContextValue,
@@ -30,7 +36,6 @@ import type {
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { MetricSize } from "./experiment-metric-timeline";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -164,6 +169,7 @@ export const RefiningPoint: Story = {
 type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 const STREAM_FRAME_COUNT = 46;
+const STORY_PLOT_HEIGHT = 260;
 const STREAM_TICK_MS = 90;
 
 const selectionOf = (
@@ -185,7 +191,9 @@ const NavigatorWithStreamingMetrics = () => {
     recovery_days: { from: 6, to: 6 },
   });
   const [frames, setFrames] = useState<MetricFrame[]>([]);
-  const [metricSize, setMetricSize] = useState<MetricSize>("large");
+  const [metricSettings, setMetricSettings] = useState(
+    DEFAULT_METRIC_VIEW_SETTINGS,
+  );
 
   // The synthetic model's inputs, as primitives so the streaming effect can
   // key on exactly what changes the curve.
@@ -267,21 +275,26 @@ const NavigatorWithStreamingMetrics = () => {
         status={status}
         onSelectionChange={setSelection}
       />
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          padding: 12,
-        }}
+      <ChartCard
+        title="Infected"
+        subtitle={describeMetricView(metricSettings, "distribution")}
+        actions={
+          <MetricViewMenu
+            outputType="distribution"
+            value={metricSettings}
+            onChange={setMetricSettings}
+          />
+        }
+        bodyHeight={STORY_PLOT_HEIGHT}
       >
         <ExperimentMetricTimeline
           frames={frames}
-          label="Infected"
+          settings={metricSettings}
+          expectedOutputType="distribution"
           timeDomain={[0, STREAM_FRAME_COUNT - 1]}
-          displaySize={metricSize}
-          onDisplaySizeChange={setMetricSize}
+          plotHeight={STORY_PLOT_HEIGHT}
         />
-      </div>
+      </ChartCard>
     </div>
   );
 };
@@ -387,7 +400,9 @@ const RealSweepSession = ({
     use(ExperimentsContext);
   const startedRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [metricSize, setMetricSize] = useState<MetricSize>("large");
+  const [metricSettings, setMetricSettings] = useState(
+    DEFAULT_METRIC_VIEW_SETTINGS,
+  );
 
   useEffect(() => {
     // Once per story lifetime, surviving StrictMode's double-invoked mount.
@@ -461,17 +476,26 @@ const RealSweepSession = ({
           setSweepSelection(experiment.id, selection)
         }
       />
-      <div
-        style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}
+      <ChartCard
+        title="Infected"
+        subtitle={describeMetricView(metricSettings, "distribution")}
+        actions={
+          <MetricViewMenu
+            outputType="distribution"
+            value={metricSettings}
+            onChange={setMetricSettings}
+          />
+        }
+        bodyHeight={STORY_PLOT_HEIGHT}
       >
         <ExperimentMetricTimeline
           frames={experiment.metricFrames}
-          label="Infected"
+          settings={metricSettings}
+          expectedOutputType="distribution"
           timeDomain={[0, maxTime]}
-          displaySize={metricSize}
-          onDisplaySizeChange={setMetricSize}
+          plotHeight={STORY_PLOT_HEIGHT}
         />
-      </div>
+      </ChartCard>
     </div>
   );
 };

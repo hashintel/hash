@@ -1,27 +1,36 @@
 /**
  * The objective's chart for a connected study: one distribution timeline fed
  * the selection stream — the step being evaluated while following, the
- * navigated point's refinement otherwise — in a slot of fixed size beside the
- * surface, so it has no size toggle. A point that could not compute shows the
- * empty shell; the navigator's status line carries the reason.
+ * navigated point's refinement otherwise — in a card of fixed size beside the
+ * surface. A point that could not compute shows the empty shell; the
+ * navigator's status line carries the reason.
  */
-import { css } from "@hashintel/ds-helpers/css";
+import { useState } from "react";
 
-import { ExperimentMetricTimeline } from "../../experiments/experiment-metric-timeline";
+import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
+  ExperimentMetricTimeline,
+  MetricViewMenu,
+} from "../../experiments/experiment-metric-timeline";
+import { CHART_CARD_FOOTER_CHROME, ChartCard } from "../../shared/chart-card";
+import {
+  SURFACE_FOOTER_HEIGHT,
+  SURFACE_PLOT_HEIGHT,
+} from "../../shared/surface-frame";
 
 import type {
   OptimizationRecord,
   OptimizationSelectionStream,
 } from "../../../../../../../react/optimizations/context";
 
-const paneStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  minWidth: "[0]",
-});
-
-/** Sized so the pane ends level with the surface beside it. */
-const PLOT_HEIGHT = 240;
+/**
+ * Sized so the card ends level with the surface card beside it: that card's
+ * plot plus the footer row holding its axis selects, which this card has no
+ * use for.
+ */
+export const OBJECTIVE_PLOT_HEIGHT =
+  SURFACE_PLOT_HEIGHT + SURFACE_FOOTER_HEIGHT + CHART_CARD_FOOTER_CHROME;
 
 export const OptimizationMetrics = ({
   optimization,
@@ -30,6 +39,7 @@ export const OptimizationMetrics = ({
   optimization: OptimizationRecord;
   selection: OptimizationSelectionStream | null;
 }) => {
+  const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const input = optimization.input;
   const metric = input.model.definition.metrics?.find(
     (candidate) => candidate.id === input.objective.metricId,
@@ -39,20 +49,30 @@ export const OptimizationMetrics = ({
   }
 
   return (
-    <div className={paneStyle}>
+    <ChartCard
+      title={metric.name}
+      subtitle={describeMetricView(settings, "distribution")}
+      actions={
+        <MetricViewMenu
+          outputType="distribution"
+          value={settings}
+          onChange={setSettings}
+        />
+      }
+      bodyHeight={OBJECTIVE_PLOT_HEIGHT}
+    >
       <ExperimentMetricTimeline
         frames={
           selection === null || selection.error !== null
             ? []
             : selection.metricFrames
         }
-        label={metric.name}
+        settings={settings}
         expectedOutputType="distribution"
         timeDomain={[0, input.execution.maxTime]}
         contentEpoch={selection?.key ?? ""}
-        displaySize="large"
-        plotHeight={PLOT_HEIGHT}
+        plotHeight={OBJECTIVE_PLOT_HEIGHT}
       />
-    </div>
+    </ChartCard>
   );
 };

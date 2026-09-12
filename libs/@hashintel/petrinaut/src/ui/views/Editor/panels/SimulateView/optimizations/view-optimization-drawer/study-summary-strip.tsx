@@ -1,13 +1,14 @@
 /**
- * A study's summary as one strip: status, steps finished over requested and
- * the best value so far, with the steps bar beneath and the error when there
- * is one. A connected study adds the backend its steps run on, the followed
- * step's runs under the steps bar, the "N computing" chip and the fallback
- * note.
+ * A study's summary as one card: status, steps finished over requested and
+ * the best value so far in a strip, with the steps bar beneath and the error
+ * when there is one. A connected study adds the backend its steps run on in
+ * the card header, the followed step's runs under the steps bar, the
+ * "N computing" chip and the fallback note.
  */
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ChartCard } from "../../shared/chart-card";
 import { ComputeActivity } from "../../shared/compute-activity";
 import { ComputeBackendBadge } from "../../shared/compute-backend-badge";
 import { formatNumber, formatParameters } from "../../shared/format-value";
@@ -27,12 +28,15 @@ import {
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
+const cardStyle = css({
+  marginTop: "3",
+  marginBottom: "3",
+});
+
 const stripSectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  paddingTop: "2.5",
-  paddingBottom: "2",
 });
 
 const noteStyle = css({
@@ -88,64 +92,68 @@ export const StudySummaryStrip = ({
   const fallbackReason = connected?.computeBackendFallbackReason ?? null;
 
   return (
-    <div className={stripSectionStyle}>
-      <SummaryStrip
-        trailing={
-          connected ? (
-            <ComputeBackendBadge
-              backend={{
-                computeBackend: optimization.computeBackend,
-                computeBackendFallbackReason:
-                  connected.computeBackendFallbackReason,
-              }}
-            />
-          ) : undefined
-        }
-      >
-        <SummaryStat label="Status" minChars={STATUS_CHARS}>
-          <SummaryStatusDot tone={STATUS_TONE[optimization.status]} />
-          {status}
-          {optimization.connectionState === "reconnecting"
-            ? " (reconnecting…)"
-            : ""}
-        </SummaryStat>
-        <SummaryStat
-          label="Steps"
-          minChars={
-            describeStepProgress({
-              ...optimization,
-              completedTrials: optimization.requestedTrials,
-              prunedTrials: 0,
-              failedTrials: 0,
-            }).length
-          }
-        >
-          {describeStepProgress(optimization)}
-        </SummaryStat>
-        <SummaryStat label="Best" minChars={8}>
-          {optimization.best ? (
-            <Tooltip
-              content={formatParameters(optimization.best.parameters)}
-              position="bottom-start"
-            >
-              <span>{formatNumber(optimization.best.objective)}</span>
-            </Tooltip>
-          ) : (
-            "—"
-          )}
-        </SummaryStat>
-      </SummaryStrip>
-      <ComputeActivity
-        bar={stepsBar(optimization)}
-        secondaryBar={followedStepBar(optimization)}
-        batches={activityBatches(connected)}
-      />
-      {fallbackReason === null ? null : (
-        <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
-      )}
-      {optimization.error ? (
-        <span className={errorStyle}>{optimization.error}</span>
-      ) : null}
-    </div>
+    <ChartCard
+      title="Summary"
+      className={cardStyle}
+      actions={
+        connected ? (
+          <ComputeBackendBadge
+            backend={{
+              computeBackend: optimization.computeBackend,
+              computeBackendFallbackReason:
+                connected.computeBackendFallbackReason,
+            }}
+          />
+        ) : undefined
+      }
+    >
+      <div className={stripSectionStyle}>
+        <SummaryStrip>
+          <SummaryStat label="Status" minChars={STATUS_CHARS}>
+            <SummaryStatusDot tone={STATUS_TONE[optimization.status]} />
+            {status}
+            {optimization.connectionState === "reconnecting"
+              ? " (reconnecting…)"
+              : ""}
+          </SummaryStat>
+          <SummaryStat
+            label="Steps"
+            minChars={
+              describeStepProgress({
+                ...optimization,
+                completedTrials: optimization.requestedTrials,
+                prunedTrials: 0,
+                failedTrials: 0,
+              }).length
+            }
+          >
+            {describeStepProgress(optimization)}
+          </SummaryStat>
+          <SummaryStat label="Best" minChars={8}>
+            {optimization.best ? (
+              <Tooltip
+                content={formatParameters(optimization.best.parameters)}
+                position="bottom-start"
+              >
+                <span>{formatNumber(optimization.best.objective)}</span>
+              </Tooltip>
+            ) : (
+              "—"
+            )}
+          </SummaryStat>
+        </SummaryStrip>
+        <ComputeActivity
+          bar={stepsBar(optimization)}
+          secondaryBar={followedStepBar(optimization)}
+          batches={activityBatches(connected)}
+        />
+        {fallbackReason === null ? null : (
+          <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
+        )}
+        {optimization.error ? (
+          <span className={errorStyle}>{optimization.error}</span>
+        ) : null}
+      </div>
+    </ChartCard>
   );
 };

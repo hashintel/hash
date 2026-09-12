@@ -1,17 +1,19 @@
 /**
- * A drawer's metric charts: one tile per metric, each resizable between a
- * half-width and a full-width slot. Before any frame has arrived the tiles
- * are stable shells per configured metric, so the first data causes no
- * layout shift.
+ * A drawer's metric charts: one card per metric in a fixed grid. Every card
+ * is the same height whatever it draws, so changing a chart's view moves
+ * nothing around it, and before any frame has arrived the cards are stable
+ * shells per configured metric, so the first data causes no layout shift.
  */
 import { useState } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
-
 import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
   ExperimentMetricTimeline,
-  type MetricSize,
+  MetricViewMenu,
+  type MetricViewSettings,
 } from "../experiments/experiment-metric-timeline";
+import { ChartCard, ChartCardGrid, chartCardHeight } from "./chart-card";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
@@ -22,35 +24,19 @@ export type MetricTile = {
   outputType: MonteCarloUserDefinedMetricFrame["outputType"];
 };
 
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  alignItems: "start",
-  gap: "3",
+/** The plot's height inside each card; the smallest the axes and labels fit in. */
+export const METRIC_PLOT_HEIGHT = 220;
+/** Every metric card's height, whatever it draws. */
+export const METRIC_CARD_HEIGHT = chartCardHeight({
+  bodyHeight: METRIC_PLOT_HEIGHT,
 });
-
-const tileStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[0]",
-  padding: "3",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-});
-
-const largeTileStyle = css({
-  gridColumn: "[1 / -1]",
-});
+/** Two cards per row in an extra-large drawer; one when the drawer is narrower. */
+const METRIC_CARD_MIN_WIDTH = 360;
 
 export const MetricTiles = ({
   tiles,
   timeDomain,
   contentEpoch,
-  defaultSize = "small",
 }: {
   tiles: readonly MetricTile[];
   timeDomain: readonly [number, number];
@@ -60,33 +46,48 @@ export const MetricTiles = ({
    * sparse new stream.
    */
   contentEpoch: string;
-  defaultSize?: MetricSize;
 }) => {
-  const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
+  const [settingsById, setSettingsById] = useState<
+    Record<string, MetricViewSettings>
+  >({});
 
   return (
-    <div className={gridStyle}>
+    <ChartCardGrid
+      minColumnWidth={METRIC_CARD_MIN_WIDTH}
+      rowHeight={METRIC_CARD_HEIGHT}
+    >
       {tiles.map((tile) => {
-        const size = sizes[tile.id] ?? defaultSize;
+        const settings = settingsById[tile.id] ?? DEFAULT_METRIC_VIEW_SETTINGS;
         return (
-          <div
+          <ChartCard
             key={tile.id}
-            className={cx(tileStyle, size === "large" && largeTileStyle)}
+            title={tile.label}
+            subtitle={describeMetricView(settings, tile.outputType)}
+            actions={
+              <MetricViewMenu
+                outputType={tile.outputType}
+                value={settings}
+                onChange={(next) =>
+                  setSettingsById((previous) => ({
+                    ...previous,
+                    [tile.id]: next,
+                  }))
+                }
+              />
+            }
+            bodyHeight={METRIC_PLOT_HEIGHT}
           >
             <ExperimentMetricTimeline
               frames={tile.frames}
-              label={tile.label}
+              settings={settings}
               expectedOutputType={tile.outputType}
               timeDomain={timeDomain}
               contentEpoch={contentEpoch}
-              displaySize={size}
-              onDisplaySizeChange={(nextSize) =>
-                setSizes((previous) => ({ ...previous, [tile.id]: nextSize }))
-              }
+              plotHeight={METRIC_PLOT_HEIGHT}
             />
-          </div>
+          </ChartCard>
         );
       })}
-    </div>
+    </ChartCardGrid>
   );
 };
