@@ -16,6 +16,8 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
+export type AutomaticArcRendering = "curved" | "square";
+
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
 export type SubViewSectionSettings = {
@@ -36,6 +38,8 @@ export type UserSettings = {
   compactNodes: boolean;
   enableExperimentalIconPack: boolean;
   enableAutomaticArcConnections: boolean;
+  automaticArcRendering: AutomaticArcRendering;
+  avoidArcObstacles: boolean;
   arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -116,6 +120,8 @@ export type UserSettingsActions = {
   setCompactNodes: (value: boolean) => void;
   setEnableExperimentalIconPack: (value: boolean) => void;
   setEnableAutomaticArcConnections: (value: boolean) => void;
+  setAutomaticArcRendering: (value: AutomaticArcRendering) => void;
+  setAvoidArcObstacles: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
@@ -153,6 +159,8 @@ export const defaultUserSettings: UserSettings = {
   compactNodes: false,
   enableExperimentalIconPack: false,
   enableAutomaticArcConnections: false,
+  automaticArcRendering: "curved",
+  avoidArcObstacles: true,
   arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -189,6 +197,8 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setCompactNodes: () => {},
   setEnableExperimentalIconPack: () => {},
   setEnableAutomaticArcConnections: () => {},
+  setAutomaticArcRendering: () => {},
+  setAvoidArcObstacles: () => {},
   setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},

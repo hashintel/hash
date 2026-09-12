@@ -494,6 +494,20 @@ describe("combined UX settings", () => {
         }),
       ),
     );
+    const shape = await screen.findByRole("combobox", {
+      name: "Automatic arc shape",
+    });
+    fireEvent.click(shape);
+    fireEvent.click(await screen.findByRole("option", { name: "Square" }));
+    await waitFor(() =>
+      expect(shape.getAttribute("aria-expanded")).toBe("false"),
+    );
+    const avoid = await screen.findByRole("checkbox", { name: "Avoid nodes" });
+    expect((avoid as HTMLInputElement).checked).toBe(true);
+    await act(async () => fireEvent.click(avoid));
+    await waitFor(() =>
+      expect((avoid as HTMLInputElement).checked).toBe(false),
+    );
     first.unmount();
     renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
     expect(
@@ -506,10 +520,10 @@ describe("combined UX settings", () => {
     expect(
       (
         screen.getByRole("checkbox", {
-          name: "Automatic arc connections",
+          name: "Avoid nodes",
         }) as HTMLInputElement
       ).checked,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       screen.queryByRole("combobox", { name: "Arc rendering" }),
     ).toBeNull();
