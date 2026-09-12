@@ -483,7 +483,7 @@ export const studyResultsModel = (
     after: (
       <StudySteps
         optimization={optimization}
-        bestTrial={connected ? (optimization.best?.trial ?? null) : null}
+        bestTrial={optimization.best?.trial ?? null}
       />
     ),
     footer: (
