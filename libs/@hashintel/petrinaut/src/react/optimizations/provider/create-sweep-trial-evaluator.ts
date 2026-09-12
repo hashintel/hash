@@ -16,9 +16,10 @@
  *
  * The experiment's constraints are enforced here. A parameter constraint is
  * judged at the snapped point, before anything simulates, with `scenario.*`
- * bound to the values the sweep simulates there and `parameters.*` to the
- * net's defaults: an infeasible draw is pruned naming the constraint and the
- * sweep does not move. A state
+ * bound to the values the sweep simulates there, each as the scenario
+ * compiler binds it (a boolean parameter as a boolean), and `parameters.*`
+ * to the net's defaults: an infeasible draw is pruned naming the constraint
+ * and the sweep does not move. A state
  * constraint rides the sweep's batches as a 0/1 indicator metric, so the
  * visited cell's mean for it is the share of runs that passed.
  */
@@ -26,6 +27,7 @@ import {
   constraintsInSpace,
   deriveDefaultParameterValues,
 } from "@hashintel/petrinaut-core";
+import { resolveTrialScenarioBindings } from "@hashintel/petrinaut-core/optimization";
 
 import { sweepCellPassCount } from "../../experiments/constraint-indicators";
 import { axisPositionFor, axisValueAt } from "../../experiments/parameter-grid";
@@ -158,17 +160,17 @@ export const createSweepTrialEvaluator = ({
         "The suggestion misses a swept parameter or is not a number",
       );
     }
-    // Judged at the values the sweep would simulate, not the raw suggestion:
-    // a draw just inside a bound can snap across it.
+    // Judged at the values the sweep would simulate, not the raw suggestion
+    // (a draw just inside a bound can snap across it), bound as the compiler
+    // binds them: a boolean parameter as a boolean, not its 0/1 transport.
     const parameters = hasParameterConstraints(request.manifest)
       ? parameterConstraintOutcome(request.manifest, {
           parameters: deriveDefaultParameterValues(
             request.manifest.model.definition.parameters,
           ),
-          scenario: snappedSweepValues(
-            axes,
-            point,
-            request.scenarioParameterValues,
+          scenario: resolveTrialScenarioBindings(
+            request.manifest,
+            snappedSweepValues(axes, point, request.scenarioParameterValues),
           ),
         })
       : null;

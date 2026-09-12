@@ -8,6 +8,7 @@ import {
   sirOptimizationInput,
   sirOptimizationMetric,
   sirOptimizationScenario,
+  sirSwitchConstrainedOptimizationInput,
 } from "../sir-optimization-input.fixtures";
 import {
   createSweepTrialEvaluator,
@@ -459,6 +460,52 @@ describe("createSweepTrialEvaluator with constraints", () => {
     ).resolves.toMatchObject({
       kind: "pruned",
       reason: "Infeasible: Under 100 initial cases",
+    });
+    expect(navigateSweep).toHaveBeenCalledTimes(1);
+  });
+
+  it("binds a boolean scenario parameter by its type: the switch's constraint prunes a request carrying it off and holds for one carrying it on", async () => {
+    const navigateSweep = vi.fn().mockResolvedValue({
+      position: { infected_ratio: 12 },
+      runsCompleted: 8,
+      means: { [sirOptimizationMetric.id]: 0.3 },
+      sampleCounts: { [sirOptimizationMetric.id]: 8 },
+    });
+    const evaluator = sirEvaluator(navigateSweep);
+
+    await expect(
+      evaluator.evaluateTrial(
+        constrainedRequest(sirSwitchConstrainedOptimizationInput, {
+          population: 1000,
+          infected_ratio: 0.05,
+          isolation: 0,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      kind: "pruned",
+      reason: "Infeasible: Isolation on",
+      constraints: {
+        parameters: [{ constraintId: "isolation-on", margin: -1 }],
+        infeasible: "isolation-on",
+      },
+    });
+    expect(navigateSweep).not.toHaveBeenCalled();
+
+    await expect(
+      evaluator.evaluateTrial(
+        constrainedRequest(sirSwitchConstrainedOptimizationInput, {
+          population: 1000,
+          infected_ratio: 0.05,
+          isolation: 1,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      kind: "objective",
+      objective: 0.3,
+      constraints: {
+        parameters: [{ constraintId: "isolation-on", margin: 0 }],
+        state: [],
+      },
     });
     expect(navigateSweep).toHaveBeenCalledTimes(1);
   });
