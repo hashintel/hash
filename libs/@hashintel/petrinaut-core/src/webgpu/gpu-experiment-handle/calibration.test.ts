@@ -340,7 +340,38 @@ describe("probeDerivedCapacities", () => {
     expect(probed).toEqual({
       ok: true,
       windows: [{ lo: 14, stride: 1, integer: true }],
+      metricErrors: [],
+      probeRuns: 128,
     });
+  });
+
+  it("hands the probe's halted-metric counts back with the windows, over the runs it executed", async () => {
+    const current = session({ p: 64 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
+          metricErrors: [2],
+        }),
+      },
+    ]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    expect(probed).toMatchObject({
+      ok: true,
+      metricErrors: [2],
+      probeRuns: attempts[0]!.runCount,
+    });
+    // The probe still calibrates: the handle reports the halt, not the probe.
+    expect(current.capacities).toEqual(new Map([["p", 19]]));
   });
 
   it("hands back an abandoned probe without recompiling", async () => {

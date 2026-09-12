@@ -283,7 +283,9 @@ export const slabsFromProbe = (
  * can refuse cleanly and the caller falls back to the CPU: probes a small
  * prefix of the runs at generous slabs (growing on overflow), sizes each
  * place's slab from the observed maxima, and recompiles at those. The same
- * probe observes the metric ranges, seeding the histogram windows.
+ * probe observes the metric ranges, seeding the histogram windows, and counts
+ * the runs a non-finite metric sample halted, which the handle reports as the
+ * full run would.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -297,7 +299,15 @@ export const probeDerivedCapacities = async (options: {
    */
   stopped?: () => boolean;
 }): Promise<
-  { ok: true; windows: MetricWindow[] } | { ok: false; reason: string }
+  | {
+      ok: true;
+      windows: MetricWindow[];
+      /** Runs halted by a non-finite metric sample, per metric, over `probeRuns` runs. */
+      metricErrors: number[];
+      /** The runs the probe's last attempt executed. */
+      probeRuns: number;
+    }
+  | { ok: false; reason: string }
 > => {
   const { session, runCount, placeCounts, execute } = options;
   const stopped = options.stopped ?? (() => false);
@@ -329,6 +339,9 @@ export const probeDerivedCapacities = async (options: {
       reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place; running on the CPU, which sizes its buffers dynamically.`,
     };
   }
+  // The last attempt ran at the shader still in force here, before the
+  // recompile at the probed slabs changes what a probe would run.
+  const probeRuns = probeRunCount(session.shader, runCount);
   const slabs = slabsFromProbe(session, probe.result, placeCounts);
   if (!slabs.ok) {
     return slabs;
@@ -349,6 +362,8 @@ export const probeDerivedCapacities = async (options: {
       session.shader.histogramBins,
       PROBE_WINDOW_MARGIN,
     ),
+    metricErrors: probe.result.metricErrors,
+    probeRuns,
   };
 };
 

@@ -33,6 +33,7 @@ import {
   runUntilCalibrated,
 } from "./gpu-experiment-handle/calibration";
 import { createFrameMerger } from "./gpu-experiment-handle/frame-merge";
+import { metricFailure } from "./gpu-experiment-handle/metric-failure";
 import { deriveRunParameters } from "./gpu-experiment-handle/run-parameters";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import {
@@ -463,7 +464,21 @@ export async function createGpuMonteCarloExperiment(
       },
     });
 
+  /** A non-finite metric sample the probe halted runs on, reported as the full run would. */
+  const metricFailureIn = (
+    metricErrors: readonly number[],
+    runCount: number,
+  ): string | null =>
+    metricFailure({
+      metricIds,
+      metricSpecs: config.metricSpecs,
+      metricErrors,
+      runCount,
+    });
+
   let calibratedWindows: MetricWindow[] | null = null;
+  /** The capacity probe's halted-metric failure; run() reports it before its first attempt. */
+  let probedFailure: string | null = null;
   if (cachedCalibration) {
     session.shader = cachedCalibration.shader;
     for (const [placeId, capacity] of cachedCalibration.capacities) {
@@ -495,9 +510,14 @@ export async function createGpuMonteCarloExperiment(
     }
     calibratedWindows = probed.windows;
     storeCalibration(calibratedWindows);
+    probedFailure = metricFailureIn(probed.metricErrors, probed.probeRuns);
   }
 
   const run = async () => {
+    if (probedFailure !== null) {
+      fail(probedFailure);
+      return;
+    }
     // Blind windows (any metric without a ceiling) probe with a prefix of the
     // runs first, unless the capacity probe already calibrated them at
     // creation.
@@ -511,11 +531,12 @@ export async function createGpuMonteCarloExperiment(
       metricIds.length > 0 &&
       !aborted
     ) {
+      const probeRuns = probeRunCount(session.shader, config.runCount);
       const probe = await probeWindows({
         session,
         windows,
         execute: executeAttempt,
-        runCount: probeRunCount(session.shader, config.runCount),
+        runCount: probeRuns,
       });
       if (isDisposed()) {
         return;
@@ -526,6 +547,14 @@ export async function createGpuMonteCarloExperiment(
       }
       if (probe.result.cancelled) {
         finish("cancelled");
+        return;
+      }
+      const probeFailure = metricFailureIn(
+        probe.result.metricErrors,
+        probeRuns,
+      );
+      if (probeFailure !== null) {
+        fail(probeFailure);
         return;
       }
       windows = probe.windows;
@@ -555,18 +584,14 @@ export async function createGpuMonteCarloExperiment(
       );
       return;
     }
-    const erroredMetric = result.metricErrors.findIndex((runs) => runs > 0);
-    if (erroredMetric !== -1 && !result.cancelled) {
-      // The CPU evaluator throws on the first non-finite value and the
-      // experiment errors; the device halts the run instead, so the same
-      // failure is reported once the attempt returns.
-      const metricId = metricIds[erroredMetric];
-      const label =
-        config.metricSpecs.find((spec) => spec.id === metricId)?.label ??
-        metricId;
-      fail(
-        `Metric "${label}" returned a non-finite value in ${result.metricErrors[erroredMetric]} of ${config.runCount} runs, expected a finite number.`,
-      );
+    // The CPU evaluator throws on the first non-finite value and the
+    // experiment errors; the device halts the run instead, so the same
+    // failure is reported once the attempt returns.
+    const runFailure = result.cancelled
+      ? null
+      : metricFailureIn(result.metricErrors, config.runCount);
+    if (runFailure !== null) {
+      fail(runFailure);
       return;
     }
     if (!result.cancelled) {
