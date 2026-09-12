@@ -224,6 +224,21 @@ export function isOptimizationActive(
 }
 
 /**
+ * Whether a paused connected study is still computing: its record reads
+ * `paused` from the moment Pause is asked, while the steps in flight finish
+ * and report, and becomes resumable once the segment's `paused` event lands.
+ */
+export function isOptimizationDraining(
+  optimization: Pick<OptimizationRecord, "status" | "connected">,
+): boolean {
+  return (
+    optimization.status === "paused" &&
+    optimization.connected !== null &&
+    !optimization.connected.resumable
+  );
+}
+
+/**
  * The best after one trial event: the best the event carries when it does,
  * else the completed trial itself when its objective beats the one kept, else
  * the one kept. Attachments deliver `best: null` (the service does not know

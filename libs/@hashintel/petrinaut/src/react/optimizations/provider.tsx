@@ -40,6 +40,7 @@ import {
   type OptimizationErrorCategory,
   type OptimizationErrorDiagnostics,
   isOptimizationActive,
+  isOptimizationDraining,
   type OptimizationRecord,
   OptimizationsContext,
   type OptimizationsContextValue,
@@ -383,8 +384,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       );
     };
 
+  // A paused study computes until its steps in flight have drained, so
+  // leaving the tab would still lose work.
   useBlockWindowClose({
-    shouldBlock: optimizations.some(isOptimizationActive),
+    shouldBlock: optimizations.some(
+      (optimization) =>
+        isOptimizationActive(optimization) ||
+        isOptimizationDraining(optimization),
+    ),
   });
 
   /**

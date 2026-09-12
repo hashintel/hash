@@ -1746,6 +1746,73 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
     });
   });
 
+  it("keeps warning before unload while a paused study drains its step in flight, and stops once the paused event lands", async () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const { source } = createResumableSource([[0.05, 0.02]]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    try {
+      let optimizationId = "";
+      await act(async () => {
+        optimizationId = await getValue().createOptimization(input);
+      });
+      await waitFor(() => expect(fake.runs).toHaveLength(1));
+      const beforeUnloadCall = addEventListenerSpy.mock.calls.find(
+        ([eventName]) => eventName === "beforeunload",
+      );
+      expect(beforeUnloadCall).toBeDefined();
+      const beforeUnloadHandler = beforeUnloadCall![1] as (
+        event: BeforeUnloadEvent,
+      ) => void;
+
+      act(() => getValue().pauseOptimization(optimizationId));
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "paused",
+        connected: { resumable: false },
+      });
+      // The step in flight keeps computing: closing the tab would lose it.
+      expect(removeEventListenerSpy).not.toHaveBeenCalledWith(
+        "beforeunload",
+        beforeUnloadHandler,
+      );
+      const beforeUnloadEvent = new Event("beforeunload", {
+        cancelable: true,
+      }) as BeforeUnloadEvent;
+      Object.defineProperty(beforeUnloadEvent, "returnValue", {
+        configurable: true,
+        value: undefined,
+        writable: true,
+      });
+      beforeUnloadHandler(beforeUnloadEvent);
+      expect(beforeUnloadEvent.defaultPrevented).toBe(true);
+
+      fake.runs[0]!.settle(
+        completedRunResult({
+          metricId,
+          frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+          runValues: [0.25, 0.25, 0.25],
+        }),
+      );
+      await waitFor(() =>
+        expect(getValue().optimizations[0]?.connected?.resumable).toBe(true),
+      );
+      // Drained: nothing computes, so the guard is gone.
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        "beforeunload",
+        beforeUnloadHandler,
+      );
+    } finally {
+      unmount();
+      addEventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    }
+  });
+
   it("puts a refused continuation on the record and leaves the study resumable", async () => {
     const { source } = createResumableSource([[0.05]], {
       rejectExtension: "An optimization may run at most 1,000 trials in total",
