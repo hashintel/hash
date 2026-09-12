@@ -258,9 +258,12 @@ view on a laptop screen while the study streams:
   **Correlation** column beside the bars gives each parameter's signed
   correlation with the objective over the completed steps (`+0.34`, `−0.12`),
   computed from the steps themselves, so it is there from the third completed
-  step whatever the floor. Before the first estimate the rows show a dash. The
-  card only appears for a study run in the browser; a study on the service has
-  no sensitivity analysis yet.
+  step whatever the floor. Before the first estimate the rows show a dash. A
+  study that optimizes a single parameter has nothing to rank it against: its
+  line says **PED-ANOVA ranks two or more parameters**, the card is never
+  muted, and only the correlation column carries information. The card only
+  appears for a study run in the browser; a study on the service has no
+  sensitivity analysis yet.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.

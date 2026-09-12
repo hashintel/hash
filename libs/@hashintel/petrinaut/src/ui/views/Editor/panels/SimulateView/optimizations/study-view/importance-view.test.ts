@@ -95,6 +95,14 @@ describe("pearsonCorrelations", () => {
   });
 });
 
+/** A study moving one parameter: valid to create, but nothing for PED-ANOVA to rank it against. */
+const singleOptimizedBinding = {
+  production_rate: {
+    kind: "optimize",
+    domain: { kind: "continuous", minimum: 50, maximum: 400, scale: "linear" },
+  },
+} satisfies Parameters<typeof makeOptimizationInput>[0];
+
 describe("importanceRows", () => {
   const input = makeOptimizationInput(optimizedBindingSets.logScale);
   const { trials } = makeTrials(input, 30);
@@ -182,6 +190,37 @@ describe("importanceRows", () => {
     ).toBe(true);
     expect(view.effectiveCount).toBe(0);
   });
+
+  it("calls a study with one optimized parameter unrankable, never below the floor, and keeps its correlation", () => {
+    const singleParameterInput = makeOptimizationInput(singleOptimizedBinding);
+    const singleParameterTrials = makeTrials(singleParameterInput, 30).trials;
+    const completedCount = singleParameterTrials.filter(
+      (trial) => trial.state === "complete",
+    ).length;
+
+    const view = importanceRows(
+      makeOptimizationRecord({
+        input: singleParameterInput,
+        trials: singleParameterTrials,
+        importance: null,
+      }),
+    );
+
+    expect(completedCount).toBeLessThan(view.floor);
+    expect(view).toMatchObject({
+      rankable: false,
+      estimated: false,
+      effectiveCount: completedCount,
+      belowFloor: false,
+      barScale: 1,
+    });
+    expect(view.rows).toHaveLength(1);
+    expect(view.rows[0]?.importance).toBeNull();
+    expect(view.rows[0]?.correlation).not.toBeNull();
+    expect(describeImportance(view)).toBe(
+      `PED-ANOVA ranks two or more parameters · ${completedCount} completed steps · correlation only`,
+    );
+  });
 });
 
 describe("the card's copy", () => {
@@ -190,6 +229,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        rankable: true,
         estimated: true,
         effectiveCount: 54,
         floor: 50,
@@ -202,6 +242,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        rankable: true,
         estimated: true,
         effectiveCount: 27,
         floor: 50,
@@ -214,6 +255,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        rankable: true,
         estimated: true,
         effectiveCount: 1,
         floor: 50,
@@ -224,6 +266,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        rankable: true,
         estimated: false,
         effectiveCount: 12,
         floor: 50,

@@ -28,6 +28,8 @@ export type ImportanceRow = {
 export type ImportanceView = {
   /** Sorted by importance, largest first, then by identifier. */
   rows: readonly ImportanceRow[];
+  /** Whether PED-ANOVA can rank the study at all: it needs two or more optimized parameters. */
+  rankable: boolean;
   /** Whether an estimate has been received at all. */
   estimated: boolean;
   /** Completed steps the estimate is fitted on, or completed so far while none was received. */
@@ -150,13 +152,16 @@ export const importanceRows = (
   ).length;
   const effectiveCount = importance?.completedTrials ?? completedCount;
   const floor = importanceFloor(requestedTrials);
-  const belowFloor = effectiveCount < floor;
+  // The same rule as the optimizer core: one parameter has nothing to rank against.
+  const rankable = identifiers.length >= 2;
+  const belowFloor = rankable && effectiveCount < floor;
   const largest = rows.reduce(
     (max, row) => Math.max(max, row.importance ?? 0),
     0,
   );
   return {
     rows,
+    rankable,
     estimated: importance !== null,
     effectiveCount,
     floor,
@@ -168,10 +173,15 @@ export const importanceRows = (
 /**
  * The line under the card's title: the statistic and the count first, so
  * they survive a narrow card's clipping. Before the first estimate the line
- * says so rather than claiming an estimate over the steps completed so far.
+ * says so rather than claiming an estimate over the steps completed so far;
+ * a study with one optimized parameter never gets one, so its line says why
+ * and points at the correlation column.
  */
 export const describeImportance = (view: ImportanceView): string => {
   const steps = `${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
+  if (!view.rankable) {
+    return `PED-ANOVA ranks two or more parameters · ${steps} · correlation only`;
+  }
   const count = view.estimated
     ? `PED-ANOVA importance estimated from ${steps}`
     : `no PED-ANOVA importance yet · ${steps}`;

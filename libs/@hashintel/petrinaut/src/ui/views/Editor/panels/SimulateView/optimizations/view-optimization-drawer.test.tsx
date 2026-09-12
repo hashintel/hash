@@ -734,4 +734,41 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
     );
     expect(screen.queryByText("Sensitivity analysis")).toBeNull();
   });
+
+  it("tells a one-parameter study that PED-ANOVA ranks two or more parameters, unmuted, with the correlation column", () => {
+    const singleParameterInput = makeOptimizationInput({
+      production_rate: {
+        kind: "optimize",
+        domain: {
+          kind: "continuous",
+          minimum: 50,
+          maximum: 400,
+          scale: "linear",
+        },
+      },
+    });
+    const singleParameter = makeTrials(singleParameterInput, 30);
+    renderDrawer(
+      makeOptimizationRecord({
+        input: singleParameterInput,
+        trials: singleParameter.trials,
+        best: singleParameter.best,
+        status: "complete",
+        connected: makeConnectedStudyState(singleParameterInput, {
+          resumable: true,
+        }),
+      }),
+    );
+
+    const card = importanceCard();
+    expect(card.getAttribute("data-tone")).toBe("default");
+    expect(
+      card.querySelector("[data-chart-card-subtitle]")?.textContent,
+    ).toMatch(
+      /^PED-ANOVA ranks two or more parameters · \d+ completed steps · correlation only$/u,
+    );
+    expect(card.textContent).not.toContain("floor");
+    expect(card.querySelectorAll("[data-importance-row]")).toHaveLength(1);
+    expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
 });
