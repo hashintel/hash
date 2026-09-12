@@ -68,6 +68,11 @@ type RunRecord = {
    */
   readonly trialConstraints: Map<number, PetrinautOptimizationTrialConstraints>;
   status: RunStatus;
+  /**
+   * A pause asked for while the segment was still queued: posted to the
+   * worker right after the segment, so the run drains before its first ask.
+   */
+  pauseRequested: boolean;
   /** The segment the worker runs when it takes this run. */
   command: OptimizerStartMessage | OptimizerExtendMessage;
   /** Aborted when the segment is cancelled; the next segment gets a fresh one. */
@@ -84,7 +89,7 @@ type WorkerSession = {
 /** The events that end a segment: what `finish` appends, with `resumable`. */
 type TerminalRunLogEvent = Extract<
   OptimizationRunLogEvent,
-  { type: "complete" | "error" }
+  { type: "complete" | "paused" | "error" }
 >;
 
 const cancelledEvent: TerminalRunLogEvent = {
@@ -215,6 +220,8 @@ const connectBrowserOptimization = (options: {
     }
     // eslint-disable-next-line no-param-reassign -- the record's status is the session state this helper advances
     run.status = status;
+    // eslint-disable-next-line no-param-reassign -- a pause belongs to the segment that ends here
+    run.pauseRequested = false;
     // The host learns from the event whether Continue has a study to return
     // to: a first segment stopped before it reached the worker has none.
     run.log.append({ ...event, resumable: status === "finished-resumable" });
@@ -382,6 +389,25 @@ const connectBrowserOptimization = (options: {
         }
         return;
       }
+      case "paused": {
+        const run = activeRunFor(message.runId);
+        const { summary } = message;
+        if (run) {
+          finish(
+            run,
+            {
+              type: "paused",
+              requestedTrials: summary.requestedTrials,
+              completedTrials: summary.completedTrials,
+              prunedTrials: summary.prunedTrials,
+              failedTrials: summary.failedTrials,
+              best: summary.best,
+            },
+            "finished-resumable",
+          );
+        }
+        return;
+      }
       case "error": {
         const run = activeRunFor(message.runId);
         if (run) {
@@ -443,6 +469,9 @@ const connectBrowserOptimization = (options: {
       if (active === run && run.status === "queued" && session === current) {
         run.status = "running";
         current.worker.postMessage(run.command);
+        if (run.pauseRequested) {
+          current.worker.postMessage({ type: "pause", runId: run.runId });
+        }
       }
     });
   };
@@ -474,6 +503,7 @@ const connectBrowserOptimization = (options: {
         log: createOptimizationRunLog(),
         trialConstraints: new Map(),
         status: "queued",
+        pauseRequested: false,
         command: {
           type: "start",
           runId,
@@ -509,6 +539,18 @@ const connectBrowserOptimization = (options: {
         throw unknownRunError(runId);
       }
       return attachToLog(run.log, attachOptions);
+    },
+    async pauseOptimizationRun(runId) {
+      const run = runs.get(runId);
+      if (!run || isSettled(run) || run.pauseRequested) {
+        return;
+      }
+      // The segment's signal stays live: the trials in flight must finish
+      // for the worker to tell and report them.
+      run.pauseRequested = true;
+      if (run.status === "running") {
+        post({ type: "pause", runId });
+      }
     },
     async cancelOptimizationRun(runId) {
       const run = runs.get(runId);

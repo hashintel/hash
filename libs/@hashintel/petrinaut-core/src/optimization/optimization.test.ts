@@ -465,6 +465,15 @@ describe("petrinautOptimizationEventSchema", () => {
       failedTrials: 0,
       best: null,
     },
+    {
+      type: "paused",
+      requestedTrials: 2,
+      completedTrials: 1,
+      prunedTrials: 0,
+      failedTrials: 0,
+      best: null,
+      resumable: true,
+    },
     { type: "error", code: "failed", message: "nope", retryable: false },
   ];
 

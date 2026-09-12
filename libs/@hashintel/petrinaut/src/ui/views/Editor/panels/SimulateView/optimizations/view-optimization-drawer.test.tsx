@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { use } from "react";
+import { cloneElement, use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -72,8 +72,46 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     />
   );
   const Tooltip = ({ children }: { children: ReactNode }) => <>{children}</>;
+  // The Ark menu positions itself with a ResizeObserver jsdom lacks; this one
+  // lists the items as buttons once the trigger is clicked.
+  type FlatItem = {
+    id?: string;
+    text?: ReactNode;
+    onClick?: (id: string) => void;
+  };
+  type MenuEntry = FlatItem & { items?: MenuEntry[] };
+  const flatten = (entries: MenuEntry[]): FlatItem[] =>
+    entries.flatMap((entry) => (entry.items ? flatten(entry.items) : [entry]));
+  const Menu = ({
+    items,
+    trigger,
+  }: {
+    items: MenuEntry[];
+    trigger: React.ReactElement<{ onClick?: () => void }>;
+  }) => {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        {cloneElement(trigger, { onClick: () => setOpen(true) })}
+        {open ? (
+          <div role="menu">
+            {flatten(items).map((item, index) => (
+              <button
+                key={item.id ?? index}
+                type="button"
+                role="menuitem"
+                onClick={() => item.onClick?.(item.id ?? "")}
+              >
+                {item.text}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </>
+    );
+  };
 
-  return { ...actual, Drawer, Slider, Tooltip };
+  return { ...actual, Drawer, Menu, Slider, Tooltip };
 });
 
 vi.mock("./optimization-surface", () => ({
@@ -143,7 +181,13 @@ const renderDrawer = (
   } & Partial<
     Pick<
       OptimizationsContextValue,
-      "setOptimizationNavigation" | "cancelOptimization" | "extendOptimization"
+      | "setOptimizationNavigation"
+      | "cancelOptimization"
+      | "extendOptimization"
+      | "pauseOptimization"
+      | "resumeOptimization"
+      | "refineOptimizationBest"
+      | "removeOptimization"
     >
   > = {},
 ) => {
@@ -521,6 +565,119 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.queryByLabelText("Follow steps")).toBeNull();
     expect(screen.getByText("100 runs")).toBeTruthy();
+  });
+});
+
+describe("ViewOptimizationDrawer for a paused connected study", () => {
+  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const running = makeOptimizationRecord({
+    input,
+    trials: trials.slice(0, 3),
+    best: trials[2]!.best,
+    status: "running",
+    connected: makeConnectedStudyState(input, {
+      navigation,
+      selection: makeSelectionStream({
+        input,
+        navigation,
+        followedTrial: 2,
+        runsCompleted: 1,
+        computing: true,
+        frameCount: 4,
+      }),
+    }),
+  });
+  const paused = makeOptimizationRecord({
+    input,
+    trials: trials.slice(0, 3),
+    best: trials[2]!.best,
+    status: "paused",
+    connected: makeConnectedStudyState(input, {
+      navigation: navigationAtTrial(input, trials[2]!, false),
+      selection: null,
+      resumable: true,
+    }),
+  });
+
+  it("offers Pause as the first action while running, beside Stop, and drains through the provider", () => {
+    const pauseOptimization = vi.fn();
+    const cancelOptimization = vi.fn();
+    renderDrawer(running, { pauseOptimization, cancelOptimization });
+
+    fireEvent.click(screen.getByRole("button", { name: /Pause/u }));
+    expect(pauseOptimization).toHaveBeenCalledWith(running.id);
+    expect(cancelOptimization).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Stop/u })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Resume/u })).toBeNull();
+  });
+
+  it("keeps the running layout with every card in the paused tone, a Paused chip and the resume note", () => {
+    renderDrawer(paused);
+
+    expect(document.querySelector("[data-paused-chip]")?.textContent).toContain(
+      "Paused",
+    );
+    expect(screen.getByText(/^Paused at 3 of 30 steps/u)).toBeTruthy();
+    expect(
+      screen.getByText(/Resuming continues the study's history/u),
+    ).toBeTruthy();
+    const cards = document.querySelectorAll<HTMLElement>("[data-chart-card]");
+    expect(cards.length).toBeGreaterThanOrEqual(3);
+    expect([...cards].every((card) => card.dataset.tone === "paused")).toBe(
+      true,
+    );
+    expect(screen.getByText("Objective at the selected point")).toBeTruthy();
+    expect(screen.getByText("Objective by step")).toBeTruthy();
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByText("nothing computed at this point")).toBeTruthy();
+    expect(screen.queryByText("Follow steps")).toBeNull();
+  });
+
+  it("offers Resume and Run at the best configuration, no Restart, and Remove only in the overflow menu", async () => {
+    const resumeOptimization = vi.fn(() => Promise.resolve());
+    const refineOptimizationBest = vi.fn();
+    const removeOptimization = vi.fn();
+    renderDrawer(paused, {
+      resumeOptimization,
+      refineOptimizationBest,
+      removeOptimization,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Resume/u }));
+    expect(resumeOptimization).toHaveBeenCalledWith(paused.id);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Run at the best configuration/u }),
+    );
+    expect(refineOptimizationBest).toHaveBeenCalledWith(paused.id);
+    expect(screen.queryByRole("button", { name: /Restart/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Stop/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove$/u })).toBeNull();
+    expect(screen.queryByLabelText("Steps to continue with")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Remove" }));
+    expect(removeOptimization).toHaveBeenCalledWith(paused.id);
+  });
+
+  it("holds Resume until the segment has drained and the study is resumable", () => {
+    const draining = makeOptimizationRecord({
+      ...paused,
+      input,
+      status: "paused",
+      trials: trials.slice(0, 3),
+      best: trials[2]!.best,
+      connected: makeConnectedStudyState(input, {
+        navigation,
+        resumable: false,
+        inFlight: [{ trial: 3, parameters: {}, objective: null }],
+      }),
+    });
+    renderDrawer(draining);
+
+    expect(screen.getByText(/1 step finishing/u)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Resume/u }).hasAttribute("disabled"),
+    ).toBe(true);
   });
 });
 

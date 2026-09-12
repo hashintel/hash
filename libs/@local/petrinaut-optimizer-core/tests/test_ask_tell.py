@@ -60,7 +60,29 @@ class Harness:
         return asyncio.run(scenario())
 
 
-class ParallelHarness(Harness):
+class PausableHarness(Harness):
+    def __init__(self, description: dict[str, Any]) -> None:
+        super().__init__(description)
+        self.paused = False
+
+    def start(
+        self, evaluate: Any = None, **options: Any
+    ) -> asyncio.Task[dict[str, Any]]:
+        options.setdefault("trials", self.description.trials)
+        return asyncio.ensure_future(
+            run_study(
+                self.study,
+                self.description,
+                evaluate=evaluate or self.evaluate,
+                on_trial=self.events.append,
+                is_cancelled=lambda: self.cancelled,
+                is_paused=lambda: self.paused,
+                **options,
+            )
+        )
+
+
+class ParallelHarness(PausableHarness):
     """Evaluations settle only when the test says so, in the order it chooses."""
 
     def __init__(self, description: dict[str, Any]) -> None:
@@ -128,6 +150,7 @@ def test_tells_each_objective_and_reports_every_trial(
         "failedTrials": 0,
         "best": harness.events[-1]["best"],
         "cancelled": False,
+        "paused": False,
     }
 
 
@@ -166,6 +189,7 @@ def test_further_trials_continue_the_same_study(
         "failedTrials": 0,
         "best": harness.events[-1]["best"],
         "cancelled": False,
+        "paused": False,
     }
 
 
@@ -261,6 +285,87 @@ def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
     assert resumed["completedTrials"] + resumed["prunedTrials"] + resumed[
         "failedTrials"
     ] == told_trials(harness.study)
+
+
+def test_a_pause_drains_the_trials_in_flight_and_the_study_continues(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"]["trials"] = 6
+    harness = ParallelHarness(optimization_description)
+
+    async def scenario() -> tuple[dict[str, Any], bool, dict[str, Any]]:
+        run = harness.start(parallelism=2)
+        await until(lambda: len(harness.pending) == 2)
+        harness.paused = True
+        harness.settle(0)
+        for _ in range(20):
+            await asyncio.sleep(0)
+        # Trial 1 is still in flight, so the run waits; no third trial is asked.
+        settled_early = run.done()
+        assert len(harness.evaluations) == 2
+        harness.settle(1)
+        paused = await run
+        harness.paused = False
+        resumed_run = harness.start(trials=4, parallelism=2)
+        await until(lambda: {2, 3} <= set(harness.pending))
+        for index in (2, 3):
+            harness.settle(index)
+        await until(lambda: {4, 5} <= set(harness.pending))
+        for index in (4, 5):
+            harness.settle(index)
+        return paused, settled_early, await resumed_run
+
+    paused, settled_early, resumed = asyncio.run(scenario())
+
+    assert settled_early is False
+    assert paused["paused"] is True
+    assert paused["cancelled"] is False
+    assert paused["completedTrials"] == 2
+    assert paused["failedTrials"] == 0
+    assert harness.interrupted == []
+    # Both trials in flight at the pause were told and reported; the
+    # continuation numbers on from them.
+    assert [event["trial"] for event in harness.events] == [0, 1, 2, 3, 4, 5]
+    assert resumed["paused"] is False
+    assert resumed["completedTrials"] == 6
+    assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
+        TrialState.COMPLETE
+    ] * 6
+
+
+def test_a_pause_after_the_last_ask_drains_into_a_completion(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"]["trials"] = 2
+    harness = ParallelHarness(optimization_description)
+
+    async def scenario() -> dict[str, Any]:
+        run = harness.start(parallelism=2)
+        await until(lambda: len(harness.pending) == 2)
+        harness.paused = True
+        harness.settle(0)
+        harness.settle(1)
+        return await run
+
+    summary = asyncio.run(scenario())
+
+    assert summary["paused"] is False
+    assert summary["completedTrials"] == 2
+    assert [event["trial"] for event in harness.events] == [0, 1]
+
+
+def test_a_pause_before_the_first_ask_asks_nothing(
+    optimization_description: dict[str, Any],
+) -> None:
+    harness = PausableHarness(optimization_description)
+    harness.paused = True
+
+    summary = harness.run()
+
+    assert summary["paused"] is True
+    assert harness.evaluations == []
+    assert harness.events == []
+    assert harness.study.get_trials(deepcopy=False) == []
 
 
 def test_an_evaluation_error_cancels_and_fails_the_trials_in_flight(

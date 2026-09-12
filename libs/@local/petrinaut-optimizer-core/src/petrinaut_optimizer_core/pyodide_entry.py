@@ -124,15 +124,17 @@ def run_browser_study(
     evaluate: Callable[[dict[str, Scalar]], Awaitable[object]],
     on_trial: Callable[[dict[str, Any]], object],
     is_cancelled: Callable[[], object],
+    is_paused: Callable[[], object] = lambda: False,
 ) -> Awaitable[dict[str, Any]]:
     """Run `trials` more trials on the handle's study and return the awaitable summary.
 
     The arguments are checked and `handle.requested` grows by `trials` before
     this returns. Once the run settles, `handle.requested` is the number of
-    trials the study was told an outcome for, so the segment after a stop or
-    an error counts from the trials the study holds. `evaluate` receives each
-    trial's suggested values as a Python dict and may resolve to a JavaScript
-    object; `on_trial` receives plain dicts.
+    trials the study was told an outcome for, so the segment after a stop, a
+    pause or an error counts from the trials the study holds. `evaluate`
+    receives each trial's suggested values as a Python dict and may resolve to
+    a JavaScript object; `on_trial` receives plain dicts. `is_paused` drains
+    the segment as `ask_tell.run_study` describes.
     """
     study = handle.study
     if study is None:
@@ -159,6 +161,7 @@ def run_browser_study(
                 evaluate=evaluate_trial,
                 on_trial=with_importances_at_cadence(study, handle.requested, on_trial),
                 is_cancelled=lambda: bool(is_cancelled()),
+                is_paused=lambda: bool(is_paused()),
                 parallelism=handle.parallelism,
             )
             summary["requestedTrials"] = handle.requested

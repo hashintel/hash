@@ -7,7 +7,7 @@
  */
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ChartCard } from "../../shared/chart-card";
+import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
 import {
   describeImportance,
   formatCorrelation,
@@ -123,10 +123,13 @@ const HELP =
 export const ParameterImportancePanel = ({
   optimization,
   plotHeight,
+  tone,
 }: {
   optimization: OptimizationRecord;
   /** The body's height in pixels; the card is exactly as tall as its neighbours. */
   plotHeight: number;
+  /** `paused` reads as paused whatever the floor says; otherwise the floor decides. */
+  tone?: ChartCardTone;
 }) => {
   const view = importanceRows(optimization);
 
@@ -136,7 +139,7 @@ export const ParameterImportancePanel = ({
       subtitle={describeImportance(view)}
       help={HELP}
       bodyHeight={plotHeight}
-      tone={view.belowFloor ? "muted" : "default"}
+      tone={tone ?? (view.belowFloor ? "muted" : "default")}
     >
       <div
         className={bodyStyle}

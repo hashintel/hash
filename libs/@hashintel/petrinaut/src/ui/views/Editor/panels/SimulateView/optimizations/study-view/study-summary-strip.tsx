@@ -70,6 +70,7 @@ const errorStyle = css({
 const STATUS_TONE: Record<OptimizationRecord["status"], SummaryStatusTone> = {
   initializing: "active",
   running: "active",
+  paused: "neutral",
   complete: "done",
   error: "error",
   cancelled: "neutral",
@@ -184,6 +185,12 @@ export const StudySummaryBand = ({
       {fallbackReason === null ? null : (
         <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
       )}
+      {optimization.status === "paused" && connected ? (
+        <span className={noteStyle} data-resume-note>
+          Resuming continues the study's history; it does not reproduce the
+          draws an uninterrupted run would have made.
+        </span>
+      ) : null}
       {optimization.error ? (
         <span className={errorStyle}>{optimization.error}</span>
       ) : null}
