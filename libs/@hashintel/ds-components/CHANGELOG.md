@@ -1,5 +1,25 @@
 # @hashintel/ds-components
 
+## 0.4.0
+
+### Minor Changes
+
+- `Select`, `TextInput`, and `NumberInput` now accept `clearable` as `boolean | { onClear: () => void }`, and `Select` accepts `searchable` as `boolean | { onSearch?, hideCount?, hideSelectAllToggle? }`, replacing the previous `{ clearable: boolean, onClear }` and `{ searchable: boolean, onSearch }` object shapes. `Banner`'s `dismissible` and `Chip`'s and `Filter`'s `removeable` are now `false | { onDismiss: () => void }` / `false | { onRemove: () => void }` instead of objects with an inner enabled flag. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+### Patch Changes
+
+- `Filter` operators can now declare select inputs, overflowing content on Select + Inputs is improved, and keyboard navigation for Select updated to better match APG guidelines. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+- `Slider` accepts `disabled`, which dims the control and turns its input off. ([@kube](https://github.com/kube), [#9516](https://github.com/hashintel/hash/pull/9516))
+
+- Extract the contour plot into a `ContourSurface` component shared by the sweep and optimization surfaces, decouple `SweepNavigator` from the experiments context, and add Storybook stories for each component's states. Sweep navigation is continuous: a point selection uses a single-thumb slider, slider moves commit during the drag, and charts keep their axes, grid and size while frames stream in. `Slider` treats 0 as a real value, and `useElementSize` follows an element that mounts after the first render. ([@kube](https://github.com/kube), [#9421](https://github.com/hashintel/hash/pull/9421))
+
+- Optimization studies with two or more optimized numeric parameters gain a Surface section: a contour of the objective over two chosen parameters, computed locally against the study's frozen model, with the study's trials as markers. Sliders and clicks move the selected point, which refines with escalating batches. `Slider` accepts `step` and `onChangeEnd`. ([@kube](https://github.com/kube), [#9398](https://github.com/hashintel/hash/pull/9398))
+
+- Add header + footer options to selectable list + other minor ui improvements ([@alex-e-leon](https://github.com/alex-e-leon), [#9584](https://github.com/hashintel/hash/pull/9584))
+
+- Add Breadcrumb component ([@alex-e-leon](https://github.com/alex-e-leon), [#9502](https://github.com/hashintel/hash/pull/9502))
+
 ## 0.3.1
 
 ### Patch Changes
