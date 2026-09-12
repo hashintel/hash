@@ -1,11 +1,11 @@
 /**
- * What both surface cards share: the plot and footer heights that keep them
- * level with their neighbours, the X/Y axis selects for the footer, with
- * whatever else a view controls on a second footer row, and the caption
- * helpers. The footer is a grid of label and select pairs: the selects share
- * the row's width, so the footer fits the card's narrowest column without
- * overflowing, and a view with further controls reserves its second row at
- * all times.
+ * What the sweep's surface card is built from: the plot and footer heights
+ * that keep it level with its neighbours, the X/Y axis selects for the
+ * footer, with whatever else the view controls on a second footer row, and
+ * the caption helpers. The footer is a grid of label and select pairs: the
+ * selects share the row's width, so the footer fits the card's narrowest
+ * column without overflowing, and a view with further controls reserves its
+ * second row at all times.
  */
 import { Chip, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 /** The plot's height in pixels inside a surface card. */
 export const SURFACE_PLOT_HEIGHT = 280;
 /** The footer's content height for one row of controls: an extra-small Select. */
-export const SURFACE_FOOTER_HEIGHT = 24;
+const SURFACE_FOOTER_HEIGHT = 24;
 /** The footer's content height for two rows of controls and the gap between them. */
 export const SURFACE_FOOTER_TWO_ROW_HEIGHT = SURFACE_FOOTER_HEIGHT * 2 + 6;
 
@@ -128,25 +128,6 @@ export const SurfaceReadOnlyMark = ({
     </Chip>
   </span>
 );
-
-/** The state line of a view that samples its grid locally. */
-export const describeSurfaceSampling = ({
-  sampledCount,
-  totalCells,
-  runsPerCell,
-  note,
-}: {
-  sampledCount: number;
-  totalCells: number;
-  runsPerCell: number;
-  /** An extra clause between the progress and the navigation hint. */
-  note?: string;
-}): string =>
-  [
-    `${sampledCount} of ${totalCells} points sampled at ${runsPerCell}+ runs`,
-    ...(note === undefined ? [] : [note]),
-    "drag or click to navigate",
-  ].join(" · ");
 
 /** The caption: the axis readouts under the pointer mid-drag, the state line otherwise. */
 export const surfaceCaption = ({

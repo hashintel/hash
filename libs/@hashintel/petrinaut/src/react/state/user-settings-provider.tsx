@@ -33,6 +33,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * The tree is the only rendering, so the key is dropped on the next write.
    */
   useEntitiesTreeView?: boolean;
+  /**
+   * Toggled the study drawer's locally computed objective surface, which
+   * went with the Optimizations tab. Dropped on the next write.
+   */
+  enableOptimizationSurface?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -44,6 +49,7 @@ const loadSettings = (): UserSettings => {
       const {
         computeBackend,
         useEntitiesTreeView: _useEntitiesTreeView,
+        enableOptimizationSurface: _enableOptimizationSurface,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -120,8 +126,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
     setEnableParameterSweeps: (value: boolean) =>
       setState((prev) => ({ ...prev, enableParameterSweeps: value })),
-    setEnableOptimizationSurface: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();

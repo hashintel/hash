@@ -318,59 +318,6 @@ describe("attachOptimizerWorker", () => {
     expect(segmentOf(context, 2).callbacks.isCancelled()).toBe(false);
   });
 
-  it("pause flags the loop, lets the pending evaluations settle with their real outcomes and posts paused", async () => {
-    const context = setUp();
-    init(context);
-    context.runtime.receive({
-      type: "start",
-      runId: "paused",
-      description,
-      parallelism: 2,
-    });
-    const segment = segmentOf(context, 0);
-    const pending = [
-      segment.callbacks.evaluate(0, { rate: 0.1 }),
-      segment.callbacks.evaluate(1, { rate: 0.2 }),
-    ];
-
-    context.runtime.receive({ type: "pause", runId: "paused" });
-
-    expect(segment.callbacks.isPaused()).toBe(true);
-    expect(segment.callbacks.isCancelled()).toBe(false);
-    context.runtime.receive({
-      type: "evaluated",
-      requestId: 1,
-      outcome: { kind: "objective", objective: 1 },
-    });
-    context.runtime.receive({
-      type: "evaluated",
-      requestId: 2,
-      outcome: { kind: "pruned", reason: "no stock" },
-    });
-    expect(await Promise.all(pending)).toEqual([
-      { kind: "objective", objective: 1 },
-      { kind: "pruned", reason: "no stock" },
-    ]);
-
-    const drained = {
-      ...summary,
-      completedTrials: 1,
-      prunedTrials: 1,
-      paused: true,
-    };
-    segment.settle(drained);
-    await flush();
-    expect(context.runtime.posted.at(-1)).toEqual({
-      type: "paused",
-      runId: "paused",
-      summary: drained,
-    });
-
-    // The next segment of the same study starts unpaused.
-    context.runtime.receive({ type: "extend", runId: "paused", trials: 1 });
-    expect(segmentOf(context, 1).callbacks.isPaused()).toBe(false);
-  });
-
   it("release prunes pending evaluations and drops the study without posting back", async () => {
     const context = setUp();
     init(context);

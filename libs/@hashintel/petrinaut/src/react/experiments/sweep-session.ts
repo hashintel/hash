@@ -36,7 +36,7 @@ import {
   selectionMidpoint,
 } from "./parameter-grid";
 import { createThrottle } from "./shared/throttle";
-import { sweepCellObjective } from "./sweep-cell-objective";
+import { sweepCellSample } from "./sweep-cell-objective";
 import {
   sweepBatchSeed,
   sweepRangeDraws,
@@ -69,7 +69,7 @@ const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
 
 /** Finished batches of one selection, merged. */
-export type SweepCellSnapshot = {
+type SweepCellSnapshot = {
   runsCompleted: number;
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
 };
@@ -78,8 +78,10 @@ export type SweepCellSnapshot = {
 export type SweepVisitedCell = {
   position: Readonly<Record<string, number>>;
   runsCompleted: number;
-  /** Each metric's value over the finished runs (`sweepCellObjective`). */
+  /** Each metric's value over the runs that reported it (`sweepCellSample`). */
   means: Readonly<Record<string, number>>;
+  /** The runs behind each entry of `means`: a run that errored or ended early reports nothing. */
+  sampleCounts: Readonly<Record<string, number>>;
 };
 
 /** What the session streams to its owner on every meaningful change. */
@@ -183,18 +185,20 @@ export type SweepSession = {
   dispose: () => void;
 };
 
-/** Per-metric objective of a finished snapshot, for the metrics it holds. */
-const snapshotMeans = (
+/** Per-metric objective and sampled runs of a finished snapshot, for the metrics it holds. */
+const snapshotMeasures = (
   frames: readonly MonteCarloUserDefinedMetricFrame[],
-): Readonly<Record<string, number>> => {
+): Pick<SweepVisitedCell, "means" | "sampleCounts"> => {
   const means: Record<string, number> = {};
+  const sampleCounts: Record<string, number> = {};
   for (const metricId of new Set(frames.map((frame) => frame.metricId))) {
-    const value = sweepCellObjective(frames, metricId);
-    if (value !== null) {
-      means[metricId] = value;
+    const sample = sweepCellSample(frames, metricId);
+    if (sample !== null) {
+      means[metricId] = sample.value;
+      sampleCounts[metricId] = sample.runs;
     }
   }
-  return means;
+  return { means, sampleCounts };
 };
 
 /** A point selection's position per axis; null for a selection with a range. */
@@ -234,7 +238,7 @@ const cellFor = (
 ): SweepVisitedCell => ({
   position,
   runsCompleted: snapshot.runsCompleted,
-  means: snapshotMeans(snapshot.metricFrames),
+  ...snapshotMeasures(snapshot.metricFrames),
 });
 
 export function createSweepSession(

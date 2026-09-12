@@ -403,8 +403,6 @@ export const FrameStatusPill = ({
 export type FrameHeaderProps = {
   /** One line, ellipsized when narrow: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
   title: string;
-  /** Before the title: a Back button in the full view. */
-  leading?: ReactNode;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */
   headline?: ReactNode | null;
   /** The strip: `FrameStat` columns. Echoed as inert compact chips on the title line while condensed. */
@@ -451,7 +449,6 @@ const CompactStats = ({
 
 export const FrameHeader = ({
   title,
-  leading,
   headline,
   stats,
   badge,
@@ -474,7 +471,6 @@ export const FrameHeader = ({
       {...engagement}
     >
       <div className={titleRowStyle}>
-        {leading === undefined ? null : leading}
         <span className={titleStyle} data-frame-title>
           {title}
         </span>

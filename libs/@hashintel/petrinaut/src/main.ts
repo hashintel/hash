@@ -43,7 +43,6 @@ export type {
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
-  PetrinautSimulatePresentation,
   PetrinautSimulateResource,
 } from "./react/navigation";
 export { definePetrinautAiInteractiveTool } from "./ui/types/ai-interactive-tool";

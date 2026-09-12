@@ -31,17 +31,7 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode =
-  | "scenarios"
-  | "metrics"
-  | "experiments"
-  | "optimizations";
-
-/**
- * How the Simulate section presents the open record: in a drawer over the
- * list, or as the whole section. Only an optimization has a full presentation.
- */
-export type PetrinautSimulatePresentation = "drawer" | "full";
+export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -50,8 +40,7 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" }
-  | { type: "create-optimization" };
+  | { type: "create-experiment" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
@@ -133,8 +122,6 @@ export type EditorState = {
    */
   simulateViewMode: SimulateViewMode;
   simulateDrawer: SimulateDrawerState;
-  /** How the Simulate section presents an open optimization. */
-  simulatePresentation: PetrinautSimulatePresentation;
   isPanelAnimating: boolean;
   isSearchOpen: boolean;
   isAiAssistantOpen: boolean;
@@ -186,9 +173,6 @@ export type EditorActions = {
   setHiddenTimelineSeriesIds: (seriesIds: Set<string>) => void;
   setSimulateViewMode: (mode: SimulateViewMode) => void;
   setSimulateDrawer: (drawer: SimulateDrawerState) => void;
-  setSimulatePresentation: (
-    presentation: PetrinautSimulatePresentation,
-  ) => void;
   setSearchOpen: (isOpen: boolean) => void;
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
@@ -224,7 +208,6 @@ export const initialEditorState: EditorState = {
   hiddenTimelineSeriesIds: new Set(),
   simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
-  simulatePresentation: "drawer",
   isPanelAnimating: false,
   isSearchOpen: false,
   isAiAssistantOpen: false,
@@ -265,7 +248,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setHiddenTimelineSeriesIds: () => {},
   setSimulateViewMode: () => {},
   setSimulateDrawer: () => {},
-  setSimulatePresentation: () => {},
   setSearchOpen: () => {},
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},

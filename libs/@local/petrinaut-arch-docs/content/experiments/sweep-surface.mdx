@@ -26,8 +26,8 @@ is no point, so it draws nothing.
 The component (`sweep-surface.tsx`) turns the visited list into a field with
 the pure helpers beside it (`sweep-surface/visited-field.ts`):
 `visitedSurfaceField` projects every visited point onto the two shown axes at
-its fractional grid coordinate (`surfaceGridCoordinate`, shared with the
-optimization surface through `shared/surface-field.ts`), a filled dot with the
+its fractional grid coordinate (`surfaceGridCoordinate`, from
+`shared/surface-field.ts`), a filled dot with the
 shown metric's value, the point matching the selection emphasized, a muted
 ring where the metric never reported. `computingSurfaceField` adds the point
 being computed as a ring and nothing more: its value joins the field from
@@ -79,23 +79,15 @@ budget; a point an optimizer visited stops at the trial's cap (eight runs)
 until the study settles on it or the navigator returns to it, and the deeper
 result flows back into the same cache and the surface repaints with it.
 
-## The optimization surface
+## The optimizer on the surface
 
-The optimization drawer mounts the same rendering over a study's optimized
-parameters (`optimization-surface.tsx`), with two differences. Axes come from the study's domains (`react/optimizations/
-surface-grid.ts`): log-scale domains quantize in log space and integer domains
-snap to their step. And a study must run its **frozen model snapshot**
-rather than the live editor net a sweep session holds, so the experiments
-provider exposes `sampleDetachedObjective`: one CPU batch on a queue of its
-own (`surface`), against a snapshot compiled once per study (cached), running
-the objective as an expression metric and returning the finished frames. The
-component keeps its own per-position cache and climbs the same run ladder for
-the selected point, streaming the objective's mean and median. The study's
-completed trials draw as projected rings over the locally computed fill — the
-optimizer's evaluations laid over a picture computed here. A study run in the
-browser skips the walk: its trials are the field's samples, drawn as dots and
-interpolated between, the step in flight streams its running objective at the
-record's navigation, and the plot only displays until the study is over or
-following is off, so the drawer's Parameters card and the plot move together.
-[The connected study](doc:optimizer/connected-study) owns that navigation and
-[the Optimizations tab](doc:ui/optimizations-tab) draws the plot.
+A study started from the sweep's Parameters card draws on this same surface
+and no other: its steps are points the sweep visited through `navigateSweep`,
+so each lands as a dot at the trial's cap of eight runs, the step in flight
+is the computing ring, and infeasible draws never reach the surface because
+the evaluator prunes them before it navigates. While the study drives the
+sweep the card takes the `optimizing` tone and only displays; once the study
+settles, or is stopped, the navigator parks on the best point, the plot takes
+picks again, and the point refines to the run budget through the same cache.
+[Sweep orchestration](doc:experiments/sweep-orchestration) describes the
+study that drives that navigation and the constraints it enforces.

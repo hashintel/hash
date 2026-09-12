@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import {
-  createReadableStore,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  deriveDefaultParameterValues,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
-  type DetachedObjectiveRunOutcome,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   ExperimentsContext,
@@ -23,16 +18,12 @@ import {
   EditorContext,
   initialEditorState,
   type EditorContextValue,
-  type PetrinautSimulatePresentation,
   type SimulateDrawerState,
   type SimulateViewMode,
 } from "../../../../../../react/state/editor-context";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type {
-  MonteCarloUserDefinedMetricFrame,
-  MonteCarloWorkerProgress,
-} from "@hashintel/petrinaut-core";
+import type { Constraint } from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
@@ -129,6 +120,9 @@ export function makeExperiment(
     parameterAxes: [],
     sweep: null,
     metricFrames: [],
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
     ...overrides,
   };
 }
@@ -197,6 +191,7 @@ export function syntheticVisitedCell(
         ),
       ),
     },
+    sampleCounts: { infected: runsCompleted },
   };
 }
 
@@ -277,6 +272,109 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
     metricFrames: frames,
     latestMetricFramesById: { infected: frames.at(-1)! },
   });
+}
+
+const constraintHirSpan = { start: 0, length: 0 };
+
+/**
+ * The sweep with one constraint of each kind, lowered as the language worker
+ * would lower them: the transmission rate capped below its interval's top,
+ * and the infected count held under 900 on every frame.
+ */
+export const sweepFixtureConstraints: Constraint[] = [
+  {
+    space: "parameters",
+    id: "transmission-cap",
+    name: "Parameter constraint 1",
+    code: "scenario.transmission_rate < 0.45",
+    hir: {
+      hirVersion: 1,
+      surface: "scenario-expression",
+      params: [],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<",
+        left: {
+          kind: "scenarioRef",
+          id: 1,
+          span: constraintHirSpan,
+          name: "transmission_rate",
+        },
+        right: {
+          kind: "numberLit",
+          id: 2,
+          span: constraintHirSpan,
+          value: 0.45,
+          raw: "0.45",
+        },
+      },
+    },
+  },
+  {
+    space: "state",
+    id: "infected-cap",
+    name: "State constraint 1",
+    code: "return state.places.Infected.count <= 900;",
+    hir: {
+      hirVersion: 1,
+      surface: "metric",
+      params: [{ name: "state", span: constraintHirSpan }],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<=",
+        left: {
+          kind: "fieldAccess",
+          id: 1,
+          span: constraintHirSpan,
+          field: "count",
+          fieldSpan: constraintHirSpan,
+          target: {
+            kind: "fieldAccess",
+            id: 2,
+            span: constraintHirSpan,
+            field: "Infected",
+            fieldSpan: constraintHirSpan,
+            target: {
+              kind: "fieldAccess",
+              id: 3,
+              span: constraintHirSpan,
+              field: "places",
+              fieldSpan: constraintHirSpan,
+              target: {
+                kind: "localRef",
+                id: 4,
+                span: constraintHirSpan,
+                name: "state",
+              },
+            },
+          },
+        },
+        right: {
+          kind: "numberLit",
+          id: 5,
+          span: constraintHirSpan,
+          value: 900,
+          raw: "900",
+        },
+      },
+    },
+  },
+];
+
+/** The two-axis sweep carrying both fixture constraints at a 90% pass threshold. */
+export function makeConstrainedSweepExperiment(): ExperimentRecord {
+  return {
+    ...makeParameterSweepExperiment(),
+    scenarioParameterValues: { transmission_rate: 0.3, recovery_days: 7 },
+    constraints: sweepFixtureConstraints,
+    constraintPolicy: { alpha: 0.1 },
+  };
 }
 
 type StoryMetricFrame = ExperimentRecord["metricFrames"][number];
@@ -435,86 +533,10 @@ const createFakeExperiment = (
   sweepBatches: [],
   parameterAxes: [],
   sweep: null,
+  scenarioParameterValues: {},
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
 });
-
-/**
- * The fake of a streaming objective batch: ten frames of the synthetic bump
- * at the request's parameter values, one every 60 ms, then the result.
- */
-export const fakeRunDetachedObjective: ExperimentsActionsValue["runDetachedObjective"] =
-  (request) => {
-    const values = Object.values(request.scenarioParameterValues).filter(
-      (entry): entry is number => typeof entry === "number",
-    );
-    const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-    const frames = createReadableStore<
-      readonly MonteCarloUserDefinedMetricFrame[]
-    >([]);
-    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
-    let cancelled = false;
-    const completion = new Promise<DetachedObjectiveRunOutcome>((resolve) => {
-      const totalTicks = 10;
-      let tick = 0;
-      const step = () => {
-        if (cancelled) {
-          resolve({ ok: false, cancelled: true, reason: "cancelled" });
-          return;
-        }
-        tick += 1;
-        const fraction = tick / totalTicks;
-        const time = request.maxTime * fraction;
-        frames.set([
-          ...frames.get(),
-          {
-            metricId: request.metric.id,
-            label: request.metric.label,
-            outputType: "distribution",
-            frameNumber: Math.round(time / request.dt),
-            time,
-            bins: [
-              [Math.round(objective * fraction * 100) / 100, request.runCount],
-            ],
-            value: null,
-            frameValue: null,
-            timeValue: null,
-            runSampleCount: request.runCount,
-            timeSampleCount: request.runCount,
-          },
-        ]);
-        progress.set({
-          activeRuns: tick < totalTicks ? request.runCount : 0,
-          advancedRuns: request.runCount,
-          allFinished: tick >= totalTicks,
-          completedRuns: tick < totalTicks ? 0 : request.runCount,
-          erroredRuns: 0,
-          frameNumber: Math.round(time / request.dt),
-          runCount: request.runCount,
-          time,
-        });
-        if (tick < totalTicks) {
-          setTimeout(step, 60);
-          return;
-        }
-        resolve({
-          ok: true,
-          runsCompleted: request.runCount,
-          metricFrames: frames.get(),
-          runResults: new Map(),
-          computeBackend: request.computeBackend,
-          computeBackendFallbackReason: null,
-        });
-      };
-      setTimeout(step, 60);
-    });
-    return {
-      frames,
-      progress,
-      completion,
-      cancel: () => {
-        cancelled = true;
-      },
-    };
-  };
 
 export function FakeExperimentsProvider({
   children,
@@ -529,12 +551,7 @@ export function FakeExperimentsProvider({
    * sampler to watch a surface fill in, or one that resolves null to show
    * the empty state.
    */
-  overrides?: Partial<
-    Pick<
-      ExperimentsContextValue,
-      "navigateSweep" | "sampleDetachedObjective" | "runDetachedObjective"
-    >
-  >;
+  overrides?: Partial<Pick<ExperimentsContextValue, "navigateSweep">>;
   /**
    * Simulates what the real sweep session does on a selection change:
    * frames clear immediately, then the new selection's distribution streams
@@ -772,44 +789,6 @@ export function FakeExperimentsProvider({
           resolve(cell);
         }, 700);
       }),
-    sampleDetachedObjective: (request) => {
-      // The synthetic bump over the study's real parameter values, so the
-      // optimization surface story fills live.
-      const values = Object.values(request.scenarioParameterValues).filter(
-        (entry): entry is number => typeof entry === "number",
-      );
-      const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-      const frame = {
-        metricId: request.metric.id,
-        label: request.metric.label,
-        outputType: "distribution" as const,
-        frameNumber: 45,
-        time: 45,
-        bins: [
-          [Math.round(objective * 100) / 100, request.runCount],
-        ] as (readonly [number, number])[],
-        value: null,
-        frameValue: null,
-        timeValue: null,
-        runSampleCount: request.runCount,
-        timeSampleCount: request.runCount,
-      };
-      return new Promise((resolve) => {
-        setTimeout(
-          () =>
-            resolve({
-              runsCompleted: request.runCount,
-              metricFrames: [frame],
-            }),
-          100,
-        );
-      });
-    },
-    runDetachedObjective: fakeRunDetachedObjective,
-    resolveDetachedObjectiveParameters: (request) =>
-      Promise.resolve(
-        deriveDefaultParameterValues(request.definition.parameters),
-      ),
     ...overrides,
   }));
 
@@ -843,9 +822,6 @@ export function FakeEditorProvider({
   const [simulateDrawer, setSimulateDrawer] = useState<SimulateDrawerState>({
     type: "closed",
   });
-  // Stateful so the optimization stories can open a record as the whole section.
-  const [simulatePresentation, setSimulatePresentation] =
-    useState<PetrinautSimulatePresentation>("drawer");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const value: EditorContextValue = {
@@ -880,8 +856,6 @@ export function FakeEditorProvider({
     updateDraggingStateByNodeId: () => {},
     simulateDrawer,
     setSimulateDrawer,
-    simulatePresentation,
-    setSimulatePresentation,
     setAiAssistantOpen: () => {},
     toggleAiAssistant: () => {},
     resetDraggingState: () => {},

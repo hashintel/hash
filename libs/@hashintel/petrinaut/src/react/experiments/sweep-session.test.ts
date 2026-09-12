@@ -735,6 +735,7 @@ describe("navigateTo", () => {
       position: { x: 2, y: 1 },
       runsCompleted: 8,
       means: { m: 5 },
+      sampleCounts: { m: 8 },
     });
     expect(updates.at(-1)).toMatchObject({
       computing: false,
@@ -742,7 +743,12 @@ describe("navigateTo", () => {
       runsCompleted: 8,
     });
     expect(updates.at(-1)!.visited).toEqual([
-      { position: { x: 2, y: 1 }, runsCompleted: 8, means: { m: 5 } },
+      {
+        position: { x: 2, y: 1 },
+        runsCompleted: 8,
+        means: { m: 5 },
+        sampleCounts: { m: 8 },
+      },
     ]);
 
     // A plain selection of the same point lifts the cap: the ladder resumes.

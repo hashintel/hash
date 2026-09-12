@@ -11,7 +11,7 @@ const countFormat = new Intl.NumberFormat("en-US");
 /** An integer count with thousands separators: `1,000`. */
 export const formatCount = (value: number): string => countFormat.format(value);
 
-export const formatScalar = (value: number | boolean): string =>
+const formatScalar = (value: number | boolean): string =>
   typeof value === "boolean" ? String(value) : formatNumber(value);
 
 /** A point's parameters on one line: `population=1744, infected_ratio=0.8`. */
