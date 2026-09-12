@@ -51,7 +51,7 @@ pub struct ProblemType {
     derive(schemars::JsonSchema),
     schemars(title = "Problem Details")
 )]
-pub struct ProblemDetails<'kind, 'occurrence, E> {
+pub struct ProblemDetails<'a, E> {
     /// A URI reference identifying the problem type. `about:blank` means the problem has no
     /// additional semantics beyond its HTTP status code.
     #[serde(rename = "type")]
@@ -62,12 +62,12 @@ pub struct ProblemDetails<'kind, 'occurrence, E> {
             example = "https://example.com/problems/wrong-actor-type"
         )
     )]
-    pub type_uri: Cow<'kind, str>,
+    pub type_uri: Cow<'a, str>,
 
     /// A short, human-readable summary of the problem type. It should remain the same across
     /// occurrences, except for localization.
     #[cfg_attr(feature = "schemars", schemars(example = "Wrong actor type"))]
-    pub title: Cow<'kind, str>,
+    pub title: Cow<'a, str>,
 
     /// The HTTP status code sent by the origin server for this occurrence.
     #[cfg_attr(
@@ -83,7 +83,7 @@ pub struct ProblemDetails<'kind, 'occurrence, E> {
         feature = "schemars",
         schemars(required, example = "This operation requires a machine actor.")
     )]
-    pub detail: Option<Cow<'occurrence, str>>,
+    pub detail: Option<Cow<'a, str>>,
 
     /// A URI reference identifying this occurrence. It may identify the occurrence without
     /// resolving to further information.
@@ -96,7 +96,7 @@ pub struct ProblemDetails<'kind, 'occurrence, E> {
             example = "https://example.com/problem-occurrences/01J8M6Y7P9"
         )
     )]
-    pub instance: Option<Cow<'occurrence, str>>,
+    pub instance: Option<Cow<'a, str>>,
 
     /// Problem-specific members included alongside the standard fields.
     ///

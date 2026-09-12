@@ -10,7 +10,7 @@ use serde::{
 };
 use serde_json::{Value, json};
 
-const fn details<E>(extensions: E) -> ProblemDetails<'static, 'static, E> {
+const fn details<E>(extensions: E) -> ProblemDetails<'static, E> {
     ProblemDetails {
         type_uri: Cow::Borrowed("about:blank"),
         title: Cow::Borrowed("Bad Request"),

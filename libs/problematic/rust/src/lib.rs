@@ -5,8 +5,7 @@
 //! The `schemars` feature adds JSON Schema support to [`ProblemDetails`] and [`NoExtensions`].
 //!
 //! [`ProblemDetails`] can borrow the type URI and title from shared metadata and detail and
-//! instance from the occurrence, using separate lifetimes. Deserialization produces owned strings
-//! for these fields.
+//! instance from the occurrence. Deserialization produces owned strings for these fields.
 
 extern crate alloc;
 
