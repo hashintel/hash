@@ -14,6 +14,7 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
+import { useCodeWorkspace } from "../../../../../monaco/code-workspace";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
 import { AddParameterAction } from "./entities-tree/add-parameter-action";
@@ -52,14 +53,19 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
+  const { enabled, entries, open } = useCodeWorkspace();
+  const codeItems = enabled
+    ? entries
+        .filter((entry) => entry.selection.id === item.id)
+        .map((entry) => ({
+          id: entry.path,
+          text: `Open ${entry.label.toLowerCase()}`,
+          onClick: () => open(entry.path),
+        }))
+    : [];
   const type = item.selectionItem?.type;
 
   if (!type) {
-    return null;
-  }
-
-  // Nodes (places/transitions) don't have a row menu
-  if (type === "place" || type === "transition") {
     return null;
   }
 
@@ -76,21 +82,26 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   };
   const deleteAction = deleteActions[type];
 
-  if (!deleteAction) {
+  if (!deleteAction && codeItems.length === 0) {
     return null;
   }
 
   return (
     <RowMenu
       items={[
-        {
-          id: "delete",
-          text: "Delete",
-          icon: "trash",
-          tone: "error",
-          disabled: isReadOnly,
-          onClick: deleteAction,
-        },
+        ...codeItems,
+        ...(deleteAction
+          ? [
+              {
+                id: "delete",
+                text: "Delete",
+                icon: "trash" as const,
+                tone: "error" as const,
+                disabled: isReadOnly,
+                onClick: deleteAction,
+              },
+            ]
+          : []),
       ]}
     />
   );

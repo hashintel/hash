@@ -8,6 +8,7 @@ import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization"
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { CodeEditorLayoutSettings } from "../../../monaco/code-editor-layout-settings";
 
 import type { ArcRendering } from "../../../../react/state/user-settings-context";
 
@@ -215,6 +216,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
+        <h3 className={sectionTitleStyle}>Feature flags</h3>
+        <CodeEditorLayoutSettings />
         <SettingRow
           label={
             <>

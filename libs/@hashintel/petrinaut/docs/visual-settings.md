@@ -79,3 +79,9 @@ Choose how arcs are drawn between nodes:
 | **Square**          | Right-angle paths (smoothstep routing).                     |
 | **Bezier**          | Smooth curved paths.                                        |
 | **Adaptive Bezier** | Curved paths that adjust based on node positions. (Default) |
+
+## Feature flags
+
+### Code editor layouts
+
+Enable **Code editor layouts** to open model functions in **Full screen**, **Properties panel**, or **Bottom dock**. Select a visual layout card to enable the feature and set the preferred layout. The choice is saved between sessions. See [Code Editor](code-editor.md) for navigation and editing.

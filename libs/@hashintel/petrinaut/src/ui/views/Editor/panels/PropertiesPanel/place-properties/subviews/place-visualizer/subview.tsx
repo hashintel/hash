@@ -17,7 +17,10 @@ import {
 import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import {
+  useCodeEditorMenuItems,
+  SourceCodeEditor as CodeEditor,
+} from "../../../../../../../monaco/code-workspace";
 import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
 import { usePlacePropertiesContext } from "../../context";
 
@@ -88,7 +91,7 @@ const VisualizerPreview: React.FC = () => {
 };
 
 const PlaceVisualizerContent: React.FC = () => {
-  const { place, updatePlace } = usePlacePropertiesContext();
+  const { place, updatePlace, isReadOnly } = usePlacePropertiesContext();
   const { totalFrames } = use(ExecutionFrameSourceContext);
   const [viewMode, setViewMode] = useState<ViewMode>("code");
 
@@ -131,6 +134,7 @@ const PlaceVisualizerContent: React.FC = () => {
               path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
               language="typescript"
               height="100%"
+              options={{ readOnly: isReadOnly }}
               value={place.visualizerCode}
               onChange={(value) => {
                 updatePlace({
@@ -154,6 +158,10 @@ const PlaceVisualizerContent: React.FC = () => {
 const VisualizerHeaderAction: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { globalMode } = use(EditorContext);
+
+  const codeEditorItems = useCodeEditorMenuItems(
+    `inmemory://sdcpn/places/${place.id}/visualizer.tsx`,
+  );
 
   const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
     placeId: string;
@@ -215,9 +223,11 @@ const VisualizerHeaderAction: React.FC = () => {
             />
           }
           items={[
+            ...codeEditorItems,
             {
               id: "load-default",
               text: "Load default template",
+              disabled: isReadOnly,
               onClick: () => {
                 const currentPlaceType = place.colorId
                   ? types.find((type) => type.id === place.colorId)

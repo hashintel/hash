@@ -60,3 +60,37 @@ describe("UserSettingsProvider", () => {
     expect(screen.getByRole("button", { name: "editor: on" })).toBeTruthy();
   });
 });
+
+const CodeLayoutProbe = () => {
+  const settings = use(UserSettingsContext);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        settings.setEnableCodeEditorWorkspace(true);
+        settings.setCodeEditorPlacement("bottom");
+      }}
+    >
+      {settings.enableCodeEditorWorkspace
+        ? settings.codeEditorPlacement
+        : "inline"}
+    </button>
+  );
+};
+
+it("remembers the code editor flag and placement across sessions", () => {
+  const view = render(
+    <UserSettingsProvider>
+      <CodeLayoutProbe />
+    </UserSettingsProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "inline" }));
+  expect(screen.getByRole("button", { name: "bottom" })).toBeTruthy();
+  view.unmount();
+  render(
+    <UserSettingsProvider>
+      <CodeLayoutProbe />
+    </UserSettingsProvider>,
+  );
+  expect(screen.getByRole("button", { name: "bottom" })).toBeTruthy();
+});

@@ -15,6 +15,7 @@ import type {
 } from "./editor-context";
 import type {
   ArcRendering,
+  CodeEditorPlacement,
   SubViewSectionSettings,
   UserSettings,
 } from "./user-settings-context";
@@ -49,6 +50,11 @@ const loadSettings = (): UserSettings => {
       return {
         ...defaultUserSettings,
         ...parsed,
+        codeEditorPlacement:
+          parsed.codeEditorPlacement === "properties" ||
+          parsed.codeEditorPlacement === "bottom"
+            ? parsed.codeEditorPlacement
+            : "fullscreen",
         // Someone who had selected the GPU globally keeps it available.
         webGpuEnabled: parsed.webGpuEnabled ?? computeBackend === "webgpu",
       };
@@ -108,6 +114,13 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
+    setEnableCodeEditorWorkspace: (value: boolean) =>
+      setState((previous) => ({
+        ...previous,
+        enableCodeEditorWorkspace: value,
+      })),
+    setCodeEditorPlacement: (value: CodeEditorPlacement) =>
+      setState((previous) => ({ ...previous, codeEditorPlacement: value })),
     setEnableNotebookView: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNotebookView: value })),
     setEnableAdHocScenarios: (value: boolean) =>
