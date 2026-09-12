@@ -176,6 +176,18 @@ impl Error for OpenError {
     }
 }
 
+impl From<io::Error> for OpenError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl From<serde_json::Error> for OpenError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Document(error)
+    }
+}
+
 /// A failure removing an inactive generation.
 #[derive(Debug)]
 pub(crate) enum RemoveError {

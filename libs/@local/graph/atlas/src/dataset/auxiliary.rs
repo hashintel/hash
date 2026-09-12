@@ -65,18 +65,28 @@ unsafe impl zerocopy::IntoBytes for Legend {
     fn only_derive_is_allowed_to_implement_this_trait() {}
 }
 
-// SAFETY: the implementation writes the label at its in-value offset and the representative at
-// offset 0. `repr(C)` at alignment 1 puts no padding between them, so the two writes
-// initialize every byte of the clone and `dest` holds a valid `Legend` on return.
+// SAFETY: CloneToUninit requires a valid Self at dest on normal return. The label clone preserves
+// its UTF-8 text and length, and the representative is Copy. The writes initialize both fields at
+// their repr(C) offsets, giving a valid Legend with the source's metadata. Neither field owns
+// resources that could leak during unwinding.
 unsafe impl CloneToUninit for Legend {
+    /// Initializes a destination with the representative and complete label.
+    ///
+    /// # Safety
+    ///
+    /// `dest` must be valid for writes of `size_of_val(self)` bytes and aligned to
+    /// `align_of_val(self)`, as required by [`CloneToUninit::clone_to_uninit`].
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
-        // SAFETY: `self.label` is a field of `self`, so both pointers lie in one allocation
-        // with the field's address not below the value's.
+        // SAFETY: Both pointers derive from self in the same allocation. The label begins at or
+        // after self, and the byte distance cannot exceed the allocation's size. The unsigned
+        // offset is valid.
         let offset_of_label = unsafe { (&raw const self.label).byte_offset_from_unsigned(self) };
 
-        // SAFETY: the caller provides `dest` valid for `size_of_val(self)` bytes at alignment
-        // 1; the label's span and the representative's eight bytes at offset 0 both lie inside
-        // that span.
+        // SAFETY: The caller supplies writable storage for the complete value. The source's
+        // metadata fixes the label's length and destination layout. Its span at offset_of_label and
+        // the representative's eight bytes at offset zero are disjoint and fit within
+        // size_of_val(self). Both fields have alignment one. These writes initialize both fields
+        // without creating a reference to uninitialized memory.
         unsafe {
             self.label.clone_to_uninit(dest.add(offset_of_label));
             dest.add(offset_of!(Self, representative_ontology))
@@ -175,12 +185,20 @@ impl Label {
     }
 }
 
-// SAFETY: `Label` is `repr(C)` around `str` alone, so its clone is its text's clone and
-// `str`'s implementation initializes every byte of `dest`.
+// SAFETY: Label is repr(C) with one str field at offset zero. It has the field's size, alignment
+// and length metadata. The str clone initializes that complete UTF-8 text, giving a valid Label
+// with the source's metadata.
 unsafe impl CloneToUninit for Label {
+    /// Initializes a destination with the complete label text.
+    ///
+    /// # Safety
+    ///
+    /// `dest` must be valid for writes of `size_of_val(self)` bytes and aligned to
+    /// `align_of_val(self)`, as required by [`CloneToUninit::clone_to_uninit`].
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
-        // SAFETY: `Label` has `str`'s size and alignment, so the caller's contract for this
-        // value is `str`'s contract for its text.
+        // SAFETY: Label and its str field have identical size and alignment. The caller's writable
+        // range therefore covers the complete text at the required alignment. The str clone
+        // receives exactly its own destination requirements.
         unsafe {
             <str as CloneToUninit>::clone_to_uninit(&self.0, dest);
         }

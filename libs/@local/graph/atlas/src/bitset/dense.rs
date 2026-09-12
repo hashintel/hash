@@ -461,10 +461,23 @@ impl<T: Id> DenseBitSlice<T> {
     }
 }
 
+// SAFETY: IntoBytes exposes the complete initialized representation, including the domain header
+// and trailing words. Copying it with the source's word-count metadata preserves the header/word
+// relationship and zero excess bits. The destination is a valid DenseBitSlice<T> on return, and
+// PhantomData<T> requires no initialization beyond its zero bytes.
 unsafe impl<T> CloneToUninit for DenseBitSlice<T> {
+    /// Initializes a destination with the complete membership frame.
+    ///
+    /// # Safety
+    ///
+    /// `dest` must be valid for writes of `size_of_val(self)` bytes and aligned to
+    /// `align_of_val(self)`, as required by [`CloneToUninit::clone_to_uninit`].
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
         let bytes = self.as_bytes();
 
+        // SAFETY: IntoBytes makes bytes.len() equal size_of_val(self). The caller supplies writable
+        // storage for that full range, and a byte slice requires alignment one. Cloning the bytes
+        // initializes the complete destination representation.
         unsafe {
             bytes.clone_to_uninit(dest);
         }

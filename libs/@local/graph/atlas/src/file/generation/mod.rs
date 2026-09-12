@@ -20,14 +20,17 @@ use uuid::Uuid;
 
 use crate::integrity::{ParseHexError, Sha256Digest};
 
+mod document;
 mod error;
 mod open;
-mod scratch;
+pub(crate) mod scratch;
 mod staging;
 #[cfg(test)]
 mod tests;
+pub(crate) mod upload;
 
 pub(crate) use self::{
+    document::GenerationDocument,
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
@@ -67,13 +70,13 @@ const LOCK_FILE: &str = ".generation.lock";
 #[serde(transparent)]
 #[schemars(transparent)]
 #[repr(transparent)]
-pub struct GenerationId(Sha256Digest);
+pub(crate) struct GenerationId(Sha256Digest);
 
 impl GenerationId {
     #[inline]
     // salt/wire's tests.rs and fixtures.rs construct ids from raw digests
     #[cfg(test)]
-    pub const fn from_digest(digest: Sha256Digest) -> Self {
+    pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
 

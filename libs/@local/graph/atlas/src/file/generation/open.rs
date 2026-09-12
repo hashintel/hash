@@ -1,14 +1,9 @@
 //! Opening published generations for reading.
 
-use std::{fs, io};
-
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::{GenerationId, GenerationRoot, METADATA_FILE, OpenError};
-use crate::{
-    file::{repository::FileName, salt::SaltRepository},
-    integrity::Sha256Digest,
-};
+use super::{GenerationDocument, GenerationId, GenerationRoot, OpenError};
+use crate::file::{repository::FileName, salt::SaltRepository};
 
 /// A published generation opened for reading.
 ///
@@ -22,9 +17,8 @@ use crate::{
 /// [`RepositoryFile::verify`](crate::file::repository::RepositoryFile::verify).
 #[derive(Debug, Clone)]
 pub(crate) struct Generation {
-    id: GenerationId,
     path: Utf8PathBuf,
-    repository: SaltRepository,
+    document: GenerationDocument,
 }
 
 impl Generation {
@@ -37,34 +31,16 @@ impl Generation {
     #[tracing::instrument(skip_all)]
     pub(super) fn open(root: &GenerationRoot, id: GenerationId) -> Result<Self, OpenError> {
         let path = root.generation_path(id);
+        let document = GenerationDocument::read(&path, id)?;
 
-        let document = match fs::read(path.join(METADATA_FILE)) {
-            Ok(document) => document,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                return Err(OpenError::Unpublished(id));
-            }
-            Err(error) => return Err(OpenError::Io(error)),
-        };
-
-        let actual = Sha256Digest::of(&document);
-        if actual != id.digest() {
-            return Err(OpenError::Identity { id, actual });
-        }
-
-        let repository = serde_json::from_slice(&document).map_err(OpenError::Document)?;
-
-        Ok(Self {
-            id,
-            path,
-            repository,
-        })
+        Ok(Self { path, document })
     }
 
     /// Returns the generation's identity.
     #[inline]
     #[must_use]
     pub(crate) const fn id(&self) -> GenerationId {
-        self.id
+        self.document.id()
     }
 
     /// Returns the generation's directory.
@@ -74,11 +50,22 @@ impl Generation {
         &self.path
     }
 
+    /// Returns the verified metadata and its original JSON encoding.
+    #[must_use]
+    pub(crate) const fn document(&self) -> &GenerationDocument {
+        &self.document
+    }
+
+    /// Transfers ownership of the retained metadata document.
+    pub(crate) fn into_document(self) -> GenerationDocument {
+        self.document
+    }
+
     /// Returns the verified metadata document.
     #[inline]
     #[must_use]
     pub(crate) const fn repository(&self) -> &SaltRepository {
-        &self.repository
+        self.document.repository()
     }
 
     /// Returns the path of a published file.

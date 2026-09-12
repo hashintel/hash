@@ -121,18 +121,18 @@
     iterator_try_collect,
     nonpoison_mutex,
     nonpoison_rwlock,
+    option_into_flat_iter,
     pointer_is_aligned_to,
     portable_simd,
     ptr_metadata,
+    slice_shift,
     step_trait,
+    str_copy_from_str,
     sync_nonpoison,
     time_saturating_systemtime,
-    variant_count,
+    unboxed_closures,
     unwrap_infallible,
-    integer_widen_truncate,
-    slice_shift,
-    option_into_flat_iter,
-    unboxed_closures
+    variant_count,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]
