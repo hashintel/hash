@@ -267,7 +267,9 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.queryByTestId("metric-timeline")).toBeNull();
     expect(screen.queryByText("CPU")).toBeNull();
     expect(screen.queryByTestId("remote-surface")).toBeNull();
-    expect(screen.queryByTitle("Best step")).toBeNull();
+    expect(screen.getByTitle("Best step").textContent).toBe(
+      String(best!.trial + 1),
+    );
   });
 
   it("names the dialog after the study's one-line title", () => {
