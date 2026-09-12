@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { compactNodeDimensions } from "@hashintel/petrinaut-core";
 
@@ -9,11 +9,15 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../../../react/state/user-settings-context";
+import * as squareArcs from "./shared/square-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const nodeBase = {
   position: { x: 0, y: 0 },
@@ -215,5 +219,55 @@ describe("automatic arc rendering", () => {
         expect(edge).toBe(original);
       }
     }
+  });
+  it("reroutes square arcs for moved obstacles, but reuses routes on hover", () => {
+    const router = vi.spyOn(squareArcs, "getSquareArcRoute");
+    const SquareSettings = ({ children }: { children: ReactNode }) => (
+      <UserSettingsContext
+        value={{
+          ...defaultUserSettingsContextValue,
+          enableAutomaticArcConnections: true,
+          automaticArcRendering: "square",
+        }}
+      >
+        {children}
+      </UserSettingsContext>
+    );
+    const { result, rerender } = renderHook(
+      (input: CanvasScene) => useReactFlowElements(input),
+      { initialProps: scene, wrapper: SquareSettings },
+    );
+    expect(router).toHaveBeenCalledTimes(2);
+    const before = result.current.edges;
+    rerender({
+      ...scene,
+      focusActive: true,
+      nodes: nodes.map((node) => ({
+        ...node,
+        hovered: node.id === "place",
+        focus: node.id === "place" ? "focused" : "none",
+      })),
+    });
+    expect(router).toHaveBeenCalledTimes(2);
+    expect(result.current.edges).toEqual(before);
+    const path = before.find((edge) => edge.id === "input")?.data?.outlinePath;
+    expect(path).toBeDefined();
+    const obstaclePosition = { x: path?.[1] ?? 0, y: path?.[2] ?? 0 };
+    rerender({
+      ...scene,
+      nodes: nodes.map((node) =>
+        node.id === "subnet" ? { ...node, position: obstaclePosition } : node,
+      ),
+    });
+    expect(router).toHaveBeenCalledTimes(4);
+    expect(
+      result.current.edges.find((edge) => edge.id === "input")?.data
+        ?.outlinePath,
+    ).not.toEqual(
+      before.find((edge) => edge.id === "input")?.data?.outlinePath,
+    );
+    expect(
+      result.current.edges.find((edge) => edge.id === "port-input"),
+    ).toEqual(before.find((edge) => edge.id === "port-input"));
   });
 });

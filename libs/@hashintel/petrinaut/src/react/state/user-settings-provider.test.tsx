@@ -45,6 +45,28 @@ const ArcConnectionsProbe = () => {
   );
 };
 
+const SquareArcsProbe = () => {
+  const {
+    automaticArcRendering,
+    setAutomaticArcRendering,
+    avoidArcObstacles,
+    setAvoidArcObstacles,
+  } = use(UserSettingsContext);
+  return (
+    <>
+      <button type="button" onClick={() => setAutomaticArcRendering("square")}>
+        Shape: {automaticArcRendering}
+      </button>
+      <button
+        type="button"
+        onClick={() => setAvoidArcObstacles(!avoidArcObstacles)}
+      >
+        Avoid nodes: {avoidArcObstacles ? "on" : "off"}
+      </button>
+    </>
+  );
+};
+
 describe("UserSettingsProvider", () => {
   it("defaults automatic arcs off for saved preferences from before the experiment", () => {
     localStorage.setItem(
@@ -86,6 +108,40 @@ describe("UserSettingsProvider", () => {
     ).toMatchObject({
       enableAutomaticArcConnections: false,
       arcRendering: "smoothstep",
+    });
+  });
+
+  it("preserves the old arc style while persisting square routing preferences", () => {
+    localStorage.setItem(
+      "petrinaut:user-settings",
+      JSON.stringify({
+        enableAutomaticArcConnections: true,
+        arcRendering: "bezier",
+      }),
+    );
+    const first = render(
+      <UserSettingsProvider>
+        <SquareArcsProbe />
+      </UserSettingsProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Shape: curved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Avoid nodes: on" }));
+    first.unmount();
+    render(
+      <UserSettingsProvider>
+        <SquareArcsProbe />
+      </UserSettingsProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Shape: square" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Avoid nodes: off" }),
+    ).toBeTruthy();
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({
+      arcRendering: "bezier",
+      automaticArcRendering: "square",
+      avoidArcObstacles: false,
     });
   });
 

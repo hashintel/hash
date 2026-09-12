@@ -96,6 +96,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setCompactNodes,
     enableAutomaticArcConnections,
     setEnableAutomaticArcConnections,
+    automaticArcRendering,
+    setAutomaticArcRendering,
+    avoidArcObstacles,
+    setAvoidArcObstacles,
     arcRendering,
     setArcRendering,
     showMinimap,
@@ -197,30 +201,58 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
-        <SettingRow
-          label="Arcs rendering"
-          description={
-            enableAutomaticArcConnections
-              ? "Automatic arc connections uses curves that follow node direction."
-              : undefined
-          }
-        >
-          <Select
-            size="sm"
-            className={selectStyle}
-            required
-            disabled={enableAutomaticArcConnections}
-            value={arcRendering}
-            onChange={(nextArcRendering) =>
-              setArcRendering(nextArcRendering as ArcRendering)
-            }
-            items={[
-              { value: "smoothstep", text: "Square" },
-              { value: "bezier", text: "Bezier" },
-              { value: "custom", text: "Adaptive Bezier" },
-            ]}
-          />
-        </SettingRow>
+        {enableAutomaticArcConnections ? (
+          <>
+            <SettingRow label="Automatic arc shape">
+              <Select
+                aria-label="Automatic arc shape"
+                size="sm"
+                className={selectStyle}
+                required
+                value={automaticArcRendering}
+                onChange={(value) =>
+                  setAutomaticArcRendering(
+                    value === "square" ? "square" : "curved",
+                  )
+                }
+                items={[
+                  { value: "curved", text: "Curved" },
+                  { value: "square", text: "Square" },
+                ]}
+              />
+            </SettingRow>
+            {automaticArcRendering === "square" && (
+              <SettingRow
+                label="Avoid nodes"
+                description="Route square arcs around nearby nodes. Overlapping nodes can still block a route."
+              >
+                <Toggle
+                  aria-label="Avoid nodes"
+                  value={avoidArcObstacles}
+                  onChange={setAvoidArcObstacles}
+                  size="sm"
+                />
+              </SettingRow>
+            )}
+          </>
+        ) : (
+          <SettingRow label="Arcs rendering">
+            <Select
+              size="sm"
+              className={selectStyle}
+              required
+              value={arcRendering}
+              onChange={(nextArcRendering) =>
+                setArcRendering(nextArcRendering as ArcRendering)
+              }
+              items={[
+                { value: "smoothstep", text: "Square" },
+                { value: "bezier", text: "Bezier" },
+                { value: "custom", text: "Adaptive Bezier" },
+              ]}
+            />
+          </SettingRow>
+        )}
 
         <h3 className={sectionTitleStyle}>General</h3>
         <SettingRow
