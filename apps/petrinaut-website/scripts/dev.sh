@@ -9,4 +9,8 @@ cd "$(dirname "$0")/.."
 . ../../libs/@local/petrinaut-optimizer-client/scripts/optimizer-service.sh
 optimizer_service_parse "$@"
 yarn examples:generate
-run_dev_server yarn vite ${OPTIMIZER_FORWARDED[@]+"${OPTIMIZER_FORWARDED[@]}"}
+# Vite is run by path: Yarn hides a dependency's bin from `yarn run` when the
+# workspace also declares one of that dependency's peers (`@types/node` here),
+# so `yarn vite` fails with "Couldn't find a script named vite".
+vite_bin="$(node -p 'require("path").join(require("path").dirname(require.resolve("vite/package.json")), "bin", "vite.js")')"
+run_dev_server node "$vite_bin" ${OPTIMIZER_FORWARDED[@]+"${OPTIMIZER_FORWARDED[@]}"}
