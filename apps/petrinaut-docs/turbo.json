@@ -13,9 +13,45 @@
     // shared `sync:bundle` rather than each running it keeps them from racing on
     // the same directories when Turborepo runs them concurrently.
     "build": {
-      "cache": false,
-      "dependsOn": ["sync:bundle"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "sync:bundle",
+        "@local/petrinaut-arch-docs#doc:architecture"
+      ],
+      // `astro build` also writes the gitignored `.astro/` sync directory, which
+      // `lint:tsc` (`astro check`) reads.
+      "outputs": ["dist/**", ".astro/**"],
+      // `astro.config.mjs` derives a diff context from these and inlines it into
+      // the pages as `__PND_DIFF_COMPARE__`, so a `dist` built for one preview
+      // must never be restored for another. Mirrors the list in
+      // `src/diff-context.ts`; keep the two identical.
+      //
+      // `src/diff-context.ts` also asks api.github.com whether the base ref has
+      // an open pull request, which no hash can cover. That call is reached only
+      // on a diff build — `manifest.diff` is set only when
+      // PETRINAUT_ARCH_DOCS_DIFF_BASE is — where VERCEL_GIT_COMMIT_SHA is in the
+      // hash and so every commit builds fresh. The most a hit can carry over is
+      // a header badge naming a branch where a pull request has since opened.
+      // The `git rev-parse` fallback beside it runs only when the VERCEL_GIT_*
+      // pair is unset, which a deployed diff build never is.
+      "env": [
+        "PETRINAUT_ARCH_DOCS_DIFF_BASE",
+        "VERCEL_GIT_COMMIT_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "VERCEL_GIT_PULL_REQUEST_ID",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
+      ],
+      // The build consumes the architecture bundle, which is generated and
+      // gitignored, so it is hashed through the generating task's outputs
+      // rather than as files in this package.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["bundle/**"],
+          "from": ["@local/petrinaut-arch-docs#doc:architecture"]
+        }
+      ]
     },
     "lint:tsc": {
       "cache": false,
