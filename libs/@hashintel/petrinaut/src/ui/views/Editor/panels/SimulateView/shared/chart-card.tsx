@@ -297,11 +297,14 @@ export const CHART_CARD_GRID_GAP = 16;
 
 // Dense packing fills the cells a spanning card leaves in its row with the
 // cards after it instead of holes; with equal cards it places them in order.
-// The cards stay in source order, so the Tab order is the grid's order
-// before any card was enlarged.
+// The cards stay in source order; where the browser supports `reading-flow`,
+// Tab follows the packed order, so a card pulled up beside an earlier card
+// comes before the enlarged one, and elsewhere Tab follows source order.
 const gridStyle = css({
   display: "grid",
   gridAutoFlow: "row dense",
+  // @ts-expect-error reading-flow is a valid CSS property Panda's types do not know
+  readingFlow: "grid-order",
   alignItems: "stretch",
   gap: "4",
 });
