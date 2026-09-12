@@ -11,6 +11,7 @@ import {
   runUntilCalibrated,
   slabsFromProbe,
 } from "./calibration";
+import { metricFailure } from "./metric-failure";
 
 import type { GpuCalibration } from "../backend";
 import type { CompiledNetShader } from "../compile-net-shader";
@@ -219,6 +220,40 @@ describe("runUntilCalibrated", () => {
     ]);
   });
 
+  it("hands back an attempt a non-finite sample halted without growing or replanning", async () => {
+    // The same seeds halt the same run whatever the slab or the window, so
+    // another attempt could only repeat the failure.
+    const current = session({ p: 10 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          overflowRuns: 2,
+          metricErrors: [1],
+          metricRanges: [{ min: 100, max: 163, below: 0, above: 5 }],
+        }),
+      },
+      { ok: true, result: outcome() },
+    ]);
+
+    const run = await runUntilCalibrated({
+      session: current,
+      runsFor: () => 100,
+      windows: [{ lo: 0, stride: 2, integer: true }],
+      execute,
+      policy: RUN_POLICY,
+      stopped: () => false,
+    });
+
+    expect(run).toMatchObject({
+      ok: true,
+      result: { overflowRuns: 2, metricErrors: [1] },
+      windows: [{ lo: 0, stride: 2, integer: true }],
+    });
+    expect(attempts).toHaveLength(1);
+    expect(current.capacities.get("p")).toBe(10);
+  });
+
   it("stops at a cancelled or abandoned attempt without retrying", async () => {
     const current = session({ p: 10 });
     const { execute, attempts } = scripted([
@@ -372,6 +407,49 @@ describe("probeDerivedCapacities", () => {
     });
     // The probe still calibrates: the handle reports the halt, not the probe.
     expect(current.capacities).toEqual(new Map([["p", 19]]));
+  });
+
+  it("hands the halted-metric counts back when the probe also overflowed, instead of refusing for the CPU", async () => {
+    const current = session({ p: 64 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          overflowRuns: 3,
+          metricErrors: [2],
+          derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
+        }),
+      },
+      { ok: true, result: outcome({ overflowRuns: 3 }) },
+    ]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    // The CPU would fail on the same sample, so the halt is what the handle
+    // reports, named after the metric.
+    expect(attempts).toHaveLength(1);
+    expect(probed).toMatchObject({
+      ok: true,
+      metricErrors: [2],
+      probeRuns: attempts[0]!.runCount,
+    });
+    expect(
+      probed.ok &&
+        metricFailure({
+          metricIds: current.shader.metricIds,
+          metricSpecs: [{ id: "m0", label: "Infected" }],
+          metricErrors: probed.metricErrors,
+          runCount: probed.probeRuns,
+        }),
+    ).toBe(
+      `Metric "Infected" returned a non-finite value in 2 of ${attempts[0]!.runCount} runs, expected a finite number.`,
+    );
   });
 
   it("hands back an abandoned probe without recompiling", async () => {
