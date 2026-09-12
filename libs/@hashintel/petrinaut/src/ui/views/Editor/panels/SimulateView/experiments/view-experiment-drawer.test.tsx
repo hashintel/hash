@@ -506,9 +506,8 @@ describe("ViewExperimentDrawer in the frame", () => {
 
   it("reads the strip's row as 0 steps, without a metric, when the sweep's only study failed before its first step", () => {
     renderDrawerWithStudies({ ...sweep, status: "idle" }, [
-      sweepStudy(sweep, "cancelled", {
+      sweepStudy(sweep, {
         status: "error",
-        error: "worker crashed",
         trials: [],
         best: null,
         completedTrials: 0,
