@@ -313,9 +313,13 @@ export const SiteOverview = ({
   const [supplierMode] = useState<SupplierMode>("worst");
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
-  // One filter set shared by the dwell/planning/trend tables, so switching
-  // tabs never drops an active filter (see step-filters.ts for semantics).
+  // One filter set shared by the dwell/planning/trend/supplier tabs, so
+  // switching tabs never drops an active filter (see step-filters.ts for
+  // semantics). The opportunities table keeps its own independent set.
   const [stepFilters, setStepFilters] = useState<ActiveStepFilter[]>([]);
+  const [opportunityFilters, setOpportunityFilters] = useState<
+    ActiveStepFilter[]
+  >([]);
 
   // Opportunities table sort. Defaults to impact (per-section score) descending,
   // which matches the order rows are built in, so the header reflects it.
@@ -488,10 +492,15 @@ export const SiteOverview = ({
       applyStepFiltersBy(
         generatedOpportunities.filter(searchMatchers.opportunity),
         (opportunity) => opportunity.node,
-        stepFilters,
+        opportunityFilters,
         stepFilterContext,
       ),
-    [generatedOpportunities, searchMatchers, stepFilters, stepFilterContext],
+    [
+      generatedOpportunities,
+      searchMatchers,
+      opportunityFilters,
+      stepFilterContext,
+    ],
   );
   const filteredDwellRows = dwellApplication.rows;
   const filteredPlanningRows = planningApplication.rows;
@@ -519,8 +528,8 @@ export const SiteOverview = ({
     trendApplication,
     supplierApplication,
   ]);
-  // One bar instance handed to whichever tabbed table is active; it shares the
-  // filter state with the opportunities table's bar above.
+  // One bar instance handed to whichever tabbed table is active. Its filter
+  // set is independent of the opportunities table's bar above.
   const activeTabFilterBar = (
     <StepFilterBar
       filters={stepFilters}
@@ -815,13 +824,13 @@ export const SiteOverview = ({
           onSort={setOppSort}
           filterBar={
             <StepFilterBar
-              filters={stepFilters}
-              onFiltersChange={setStepFilters}
+              filters={opportunityFilters}
+              onFiltersChange={setOpportunityFilters}
               options={stepFilterOptions}
               skippedKeys={opportunitySkippedKeys}
             />
           }
-          filtersActive={stepFilters.length > 0}
+          filtersActive={opportunityFilters.length > 0}
           revealSectionRequest={oppSectionRevealRequest}
         />
 
