@@ -3,6 +3,7 @@
  */
 import { micropipRequirements } from "../pyodide-config";
 import { isPyProxyLike } from "./pyodide-like";
+import { asImportances } from "./study-runner/as-importances";
 
 import type {
   OptimizationScalar,
@@ -11,6 +12,7 @@ import type {
 } from "../../index";
 import type {
   OptimizerBestTrial,
+  OptimizerImportances,
   OptimizerStudySummary,
   OptimizerTrialPayload,
 } from "../messages";
@@ -136,6 +138,13 @@ const asBest = (value: unknown): OptimizerBestTrial | null => {
   };
 };
 
+const withImportances = (
+  value: unknown,
+): { importances?: OptimizerImportances } => {
+  const importances = asImportances(value);
+  return importances === undefined ? {} : { importances };
+};
+
 const asTrialState = (value: unknown): OptimizerTrialPayload["state"] => {
   if (value === "complete" || value === "pruned" || value === "failed") {
     return value;
@@ -155,6 +164,7 @@ const normalizeTrialPayload = (value: unknown): OptimizerTrialPayload => {
         : asNumber(objective, "trial objective"),
     state: asTrialState(record.state),
     best: asBest(record.best),
+    ...withImportances(record.importances),
   };
 };
 
@@ -167,6 +177,7 @@ const normalizeSummary = (value: unknown): OptimizerStudySummary => {
     failedTrials: asNumber(record.failedTrials, "failed trial count"),
     best: asBest(record.best),
     ...(record.cancelled === true ? { cancelled: true } : {}),
+    ...withImportances(record.importances),
   };
 };
 

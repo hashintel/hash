@@ -28,6 +28,7 @@ import type { SweepCellSnapshot } from "../../../../../../react/experiments/swee
 import type {
   ConnectedStudyState,
   OptimizationBest,
+  OptimizationImportance,
   OptimizationNavigation,
   OptimizationRecord,
   OptimizationsContextValue,
@@ -124,6 +125,7 @@ export const optimizedBindingSets = {
  */
 export function makeOptimizationInput(
   optimized: Record<string, PetrinautOptimizationParameterBinding>,
+  { trials = 30 }: { trials?: number } = {},
 ): PetrinautOptimizationInput {
   const definition = supplyChainProfit.petriNetDefinition;
   const scenario = definition.scenarios?.find(
@@ -159,7 +161,7 @@ export function makeOptimizationInput(
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: "metric_profit", direction: "maximize" },
     execution: { seed: 1_234, dt: 1, maxTime: 365 },
-    study: { trials: 30, sampler: "tpe" },
+    study: { trials, sampler: "tpe" },
   });
 }
 
@@ -297,6 +299,8 @@ export function makeOptimizationRecord(options: {
   computeBackend?: ExperimentComputeBackend;
   /** The local state of a connected study; a remote study has none. */
   connected?: ConnectedStudyState | null;
+  /** The latest importance estimate the study reported; none by default. */
+  importance?: OptimizationImportance | null;
 }): OptimizationRecord {
   const {
     input,
@@ -305,6 +309,7 @@ export function makeOptimizationRecord(options: {
     status = "running",
     computeBackend = "cpu",
     connected = null,
+    importance = null,
   } = options;
   return {
     id: "optimization-story-1",
@@ -324,6 +329,7 @@ export function makeOptimizationRecord(options: {
     failedTrials: trials.filter((trial) => trial.state === "failed").length,
     trials,
     best,
+    importance,
     computeBackend,
     axes: buildOptimizationSurfaceAxes(input),
     connected,
@@ -541,6 +547,56 @@ export const fakeStudyInput = makeOptimizationInput(
 );
 export const fakeStudyTrials = makeTrials(fakeStudyInput, 30);
 
+/** The same study asked for 60 steps: past the 50-step importance floor once it lands. */
+export const fakeLongStudyInput = makeOptimizationInput(
+  optimizedBindingSets.logScale,
+  { trials: 60 },
+);
+export const fakeLongStudyTrials = makeTrials(fakeLongStudyInput, 60);
+
+/**
+ * How much of the synthetic objective's variance each parameter moves, by
+ * hand: the bump over production rate and selling price dominates, marketing
+ * spend's logarithm adds little, and a batch size only shifts a penalty.
+ */
+const SYNTHETIC_IMPORTANCE_WEIGHTS: Record<string, number> = {
+  production_rate: 0.55,
+  selling_price: 0.32,
+  marketing_spend: 0.09,
+  batch_size: 0.04,
+};
+
+/**
+ * The PED-ANOVA block the optimizer would attach after `trials` landed:
+ * shares over the study's optimized parameters, normalised to sum to 1,
+ * fitted on the completed steps among them.
+ */
+export function makeImportance(
+  input: PetrinautOptimizationInput,
+  trials: readonly PetrinautOptimizationTrialEvent[],
+): OptimizationImportance {
+  const identifiers = Object.entries(input.scenario.parameterBindings)
+    .filter(([, binding]) => binding.kind === "optimize")
+    .map(([identifier]) => identifier);
+  const total = identifiers.reduce(
+    (sum, identifier) =>
+      sum + (SYNTHETIC_IMPORTANCE_WEIGHTS[identifier] ?? 0.05),
+    0,
+  );
+  return {
+    values: Object.fromEntries(
+      identifiers.map((identifier) => [
+        identifier,
+        (SYNTHETIC_IMPORTANCE_WEIGHTS[identifier] ?? 0.05) / total,
+      ]),
+    ),
+    completedTrials: Math.max(
+      1,
+      trials.filter((trial) => trial.state === "complete").length,
+    ),
+  };
+}
+
 const hirSpan = { start: 0, length: 0 };
 const hirNumber = (id: number, value: number): HirExpr => ({
   kind: "numberLit",
@@ -721,21 +777,41 @@ const REFINEMENT_LADDER = [8, 25, 100];
  * batches after every move. Returns the record and the context value the
  * story mounts.
  */
+/** Which fake study the connected stories mount. */
+export type FakeStudyKind = "base" | "constrained" | "long";
+
+const FAKE_STUDIES: Record<
+  FakeStudyKind,
+  {
+    input: PetrinautOptimizationInput;
+    trials: ReturnType<typeof makeTrials>;
+  }
+> = {
+  base: { input: fakeStudyInput, trials: fakeStudyTrials },
+  constrained: {
+    input: fakeConstrainedStudyInput,
+    trials: fakeConstrainedStudyTrials,
+  },
+  long: { input: fakeLongStudyInput, trials: fakeLongStudyTrials },
+};
+
 export function useFakeConnectedStudy({
   running,
-  constrained = false,
+  study = "base",
+  importance = false,
   fallbackReason = null,
   refinementError = null,
 }: {
   running: boolean;
-  /** Use the study with two constraints and constraint results on its trials. */
-  constrained?: boolean;
+  /** The fake study to mount. */
+  study?: FakeStudyKind;
+  /** Attach the PED-ANOVA estimate the optimizer would report once the study is over. */
+  importance?: boolean;
   fallbackReason?: string | null;
   /** Set to have every navigated point fail with this reason instead of refining. */
   refinementError?: string | null;
 }): { optimization: OptimizationRecord; value: OptimizationsContextValue } {
-  const input = constrained ? fakeConstrainedStudyInput : fakeStudyInput;
-  const allTrials = constrained ? fakeConstrainedStudyTrials : fakeStudyTrials;
+  const { input, trials: allTrials } = FAKE_STUDIES[study];
   const clock = useFakeStudyClock({
     steps: running ? allTrials.trials.length : 0,
     ticksPerStep: 8,
@@ -804,6 +880,7 @@ export function useFakeConnectedStudy({
     trials,
     best: trials.at(-1)?.best ?? null,
     status: inFlight ? "running" : "complete",
+    importance: importance && !inFlight ? makeImportance(input, trials) : null,
     connected: makeConnectedStudyState(input, {
       navigation,
       selection,
