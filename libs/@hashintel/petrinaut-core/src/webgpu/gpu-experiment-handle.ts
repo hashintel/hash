@@ -508,9 +508,14 @@ export async function createGpuMonteCarloExperiment(
         reason: probed.reason,
       };
     }
-    calibratedWindows = probed.windows;
-    storeCalibration(calibratedWindows);
     probedFailure = metricFailureIn(probed.metricErrors, probed.probeRuns);
+    calibratedWindows = probed.windows;
+    // A halted probe's calibration is not stored: the next batch on this
+    // marking would adopt it, skip its probe and meet the halt only after a
+    // full attempt.
+    if (probedFailure === null) {
+      storeCalibration(calibratedWindows);
+    }
   }
 
   const run = async () => {

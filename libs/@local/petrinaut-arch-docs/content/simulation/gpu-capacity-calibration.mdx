@@ -60,7 +60,10 @@ never blocks a firing over it.
    or hands the experiment to the CPU. A run a non-finite metric sample
    halted would halt again on the same seeds, so an attempt with one is
    handed back at once and the handle reports the metric, ahead of any
-   overflow the attempt also carries.
+   overflow the attempt also carries. A probe a metric halted is handed back
+   before its slabs are sized, so neither an overflow nor the arena case
+   pre-empts the halt, and its calibration is not kept for the next batch on
+   the marking.
 
 Derived and declared capacities keep distinct semantics, recorded as
 `capacitySource` on the profile: declared blocks firings (CPU parity),
