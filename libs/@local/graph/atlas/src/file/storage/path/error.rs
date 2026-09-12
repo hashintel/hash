@@ -1,12 +1,10 @@
 use core::{error, fmt};
-use std::path::PathBuf;
 
-use camino::Utf8PathBuf;
 use zerocopy::AllocError;
 
 /// The part of an S3 path a refusal names.
 #[derive(Debug)]
-pub(crate) enum PathComponent {
+pub enum PathComponent {
     /// The bucket component after `s3://`.
     Bucket,
     /// The object key after the bucket separator.
@@ -15,15 +13,13 @@ pub(crate) enum PathComponent {
 
 /// A failure to parse an S3 object location.
 #[derive(Debug)]
-pub(crate) enum FilePathError {
+pub enum FilePathError {
     /// The text does not start with `s3://`.
     Scheme,
     /// The text carries a bucket with no slash after it.
     MissingKey,
     /// Allocating the path failed.
     AllocationFailed(AllocError),
-    /// Non-UTF8 path
-    NonUtf8Path { path: PathBuf },
     /// The named component is empty.
     Empty { component: PathComponent },
 }
@@ -38,13 +34,6 @@ impl fmt::Display for FilePathError {
                 PathComponent::Bucket => fmt.write_str("S3 path has an empty bucket"),
                 PathComponent::Key => fmt.write_str("S3 path has an empty key"),
             },
-            Self::NonUtf8Path { path } => {
-                write!(
-                    fmt,
-                    "local path contains non-UTF8 characters: {}",
-                    path.display()
-                )
-            }
         }
     }
 }

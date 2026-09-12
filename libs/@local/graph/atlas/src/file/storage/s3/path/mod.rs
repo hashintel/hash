@@ -34,17 +34,6 @@ pub(crate) struct BucketPath {
     reason = "the separator is the byte offset of an ASCII slash"
 )]
 impl BucketPath {
-    pub(super) fn from_parts(bucket: &str, key: &str) -> Result<Box<Self>, FilePathError> {
-        let mut next = Self::new_box_zeroed_with_elems(bucket.len() + key.len() + 1)?;
-        next.separator.set(bucket.len());
-
-        next.path[..bucket.len()].copy_from_str(bucket);
-        next.path[bucket.len()..(bucket.len() + 1)].copy_from_str("/");
-        next.path[(bucket.len() + 1)..].copy_from_str(key);
-
-        Ok(next)
-    }
-
     /// Returns the bucket name.
     pub(crate) fn bucket(&self) -> &str {
         &self.path[..self.separator.get()]
@@ -53,15 +42,6 @@ impl BucketPath {
     /// Returns the object key, in its original spelling.
     pub(crate) fn key(&self) -> &str {
         &self.path[(self.separator.get() + 1)..]
-    }
-
-    pub(crate) fn file_name(&self) -> Option<&str> {
-        let key = self.key();
-
-        key.rsplit_once('/')
-            .map(|(_, file_name)| file_name)
-            .or(Some(key))
-            .filter(|name| !name.is_empty())
     }
 
     /// Appends literal key text, inserting a slash when the key has no trailing slash.

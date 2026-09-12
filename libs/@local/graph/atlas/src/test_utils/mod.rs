@@ -11,11 +11,12 @@ pub use crate::{
     file::{
         generation::test_utils::{
             download_corrupt_artifact, download_missing_current, download_replacement,
-            promotion_initial, promotion_stale_writer, upload_existing_corrupt, upload_repository,
+            promotion_initial, promotion_retention, promotion_stale_writer,
+            upload_existing_corrupt, upload_repository,
         },
         storage::s3::test_utils::{
             file_input_materialization, multipart_copy, multipart_destination_conflict,
-            multipart_file,
+            multipart_file, remove_prefix_batches,
         },
     },
     serve::tests::integration::RouteFixture,
