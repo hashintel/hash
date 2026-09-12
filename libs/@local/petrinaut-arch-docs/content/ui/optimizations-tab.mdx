@@ -71,9 +71,24 @@ objective by step: `buildObjectiveHistory` (`study-view/objective-history-data.t
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
 (`[steps, objectives, bestSoFar, infeasibleObjectives]`), and the chart draws
-the objectives as dots and the best as a stepped line. `feasibility` is
-`unknown` on every point until trial events carry constraint results; an
-`infeasible` point moves to the fourth series and draws in `infeasibleColor`.
+the objectives as dots and the best as a stepped line. `trialFeasibility`
+reads a point's feasibility off the trial event's `constraints`: `unknown`
+without results, `infeasible` for a draw pruned by a parameter constraint;
+an `infeasible` point moves to the fourth series and draws in
+`infeasibleColor`, and never becomes the best so far.
+
+A study with constraints reports them through
+`react/optimizations/constraint-rates.ts`, derived per render from
+`record.trials`: `stepVerdict` (clear, limited, infeasible), `bindingStepRate`
+(the step's lowest pass rate) and `studyConstraintRates` (steps clear over
+steps simulated, per constraint too). `ConstraintSummaryCard`
+(`study-view/constraint-summary.tsx`) is the fourth chart card of a connected
+body, `StudySummaryBand` gains a **Steps clear** stat, and `StepsTable` a
+**Runs passed** column with an `infeasible` state tone. The channel
+(`react/optimizations/channel/create-optimization-channel/trial-constraints.ts`)
+prunes an infeasible draw before any simulation and runs state constraints as
+`auxiliaryMetrics` on the detached objective request, 0/1 indicators
+aggregated with `min` over each run's frames.
 
 The remote body continues with a collapsible **Best parameters** grid, the
 objective by step, the experimental **Surface** section when the

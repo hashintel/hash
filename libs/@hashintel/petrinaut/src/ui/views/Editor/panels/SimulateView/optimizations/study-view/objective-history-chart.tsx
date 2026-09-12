@@ -20,8 +20,6 @@ import type { OptimizationRecord } from "../../../../../../../react/optimization
 
 const UPlot = uPlot;
 
-/** Optuna's grey for a step whose parameters broke a constraint. */
-export const INFEASIBLE_STEP_COLOR = "#cccccc";
 const STEP_COLOR = "#9ca3af";
 const BEST_COLOR = "#2563eb";
 
@@ -57,11 +55,9 @@ const tickFormat = new Intl.NumberFormat("en-US", {
 const chartOptions = ({
   width,
   height,
-  infeasibleColor,
 }: {
   width: number;
   height: number;
-  infeasibleColor: string;
 }): uPlot.Options => ({
   width,
   height,
@@ -133,30 +129,16 @@ const chartOptions = ({
       paths: UPlot.paths.stepped?.({ align: 1 }),
       points: { show: false },
     },
-    {
-      label: "infeasible step",
-      stroke: infeasibleColor,
-      paths: () => null,
-      points: {
-        show: true,
-        size: 6,
-        fill: infeasibleColor,
-        stroke: infeasibleColor,
-      },
-    },
   ],
 });
 
 export const ObjectiveHistoryChart = ({
   optimization,
   plotHeight,
-  infeasibleColor = INFEASIBLE_STEP_COLOR,
 }: {
   optimization: Pick<OptimizationRecord, "trials" | "input">;
   /** The plot's height in pixels; the component is exactly this tall. */
   plotHeight: number;
-  /** Colour for a step whose parameters broke a constraint. */
-  infeasibleColor?: string;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef, { debounce: 50 });
@@ -174,8 +156,8 @@ export const ObjectiveHistoryChart = ({
       return;
     }
     const plot = new UPlot(
-      chartOptions({ width, height: plotHeight, infeasibleColor }),
-      [[], [], [], []] as uPlot.AlignedData,
+      chartOptions({ width, height: plotHeight }),
+      [[], [], []] as uPlot.AlignedData,
       root,
     );
     plotRef.current = plot;
@@ -183,7 +165,7 @@ export const ObjectiveHistoryChart = ({
       plotRef.current = null;
       plot.destroy();
     };
-  }, [infeasibleColor, plotHeight, width]);
+  }, [plotHeight, width]);
 
   // The data is applied in its own effect so a new step redraws the plot
   // without recreating it, and a freshly created plot picks it up too.
@@ -209,11 +191,9 @@ export const ObjectiveHistoryChart = ({
 export const ObjectiveHistoryCard = ({
   optimization,
   plotHeight,
-  infeasibleColor,
 }: {
   optimization: Pick<OptimizationRecord, "trials" | "input" | "best">;
   plotHeight: number;
-  infeasibleColor?: string;
 }) => {
   const { input } = optimization;
   const metric = input.model.definition.metrics?.find(
@@ -233,7 +213,6 @@ export const ObjectiveHistoryCard = ({
       <ObjectiveHistoryChart
         optimization={optimization}
         plotHeight={plotHeight}
-        infeasibleColor={infeasibleColor}
       />
     </ChartCard>
   );

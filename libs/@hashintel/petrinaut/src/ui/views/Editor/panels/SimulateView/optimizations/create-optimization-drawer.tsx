@@ -81,6 +81,7 @@ import type {
   AdHocSynthesisError,
   Constraint,
   Metric,
+  PetrinautOptimizationConstraintPolicy,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   Scenario,
@@ -203,6 +204,16 @@ const directionOptions = [
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const DEFAULT_SEEDS_PER_TRIAL = 1;
+/** The pass threshold in percent, the complement of the default alpha 0.05. */
+const DEFAULT_PASS_THRESHOLD_PERCENT = 95;
+
+/** The manifest's constraint policy for a pass threshold in percent; none at the default. */
+export const constraintPolicyFor = (
+  passThresholdPercent: number,
+): PetrinautOptimizationConstraintPolicy | undefined =>
+  passThresholdPercent === DEFAULT_PASS_THRESHOLD_PERCENT
+    ? undefined
+    : { alpha: Math.round((100 - passThresholdPercent) * 1000) / 100_000 };
 const DEFAULT_PARALLELISM = 1;
 const AD_HOC_SCENARIO_VALUE = "__adhoc__";
 const AD_HOC_SCENARIO_LABEL = "No scenario";
@@ -531,6 +542,7 @@ export function buildPetrinautOptimizationInput({
   dt,
   maxTime,
   constraints,
+  constraintPolicy,
 }: {
   name: string;
   title: string;
@@ -545,6 +557,7 @@ export function buildPetrinautOptimizationInput({
   dt: number;
   maxTime: number;
   constraints?: Constraint[];
+  constraintPolicy?: PetrinautOptimizationConstraintPolicy;
 }): PetrinautOptimizationInput {
   // Keyed by scenario parameter identifiers from the net definition: no
   // prototype.
@@ -605,6 +618,7 @@ export function buildPetrinautOptimizationInput({
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
     ...(constraints ? { constraints } : {}),
+    ...(constraints && constraintPolicy ? { constraintPolicy } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -630,6 +644,7 @@ export function buildAdHocPetrinautOptimizationInput({
   dt,
   maxTime,
   constraints,
+  constraintPolicy,
 }: {
   name: string;
   title: string;
@@ -644,6 +659,7 @@ export function buildAdHocPetrinautOptimizationInput({
   dt: number;
   maxTime: number;
   constraints?: Constraint[];
+  constraintPolicy?: PetrinautOptimizationConstraintPolicy;
 }): PetrinautOptimizationInput {
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
@@ -660,6 +676,7 @@ export function buildAdHocPetrinautOptimizationInput({
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
     ...(constraints ? { constraints } : {}),
+    ...(constraints && constraintPolicy ? { constraintPolicy } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -711,15 +728,19 @@ export const CreateOptimizationDrawer = ({
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Boolean conditions embedded in the manifest as source + lowered HIR.
-  // Declarative for now: carried and readable (Python included), not
-  // enforced by the study.
+  // Boolean conditions embedded in the manifest as source + lowered HIR. The
+  // browser runtime checks parameter constraints before each step runs and
+  // observes state constraints on every run; results are reported, never
+  // enforced on the objective.
   const [parameterConstraintDrafts, setParameterConstraintDrafts] = useState<
     ConstraintDraft[]
   >([]);
   const [stateConstraintDrafts, setStateConstraintDrafts] = useState<
     ConstraintDraft[]
   >([]);
+  const [passThresholdPercent, setPassThresholdPercent] = useState<
+    number | null
+  >(DEFAULT_PASS_THRESHOLD_PERCENT);
 
   const isAdHoc =
     enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
@@ -830,6 +851,7 @@ export const CreateOptimizationDrawer = ({
     setIsSubmitting(false);
     setParameterConstraintDrafts([]);
     setStateConstraintDrafts([]);
+    setPassThresholdPercent(DEFAULT_PASS_THRESHOLD_PERCENT);
   };
 
   const resetState = () => {
@@ -966,6 +988,9 @@ export const CreateOptimizationDrawer = ({
       }
       const manifestConstraints =
         constraints.length > 0 ? constraints : undefined;
+      const constraintPolicy = constraintPolicyFor(
+        passThresholdPercent ?? DEFAULT_PASS_THRESHOLD_PERCENT,
+      );
 
       const input = adHocBindings
         ? buildAdHocPetrinautOptimizationInput({
@@ -982,6 +1007,7 @@ export const CreateOptimizationDrawer = ({
             dt,
             maxTime,
             constraints: manifestConstraints,
+            constraintPolicy,
           })
         : buildPetrinautOptimizationInput({
             name,
@@ -997,6 +1023,7 @@ export const CreateOptimizationDrawer = ({
             dt,
             maxTime,
             constraints: manifestConstraints,
+            constraintPolicy,
           });
       await createOptimization(input, { computeBackend, parallelism });
       resetState();
@@ -1380,14 +1407,15 @@ export const CreateOptimizationDrawer = ({
 
               <Section
                 title="Constraints"
-                tooltip="Boolean conditions carried with the study. They are recorded in the manifest and readable by every consumer; nothing enforces them yet."
+                tooltip="Boolean conditions carried with the study. In the browser, a step whose parameters break a parameter constraint is pruned before it runs, and every run reports whether each state constraint held throughout. The results are reported; the objective counts every run."
                 collapsible
                 defaultOpen
               >
                 <span className={hintStyle}>
                   Parameter constraints are expressions over the study's
                   parameters (scenario.*, parameters.*), e.g. scenario.min_load
-                  &lt; scenario.max_load.
+                  &lt; scenario.max_load. A step that breaks one is skipped
+                  before it runs.
                 </span>
                 <ConstraintDraftList
                   space="parameters"
@@ -1398,7 +1426,8 @@ export const CreateOptimizationDrawer = ({
                 <span className={hintStyle}>
                   State constraints read the simulation state like a metric body
                   and must return a boolean, e.g. return
-                  state.places.Queue.count &lt;= 10;
+                  state.places.Queue.count &lt;= 10; A run passes when the
+                  condition holds at every sampled time.
                 </span>
                 <ConstraintDraftList
                   space="state"
@@ -1406,6 +1435,27 @@ export const CreateOptimizationDrawer = ({
                   onChange={setStateConstraintDrafts}
                   scenarioParameters={constraintScenarioParameters}
                 />
+                {parameterConstraintDrafts.length +
+                  stateConstraintDrafts.length >
+                0 ? (
+                  <Form.Row>
+                    <Form.Field
+                      label="Pass threshold"
+                      labelTooltip="A step passes a state constraint when at least this share of its runs held it; below, the step is reported as limited. One setting for every constraint, shown beside every rate as a raw fraction."
+                      size="sm"
+                    >
+                      <NumberInput
+                        size="sm"
+                        min={1}
+                        max={99.9}
+                        step="any"
+                        value={passThresholdPercent}
+                        onChange={setPassThresholdPercent}
+                        aria-label="Pass threshold (percent)"
+                      />
+                    </Form.Field>
+                  </Form.Row>
+                ) : null}
               </Section>
 
               <Section title="Objective" collapsible defaultOpen>

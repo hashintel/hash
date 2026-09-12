@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildObjectiveHistory,
   toObjectiveHistoryData,
+  trialFeasibility,
 } from "./objective-history-data";
 
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
@@ -74,36 +75,59 @@ describe("buildObjectiveHistory", () => {
   });
 });
 
-describe("buildObjectiveHistory with feasibility", () => {
-  it("never lets an infeasible step become the best so far", () => {
-    const points = buildObjectiveHistory(
-      [trial(0, 3), trial(1, 9), trial(2, 5)],
-      "maximize",
-      (candidate) => (candidate.trial === 1 ? "infeasible" : "feasible"),
-    );
-    expect(points.map((point) => point.bestSoFar)).toEqual([3, 3, 5]);
-    expect(points.map((point) => point.feasibility)).toEqual([
-      "feasible",
-      "infeasible",
-      "feasible",
-    ]);
-    // The infeasible step keeps its own objective for the chart to draw.
-    expect(points[1]?.objective).toBe(9);
-  });
-});
-
 describe("toObjectiveHistoryData", () => {
-  it("aligns steps, objectives and the best so far, with infeasible steps in their own series", () => {
+  it("aligns steps, objectives and the best so far", () => {
     const points = buildObjectiveHistory(
       [trial(0, 3), trial(1, null, "pruned"), trial(2, 5)],
       "maximize",
-      (candidate) => (candidate.trial === 2 ? "infeasible" : "unknown"),
     );
     expect(toObjectiveHistoryData(points)).toEqual([
       [1, 2, 3],
-      [3, null, null],
-      [3, 3, 3],
-      [null, null, 5],
+      [3, null, 5],
+      [3, 3, 5],
+    ]);
+  });
+});
+
+describe("trialFeasibility", () => {
+  it("reads infeasible off a pruned draw's constraints, feasible off a step that simulated, unknown without results", () => {
+    expect(trialFeasibility(trial(0, 3))).toBe("unknown");
+    expect(
+      trialFeasibility({
+        ...trial(1, null, "pruned"),
+        constraints: {
+          parameters: [{ constraintId: "order", margin: -1 }],
+          state: [],
+          infeasible: "order",
+        },
+      }),
+    ).toBe("infeasible");
+    // A limited step keeps its colour: nothing is excluded from the objective.
+    expect(
+      trialFeasibility({
+        ...trial(2, 5),
+        constraints: {
+          parameters: [],
+          state: [{ constraintId: "queue", runsPassed: 40, runsTotal: 60 }],
+        },
+      }),
+    ).toBe("feasible");
+  });
+
+  it("is what buildObjectiveHistory reads by default", () => {
+    const points = buildObjectiveHistory(
+      [
+        trial(0, 3),
+        {
+          ...trial(1, null, "pruned"),
+          constraints: { parameters: [], state: [], infeasible: "order" },
+        },
+      ],
+      "maximize",
+    );
+    expect(points.map((point) => point.feasibility)).toEqual([
+      "unknown",
+      "infeasible",
     ]);
   });
 });

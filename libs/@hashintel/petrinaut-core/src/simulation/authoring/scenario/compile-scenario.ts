@@ -13,6 +13,7 @@ import {
   interpretPreparedItem,
   prepareScenarioItem,
 } from "./compile-scenario/prepared-items";
+import { decodeScenarioParameterValue } from "./scenario-parameter-value";
 
 import type { HirInterpretBindings, HirValue } from "../../../hir/interpret";
 import type { ScenarioHir } from "../../../hir/scenario";
@@ -256,11 +257,13 @@ export const prepareScenarioCompiler = (
           itemId: sp.identifier,
           message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
         });
-        scenarioObj[sp.identifier] =
-          sp.type === "boolean" ? sp.default !== 0 : sp.default;
+        scenarioObj[sp.identifier] = decodeScenarioParameterValue(
+          sp,
+          sp.default,
+        );
         continue;
       }
-      scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
+      scenarioObj[sp.identifier] = decodeScenarioParameterValue(sp, value);
     }
 
     const parameters: NetParameterValues = Object.assign(

@@ -84,7 +84,8 @@ export type TrialSurfaceMark = "ring" | "dot";
  * sample of the field and a mark — a ring over a field computed elsewhere, a
  * filled dot when the trials are the field's only samples — the best
  * emphasized. A trial without one — pruned or failed — is no sample; among
- * dots it is a muted ring, among rings it is absent.
+ * dots it is a muted ring, among rings it is absent. A trial whose draw broke
+ * a parameter constraint is a muted ring in both, wherever it lands.
  */
 export const trialSurfaceField = ({
   trials,
@@ -115,6 +116,10 @@ export const trialSurfaceField = ({
       yAxis,
       optimizationAxisPositionFor(yAxis, yValue),
     );
+    if (trial.constraints?.infeasible !== undefined) {
+      markers.push({ x, y, kind: "muted" });
+      continue;
+    }
     if (trial.objective === null) {
       if (mark === "dot") {
         markers.push({ x, y, kind: "muted" });

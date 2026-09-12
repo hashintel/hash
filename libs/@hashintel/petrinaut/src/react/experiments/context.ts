@@ -13,10 +13,12 @@ import type {
 export type { SweepBatchStatus } from "./sweep-session";
 import type {
   AdHocScenarioState,
+  HirMetricArtifact,
   SDCPN,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedMetricTimeAggregation,
   MonteCarloWorkerProgress,
   ReadableStore,
 } from "@hashintel/petrinaut-core";
@@ -246,6 +248,27 @@ export type ExperimentsContextValue = {
   runDetachedObjective: (
     request: DetachedObjectiveRunRequest,
   ) => DetachedObjectiveRun;
+  /**
+   * The net parameter values a study's batch simulates with at one
+   * parameter point: the scenario's overrides applied to the net's defaults,
+   * from the same compiled snapshot the batches use. Rejects when the
+   * scenario does not compile there.
+   */
+  resolveDetachedObjectiveParameters: (
+    request: DetachedObjectiveParametersRequest,
+  ) => Promise<Readonly<Record<string, number | boolean>>>;
+};
+
+/**
+ * A metric a batch observes beside its objective, already compiled: the
+ * request carries no code to lower. Each run's value, aggregated over time
+ * as asked, lands in the batch's `runResults` under `id`.
+ */
+export type DetachedObjectiveAuxiliaryMetric = {
+  id: string;
+  label: string;
+  artifact: HirMetricArtifact;
+  aggregateTime: MonteCarloUserDefinedMetricTimeAggregation;
 };
 
 /** One local compute batch for an optimization study's objective. */
@@ -259,11 +282,23 @@ export type DetachedObjectiveRequest = {
   scenarioParameterValues: Readonly<Record<string, number | boolean>>;
   /** The study's objective metric, evaluated as an expression metric. */
   metric: { id: string; label: string; code: string };
+  /** Metrics observed beside the objective; none by default. */
+  auxiliaryMetrics?: readonly DetachedObjectiveAuxiliaryMetric[];
   seed: number;
   runCount: number;
   dt: number;
   maxTime: number;
 };
+
+/** One parameter point of a study, for resolving the net parameters its batch would run with. */
+export type DetachedObjectiveParametersRequest = Pick<
+  DetachedObjectiveRequest,
+  | "cacheKey"
+  | "definition"
+  | "scenarioId"
+  | "scenarioParameterValues"
+  | "metric"
+>;
 
 export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
   /**
@@ -343,6 +378,8 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
     }),
     cancel: () => {},
   }),
+  resolveDetachedObjectiveParameters: () =>
+    Promise.reject(new Error("Experiments are unavailable")),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
@@ -365,6 +402,7 @@ export type ExperimentsActionsValue = Pick<
   | "sampleSurfaceCells"
   | "sampleDetachedObjective"
   | "runDetachedObjective"
+  | "resolveDetachedObjectiveParameters"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(

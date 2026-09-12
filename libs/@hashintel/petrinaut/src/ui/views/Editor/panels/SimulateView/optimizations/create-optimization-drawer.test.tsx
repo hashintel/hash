@@ -790,6 +790,45 @@ describe("CreateOptimizationDrawer", () => {
       code: "scenario.infected_ratio < 0.9",
       hir: { surface: "scenario-expression" },
     });
+    // The default threshold is the schema's default: no policy is written.
+    expect(submittedInput.constraintPolicy).toBeUndefined();
+  });
+
+  it("writes a changed pass threshold to the manifest as alpha", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (_input: PetrinautOptimizationInput) => "optimization-threshold",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    openConfiguration({ createOptimization, languageClient });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    // The threshold field appears with the first constraint row.
+    expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Metric code" }), {
+      target: { value: "scenario.infected_ratio < 0.9" },
+    });
+    fireEvent.change(screen.getByLabelText("Pass threshold (percent)"), {
+      target: { value: "90" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createOptimization.mock.calls[0]![0].constraintPolicy).toEqual({
+      alpha: 0.1,
+    });
   });
 
   it("runs one language session per constraint row, keyed by the row", () => {

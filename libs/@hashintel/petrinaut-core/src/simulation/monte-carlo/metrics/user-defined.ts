@@ -74,6 +74,8 @@ export function createMonteCarloUserDefinedMetric(
     MonteCarloMetricNumericAccumulatorState
   >();
   const latestRunValues = new Map<number, number>();
+  /** Each run's value aggregated over its frames so far; only with a time aggregation. */
+  const runTimeValues = new Map<number, number>();
 
   return {
     id: config.id,
@@ -82,13 +84,14 @@ export function createMonteCarloUserDefinedMetric(
       return frames;
     },
     getLatestFrame: () => frames.at(-1) ?? null,
-    getRunValues: () => latestRunValues,
+    getRunValues: () => (runTimeAccumulator ? runTimeValues : latestRunValues),
     clear: () => {
       frames.length = 0;
       scalarFrameCountState = frameCountAccumulator.empty();
       scalarTimeState = scalarTimeAccumulator?.empty() ?? null;
       runTimeStatesByRunIndex.clear();
       latestRunValues.clear();
+      runTimeValues.clear();
     },
     observeFrame: (context) => {
       const runSamples: { runIndex: number; value: number }[] = [];
@@ -114,6 +117,21 @@ export function createMonteCarloUserDefinedMetric(
       for (const { runIndex, value } of runSamples) {
         latestRunValues.set(runIndex, value);
       }
+      // Each run's time aggregate is folded whatever the output shape: a
+      // distribution bins it per frame, and `getRunValues` reports it as the
+      // run's value once a time aggregation is configured.
+      if (runTimeAccumulator) {
+        for (const { runIndex, value } of runSamples) {
+          const state =
+            runTimeStatesByRunIndex.get(runIndex) ?? runTimeAccumulator.empty();
+          const next = runTimeAccumulator.add(state, value);
+          runTimeStatesByRunIndex.set(runIndex, next);
+          const timeValue = runTimeAccumulator.read(next);
+          if (timeValue !== null) {
+            runTimeValues.set(runIndex, timeValue);
+          }
+        }
+      }
 
       const runValues = runSamples.map(({ value }) => value);
 
@@ -124,16 +142,6 @@ export function createMonteCarloUserDefinedMetric(
         let timeSampleCount = runValues.length;
 
         if (runTimeAccumulator) {
-          for (const { runIndex, value } of runSamples) {
-            const state =
-              runTimeStatesByRunIndex.get(runIndex) ??
-              runTimeAccumulator.empty();
-            runTimeStatesByRunIndex.set(
-              runIndex,
-              runTimeAccumulator.add(state, value),
-            );
-          }
-
           distributionValues = runSamples.flatMap(({ runIndex }) => {
             const state = runTimeStatesByRunIndex.get(runIndex);
             if (!state) {

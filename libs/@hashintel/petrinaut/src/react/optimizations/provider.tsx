@@ -339,6 +339,8 @@ const connectOptimizationSource = (
   const channel = createOptimizationChannel({
     runDetachedObjective: (request) =>
       experimentsActions.current.runDetachedObjective(request),
+    resolveDetachedObjectiveParameters: (request) =>
+      experimentsActions.current.resolveDetachedObjectiveParameters(request),
     resolveStudy,
   });
   const capability = source.connect(channel);

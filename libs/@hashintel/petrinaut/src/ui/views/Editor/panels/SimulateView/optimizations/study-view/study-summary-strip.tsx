@@ -5,12 +5,18 @@
  * study, then status, steps finished over requested and the best value so
  * far in a strip, with the steps bar beneath and the error when there is
  * one. A connected study adds the followed step's runs under the steps bar,
- * the "N computing" chip and the fallback note. The band has no title of
- * its own: it is the drawer's header continued, not a section.
+ * the "N computing" chip and the fallback note. A study with constraints
+ * adds the steps clear across the study to the strip. The band has no title
+ * of its own: it is the drawer's header continued, not a section.
  */
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import {
+  constraintAlpha,
+  formatRate,
+  studyConstraintRates,
+} from "../../../../../../../react/optimizations/constraint-rates";
 import { ComputeActivity } from "../../shared/compute-activity";
 import { ComputeBackendBadge } from "../../shared/compute-backend-badge";
 import { formatNumber, formatParameters } from "../../shared/format-value";
@@ -101,6 +107,13 @@ export const StudySummaryBand = ({
   const { connected } = optimization;
   const status = describeOptimizationStatus(optimization);
   const fallbackReason = connected?.computeBackendFallbackReason ?? null;
+  const constrained = (optimization.input.constraints ?? []).length > 0;
+  const rates = constrained
+    ? studyConstraintRates(
+        optimization.trials,
+        constraintAlpha(optimization.input),
+      )
+    : null;
 
   return (
     <div className={bandStyle} data-study-band>
@@ -137,6 +150,19 @@ export const StudySummaryBand = ({
         >
           {describeStepProgress(optimization)}
         </SummaryStat>
+        {rates === null ? null : (
+          <SummaryStat
+            label="Steps clear"
+            minChars={
+              formatRate(
+                optimization.requestedTrials,
+                optimization.requestedTrials,
+              ).length
+            }
+          >
+            {formatRate(rates.stepsClear, rates.stepsSimulated)}
+          </SummaryStat>
+        )}
         <SummaryStat label="Best step so far" minChars={8}>
           {optimization.best ? (
             <Tooltip
