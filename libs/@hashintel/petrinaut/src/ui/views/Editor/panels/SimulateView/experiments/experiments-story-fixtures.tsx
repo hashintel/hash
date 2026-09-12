@@ -16,6 +16,7 @@ import {
   type ExperimentRecord,
   type ExperimentsContextValue,
   isTerminalExperimentStatus,
+  type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
 import {
   EditorContext,
@@ -132,6 +133,73 @@ export function makeExperiment(
 }
 
 /**
+ * The synthetic objective every fake visit measures: a smooth bump over the
+ * sweep fixture's parameter values, so a story's contour fills in the way a
+ * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
+ * positions.
+ */
+export function syntheticSweepObjective(
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  return (
+    100 *
+      Math.exp(
+        -((transmissionRate - 0.35) ** 2) * 20 -
+          ((recoveryDays - 10) / 14) ** 2,
+      ) +
+    6 * Math.sin(transmissionRate * 9) +
+    recoveryDays / 4
+  );
+}
+
+/** The sweep fixture's axes, for turning a position into a value. */
+const SWEEP_FIXTURE_AXES = {
+  transmission_rate: { min: 0.1, max: 0.5, stepCount: 50 },
+  recovery_days: { min: 2, max: 20, stepCount: 18 },
+} as const;
+
+/** The points the sweep fixture has visited: a walk the navigator took. */
+export const SWEEP_FIXTURE_VISITS: readonly Readonly<Record<string, number>>[] =
+  [
+    { transmission_rate: 10, recovery_days: 3 },
+    { transmission_rate: 40, recovery_days: 15 },
+    { transmission_rate: 32, recovery_days: 8 },
+    { transmission_rate: 18, recovery_days: 12 },
+    { transmission_rate: 25, recovery_days: 6 },
+  ];
+
+/**
+ * A visited cell of the sweep fixture: the synthetic objective under the
+ * "infected" metric at a quantized position on the fixture's axes.
+ */
+export function syntheticVisitedCell(
+  position: Readonly<Record<string, number>>,
+  runsCompleted: number,
+): SweepVisitedCell {
+  const value = (
+    axis: keyof typeof SWEEP_FIXTURE_AXES,
+    fallback: number,
+  ): number => {
+    const { min, max, stepCount } = SWEEP_FIXTURE_AXES[axis];
+    const at = position[axis];
+    return at === undefined ? fallback : min + ((max - min) * at) / stepCount;
+  };
+  return {
+    position,
+    runsCompleted,
+    means: {
+      infected: Math.round(
+        syntheticSweepObjective(
+          value("transmission_rate", 0.3),
+          value("recovery_days", 8),
+        ),
+      ),
+    },
+  };
+}
+
+/**
  * A sweep over two SIR scenario parameters, mid-refinement on its selected
  * combination. The frames are a small synthetic infected-count distribution so
  * the navigator has a chart to sit above.
@@ -197,6 +265,12 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
       runsSampled: 61,
       runTarget: 100,
       computing: true,
+      visited: SWEEP_FIXTURE_VISITS.map((position) =>
+        syntheticVisitedCell(
+          position,
+          position.transmission_rate === 25 ? 25 : 8,
+        ),
+      ),
     },
     metricFrames: frames,
     latestMetricFramesById: { infected: frames.at(-1)! },
@@ -362,52 +436,6 @@ const createFakeExperiment = (
 });
 
 /**
- * The synthetic objective every fake sampler returns: a smooth bump over the
- * sweep fixture's parameter values, so a story's contour fills in the way a
- * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
- * positions.
- */
-export function syntheticSweepObjective(
-  transmissionRate: number,
-  recoveryDays: number,
-): number {
-  return (
-    100 *
-      Math.exp(
-        -((transmissionRate - 0.35) ** 2) * 20 -
-          ((recoveryDays - 10) / 14) ** 2,
-      ) +
-    6 * Math.sin(transmissionRate * 9) +
-    recoveryDays / 4
-  );
-}
-
-/**
- * A fake `sampleSurfaceCells`: one walk delay per chunk, then every cell's
- * synthetic objective under the "infected" metric. Positions are quantized
- * indices on the sweep fixture's axes.
- */
-export function makeFakeSurfaceSampler(
-  delayMs: number,
-): ExperimentsContextValue["sampleSurfaceCells"] {
-  return (_experimentId, positions) =>
-    new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(
-          positions.map((position) => ({
-            infected: Math.round(
-              syntheticSweepObjective(
-                0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4,
-                2 + (position.recovery_days ?? 0),
-              ),
-            ),
-          })),
-        );
-      }, delayMs);
-    });
-}
-
-/**
  * The fake of a streaming objective batch: ten frames of the synthetic bump
  * at the request's parameter values, one every 60 ms, then the result.
  */
@@ -502,7 +530,7 @@ export function FakeExperimentsProvider({
   overrides?: Partial<
     Pick<
       ExperimentsContextValue,
-      "sampleSurfaceCells" | "sampleDetachedObjective" | "runDetachedObjective"
+      "navigateSweep" | "sampleDetachedObjective" | "runDetachedObjective"
     >
   >;
   /**
@@ -535,6 +563,17 @@ export function FakeExperimentsProvider({
     },
     [],
   );
+
+  const isPointSelectionOf = (
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ): boolean =>
+    Object.values(selection).every((range) => range.from === range.to);
+  const pointOf = (
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ): Readonly<Record<string, number>> =>
+    Object.fromEntries(
+      Object.entries(selection).map(([axisId, range]) => [axisId, range.from]),
+    );
 
   const restream = (
     experimentId: string,
@@ -601,6 +640,17 @@ export function FakeExperimentsProvider({
               runsSampled: runs,
               runTarget: upTo < 46 ? 100 : null,
               computing: upTo < 46,
+              visited:
+                upTo < 46 || !isPointSelectionOf(selection)
+                  ? experiment.sweep.visited
+                  : [
+                      ...experiment.sweep.visited.filter(
+                        (entry) =>
+                          JSON.stringify(entry.position) !==
+                          JSON.stringify(pointOf(selection)),
+                      ),
+                      syntheticVisitedCell(pointOf(selection), runs),
+                    ],
             },
           };
         }),
@@ -611,6 +661,37 @@ export function FakeExperimentsProvider({
     };
     // The compute gap the charts bridge with the previous picture.
     restreamRef.current.timer = setTimeout(step, 900);
+  };
+
+  /** What the real session does on a selection change, as the fake records it. */
+  const applySweepSelection = (
+    experimentId: string,
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ) => {
+    setExperiments((current) =>
+      current.map((experiment) =>
+        experiment.id === experimentId && experiment.sweep
+          ? restreamOnSelectionChange
+            ? {
+                ...experiment,
+                metricFrames: [],
+                latestMetricFramesById: {},
+                sweep: {
+                  ...experiment.sweep,
+                  selection,
+                  runsCompleted: 0,
+                  runsSampled: 0,
+                  runTarget: 8,
+                  computing: true,
+                },
+              }
+            : { ...experiment, sweep: { ...experiment.sweep, selection } }
+          : experiment,
+      ),
+    );
+    if (restreamOnSelectionChange) {
+      restream(experimentId, selection);
+    }
   };
 
   // Built once: every callback closes over stable setters and refs, so the
@@ -636,33 +717,45 @@ export function FakeExperimentsProvider({
         current.filter((experiment) => experiment.id !== experimentId),
       );
     },
-    setSweepSelection: (experimentId, selection) => {
-      setExperiments((current) =>
-        current.map((experiment) =>
-          experiment.id === experimentId && experiment.sweep
-            ? restreamOnSelectionChange
-              ? {
-                  ...experiment,
-                  metricFrames: [],
-                  latestMetricFramesById: {},
-                  sweep: {
-                    ...experiment.sweep,
-                    selection,
-                    runsCompleted: 0,
-                    runsSampled: 0,
-                    runTarget: 8,
-                    computing: true,
-                  },
-                }
-              : { ...experiment, sweep: { ...experiment.sweep, selection } }
-            : experiment,
-        ),
-      );
-      if (restreamOnSelectionChange) {
-        restream(experimentId, selection);
-      }
-    },
-    sampleSurfaceCells: makeFakeSurfaceSampler(120),
+    setSweepSelection: applySweepSelection,
+    navigateSweep: (experimentId, selection, options) =>
+      new Promise((resolve) => {
+        applySweepSelection(experimentId, selection);
+        const position = Object.fromEntries(
+          Object.entries(selection).map(([axisId, range]) => [
+            axisId,
+            Math.round((range.from + range.to) / 2),
+          ]),
+        );
+        const cell = syntheticVisitedCell(position, options?.runCap ?? 100);
+        setTimeout(() => {
+          setExperiments((current) =>
+            current.map((experiment) =>
+              experiment.id === experimentId && experiment.sweep
+                ? {
+                    ...experiment,
+                    sweep: {
+                      ...experiment.sweep,
+                      runsCompleted: cell.runsCompleted,
+                      runsSampled: cell.runsCompleted,
+                      runTarget: null,
+                      computing: false,
+                      visited: [
+                        ...experiment.sweep.visited.filter(
+                          (entry) =>
+                            JSON.stringify(entry.position) !==
+                            JSON.stringify(cell.position),
+                        ),
+                        cell,
+                      ],
+                    },
+                  }
+                : experiment,
+            ),
+          );
+          resolve(cell);
+        }, 700);
+      }),
     sampleDetachedObjective: (request) => {
       // The synthetic bump over the study's real parameter values, so the
       // optimization surface story fills live.

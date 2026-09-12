@@ -367,7 +367,8 @@ export const newExperimentRecord = ({
           runsCompleted: 0,
           runsSampled: 0,
           runTarget: null,
-          computing: true,
+          computing: false,
+          visited: [],
         }
       : null,
 });

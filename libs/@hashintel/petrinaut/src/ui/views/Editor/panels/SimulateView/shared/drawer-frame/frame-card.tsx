@@ -12,7 +12,7 @@ import { use, useState, type ReactNode } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ChartCard } from "../chart-card";
+import { ChartCard, type ChartCardTone } from "../chart-card";
 import { FrameAnimateContext } from "./frame-animate-context";
 
 /** The footer's content height in pixels: an extra-small button. */
@@ -73,6 +73,7 @@ export const FrameCard = ({
   help,
   trailing,
   more = null,
+  tone,
   children,
 }: {
   title: string;
@@ -83,6 +84,8 @@ export const FrameCard = ({
   trailing?: ReactNode;
   /** A part folded away by default and opened from the footer; it stays mounted. */
   more?: FrameCardMore | null;
+  /** The card's look: `optimizing` while an optimizer drives its controls. */
+  tone?: ChartCardTone;
   children: ReactNode;
 }) => {
   const animate = use(FrameAnimateContext);
@@ -96,6 +99,7 @@ export const FrameCard = ({
       subtitle={subtitle}
       help={help}
       actions={trailing}
+      tone={tone}
       footer={
         more === null ? undefined : (
           <Button

@@ -6,10 +6,10 @@
  */
 import { useEffect, useState } from "react";
 
-import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { contourSurfaceKey } from "../../../../../components/contour-surface";
+import { useLatest } from "../../../../../../../../react/hooks/use-latest";
+import { contourSurfaceKey } from "../../../../../../../components/contour-surface";
 
-import type { SurfaceCell } from "./surface-sampling";
+import type { SurfaceCell } from "../../../shared/surface-sampling";
 
 export type SurfaceWalk<Value> = {
   /** Cell chunks in sampling order. */

@@ -77,6 +77,8 @@ export type ResultsBand = {
   trailing: ReactNode | null;
   content: ReactNode;
   more: FrameCardMore | null;
+  /** The card's look: `optimizing` while an optimizer drives its controls. */
+  tone: ChartCardTone;
 };
 
 /** The metric cards grid: the timelines, then whatever cards follow them, all one height. */

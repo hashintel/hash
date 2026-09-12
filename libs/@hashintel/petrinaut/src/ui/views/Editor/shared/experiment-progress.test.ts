@@ -51,6 +51,7 @@ describe("experimentProgressPercent", () => {
       runsSampled: 61,
       runTarget: 100,
       computing: true,
+      visited: [],
     };
     expect(
       experimentProgressPercent({

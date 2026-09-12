@@ -120,16 +120,6 @@ export const deriveRunParameters = (
   runPlan: ExperimentRunPlan | undefined,
   runCount: number,
 ): DerivedRunParameters => {
-  // The GPU derives each run's seed from the batch seed and the run's
-  // absolute index (`runner/seeds.ts`); a plan's pinned seeds have nowhere
-  // to go.
-  if (runPlan?.seeds !== undefined) {
-    return {
-      ok: false,
-      reason:
-        "The run plan pins per-run seeds, which the GPU's per-run generator cannot take; pinned-seed batches run on the CPU.",
-    };
-  }
   if (runPlan !== undefined && runPlan.ids.length > 0) {
     return packDraws(runPlan.ids, runPlan.values, runCount);
   }
