@@ -36,6 +36,9 @@ export class WgslBailError extends Error {
   }
 }
 
+/** Field name to a WGSL value reading that field of one token. */
+export type WgslTokenReader = (fieldName: string) => WgslValue;
+
 /**
  * A WGSL value produced by emitting one HIR node.
  *
@@ -49,7 +52,27 @@ export type WgslValue =
   | { kind: "record"; fields: Map<string, WgslValue> }
   | { kind: "array"; elements: WgslValue[] }
   /** One token's field accessors, resolved lazily on field access. */
-  | { kind: "token"; read: (fieldName: string) => WgslValue };
+  | { kind: "token"; read: WgslTokenReader }
+  /**
+   * A place's live tokens: a runtime-length span. `count` is the WGSL u32
+   * count, `readAt` reads the token at a u32 index variable. `.length` reads
+   * the count and `.reduce` emits a loop; `.concat` and positional indexing
+   * bail, because the shader reads one place at a time and has no bounds
+   * check to throw.
+   */
+  | {
+      kind: "tokenSpan";
+      count: string;
+      readAt: (indexVar: string) => WgslTokenReader;
+    };
+
+/** Why a `string` value has no WGSL form; the probe's placeholder token reader gives the same reason. */
+export const wgslStringBailReason =
+  "string values need a 64-bit string-pool id, and WGSL integers are 32-bit";
+
+/** Why a `uuid` value has no WGSL form; the probe's placeholder token reader gives the same reason. */
+export const wgslUuidBailReason =
+  "uuid values are 128-bit, which WGSL cannot represent";
 
 /**
  * How each HIR math builtin reaches WGSL.
@@ -231,7 +254,8 @@ export class WgslEmitter {
     if (
       value.kind === "record" ||
       value.kind === "array" ||
-      value.kind === "token"
+      value.kind === "token" ||
+      value.kind === "tokenSpan"
     ) {
       // Compile-time groupings need no temporary; they are destructured later.
       return value;
@@ -291,9 +315,12 @@ export class WgslEmitter {
           case "E":
             return { kind: "f32", code: emitF32Literal(Math.E) };
           case "Infinity":
-            return { kind: "f32", code: "(1.0 / 0.0)" };
+            return {
+              kind: "f32",
+              code: emitF32Literal(Number.POSITIVE_INFINITY),
+            };
           case "NaN":
-            return { kind: "f32", code: "(0.0 / 0.0)" };
+            return { kind: "f32", code: emitF32Literal(Number.NaN) };
         }
         break;
 
@@ -337,6 +364,11 @@ export class WgslEmitter {
 
       case "indexAccess": {
         const target = this.emit(expr.target, env);
+        if (target.kind === "tokenSpan") {
+          throw new WgslBailError(
+            "indexing a place's tokens by position needs the CPU's bounds check",
+          );
+        }
         if (target.kind !== "array") {
           throw new WgslBailError("index access on a non-array");
         }
@@ -352,6 +384,9 @@ export class WgslEmitter {
 
       case "length": {
         const target = this.emit(expr.target, env);
+        if (target.kind === "tokenSpan") {
+          return { kind: "f32", code: `f32(${target.count})` };
+        }
         if (target.kind !== "array") {
           throw new WgslBailError("`.length` on a non-array");
         }
@@ -449,6 +484,11 @@ export class WgslEmitter {
       case "arrayConcat": {
         const left = this.emit(expr.left, env);
         const right = this.emit(expr.right, env);
+        if (left.kind === "tokenSpan" || right.kind === "tokenSpan") {
+          throw new WgslBailError(
+            "`.concat` joins the tokens of two places, which the shader reads one place at a time",
+          );
+        }
         if (left.kind !== "array" || right.kind !== "array") {
           throw new WgslBailError("`.concat` on a non-array");
         }
@@ -460,9 +500,10 @@ export class WgslEmitter {
 
       case "arrayReduce": {
         const target = this.emit(expr.target, env);
+        if (target.kind === "tokenSpan") {
+          return this.#emitSpanReduce(expr, target, env);
+        }
         if (target.kind !== "array") {
-          // Metric reduces run over runtime token counts, which cannot be
-          // unrolled. Those stay on the CPU.
           throw new WgslBailError(
             "`.reduce` over a value with no statically-known length",
           );
@@ -485,15 +526,11 @@ export class WgslEmitter {
 
       case "stringLit":
       case "stringCall":
-        throw new WgslBailError(
-          "string values need a 64-bit string-pool id, and WGSL integers are 32-bit",
-        );
+        throw new WgslBailError(wgslStringBailReason);
 
       case "uuidGenerate":
       case "uuidFrom":
-        throw new WgslBailError(
-          "uuid values are 128-bit, which WGSL cannot represent",
-        );
+        throw new WgslBailError(wgslUuidBailReason);
 
       case "distribution": {
         const rngStateVar = this.options.rngStateVar;
@@ -534,6 +571,67 @@ export class WgslEmitter {
     // Reached only when an inner switch falls through (`constant`, `unary`),
     // which the outer switch's exhaustiveness hides from narrowing.
     throw new WgslBailError(`unsupported HIR node \`${kind}\``);
+  }
+
+  /**
+   * `.reduce` over a place's live tokens, as a loop.
+   *
+   * The token count is only known on the device, so the fold cannot unroll
+   * as an array reduce does. The accumulator becomes a `var` seeded from the
+   * initial value and the body's assignment runs once per live slot — the
+   * loop shape `dynamics.ts` already emits. Statements the body hoists after
+   * the mark (its own `const` bindings, a nested reduce's loop) land inside
+   * the loop braces, so they are evaluated per token as the CPU does.
+   */
+  #emitSpanReduce(
+    expr: Extract<HirExpr, { kind: "arrayReduce" }>,
+    target: Extract<WgslValue, { kind: "tokenSpan" }>,
+    env: ReadonlyMap<string, WgslValue>,
+  ): WgslValue {
+    const initial = this.emit(expr.initial, env);
+    // The accumulator's WGSL type follows the seed; a record or array seed
+    // has no WGSL value and bails through `f32`.
+    const accumulatorKind = initial.kind === "bool" ? "bool" : "f32";
+    const seed =
+      accumulatorKind === "bool" ? this.bool(initial) : this.f32(initial);
+    const accumulator = mangleWgslIdentifier(
+      expr.accParam.name,
+      this.#temporaries++,
+      this.options.identifierScope,
+    );
+    const loopVariable = mangleWgslIdentifier(
+      expr.param.name,
+      this.#temporaries++,
+      this.options.identifierScope,
+    );
+
+    const scope = new Map(env);
+    scope.set(expr.accParam.name, { kind: accumulatorKind, code: accumulator });
+    scope.set(expr.param.name, {
+      kind: "token",
+      read: target.readAt(loopVariable),
+    });
+    if (expr.indexParam) {
+      scope.set(expr.indexParam.name, {
+        kind: "f32",
+        code: `f32(${loopVariable})`,
+      });
+    }
+
+    const mark = this.statements.length;
+    const bodyValue = this.emit(expr.body, scope);
+    const body =
+      accumulatorKind === "bool" ? this.bool(bodyValue) : this.f32(bodyValue);
+    const bodyStatements = this.statements.splice(mark);
+
+    this.statements.push(
+      `var ${accumulator}: ${accumulatorKind} = ${seed};`,
+      `for (var ${loopVariable}: u32 = 0u; ${loopVariable} < ${target.count}; ${loopVariable} = ${loopVariable} + 1u) {`,
+      ...bodyStatements.map((statement) => `  ${statement}`),
+      `  ${accumulator} = ${body};`,
+      `}`,
+    );
+    return { kind: accumulatorKind, code: accumulator };
   }
 
   #emitBinary(
@@ -633,7 +731,11 @@ export class WgslEmitter {
           // Math.min() is Infinity, Math.max() is -Infinity.
           return {
             kind: "f32",
-            code: expr.fn === "min" ? "(1.0 / 0.0)" : "(-1.0 / 0.0)",
+            code: emitF32Literal(
+              expr.fn === "min"
+                ? Number.POSITIVE_INFINITY
+                : Number.NEGATIVE_INFINITY,
+            ),
           };
         }
         return {

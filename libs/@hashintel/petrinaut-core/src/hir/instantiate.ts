@@ -129,6 +129,8 @@ export type HirMetricArtifact = {
   source: string;
   /** Places referenced by the program, in `__places` ordinal order. */
   placeNames: string[];
+  /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
+  hir?: HirFunction;
 };
 
 /**

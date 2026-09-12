@@ -150,6 +150,7 @@ const KIND_LABEL = {
   lambda: "condition",
   kernel: "kernel",
   dynamics: "dynamics",
+  metric: "metric",
 } as const;
 
 const STATUS_LABEL = {

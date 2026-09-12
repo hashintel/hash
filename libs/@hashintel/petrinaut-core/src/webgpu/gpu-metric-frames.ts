@@ -1,16 +1,51 @@
 /**
  * Translating between metric specs and the GPU's on-device histograms.
  *
- * Shared by the compilation report and the experiment handle
- * (`gpu-experiment-handle.ts`) so a spec accepted by one is accepted by the
- * other, and both produce byte-identical frames.
+ * Shared by the compilation report, the editor's GPU switch and the experiment
+ * handle (`gpu-experiment-handle.ts`) so a spec accepted by one is accepted by
+ * the other, and both produce byte-identical frames.
+ *
+ * What the shader serves: place-token-count metrics, and expression metrics
+ * whose body `tryTranslateMetric` can emit as WGSL — counts, parameters,
+ * arithmetic, conditionals, `tokens.length` and one place's `tokens.reduce`
+ * with a numeric or boolean accumulator. A body using `.concat`, indexing a
+ * token by position, a `string` or `uuid` attribute, a distribution or a
+ * non-finite constant is refused with the emitter's reason, and so is any
+ * metric with a time aggregation and every transition-firing metric. Across
+ * the bundled examples' 30 model metrics, 28 translate; the two `.concat`
+ * averages stay on the CPU.
+ *
+ * `sampleRuns` is carried to the shader, which tests each run's status word
+ * the way the CPU tests the run's status, so a metric over `all` runs counts
+ * a finished run's final state in every later frame on both backends, and the
+ * device writes the CPU's final frame (row `frame_limit`, where every run is
+ * complete) rather than stopping one row short.
+ *
+ * Where a GPU frame differs from the CPU's: a non-finite sample halts its run
+ * on the device and the handle fails the experiment after the attempt, where
+ * the CPU throws at the frame. Scalar aggregates are reduced from bin labels —
+ * exact for integer metrics at stride 1, quantised to the labels otherwise —
+ * and `last` is the highest bin label rather than the highest run index's
+ * sample.
  */
+import { tryTranslateMetric } from "./try-translate-metric";
+
+import type { PetrinautExtensionSettings } from "../extensions";
 import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
 } from "../simulation/monte-carlo/metrics";
+import type { SDCPN } from "../types/sdcpn";
 import type { GpuMetricSpec } from "./compile-net-shader";
 import type { GpuHistogramFrame } from "./runner";
+
+/** The net an expression metric is translated against. */
+export type GpuMetricNet = {
+  sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
+  /** Resolved parameter values; defaults to the net's declared defaults. */
+  parameterValues?: Readonly<Record<string, number | boolean>>;
+};
 
 export type GpuMetricSpecsResult =
   | { ok: true; metrics: GpuMetricSpec[] }
@@ -19,23 +54,21 @@ export type GpuMetricSpecsResult =
 /**
  * Validates metric specs against what the shader can measure.
  *
- * Only place-token-count metrics are served: the shader samples a place's count
- * into a histogram. Expression metrics would need the metric HIR surface
- * compiled to WGSL too, and transition-firing metrics need a different sample
- * source. Both are follow-on work, and a spec asking for them is refused so the
- * caller falls back to the CPU rather than being shown a different measurement
- * than it asked for.
+ * Accepts place-count metrics and translatable expression metrics; the first
+ * refusal wins, so the caller falls back to the CPU with one reason rather
+ * than being shown a different measurement than it asked for.
  */
 export function toGpuMetricSpecs(
   specs: readonly MonteCarloMetricSpec[],
+  net: GpuMetricNet,
 ): GpuMetricSpecsResult {
   const metrics: GpuMetricSpec[] = [];
 
   for (const spec of specs) {
-    if (spec.kind !== "placeTokenCountMean") {
+    if (spec.kind === "transitionFiringCount") {
       return {
         ok: false,
-        reason: `The GPU backend can only measure place token counts; metric "${spec.label}" is a ${spec.kind} metric instead.`,
+        reason: `The GPU backend cannot measure transition firings; metric "${spec.label}" counts them.`,
       };
     }
     if (spec.aggregateTime !== undefined && spec.aggregateTime !== "none") {
@@ -46,22 +79,64 @@ export function toGpuMetricSpecs(
         reason: `The GPU backend does not aggregate metrics over time yet; metric "${spec.label}" uses a time aggregation.`,
       };
     }
-    metrics.push({ id: spec.id, placeId: spec.placeId });
+    // The CPU's default when a spec leaves it unset (`shouldSampleRun`).
+    const sampleRuns = spec.sampleRuns ?? "active";
+    if (spec.kind === "placeTokenCountMean") {
+      metrics.push({
+        id: spec.id,
+        integer: true,
+        sampleRuns,
+        sample: { kind: "placeCount", placeId: spec.placeId },
+      });
+      continue;
+    }
+
+    const hir = spec.artifact.hir;
+    if (hir === undefined) {
+      return {
+        ok: false,
+        reason: `Metric "${spec.label}" was compiled without its HIR tree, which the GPU shader is generated from; compile with includeHir.`,
+      };
+    }
+    const translation = tryTranslateMetric({
+      sdcpn: net.sdcpn,
+      hir,
+      extensions: net.extensions,
+      parameterValues: net.parameterValues,
+    });
+    if (!translation.translatable) {
+      return {
+        ok: false,
+        reason: `Metric "${spec.label}" cannot be translated to WGSL: ${translation.reason}.`,
+      };
+    }
+    metrics.push({
+      id: spec.id,
+      integer: translation.integer,
+      sampleRuns,
+      sample: { kind: "expression", hir },
+    });
   }
 
   return { ok: true, metrics };
 }
 
+/** A spec the shader samples: everything but a transition-firing metric. */
+type GpuServedMetricSpec = Exclude<
+  MonteCarloMetricSpec,
+  { kind: "transitionFiringCount" }
+>;
+
 /**
  * Rebuilds one metric frame from a GPU histogram.
  *
- * Distribution metrics use the bins directly. Scalar metrics reduce from the
- * histogram, which is exact for mean/sum/min/max because a histogram of integer
- * counts loses nothing the run-axis aggregation would have used.
+ * Distribution metrics use the bins directly. Scalar metrics reduce
+ * mean/sum/min/max from the bin labels, which is exact for integer metrics at
+ * stride 1 and otherwise quantised to the labels.
  */
 function toMetricFrame(
   histogram: GpuHistogramFrame,
-  spec: Extract<MonteCarloMetricSpec, { kind: "placeTokenCountMean" }>,
+  spec: GpuServedMetricSpec,
   dt: number,
 ): MonteCarloUserDefinedMetricFrame {
   const time = histogram.frameNumber * dt;
@@ -149,7 +224,7 @@ export function toGpuMetricFrames(
 ): MonteCarloUserDefinedMetricFrame[] {
   const specById = new Map(
     specs.flatMap((spec) =>
-      spec.kind === "placeTokenCountMean" ? [[spec.id, spec] as const] : [],
+      spec.kind === "transitionFiringCount" ? [] : [[spec.id, spec] as const],
     ),
   );
 

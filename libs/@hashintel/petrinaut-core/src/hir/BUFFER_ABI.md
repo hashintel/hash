@@ -113,6 +113,10 @@ instantiation, `__places[ordinal]` maps those names to frame place indexes.
 Metric token counts are dynamic, so metric `.reduce(...)` and `.concat(...)`
 compile to loops over `placeCounts` and `placeOffsets`.
 
+Compiled with `includeHir`, `HirMetricArtifact.hir` carries the lowered tree
+the program was emitted from, like the lambda, kernel and dynamics artifacts.
+The buffer program never reads it; it is there for the WebGPU backend.
+
 ## Artifact validation
 
 Artifacts are `version: 4` and carry a fingerprint of the sanitized SDCPN and

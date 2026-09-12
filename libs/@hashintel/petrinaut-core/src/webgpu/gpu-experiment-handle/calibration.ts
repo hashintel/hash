@@ -7,7 +7,9 @@
  * slab overflow grows the slab (a recompile, capacities are baked); a window
  * escape replans the window (a uniform). Seeds derive from absolute run
  * indices, so a re-run reproduces the same trajectories: a window re-run
- * cannot escape again, and slab growth is monotone.
+ * cannot escape again, slab growth is monotone, and a run a non-finite metric
+ * sample halted would halt again, so an attempt with one is handed back at
+ * once.
  *
  * A slab stops growing at its place's `derivedSlabCeiling`; an attempt that
  * still overflows there is handed back as it stands, and the caller sends the
@@ -170,10 +172,15 @@ const grownSlabs = (
   );
 };
 
+/** Whether a non-finite metric sample halted any of the attempt's runs. */
+export const anyMetricHalted = (result: GpuExperimentResult): boolean =>
+  result.metricErrors.some((runs) => runs > 0);
+
 /**
  * Runs an attempt until neither a slab overflow nor a window escape remains,
- * or the policy's retry budget runs out. Returns the last attempt's result —
- * a remaining overflow is the caller's to report — with the windows it ran at.
+ * the policy's retry budget runs out, or a metric halts a run. Returns the
+ * last attempt's result — a remaining overflow or a halted run is the
+ * caller's to report — with the windows it ran at.
  */
 export const runUntilCalibrated = async (options: {
   session: CalibrationSession;
@@ -201,6 +208,10 @@ export const runUntilCalibrated = async (options: {
     }
     const { result } = attempt;
     if (result.cancelled || stopped()) {
+      return { ok: true, result, windows };
+    }
+    // The same seeds halt the same run whatever the slab or the window.
+    if (anyMetricHalted(result)) {
       return { ok: true, result, windows };
     }
     if (result.overflowRuns > 0) {
@@ -283,7 +294,12 @@ export const slabsFromProbe = (
  * can refuse cleanly and the caller falls back to the CPU: probes a small
  * prefix of the runs at generous slabs (growing on overflow), sizes each
  * place's slab from the observed maxima, and recompiles at those. The same
- * probe observes the metric ranges, seeding the histogram windows.
+ * probe observes the metric ranges, seeding the histogram windows, and counts
+ * the runs a non-finite metric sample halted, which the handle reports as the
+ * full run would. A halted probe is handed back before its slabs are sized:
+ * the CPU would fail on the same sample, so neither an overflow nor the arena
+ * case the same probe shows pre-empts the halt, and nothing is recompiled for
+ * a run the handle will not start.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -297,7 +313,15 @@ export const probeDerivedCapacities = async (options: {
    */
   stopped?: () => boolean;
 }): Promise<
-  { ok: true; windows: MetricWindow[] } | { ok: false; reason: string }
+  | {
+      ok: true;
+      windows: MetricWindow[];
+      /** Runs halted by a non-finite metric sample, per metric, over `probeRuns` runs. */
+      metricErrors: number[];
+      /** The runs the probe's last attempt executed. */
+      probeRuns: number;
+    }
+  | { ok: false; reason: string }
 > => {
   const { session, runCount, placeCounts, execute } = options;
   const stopped = options.stopped ?? (() => false);
@@ -322,6 +346,23 @@ export const probeDerivedCapacities = async (options: {
       reason: "The capacity probe was abandoned before it finished.",
     };
   }
+  // The last attempt ran at the shader still in force here, before the
+  // recompile at the probed slabs changes what a probe would run.
+  const probeRuns = probeRunCount(session.shader, runCount);
+  const observed = () => ({
+    ok: true as const,
+    windows: windowsFromObserved(
+      probe.result.metricRanges,
+      probeWindows,
+      session.shader.histogramBins,
+      PROBE_WINDOW_MARGIN,
+    ),
+    metricErrors: probe.result.metricErrors,
+    probeRuns,
+  });
+  if (anyMetricHalted(probe.result)) {
+    return observed();
+  }
   if (probe.result.overflowRuns > 0) {
     const largest = Math.max(0, ...session.capacities.values());
     return {
@@ -341,30 +382,24 @@ export const probeDerivedCapacities = async (options: {
   if (!recompiled.ok) {
     return recompiled;
   }
-  return {
-    ok: true,
-    windows: windowsFromObserved(
-      probe.result.metricRanges,
-      probeWindows,
-      session.shader.histogramBins,
-      PROBE_WINDOW_MARGIN,
-    ),
-  };
+  return observed();
 };
 
 /**
- * Calibrates guessed windows from a preview-sized prefix of the runs before
- * the full attempt, when no capacity probe already did.
+ * Calibrates blind windows from a prefix of the runs before the full attempt,
+ * when no capacity probe already did.
  */
 export const probeWindows = async (options: {
   session: CalibrationSession;
   windows: readonly MetricWindow[];
   execute: ExecuteAttempt;
+  /** `probeRunCount(session.shader, runCount)`: never more runs than the experiment has. */
+  runCount: number;
 }): Promise<CalibratedRun> => {
-  const { session, windows, execute } = options;
+  const { session, windows, execute, runCount } = options;
   const attempt = await execute({
     shader: session.shader,
-    runCount: GPU_PREVIEW_RUNS,
+    runCount,
     windows,
     preview: false,
   });

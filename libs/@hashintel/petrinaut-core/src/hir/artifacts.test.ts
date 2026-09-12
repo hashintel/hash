@@ -210,6 +210,16 @@ describe("compileHirArtifacts", () => {
     `);
   });
 
+  it("carries the metric HIR only when includeHir is set", () => {
+    const withHir = compileHirArtifacts(sdcpn, undefined, {
+      includeHir: true,
+    }).artifacts.metrics["done-count"]!.hir;
+    expect(withHir?.surface).toBe("metric");
+    expect(withHir?.params[0]?.name).toBe("state");
+
+    expect(compile().metrics["done-count"]!.hir).toBeUndefined();
+  });
+
   it("matches the object reference emitter for a representative lambda", () => {
     const artifacts = compile();
     const pool = new StringPool();

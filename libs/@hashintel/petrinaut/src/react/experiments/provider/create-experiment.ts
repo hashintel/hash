@@ -385,21 +385,6 @@ export const newExperimentRecord = ({
 });
 
 /**
- * The net the experiment compiles and runs: its metrics replaced by the
- * experiment's expression metrics, so they compile alongside the model's user
- * code in the language worker.
- */
-export const experimentSdcpnWithMetrics = (
-  sdcpn: SDCPN,
-  metricSpecs: CreateExperimentInput["metricSpecs"],
-): SDCPN => ({
-  ...sdcpn,
-  metrics: metricSpecs
-    .filter((spec) => spec.kind === "expression")
-    .map((spec) => ({ id: spec.id, name: spec.label, code: spec.code })),
-});
-
-/**
  * Builds the backend request for the experiment. HIR artifacts are compiled
  * per `needsHirTrees` value and memoized: the trees roughly triple the
  * payload structured-cloned to every shard worker and only a

@@ -31,7 +31,7 @@ The SIR model with two policy levers and a cost account, built as the model to o
 - **Parameter-driven rates** -- Infection fires at `infection_rate` scaled by `(1 - contact_reduction)` and by `(1 - vaccine_efficacy × vaccination_coverage)`, the share of contacts that land on an unprotected person; Recovery fires at `recovery_rate`. The wave persists while the scaled infection rate exceeds the recovery rate and dies out below it.
 - **Scenario parameters wired to the initial state and the rates** -- the _Winter wave_ scenario seeds `Vaccinated` from `vaccination_coverage` and overrides both lever parameters, so an optimization or a sweep over the levers changes the initial marking and the rates together.
 - **An objective with an interior optimum** -- the **Total cost** [metric](simulation.md) charges every case at `case_cost` and each lever at a price quadratic in its intensity (`campaign_cost`, `distancing_cost`), so both levers have diminishing returns against a rising price. Over a 60-day horizon the cost is about 960 near a coverage of 0.45 and a contact reduction of 0.4, against 1,280 to 2,220 in the corners of the domain.
-- **GPU-ready modelling** -- untyped places and rates that read only parameters, so an experiment measuring the **Infected** place's token count (**Built-in › Place tokens**) runs on the GPU backend as shipped. The model metric of the same name is an expression, which keeps an experiment on the CPU.
+- **GPU-ready modelling** -- untyped places and rates that read only parameters, so an experiment measuring the **Infected** place's token count (**Built-in › Place tokens**) runs on the GPU backend as shipped. The model's expression metrics — **Total cost**, **Infected**, **Attack rate** — compile to the GPU too.
 - Two further metrics -- **Infected** (the wave's curve, dying out or growing) and **Attack rate** (share of the population infected so far).
 
 **Suggested initial state:** pick **Winter wave** and, in the Optimizations tab, minimize **Total cost** over `vaccination_coverage` (0 to 0.9) and `contact_reduction` (0 to 0.8) with a max time of 60: the surface shows a valley along the epidemic threshold and the steps settle around a coverage of 0.45 and a contact reduction of 0.4. To watch a single run instead, press Play and select the **Infected** metric in the timeline.
@@ -44,7 +44,7 @@ A small service system: customers arrive, wait, are served by a limited staff po
 
 **Demonstrates:**
 
-- **GPU-ready modelling**: no typed tokens, no expression metrics — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
+- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
 - Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
 - A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
 
@@ -56,7 +56,7 @@ A typed fleet of drones cycling between the hangar and the air: launch, drain ba
 
 **Demonstrates:**
 
-- **Typed tokens with capacities**: both places declare `capacity: 16`, which the GPU needs to size its buffers.
+- **Typed tokens with capacities**: both places declare `capacity: 16`, which the GPU uses to size its buffers and its metric histogram exactly, without a probe.
 - **Kernels** writing every attribute of produced tokens (launch altitude sampled from a Gaussian; a recharge on return).
 - **Continuous dynamics** on airborne drones (battery drains at `drain_rate`).
 - **Token-reading rates**: launch tempo scales with the candidate drone's battery, and returns become more likely as the battery falls.
@@ -172,7 +172,7 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 - **Predicate transitions based on geometry** -- "Collision" checks the distance between two satellites and "Crash" checks distance from the planet's surface, routing tokens to the Debris place.
 - **Arc weight 2** on the "Collision" transition -- it consumes two satellites from the Space place at once to evaluate pairwise proximity.
 - **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters. _Pre-deployed Constellation_ defines its initial state [as code](scenarios.md#code-mode-define-as-code), building a ring of satellites with `range(...).map(...)` from two scenario parameters (`number_of_satellites`, `initial_altitude`). Each satellite starts tangentially at circular-orbit speed, so the whole ring stays in orbit from the first frame.
-- **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed.
+- **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed. Its **Average orbital radius** and **Average orbital speed** metrics reduce over the satellites' attributes and compile to the GPU as loops.
 
 **Suggested initial state:** no initial tokens needed -- pick a scenario (e.g. _Earth Orbit_) and press Play. The "LaunchSatellite" source transition creates satellites with randomized orbital positions and velocities. Select the Space place and open the visualizer preview to watch the orbits fill up. The velocity for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`.
 

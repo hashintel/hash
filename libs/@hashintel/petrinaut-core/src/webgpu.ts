@@ -7,10 +7,9 @@
  * the compiled artifacts (`webgpu/hir-from-artifacts.ts`), so nothing here
  * touches the TypeScript frontend.
  *
- * Only the surface the app consumes is exported: the backend factory, the
- * compilation report the editor renders, and the metric-spec gate the
- * experiment drawer applies. Everything else in `webgpu/` is internal; tests
- * import it by relative path.
+ * Only the surface the app consumes is exported: the backend factory and the
+ * compilation report the editor renders. Everything else in `webgpu/` is
+ * internal; tests import it by relative path.
  *
  * "The WebGPU backend" in
  * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` covers
@@ -34,6 +33,3 @@ export type {
   CompilationItemStatus,
   CompilationReport,
 } from "./webgpu/compilation-report";
-
-export { toGpuMetricSpecs } from "./webgpu/gpu-metric-frames";
-export type { GpuMetricSpec } from "./webgpu/compile-net-shader";

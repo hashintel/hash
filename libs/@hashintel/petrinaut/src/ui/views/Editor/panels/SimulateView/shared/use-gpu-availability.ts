@@ -1,15 +1,17 @@
 import { use, useEffect, useState } from "react";
 
+import { getOwn } from "@hashintel/petrinaut-core";
 import {
   analyzeCompilation,
   summarizeGpuUnavailability,
-  toGpuMetricSpecs,
 } from "@hashintel/petrinaut-core/webgpu";
 
+import { experimentSdcpnWithMetrics } from "../../../../../../react/experiments/experiment-sdcpn-with-metrics";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type {
+  HirArtifacts,
   MonteCarloMetricSpec,
   PetrinautExtensionSettings,
   SDCPN,
@@ -22,12 +24,42 @@ export type GpuAvailability = {
 };
 
 /**
+ * Attaches each expression spec's compiled artifact, as the experiment request
+ * does, so the compilation report can gate the metrics the run would carry.
+ * Null when a metric has no artifact, with the request builder's own sentence.
+ */
+const attachMetricArtifacts = (
+  specs: readonly ExperimentMetricSpecInput[],
+  artifacts: HirArtifacts,
+):
+  | { ok: true; specs: MonteCarloMetricSpec[] }
+  | { ok: false; reason: string } => {
+  const withArtifacts: MonteCarloMetricSpec[] = [];
+  for (const spec of specs) {
+    if (spec.kind !== "expression") {
+      withArtifacts.push(spec);
+      continue;
+    }
+    const artifact = getOwn(artifacts.metrics, spec.id);
+    if (!artifact) {
+      return { ok: false, reason: `Metric "${spec.label}" did not compile.` };
+    }
+    withArtifacts.push({ ...spec, artifact });
+  }
+  return { ok: true, specs: withArtifacts };
+};
+
+/**
  * Whether the GPU backend could run a compute request over this net with
  * these metrics, and the reason when it could not.
  *
- * The net is analysed asynchronously (lowering user code happens in the
- * language worker) but the metric gate is evaluated synchronously from the
- * specs, so editing a metric updates the answer without another round-trip.
+ * One asynchronous path: the net the experiment would compile (its metrics
+ * replaced by the form's expression metrics) is lowered with its HIR trees in
+ * the language worker, and the compilation report gates the metrics and
+ * compiles the shader with the accepted ones, so the switch, the Compilation
+ * panel and the run-time backend selection give the same reason for the same
+ * metric. The form rebuilds its spec array every render, so the analysis keys
+ * on the specs' serialised content rather than on the array's identity.
  */
 export const useGpuAvailability = ({
   enabled,
@@ -41,8 +73,9 @@ export const useGpuAvailability = ({
   metricSpecs: readonly ExperimentMetricSpecInput[] | null;
 }): GpuAvailability => {
   const { requestHirArtifacts } = use(LanguageClientContext);
-  const [netReason, setNetReason] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const specsKey = metricSpecs === null ? null : JSON.stringify(metricSpecs);
 
   useEffect(() => {
     if (!enabled) {
@@ -51,23 +84,38 @@ export const useGpuAvailability = ({
 
     let cancelled = false;
     setPending(true);
+    const specs =
+      specsKey === null
+        ? []
+        : (JSON.parse(specsKey) as ExperimentMetricSpecInput[]);
+    const experimentSdcpn = experimentSdcpnWithMetrics(sdcpn, specs);
 
     const analyze = async () => {
       try {
-        const { artifacts } = await requestHirArtifacts(sdcpn, extensions, {
-          includeHir: true,
-        });
+        const { artifacts } = await requestHirArtifacts(
+          experimentSdcpn,
+          extensions,
+          { includeHir: true },
+        );
         if (cancelled) {
           return;
         }
-        setNetReason(
-          summarizeGpuUnavailability(
-            analyzeCompilation({ sdcpn, artifacts, extensions }),
-          ),
+        const attached = attachMetricArtifacts(specs, artifacts);
+        setReason(
+          attached.ok
+            ? summarizeGpuUnavailability(
+                analyzeCompilation({
+                  sdcpn: experimentSdcpn,
+                  artifacts,
+                  extensions,
+                  metricSpecs: attached.specs,
+                }),
+              )
+            : attached.reason,
         );
       } catch (caught) {
         if (!cancelled) {
-          setNetReason(
+          setReason(
             caught instanceof Error
               ? `The net could not be compiled: ${caught.message}`
               : "The net could not be compiled.",
@@ -85,7 +133,7 @@ export const useGpuAvailability = ({
     return () => {
       cancelled = true;
     };
-  }, [enabled, sdcpn, extensions, requestHirArtifacts]);
+  }, [enabled, sdcpn, extensions, specsKey, requestHirArtifacts]);
 
   if (!enabled) {
     return { available: false, reason: null, pending: false };
@@ -93,33 +141,8 @@ export const useGpuAvailability = ({
   if (pending) {
     return { available: false, reason: null, pending: true };
   }
-  if (netReason !== null) {
-    return { available: false, reason: netReason, pending: false };
+  if (reason !== null) {
+    return { available: false, reason, pending: false };
   }
-
-  // Expression metrics are computed from full simulation state, which the GPU
-  // path never materialises on the host, so they rule the backend out before the
-  // histogram gate is worth consulting. Narrowing as we go also gives
-  // `toGpuMetricSpecs` the compiled-spec type it wants without a cast: only
-  // expression specs lack an `artifact`.
-  const histogramSpecs: MonteCarloMetricSpec[] = [];
-  for (const spec of metricSpecs ?? []) {
-    if (spec.kind === "expression") {
-      return {
-        available: false,
-        reason: `Metric "${spec.label}" is an expression metric, which the GPU backend cannot compute. Use place token-count metrics to run on the GPU.`,
-        pending: false,
-      };
-    }
-    histogramSpecs.push(spec);
-  }
-
-  if (histogramSpecs.length > 0) {
-    const gpuMetrics = toGpuMetricSpecs(histogramSpecs);
-    if (!gpuMetrics.ok) {
-      return { available: false, reason: gpuMetrics.reason, pending: false };
-    }
-  }
-
   return { available: true, reason: null, pending: false };
 };
