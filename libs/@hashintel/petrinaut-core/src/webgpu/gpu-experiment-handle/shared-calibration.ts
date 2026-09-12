@@ -5,7 +5,9 @@
  * chunk a fresh marking streams is its probe's — so the next rung starts
  * while the calibration it could reuse is still being measured. The batch
  * that probes claims the key; batches arriving meanwhile wait for its
- * settle and read the stored calibration instead of probing too.
+ * settle and read the stored calibration instead of probing too. When the
+ * settle stored none, the waiters look the key up again: the first finds it
+ * free and claims, the others find that claim and wait on it.
  */
 export type CalibrationShare = {
   /** Another batch's probe of this key, settled once it stored or gave up. */

@@ -491,21 +491,22 @@ export async function createGpuMonteCarloExperiment(
     // overwritten progressively as the full attempt lands. A batch that
     // starts while another on this marking still probes waits for that
     // calibration rather than probing too; one that needs no probe has
-    // nothing to wait for and runs at once.
+    // nothing to wait for and runs at once. A probe that stores nothing
+    // (failed, cancelled) wakes every waiter at once, so each re-reads the
+    // map after waiting: the first to wake claims, the rest wait on it.
     let calibratedWindows = adoptCalibration();
     let settle = () => {};
-    if (calibratedWindows === null && needsProbe(session, windowInputs)) {
+    while (calibratedWindows === null && needsProbe(session, windowInputs)) {
       const share = shareCalibration(backend.calibrating, batchCalibrationKey);
-      if (share.inFlight !== undefined) {
-        await share.inFlight;
-        if (isDisposed()) {
-          return;
-        }
-        calibratedWindows = adoptCalibration();
-      }
-      if (calibratedWindows === null) {
+      if (share.inFlight === undefined) {
         settle = share.claim();
+        break;
       }
+      await share.inFlight;
+      if (isDisposed()) {
+        return;
+      }
+      calibratedWindows = adoptCalibration();
     }
     const calibrated = await runCalibratedExperiment({
       session,

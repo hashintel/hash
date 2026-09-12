@@ -160,6 +160,48 @@ describe("createGpuMonteCarloExperiment", () => {
     expect(backend.calibration.size).toBe(1);
   });
 
+  it("lets one waiter probe again when the shared probe stored nothing", async () => {
+    const backend = fakeBackend({ p: 64 });
+    const first = await createHandle(backend);
+    const second = await createHandle(backend);
+    const third = await createHandle(backend);
+
+    first.start();
+    await flush();
+    second.start();
+    third.start();
+    await flush();
+
+    expect(pendingRuns.map(({ request }) => request.runCount)).toEqual([128]);
+
+    // An abandoned probe releases both waiters without a calibration to
+    // adopt; only the first to wake may probe, the other waits on it.
+    pendingRuns[0]!.resolve(outcome({ cancelled: true }));
+    await flush();
+
+    expect(first.status.get()).toBe("Error");
+    expect(pendingRuns.slice(1).map(({ request }) => request.runCount)).toEqual(
+      [128],
+    );
+    expect(backend.calibrating.size).toBe(1);
+
+    pendingRuns[1]!.resolve(
+      outcome({ derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }] }),
+    );
+    await flush();
+
+    expect(pendingRuns.slice(2).map(({ request }) => request.runCount)).toEqual(
+      [1000, 1000],
+    );
+    expect(
+      pendingRuns.slice(2).map(({ shader }) => shader.stateWordsPerRun),
+    ).toEqual([4 + 19 * 2, 4 + 19 * 2]);
+    expect([second.status.get(), third.status.get()]).toEqual([
+      "Running",
+      "Running",
+    ]);
+  });
+
   it("publishes no progress for a probe's chunks", async () => {
     const handle = await createHandle(fakeBackend({ p: 64 }));
 
