@@ -18,6 +18,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  graph-build-cache-check:
+    name: Graph build cache checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check graph build reuse
+        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
+      - name: Check CPU cache-line decoding
+        run: |
+          CHECK_DIR=$(mktemp -d)
+          trap 'rm -rf "$CHECK_DIR"' EXIT
+          rustc +stable --edition=2021 --test .github/actions/graph-build-cache/cache_line_probe.rs -o "$CHECK_DIR/check"
+          "$CHECK_DIR/check"
+
   setup:
     runs-on: ubuntu-24.04
     permissions:
@@ -44,6 +61,16 @@ jobs:
         run: |
           UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
           INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
+
+          GRAPH_BUILD_CACHE_SCOPES='["@rust/hash-graph-http-tests","@tests/hash-backend-integration","@tests/hash-playwright"]'
+          INTEGRATION_TEST_PACKAGES=$(jq -c --argjson scopes "$GRAPH_BUILD_CACHE_SCOPES" '
+            .name as $selected
+            | ($scopes | map(select(. as $candidate | $selected | index($candidate))) | first // "") as $producer
+            | .include |= map(.name as $name | . + {
+                graph_build_cache: (($scopes | index($name)) != null),
+                graph_build_cache_producer: ($name == $producer)
+              })
+          ' <<< "$INTEGRATION_TEST_PACKAGES")
 
           PUBLISH_PACKAGES=[]
           while IFS= read -r file; do
@@ -205,6 +232,8 @@ jobs:
 
   integration-tests:
     name: Integration
+    env:
+      HASH_GRAPH_BUILD_CACHE: ${{ matrix.graph_build_cache && '1' || '0' }}
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
@@ -244,6 +273,19 @@ jobs:
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
+
+      - name: Prepare graph build
+        id: graph-build
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Restore graph build
+        id: graph-cache
+        if: steps.graph-build.outputs.key != ''
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: ${{ steps.graph-build.outputs.key }}
 
       - name: Find test steps to run
         id: tests
@@ -309,6 +351,20 @@ jobs:
 
       - name: Show disk usage
         run: df -h
+
+      - name: Prepare graph build for upload
+        id: graph-build-output
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.graph_build_cache_producer && steps.graph-build.outputs.key != '' && steps.graph-cache.outputs.cache-hit != 'true'
+        env:
+          EXPECTED_GRAPH_BUILD_KEY: ${{ steps.graph-build.outputs.key }}
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py publish
+
+      - name: Save graph build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.graph_build_cache_producer && steps.graph-build.outputs.key != '' && steps.graph-cache.outputs.cache-hit != 'true' && steps.graph-build-output.outputs.valid == 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: ${{ steps.graph-build.outputs.key }}
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -378,10 +434,18 @@ jobs:
   passed:
     name: Tests passed
     needs:
-      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
+      - setup
+      - sccache-credentials
+      - unit-tests
+      - integration-tests
+      - publish-rust
+      - graph-build-cache-check
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Check graph build cache checks
+        run: |
+          [[ ${{ needs.graph-build-cache-check.result }} = success ]]
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
