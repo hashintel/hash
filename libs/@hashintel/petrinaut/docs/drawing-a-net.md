@@ -86,6 +86,8 @@ Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#a
 2. Drag the handle onto the target node. A blue outline shows a valid target.
 3. Release to create the arc. Its endpoints follow the node outlines when you move either node.
 
+Choose **Square** under **Automatic arc shape** for right-angle paths. With **Avoid nodes** on, both the drag preview and completed arcs route around nearby nodes. Move obstructing nodes apart if a route cannot fit. See [automatic arc settings](visual-settings.md#automatic-arc-connections-experimental) for limits.
+
 Drag from the source: place to transition creates an input arc; transition to place creates an output arc. Release on empty space or press **Escape** to cancel. Dropping onto a subnet does not create an arc in this mode.
 
 You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.

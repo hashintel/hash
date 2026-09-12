@@ -10,7 +10,7 @@ export type OutlineNode = {
 export type OutlineArcPath = [path: string, labelX: number, labelY: number];
 
 export const getOutlineNode = (
-  node: CanvasNode,
+  node: Pick<CanvasNode, "kind" | "position" | "width" | "height">,
   compactNodes: boolean,
 ): OutlineNode | null =>
   node.kind === "componentInstance"

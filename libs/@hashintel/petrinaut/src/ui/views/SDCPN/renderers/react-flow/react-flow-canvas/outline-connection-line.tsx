@@ -3,6 +3,7 @@ import { use, useId } from "react";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
+import { getSquareArcPath, getSquareArcRoute } from "./shared/square-arcs";
 
 import type { NodeType } from "./react-flow-types";
 
@@ -14,7 +15,9 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   connectionStatus,
   connectionLineStyle,
 }) => {
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, automaticArcRendering, avoidArcObstacles } =
+    use(UserSettingsContext);
+  const nodes = useStore((state) => state.nodes);
   const markerId = useId();
   const hasReverseArc = useStore(
     (state) =>
@@ -31,11 +34,31 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   if (!source) {
     return null;
   }
-  const [path] = getOutlineArcPath(
-    source,
-    target ?? { x: toX, y: toY },
-    target !== null && hasReverseArc,
-  );
+  const [path] =
+    automaticArcRendering === "square"
+      ? getSquareArcPath(
+          getSquareArcRoute(source, target ?? { x: toX, y: toY }, {
+            hasReverseArc: target !== null && hasReverseArc,
+            avoidObstacles: avoidArcObstacles,
+            obstacles: nodes
+              .filter(
+                (node) =>
+                  node.id !== fromNode.id &&
+                  (target === null || node.id !== toNode?.id),
+              )
+              .map((node) => ({
+                position: node.position,
+                width: node.measured?.width ?? node.width ?? 0,
+                height: node.measured?.height ?? node.height ?? 0,
+                cornerRadius: 0,
+              })),
+          }),
+        )
+      : getOutlineArcPath(
+          source,
+          target ?? { x: toX, y: toY },
+          target !== null && hasReverseArc,
+        );
   return (
     <>
       <defs>

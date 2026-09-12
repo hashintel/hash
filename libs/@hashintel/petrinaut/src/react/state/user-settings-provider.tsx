@@ -85,6 +85,10 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ...settings,
         enableAutomaticArcConnections: value,
       })),
+    setAutomaticArcRendering: (value: UserSettings["automaticArcRendering"]) =>
+      setState((settings) => ({ ...settings, automaticArcRendering: value })),
+    setAvoidArcObstacles: (value: boolean) =>
+      setState((settings) => ({ ...settings, avoidArcObstacles: value })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
     setCursorMode: (value: CursorMode) =>

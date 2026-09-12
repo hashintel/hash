@@ -16,6 +16,8 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
+export type AutomaticArcRendering = "curved" | "square";
+
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
 export type SubViewSectionSettings = {
@@ -35,6 +37,8 @@ export type UserSettings = {
   keepPanelsMounted: boolean;
   compactNodes: boolean;
   enableAutomaticArcConnections: boolean;
+  automaticArcRendering: AutomaticArcRendering;
+  avoidArcObstacles: boolean;
   arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -123,6 +127,8 @@ export type UserSettingsActions = {
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
   setEnableAutomaticArcConnections: (value: boolean) => void;
+  setAutomaticArcRendering: (value: AutomaticArcRendering) => void;
+  setAvoidArcObstacles: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
@@ -161,6 +167,8 @@ export const defaultUserSettings: UserSettings = {
   keepPanelsMounted: true,
   compactNodes: false,
   enableAutomaticArcConnections: false,
+  automaticArcRendering: "curved",
+  avoidArcObstacles: true,
   arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -198,6 +206,8 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
   setEnableAutomaticArcConnections: () => {},
+  setAutomaticArcRendering: () => {},
+  setAvoidArcObstacles: () => {},
   setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},

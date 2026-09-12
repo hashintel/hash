@@ -72,9 +72,13 @@ Shown only when the host application provides an optimizer that runs in your bro
 
 ### Automatic arc connections (experimental)
 
-Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
+Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate attachment points.
 
-This setting uses automatic curves and temporarily disables the **Arcs rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
+Choose **Curved** (the default) or **Square** under **Automatic arc shape**. Square arcs use horizontal and vertical segments and choose their attachment sides automatically.
+
+For square arcs, **Avoid nodes** is on by default. It routes around nearby places, transitions, and subnet boxes with a gap around their edges, and updates when you move a node. Turn it off for simpler square paths. Arcs and their labels can still cross each other. Overlapping nodes, blocked endpoints, or very crowded areas can prevent a route; the arc then falls back to a square path that may cross nodes. Move the blocking nodes apart to make room.
+
+Turning automatic connections off restores your previous **Arcs rendering** style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
 
 ### Arcs rendering
 
