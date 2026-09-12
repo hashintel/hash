@@ -39,8 +39,9 @@ export const hasParameterConstraints = (
  * The parameter constraints' margins at the trial's point, with `parameters`
  * bound to the net parameter values the trial simulates with (the scenario's
  * overrides applied at the trial's values) and `scenario` to the trial's
- * values (booleans as 0/1). Null when the manifest has no parameter
- * constraints. Throws where interpretation would.
+ * values decoded by each scenario parameter's type, as the scenario compiler
+ * binds them. Null when the manifest has no parameter constraints. Throws
+ * where interpretation would.
  */
 export const parameterConstraintOutcome = (
   manifest: PetrinautOptimizationManifest,

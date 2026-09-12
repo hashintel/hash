@@ -832,6 +832,8 @@ export type PetrinautOptimizationTrialRequest = {
   /**
    * Every scenario parameter's value for this trial: fixed bindings merged
    * with the suggestions, booleans as 0/1 as the scenario compiler expects.
+   * `resolveTrialScenarioBindings` decodes them for a constraint's
+   * `scenario.*`.
    */
   readonly scenarioParameterValues: Readonly<Record<string, number>>;
   /**
@@ -945,5 +947,6 @@ export const isConnectedOptimization = (
 export {
   deriveOptimizationTrialSeeds,
   describeOptimization,
+  resolveTrialScenarioBindings,
   resolveTrialScenarioParameterValues,
 } from "./describe";

@@ -2,6 +2,8 @@
  * @layerRoot react.optimizations.channel
  * @role Evaluates optimizer trials as detached objective runs on the experiments backend
  */
+import { resolveTrialScenarioBindings } from "@hashintel/petrinaut-core/optimization";
+
 import { errorMessage } from "../../experiments/shared/error-message";
 import { constraintNameIn } from "../constraint-rates";
 import {
@@ -121,7 +123,9 @@ export const createOptimizationChannel = ({
       indicators = indicatorsFor(request);
       if (hasParameterConstraints(request.manifest)) {
         // `parameters.*` reads what the batch would simulate with: the
-        // scenario's overrides resolved at this trial's values.
+        // scenario's overrides resolved at this trial's values. `scenario.*`
+        // reads those values as the compiler binds them, a boolean parameter
+        // as a boolean.
         const parameters = await resolveDetachedObjectiveParameters({
           cacheKey,
           definition: request.manifest.model.definition,
@@ -131,7 +135,10 @@ export const createOptimizationChannel = ({
         });
         parameterOutcome = parameterConstraintOutcome(request.manifest, {
           parameters,
-          scenario: request.scenarioParameterValues,
+          scenario: resolveTrialScenarioBindings(
+            request.manifest,
+            request.scenarioParameterValues,
+          ),
         });
       }
     } catch (error) {

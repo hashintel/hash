@@ -16,6 +16,7 @@ import {
   sirNetConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
+  sirSwitchConstrainedOptimizationInput,
 } from "../sir-optimization-input.fixtures";
 import {
   createOptimizationChannel,
@@ -280,6 +281,54 @@ describe("createOptimizationChannel", () => {
       constraints: { parameters: [{ constraintId: "rate-cap" }], state: [] },
     });
     expect(settled.constraints?.parameters[0]?.margin).toBeCloseTo(1);
+  });
+
+  it("binds a boolean scenario parameter by its type: a constraint over the switch holds for a true draw and prunes a false one", async () => {
+    const { fake, channel } = setup();
+    const at = (isolation: boolean) => {
+      const suggestedValues = { infected_ratio: 0.05, isolation };
+      return trialRequest({
+        manifest: sirSwitchConstrainedOptimizationInput,
+        suggestedValues,
+        scenarioParameterValues: resolveTrialScenarioParameterValues(
+          sirSwitchConstrainedOptimizationInput,
+          suggestedValues,
+        ),
+      });
+    };
+
+    const infeasible = await channel.evaluateTrial(at(false));
+    expect(infeasible).toMatchObject({
+      kind: "pruned",
+      reason: "Infeasible: Isolation on",
+      constraints: { infeasible: "isolation-on" },
+    });
+    expect(infeasible.constraints?.parameters[0]?.margin).toBe(-1);
+    expect(fake.runs).toHaveLength(0);
+
+    const feasible = channel.evaluateTrial(at(true));
+    await vi.waitFor(() => expect(fake.runs).toHaveLength(1));
+    // The batch still compiles the scenario from the 0/1 transport.
+    expect(fake.runs[0]?.request.scenarioParameterValues).toEqual({
+      population: 1_000,
+      infected_ratio: 0.05,
+      isolation: 1,
+    });
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.3, 1]])],
+        runValues: [0.3],
+      }),
+    );
+    await expect(feasible).resolves.toMatchObject({
+      kind: "objective",
+      objective: 0.3,
+      constraints: {
+        parameters: [{ constraintId: "isolation-on", margin: 0 }],
+        state: [],
+      },
+    });
   });
 
   it("prunes a trial as failed to resolve when the scenario does not compile at its values", async () => {

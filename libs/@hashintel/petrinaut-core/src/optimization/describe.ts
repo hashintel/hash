@@ -1,4 +1,6 @@
+import { decodeScenarioParameterValue } from "../simulation/authoring/scenario/scenario-parameter-value";
 import { deriveRunSeed } from "../simulation/monte-carlo/run-state";
+import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 
 import type { Scenario } from "../types/sdcpn";
 import type {
@@ -188,4 +190,27 @@ export const resolveTrialScenarioParameterValues = (
       typeof value === "boolean" ? (value ? 1 : 0) : value;
   }
   return scenarioParameterValues;
+};
+
+/**
+ * Every scenario parameter's value for one trial as a constraint's
+ * `scenario.*` binds it: the trial's 0/1 transport decoded by each
+ * parameter's type, so a boolean parameter reads `true`/`false` as the
+ * scenario compiler binds it. A parameter the values lack reads its default,
+ * as the compiler would simulate it.
+ */
+export const resolveTrialScenarioBindings = (
+  manifest: PetrinautOptimizationManifest,
+  scenarioParameterValues: Readonly<Record<string, number>>,
+): Record<string, number | boolean> => {
+  const scenario = getOptimizationScenario(manifest);
+  const bindings = createUserKeyedRecord<number | boolean>();
+  for (const parameter of scenario.scenarioParameters) {
+    bindings[parameter.identifier] = decodeScenarioParameterValue(
+      parameter,
+      getOwn(scenarioParameterValues, parameter.identifier) ??
+        parameter.default,
+    );
+  }
+  return bindings;
 };

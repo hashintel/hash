@@ -56,10 +56,13 @@ export const sirOptimizationInput = petrinautOptimizationInputSchema.parse({
   study: { trials: 2, sampler: "tpe" },
 });
 
-const lowerSirConstraint = (source: ConstraintSource): Constraint => {
+const lowerSirConstraint = (
+  source: ConstraintSource,
+  overScenario: Scenario = scenario,
+): Constraint => {
   const lowered = lowerConstraint(source, {
     netParameters: sirModel.petriNetDefinition.parameters,
-    scenarioParameters: scenario.scenarioParameters,
+    scenarioParameters: overScenario.scenarioParameters,
     sdcpn: sirModel.petriNetDefinition,
   });
   if (!lowered.ok) {
@@ -123,5 +126,49 @@ export const sirNetConstrainedOptimizationInput =
         name: "Infection rate under two",
         code: "parameters.infection_rate <= 2",
       }),
+    ],
+  });
+
+/** The seasonal flu scenario with an `isolation` switch beside its numeric parameters. */
+export const sirSwitchedOptimizationScenario: Scenario = {
+  ...scenario,
+  scenarioParameters: [
+    ...scenario.scenarioParameters,
+    { type: "boolean", identifier: "isolation", default: 0 },
+  ],
+};
+
+/**
+ * The SIR study on the switched scenario, optimizing the switch under one
+ * constraint that requires it on: `scenario.isolation == true` holds for a
+ * true draw and breaks for a false one.
+ */
+export const sirSwitchConstrainedOptimizationInput =
+  petrinautOptimizationInputSchema.parse({
+    ...sirOptimizationInput,
+    model: {
+      ...sirOptimizationInput.model,
+      definition: {
+        ...sirOptimizationInput.model.definition,
+        scenarios: [sirSwitchedOptimizationScenario],
+      },
+    },
+    scenario: {
+      ...sirOptimizationInput.scenario,
+      parameterBindings: {
+        ...sirOptimizationInput.scenario.parameterBindings,
+        isolation: { kind: "optimize", domain: { kind: "boolean" } },
+      },
+    },
+    constraints: [
+      lowerSirConstraint(
+        {
+          space: "parameters",
+          id: "isolation-on",
+          name: "Isolation on",
+          code: "scenario.isolation == true",
+        },
+        sirSwitchedOptimizationScenario,
+      ),
     ],
   });
