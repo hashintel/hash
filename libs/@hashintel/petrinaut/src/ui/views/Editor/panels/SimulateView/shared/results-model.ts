@@ -7,13 +7,13 @@
  */
 import type { ChartCardTone } from "./chart-card";
 import type { ComputeBackendSummary } from "./compute-backend-badge";
-import type { FrameNote } from "./drawer-frame";
-import type { ComputeBatch } from "./drawer-frame/compute-batches-chip";
-import type { FrameCardMore } from "./drawer-frame/frame-card";
 import type {
+  ComputeBatch,
+  FrameCardMore,
+  FrameNote,
   FrameStatShort,
   FrameStatusTone,
-} from "./drawer-frame/frame-header";
+} from "./drawer-frame";
 import type { MetricTile } from "./metric-tiles";
 import type { ReactNode } from "react";
 

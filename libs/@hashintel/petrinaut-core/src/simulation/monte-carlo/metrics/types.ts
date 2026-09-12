@@ -65,9 +65,15 @@ export type MonteCarloUserDefinedMetricTimeAggregation =
   | MonteCarloUserDefinedMetricAggregation
   | "none";
 
+/**
+ * Which runs a metric samples on each frame, by the run's status: `active`
+ * (the default) the runs still stepping, `completed` the runs that finished,
+ * `notErrored` every run that has not errored, `all` every run.
+ */
 export type MonteCarloUserDefinedMetricSampleRuns =
   | "active"
   | "completed"
+  | "notErrored"
   | "all";
 
 export type MonteCarloMetricDistributionBinning = "exact" | { width: number };

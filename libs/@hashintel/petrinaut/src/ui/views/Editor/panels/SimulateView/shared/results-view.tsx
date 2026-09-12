@@ -11,11 +11,15 @@
 import { Tooltip } from "@hashintel/ds-components";
 
 import { ComputeBackendBadge } from "./compute-backend-badge";
-import { DrawerFrame, type DrawerFrameProps } from "./drawer-frame";
-import { ComputeBatchesChip } from "./drawer-frame/compute-batches-chip";
-import { FrameCard } from "./drawer-frame/frame-card";
-import { FrameColumns } from "./drawer-frame/frame-columns";
-import { FrameStat, FrameStatusPill } from "./drawer-frame/frame-header";
+import {
+  ComputeBatchesChip,
+  DrawerFrame,
+  type DrawerFrameProps,
+  FrameCard,
+  FrameColumns,
+  FrameStat,
+  FrameStatusPill,
+} from "./drawer-frame";
 import { MetricTiles } from "./metric-tiles";
 
 import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";

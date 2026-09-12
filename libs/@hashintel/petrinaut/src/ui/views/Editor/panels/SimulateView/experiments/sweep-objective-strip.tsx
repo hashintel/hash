@@ -14,7 +14,7 @@ import { useId, useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Fold } from "../shared/drawer-frame/fold";
+import { Fold } from "../shared/drawer-frame";
 import { formatNumber } from "../shared/format-value";
 import {
   ObjectiveHistoryChart,

@@ -15,7 +15,7 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 
 import type { ExperimentRecord } from "../../../../../../../react/experiments/context";
-import type { FrameCardMore } from "../../shared/drawer-frame/frame-card";
+import type { FrameCardMore } from "../../shared/drawer-frame";
 import type { ConstraintSpace } from "@hashintel/petrinaut-core";
 
 const listStyle = css({

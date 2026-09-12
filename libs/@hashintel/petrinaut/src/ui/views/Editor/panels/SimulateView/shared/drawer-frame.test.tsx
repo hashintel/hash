@@ -12,16 +12,19 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { DrawerFrame } from "./drawer-frame";
+import {
+  ComputeBatchesChip,
+  DrawerFrame,
+  FrameCard,
+  FrameColumns,
+  FrameStat,
+  FrameStatusPill,
+} from "./drawer-frame";
 import {
   frameHeader as header,
   frameStats,
   scrollFrameBody as scrollBodyTo,
 } from "./drawer-frame.test-helpers";
-import { ComputeBatchesChip } from "./drawer-frame/compute-batches-chip";
-import { FrameCard } from "./drawer-frame/frame-card";
-import { FrameColumns } from "./drawer-frame/frame-columns";
-import { FrameStat, FrameStatusPill } from "./drawer-frame/frame-header";
 
 import type { ReactNode } from "react";
 

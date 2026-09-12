@@ -1,8 +1,9 @@
 /**
  * A sweep's state constraints as metrics its batches compute: one 0/1
  * indicator per constraint, `min` over each run's frames (the "always"
- * quantifier), every finished run sampled on the last frame, so a visited
- * cell's mean for the indicator is exactly the share of runs that passed.
+ * quantifier), every run that did not error sampled on the last frame, so a
+ * visited cell's mean for the indicator is exactly the share of runs that
+ * passed.
  * The indicators ride every experiment request under `constraint:<id>` ids
  * and never appear on the record's own metric specs, so no tile or picker
  * shows them.
@@ -27,8 +28,9 @@ export const constraintIndicatorMetricId = (constraintId: string): string =>
 /**
  * One precompiled expression spec per state constraint: the body wrapped as
  * `cond ? 1 : 0`, `min` over each run's frames so a run passes only when the
- * condition held on every sampled frame, every run sampled, distribution
- * output, so the last frame's bins are `[[0, failed], [1, passed]]`. Throws
+ * condition held on every sampled frame, every run that did not error
+ * sampled, distribution output, so the last frame's bins are
+ * `[[0, failed], [1, passed]]` over the runs that reported. Throws
  * naming the constraint when the emitter declines its body.
  */
 export const constraintIndicatorSpecs = (
@@ -53,7 +55,7 @@ export const constraintIndicatorSpecs = (
       label: constraintLabel(constraint),
       code: constraint.code,
       artifact,
-      sampleRuns: "all",
+      sampleRuns: "notErrored",
       runOutput: { type: "distribution" },
       aggregateTime: "min",
     };
