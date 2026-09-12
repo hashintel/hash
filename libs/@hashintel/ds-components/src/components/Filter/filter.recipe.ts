@@ -48,6 +48,8 @@ export const filterRecipe = sva({
     "errorTooltip",
     "errorRow",
     "errorIcon",
+    "hintTrigger",
+    "hintTooltip",
   ],
   base: {
     root: {
@@ -286,9 +288,14 @@ export const filterRecipe = sva({
         "--filter-divider": "var(--filter-pressed-border)",
         "--filter-remove-divider": "var(--filter-pressed-border)",
       },
+      // Mirrors the text input's percentage-free cap: the slot's own
+      // `min(…, 100%)` max-width is ignored while the root's fit-content
+      // width is computed (percentages don't resolve during intrinsic
+      // sizing), so without this the chip grows to the unclipped value.
       "& [data-part=trigger]": {
         paddingInline: "[var(--filter-input-padding-x)]",
         paddingBlock: "[var(--form-padding-y)]",
+        maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
       },
     },
     separator: {
@@ -380,6 +387,30 @@ export const filterRecipe = sva({
       // Optically centers the icon on the first line of a wrapped message
       marginTop: "[0.2em]",
     },
+    // The tooltip-trigger wrapper a number input is nested in: layout-neutral
+    // (no line-height or font of its own — the input's `font: inherit` reads
+    // through it), stretching the input as if it were the slot's direct child.
+    hintTrigger: {
+      display: "flex",
+      alignItems: "stretch",
+      minWidth: "0",
+    },
+    // The rejected-characters hint bubble. Portaled like errorTooltip, so it
+    // styles itself with direct tokens rather than the `--filter-*` levers.
+    hintTooltip: {
+      background: "white",
+      color: "neutral.s110",
+      fontFamily: "body",
+      fontWeight: "normal",
+      textStyle: "xs",
+      maxWidth: "[260px]",
+      paddingInline: "2",
+      paddingBlock: "1",
+      borderRadius: "md",
+      border: "1px solid var(--colors-neutral-s50)",
+      boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.08)]",
+      pointerEvents: "none",
+    },
   },
   variants: {
     size: {
@@ -392,6 +423,7 @@ export const filterRecipe = sva({
           "--filter-radius": "var(--radii-sm)",
         },
         errorTooltip: { textStyle: "xxs" },
+        hintTooltip: { textStyle: "xxs" },
       },
       xs: {
         root: {
@@ -403,6 +435,7 @@ export const filterRecipe = sva({
           "--filter-radius": "[5px]",
         },
         errorTooltip: { textStyle: "xxs" },
+        hintTooltip: { textStyle: "xxs" },
       },
       sm: {
         root: {
@@ -431,6 +464,7 @@ export const filterRecipe = sva({
           "--filter-radius": "var(--radii-md)",
         },
         errorTooltip: { textStyle: "sm" },
+        hintTooltip: { textStyle: "sm" },
       },
     },
     invalid: {

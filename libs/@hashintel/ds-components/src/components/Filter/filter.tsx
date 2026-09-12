@@ -20,11 +20,16 @@ import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
 import { Select } from "../Select/select";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
+import { RejectedKeysHint } from "./filter-keypress-hint";
 import {
   type FilterChange,
   type FilterValue,
   type InputFor,
+  abandonedFadeStyle,
+  createAbandonmentController,
+  isAbandonable,
   isIntegerConfig,
+  isSelectDropdownOpen,
   committedEqual,
   draftValue,
   isDraftCleared,
@@ -75,20 +80,6 @@ const dropdownSizeMap: Record<FormInputSize, FormInputSize> = {
 const preventWheel = (event: WheelEvent) => {
   event.preventDefault();
 };
-
-/**
- * Whether any select segment's dropdown is open, derived from the DOM (the
- * segment's trigger carries zag's `data-state`) rather than tracked in a
- * ref: an open select can unmount without ever firing `onOpenChange(false)`
- * — an external value reset, a switch to another operator — which would
- * strand any tracked state as permanently "open".
- */
-const isSelectDropdownOpen = (segments: Array<HTMLElement | null>): boolean =>
-  segments.some(
-    (element) =>
-      element?.isConnected &&
-      element.querySelector("[data-part=trigger][data-state=open]") !== null,
-  );
 
 /**
  * Exposes a segment's full content as a `title` tooltip only while it is
@@ -228,6 +219,11 @@ const FilterSelectInput = ({
  * when its dropdown opened. Escape in a text input restores the value that
  * input held when it received focus; Escape on a closed dropdown does
  * nothing.
+ *
+ * With `removeable.dismissAbandoned`, a chip left with an incomplete draft
+ * (no operator, or any empty input) after the user focuses or clicks
+ * elsewhere waits 3s, fades over 3s, then removes itself; returning to it at
+ * any point (including via its portaled dropdowns) rescues it.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -256,7 +252,21 @@ export const Filter = <
   testId?: string;
   /** The size (height) of the element */
   size?: FormInputSize;
-  removeable?: false | { onRemove: () => void };
+  removeable?:
+    | false
+    | {
+        onRemove: () => void;
+        /**
+         * Auto-dismiss an abandoned chip: once the user focuses or clicks
+         * outside the filter while its draft is incomplete — no operator
+         * chosen, or any input empty, even if a value was committed before —
+         * wait 3s, fade out over another 3s, then call `onRemove`. Any
+         * interaction with the chip — including its portaled dropdowns —
+         * rescues it. Chips whose selected operator takes no input are never
+         * abandoned.
+         */
+        dismissAbandoned?: boolean;
+      };
 }) => {
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
@@ -269,6 +279,13 @@ export const Filter = <
   const selectEscapedRef = useRef(false);
   // The value the focused text/number input held when it received focus
   const inputFocusValueRef = useRef<SlotValue>(null);
+  // Abandoned-chip dismissal (removeable.dismissAbandoned). The listeners and
+  // timers live in a mount effect below; these refs let render-scope handlers
+  // (dropdown open/close) reach them without stale closures.
+  const [abandonFading, setAbandonFading] = useState(false);
+  const abandonEligibleRef = useRef(false);
+  const abandonEvaluateRef = useRef<() => void>(() => {});
+  const abandonCancelRef = useRef<() => void>(() => {});
   useEffect(() => {
     const markEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isSelectDropdownOpen(inputRefs.current)) {
@@ -543,8 +560,12 @@ export const Filter = <
   const handleSelectOpenChange = (open: boolean) => {
     if (open) {
       selectEscapedRef.current = false;
+      abandonCancelRef.current();
       return;
     }
+    // A close can mean the user clicked away entirely; re-evaluate once the
+    // commit below and the dropdown's focus restoration have settled.
+    window.setTimeout(() => abandonEvaluateRef.current(), 0);
     if (selectEscapedRef.current) {
       selectEscapedRef.current = false;
       return;
@@ -602,6 +623,54 @@ export const Filter = <
   const complete =
     selectedOperator !== undefined &&
     isDraftComplete(normalizeSlots(selectedOperator, slots));
+
+  const dismissAbandoned = removeable ? !!removeable.dismissAbandoned : false;
+  const onRemove = removeable ? removeable.onRemove : null;
+  const onRemoveRef = useRef(onRemove);
+  useLayoutEffect(() => {
+    onRemoveRef.current = onRemove;
+    abandonEligibleRef.current = isAbandonable({
+      dismissAbandoned,
+      disabled: !!disabled,
+      draftComplete: complete,
+      selectedOperator,
+    });
+  });
+
+  useEffect(() => {
+    if (!dismissAbandoned) {
+      abandonEvaluateRef.current = () => {};
+      abandonCancelRef.current = () => {};
+      return;
+    }
+    const controller = createAbandonmentController({
+      isEligible: () => abandonEligibleRef.current,
+      hasOpenDropdown: () =>
+        operatorDropdownOpenRef.current ||
+        isSelectDropdownOpen(inputRefs.current),
+      getRoot: () => rootRef.current,
+      onFadeChange: setAbandonFading,
+      onDismiss: () => onRemoveRef.current?.(),
+    });
+    abandonEvaluateRef.current = controller.evaluate;
+    abandonCancelRef.current = controller.cancel;
+    const detach = controller.attach();
+    return () => {
+      detach();
+      abandonEvaluateRef.current = () => {};
+      abandonCancelRef.current = () => {};
+    };
+  }, [dismissAbandoned]);
+
+  // A committed value can rescue the chip even when it arrives from outside
+  // (e.g. the parent adopting a change) rather than via an interaction.
+  // Re-evaluate rather than cancel: a cleared-draft commit round-trips as
+  // `{key, value: null}`, and such a chip is still abandoned.
+  useEffect(() => {
+    if (value !== null) {
+      abandonEvaluateRef.current();
+    }
+  }, [value]);
   const classes = filterRecipe({
     size,
     invalid,
@@ -618,6 +687,11 @@ export const Filter = <
       }
       onOpenChange={({ open }) => {
         operatorDropdownOpenRef.current = open;
+        if (open) {
+          abandonCancelRef.current();
+        } else {
+          window.setTimeout(() => abandonEvaluateRef.current(), 0);
+        }
       }}
       disabled={disabled}
       loopFocus={false}
@@ -625,6 +699,7 @@ export const Filter = <
       unmountOnExit
       ref={rootRef as React.Ref<HTMLDivElement>}
       className={cx(classes.root, className)}
+      style={abandonFading ? abandonedFadeStyle : undefined}
       onBlur={handleRootBlur}
       onKeyDownCapture={handleArrowKeyCapture}
       role="group"
@@ -717,67 +792,80 @@ export const Filter = <
         const isText = config.type === "string";
         const integer = !isText && isIntegerConfig(config);
 
+        const inputElement = (
+          <input
+            ref={assignInputRef}
+            className={classes.input}
+            onMouseEnter={syncTruncationTitle}
+            type={isText ? "text" : "number"}
+            inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
+            value={String(slots[inputIndex] ?? "")}
+            onChange={(event) => {
+              // Store the raw string so intermediate states like "-" and
+              // "1." survive the controlled round-trip; commitDraft
+              // resolves number slots via normalizeSlots.
+              setSlot(inputIndex, event.target.value);
+            }}
+            placeholder={config.placeholder}
+            minLength={isText ? config.min : undefined}
+            maxLength={isText ? config.max : undefined}
+            pattern={isText ? config.pattern : undefined}
+            min={isText ? undefined : config.min}
+            max={isText ? undefined : config.max}
+            step={isText ? undefined : numberStepOf(config)}
+            onKeyDown={(event) => {
+              handleInputKeyDown(event, inputIndex);
+              if (
+                !isText &&
+                !event.defaultPrevented &&
+                isRejectedNumberInputKey(event, integer)
+              ) {
+                event.preventDefault();
+                flashInvalidInput(event.currentTarget);
+              }
+            }}
+            onFocus={(event) => {
+              inputFocusValueRef.current = slotsRef.current[inputIndex] ?? null;
+              if (!isText) {
+                event.currentTarget.addEventListener("wheel", preventWheel, {
+                  passive: false,
+                });
+              }
+            }}
+            onBlur={
+              isText
+                ? undefined
+                : (event) => {
+                    event.currentTarget.removeEventListener(
+                      "wheel",
+                      preventWheel,
+                    );
+                  }
+            }
+            disabled={disabled}
+            aria-invalid={invalid || undefined}
+            aria-label={ariaLabel}
+            {...preventAutocompleteProps}
+          />
+        );
+
         return (
           <span
             className={classes.inputSlot}
             data-disabled={disabled ? "" : undefined}
             key={segmentKey}
           >
-            <input
-              ref={assignInputRef}
-              className={classes.input}
-              onMouseEnter={syncTruncationTitle}
-              type={isText ? "text" : "number"}
-              inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
-              value={String(slots[inputIndex] ?? "")}
-              onChange={(event) => {
-                // Store the raw string so intermediate states like "-" and
-                // "1." survive the controlled round-trip; commitDraft
-                // resolves number slots via normalizeSlots.
-                setSlot(inputIndex, event.target.value);
-              }}
-              placeholder={config.placeholder}
-              minLength={isText ? config.min : undefined}
-              maxLength={isText ? config.max : undefined}
-              pattern={isText ? config.pattern : undefined}
-              min={isText ? undefined : config.min}
-              max={isText ? undefined : config.max}
-              step={isText ? undefined : numberStepOf(config)}
-              onKeyDown={(event) => {
-                handleInputKeyDown(event, inputIndex);
-                if (
-                  !isText &&
-                  !event.defaultPrevented &&
-                  isRejectedNumberInputKey(event, integer)
-                ) {
-                  event.preventDefault();
-                  flashInvalidInput(event.currentTarget);
-                }
-              }}
-              onFocus={(event) => {
-                inputFocusValueRef.current =
-                  slotsRef.current[inputIndex] ?? null;
-                if (!isText) {
-                  event.currentTarget.addEventListener("wheel", preventWheel, {
-                    passive: false,
-                  });
-                }
-              }}
-              onBlur={
-                isText
-                  ? undefined
-                  : (event) => {
-                      event.currentTarget.removeEventListener(
-                        "wheel",
-                        preventWheel,
-                      );
-                    }
-              }
-              disabled={disabled}
-              aria-invalid={invalid || undefined}
-              aria-label={ariaLabel}
-              {...preventAutocompleteProps}
-            />
+            {isText ? (
+              inputElement
+            ) : (
+              <RejectedKeysHint
+                integer={integer}
+                triggerClassName={classes.hintTrigger}
+                contentClassName={classes.hintTooltip}
+              >
+                {inputElement}
+              </RejectedKeysHint>
+            )}
           </span>
         );
       })}

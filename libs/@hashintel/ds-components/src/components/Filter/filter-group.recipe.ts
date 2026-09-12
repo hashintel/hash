@@ -69,6 +69,6 @@ export const styles = css({
   gap: "2",
   "& :is(.filter-group-action, :has(> .filter-group-action)) + :is(.filter-group-action, :has(> .filter-group-action))":
     {
-      marginInlineStart: "-1.5",
+      marginInlineStart: "[-5px]",
     },
 });

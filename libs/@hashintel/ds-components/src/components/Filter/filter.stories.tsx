@@ -136,12 +136,24 @@ type SelectValues = {
   hasAllOf: string[];
   assignedTo: string;
   became: [Status, number];
+  milestone: string;
 };
 
 const statusItems: Array<ItemOrGroup<SelectItem<Status>>> = [
   { value: "todo", text: "To do" },
   { value: "inProgress", text: "In progress" },
   { value: "done", text: "Done" },
+];
+
+const milestoneItems: Array<ItemOrGroup<SelectItem<string>>> = [
+  {
+    value: "q3-multiplayer",
+    text: "Q3 2026 — Multiplayer canvas general availability (US and EU rollout)",
+  },
+  {
+    value: "q4-automation",
+    text: "Q4 2026 — Workflow automation and integration platform launch",
+  },
 ];
 
 const tagItems: Array<ItemOrGroup<MultiSelectItem<string>>> = [
@@ -219,6 +231,11 @@ const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
       "within",
       { type: "int", min: 1, placeholder: "days" },
     ],
+  },
+  {
+    key: "milestone",
+    label: "is part of",
+    input: { type: "select", items: milestoneItems },
   },
 ];
 
@@ -479,6 +496,10 @@ export const Selects: Story = () => (
       value={{ key: "became", value: ["done", 7] }}
     />
     <SelectState
+      label="single select with a long value — the chip caps at 32ch and the value ellipsifies"
+      value={{ key: "milestone", value: "q3-multiplayer" }}
+    />
+    <SelectState
       label="disabled"
       value={{ key: "is", value: "done" }}
       disabled
@@ -486,13 +507,20 @@ export const Selects: Story = () => (
   </div>
 );
 
-type GroupEntry = {
-  id: number;
-  propertyLabel: string;
-  value: FilterValue<KitchenSinkValues> | null;
-};
+type GroupEntry = { id: number; propertyLabel: string } & (
+  | { operators: "kitchenSink"; value: FilterValue<KitchenSinkValues> | null }
+  | { operators: "select"; value: FilterValue<SelectValues> | null }
+);
 
-const groupProperties = ["Name", "Age", "Active", "Score", "Rating"];
+const groupProperties: Array<
+  Pick<GroupEntry, "propertyLabel"> & { operators: GroupEntry["operators"] }
+> = [
+  { propertyLabel: "Name", operators: "kitchenSink" },
+  { propertyLabel: "Age", operators: "kitchenSink" },
+  { propertyLabel: "Status", operators: "select" },
+  { propertyLabel: "Score", operators: "kitchenSink" },
+  { propertyLabel: "Tags", operators: "select" },
+];
 
 const groupContainerStyle: React.CSSProperties = {
   maxWidth: 560,
@@ -502,66 +530,114 @@ const groupContainerStyle: React.CSSProperties = {
 };
 
 /** Stateful harness: filters can be added, edited, removed and cleared. */
-const GroupDemo = () => {
+const GroupDemo = ({
+  dismissAbandoned = false,
+}: {
+  /** Passed through to each chip's `removeable` config. */
+  dismissAbandoned?: boolean;
+}) => {
   const [filters, setFilters] = useState<GroupEntry[]>([
     {
       id: 1,
       propertyLabel: "Name",
+      operators: "kitchenSink",
       value: { key: "contains", value: "alexander" },
     },
     {
       id: 2,
+      propertyLabel: "Status",
+      operators: "select",
+      value: { key: "is", value: "inProgress" },
+    },
+    {
+      id: 3,
       propertyLabel: "Age",
+      operators: "kitchenSink",
       value: { key: "between", value: [18, 45, 65] },
     },
-    { id: 3, propertyLabel: "Active", value: { key: "true", value: null } },
+    {
+      id: 4,
+      propertyLabel: "Tags",
+      operators: "select",
+      value: { key: "isAnyOf", value: ["bug", "docs"] },
+    },
+    {
+      id: 5,
+      propertyLabel: "Active",
+      operators: "kitchenSink",
+      value: { key: "true", value: null },
+    },
   ]);
 
   const addFilter = () => {
     setFilters((previous) => {
       const id = Math.max(0, ...previous.map((entry) => entry.id)) + 1;
-      return [
-        ...previous,
-        {
-          id,
-          propertyLabel:
-            groupProperties[(id - 1) % groupProperties.length] ?? "Value",
-          value: null,
-        },
-      ];
+      const template = groupProperties[(id - 1) % groupProperties.length] ?? {
+        propertyLabel: "Value",
+        operators: "kitchenSink" as const,
+      };
+      return [...previous, { id, ...template, value: null }];
     });
+  };
+
+  const removeFilter = (id: number) => {
+    setFilters((previous) => previous.filter((entry) => entry.id !== id));
   };
 
   return (
     <div style={groupContainerStyle}>
       <FilterGroup>
-        {filters.map((filter) => (
-          <Filter<KitchenSinkValues>
-            key={filter.id}
-            property={`property-${filter.id}`}
-            propertyLabel={filter.propertyLabel}
-            operators={KitchenSinkOperators}
-            value={filter.value}
-            onChange={(...change: FilterChange<KitchenSinkValues>) => {
-              const [key, nextValue] = change;
-              const value = {
-                key,
-                value: nextValue,
-              } as FilterValue<KitchenSinkValues>;
-              setFilters((previous) =>
-                previous.map((entry) =>
-                  entry.id === filter.id ? { ...entry, value } : entry,
-                ),
-              );
-            }}
-            removeable={{
-              onRemove: () =>
+        {filters.map((filter) =>
+          filter.operators === "select" ? (
+            <Filter<SelectValues>
+              key={filter.id}
+              property={`property-${filter.id}`}
+              propertyLabel={filter.propertyLabel}
+              operators={SelectOperators}
+              value={filter.value}
+              onChange={(...change: FilterChange<SelectValues>) => {
+                const [key, nextValue] = change;
+                const value = {
+                  key,
+                  value: nextValue,
+                } as FilterValue<SelectValues>;
                 setFilters((previous) =>
-                  previous.filter((entry) => entry.id !== filter.id),
-                ),
-            }}
-          />
-        ))}
+                  previous.map((entry) =>
+                    entry.id === filter.id ? { ...filter, value } : entry,
+                  ),
+                );
+              }}
+              removeable={{
+                onRemove: () => removeFilter(filter.id),
+                dismissAbandoned,
+              }}
+            />
+          ) : (
+            <Filter<KitchenSinkValues>
+              key={filter.id}
+              property={`property-${filter.id}`}
+              propertyLabel={filter.propertyLabel}
+              operators={KitchenSinkOperators}
+              value={filter.value}
+              onChange={(...change: FilterChange<KitchenSinkValues>) => {
+                const [key, nextValue] = change;
+                const value = {
+                  key,
+                  value: nextValue,
+                } as FilterValue<KitchenSinkValues>;
+                setFilters((previous) =>
+                  previous.map((entry) =>
+                    entry.id === filter.id ? { ...filter, value } : entry,
+                  ),
+                );
+              }}
+              removeable={{
+                onRemove: () => removeFilter(filter.id),
+                dismissAbandoned,
+              }}
+            />
+          ),
+        )}
         <FilterGroup.AddFilter onClick={addFilter} />
         <FilterGroup.ClearFilters
           disabled={filters.length === 0}
@@ -581,6 +657,15 @@ export const Group: Story = () => (
       <FilterGroup.AddFilter renderAs="plusLabel" onClick={noop} />
       <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
     </div>
+    <span style={stateLabelStyle}>
+      dismissAbandoned: every chip below sets `removeable.dismissAbandoned`.
+      Leave a chip incomplete — no operator, or any input empty (including
+      emptying an input of one of the pre-filled chips) — then click or focus
+      elsewhere: after 3s it fades out over 3s and removes itself. Interacting
+      with it — including its dropdowns — rescues it. Complete chips and
+      input-less ones (&quot;is true&quot;) are never dismissed.
+    </span>
+    <GroupDemo dismissAbandoned />
   </div>
 );
 

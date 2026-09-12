@@ -6,6 +6,7 @@ import type {
   SelectItem,
   SelectProps,
 } from "../Select/select";
+import type { CSSProperties } from "react";
 
 export type InputSeparator = string | { iconName: IconName };
 
@@ -285,3 +286,179 @@ export const normalizeSlots = (
       : parseFloat(slot);
     return Number.isNaN(parsed) ? null : parsed;
   });
+
+/**
+ * Whether any select segment's dropdown is open, derived from the DOM (the
+ * segment's trigger carries zag's `data-state`) rather than tracked in a
+ * ref: an open select can unmount without ever firing `onOpenChange(false)`
+ * — an external value reset, a switch to another operator — which would
+ * strand any tracked state as permanently "open".
+ */
+export const isSelectDropdownOpen = (
+  segments: Array<HTMLElement | null>,
+): boolean =>
+  segments.some(
+    (element) =>
+      element?.isConnected &&
+      element.querySelector("[data-part=trigger][data-state=open]") !== null,
+  );
+
+// ── Abandoned-chip dismissal (removeable.dismissAbandoned) ──────────────────
+
+/** How long an abandoned chip sits untouched before its fade-out begins. */
+export const ABANDONED_GRACE_MS = 1000;
+/** How long the abandoned fade-out runs before onRemove fires. */
+export const ABANDONED_FADE_MS = 2000;
+
+/** Inline style applied to the chip root while the abandoned fade runs. */
+export const abandonedFadeStyle: CSSProperties = {
+  opacity: 0,
+  transition: `opacity ${ABANDONED_FADE_MS}ms ease-out`,
+};
+
+/**
+ * Whether the chip currently counts as abandonable: its draft is incomplete
+ * — no operator chosen, or at least one input empty — and rescuable. The
+ * committed value is deliberately not consulted: emptying an input of a
+ * previously committed chip makes it abandonable again. An operator without
+ * inputs has nothing left to fill in, so it is never "abandoned" (its commit
+ * is the parent's responsibility); a disabled chip cannot be interacted
+ * with, so it is never dismissed out from under the user either.
+ */
+export const isAbandonable = ({
+  dismissAbandoned,
+  disabled,
+  draftComplete,
+  selectedOperator,
+}: {
+  dismissAbandoned: boolean;
+  disabled: boolean;
+  /** Operator selected and every input slot filled (see isDraftComplete). */
+  draftComplete: boolean;
+  selectedOperator: LooseOperator | undefined;
+}): boolean =>
+  dismissAbandoned &&
+  !disabled &&
+  !draftComplete &&
+  !(
+    selectedOperator !== undefined &&
+    inputConfigsOf(selectedOperator).length === 0
+  );
+
+export interface AbandonmentController {
+  /**
+   * Re-decide arming from the current facts: cancels when the chip is
+   * ineligible, a dropdown is open, or focus sits inside; otherwise starts
+   * the grace timer (an already-running countdown keeps its timing).
+   */
+  evaluate: () => void;
+  /** Clear the timers and undo any in-progress fade. */
+  cancel: () => void;
+  /** Install the document listeners; returns cleanup that also clears timers. */
+  attach: () => () => void;
+}
+
+/**
+ * Drives the abandoned-chip countdown: once the user focuses or clicks
+ * outside the chip while it is eligible, waits {@link ABANDONED_GRACE_MS},
+ * signals the fade via `onFadeChange(true)`, and after
+ * {@link ABANDONED_FADE_MS} calls `onDismiss`. Dropdowns render in portals,
+ * so their interactions land outside the root; while `hasOpenDropdown()`
+ * reports one open, no event counts as "outside" — the dropdown's own close
+ * hook should call `evaluate` (deferred) afterwards.
+ */
+export const createAbandonmentController = ({
+  isEligible,
+  hasOpenDropdown,
+  getRoot,
+  onFadeChange,
+  onDismiss,
+}: {
+  /** Whether the chip is currently abandonable (see {@link isAbandonable}). */
+  isEligible: () => boolean;
+  /** Whether any of the chip's (portaled) dropdowns is open. */
+  hasOpenDropdown: () => boolean;
+  getRoot: () => HTMLElement | null;
+  onFadeChange: (fading: boolean) => void;
+  onDismiss: () => void;
+}): AbandonmentController => {
+  const timers: { grace: number | null; fade: number | null } = {
+    grace: null,
+    fade: null,
+  };
+  const clearTimers = () => {
+    if (timers.grace !== null) {
+      window.clearTimeout(timers.grace);
+      timers.grace = null;
+    }
+    if (timers.fade !== null) {
+      window.clearTimeout(timers.fade);
+      timers.fade = null;
+    }
+  };
+  const cancel = () => {
+    clearTimers();
+    onFadeChange(false);
+  };
+  const focusIsInside = () => {
+    const active = document.activeElement;
+    return !!active && !!getRoot()?.contains(active);
+  };
+  const evaluate = () => {
+    if (!isEligible() || hasOpenDropdown() || focusIsInside()) {
+      cancel();
+      return;
+    }
+    // Already counting down (or fading): keep the original timing.
+    if (timers.grace !== null || timers.fade !== null) {
+      return;
+    }
+    timers.grace = window.setTimeout(() => {
+      timers.grace = null;
+      onFadeChange(true);
+      timers.fade = window.setTimeout(() => {
+        timers.fade = null;
+        onDismiss();
+      }, ABANDONED_FADE_MS);
+    }, ABANDONED_GRACE_MS);
+  };
+  // Deferred so focus (and dropdown open state) settles before deciding.
+  const scheduleEvaluate = () => {
+    window.setTimeout(evaluate, 0);
+  };
+
+  const onPointerDown = (event: PointerEvent) => {
+    const target = event.target instanceof Node ? event.target : null;
+    if (hasOpenDropdown()) {
+      scheduleEvaluate();
+      return;
+    }
+    if (target && getRoot()?.contains(target)) {
+      cancel();
+      return;
+    }
+    scheduleEvaluate();
+  };
+  const onFocusIn = (event: FocusEvent) => {
+    const target = event.target instanceof Node ? event.target : null;
+    if (target && getRoot()?.contains(target)) {
+      cancel();
+      return;
+    }
+    if (hasOpenDropdown()) {
+      return;
+    }
+    scheduleEvaluate();
+  };
+  const attach = () => {
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("focusin", onFocusIn, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("focusin", onFocusIn, true);
+      clearTimers();
+    };
+  };
+
+  return { evaluate, cancel, attach };
+};
