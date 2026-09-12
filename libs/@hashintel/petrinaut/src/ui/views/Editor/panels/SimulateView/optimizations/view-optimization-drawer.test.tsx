@@ -34,6 +34,7 @@ import {
   fakeShortStudyTrials,
   makeConnectedStudyState,
   makeImportance,
+  makeOptimizationInput,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   makeSelectionStream,
