@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -183,6 +184,40 @@ describe("DrawerFrame", () => {
       chip.closest("[data-compute-batches]")?.getAttribute("data-idle"),
     ).toBe("true");
     expect(chip.textContent).toContain("000 computing");
+  });
+
+  it("closes the computing list with the last batch and leaves it closed for the next one", async () => {
+    const batch = {
+      id: "selection",
+      label: "Selection",
+      tone: "priority" as const,
+      runCount: 100,
+      completedRuns: 10,
+    };
+    const view = render(<ComputeBatchesChip batches={[batch]} />);
+    fireEvent.click(screen.getByRole("button", { name: "1 computing" }));
+    expect(
+      screen
+        .getByRole("button", { name: "1 computing" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+    // The popover opens on the next frame.
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-compute-batches-list]"),
+      ).toBeTruthy(),
+    );
+
+    view.rerender(<ComputeBatchesChip batches={[]} />);
+    expect(document.querySelector("[data-compute-batches-list]")).toBeNull();
+
+    view.rerender(<ComputeBatchesChip batches={[batch]} />);
+    expect(document.querySelector("[data-compute-batches-list]")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "1 computing" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
   it("folds a collapsible band's controls away without unmounting them", () => {

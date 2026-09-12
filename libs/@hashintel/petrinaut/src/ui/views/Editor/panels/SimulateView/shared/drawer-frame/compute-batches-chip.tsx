@@ -5,7 +5,8 @@
  * study its steps and the navigated point's refinement, so the list shows
  * that parallelism. The list is a popover, so opening it moves nothing. The
  * chip is always drawn, `0 computing` and disabled while nothing runs, and is
- * as wide as a three-digit count, so the strip never moves around it.
+ * as wide as a three-digit count, so the strip never moves around it. The
+ * list closes with the last batch, so the next one does not reopen it.
  */
 import { useRef, useState } from "react";
 
@@ -167,7 +168,9 @@ export const ComputeBatchesChip = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const idle = batches.length === 0;
-  const showing = open && !idle;
+  if (idle && open) {
+    setOpen(false);
+  }
 
   return (
     <span className={slotStyle} data-idle={idle} data-compute-batches>
@@ -176,7 +179,7 @@ export const ComputeBatchesChip = ({
         type="button"
         className={chipStyle}
         data-idle={idle}
-        aria-expanded={showing}
+        aria-expanded={open}
         disabled={idle}
         onClick={() => setOpen((previous) => !previous)}
       >
@@ -187,9 +190,9 @@ export const ComputeBatchesChip = ({
           </span>
           <span>{batches.length} computing</span>
         </span>
-        <Icon name={showing ? "chevronUp" : "chevronDown"} size="xxs" />
+        <Icon name={open ? "chevronUp" : "chevronDown"} size="xxs" />
       </button>
-      {showing ? (
+      {open ? (
         <Popover
           triggerRef={triggerRef}
           position="bottom-end"
