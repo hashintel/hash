@@ -601,6 +601,22 @@ describe("local storage demo prepared fixture", () => {
     brunchPreviewConfig.isBrunchConfigured = true;
   });
 
+  test.each(["metaKey", "ctrlKey"])(
+    "reserves %s + Shift + K for the assistant and keeps plain K for the palette",
+    (modifier) => {
+      seedStoredNet();
+      render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+      fireEvent.keyDown(window, { key: "K", [modifier]: true, shiftKey: true });
+      expect(
+        screen.queryByRole("dialog", { name: "Command palette" }),
+      ).toBeNull();
+      fireEvent.keyDown(window, { key: "k", [modifier]: true });
+      expect(
+        screen.getByRole("dialog", { name: "Command palette" }),
+      ).not.toBeNull();
+    },
+  );
+
   test("shows the fixture selector only while Brunch demo mode is on", () => {
     seedStoredNet();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);

@@ -1,10 +1,11 @@
-import { type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, use, useState } from "react";
 import { userEvent, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
@@ -244,7 +245,9 @@ const HostVoiceSlotPreview = () => (
 );
 
 const Frame = ({
+  additionalTab,
   error,
+  initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
@@ -254,7 +257,9 @@ const Frame = ({
   voiceModeAvailable = false,
   voiceSession,
 }: {
+  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
   error?: Error;
+  initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
@@ -264,6 +269,10 @@ const Frame = ({
   voiceModeAvailable?: boolean;
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
+  const editor = use(EditorContext);
+  const [placement, setPlacement] = useState(initialPlacement);
+  const [width, setWidth] = useState(editor.aiAssistantWidth);
+  const [isOpen, setOpen] = useState(true);
   const [input, setInput] = useState("");
   const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
     initialVoiceDockCollapsed,
@@ -285,27 +294,46 @@ const Frame = ({
   });
 
   return (
-    <VoiceSessionContext.Provider value={voiceSessionStore}>
-      <div style={{ height: "720px", position: "relative", width: "100%" }}>
-        <AiAssistantContents
-          error={error}
-          input={input}
-          inputMode={inputMode}
-          messages={messages}
-          onClose={() => {}}
-          onInputChange={setInput}
-          onInputModeChange={() => {}}
-          onStop={() => {}}
-          onSubmit={() => setInput("")}
-          onVoiceDockCollapsedChange={setVoiceDockCollapsed}
-          status={status}
-          stopped={stopped}
-          voiceDockCollapsed={voiceDockCollapsed}
-          voiceMode={voiceMode}
-          voiceModeAvailable={voiceModeAvailable}
-        />
-      </div>
-    </VoiceSessionContext.Provider>
+    <EditorContext
+      value={{
+        ...editor,
+        aiAssistantPlacement: placement,
+        setAiAssistantPlacement: setPlacement,
+        aiAssistantWidth: width,
+        setAiAssistantWidth: setWidth,
+      }}
+    >
+      <VoiceSessionContext.Provider value={voiceSessionStore}>
+        <div
+          style={{
+            height: "720px",
+            position: "relative",
+            width: "100%",
+            containerType: "inline-size",
+          }}
+        >
+          <AiAssistantContents
+            additionalTab={additionalTab}
+            error={error}
+            input={input}
+            inputMode={inputMode}
+            messages={messages}
+            isOpen={isOpen}
+            onClose={() => setOpen(false)}
+            onInputChange={setInput}
+            onInputModeChange={() => {}}
+            onStop={() => {}}
+            onSubmit={() => setInput("")}
+            onVoiceDockCollapsedChange={setVoiceDockCollapsed}
+            status={status}
+            stopped={stopped}
+            voiceDockCollapsed={voiceDockCollapsed}
+            voiceMode={voiceMode}
+            voiceModeAvailable={voiceModeAvailable}
+          />
+        </div>
+      </VoiceSessionContext.Provider>
+    </EditorContext>
   );
 };
 
@@ -321,6 +349,32 @@ const liveSession = (
 
 export const Empty: Story = {
   render: () => <Frame messages={[]} />,
+};
+
+export const Floating: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      messages={[userMessage, assistantMarkdownMessage]}
+    />
+  ),
+};
+
+export const WithWorkpieceTab: Story = {
+  render: () => (
+    <Frame
+      additionalTab={{
+        label: "Workpiece",
+        content: (
+          <div>
+            <h2>Model account</h2>
+            <p>A saved description of the process being modeled.</p>
+          </div>
+        ),
+      }}
+      messages={[userMessage, assistantMarkdownMessage]}
+    />
+  ),
 };
 
 export const EmptyWithVoiceAvailable: Story = {

@@ -112,6 +112,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  useEffect(() => () => clearTimeout(animationTimerRef.current), []);
   const selectionGestureRef = useRef({ active: false, hasNavigated: false });
   const selectionNavigationMountedRef = useRef(true);
   const pendingSelectionNavigationRef = useRef<{
@@ -388,6 +389,22 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setAiAssistantWidth: (width) =>
       setState((prev) => ({ ...prev, aiAssistantWidth: width })),
+    setAiAssistantCollapsed: (collapsed) => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
+        isAiAssistantCollapsed: collapsed,
+      }));
+    },
+    setAiAssistantPlacement: (placement) => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
+        aiAssistantPlacement: placement,
+      }));
+    },
     setBottomPanelOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => ({
@@ -502,13 +519,22 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         };
       });
     },
-    setAiAssistantOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isAiAssistantOpen: isOpen })),
-    toggleAiAssistant: () =>
+    setAiAssistantOpen: (isOpen) => {
+      scheduleAnimationEnd();
       setState((prev) => ({
         ...prev,
+        ...animationPatch(),
+        isAiAssistantOpen: isOpen,
+      }));
+    },
+    toggleAiAssistant: () => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
         isAiAssistantOpen: !prev.isAiAssistantOpen,
-      })),
+      }));
+    },
     triggerPanelAnimation: () => {
       scheduleAnimationEnd();
       setState((prev) => ({ ...prev, ...animationPatch() }));

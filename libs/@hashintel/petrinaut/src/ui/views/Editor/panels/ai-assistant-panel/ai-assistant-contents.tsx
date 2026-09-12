@@ -40,6 +40,7 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
+import { useFloatingPosition } from "./ai-assistant-contents/use-floating-position";
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
@@ -81,7 +82,6 @@ export type AiAssistantContentsProps = {
   onSubmit: () => void;
   onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
   promptChips?: PromptChip[];
-  rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
   voiceHandoffPending?: boolean;
@@ -90,66 +90,78 @@ export type AiAssistantContentsProps = {
   voiceModeAvailable?: boolean;
 };
 
+const dockSpaceStyle = css({
+  flexShrink: 0,
+  minWidth: "[0]",
+  maxWidth: "[100%]",
+  pointerEvents: "none",
+  '&[data-animating="true"]': {
+    transition: "[width 150ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "[none]",
+  },
+});
+
 const shellStyle = cva({
   base: {
     position: "absolute",
-    right: "0",
+    top: "[0]",
+    right: "[0]",
+    height: "full",
+    maxHeight: "full",
+    maxWidth: "full",
+    transform: "[translateX(0)]",
+    visibility: "visible",
     zIndex: "[calc(var(--z-index-sticky) + 2)]",
     pointerEvents: "auto",
-    transition: "[right 150ms ease-in-out]",
+    '&[data-animating="true"]': {
+      transition:
+        "[top 150ms ease-in-out, right 150ms ease-in-out, height 150ms ease-in-out, max-height 150ms ease-in-out, transform 150ms ease-in-out, visibility 0s]",
+      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    },
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
   },
   variants: {
-    collapsed: {
-      true: {},
+    floating: {
+      true: {
+        top: "[12px]",
+        right: "[12px]",
+        height: "[calc(100% - 24px)]",
+        maxHeight: "[640px]",
+        maxWidth: "[calc(100% - 24px)]",
+      },
     },
     open: {
-      true: {
-        top: "0",
-        bottom: "0",
-        maxWidth: "[calc(100vw - 32px)]",
-        padding: "2",
-        _before: {
-          content: '""',
-          position: "absolute",
-          inset: "2",
-          borderRadius: "[14px]",
-          background:
-            "[radial-gradient(circle at 78% 28%, rgba(52,160,250,0.22), rgba(190,230,255,0.04) 54%, transparent 80%)]",
-          filter: "[blur(4px)]",
-          pointerEvents: "none",
+      false: {
+        transform: "[translateX(100%)]",
+        visibility: "hidden",
+        pointerEvents: "none",
+        '&[data-animating="true"]': {
+          transitionDelay: "[0s, 0s, 0s, 0s, 0s, 150ms]",
         },
       },
-      false: {
-        bottom: "0",
-        width: "[0px]",
-        height: "[0px]",
-        overflow: "visible",
-        pointerEvents: "none",
+    },
+    collapsed: {
+      true: {
+        top: "[auto]",
+        bottom: "[12px]",
+        right: "[12px]",
+        height: "auto",
+        maxWidth: "[calc(100% - 24px)]",
       },
     },
   },
-  compoundVariants: [
-    {
-      collapsed: true,
-      open: true,
-      css: {
-        top: "[auto]",
-        height: "auto",
-      },
-    },
-  ],
 });
 
-// Tracks the card's inset within the padded shell, so the resize handle
-// straddles the card's visible left border rather than the shell edge.
 const resizeAnchorStyle = css({
   position: "absolute",
-  top: "2",
-  bottom: "2",
-  left: "2",
+  top: "[0]",
+  bottom: "[0]",
+  left: "[0]",
   width: "[0]",
 });
 
@@ -158,22 +170,27 @@ const cardStyle = cva({
     position: "relative",
     display: "flex",
     flexDirection: "column",
+    height: "full",
+    overflow: "hidden",
+    backgroundColor: "neutral.s00",
+    borderLeft: "[1px solid {colors.neutral.bd.subtle}]",
+    borderRadius: "[0]",
+    '&[data-animating="true"]': {
+      transition:
+        "[border-radius 150ms ease-in-out, box-shadow 150ms ease-in-out]",
+      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
   },
   variants: {
-    open: {
+    floating: {
       true: {
-        height: "full",
-        overflow: "hidden",
-        backgroundColor: "neutral.s10",
-        borderRadius: "[12px]",
+        borderLeftColor: "[transparent]",
+        borderRadius: "xl",
         boxShadow:
-          "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
-      },
-      false: {
-        width: "[0px]",
-        height: "[0px]",
-        overflow: "visible",
-        pointerEvents: "none",
+          "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },
     },
   },
@@ -198,30 +215,34 @@ const voiceModeStyle = css({
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[1px]",
-  paddingX: "1",
-  paddingTop: "[6px]",
-  borderBottom: "[1px solid rgba(0,0,0,0.08)]",
+  gap: "1",
+  height: "[40px]",
+  paddingLeft: "3",
+  paddingRight: "2",
+  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
   flexShrink: 0,
 });
 
 const headerLabelStyle = css({
   display: "flex",
   alignItems: "center",
-  height: "[28px]",
-  maxWidth: "[112px]",
-  paddingX: "3",
-  borderTopLeftRadius: "lg",
-  borderTopRightRadius: "lg",
-  backgroundColor: "neutral.s00",
-  boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
-  color: "neutral.s100",
-  fontSize: "xs",
+  gap: "2",
+  flex: "[1]",
+  minWidth: "[0]",
+  color: "neutral.fg.heading",
+  fontSize: "sm",
   fontWeight: "medium",
-  lineHeight: "[12px]",
-  overflow: "hidden",
   whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
+  border: "none",
+  padding: "[0]",
+  backgroundColor: "[transparent]",
+  textAlign: "left",
+  _enabled: { cursor: "grab", touchAction: "none" },
+  _active: { cursor: "grabbing" },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[4px]",
+  },
 });
 
 const headerButtonStyle = css({
@@ -238,7 +259,8 @@ const messagesStyle = css({
   flex: "[1]",
   minHeight: "[0]",
   overflowY: "auto",
-  padding: "2",
+  padding: "3",
+  overscrollBehavior: "contain",
 });
 
 const emptyStyle = css({
@@ -262,27 +284,24 @@ const messageStyle = cva({
     display: "flex",
     flexDirection: "column",
     gap: "2",
-    borderRadius: "xl",
     padding: "[10px]",
     fontSize: "sm",
     fontWeight: "medium",
     lineHeight: "[1.5]",
     color: "neutral.s100",
     userSelect: "text",
-    boxShadow:
-      "[0px 0px 0px 1px rgba(0,0,0,0.07), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 8px 8px -6px rgba(0,0,0,0.04)]",
   },
   variants: {
     role: {
       assistant: {
         alignSelf: "stretch",
-        backgroundColor: "white.a95",
+        paddingX: "[0]",
       },
       user: {
         alignSelf: "flex-end",
         maxWidth: "[92%]",
-        backgroundColor: "neutral.s20",
-        textAlign: "right",
+        backgroundColor: "neutral.bg.subtle",
+        borderRadius: "lg",
       },
     },
   },
@@ -309,8 +328,9 @@ const composerWrapStyle = css({
   flexDirection: "column",
   justifyContent: "center",
   gap: "2",
-  padding: "2",
-  backgroundColor: "neutral.bg.subtle",
+  padding: "3",
+  borderTop: "[1px solid {colors.neutral.bd.subtle}]",
+  backgroundColor: "neutral.s00",
   flexShrink: 0,
   boxSizing: "border-box",
   minHeight: `[${aiFooterMinHeight}px]`,
@@ -338,9 +358,16 @@ const composerStyle = css({
   gap: "1",
   borderRadius: "lg",
   backgroundColor: "neutral.s10",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
+  border: "[1px solid {colors.neutral.bd.subtle}]",
   padding: "1",
+  transition: "[border-color 150ms ease, box-shadow 150ms ease]",
+  _focusWithin: {
+    borderColor: "blue.s50",
+    boxShadow: "[0 0 0 2px {colors.blue.a10}]",
+  },
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "[none]",
+  },
 });
 
 // Caps how tall the composer can auto-grow before it starts scrolling
@@ -528,7 +555,6 @@ export const AiAssistantContents = ({
   onSubmit,
   onVoiceDockCollapsedChange,
   promptChips,
-  rightOffset = 0,
   status,
   stopped = false,
   voiceHandoffPending = false,
@@ -603,12 +629,26 @@ export const AiAssistantContents = ({
   const isVoiceDockCollapsed =
     voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
 
-  // Held in editor state, not here: the bottom toolbar and the viewport
-  // controls have to keep clear of this panel, and cannot read a local value.
   const {
+    aiAssistantPlacement,
     aiAssistantWidth: assistantWidth,
+    isPanelAnimating,
+    setAiAssistantPlacement,
     setAiAssistantWidth: setAssistantWidth,
   } = use(EditorContext);
+
+  const isFloating = aiAssistantPlacement === "floating";
+  const {
+    panelRef,
+    anchorForResize,
+    isDragging,
+    handleProps,
+    style: floatingPositionStyle,
+  } = useFloatingPosition(assistantWidth);
+  const panelWidth = `min(${assistantWidth}px, 100cqw)`;
+  const placementLabel = isFloating
+    ? "Dock AI assistant"
+    : "Float AI assistant";
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
@@ -646,7 +686,6 @@ export const AiAssistantContents = ({
   }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
 
@@ -692,9 +731,14 @@ export const AiAssistantContents = ({
 
   useEffect(() => {
     if (isOpen) {
-      inputRef.current?.focus();
+      const target = inputRef.current;
+      if (target && !target.disabled && !isVoiceDockCollapsed) {
+        target.focus({ preventScroll: true });
+      } else {
+        panelRef.current?.focus({ preventScroll: true });
+      }
     }
-  }, [composerFocusRequest, isOpen]);
+  }, [composerFocusRequest, isOpen, isVoiceDockCollapsed, panelRef]);
 
   // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
   // after which it scrolls internally). Resetting to `auto` before measuring
@@ -722,12 +766,10 @@ export const AiAssistantContents = ({
     const isFirstScroll = !hasScrolledOnceRef.current;
     hasScrolledOnceRef.current = true;
     const scrollToEnd = () => {
-      // The inner optional chain (`scrollIntoView?.`) is intentional — jsdom
-      // omits `Element.prototype.scrollIntoView`, so unit tests need the
-      // graceful no-op. The lint rule can't see that.
+      // Scroll only the transcript: the panel may be sliding outside the editor.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      messagesEndRef.current?.scrollIntoView?.({
-        block: "end",
+      messagesRef.current?.scrollTo?.({
+        top: messagesRef.current.scrollHeight,
         behavior: isFirstScroll ? "instant" : "smooth",
       });
     };
@@ -737,255 +779,309 @@ export const AiAssistantContents = ({
   }, [messagesScrollKey, status]);
 
   return (
-    <aside
-      aria-hidden={!isOpen ? true : undefined}
-      aria-label="AI assistant"
-      className={shellStyle({
-        collapsed: isOpen && isVoiceDockCollapsed,
-        open: isOpen,
-      })}
-      style={{
-        right: isOpen ? rightOffset : 0,
-        ...(isOpen ? { width: assistantWidth } : {}),
-      }}
-    >
-      {/* Zero-width anchor on the card's left edge: the handle must straddle
-          the visible card border, but the card clips overflow and the shell's
-          padding pushes the shell edge away from it. */}
+    <>
       <div
-        className={`${resizeAnchorStyle} ${panelContentStyle({
-          visible: isOpen && !isVoiceDockCollapsed,
-        })}`}
+        aria-hidden="true"
+        className={dockSpaceStyle}
+        data-animating={isPanelAnimating && !isDragging}
+        style={{
+          width:
+            isOpen && !isFloating && !isVoiceDockCollapsed ? panelWidth : 0,
+        }}
+      />
+      <aside
+        ref={panelRef}
+        aria-hidden={!isOpen ? true : undefined}
+        aria-label="AI assistant"
+        tabIndex={-1}
+        inert={!isOpen}
+        className={shellStyle({
+          collapsed: isVoiceDockCollapsed,
+          open: isOpen,
+          floating: isFloating,
+        })}
+        data-placement={aiAssistantPlacement}
+        data-animating={isPanelAnimating && !isDragging}
+        style={{
+          width: panelWidth,
+          ...(isFloating && !isVoiceDockCollapsed ? floatingPositionStyle : {}),
+        }}
       >
-        <ResizeHandle
-          edge="left"
-          appearance="line"
-          size={assistantWidth}
-          onResize={setAssistantWidth}
-          minSize={320}
-          maxSize={720}
-          label="Resize AI assistant"
-        />
-      </div>
-      <div className={cardStyle({ open: isOpen })} data-input-mode={inputMode}>
         <div
-          className={`${headerStyle} ${panelContentStyle({
-            visible: isOpen && !isVoiceDockCollapsed,
+          className={`${resizeAnchorStyle} ${panelContentStyle({
+            visible: !isVoiceDockCollapsed,
           })}`}
         >
-          {additionalTab ? (
-            <HorizontalTabsHeader
-              subViews={[
-                { id: aiTabId, title: "AI" },
-                { id: hostTabId, title: additionalTab.label },
-              ]}
-              activeTabId={showingHostTab ? hostTabId : aiTabId}
-              onTabChange={(tabId) => setHostTabSelected(tabId === hostTabId)}
-            />
-          ) : (
-            <div className={headerLabelStyle}>AI</div>
-          )}
-          <div style={{ flex: 1 }} />
-          <Button
-            size="xs"
-            variant="ghost"
-            tone="error"
-            className={headerButtonStyle}
-            aria-label="Clear AI chat"
-            disabled={clearMessagesDisabled || messages.length === 0}
-            onClick={onClearMessages}
-            iconName="trash"
-            tooltip="Clear AI chat"
-          />
-          <Button
-            size="xs"
-            variant="ghost"
-            className={headerButtonStyle}
-            aria-label="Close AI assistant"
-            onClick={onClose}
-            iconName="close"
-            tooltip="Close AI assistant"
-          />
-        </div>
-
-        <div
-          id={additionalTab ? `tabpanel-${aiTabId}` : undefined}
-          role={additionalTab ? "tabpanel" : undefined}
-          aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
-          hidden={showingHostTab}
-          className={`${messagesStyle} ${panelContentStyle({
-            visible: isOpen && !isVoiceDockCollapsed && !showingHostTab,
-          })}`}
-          data-testid="ai-transcript"
-          onScroll={recordDistanceFromEnd}
-          ref={messagesRef}
-        >
-          {messages.length === 0 && (
-            <div className={emptyStyle}>
-              <AiAssistantIcon size={28} />
-              <div>
-                Ask AI to create a Petri net, explain or revise the current
-                model.
-              </div>
-            </div>
-          )}
-          {messages.map((message) => (
-            <AiAssistantMessage
-              interactiveTools={interactiveTools}
-              key={message.id}
-              message={message}
-              handlersRef={handlersRef}
-            />
-          ))}
-          {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
-            <div className={stoppedNoteStyle}>Response stopped</div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {additionalTab && (
-          <div
-            id={`tabpanel-${hostTabId}`}
-            role="tabpanel"
-            aria-labelledby={`tab-${hostTabId}`}
-            hidden={!showingHostTab}
-            className={`${messagesStyle} ${panelContentStyle({ visible: isOpen && !isVoiceDockCollapsed && showingHostTab })}`}
-          >
-            {additionalTab.content}
-          </div>
-        )}
-
-        {voiceMode && (
-          <div
-            className={`${voiceModeStyle} ${panelContentStyle({
-              visible: isOpen && (!isVoiceDockCollapsed || !isVoiceSessionLive),
-            })}`}
-            data-testid="ai-voice-mode"
-          >
-            {voiceMode}
-          </div>
-        )}
-
-        {isVoiceSessionLive ? (
-          <div className={panelContentStyle({ visible: isOpen })}>
-            <LiveVoiceDock
-              collapsed={isVoiceDockCollapsed}
-              onCollapsedEnd={onCollapsedVoiceEnd}
-              onCollapsedToggle={() =>
-                onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
+          <ResizeHandle
+            edge="left"
+            appearance="line"
+            size={assistantWidth}
+            onResize={(width) => {
+              if (isFloating) {
+                anchorForResize();
               }
-            />
-          </div>
-        ) : (
-          <>
-            {isVoiceDockCollapsed && (
-              <div className={panelContentStyle({ visible: isOpen })}>
-                <VoiceDock
-                  actions={null}
-                  canReadFullResponse={false}
-                  canRepeatQuestion={false}
-                  canTakeTurn={false}
-                  collapsed
-                  indicator={<AiVoiceModeIcon size={16} />}
-                  microphoneMuted={false}
-                  notice={voiceSetupLabels.status}
-                  onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
-                  phase="connecting"
-                  purpose="setup"
+              setAssistantWidth(width);
+            }}
+            minSize={320}
+            maxSize={720}
+            label="Resize AI assistant"
+          />
+        </div>
+        <div
+          className={cardStyle({
+            floating: isFloating || isVoiceDockCollapsed,
+          })}
+          data-animating={isPanelAnimating && !isDragging}
+          data-input-mode={inputMode}
+        >
+          <div
+            className={`${headerStyle} ${panelContentStyle({
+              visible: !isVoiceDockCollapsed,
+            })}`}
+          >
+            <button
+              type="button"
+              className={headerLabelStyle}
+              style={additionalTab ? { flex: "0 0 auto" } : undefined}
+              disabled={!isFloating}
+              aria-label={isFloating ? "Move AI assistant" : undefined}
+              title={
+                isFloating ? "Drag to move, or use the arrow keys" : undefined
+              }
+              {...(isFloating ? handleProps : {})}
+            >
+              <AiAssistantIcon size={16} />
+              {!additionalTab && <span>AI</span>}
+            </button>
+            {additionalTab && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <HorizontalTabsHeader
+                  subViews={[
+                    { id: aiTabId, title: "AI" },
+                    { id: hostTabId, title: additionalTab.label },
+                  ]}
+                  activeTabId={showingHostTab ? hostTabId : aiTabId}
+                  onTabChange={(tabId) =>
+                    setHostTabSelected(tabId === hostTabId)
+                  }
                 />
               </div>
             )}
+            <Button
+              size="xs"
+              variant="ghost"
+              className={headerButtonStyle}
+              aria-label={placementLabel}
+              onClick={() =>
+                setAiAssistantPlacement(isFloating ? "docked" : "floating")
+              }
+              iconName={isFloating ? "sidebar" : "externalLink"}
+              tooltip={placementLabel}
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              tone="error"
+              className={headerButtonStyle}
+              aria-label="Clear AI chat"
+              disabled={clearMessagesDisabled || messages.length === 0}
+              onClick={onClearMessages}
+              iconName="trash"
+              tooltip="Clear AI chat"
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              className={headerButtonStyle}
+              aria-label="Close AI assistant"
+              onClick={onClose}
+              iconName="close"
+              tooltip="Close AI assistant"
+            />
+          </div>
+
+          <div
+            id={additionalTab ? `tabpanel-${aiTabId}` : undefined}
+            role={additionalTab ? "tabpanel" : undefined}
+            aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
+            hidden={showingHostTab}
+            className={`${messagesStyle} ${panelContentStyle({
+              visible: !isVoiceDockCollapsed && !showingHostTab,
+            })}`}
+            data-testid="ai-transcript"
+            onScroll={recordDistanceFromEnd}
+            ref={messagesRef}
+          >
+            {messages.length === 0 && (
+              <div className={emptyStyle}>
+                <AiAssistantIcon size={28} />
+                <div>
+                  Ask AI to create a Petri net, explain or revise the current
+                  model.
+                </div>
+              </div>
+            )}
+            {messages.map((message) => (
+              <AiAssistantMessage
+                interactiveTools={interactiveTools}
+                key={message.id}
+                message={message}
+                handlersRef={handlersRef}
+              />
+            ))}
+            {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
+              <div className={stoppedNoteStyle}>Response stopped</div>
+            )}
+          </div>
+
+          {additionalTab && (
             <div
-              className={`${composerWrapStyle} ${panelContentStyle({
-                visible: isOpen && !isVoiceDockCollapsed,
+              id={`tabpanel-${hostTabId}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${hostTabId}`}
+              hidden={!showingHostTab}
+              className={`${messagesStyle} ${panelContentStyle({
+                visible: !isVoiceDockCollapsed && showingHostTab,
               })}`}
             >
-              {showChips && (
-                <PromptChips
-                  chips={promptChips}
-                  disabled={isBusy}
-                  onDismiss={() => setChipsDismissed(true)}
-                  onSelect={(prompt) => onSendPrompt(prompt)}
-                />
-              )}
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const submitter = (event.nativeEvent as SubmitEvent)
-                    .submitter;
-                  if (
-                    canSubmit &&
-                    submitter?.hasAttribute("data-ai-assistant-submit")
-                  ) {
-                    onSubmit();
-                  }
-                }}
-              >
-                <div className={composerStyle}>
-                  <textarea
-                    ref={inputRef}
-                    className={composerTextareaStyle}
-                    rows={1}
-                    value={input}
-                    onChange={(event) =>
-                      onInputChange(event.currentTarget.value)
+              {additionalTab.content}
+            </div>
+          )}
+
+          {voiceMode && (
+            <div
+              className={`${voiceModeStyle} ${panelContentStyle({
+                visible: !isVoiceDockCollapsed || !isVoiceSessionLive,
+              })}`}
+              data-testid="ai-voice-mode"
+            >
+              {voiceMode}
+            </div>
+          )}
+
+          {isVoiceSessionLive ? (
+            <div>
+              <LiveVoiceDock
+                collapsed={isVoiceDockCollapsed}
+                onCollapsedEnd={onCollapsedVoiceEnd}
+                onCollapsedToggle={() =>
+                  onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
+                }
+              />
+            </div>
+          ) : (
+            <>
+              {isVoiceDockCollapsed && (
+                <div>
+                  <VoiceDock
+                    actions={null}
+                    canReadFullResponse={false}
+                    canRepeatQuestion={false}
+                    canTakeTurn={false}
+                    collapsed
+                    indicator={<AiVoiceModeIcon size={16} />}
+                    microphoneMuted={false}
+                    notice={voiceSetupLabels.status}
+                    onCollapsedToggle={() =>
+                      onVoiceDockCollapsedChange?.(false)
                     }
-                    onKeyDown={(event) => {
-                      // Enter sends; Shift+Enter inserts a newline (the textarea's
-                      // native behaviour, so we just let it through). The
-                      // `isComposing` guard stops an IME confirmation keystroke
-                      // from sending a half-finished message.
-                      if (
-                        event.key === "Enter" &&
-                        !event.shiftKey &&
-                        !event.nativeEvent.isComposing
-                      ) {
-                        event.preventDefault();
-                        if (canSubmit) {
-                          onSubmit();
-                        }
-                      }
-                    }}
-                    placeholder={
-                      messages.length === 0
-                        ? "Describe the process you want to create"
-                        : "Continue iterating..."
-                    }
-                    aria-label="Message AI assistant"
-                    disabled={voiceHandoffPending}
-                  />
-                  {composerControl}
-                  <Button
-                    aria-label={composerAction.label}
-                    data-ai-assistant-submit={
-                      composerAction.isSubmit || undefined
-                    }
-                    disabled={composerAction.disabled}
-                    onClick={composerAction.onClick}
-                    prefix={
-                      <span
-                        className={composerActionGlyphStyle}
-                        key={composerAction.glyph}
-                      >
-                        {composerAction.glyph === "voice" ? (
-                          <AiVoiceModeIcon size={16} />
-                        ) : (
-                          <Icon name={composerAction.glyph} size="sm" />
-                        )}
-                      </span>
-                    }
-                    size="sm"
-                    tone={composerAction.tone}
-                    tooltip={composerAction.label}
-                    type={composerAction.type}
-                    variant={composerAction.variant}
+                    phase="connecting"
+                    purpose="setup"
                   />
                 </div>
-              </form>
-            </div>
-          </>
-        )}
-      </div>
-    </aside>
+              )}
+              <div
+                className={`${composerWrapStyle} ${panelContentStyle({
+                  visible: !isVoiceDockCollapsed,
+                })}`}
+              >
+                {showChips && (
+                  <PromptChips
+                    chips={promptChips}
+                    disabled={isBusy}
+                    onDismiss={() => setChipsDismissed(true)}
+                    onSelect={(prompt) => onSendPrompt(prompt)}
+                  />
+                )}
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const submitter = (event.nativeEvent as SubmitEvent)
+                      .submitter;
+                    if (
+                      canSubmit &&
+                      submitter?.hasAttribute("data-ai-assistant-submit")
+                    ) {
+                      onSubmit();
+                    }
+                  }}
+                >
+                  <div className={composerStyle}>
+                    <textarea
+                      ref={inputRef}
+                      className={composerTextareaStyle}
+                      rows={1}
+                      value={input}
+                      onChange={(event) =>
+                        onInputChange(event.currentTarget.value)
+                      }
+                      onKeyDown={(event) => {
+                        // Enter sends; Shift+Enter inserts a newline (the textarea's
+                        // native behaviour, so we just let it through). The
+                        // `isComposing` guard stops an IME confirmation keystroke
+                        // from sending a half-finished message.
+                        if (
+                          event.key === "Enter" &&
+                          !event.shiftKey &&
+                          !event.nativeEvent.isComposing
+                        ) {
+                          event.preventDefault();
+                          if (canSubmit) {
+                            onSubmit();
+                          }
+                        }
+                      }}
+                      placeholder={
+                        messages.length === 0
+                          ? "Describe the process you want to create"
+                          : "Continue iterating..."
+                      }
+                      aria-label="Message AI assistant"
+                      disabled={voiceHandoffPending}
+                    />
+                    {composerControl}
+                    <Button
+                      aria-label={composerAction.label}
+                      data-ai-assistant-submit={
+                        composerAction.isSubmit || undefined
+                      }
+                      disabled={composerAction.disabled}
+                      onClick={composerAction.onClick}
+                      prefix={
+                        <span
+                          className={composerActionGlyphStyle}
+                          key={composerAction.glyph}
+                        >
+                          {composerAction.glyph === "voice" ? (
+                            <AiVoiceModeIcon size={16} />
+                          ) : (
+                            <Icon name={composerAction.glyph} size="sm" />
+                          )}
+                        </span>
+                      }
+                      size="sm"
+                      tone={composerAction.tone}
+                      tooltip={composerAction.label}
+                      type={composerAction.type}
+                      variant={composerAction.variant}
+                    />
+                  </div>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
   );
 };

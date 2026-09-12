@@ -3,7 +3,7 @@
  */
 import { act, render } from "@testing-library/react";
 import { use, useState } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -20,6 +20,10 @@ import {
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
+import {
+  defaultUserSettingsContextValue,
+  UserSettingsContext,
+} from "./user-settings-context";
 
 const emptySdcpn: SDCPN = {
   places: [],
@@ -94,6 +98,74 @@ const TestHost = ({
 
 const selectionOf = (...ids: string[]): SelectionMap =>
   new Map(ids.map((id) => [id, { type: "place" as const, id }]));
+
+describe("EditorProvider assistant animation", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it.each([true, false])(
+    "coordinates assistant layout changes with animations enabled: %s",
+    (showAnimations) => {
+      let editor: EditorContextValue;
+      const { unmount } = render(
+        <UserSettingsContext
+          value={{ ...defaultUserSettingsContextValue, showAnimations }}
+        >
+          <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+            <TestHost recorded={[]}>
+              <EditorProvider>
+                <EditorContextGrabber
+                  onContextValue={(value) => {
+                    editor = value;
+                  }}
+                />
+              </EditorProvider>
+            </TestHost>
+          </SDCPNContext>
+        </UserSettingsContext>,
+      );
+
+      const transitions = [
+        {
+          run: () => editor.setAiAssistantOpen(true),
+          state: { isAiAssistantOpen: true },
+        },
+        {
+          run: () => editor.setAiAssistantPlacement("floating"),
+          state: { aiAssistantPlacement: "floating" },
+        },
+        {
+          run: () => editor.setAiAssistantPlacement("docked"),
+          state: { aiAssistantPlacement: "docked" },
+        },
+        {
+          run: () => editor.setAiAssistantOpen(false),
+          state: { isAiAssistantOpen: false },
+        },
+        {
+          run: () => editor.toggleAiAssistant(),
+          state: { isAiAssistantOpen: true },
+        },
+        {
+          run: () => editor.toggleAiAssistant(),
+          state: { isAiAssistantOpen: false },
+        },
+      ];
+      for (const transition of transitions) {
+        act(transition.run);
+        expect(editor!).toMatchObject({
+          ...transition.state,
+          isPanelAnimating: showAnimations,
+        });
+        act(() => {
+          vi.advanceTimersByTime(500);
+        });
+        expect(editor!.isPanelAnimating).toBe(false);
+      }
+      unmount();
+    },
+  );
+});
 
 describe("EditorProvider selection gestures", () => {
   let editor: EditorContextValue;

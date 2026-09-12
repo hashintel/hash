@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useEffect, useEffectEvent } from "react";
 
 import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
@@ -7,12 +7,7 @@ import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
-/**
- * The editor's palette commands. A no-op unless the host mounted a
- * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
- * the keyboard handler still binds the keys.
- */
-function useEditorCommands(): void {
+const useEditorCommands = (onToggleAiAssistant?: () => void): void => {
   const {
     setCursorMode,
     setEditionMode,
@@ -26,6 +21,40 @@ function useEditorCommands(): void {
   const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
   const canEditNet = mode === "edit" && !isReadOnly;
+
+  useCommand(
+    {
+      id: "petrinaut.ai-assistant.toggle",
+      label: "Toggle AI assistant",
+      category: "Editor",
+      keywords: ["chat", "focus", "panel", "open", "close"],
+      shortcut: "mod+shift+k",
+      run: () => onToggleAiAssistant?.(),
+    },
+    { when: onToggleAiAssistant !== undefined },
+  );
+
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      onToggleAiAssistant &&
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      !event.repeat &&
+      !event.altKey &&
+      (event.metaKey || event.ctrlKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "k"
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      onToggleAiAssistant();
+    }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, []);
 
   // Listed whenever the document handle provides history; like the
   // shortcut, they no-op on empty history.
@@ -127,14 +156,16 @@ function useEditorCommands(): void {
     keywords: ["timeline", "settings"],
     run: () => toggleBottomPanel(),
   });
-}
+};
 
 /**
  * Declares the editor's commands from a null-rendering leaf, so the context
  * subscriptions behind them (undo/redo changes on every document mutation)
  * re-render this leaf and not the `EditorView` tree.
  */
-export const EditorCommands: React.FC = () => {
-  useEditorCommands();
+export const EditorCommands: React.FC<{
+  onToggleAiAssistant?: () => void;
+}> = ({ onToggleAiAssistant }) => {
+  useEditorCommands(onToggleAiAssistant);
   return null;
 };

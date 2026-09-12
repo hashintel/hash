@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, useEffect, useState } from "react";
+import { createElement, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -20,6 +20,7 @@ import {
   type NotificationsContextValue,
 } from "../../../../../react/notifications/context";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
@@ -78,6 +79,75 @@ afterEach(() => {
 const HostContent = ({ onMount }: { onMount: () => void }) => {
   useEffect(onMount, [onMount]);
   return <p>Saved account</p>;
+};
+const HostControl = ({
+  onMount,
+  onUnmount,
+}: {
+  onMount: () => void;
+  onUnmount: () => void;
+}) => {
+  useEffect(() => {
+    onMount();
+    return onUnmount;
+  }, [onMount, onUnmount]);
+  return <span>Host control</span>;
+};
+const DockingHarness = ({
+  onMount,
+  onUnmount,
+  onStop,
+}: {
+  onMount: () => void;
+  onUnmount: () => void;
+  onStop: () => void;
+}) => {
+  const editor = use(EditorContext);
+  const [placement, setPlacement] = useState<"docked" | "floating">("docked");
+  const [isOpen, setOpen] = useState(true);
+  const [input, setInput] = useState("");
+  return (
+    <EditorContext
+      value={{
+        ...editor,
+        aiAssistantPlacement: placement,
+        setAiAssistantPlacement: setPlacement,
+      }}
+    >
+      <button type="button" onClick={() => setOpen(true)}>
+        Reopen assistant
+      </button>
+      <AiAssistantContents
+        additionalTab={{
+          label: "Workpiece",
+          content: <p>Saved model account</p>,
+        }}
+        composerControl={
+          <HostControl onMount={onMount} onUnmount={onUnmount} />
+        }
+        input={input}
+        isOpen={isOpen}
+        messages={[
+          {
+            id: "streaming-reply",
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: "The infection rate",
+                state: "streaming",
+              },
+            ],
+          },
+        ]}
+        onClose={() => setOpen(false)}
+        onInputChange={setInput}
+        onStop={onStop}
+        onSubmit={noop}
+        status="streaming"
+      />
+    </EditorContext>
+  );
 };
 
 describe("AiAssistantContents", () => {
@@ -285,6 +355,101 @@ describe("AiAssistantContents", () => {
       expect(screen.queryByText("Not applied")).toBeNull();
     },
   );
+  test("refocuses an open assistant on request and focuses the panel while Voice is compact", () => {
+    const props = {
+      input: "Keep this draft",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents {...props} composerFocusRequest={0} />
+      </>,
+    );
+    const input = screen.getByRole("textbox", { name: "Message AI assistant" });
+    expect(document.activeElement).toBe(input);
+    screen.getByRole("textbox", { name: "Other input" }).focus();
+    rerender(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents {...props} composerFocusRequest={1} />
+      </>,
+    );
+    expect(document.activeElement).toBe(input);
+    expect((input as HTMLTextAreaElement).value).toBe("Keep this draft");
+    rerender(
+      <>
+        <input aria-label="Other input" />
+        <AiAssistantContents
+          {...props}
+          composerFocusRequest={2}
+          inputMode="voice"
+          voiceDockCollapsed
+          voiceMode={<div>Voice setup</div>}
+        />
+      </>,
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "AI assistant" }),
+    );
+  });
+
+  test("keeps the draft, transcript, and host controls mounted through docking and closing", () => {
+    const mount = vi.fn();
+    const unmount = vi.fn();
+    const stop = vi.fn();
+    render(
+      <NotificationsProvider>
+        <DockingHarness onMount={mount} onUnmount={unmount} onStop={stop} />
+      </NotificationsProvider>,
+    );
+    const panel = screen.getByRole("complementary", { name: "AI assistant" });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const transcript = screen.getByTestId("ai-transcript");
+    fireEvent.change(textarea, { target: { value: "Keep this draft" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Workpiece" }));
+    const workpiece = screen.getByRole("tabpanel", { name: "Workpiece" });
+    expect(panel.getAttribute("data-placement")).toBe("docked");
+    fireEvent.click(screen.getByRole("button", { name: "Float AI assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("floating");
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("floating");
+    fireEvent.click(screen.getByRole("button", { name: "Dock AI assistant" }));
+    expect(panel.getAttribute("data-placement")).toBe("docked");
+    const panelWidth = panel.style.width;
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    expect(panel.style.width).toBe(panelWidth);
+    expect(panel.hasAttribute("inert")).toBe(true);
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
+    expect(panel.hasAttribute("inert")).toBe(false);
+    expect(screen.getByRole("tabpanel", { name: "Workpiece" })).toBe(workpiece);
+    expect(workpiece.textContent).toContain("Saved model account");
+    expect(transcript.hidden).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
+    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
+      textarea,
+    );
+    expect((textarea as HTMLTextAreaElement).value).toBe("Keep this draft");
+    expect(screen.getByTestId("ai-transcript")).toBe(transcript);
+    expect(screen.getByText("The infection rate")).not.toBeNull();
+    expect(mount).toHaveBeenCalledTimes(1);
+    expect(unmount).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
       <NotificationsProvider>
@@ -1662,16 +1827,16 @@ describe("AiAssistantContents", () => {
   });
 
   test("scrolls to the latest chat content", async () => {
-    // jsdom does not implement `scrollIntoView`, so we install a stub on the
+    // jsdom does not implement `scrollTo`, so we install a stub on the
     // prototype and restore it afterwards. The `unbound-method` lint warning
     // is a false positive — we never invoke the saved reference, we only
     // assign it back.
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
-    const scrollIntoView = vi.fn();
-    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
     // Make rAF synchronous so the scroll effect runs before the assertion.
     window.requestAnimationFrame = (callback) => {
       callback(0);
@@ -1701,8 +1866,11 @@ describe("AiAssistantContents", () => {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
-    expect(scrollIntoView).toHaveBeenCalled();
-    window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    expect(scrollTo).toHaveBeenCalled();
+    expect(scrollTo.mock.instances).toContain(
+      screen.getByTestId("ai-transcript"),
+    );
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
     window.requestAnimationFrame = originalRequestAnimationFrame;
     window.cancelAnimationFrame = originalCancelAnimationFrame;
   });

@@ -100,15 +100,18 @@ const formatRelativeTime = (isoTimestamp: string): string => {
 // overflow, scrollIntoView can still scroll it programmatically — pushing the
 // TopBar out of view.
 const rowContainerStyle = css({
+  position: "relative",
+  containerType: "inline-size",
   flex: "[1]",
+  minWidth: "[0]",
   minHeight: "[0]",
   userSelect: "none",
 });
 
 const canvasContainerStyle = css({
-  width: "full",
+  minWidth: "[0]",
   position: "relative",
-  flexGrow: 1,
+  flex: "[1]",
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -163,6 +166,7 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
+    setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
@@ -175,6 +179,7 @@ export const EditorView = ({
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [offerStartPosture, setOfferStartPosture] = useState(false);
+  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   const {
     brunchDemoMode,
@@ -191,6 +196,16 @@ export const EditorView = ({
   // Shared with useReadOnlyReason so the rendered view and the mutation
   // rules never disagree.
   const effectiveMode = useEffectiveGlobalMode();
+
+  const toggleAiAssistant = () => {
+    if (isAiAssistantOpen) {
+      setAiAssistantOpen(false);
+      return;
+    }
+    setAiAssistantCollapsed(false);
+    setAiAssistantOpen(true);
+    setAiAssistantFocusRequest((request) => request + 1);
+  };
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -487,7 +502,9 @@ export const EditorView = ({
 
   return (
     <>
-      <EditorCommands />
+      <EditorCommands
+        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+      />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}
@@ -561,33 +578,34 @@ export const EditorView = ({
 
               {/* Bottom Panel */}
               <BottomPanel />
-
-              <BottomBar
-                mode={effectiveMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
-
-              {aiAssistant && (
-                <AiAssistantPanel
-                  /** Reset state (e.g. initial messages) when the active net changes */
-                  key={petriNetId ?? "no-net"}
-                  aiAssistant={aiAssistant}
-                  initialMessage={pendingAiAssistantMessage}
-                  initialInteractionMode={pendingAiInteractionMode}
-                  offerStartPosture={offerStartPosture}
-                  onInitialMessageConsumed={() =>
-                    setPendingAiAssistantMessage(null)
-                  }
-                  onInitialInteractionModeConsumed={() =>
-                    setPendingAiInteractionMode(null)
-                  }
-                />
-              )}
             </Box>
+          )}
+          {(effectiveMode === "edit" || effectiveMode === "actual") && (
+            <BottomBar
+              mode={effectiveMode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+              hasAiAssistant={aiAssistant !== undefined}
+            />
+          )}
+          {aiAssistant && (
+            <AiAssistantPanel
+              /** Reset state (e.g. initial messages) when the active net changes */
+              key={`ai-assistant-${petriNetId ?? "no-net"}`}
+              aiAssistant={aiAssistant}
+              focusRequest={aiAssistantFocusRequest}
+              initialMessage={pendingAiAssistantMessage}
+              initialInteractionMode={pendingAiInteractionMode}
+              offerStartPosture={offerStartPosture}
+              onInitialMessageConsumed={() =>
+                setPendingAiAssistantMessage(null)
+              }
+              onInitialInteractionModeConsumed={() =>
+                setPendingAiInteractionMode(null)
+              }
+            />
           )}
         </Stack>
       </VoiceSessionProvider>
