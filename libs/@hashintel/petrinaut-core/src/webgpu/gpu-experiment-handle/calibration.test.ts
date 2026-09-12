@@ -11,90 +11,11 @@ import {
   runUntilCalibrated,
   slabsFromProbe,
 } from "./calibration";
+import { outcome, session, shaderAt } from "./calibration.test-helpers";
 import { metricFailure } from "./metric-failure";
 
 import type { GpuCalibration } from "../backend";
-import type { CompiledNetShader } from "../compile-net-shader";
-import type { GpuExperimentResult } from "../runner";
-import type {
-  AttemptResult,
-  CalibrationSession,
-  ExecuteAttempt,
-} from "./calibration";
-
-/** A shader whose only relevant facts are its size and its derived places. */
-const shaderAt = (
-  capacities: ReadonlyMap<string, number>,
-  metricCount = 1,
-): CompiledNetShader => {
-  const slabWords = [...capacities.values()].reduce(
-    (sum, capacity) => sum + capacity * 2,
-    0,
-  );
-  return {
-    wgsl: "",
-    stateWordsPerRun: 4 + slabWords,
-    summaryWordsPerRun: 2 + capacities.size,
-    placeCountOffsets: [0],
-    placeTokenOffsets: [4],
-    placeTokenStrides: [2],
-    summaryStatusOffset: 1,
-    rngOffset: 2,
-    statusOffset: 3,
-    derivedCapacityPlaceIndices: [...capacities.keys()].map(() => 0),
-    metricIds: Array.from({ length: metricCount }, (_, index) => `m${index}`),
-    histogramBins: 64,
-    runParameterIds: [],
-    compiledLambdas: [],
-  };
-};
-
-const session = (
-  capacities: Record<string, number>,
-  { pairConsumed = false }: { pairConsumed?: boolean } = {},
-): CalibrationSession => {
-  const initial = new Map(Object.entries(capacities));
-  return {
-    backend: {
-      recompile: (next) => ({ ok: true, shader: shaderAt(next) }),
-      profile: {
-        places: [
-          {
-            id: "p",
-            name: "P",
-            capacity: initial.get("p") ?? 0,
-            capacitySource: "derived",
-            declaredCapacity: 0xffffffff,
-            realFields: ["x", "y"],
-            discreteFields: [],
-            colored: true,
-            pairConsumed,
-          },
-        ],
-        uncolouredOnly: false,
-        bytesPerRun: 16,
-      },
-    },
-    shader: shaderAt(initial),
-    capacities: initial,
-  };
-};
-
-const outcome = (
-  overrides: Partial<GpuExperimentResult> = {},
-): GpuExperimentResult => ({
-  cancelled: false,
-  frames: [],
-  finalPlaceCounts: new Uint32Array(0),
-  deadlockedRuns: 0,
-  completedRuns: 0,
-  overflowRuns: 0,
-  derivedPlaceMaxes: [],
-  dispatchMs: 0,
-  metricRanges: [{ min: 3, max: 9, below: 0, above: 0 }],
-  metricErrors: [],
-  ...overrides,
-});
+import type { AttemptResult, ExecuteAttempt } from "./calibration";
 
 /** Replays scripted results and records what each attempt asked for. */
 const scripted = (results: AttemptResult[]) => {
@@ -130,7 +51,9 @@ describe("runUntilCalibrated", () => {
     expect(attempts.map((attempt) => attempt.shader.stateWordsPerRun)).toEqual([
       24, 44,
     ]);
-    expect(attempts.every((attempt) => attempt.preview)).toBe(true);
+    expect(attempts.every((attempt) => attempt.preview && !attempt.probe)).toBe(
+      true,
+    );
   });
 
   it("gives up growing after the policy's budget and hands back the overflow", async () => {
@@ -332,6 +255,19 @@ describe("slabsFromProbe", () => {
     ).toEqual({ ok: true, capacities: new Map([["p", 40]]) });
   });
 
+  it("never sizes a slab below its floor", () => {
+    const current = session({ p: 64 });
+
+    expect(
+      slabsFromProbe(
+        current,
+        outcome({ derivedPlaceMaxes: [{ max: 20, meanRunMax: 15 }] }),
+        [3],
+        new Map([["p", 200]]),
+      ),
+    ).toEqual({ ok: true, capacities: new Map([["p", 200]]) });
+  });
+
   it("refuses a heavy tail whose slab would exceed the arena threshold", () => {
     const current = session({ p: 64 });
 
@@ -367,7 +303,7 @@ describe("probeDerivedCapacities", () => {
     });
 
     expect(attempts).toEqual([
-      expect.objectContaining({ runCount: 128, preview: false }),
+      expect.objectContaining({ runCount: 128, preview: false, probe: true }),
     ]);
     expect(current.capacities).toEqual(new Map([["p", 19]]));
     expect(current.shader.stateWordsPerRun).toBe(4 + 19 * 2);
@@ -525,7 +461,7 @@ describe("probeWindows", () => {
     // The caller sizes the prefix (`probeRunCount`), so an experiment of five
     // runs probes five, never a preview tile's worth it does not have.
     expect(attempts).toEqual([
-      expect.objectContaining({ runCount: 5, preview: false }),
+      expect.objectContaining({ runCount: 5, preview: false, probe: true }),
     ]);
     // 21 counts observed, margin ceil(21 × 0.25) = 6 → [14, 46] over 64 bins.
     expect(probed).toMatchObject({
