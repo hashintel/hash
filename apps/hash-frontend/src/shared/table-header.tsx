@@ -292,7 +292,7 @@ export const TableHeader = <R extends GridRow>({
         )}
         {loading && <LoadingSpinner size={16} color={theme.palette.blue[70]} />}
       </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
+      <Box display="flex" alignItems="center" columnGap={0.5}>
         {!hideFilters && (
           <Box
             sx={{
@@ -311,6 +311,7 @@ export const TableHeader = <R extends GridRow>({
               variant="tertiary_quiet"
               onClick={() => setDisplayFilters(!displayFilters)}
               startIcon={<FilterListIcon />}
+              sx={{ px: 1.5 }}
             >
               Filter
             </TableHeaderButton>
@@ -358,7 +359,10 @@ export const TableHeader = <R extends GridRow>({
           </Box>
         )}
         {!hideExportToCsv && (
-          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+          <ExportToCsvButton
+            generateCsvFile={generateCsvFile}
+            sx={{ px: 1.5, marginRight: 0.5 }}
+          />
         )}
         {toggleSearch ? (
           /**
