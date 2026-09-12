@@ -335,7 +335,7 @@ fn evidence() -> Evidence {
         quad: QuadMeasurements {
             nodes: 21_845,
             leaves: 16_000,
-            depth: Depth::new(7).expect("the fixture depth is within the key width"),
+            depth: Depth::try_new(7).expect("the fixture depth is within the key width"),
             type_entries: 65_000,
         },
         postings: PostingsMeasurements {

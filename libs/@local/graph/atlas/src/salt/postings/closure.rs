@@ -12,10 +12,15 @@
 
 use hashql_core::id::{
     Id as _, IdVec,
-    bit_vec::{BitMatrix, RowRef},
+    bit_vec::{BitMatrix, BitRelations as _, RowRef},
 };
 
-use crate::{identity::OntologyRowId, salt::postings::artifact::PostingsArchive};
+use super::artifact::Membership;
+use crate::{
+    bitset::DenseBitSlice,
+    identity::{BasePosition, OntologyRowId},
+    salt::postings::artifact::PostingsArchive,
+};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
@@ -58,10 +63,8 @@ pub(crate) struct IconSource {
 #[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
     bits: BitMatrix<OntologyRowId, OntologyRowId>,
-    /// The icon memo, one [`IconSource`] per type.
-    ///
-    /// [`None`] records an icon-free ancestor cone.
     icon_sources: IdVec<OntologyRowId, Option<IconSource>>,
+    memberships: IdVec<OntologyRowId, Option<Box<DenseBitSlice<BasePosition>>>>,
 }
 
 impl ClosureMap {
@@ -176,7 +179,42 @@ impl ClosureMap {
             icon_sources[r#type] = best;
         }
 
-        Ok(Self { bits, icon_sources })
+        let mut memberships = IdVec::new();
+        for r#type in bits.rows() {
+            let row = bits.row(r#type);
+            if row.count() == 1 {
+                continue;
+            }
+
+            // We need to compute the membership instead
+            let mut membership = DenseBitSlice::new_empty(
+                usize::try_from(postings.points())
+                    .expect("resident point domains should fit usize"),
+            );
+            for col in row {
+                match postings
+                    .membership(col)
+                    .expect("membership should be available")
+                {
+                    Membership::List(base_positions) => {
+                        for &position in base_positions {
+                            membership.insert(position);
+                        }
+                    }
+                    Membership::Dense(direct) => {
+                        membership.union(direct);
+                    }
+                }
+            }
+
+            memberships.insert(r#type, membership);
+        }
+
+        Ok(Self {
+            bits,
+            icon_sources,
+            memberships,
+        })
     }
 
     /// Returns the type domain `T`.
@@ -192,20 +230,20 @@ impl ClosureMap {
         (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
     }
 
-    /// Returns the [`IconSource`] `type_row` resolves to, or [`None`] for an icon-free cone.
+    /// Resolves the nearest icon-bearing ancestor within the closure.
     ///
-    /// Equal-depth candidates resolve to the earlier parent in the run, so resolution is
-    /// deterministic under the artifact's ascending-row parent order.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `type_row` lies past the closure's type domain. The closure tabulates
-    /// the generation's own types, and a row the delta allocated past that bound resolves its
-    /// icon through the register's extension instead, so reaching here with one is a caller
-    /// routing bug rather than data.
+    /// Returns [`None`] outside the type domain or for an icon-free cone. Equal-depth candidates
+    /// resolve to the earlier parent in the artifact's ascending-row parent order.
     #[must_use]
-    pub(crate) const fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
-        self.icon_sources[type_row]
+    pub(crate) fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
+        self.icon_sources.lookup(type_row).copied()
+    }
+
+    pub(crate) fn membership(
+        &self,
+        type_row: OntologyRowId,
+    ) -> Option<&DenseBitSlice<BasePosition>> {
+        self.memberships.lookup(type_row).map(|slice| &**slice)
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).

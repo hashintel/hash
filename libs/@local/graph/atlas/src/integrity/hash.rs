@@ -24,8 +24,6 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
     Debug,
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     PartialOrd,
     Ord,
     serde::Serialize,
@@ -41,14 +39,14 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 #[serde(transparent)]
 #[schemars(transparent)]
 #[repr(transparent)]
-pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
+pub(crate) struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
 // No multi-byte fields: the digest is a byte array, so no byte order arises.
 crate::dataset::offline::portable::self_archived!(Sha256Digest);
 
 impl Sha256Digest {
     /// The digest width, bytes.
-    pub const BYTES: usize = DIGEST_BYTES;
+    pub(crate) const BYTES: usize = DIGEST_BYTES;
 
     /// Adopts `bytes` as a digest without computing anything.
     ///
@@ -57,23 +55,32 @@ impl Sha256Digest {
     /// formats that persist raw bytes rather than hexadecimal text.
     #[must_use]
     #[inline]
-    pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
+    pub(crate) const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
         Self(HexBytes::new(bytes))
     }
 
     /// Returns the raw SHA-256 bytes.
     #[must_use]
     #[inline]
-    pub const fn to_bytes(self) -> [u8; DIGEST_BYTES] {
+    pub(crate) const fn to_bytes(self) -> [u8; DIGEST_BYTES] {
         self.0.into_inner()
     }
 
-    pub fn of(value: impl AsRef<[u8]>) -> Self {
+    pub(crate) fn of(value: impl AsRef<[u8]>) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(value.as_ref());
         hasher.finalize()
     }
 }
+
+const impl PartialEq for Sha256Digest {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl Eq for Sha256Digest {}
 
 impl fmt::Display for Sha256Digest {
     #[inline]

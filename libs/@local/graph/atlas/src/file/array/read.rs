@@ -6,11 +6,14 @@ use std::path::Path;
 use hashql_core::id::{Id, IdSlice};
 use zerocopy::{FromBytes as _, LE, U64};
 
-use super::{Architecture, ArrayVariant, FileHeader, write::ColumnScalar};
+use super::{Architecture, ArrayShape, ArrayVariant, Dim, FileHeader, write::ColumnScalar};
 use crate::{
-    file::region::{
-        PAGE_BYTES,
-        header::{HeaderError, HeaderMap},
+    file::{
+        ArtifactFile,
+        region::{
+            PAGE_BYTES,
+            header::{HeaderError, HeaderMap},
+        },
     },
     integrity::Sha256Digest,
     math::{AlignedVecN, Vec2},
@@ -72,27 +75,84 @@ impl Error for OpenArrayError {
     }
 }
 
+/// An array file's element stamp is not the requested column's.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum InvalidColumnError {
+    /// The file records another element variant.
+    Variant {
+        /// The variant the header records.
+        recorded: ArrayVariant,
+        /// The element type's variant.
+        expected: ArrayVariant,
+    },
+    /// The file's row shape is not the element type's trailing shape.
+    Shape {
+        /// The shape the header records, the row count first.
+        recorded: ArrayShape,
+        /// The dimensions the element type adds beyond the row count.
+        expected: &'static [Dim],
+    },
+}
+
+/// Writes `dims` as a comma-separated list.
+fn write_dims(fmt: &mut fmt::Formatter<'_>, dims: &[Dim]) -> fmt::Result {
+    for (index, dim) in dims.iter().enumerate() {
+        if index > 0 {
+            fmt.write_str(", ")?;
+        }
+        write!(fmt, "{}", dim.get())?;
+    }
+
+    Ok(())
+}
+
+impl fmt::Display for InvalidColumnError {
+    #[expect(
+        clippy::use_debug,
+        reason = "the variant names are the format's own element vocabulary"
+    )]
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Variant { recorded, expected } => write!(
+                fmt,
+                "the file records {recorded:?} elements where the column reads {expected:?}",
+            ),
+            Self::Shape { recorded, expected } => {
+                fmt.write_str("the file's rows have shape [")?;
+                write_dims(fmt, recorded.dims().get(1..).unwrap_or(&[]))?;
+                fmt.write_str("] where the column's rows have shape [")?;
+                write_dims(fmt, expected)?;
+                fmt.write_str("]")
+            }
+        }
+    }
+}
+
+impl Error for InvalidColumnError {}
+
 /// An array file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// Opening parses the header and checks the format's single structural rule. An open file always
 /// describes its own data exactly. Views borrow the data straight from the whole-file mapping,
-/// which starts 4096-byte aligned: aligned for every scalar and SIMD width, so typed views over it
-/// never fail for alignment.
+/// which starts 4096-byte aligned, and typed views over it never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
     map: HeaderMap<FileHeader>,
 }
 
-impl ArrayFile {
+impl ArtifactFile for ArrayFile {
+    type Error = OpenArrayError;
+
     /// Opens and maps the array file at `path`.
     ///
     /// # Errors
     ///
-    /// Returns [`OpenArrayError::Header`] when the header page cannot be read,
+    /// Returns [`OpenArrayError::Header`] when the header page fails to read,
     /// [`OpenArrayError::Length`] when the file length contradicts the header's shape, and
     /// [`OpenArrayError::ForeignArchitecture`] when the other byte order wrote the file's native
     /// elements.
-    pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
+    #[tracing::instrument(skip_all)]
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenArrayError::Header)?;
         let header = map.header();
 
@@ -110,7 +170,9 @@ impl ArrayFile {
 
         Ok(Self { map })
     }
+}
 
+impl ArrayFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]
@@ -128,28 +190,54 @@ impl ArrayFile {
     /// Views the data as one typed column: the read form of a [`SizedColumn`] write.
     ///
     /// The element type stamps the variant and the trailing row shape at the write, and this
-    /// view exists exactly when the file carries that stamp, so both directions read one law and
-    /// a view under the wrong element type cannot exist. The empty shape is the zero-row column.
+    /// view exists exactly when the file carries that stamp. Both directions read one law, and a
+    /// view under the wrong element type cannot exist. The empty shape is the zero-row column.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidColumnError::Variant`] when the file records another element variant, and
+    /// [`InvalidColumnError::Shape`] when its row shape is not `T`'s trailing shape.
     ///
     /// [`SizedColumn`]: super::SizedColumn
-    #[must_use]
-    pub(crate) fn column<I, T>(&self) -> Option<&IdSlice<I, T>>
+    pub(crate) fn column<I, T>(&self) -> Result<&IdSlice<I, T>, InvalidColumnError>
     where
         I: Id,
         T: ColumnScalar + zerocopy::FromBytes + zerocopy::KnownLayout,
     {
-        if self.header().variant() != T::VARIANT {
-            return None;
+        let header = self.header();
+        if header.variant() != T::VARIANT {
+            return Err(InvalidColumnError::Variant {
+                recorded: header.variant(),
+                expected: T::VARIANT,
+            });
         }
 
-        match self.header().shape.dims() {
+        match header.shape.dims() {
             [] => {}
             [_, trailing @ ..] if trailing == T::TRAILING => {}
-            _ => return None,
+            _ => {
+                return Err(InvalidColumnError::Shape {
+                    recorded: header.shape,
+                    expected: T::TRAILING,
+                });
+            }
         }
 
-        let elements = <[T]>::ref_from_bytes(self.data()).ok()?;
-        Some(IdSlice::from_raw(elements))
+        let elements = <[T]>::ref_from_bytes(self.data())
+            .expect("the stamp fixes the element size and the open validated the length");
+        Ok(IdSlice::from_raw(elements))
+    }
+
+    pub(crate) unsafe fn column_unchecked<I, T>(&self) -> &IdSlice<I, T>
+    where
+        I: Id,
+        T: ColumnScalar + zerocopy::FromBytes + zerocopy::KnownLayout,
+    {
+        let data = self.data();
+        let length = data.len() / size_of::<T>();
+
+        let slice = unsafe { core::slice::from_raw_parts(data.as_ptr() as *const T, length) };
+        IdSlice::from_raw(slice)
     }
 
     /// Views the data as `N`-component SIMD-aligned vectors.
@@ -208,10 +296,10 @@ impl ArrayFile {
 
     /// Views the data as little-endian `u64` pairs in row order.
     ///
-    /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`;
-    /// the returned slice holds the `T` pairs in order. A zero-element file is zero pairs, since
-    /// its shape records no row width. The element type carries the byte order, so the view is
-    /// exact on every architecture.
+    /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`,
+    /// and the returned slice holds the `T` pairs in order. A zero-element file is zero pairs,
+    /// since its shape records no row width. The element type carries the byte order, and the
+    /// view is exact on every architecture.
     #[must_use]
     pub(crate) fn u64_le_pairs(&self) -> Option<&[[U64<LE>; 2]]> {
         if self.header().variant() != ArrayVariant::U64Le {

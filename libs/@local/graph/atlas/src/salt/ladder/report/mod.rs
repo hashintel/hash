@@ -61,6 +61,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::PhysicalDevice,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         generation::{GenerationId, GenerationRoot},

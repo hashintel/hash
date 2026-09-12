@@ -265,13 +265,13 @@ rpds                               = { version = "1.1.2", default-features = fal
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
-schemars                           = { version = "1.2.1" }
+schemars                           = { version = "1.2.2" }
 semver                             = { version = "1.0.27", default-features = false }
 sentry                             = { version = "0.48.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 sentry-core                        = { version = "0.48.0", default-features = false }
 sentry-types                       = { version = "0.48.0", default-features = false }
-serde                              = { version = "1.0.228", default-features = false }
-serde_core                         = { version = "1.0.228", default-features = false }
+serde                              = { version = "1.0.229", default-features = false }
+serde_core                         = { version = "1.0.229", default-features = false }
 serde_json                         = { version = "1.0.145" }
 serde_plain                        = { version = "1.0.2", default-features = false }
 sha2                               = { version = "0.11.0", default-features = false }

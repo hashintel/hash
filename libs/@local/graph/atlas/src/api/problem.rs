@@ -1,6 +1,6 @@
 //! RFC 9457 problem documents, the error surface of every handler.
 //!
-//! The `type` member carries Surface v1's stable root-relative URIs, the body goes out as
+//! The `type` member carries Surface v1's stable root-relative URIs, the body serializes as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
 //! live here beside the document they produce. Requests that fail before a handler runs - malformed
 //! bodies, wrong content types, unparsable tile addresses - route through [`super::extract`]'s
@@ -16,14 +16,169 @@ use axum::{
     http::{self, StatusCode, header},
     response::{IntoResponse, Response},
 };
+use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_middleware::{
     authentication::{AuthenticationRejection, request::AuthenticationError},
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
 
-use super::AppState;
-use crate::{file::generation::GenerationId, serve::VARIANTS};
+use crate::serve::{
+    document::{EdgesDocumentError, LocateDocumentError, VARIANTS},
+    runtime::registry::ObserveError,
+};
+
+// shared diagnostic assertions for the locate and edges document tests.
+#[cfg(test)]
+pub(crate) mod tests {
+    use alloc::collections::BTreeMap;
+    use core::{fmt, panic::AssertUnwindSafe};
+    use std::sync::mpsc;
+
+    use axum::{
+        body::to_bytes,
+        http::{StatusCode, header},
+        response::IntoResponse as _,
+    };
+    use tracing::{
+        Dispatch, Event, Level, Subscriber,
+        field::{Field, Visit},
+        span::Id,
+    };
+    use tracing_subscriber::{
+        Layer, Registry,
+        layer::{Context, SubscriberExt as _},
+        registry::LookupSpan,
+    };
+
+    use super::{Problem, ProblemType};
+    use crate::offload;
+
+    #[derive(Default)]
+    struct Fields(BTreeMap<String, String>);
+
+    impl Visit for Fields {
+        fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
+            self.0.insert(field.name().to_owned(), format!("{value:?}"));
+        }
+    }
+
+    struct Diagnostics(mpsc::Sender<(Level, Fields, Vec<Id>)>);
+
+    impl<S: Subscriber + for<'lookup> LookupSpan<'lookup>> Layer<S> for Diagnostics {
+        fn on_event(&self, event: &Event<'_>, context: Context<'_, S>) {
+            let mut fields = Fields::default();
+            event.record(&mut fields);
+            let scope = context.event_scope(event).map_or_else(Vec::new, |scope| {
+                scope.from_root().map(|span| span.id()).collect()
+            });
+            self.0
+                .send((*event.metadata().level(), fields, scope))
+                .expect("should retain the diagnostic receiver");
+        }
+    }
+
+    /// Checks one offloaded error event and its sanitized HTTP response.
+    ///
+    /// `expected_source` is the log's `source` field. `detail` supplies its `message` and the
+    /// debug-build response detail.
+    ///
+    /// # Panics
+    ///
+    /// Panics if worker setup, `produce` or response collection fails. Also panics if the log or
+    /// response differs from the expected values.
+    #[track_caller]
+    pub(crate) fn assert_internal_diagnostic(
+        produce: impl FnOnce() -> Problem<'static> + Send + 'static,
+        expected_source: &str,
+        detail: &'static str,
+    ) {
+        let (events, received) = mpsc::channel();
+        let dispatch = Dispatch::new(Registry::default().with(Diagnostics(events)));
+        let worker_dispatch = dispatch.clone();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .spawn_handler(move |thread| {
+                let dispatch = worker_dispatch.clone();
+                std::thread::spawn(move || {
+                    tracing::dispatcher::with_default(&dispatch, || thread.run());
+                });
+                Ok(())
+            })
+            .build()
+            .expect("should build the diagnostic worker");
+        let (problem, request_id) = tracing::dispatcher::with_default(&dispatch, || {
+            let request = tracing::info_span!("request");
+            let id = request.id().expect("should enable the request span");
+            let handle =
+                pool.install(|| request.in_scope(|| offload::run(AssertUnwindSafe(produce))));
+            (
+                futures::executor::block_on(handle).expect("should finish the problem conversion"),
+                id,
+            )
+        });
+        let events: Vec<_> = received.try_iter().collect();
+        assert_eq!(events.len(), 1, "should report the failure exactly once");
+        let (level, fields, scope) = &events[0];
+        assert_eq!(*level, Level::ERROR);
+        assert_eq!(scope, &[request_id]);
+        assert_eq!(
+            fields.0,
+            BTreeMap::from([
+                ("source".to_owned(), expected_source.to_owned()),
+                ("message".to_owned(), detail.to_owned()),
+            ]),
+            "should log exactly the supplied source and fixed detail"
+        );
+
+        let response = problem.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.headers()[header::CONTENT_TYPE],
+            "application/problem+json"
+        );
+        let bytes = futures::executor::block_on(to_bytes(response.into_body(), usize::MAX))
+            .expect("should read the problem body");
+        let body: serde_json::Value =
+            serde_json::from_slice(&bytes).expect("should parse the problem body");
+        assert_eq!(
+            body,
+            serde_json::json!({
+                "type": "/problems/atlas/internal",
+                "title": "Internal Server Error",
+                "status": 500,
+                "detail": if cfg!(debug_assertions) { detail } else { "internal server error" },
+            })
+        );
+    }
+
+    #[test]
+    fn type_root_relative_uri() {
+        let problem = Problem::new(
+            StatusCode::NOT_FOUND,
+            ProblemType::UnknownGeneration,
+            "re-bootstrap via /v1/atlas/current",
+        );
+        let document = serde_json::to_value(&problem).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/unknown-generation");
+        assert_eq!(document["status"], 404);
+    }
+
+    #[test]
+    fn internal_source_redacted() {
+        assert_internal_diagnostic(
+            || {
+                Problem::internal(
+                    "private-store-message: private-property-value",
+                    "the detail hydration failed",
+                )
+            },
+            "private-store-message: private-property-value",
+            "the detail hydration failed",
+        );
+    }
+}
 
 /// The `type` member of one problem document: Surface v1's stable root-relative URIs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
@@ -75,7 +230,7 @@ pub(super) enum ProblemType {
     /// A request whose authority token is absent, malformed, foreign, or stale.
     #[serde(rename = "/problems/atlas/unauthorized")]
     Unauthorized,
-    /// Resolving the caller's scope failed, so the process cannot say what they may see.
+    /// Resolving the caller's scope failed. The process cannot say what they may see.
     #[serde(rename = "/problems/atlas/visibility-unavailable")]
     VisibilityUnavailable,
     /// The caller is over its request budget, and `Retry-After` states when it admits again.
@@ -120,10 +275,11 @@ impl<'content> Problem<'content> {
         }
     }
 
-    /// A 500 whose source stays in the server log.
+    /// Records `source` at error level and returns a 500 problem.
     ///
-    /// The document carries only the static `detail`. The log records `source` at error level.
-    /// Driver errors and panic payloads are log material and never reach a client.
+    /// With debug assertions enabled, responses use `detail`, which must contain only client-safe
+    /// text. Otherwise they use `internal server error`. Neither form copies `source` into the
+    /// document.
     pub(super) fn internal(
         source: impl core::fmt::Display,
         detail: impl Into<Cow<'content, str>>,
@@ -142,9 +298,100 @@ impl<'content> Problem<'content> {
     }
 }
 
+/// The uniform refusal for a source that does not name a visible node.
+///
+/// Nonexistent, inaccessible, unparsable, and out-of-range values are indistinguishable by design:
+/// missing equals denied, and an id that cannot name an entity is an entity that does not exist.
+pub(super) fn unknown_entity() -> Problem<'static> {
+    Problem::new(
+        StatusCode::NOT_FOUND,
+        ProblemType::UnknownEntity,
+        "the source does not name a visible node",
+    )
+}
+
+impl From<ObserveError> for Problem<'static> {
+    fn from(error: ObserveError) -> Self {
+        match error {
+            ObserveError::Unavailable(generation) => Self::new(
+                StatusCode::NOT_FOUND,
+                ProblemType::UnknownGeneration,
+                format!(
+                    "generation {generation} is not served; re-read /v1/atlas/current and retry"
+                ),
+            ),
+            ObserveError::Empty | ObserveError::Closed => Self::new(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ProblemType::VisibilityUnavailable,
+                "no generation is ready to serve requests",
+            ),
+        }
+    }
+}
+
+impl From<Report<EdgesDocumentError>> for Problem<'static> {
+    fn from(error: Report<EdgesDocumentError>) -> Self {
+        match error.current_context() {
+            EdgesDocumentError::Tiles { .. } => Self::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::TooManyTiles,
+                error.to_string(),
+            ),
+            EdgesDocumentError::Zoom { .. } | EdgesDocumentError::Coordinate { .. } => Self::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::InvalidCoordinate,
+                error.to_string(),
+            ),
+            // a delivered edge requires a display payload, independently of the request's fields.
+            EdgesDocumentError::Display => {
+                tracing::error!(?error, "unable to read a delivered edge's captured data");
+                Self::internal(
+                    error,
+                    "the edges assembly could not read a delivered edge's captured data",
+                )
+            }
+            // hydration failures describe store availability or data, independently of request
+            // validity.
+            EdgesDocumentError::Hydrate(_) => {
+                tracing::error!(?error, "unable to hydrate the edges document");
+                Self::internal(error, "the detail hydration failed")
+            }
+        }
+    }
+}
+
+impl From<Report<LocateDocumentError>> for Problem<'static> {
+    fn from(error: Report<LocateDocumentError>) -> Self {
+        match error.current_context() {
+            LocateDocumentError::Types { .. } => Self::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::TooManyTypes,
+                error.to_string(),
+            ),
+            LocateDocumentError::UnknownEntity => unknown_entity(),
+            // a delivered row requires captured data, independently of the request's fields.
+            LocateDocumentError::Node { .. }
+            | LocateDocumentError::NodeDisplay { .. }
+            | LocateDocumentError::LinkDisplay { .. } => {
+                tracing::error!(?error, "unable to read delivered row's captured data");
+                Self::internal(
+                    error,
+                    "the locate assembly could not read a delivered row's captured data",
+                )
+            }
+            // hydration failures describe store availability or data, independently of request
+            // validity.
+            LocateDocumentError::Hydrate(_) => {
+                tracing::error!(?error, "unable to hydrate locate document");
+                Self::internal(error, "the detail hydration failed")
+            }
+        }
+    }
+}
+
 /// Carries an authentication failure as this crate's problem document.
 ///
-/// The status and detail are [`AuthenticationError`]'s own client-safe readings, so this crate
+/// The status and detail are [`AuthenticationError`]'s own client-safe readings. This crate
 /// never restates the middleware's status map.
 impl From<AuthenticationError> for Problem<'static> {
     fn from(error: AuthenticationError) -> Self {
@@ -326,31 +573,11 @@ where
     }
 }
 
-/// Rejects a route whose generation echo does not name the pinned generation.
-///
-/// A well-formed id names a resource, so an id this process does not serve is a 404, and the
-/// client's recovery is to re-read `current` and retry. A malformed id never reaches here - the
-/// path extractor answers `invalid-generation` (400) first.
-pub(super) fn reject_generation<R>(
-    state: &AppState<R>,
-    generation: GenerationId,
-) -> Result<(), Problem<'static>> {
-    if generation == state.atlas.generation() {
-        return Ok(());
-    }
-
-    Err(Problem::new(
-        StatusCode::NOT_FOUND,
-        ProblemType::UnknownGeneration,
-        format!("generation {generation} is not served; re-read /v1/atlas/current and retry"),
-    ))
-}
-
 /// Refuses a request that presents no acceptable authority token.
 ///
-/// One uniform answer for every cause (an absent header, a malformed encoding, a failed tag, a
-/// stale issue time, or an actor mismatch), so a caller learns that its presentation refused and
-/// nothing about why. The refused cause reaches the server log alone.
+/// One uniform answer covers every cause (an absent header, a malformed encoding, a failed tag,
+/// a stale issue time, or an actor mismatch). A caller learns only that the server refused its
+/// presentation and nothing about why.
 pub(super) fn unauthorized() -> Problem<'static> {
     Problem::new(
         StatusCode::UNAUTHORIZED,
@@ -362,9 +589,9 @@ pub(super) fn unauthorized() -> Problem<'static> {
 
 /// Refuses a request whose scope resolution failed.
 ///
-/// The caller's permissions are unknown, so the answer is a 503. This process cannot say what the
-/// caller may see, and a later attempt may succeed. The cause stays in the server log, since a
-/// resolution failure names store internals. The client reads that the scope is unavailable.
+/// The caller's permissions are unknown. The answer is a 503. This process cannot say what the
+/// caller may see, and a later attempt may succeed. The server logs the cause, which can include
+/// store internals. The client reads that the scope is unavailable.
 pub(super) fn visibility_unavailable(error: &(impl core::fmt::Debug + ?Sized)) -> Problem<'static> {
     tracing::error!(?error, "resolving the caller's visibility failed");
 
@@ -376,6 +603,11 @@ pub(super) fn visibility_unavailable(error: &(impl core::fmt::Debug + ?Sized)) -
 }
 
 /// Rejects a route naming a variant this generation does not serve.
+///
+/// # Errors
+///
+/// Returns a 404 [`Problem`] with [`ProblemType::UnknownVariant`] when `variant` is absent from
+/// [`VARIANTS`].
 pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
     if VARIANTS.contains(&variant) {
         return Ok(());
@@ -384,42 +616,6 @@ pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
     Err(Problem::new(
         StatusCode::NOT_FOUND,
         ProblemType::UnknownVariant,
-        format!("variant {variant} is not served; the manifest lists {VARIANTS:?}"),
+        format!("variant {variant} is not served. The manifest lists {VARIANTS:?}"),
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    use axum::http::StatusCode;
-
-    use super::{Problem, ProblemType};
-
-    #[test]
-    fn type_member_is_a_root_relative_uri() {
-        let problem = Problem::new(
-            StatusCode::NOT_FOUND,
-            ProblemType::UnknownGeneration,
-            "re-bootstrap via /v1/atlas/current",
-        );
-        let document = serde_json::to_value(&problem).expect("problem documents serialize");
-
-        assert_eq!(document["type"], "/problems/atlas/unknown-generation");
-        assert_eq!(document["status"], 404);
-    }
-
-    #[test]
-    fn internal_problems_redact_their_source() {
-        let problem = Problem::internal(
-            "connection refused: db=secret host=10.0.0.7",
-            "the detail hydration failed",
-        );
-        let document = serde_json::to_value(&problem).expect("problem documents serialize");
-
-        assert_eq!(document["type"], "/problems/atlas/internal");
-        assert_eq!(document["detail"], "the detail hydration failed");
-        assert!(
-            !document.to_string().contains("10.0.0.7"),
-            "the source error must stay out of the document"
-        );
-    }
 }

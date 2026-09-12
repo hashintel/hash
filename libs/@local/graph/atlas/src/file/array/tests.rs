@@ -10,11 +10,11 @@ use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 use super::{
     ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader, PaddedFileHeader, SizedArrayWriter,
     SizedColumn,
-    read::{ArrayFile, OpenArrayError},
+    read::{ArrayFile, InvalidColumnError, OpenArrayError},
 };
 use crate::{
     file::{
-        WriteInto as _,
+        ArtifactFile as _, WriteInto as _,
         region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     },
     identity::{BasePosition, EdgeRowId, NodeRowId},
@@ -445,9 +445,22 @@ fn column_round_trips_the_element_stamp() {
     assert_eq!(pairs.as_raw(), &rows);
 
     // Same variant, different trailing shape: the flat element refuses the pair file.
-    assert!(opened.column::<EdgeRowId, NodeRowId>().is_none());
+    let InvalidColumnError::Shape { recorded, expected } = opened
+        .column::<EdgeRowId, NodeRowId>()
+        .expect_err("a flat element cannot view a pair file")
+    else {
+        panic!("a pair file under a flat element is a shape mismatch");
+    };
+    assert_eq!(recorded.dims(), &[Dim::new(2), Dim::new(2)]);
+    assert_eq!(expected, &[] as &[Dim]);
     // A different variant refuses outright.
-    assert!(opened.column::<EdgeRowId, BasePosition>().is_none());
+    assert_matches!(
+        opened.column::<EdgeRowId, BasePosition>(),
+        Err(InvalidColumnError::Variant {
+            recorded: ArrayVariant::U64Le,
+            expected: ArrayVariant::U32Le,
+        })
+    );
 }
 
 /// Zero promised rows seal as the zero-element array immediately.

@@ -1,12 +1,16 @@
 //! The postings archive and the membership views it serves.
 
 use core::ops::Range;
+use std::path::Path;
 
 use hashql_core::id::Id as _;
 
 use crate::{
     bitset::{DenseBitSlice, RowsIn},
-    file::postings::read::PostingsFile,
+    file::{
+        ArtifactFile,
+        postings::read::{OpenPostingsError, PostingsFile},
+    },
     identity::{BasePosition, OntologyRowId},
     runs::{RunsError, RunsView},
 };
@@ -97,6 +101,50 @@ impl core::fmt::Display for InvalidPostingsFile {
 
 impl core::error::Error for InvalidPostingsFile {}
 
+/// Opening a published postings artifact as its mapped reader failed.
+#[derive(Debug)]
+pub(crate) enum OpenPostingsArchiveError {
+    /// The postings file failed to open.
+    Open(OpenPostingsError),
+    /// The file does not hold a valid postings artifact.
+    Invalid(InvalidPostingsFile),
+}
+
+const impl From<OpenPostingsError> for OpenPostingsArchiveError {
+    fn from(error: OpenPostingsError) -> Self {
+        Self::Open(error)
+    }
+}
+
+const impl From<InvalidPostingsFile> for OpenPostingsArchiveError {
+    fn from(error: InvalidPostingsFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl core::fmt::Display for OpenPostingsArchiveError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the postings file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(
+                    fmt,
+                    "the file does not hold a valid postings artifact: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl core::error::Error for OpenPostingsArchiveError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
 /// A published postings artifact opened over its mapped file.
 ///
 /// Construction checks the artifact contract once - fencepost anchoring/ordering/coverage in all
@@ -112,6 +160,15 @@ impl core::error::Error for InvalidPostingsFile {}
 #[derive(Debug)]
 pub(crate) struct PostingsArchive {
     file: PostingsFile,
+}
+
+impl ArtifactFile for PostingsArchive {
+    type Error = OpenPostingsArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
+        let file = PostingsFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl PostingsArchive {

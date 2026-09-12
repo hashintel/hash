@@ -163,7 +163,7 @@ where
         // rank contract and the wire shape do not change when the
         // signal arrives.
         let priority = IdVec::from_domain(0.0_f32, &importance);
-        let inputs = RankInputs::new(&importance, &priority, self.ids.ids()).ok_or_else(|| {
+        let inputs = RankInputs::new(&importance, &priority, self.ids.keys()).ok_or_else(|| {
             DeliveryError::WireEncoding {
                 rows: self.ids.len(),
             }

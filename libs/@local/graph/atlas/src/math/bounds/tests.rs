@@ -51,6 +51,27 @@ fn from_points_rejects_empty_and_non_finite() {
 }
 
 #[test]
+fn extend_matches_from_points() {
+    let folded = POINTS
+        .iter()
+        .fold(None, |extent, &point| Bounds2::extend(extent, point));
+    assert_eq!(folded, Bounds2::from_points(POINTS));
+
+    assert_eq!(
+        Bounds2::extend(None, Vec2::splat(1.0)),
+        Bounds2::new(Vec2::splat(1.0), Vec2::splat(1.0))
+    );
+    assert!(Bounds2::extend(None, Vec2::new(f32::NAN, 0.0)).is_none());
+    assert!(
+        Bounds2::extend(
+            Bounds2::new(Vec2::ZERO, Vec2::ZERO),
+            Vec2::new(1.0, f32::NAN)
+        )
+        .is_none()
+    );
+}
+
+#[test]
 fn contains_is_boundary_inclusive() {
     let bounds =
         Bounds2::new(Vec2::ZERO, Vec2::splat(2.0)).expect("corners are finite and ordered");
@@ -275,6 +296,29 @@ fn normalize_into_stays_exact_far_from_the_origin() {
     assert_eq!(mapped, [Vec2::splat(-0.5)]);
 }
 
+#[test]
+fn image_in_proper_box() {
+    let world = Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+        .expect("corners are finite and ordered");
+    let frame =
+        Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+
+    assert_eq!(world.image_in(frame), frame);
+}
+
+#[test]
+fn image_in_degenerate_axis() {
+    let collinear = Bounds2::new(Vec2::new(3.0, -2.0), Vec2::new(3.0, 6.0))
+        .expect("a zero-extent axis is a valid box");
+    let viewport =
+        Bounds2::new(Vec2::ZERO, Vec2::new(10.0, 4.0)).expect("corners are finite and ordered");
+
+    assert_eq!(
+        collinear.image_in(viewport),
+        Bounds2::new(Vec2::new(5.0, 0.0), Vec2::new(5.0, 4.0)).expect("the image is ordered")
+    );
+}
+
 /// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
 ///
 /// The bounding-box laws are about corner algebra, not overflow.
@@ -358,6 +402,22 @@ fn normalize_into_agrees_between_batched_body_and_remainder(
         let alone = world.normalize_into(frame, core::slice::from_ref(point));
         prop_assert_eq!(alone[0], *expected);
     }
+}
+
+/// The image of a point set's tight box is the tight box of the normalized set.
+#[property_test]
+fn image_in_normalized_extent(
+    #[strategy = points_strategy()] points: Vec<Vec2>,
+    #[strategy = bounds_strategy()] frame: Bounds2,
+) {
+    prop_assume!(!points.is_empty());
+
+    let world = Bounds2::from_points(points.iter().copied())
+        .expect("in-range points are finite and non-empty");
+    let normalized = Bounds2::from_points(world.normalize_into(frame, &points))
+        .expect("the mapped points are finite");
+
+    prop_assert_eq!(normalized, world.image_in(frame));
 }
 
 /// The fitted transform maps source corners onto target corners.

@@ -131,7 +131,7 @@ pub(crate) use self::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, Negative, NonNegative,
         OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, d_finite, d_positive,
         narrow_f32, non_negative, nz, open_unit_fraction, positive, positive_unit_fraction,
-        softplus, unit_fraction,
+        softplus, unit_fraction, unsafe_impl_try_from_bytes,
     },
     similarity::Similarity,
     transform::Transform,

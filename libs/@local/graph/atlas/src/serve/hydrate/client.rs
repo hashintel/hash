@@ -1,165 +1,75 @@
-//! The store boundary.
-//!
-//! Live detail reads over the serving store pool.
-//!
-//! Each hydration resolves its identities through the store's own query compiler, so a
-//! statement reads under the live temporal axes and the draft exclusion and masks properties
-//! per actor, by construction. A property value leaves the store
-//! masked for the requesting actor under exactly the conditions the graph's entity reads mask
-//! it - the deployment configures protection and the actor is not an instance admin - and
-//! [`MaskingActor`] carries that actor from the scope's policy resolution into every order.
-//! Label attribution reads the store's per-edition cache and no property value, so it stands
-//! outside the masking, as labels do on the graph's own read path: see the trailer contract
-//! in [the module above](super).
-//!
-//! Each hydration borrows one connection for its own duration and returns it, and statements
-//! sharing the connection pipeline, so a request's hydration waits on one round trip of the
-//! store's own work.
-
 use alloc::sync::Arc;
 use core::pin::pin;
 
-use error_stack::Report;
-use futures::{StreamExt as _, TryStreamExt as _};
+use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_postgres_store::store::{
-    AsClient, PostgresStorePool, error::StoreError, postgres::query::SelectCompiler,
+    AsClient, PostgresStorePool, postgres::query::SelectCompiler,
 };
 use hash_graph_store::{
-    filter::{
-        Filter,
-        protection::{PropertyProtectionFilter, PropertyProtectionFilterConfig},
-    },
+    filter::{Filter, protection::PropertyProtectionFilter},
     pool::StorePool as _,
     subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
 use hashql_core::{
     collections::FastHashMap,
-    id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet},
+    id::{Id as _, IdSlice, IdVec},
 };
-use tokio::try_join;
+use tokio::{runtime::Handle, try_join};
 use tokio_postgres::GenericClient;
 use type_system::{
     knowledge::entity::id::EntityId,
     ontology::{
         entity_type::EntityTypeUuid,
-        id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
+        id::{OntologyTypeUuid, VersionedUrl},
     },
-    principal::actor::ActorId,
 };
 
 use super::{
-    columns::{EdgeSlot, NodeSlot, ScalarValue},
-    order::{LocateLinkHydration, LocateNodeHydration},
+    columns::{EdgeSlot, NodeSlot, TypeSlot},
+    locate::{
+        LocateEntity, LocateLink, LocateNode, LocateProperties, LocateRequest, LocateResolver,
+    },
+    ontology::OntologyResolver,
     statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
     type_urls::TypeUrlResolver,
 };
 use crate::{
-    bitset::DenseBitSlice, dataset::postgres::PostgresDatasetError, postgres::id::ArchivedEntityId,
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    serve::visibility::VisibilityActor,
 };
 
-/// The resolved actor one hydration masks properties for.
-///
-/// Property protection is a per-actor condition on the graph's read path, and a hydration
-/// carries the actor identity the scope's policy resolution produced.
+/// A failure during detail hydration against the store.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct MaskingActor {
-    /// The actor the request's admitted scope names.
-    pub id: ActorId,
-    /// Whether the actor is an instance admin, whose reads bypass property protection.
-    pub instance_admin: bool,
-}
-
-impl MaskingActor {
-    /// Returns whether `config` masks this actor's reads.
-    #[must_use]
-    pub(crate) fn masked_by(self, config: &PropertyProtectionFilterConfig<'_>) -> bool {
-        !config.is_empty() && !self.instance_admin
-    }
-
-    /// Returns the property protection over this actor's reads, absent when nothing masks.
-    ///
-    /// The self-access clause binds to this actor, who reads their own protected properties.
-    #[must_use]
-    pub(crate) fn protection<'config, 'rules>(
-        self,
-        config: &'config PropertyProtectionFilterConfig<'rules>,
-    ) -> Option<PropertyProtectionFilter<'config, 'rules>> {
-        self.masked_by(config)
-            .then(|| config.to_property_protection_filter(Some(self.id)))
-    }
-}
-
-/// A detail hydration failed against the store.
-#[derive(Debug)]
-pub(crate) enum DetailError {
+pub(crate) enum HydrateError {
     /// No connection was available for the query.
-    Connect(Report<StoreError>),
-    /// The store rejected the query.
-    Query(tokio_postgres::Error),
-    /// The channel carrying the answer closed before it arrived.
-    ///
-    /// The party holding the store side of the order dropped it, which happens when its request
-    /// ends early, so no answer can reach the response either way.
-    Disconnected,
+    Connect,
+    /// A store query failed.
+    Query,
     /// The query returned too many rows.
     TooManyRows,
-    /// The dataset-layer read behind a delta display failed.
-    Dataset(PostgresDatasetError),
 }
 
-impl From<PostgresDatasetError> for DetailError {
-    fn from(value: PostgresDatasetError) -> Self {
-        Self::Dataset(value)
-    }
-}
-
-impl From<tokio_postgres::Error> for DetailError {
-    fn from(value: tokio_postgres::Error) -> Self {
-        Self::Query(value)
-    }
-}
-
-impl core::fmt::Display for DetailError {
+impl core::fmt::Display for HydrateError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Connect(report) => {
-                write!(
-                    fmt,
-                    "the detail hydration reached no store connection: {report}"
-                )
+            Self::Connect => {
+                write!(fmt, "the detail hydration reached no store connection")
             }
-            Self::Query(error) => write!(fmt, "the detail hydration failed: {error}"),
-            Self::Disconnected => {
-                fmt.write_str("the hydration channel closed before an answer arrived")
-            }
+            Self::Query => fmt.write_str("the detail hydration query failed"),
             Self::TooManyRows => fmt.write_str("the detail hydration returned too many rows"),
-            Self::Dataset(error) => write!(fmt, "the link-display read failed: {error}"),
         }
     }
 }
 
-impl core::error::Error for DetailError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match self {
-            Self::Query(error) => Some(error),
-            Self::Dataset(error) => Some(error),
-            Self::Connect(_) | Self::Disconnected | Self::TooManyRows => None,
-        }
-    }
-}
+impl core::error::Error for HydrateError {}
 
-/// Reads every requested identity's resolution flag and direct-type URLs.
-///
-/// # Panics
-///
-/// This panics when the store answers rows outside the request domain, when a column does not
-/// decode at its assigned position, or when a stored URL does not parse as its domain type.
 async fn read_types(
     client: &impl GenericClient,
-    ids: &IdSlice<NodeSlot, ArchivedEntityId>,
+    nodes: &mut IdSlice<NodeSlot, LocateEntity<LocateNode>>,
     temporal_axes: &QueryTemporalAxes,
-) -> Result<(DenseBitSet<NodeSlot>, IdVec<NodeSlot, Vec<VersionedUrl>>), DetailError> {
-    let filter = identity_filter(ids.iter().copied().map(EntityId::from));
+) -> Result<(), Report<HydrateError>> {
+    let filter = identity_filter(nodes.iter().map(|node| EntityId::from(node.identity)));
 
     let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
     compiler
@@ -169,44 +79,37 @@ async fn read_types(
     let columns = TypeColumns::select(&mut compiler);
     let (statement, parameters) = compiler.compile();
 
-    let rows = client.query_raw(&statement, parameters).await?;
+    let rows = client
+        .query_raw(&statement, parameters)
+        .await
+        .change_context(HydrateError::Query)?;
 
-    let lookup: FastHashMap<_, _> = ids
-        .iter_enumerated()
-        .map(|(slot, &id)| (id, slot))
+    let lookup: FastHashMap<_, _> = nodes
+        .iter_enumerated_mut()
+        .map(|(slot, node)| {
+            node.details = None;
+            (node.identity, slot)
+        })
         .collect();
 
-    let mut resolved = DenseBitSet::new_empty(ids.len());
-    let mut type_urls: IdVec<_, _> = IdVec::from_elem(Vec::new(), ids.len());
-
     let mut rows = pin!(rows);
-    while let Some(row) = rows.next().await {
-        let row = row?;
+    while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
         let slot = lookup[&columns.entity_id(&row)];
-
-        if resolved.insert(slot) {
-            type_urls[slot].extend(columns.direct_type_urls(&row));
-        }
+        nodes[slot].details.get_or_insert_with(|| LocateNode {
+            type_urls: columns.direct_type_urls(&row),
+        });
     }
 
-    Ok((resolved, type_urls))
+    Ok(())
 }
 
-/// Reads one identity's capped properties and their completeness.
-///
-/// `None` when the store no longer serves the identity.
-///
-/// # Panics
-///
-/// This panics when a column does not decode at its assigned position, and when a stored key
-/// does not parse as a base URL.
 async fn read_detail(
     client: &(impl GenericClient + Sync),
     source: ArchivedEntityId,
     protection: Option<&PropertyProtectionFilter<'_, '_>>,
     cap: usize,
     temporal_axes: &QueryTemporalAxes,
-) -> Result<(Option<Vec<(BaseUrl, ScalarValue)>>, bool), DetailError> {
+) -> Result<Option<LocateProperties>, Report<HydrateError>> {
     let filter = identity_filter([source.into()]);
 
     let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
@@ -217,70 +120,79 @@ async fn read_detail(
     let columns = DetailColumns::select(&mut compiler, protection);
     let (statement, parameters) = compiler.compile();
 
-    let stream = client.query_raw(&statement, parameters).await?;
+    let stream = client
+        .query_raw(&statement, parameters)
+        .await
+        .change_context(HydrateError::Query)?;
+
     let mut stream = pin!(stream);
-    let Some(row) = stream.try_next().await? else {
-        return Ok((None, false));
+    let Some(row) = stream
+        .try_next()
+        .await
+        .change_context(HydrateError::Query)?
+    else {
+        return Ok(None);
     };
 
-    if stream.try_next().await?.is_some() {
-        return Err(DetailError::TooManyRows);
+    if stream
+        .try_next()
+        .await
+        .change_context(HydrateError::Query)?
+        .is_some()
+    {
+        return Err(Report::new(HydrateError::TooManyRows));
     }
 
-    let (properties, complete) = columns.capped_properties(&row, cap);
-    Ok((Some(properties), complete))
+    let (values, complete) = columns.capped_properties(&row, cap);
+    Ok(Some(LocateProperties { values, complete }))
 }
 
 /// Live detail reads over the serving store pool.
 ///
-/// The pool's settings carry the deployment's property protection, so a serving process masks
-/// exactly the properties that process's store protects.
+/// The pool's settings determine property protection. Call the resolvers from a blocking worker
+/// while the supplied runtime drives I/O.
 #[derive(Debug)]
 pub(crate) struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
+    runtime: Handle,
 }
 
 impl GraphDatabaseClient {
-    /// Opens the detail path over the serving store pool.
     #[must_use]
-    pub(crate) const fn new(pool: Arc<PostgresStorePool>) -> Self {
-        Self { pool }
+    pub(crate) const fn new(pool: Arc<PostgresStorePool>, runtime: Handle) -> Self {
+        Self { pool, runtime }
     }
 
     /// Holds one connection for the duration of one hydration.
-    async fn connection(&self) -> Result<impl AsClient, DetailError> {
+    async fn connection(&self) -> Result<impl AsClient, Report<HydrateError>> {
         self.pool
             .acquire(None)
             .await
-            .map_err(|report| DetailError::Connect(report.change_context(StoreError)))
+            .change_context(HydrateError::Connect)
     }
 
-    /// Answers the node half of one locate order.
-    ///
-    /// Every resolved node reads its resolution flag and direct-type URLs. The source, the first
-    /// delivered identity, also reads its capped scalar-valued properties and their completeness,
-    /// masked for `masking`'s actor. Entities the store no longer serves read `false` flags and
-    /// empty columns.
+    /// Resolves node types and the source's actor-masked properties.
     ///
     /// # Errors
     ///
-    /// Returns [`DetailError`] when the store rejects a query.
+    /// Returns [`HydrateError`] if no connection is available, a query fails, or the source-detail
+    /// query returns more than one row.
     ///
     /// # Panics
     ///
-    /// This panics when the store answers rows outside the request domain, when a column does
-    /// not decode at its assigned position, or when a stored URL does not parse as its domain
-    /// type.
-    #[tracing::instrument(skip_all, fields(points = ids.len()))]
-    pub(crate) async fn locate_node_hydration(
+    /// Panics if the store returns a row outside the request domain, a column fails to decode, a
+    /// direct-type count is negative, or the scalar-property aggregate is not a JSON object.
+    #[tracing::instrument(skip_all, fields(points = nodes.len()))]
+    async fn read_locate_nodes(
         &self,
-        ids: &IdSlice<NodeSlot, ArchivedEntityId>,
+        nodes: &mut IdSlice<NodeSlot, LocateEntity<LocateNode>>,
         properties: u32,
-        masking: MaskingActor,
-    ) -> Result<LocateNodeHydration, DetailError> {
-        if ids.is_empty() {
-            return Ok(LocateNodeHydration::empty(0));
+        masking: VisibilityActor,
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
+        if nodes.is_empty() {
+            return Ok(None);
         }
+        let source = nodes[NodeSlot::MIN].identity;
 
         let connection = self.connection().await?;
         let client = connection.as_client();
@@ -288,50 +200,40 @@ impl GraphDatabaseClient {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let protection = masking.protection(&self.pool.settings.filter_protection);
 
-        let ((resolved, type_urls), (source_properties, source_properties_complete)) = try_join!(
-            read_types(client, ids, &temporal_axes),
+        let ((), source_properties) = try_join!(
+            read_types(client, nodes, &temporal_axes),
             read_detail(
                 client,
-                ids[NodeSlot::MIN],
+                source,
                 protection.as_ref(),
                 properties as usize,
                 &temporal_axes,
             ),
         )?;
 
-        Ok(LocateNodeHydration {
-            resolved,
-            type_urls,
-            source_properties,
-            source_properties_complete,
-        })
+        Ok(source_properties)
     }
 
-    /// Answers the link half of one locate order.
-    ///
-    /// Every resolved edge reads capped direct-type URLs and capped scalar-valued properties,
-    /// masked for `masking`'s actor, and a completeness flag accompanies each cap. Links the
-    /// store no longer serves read `None` properties, empty types, and `false` flags.
+    /// Resolves capped link types and actor-masked properties.
     ///
     /// # Errors
     ///
-    /// Returns [`DetailError`] when the store rejects the query.
+    /// Returns [`HydrateError`] if no connection is available or a query fails.
     ///
     /// # Panics
     ///
-    /// This panics when the store answers rows outside the request domain, when a column does
-    /// not decode at its assigned position, or when a stored URL does not parse as its domain
-    /// type.
-    #[tracing::instrument(skip_all, fields(edges = ids.len()))]
-    pub(crate) async fn locate_link_hydration(
+    /// Panics if the store returns a row outside the request domain, a column fails to decode, a
+    /// direct-type count is negative, or the scalar-property aggregate is not a JSON object.
+    #[tracing::instrument(skip_all, fields(edges = links.len()))]
+    async fn read_locate_links(
         &self,
-        ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
+        links: &mut IdSlice<EdgeSlot, LocateEntity<LocateLink>>,
         type_ids: u32,
         properties: u32,
-        masking: MaskingActor,
-    ) -> Result<LocateLinkHydration, DetailError> {
-        if ids.is_empty() {
-            return Ok(LocateLinkHydration::empty(0));
+        masking: VisibilityActor,
+    ) -> Result<(), Report<HydrateError>> {
+        if links.is_empty() {
+            return Ok(());
         }
 
         let connection = self.connection().await?;
@@ -339,7 +241,7 @@ impl GraphDatabaseClient {
 
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
 
-        let filter = identity_filter(ids.iter().copied().map(EntityId::from));
+        let filter = identity_filter(links.iter().map(|link| EntityId::from(link.identity)));
         let protection = masking.protection(&self.pool.settings.filter_protection);
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
@@ -349,61 +251,44 @@ impl GraphDatabaseClient {
         let columns = DetailColumns::select(&mut compiler, protection.as_ref());
         let (statement, parameters) = compiler.compile();
 
-        let rows = client.query_raw(&statement, parameters).await?;
+        let rows = client
+            .query_raw(&statement, parameters)
+            .await
+            .change_context(HydrateError::Query)?;
 
-        let lookup: FastHashMap<_, _> = ids
-            .iter_enumerated()
-            .map(|(slot, id)| (*id, slot))
+        let lookup: FastHashMap<_, _> = links
+            .iter_enumerated_mut()
+            .map(|(slot, link)| {
+                link.details = None;
+                (link.identity, slot)
+            })
             .collect();
 
-        let mut type_url_columns: IdVec<_, _> = IdVec::from_elem(Vec::new(), ids.len());
-        let mut type_urls_complete = DenseBitSlice::new_empty(ids.len());
-
-        let mut properties_columns: IdVec<_, _> = IdVec::from_elem(None, ids.len());
-        let mut properties_complete = DenseBitSlice::new_empty(ids.len());
-
         let mut rows = pin!(rows);
-        while let Some(row) = rows.next().await {
-            let row = row?;
+        while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
             let slot = lookup[&columns.entity_id(&row)];
 
             let mut type_urls = columns.direct_type_urls(&row);
-            type_urls_complete.set(slot, type_urls.len() <= (type_ids as usize));
-
+            let type_urls_complete = type_urls.len() <= type_ids as usize;
             type_urls.truncate(type_ids as usize);
-            type_url_columns[slot].extend(type_urls);
 
-            let (survivors, complete) = columns.capped_properties(&row, properties as usize);
-
-            properties_columns.insert(slot, survivors);
-            properties_complete.set(slot, complete);
+            let (values, complete) = columns.capped_properties(&row, properties as usize);
+            links[slot].details = Some(LocateLink {
+                type_urls,
+                type_urls_complete,
+                properties: LocateProperties { values, complete },
+            });
         }
 
-        Ok(LocateLinkHydration {
-            type_urls: type_url_columns,
-            type_urls_complete,
-            properties: properties_columns,
-            properties_complete,
-        })
+        Ok(())
     }
-}
 
-impl TypeUrlResolver for GraphDatabaseClient {
-    /// Reads each requested type's versioned URL from the store's ontology records.
-    ///
-    /// The read carries no temporal condition. A type uuid derives from the URL it names, so any
-    /// row that exists answers correctly whatever its archival state. A type deleted from the
-    /// store is absent from the answer.
-    ///
-    /// # Panics
-    ///
-    /// This panics when a column does not decode at its assigned position or when a stored URL
-    /// does not parse as its domain type.
     #[tracing::instrument(skip_all, fields(types))]
-    async fn resolve(
+    async fn read_type_urls(
         &self,
-        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
-    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, DetailError> {
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator>,
+    ) -> Result<impl IntoIterator<Item = (OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>
+    {
         let types = types.into_iter();
         tracing::Span::current().record("types", types.len());
 
@@ -425,13 +310,14 @@ impl TypeUrlResolver for GraphDatabaseClient {
         let columns = TypeUrlColumns::select(&mut compiler);
         let (statement, parameters) = compiler.compile();
 
-        let rows = client.query_raw(&statement, parameters).await?;
+        let rows = client
+            .query_raw(&statement, parameters)
+            .await
+            .change_context(HydrateError::Query)?;
 
         let mut pairs = Vec::with_capacity(uuids.len());
         let mut rows = pin!(rows);
-        while let Some(row) = rows.next().await {
-            let row = row?;
-
+        while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
             pairs.push(columns.pair(&row));
         }
 
@@ -439,22 +325,90 @@ impl TypeUrlResolver for GraphDatabaseClient {
     }
 }
 
+impl TypeUrlResolver for GraphDatabaseClient {
+    fn resolve(
+        &self,
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator>,
+    ) -> Result<impl IntoIterator<Item = (OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>
+    {
+        self.runtime.block_on(self.read_type_urls(types))
+    }
+}
+
+impl LocateResolver for GraphDatabaseClient {
+    fn resolve(
+        &self,
+        LocateRequest {
+            actor,
+            nodes,
+            links,
+            properties,
+            link_type_ids,
+            link_properties,
+        }: LocateRequest<'_>,
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
+        self.runtime.block_on(async {
+            let (source_properties, ()) = try_join!(
+                self.read_locate_nodes(nodes, properties, actor),
+                self.read_locate_links(links, link_type_ids, link_properties, actor),
+            )?;
+
+            Ok(source_properties)
+        })
+    }
+}
+
+impl OntologyResolver for GraphDatabaseClient {
+    fn resolve(
+        &self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, Report<HydrateError>> {
+        let uuids = ArchivedOntologyTypeUuid::into_slice(types.as_raw());
+
+        let resolved: FastHashMap<_, _> = TypeUrlResolver::resolve(self, uuids.iter().copied())?
+            .into_iter()
+            .collect();
+
+        Ok(uuids
+            .iter()
+            .map(|uuid| resolved.get(uuid).cloned())
+            .collect())
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
+
+    use hash_graph_postgres_store::store::{
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
+        PostgresStoreSettings,
+    };
     use hash_graph_store::filter::{
         Filter, FilterExpression, Parameter, protection::PropertyProtectionFilterConfig,
     };
+    use hashql_core::id::IdSlice;
+    use tokio::runtime::Handle;
+    use tokio_postgres::NoTls;
     use type_system::{
         knowledge::Entity,
         principal::actor::{ActorId, UserId},
     };
     use uuid::Uuid;
 
-    use super::MaskingActor;
+    use super::{GraphDatabaseClient, VisibilityActor};
+    use crate::{
+        math::nz,
+        serve::hydrate::{
+            TypeUrlResolver,
+            locate::{LocateRequest, LocateResolver},
+            ontology::OntologyResolver,
+        },
+    };
 
     /// The masking actor over the user `actor` names.
-    fn masking(actor: u128, instance_admin: bool) -> MaskingActor {
-        MaskingActor {
+    fn masking(actor: u128, instance_admin: bool) -> VisibilityActor {
+        VisibilityActor {
             id: ActorId::User(UserId::new(Uuid::from_u128(actor))),
             instance_admin,
         }
@@ -489,6 +443,59 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn blocking_worker_empty_requests() {
+        let pool = Arc::new(
+            PostgresStorePool::new(
+                &DatabaseConnectionInfo::new(
+                    DatabaseType::Postgres,
+                    "hydrate-test".to_owned(),
+                    String::new(),
+                    "/no-hydrate-test-postgres".to_owned(),
+                    5432,
+                    "hydrate-test".to_owned(),
+                ),
+                &DatabasePoolConfig {
+                    max_connections: nz!(1),
+                },
+                NoTls,
+                PostgresStoreSettings::default(),
+            )
+            .await
+            .expect("should construct an unconnected pool"),
+        );
+        let client = GraphDatabaseClient::new(pool, Handle::current());
+
+        // The async runtime continues polling while its blocking worker drives synchronous reads.
+        tokio::task::spawn_blocking(move || {
+            let mut urls = TypeUrlResolver::resolve(&client, [])
+                .expect("should resolve no URLs without a database connection")
+                .into_iter();
+            assert!(urls.next().is_none(), "should return no unrequested URLs");
+            assert!(
+                OntologyResolver::resolve(&client, IdSlice::from_raw(&[]))
+                    .expect("should resolve no ontology rows without a connection")
+                    .is_empty(),
+                "should return no unrequested ontology rows"
+            );
+            let response = LocateResolver::resolve(
+                &client,
+                LocateRequest {
+                    actor: masking(11, false),
+                    nodes: IdSlice::from_raw_mut(&mut []),
+                    links: IdSlice::from_raw_mut(&mut []),
+                    properties: 10,
+                    link_type_ids: 5,
+                    link_properties: 10,
+                },
+            )
+            .expect("should resolve an empty locate request without a connection");
+            assert_eq!(response, None);
+        })
+        .await
+        .expect("the blocking worker should finish without a nested-runtime panic");
+    }
+
     /// A deployment that protects no property masks nobody.
     #[test]
     fn protection_empty_config() {
@@ -507,8 +514,7 @@ mod tests {
         assert!(masking(11, true).protection(&config).is_none());
     }
 
-    /// A plain actor reads under the deployment's protection, with the self-access clause bound
-    /// to that actor and to no other.
+    /// Property protection binds self-access to the reading actor.
     #[test]
     fn protection_plain_actor() {
         let config = PropertyProtectionFilterConfig::hash_default();

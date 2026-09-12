@@ -26,6 +26,7 @@ use crate::{
     },
     device::Device,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
@@ -54,6 +55,7 @@ use crate::{
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
+        fit::prepare::IdentityProvider as _,
         knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
         ladder::{
             CanonicalError,
@@ -654,7 +656,7 @@ fn assert_identities_translate(published: &Utf8Path) {
     assert_eq!(nodes.len(), NODES as u64);
     for row in 0..NODES as u64 {
         assert_eq!(
-            nodes.id(NodeRowId::new(row)),
+            nodes.key_of(NodeRowId::new(row)),
             Some(MemoryNodeId::new(row)),
             "row {row}"
         );
@@ -668,7 +670,7 @@ fn assert_identities_translate(published: &Utf8Path) {
             Label::new(&format!("node {row}")),
         );
         assert_eq!(
-            nodes.payload_of(NodeRowId::new(row)),
+            nodes.payload_of_row(NodeRowId::new(row)),
             Some(&*legend),
             "payload of row {row}"
         );
@@ -681,15 +683,24 @@ fn assert_identities_translate(published: &Utf8Path) {
     )
     .expect("the edge identities should validate");
     assert_eq!(edge_ids.len(), 2);
-    assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(MemoryEdgeId::new(100)));
+    assert_eq!(
+        edge_ids.key_of(EdgeRowId::new(0)),
+        Some(MemoryEdgeId::new(100))
+    );
     assert_eq!(
         edge_ids.row_of(MemoryEdgeId::new(101)),
         Some(EdgeRowId::new(1))
     );
     let employs_100 = OwnedLegend::new(OntologyRowId::new(2), Label::new("employs 100"));
-    assert_eq!(edge_ids.payload_of(EdgeRowId::new(0)), Some(&*employs_100));
+    assert_eq!(
+        edge_ids.payload_of_row(EdgeRowId::new(0)),
+        Some(&*employs_100)
+    );
     let employs_101 = OwnedLegend::new(OntologyRowId::new(2), Label::new("employs 101"));
-    assert_eq!(edge_ids.payload_of(EdgeRowId::new(1)), Some(&*employs_101));
+    assert_eq!(
+        edge_ids.payload_of_row(EdgeRowId::new(1)),
+        Some(&*employs_101)
+    );
 
     let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
         IdentityFile::open(published.join("ontology-identities.idnt"))
@@ -700,7 +711,7 @@ fn assert_identities_translate(published: &Utf8Path) {
     for (row, icon) in ["person", "company", "\u{3bb}"].into_iter().enumerate() {
         let expected = OwnedIcon::from(icon);
         assert_eq!(
-            ontology_ids.payload_of(OntologyRowId::new(row as u64)),
+            ontology_ids.payload_of_row(OntologyRowId::new(row as u64)),
             Some(&*expected),
             "ontology row {row}"
         );
@@ -2483,7 +2494,7 @@ async fn edge_artifacts_publish_and_read_back() {
     .expect("the ontology identities should validate");
     assert_eq!(ontology_ids.len(), 4);
     assert_eq!(
-        ontology_ids.id(OntologyRowId::new(2)),
+        ontology_ids.key_of(OntologyRowId::new(2)),
         Some(MemoryOntologyId::new(2))
     );
     assert_eq!(

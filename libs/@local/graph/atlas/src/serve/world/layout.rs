@@ -1,0 +1,608 @@
+//! Node-row lookup through the fitted layout's independent permutations.
+//!
+//! [`NodeIndex`] maps stable rows to [`BasePosition`] before coordinate and importance lookup.
+//! Keeping these domains distinct preserves the layout's storage order.
+
+use core::{error::Error, fmt};
+
+use error_stack::{Report, TryReportTupleExt as _};
+use hashql_core::id::Id as _;
+
+use super::{
+    OpenOptions,
+    error::WorldError,
+    geometry::Geometry,
+    node_importance::{ImportanceProvider, NodeImportance, NodePriority},
+    node_index::NodeIndex,
+};
+use crate::{
+    file::quad,
+    identity::{BasePosition, ImportanceRank, NodeRowId},
+    math::{Bounds2, Vec2},
+    morton::{Depth, MortonCell, MortonKey},
+    serve::delta::{
+        epoch::Epoch,
+        layout::provider::{NaiveLayoutProvider, VersionedLayoutProvider as _},
+    },
+};
+
+/// Visible node coordinates addressed by stable row identity.
+pub(crate) trait LayoutProvider {
+    /// Returns the allocated row count, including withdrawn and unplaced rows.
+    fn provide_node_count(&self) -> usize;
+    /// Returns the visible position in the [wire frame](crate::salt::lod::stage::WIRE_FRAME).
+    ///
+    /// Returns [`None`] for withdrawn or unplaced rows.
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2>;
+}
+
+impl<T: LayoutProvider + ?Sized> LayoutProvider for &T {
+    fn provide_node_count(&self) -> usize {
+        T::provide_node_count(self)
+    }
+
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2> {
+        T::provide_position(self, node)
+    }
+}
+
+/// A layout permutation whose recorded inverse disagrees with it at a sampled position.
+#[derive(Debug)]
+pub(crate) enum LayoutRoundtripError {
+    /// The rank columns are not inverse.
+    RankInverse {
+        /// The sampled base position.
+        position: BasePosition,
+        /// The rank the position carries.
+        rank: ImportanceRank,
+        /// The rank's reverse position, absent outside the rank domain.
+        roundtrip: Option<BasePosition>,
+    },
+    /// The row columns are not inverse.
+    RowInverse {
+        /// The sampled base position.
+        position: BasePosition,
+        /// The row the position carries.
+        row: NodeRowId,
+        /// The row's reverse position, absent outside the row domain.
+        roundtrip: Option<BasePosition>,
+    },
+}
+
+impl fmt::Display for LayoutRoundtripError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RankInverse {
+                position,
+                rank,
+                roundtrip: Some(roundtrip),
+            } => write!(
+                fmt,
+                "the rank columns are not inverse: position {position} carries rank {rank}, which \
+                 the reverse column sends to position {roundtrip}",
+            ),
+            Self::RankInverse {
+                position,
+                rank,
+                roundtrip: None,
+            } => write!(
+                fmt,
+                "the rank columns are not inverse: position {position} carries rank {rank}, which \
+                 lies outside the rank domain",
+            ),
+            Self::RowInverse {
+                position,
+                row,
+                roundtrip: Some(roundtrip),
+            } => write!(
+                fmt,
+                "the row columns are not inverse: position {position} carries row {row}, which \
+                 the reverse column sends to position {roundtrip}",
+            ),
+            Self::RowInverse {
+                position,
+                row,
+                roundtrip: None,
+            } => write!(
+                fmt,
+                "the row columns are not inverse: position {position} carries row {row}, which \
+                 lies outside the row domain",
+            ),
+        }
+    }
+}
+
+impl Error for LayoutRoundtripError {}
+
+/// Fitted coordinates and importance ranks joined through the base-position permutation.
+#[derive(Debug)]
+pub(crate) struct Layout {
+    pub index: NodeIndex,
+    importance: NodeImportance,
+
+    geometry: Geometry,
+}
+
+impl Layout {
+    /// Opens the fitted layout and checks column counts and sampled inverse mappings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening, count or sampled roundtrip failures.
+    pub(crate) fn open(options: OpenOptions<'_>) -> Result<Self, Report<[WorldError]>> {
+        let index = NodeIndex::open(options);
+        let importance = NodeImportance::open(options);
+        let geometry = Geometry::open(options);
+
+        let (index, importance, geometry) = (index, importance, geometry).try_collect()?;
+
+        let this = Self {
+            index,
+            importance,
+            geometry,
+        };
+
+        let nodes = this.index.len();
+        if nodes != this.importance.len() || nodes != this.geometry.node_count() {
+            return Err(Report::new(WorldError::LayoutCountMismatch {
+                index: nodes,
+                importance: this.importance.len(),
+                geometry: this.geometry.node_count(),
+            })
+            .expand());
+        }
+
+        this.try_roundtrip_sample().map_err(|error| {
+            Report::new(error)
+                .change_context(WorldError::LayoutRoundtrip)
+                .expand()
+        })?;
+
+        Ok(this)
+    }
+
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "an evenly spaced sample point is the floor of its proportional position"
+    )]
+    fn try_roundtrip_sample(&self) -> Result<(), LayoutRoundtripError> {
+        const SAMPLES: u64 = 64;
+        let nodes = self.geometry.node_count() as u64;
+
+        // opening the node index rejects out-of-range counts.
+        if nodes == 0 || u32::try_from(nodes - 1).is_err() {
+            return Ok(());
+        }
+
+        let samples = SAMPLES.min(nodes);
+        for index in 0..samples {
+            let at = if samples == 1 {
+                0
+            } else {
+                index * (nodes - 1) / (samples - 1)
+            };
+
+            let position = BasePosition::from_u64(at);
+
+            let rank = self.importance[position];
+            let roundtrip = self.importance.reverse(rank);
+            if roundtrip != Some(position) {
+                return Err(LayoutRoundtripError::RankInverse {
+                    position,
+                    rank,
+                    roundtrip,
+                });
+            }
+
+            let row = self.index[position];
+            let roundtrip = self.index.base_reverse(row);
+            if roundtrip != Some(position) {
+                return Err(LayoutRoundtripError::RowInverse {
+                    position,
+                    row,
+                    roundtrip,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Reads one recorded bucket's rows and keys inside a cell, in base delivery order.
+    pub(crate) fn base_run(
+        &self,
+        bucket: Depth,
+        cell: MortonCell,
+    ) -> impl Iterator<Item = (MortonKey, NodeRowId)> {
+        let morton = self.geometry.morton_order();
+        morton
+            .run(bucket, cell)
+            .map(move |position| (morton.code(position), self.index[position]))
+    }
+
+    /// Returns a base row's recorded bucket, independent of visibility.
+    pub(crate) fn base_bucket_of(&self, node: NodeRowId) -> Option<Depth> {
+        let position = self.index.base_reverse(node)?;
+        Some(self.geometry.morton_order().bucket_of(position))
+    }
+
+    /// Counts base rows in the recorded buckets through `cut`.
+    pub(crate) fn base_count_through(&self, cut: Depth) -> usize {
+        self.geometry
+            .morton_order()
+            .fenceposts()
+            .segment(cut)
+            .end
+            .as_usize()
+    }
+
+    pub(crate) const fn base_bounds(&self) -> Option<Bounds2> {
+        self.geometry.bounds()
+    }
+
+    pub(crate) fn base_deepest_occupied(&self) -> Option<Depth> {
+        self.geometry
+            .morton_order()
+            .fenceposts()
+            .segments()
+            .into_iter()
+            .enumerate()
+            .rev()
+            .find(|(_, segment)| !segment.is_empty())
+            .map(|(bucket, _)| Depth::from_usize(bucket))
+    }
+
+    /// Returns whether a recorded bucket contains a base row inside `cell`.
+    pub(crate) fn base_occupied(&self, bucket: Depth, cell: MortonCell) -> bool {
+        !self.geometry.morton_order().run(bucket, cell).is_empty()
+    }
+
+    /// Returns the deepest prefix shared with any recorded base key.
+    pub(crate) fn base_shared_depth(&self, key: MortonKey) -> Option<Depth> {
+        let morton = self.geometry.morton_order();
+        let codes = morton.codes();
+
+        morton
+            .fenceposts()
+            .segments()
+            .into_iter()
+            .filter_map(|segment| {
+                let codes = &codes[segment];
+                let at = codes.partition_point(|code| code.get() < key.to_bits());
+                // A sorted key set's nearest neighbours attain its longest shared prefix.
+                [at.checked_sub(1), (at < codes.len()).then_some(at)]
+                    .into_iter()
+                    .flatten()
+                    .map(|index| key.shared_depth(MortonKey::from_bits(codes[index].get())))
+                    .max()
+            })
+            .max()
+    }
+
+    pub(crate) fn base_locate_quad(&self, cell: MortonCell) -> Option<&quad::Node> {
+        let spatial_index = self.geometry.spatial_index();
+        let index = spatial_index.locate(cell)?;
+
+        Some(&spatial_index.nodes()[index as usize])
+    }
+
+    /// Returns an allocated row's priority, independent of visibility.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn priority(&self, epoch: &Epoch, node: NodeRowId) -> Option<NodePriority> {
+        epoch.importance(self).provide_priority(node)
+    }
+
+    /// Returns the allocated node count, including withdrawn and unplaced rows.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn node_count(&self, epoch: &Epoch) -> usize {
+        let base = NaiveLayoutProvider::new(self);
+        epoch.layout(self).bind(&base).provide_node_count()
+    }
+
+    /// Returns the visible wire-frame position at the captured epoch's revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn position(&self, epoch: &Epoch, node: NodeRowId) -> Option<Vec2> {
+        let base = NaiveLayoutProvider::new(self);
+        epoch
+            .layout(self)
+            .bind(&base)
+            .provide_position_at(node, epoch.revision())
+    }
+}
+
+impl ImportanceProvider for Layout {
+    fn provide_priority(&self, node: NodeRowId) -> Option<NodePriority> {
+        self.importance
+            .lookup(self.index.base_reverse(node)?)
+            .map(NodePriority::Rank)
+    }
+}
+
+impl LayoutProvider for Layout {
+    fn provide_node_count(&self) -> usize {
+        self.geometry.node_count()
+    }
+
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2> {
+        self.geometry.position(self.index.base_reverse(node)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use hashql_core::id::Id as _;
+
+    use super::{Layout, LayoutProvider, LayoutRoundtripError};
+    use crate::{
+        identity::{BasePosition, ImportanceRank, NodeRowId},
+        serve::{
+            tests::fixture::{
+                NODES, TamperFixture, constant_u32_column, constant_u64_column, secret,
+                shorten_entities, shorten_u32_column,
+            },
+            world::{
+                OpenOptions,
+                error::WorldError,
+                node_importance::{ImportanceProvider, NodePriority},
+            },
+        },
+    };
+
+    /// Priority follows the row-to-position permutation before rank lookup.
+    #[test]
+    fn priority_row_permutation() {
+        let fixture = TamperFixture::publish("layout-priority-row-position-rank");
+        let layout = Layout::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect("should open the fitted layout");
+
+        let mut permuted = false;
+        for index in 0..LayoutProvider::provide_node_count(&layout) {
+            let position = BasePosition::from_usize(index);
+            let row = layout.index[position];
+            permuted |= row.as_usize() != index;
+            assert_eq!(
+                ImportanceProvider::provide_priority(&layout, row),
+                Some(NodePriority::Rank(layout.importance[position])),
+                "should resolve the rank through the row's base position"
+            );
+        }
+        assert!(permuted, "should exercise a non-identity row permutation");
+        assert_eq!(
+            ImportanceProvider::provide_priority(&layout, NodeRowId::MAX),
+            None,
+            "should return no priority outside the row domain"
+        );
+    }
+
+    #[test]
+    fn positions_row_permutation() {
+        let fixture = TamperFixture::publish("layout-position-permutation");
+        let layout = Layout::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect("should open the fitted layout");
+
+        let mut permuted = false;
+        for index in 0..LayoutProvider::provide_node_count(&layout) {
+            let position = BasePosition::from_usize(index);
+            let row = layout.index[position];
+            permuted |= row.as_usize() != index;
+            assert_eq!(
+                LayoutProvider::provide_position(&layout, row),
+                layout.geometry.position(position),
+            );
+        }
+        assert!(permuted, "should exercise a non-identity row permutation");
+        assert_eq!(
+            LayoutProvider::provide_position(&layout, NodeRowId::MAX),
+            None
+        );
+    }
+
+    /// Rejects empty rank columns beside nonempty geometry before sampling positions.
+    #[test]
+    fn open_empty_importance() {
+        let fixture = TamperFixture::publish("layout-empty-importance");
+        let files = &fixture.generation().repository().files;
+        let tampered = fixture.tamper(&files.rank_of_position.name(), |path| {
+            shorten_u32_column(path, 0);
+            shorten_u32_column(
+                path.with_file_name(files.position_of_rank.name().as_str()),
+                0,
+            );
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("should reject the mismatched layout counts");
+
+        let nodes = usize::try_from(NODES).expect("fixture node counts should fit usize");
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutCountMismatch { index, importance: 0, geometry }]
+                if *index == nodes && *geometry == nodes,
+        );
+    }
+
+    /// Rejects an empty node index beside nonempty geometry before sampling positions.
+    #[test]
+    fn open_empty_index() {
+        let fixture = TamperFixture::publish("layout-empty-index");
+        let files = &fixture.generation().repository().files;
+        let tampered = fixture.tamper(&files.row_of_position.name(), |path| {
+            constant_u64_column(path, 0, 0);
+            shorten_u32_column(
+                path.with_file_name(files.position_of_row.name().as_str()),
+                0,
+            );
+            shorten_entities::<NodeRowId>(
+                path.with_file_name(files.node_identities.name().as_str()),
+                0,
+                0,
+            );
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("should reject the mismatched layout counts");
+
+        let nodes = usize::try_from(NODES).expect("fixture node counts should fit usize");
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutCountMismatch { index: 0, importance, geometry }]
+                if *importance == nodes && *geometry == nodes,
+        );
+    }
+
+    /// Rejects a position-of-rank column that is not a permutation.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    ///
+    /// Every rank claiming position zero keeps the length and the format. The roundtrip sample
+    /// therefore refuses the pairing at the first sampled position past zero.
+    #[test]
+    fn rank_positions_constant() {
+        let fixture = TamperFixture::publish("layout-rank-positions-constant");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.position_of_rank.name(), |path| {
+            constant_u32_column(path, NODES, 0);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a position-of-rank column that is no permutation");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RankInverse {
+                position,
+                rank: _,
+                roundtrip: Some(roundtrip),
+            }) if *position > BasePosition::MIN && *roundtrip == BasePosition::MIN,
+        );
+    }
+
+    /// Rejects a rank outside the position-of-rank column's domain.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    ///
+    /// The sample reports the roundtrip as absent at the first sampled position.
+    #[test]
+    fn ranks_out_of_domain() {
+        let fixture = TamperFixture::publish("layout-ranks-out-of-domain");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.rank_of_position.name(), |path| {
+            constant_u32_column(path, NODES, u32::MAX);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses an out-of-domain rank");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RankInverse {
+                position,
+                rank,
+                roundtrip: None,
+            }) if *position == BasePosition::MIN && *rank == ImportanceRank::MAX,
+        );
+    }
+
+    /// Rejects a position-of-row column that is not a permutation.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    ///
+    /// Every node claiming position zero keeps the length and the format. Position zero's own node
+    /// roundtrips, and the first sampled position past it does not.
+    #[test]
+    fn row_positions_constant() {
+        let fixture = TamperFixture::publish("layout-row-positions-constant");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.position_of_row.name(), |path| {
+            constant_u32_column(path, NODES, 0);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a position-of-row column that is no permutation");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RowInverse {
+                position,
+                row: _,
+                roundtrip: Some(roundtrip),
+            }) if *position > BasePosition::MIN && *roundtrip == BasePosition::MIN,
+        );
+    }
+
+    /// Rejects a node row outside the position-of-row column's domain.
+    ///
+    /// Returns [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    ///
+    /// The sample reports the roundtrip as absent at the first sampled position.
+    #[test]
+    fn rows_out_of_domain() {
+        let fixture = TamperFixture::publish("layout-rows-out-of-domain");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.row_of_position.name(), |path| {
+            constant_u64_column(path, NODES, u64::MAX);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses an out-of-domain node row");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RowInverse {
+                position,
+                row,
+                roundtrip: None,
+            }) if *position == BasePosition::MIN && *row == NodeRowId::MAX,
+        );
+    }
+}

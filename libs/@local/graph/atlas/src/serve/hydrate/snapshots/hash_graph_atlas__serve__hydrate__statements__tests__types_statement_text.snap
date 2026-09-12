@@ -1,6 +1,5 @@
 ---
 source: libs/@local/graph/atlas/src/serve/hydrate/statements.rs
-assertion_line: 348
 expression: types.compile().0
 ---
 SELECT "entity_temporal_metadata_0_0_0"."web_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_edition_cache_1_1_0"."versioned_urls", "entity_edition_cache_1_1_0"."direct_types"

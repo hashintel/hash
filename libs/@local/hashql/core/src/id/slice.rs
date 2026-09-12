@@ -39,12 +39,11 @@ const fn greatest_chunk_start(length: usize, size: NonZero<usize>) -> usize {
 
 /// A slice that uses typed IDs for indexing instead of raw `usize` values.
 ///
-/// `IdSlice<I, T>` is a transparent wrapper around `[T]` that enforces type-safe indexing
-/// using ID types that implement the [`Id`] trait.
+/// `IdSlice<I, T>` has the same layout as `[T]` and uses types implementing [`Id`] for indexing.
+/// Raw conversions preserve the slice length, including lengths beyond `I`'s range. Methods
+/// producing IDs require the converted indices to be representable by `I`.
 ///
-/// The API is not complete by design, new methods will be added as needed.
-///
-/// # Examples
+/// # Example
 ///
 /// ```
 /// # use hashql_core::id::{IdSlice, Id as _, newtype};
@@ -77,87 +76,99 @@ impl<I, T> IdSlice<I, T>
 where
     I: Id,
 {
-    /// Creates a reference to an empty `IdSlice`.
+    /// Creates a reference to an empty typed slice.
     #[inline]
     #[must_use]
     pub const fn empty<'this>() -> &'this Self {
         Self::from_raw(&[])
     }
 
-    /// Creates an `IdSlice` from a raw slice reference.
+    /// Creates a typed slice from a raw slice reference.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn from_raw(raw: &[T]) -> &Self {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
+        // SAFETY: `repr(transparent)` gives `IdSlice` the layout of `raw: [T]`. Its
+        // `PhantomData` field has size 0, alignment 1 and no validity requirements.
+        // The cast preserves the address, element-count metadata and input borrow lifetime.
+        // Therefore the shared reference is valid for the returned borrow.
         unsafe { &*(ptr::from_ref::<[T]>(raw) as *const Self) }
     }
 
-    /// Creates a mutable `IdSlice` from a raw mutable slice reference.
+    /// Creates a mutable typed slice from a raw mutable slice reference.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn from_raw_mut(raw: &mut [T]) -> &mut Self {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
+        // SAFETY: `repr(transparent)` gives `IdSlice` the layout of `raw: [T]`. Its
+        // `PhantomData` field has size 0, alignment 1 and no validity requirements.
+        // The cast preserves the address and element-count metadata. The returned borrow
+        // retains the input borrow's lifetime and exclusivity, making the reference valid.
         unsafe { &mut *(ptr::from_mut(raw) as *mut Self) }
     }
 
     /// Returns the underlying raw slice.
     #[inline]
-    #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw(&self) -> &[T] {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
-        unsafe { &*(ptr::from_ref(self) as *const [T]) }
+        &self.raw
     }
 
     /// Returns the underlying raw mutable slice.
     #[inline]
-    #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw_mut(&mut self) -> &mut [T] {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
-        unsafe { &mut *(ptr::from_mut(self) as *mut [T]) }
+        &mut self.raw
     }
 
-    /// Creates an `IdSlice` from a boxed slice.
+    /// Converts a boxed slice into a boxed typed slice.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub fn from_boxed_slice<A: Allocator>(slice: Box<[T], A>) -> Box<Self, A> {
         let (ptr, alloc) = Box::into_raw_with_allocator(slice);
 
-        // SAFETY: `IdSlice` is repr(transparent) and we simply cast the underlying pointer.
+        // SAFETY: `Box::from_raw_in` requires valid contents and unique ownership under the
+        // original allocator and layout. `IdSlice` is `repr(transparent)` over `[T]`, with
+        // an unconstrained size-0, alignment-1 `PhantomData` companion. The cast preserves
+        // the address and element-count metadata, including for empty and zero-sized slices.
+        // Reconstructing once with the returned allocator preserves ownership and layout.
         unsafe { Box::from_raw_in(ptr as *mut Self, alloc) }
     }
 
-    /// Converts a boxed `IdSlice` back into its raw boxed slice.
+    /// Converts a boxed typed slice back into its raw boxed slice.
     ///
-    /// The inverse of [`from_boxed_slice`](Self::from_boxed_slice), dropping only the typed index
-    /// domain. Intended for the boundaries where a typed collection leaves the domain-indexed
-    /// world, such as handing storage to an external format that speaks raw indices.
+    /// The inverse of [`from_boxed_slice`](Self::from_boxed_slice), removing only the typed index
+    /// domain while preserving the allocation and elements.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub fn into_boxed_raw<A: Allocator>(slice: Box<Self, A>) -> Box<[T], A> {
         let (ptr, alloc) = Box::into_raw_with_allocator(slice);
 
-        // SAFETY: `IdSlice` is repr(transparent) and we simply cast the underlying pointer.
+        // SAFETY: `Box::from_raw_in` requires valid contents and unique ownership under the
+        // original allocator and layout. `repr(transparent)` gives `IdSlice` and `[T]` the
+        // same layout. The cast preserves the address and element-count metadata, including
+        // for empty and zero-sized slices. Reconstructing once with the returned allocator
+        // preserves ownership and layout.
         unsafe { Box::from_raw_in(ptr as *mut [T], alloc) }
     }
 
-    /// Converts to `Box<IdSlice<I, T>, A>`.
+    /// Converts a boxed slice of initialized slots into a boxed typed slice.
     ///
     /// See [`Box::assume_init`] for additional details.
     ///
     /// # Safety
     ///
-    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
-    /// really are in an initialized state. Calling this when the content is not yet fully
-    /// initialized causes immediate undefined behavior.
+    /// All elements must contain initialized values that satisfy `T`'s validity requirements.
+    /// See [`MaybeUninit::assume_init`].
     #[expect(unsafe_code)]
     pub unsafe fn boxed_assume_init<A: Allocator>(
         slice: Box<IdSlice<I, MaybeUninit<T>>, A>,
     ) -> Box<Self, A> {
         let (ptr, alloc) = Box::into_raw_with_allocator(slice);
 
-        // SAFETY: The caller guarantees all elements are initialized and valid `T`s.
-        // `MaybeUninit<T>` is #[repr(transparent)] over `T`, and `IdSlice` is #[repr(transparent)]
-        // over `[T]`, so the pointer cast (and its slice metadata) is layout-correct.
+        // SAFETY: `MaybeUninit<T>` guarantees `T`'s size and alignment, and `Box::from_raw_in`
+        // requires valid contents and unique ownership under the original allocator and layout.
+        // The caller guarantees all elements contain valid, initialized `T`s. Both `IdSlice`
+        // types are `repr(transparent)` over their slice tails, with size-0, alignment-1
+        // `PhantomData` companions requiring no initialized bytes. The casts preserve the
+        // address and element-count metadata, including for empty and zero-sized slices.
+        // Reconstructing once with the returned allocator is therefore valid.
         unsafe { Box::from_raw_in(ptr as *mut [MaybeUninit<T>] as *mut [T] as *mut Self, alloc) }
     }
 
@@ -208,9 +219,9 @@ where
 
     /// Returns the prefix of the slice below `bound`, keeping the index domain.
     ///
-    /// Range indexing returns a raw slice because a general sub-slice re-bases its indices to
-    /// offsets; a prefix never re-bases (every element keeps its original ID), so the typed view
-    /// is the honest return.
+    /// Range indexing returns a raw slice with indices relative to the subslice start.
+    /// A prefix starts at zero. Its indices never change, and every element keeps its original ID.
+    /// Returning a typed prefix preserves those IDs.
     ///
     /// # Panics
     ///
@@ -242,12 +253,13 @@ where
 
     /// Returns the exclusive upper bound ID for this slice.
     ///
-    /// This is equivalent to the ID that would be assigned to a new element if one were added.
-    /// Useful for bounds checking: `id < slice.bound()` tests if `id` is valid for this slice.
+    /// The ID's numeric value equals the slice length. The comparison `id < slice.bound()`
+    /// tests whether `id` indexes an element of the slice.
     ///
     /// # Panics
     ///
-    /// The slice occupies the complete ID domain and no successor ID exists.
+    /// Panics if the slice length is outside `I`'s range. This includes a slice occupying the
+    /// complete ID domain, whose exclusive upper bound has no representable ID.
     #[inline]
     pub fn bound(&self) -> I {
         I::from_usize(self.len())
@@ -261,9 +273,13 @@ where
         self.raw.is_empty()
     }
 
-    /// Returns an iterator over all valid IDs for this slice.
+    /// Returns an iterator over all element IDs for this slice.
     ///
-    /// The iterator yields IDs from 0 up to (but not including) `bound()`.
+    /// The iterator converts indices in `0..self.len()` into IDs.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
         let length = self.len();
 
@@ -273,9 +289,13 @@ where
         (0..length).map(I::from_usize)
     }
 
-    /// Returns a parallel iterator over all valid IDs for this slice.
+    /// Returns a parallel iterator over all element IDs for this slice.
     ///
     /// The parallel counterpart of [`Self::ids`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     #[cfg(feature = "rayon")]
     pub fn par_ids(&self) -> impl IndexedParallelIterator<Item = I> + 'static {
         let length = self.len();
@@ -308,7 +328,11 @@ where
 
     /// Returns an iterator over ID-element pairs.
     ///
-    /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
+    /// Like [`Iterator::enumerate`], with each index converted to `I`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     pub fn iter_enumerated(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &T)> + ExactSizeIterator + Clone {
@@ -323,8 +347,11 @@ where
 
     /// Returns a parallel iterator over ID-element pairs.
     ///
-    /// The parallel counterpart of [`Self::iter_enumerated`]: yields typed IDs instead of `usize`
-    /// indices.
+    /// The parallel counterpart of [`Self::iter_enumerated`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     #[cfg(feature = "rayon")]
     pub fn par_iter_enumerated(&self) -> impl IndexedParallelIterator<Item = (I, &T)>
     where
@@ -361,7 +388,11 @@ where
 
     /// Returns a mutable iterator over ID-element pairs.
     ///
-    /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
+    /// Like [`Iterator::enumerate`], with each index converted to `I`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     pub fn iter_enumerated_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = (I, &mut T)> + ExactSizeIterator {
@@ -376,8 +407,11 @@ where
 
     /// Returns a parallel mutable iterator over ID-element pairs.
     ///
-    /// The parallel counterpart of [`Self::iter_enumerated_mut`]: yields typed IDs instead of
-    /// `usize` indices.
+    /// The parallel counterpart of [`Self::iter_enumerated_mut`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
     #[cfg(feature = "rayon")]
     pub fn par_iter_enumerated_mut(&mut self) -> impl IndexedParallelIterator<Item = (I, &mut T)>
     where
@@ -392,7 +426,7 @@ where
             .map(|(index, value)| (I::from_usize(index), value))
     }
 
-    /// Swaps two elements in the vector.
+    /// Swaps two elements in the slice.
     ///
     /// See [`slice::swap`] for details.
     ///
@@ -409,6 +443,10 @@ where
     /// Returns an iterator over contiguous array windows of size `N`.
     ///
     /// See [`slice::array_windows`] for details.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N` is zero.
     #[inline]
     pub fn windows<const N: usize>(&self) -> impl ExactSizeIterator<Item = &[T; N]> {
         self.raw.array_windows()
@@ -416,8 +454,14 @@ where
 
     /// Returns an iterator over ID-window pairs for windows of size `N`.
     ///
-    /// Each window carries the ID of its first element, so a window at `(id, [a, b])` spans
-    /// `id` and `id.plus(1)`. See [`slice::array_windows`] for the window semantics.
+    /// Each window pairs with the ID of its first element. A window at `(id, [a, b])` contains
+    /// the elements at offsets `id.as_usize()` and `id.as_usize() + 1` in the original slice.
+    /// See [`slice::array_windows`] for the window semantics.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N` is zero or a window-start index is outside `I`'s range. A slice shorter
+    /// than `N` still requires `I` to represent zero.
     #[inline]
     pub fn windows_enumerated<const N: usize>(
         &self,
@@ -464,8 +508,12 @@ where
     /// Returns an iterator over chunks of size `size`, each with the ID of its first element.
     ///
     /// Each chunk is a slice of `size` elements, except the last chunk may be smaller. A chunk
-    /// at `(id, chunk)` spans `id` through `id.plus(chunk.len() - 1)`, mirroring
-    /// [`Self::windows_enumerated`].
+    /// at `(id, chunk)` contains the original slice's offsets in
+    /// `id.as_usize()..id.as_usize() + chunk.len()`, mirroring [`Self::windows_enumerated`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if a chunk-start index, or zero for an empty slice, is outside `I`'s range.
     #[inline]
     pub fn chunks_enumerated(
         &self,
@@ -483,6 +531,10 @@ where
     /// Returns a parallel iterator over chunks, each with the ID of its first element.
     ///
     /// The parallel counterpart of [`Self::chunks_enumerated`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if a chunk-start index, or zero for an empty slice, is outside `I`'s range.
     #[cfg(feature = "rayon")]
     #[inline]
     pub fn par_chunks_enumerated(
@@ -531,9 +583,12 @@ where
 
     /// Returns a mutable iterator over chunks, each with the ID of its first element.
     ///
-    /// Each chunk is a mutable slice of `size` elements, except the last chunk may be smaller. A
-    /// chunk at `(id, chunk)` spans `id` through `id.plus(chunk.len() - 1)`, mirroring
-    /// [`Self::chunks_enumerated`].
+    /// Each chunk is a mutable slice of `size` elements, except the last chunk may be smaller.
+    /// Its ID identifies the first element, as in [`Self::chunks_enumerated`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if a chunk-start index, or zero for an empty slice, is outside `I`'s range.
     #[inline]
     pub fn chunks_enumerated_mut(
         &mut self,
@@ -551,6 +606,10 @@ where
     /// Returns a parallel mutable iterator over chunks, each with the ID of its first element.
     ///
     /// The parallel counterpart of [`Self::chunks_enumerated_mut`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if a chunk-start index, or zero for an empty slice, is outside `I`'s range.
     #[cfg(feature = "rayon")]
     #[inline]
     pub fn par_chunks_enumerated_mut(
@@ -570,7 +629,7 @@ where
             .map(move |(index, chunk)| (I::from_usize(index * size.get()), chunk))
     }
 
-    /// Sorts the slice in place with the given comparator, in unstable order.
+    /// Sorts the slice in place with `compare`, in unstable order.
     ///
     /// See [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by) for details.
     #[inline]
@@ -578,7 +637,7 @@ where
         self.raw.sort_unstable_by(compare);
     }
 
-    /// Sorts the slice in place with the given comparator, in parallel and unstable order.
+    /// Sorts the slice in place with `compare`, in parallel and unstable order.
     ///
     /// The parallel counterpart of [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by).
     #[cfg(feature = "rayon")]
@@ -590,7 +649,7 @@ where
         self.raw.par_sort_unstable_by(compare);
     }
 
-    /// Sorts the slice in place using the given key function, in unstable order.
+    /// Sorts the slice in place by the key from `func`, in unstable order.
     ///
     /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
     #[inline]
@@ -601,7 +660,7 @@ where
         self.raw.sort_unstable_by_key(func);
     }
 
-    /// Sorts the slice in place using the given key function, in parallel and unstable order.
+    /// Sorts the slice in place by the key from `func`, in parallel and unstable order.
     ///
     /// The parallel counterpart of [`Self::sort_unstable_by_key`].
     #[cfg(feature = "rayon")]
@@ -625,7 +684,7 @@ where
         self.raw.is_sorted()
     }
 
-    /// Returns `true` if the slice is sorted by the given comparator.
+    /// Returns `true` if the slice is sorted according to `compare`.
     ///
     /// See [`slice::is_sorted_by`](prim@slice#method.is_sorted_by) for details.
     #[inline]
@@ -633,19 +692,18 @@ where
         self.raw.is_sorted_by(compare)
     }
 
-    /// Searches for an item in the slice using binary search, returning the index of the item if
-    /// found.
+    /// Finds an item's ID by binary search.
     ///
     /// See [`slice::binary_search`](prim@slice#method.binary_search) for details.
     ///
     /// # Errors
     ///
-    /// Returns the ID where a matching element could be inserted while maintaining sorted order.
+    /// When no element matches, returns the ID where inserting `item` preserves sorted order.
     ///
     /// # Panics
     ///
-    /// The insertion position lies beyond the ID domain. This occurs when the slice occupies the
-    /// complete domain and `item` belongs after every element.
+    /// Panics if the matching index or insertion position is outside `I`'s range. A slice
+    /// occupying the complete ID domain panics when `item` belongs after every element.
     #[inline]
     pub fn binary_search(&self, item: &T) -> Result<I, I>
     where
@@ -667,7 +725,7 @@ where
         IdVec::from_raw(self.raw.to_vec())
     }
 
-    /// Clones the slice into a new [`IdVec`] using the given allocator.
+    /// Clones the slice into a new [`IdVec`] using `alloc`.
     ///
     /// See [`slice::to_vec_in`](prim@slice#method.to_vec_in) for details.
     pub fn to_vec_in<A>(&self, alloc: A) -> IdVec<I, T, A>
@@ -680,11 +738,13 @@ where
 
     /// Returns the ID of the first element for which `predicate` is false.
     ///
+    /// Returns the exclusive upper bound if every element satisfies `predicate`.
     /// See [`slice::partition_point`](prim@slice#method.partition_point) for details.
     ///
     /// # Panics
     ///
-    /// Every element satisfies `predicate` and the exclusive end lies beyond the ID domain.
+    /// Panics if the partition position is outside `I`'s range, including the exclusive end
+    /// when every element satisfies `predicate`.
     #[inline]
     pub fn partition_point(&self, predicate: impl Fn(&T) -> bool) -> I {
         let index = self.raw.partition_point(predicate);
@@ -724,27 +784,29 @@ impl<I, T> IdSlice<I, MaybeUninit<T>>
 where
     I: Id,
 {
-    /// Converts `&mut IdSlice<I, MaybeUninit<T>>` to `&mut IdSlice<I, T>`.
+    /// Borrows all initialized elements as a mutable typed slice.
     ///
     /// # Safety
     ///
-    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
-    /// really are in an initialized state. Calling this when the content is not yet fully
-    /// initialized causes immediate undefined behavior.
+    /// All elements must contain initialized values that satisfy `T`'s validity requirements.
+    /// See [`MaybeUninit::assume_init`].
     pub const unsafe fn assume_init_mut(&mut self) -> &mut IdSlice<I, T> {
-        // SAFETY: The caller must ensure that all elements are initialized.
+        // SAFETY: the slice operation requires initialized values satisfying `T`'s validity
+        // requirements in all slots. The caller must guarantee that condition. The mutable
+        // borrow preserves exclusivity and lifetime, making the conversion valid.
         IdSlice::from_raw_mut(unsafe { self.raw.assume_init_mut() })
     }
 
-    /// Converts `&IdSlice<I, MaybeUninit<T>>` to `&IdSlice<I, T>`.
+    /// Borrows all initialized elements as a shared typed slice.
     ///
     /// # Safety
     ///
-    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
-    /// really are in an initialized state. Calling this when the content is not yet fully
-    /// initialized causes immediate undefined behavior.
+    /// All elements must contain initialized values that satisfy `T`'s validity requirements.
+    /// See [`MaybeUninit::assume_init`].
     pub const unsafe fn assume_init_ref(&self) -> &IdSlice<I, T> {
-        // SAFETY: The caller must ensure that all elements are initialized.
+        // SAFETY: the slice operation requires initialized values satisfying `T`'s validity
+        // requirements in all slots. The caller must guarantee that condition. The shared
+        // borrow preserves the input lifetime, making the conversion valid.
         IdSlice::from_raw(unsafe { self.raw.assume_init_ref() })
     }
 }
@@ -753,12 +815,12 @@ impl<I, T> IdSlice<I, Option<T>>
 where
     I: Id,
 {
-    /// Removes and returns the value at the given ID index.
+    /// Removes and returns the value at `index`.
     ///
     /// Returns `None` if the index is out of bounds or if the value was already `None`.
-    /// The vector is not shrunk after removal.
+    /// The slice length is unchanged after removal.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// # use hashql_core::id::{IdVec, Id as _, newtype};
@@ -773,9 +835,9 @@ where
         self.get_mut(index)?.take()
     }
 
-    /// Returns `true` if the vector contains a value (not `None`) at the given ID index.
+    /// Returns `true` if the slice contains a value at `index`.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// # use hashql_core::id::{IdVec, Id as _, newtype};
@@ -793,7 +855,7 @@ where
     ///
     /// Returns [`None`] if the index is out of bounds or if the value at that index is [`None`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// # use hashql_core::id::{IdVec, Id as _, newtype};
@@ -813,7 +875,7 @@ where
     ///
     /// Returns [`None`] if the index is out of bounds or if the value at that index is [`None`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// # use hashql_core::id::{IdVec, Id as _, newtype};
@@ -914,15 +976,23 @@ where
     unsafe_code,
     reason = "repr(transparent): the clone writes through `[T]`'s own layout"
 )]
-// SAFETY: `IdSlice` is `repr(transparent)` over `[T]`, so a clone of the inner slice written to
-// `dest` is a valid clone of the whole value under the same layout.
+// SAFETY: A normal return must leave `*dest` a valid `IdSlice<I, T>` under `self`'s pointer
+// metadata. `IdSlice` is `repr(transparent)`: `raw: [T]` is the transparent tail and
+// `_marker: PhantomData<fn(&I)>` its size-0, alignment-1 companion, valid under every byte
+// pattern. `raw` starts at offset 0 and shares `self`'s size, alignment and element-count
+// metadata. The body forwards `dest` unchanged to `<[T]>::clone_to_uninit(&self.raw, dest)`,
+// whose normal return leaves a valid `[T]` of `self.raw.len()` elements at `dest`. Beside the
+// marker, that is a fully initialized `IdSlice<I, T>`.
 unsafe impl<I, T> CloneToUninit for IdSlice<I, T>
 where
     T: Clone,
 {
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
-        // SAFETY: the caller passes `dest` valid for writes of `self`'s layout, which
-        // `repr(transparent)` makes exactly `self.raw`'s layout.
+        // SAFETY: `<[T]>::clone_to_uninit` requires `dest` valid for writes of
+        // `size_of_val(&self.raw)` bytes and aligned to `align_of_val(&self.raw)`. The caller
+        // guarantees both for `self`, and the `repr(transparent)` layout gives `self` and
+        // `self.raw` exactly the same size and alignment: zero bytes for an empty slice or a
+        // zero-sized `T`, and `T`'s own alignment for an over-aligned `T`.
         unsafe {
             <[T]>::clone_to_uninit(&self.raw, dest);
         }
@@ -984,11 +1054,16 @@ where
 #[cfg(test)]
 mod tests {
     #![expect(unsafe_code, clippy::cast_possible_truncation)]
-    use alloc::boxed::Box;
-    use core::{mem::MaybeUninit, num::NonZero};
+    use alloc::{boxed::Box, rc::Rc};
+    use core::{
+        clone::CloneToUninit as _,
+        mem::MaybeUninit,
+        num::NonZero,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use super::IdSlice;
-    use crate::id::Id as _;
+    use crate::id::{Id as _, IdVec};
 
     hashql_macros::define_id! {
         #[id(crate = crate)]
@@ -998,6 +1073,18 @@ mod tests {
     hashql_macros::define_id! {
         #[id(crate = crate)]
         struct FourElementId(u8 is 0..=3)
+    }
+
+    #[test]
+    fn raw_views_const() {
+        const VALUES: [u32; 3] = {
+            let mut values = [10, 20, 30];
+            let slice = IdSlice::<TestId, _>::from_raw_mut(&mut values);
+            slice.as_raw_mut()[1] = 42;
+            [slice.as_raw()[0], slice.as_raw()[1], slice.as_raw()[2]]
+        };
+
+        assert_eq!(VALUES, [10, 42, 30]);
     }
 
     #[test]
@@ -1168,7 +1255,7 @@ mod tests {
         }
 
         let id_slice = IdSlice::<TestId, _>::from_boxed_slice(uninit);
-        // SAFETY: All elements were initialized in the loop above
+        // SAFETY: the loop above initializes all elements.
         let init = unsafe { IdSlice::boxed_assume_init(id_slice) };
 
         assert_eq!(init.len(), 4);
@@ -1184,5 +1271,126 @@ mod tests {
         let init = unsafe { IdSlice::boxed_assume_init(id_slice) };
 
         assert!(init.is_empty());
+    }
+
+    #[test]
+    fn clone_to_uninit_order() {
+        let data = [10_u32, 20, 30];
+        let source = IdSlice::<TestId, _>::from_raw(&data);
+        let mut buffer: Box<[MaybeUninit<u32>]> = Box::new_uninit_slice(3);
+
+        // SAFETY: `buffer` holds exactly `source.len()` slots of `u32` with `u32`'s alignment, and
+        // `as_mut_ptr` points at its first byte.
+        unsafe { source.clone_to_uninit(buffer.as_mut_ptr().cast::<u8>()) };
+
+        let boxed = IdSlice::<TestId, _>::from_boxed_slice(buffer);
+        // SAFETY: `clone_to_uninit` returned normally, which initializes every slot.
+        let cloned = unsafe { IdSlice::boxed_assume_init(boxed) };
+
+        assert_eq!(cloned.as_raw(), &[10, 20, 30]);
+    }
+
+    #[test]
+    fn boxed_clone_shared() {
+        let source: Box<IdSlice<TestId, Rc<u8>>> =
+            IdVec::from_raw(alloc::vec![Rc::new(1), Rc::new(2)]).into_boxed_slice();
+        let first = TestId::from_usize(0);
+        let second = TestId::from_usize(1);
+
+        let cloned = source.clone();
+
+        assert!(Rc::ptr_eq(&source[first], &cloned[first]));
+        assert!(Rc::ptr_eq(&source[second], &cloned[second]));
+        assert_eq!(Rc::strong_count(&source[first]), 2);
+        assert_eq!(Rc::strong_count(&source[second]), 2);
+        drop(cloned);
+        assert_eq!(Rc::strong_count(&source[first]), 1);
+        assert_eq!(Rc::strong_count(&source[second]), 1);
+    }
+
+    #[test]
+    fn boxed_clone_empty() {
+        let source: Box<IdSlice<TestId, Rc<u8>>> = IdVec::new().into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert!(cloned.is_empty());
+    }
+
+    #[test]
+    fn boxed_clone_aligned_zst() {
+        static CLONES: AtomicUsize = AtomicUsize::new(0);
+
+        #[repr(align(64))]
+        struct Unit;
+
+        impl Clone for Unit {
+            fn clone(&self) -> Self {
+                CLONES.fetch_add(1, Ordering::Relaxed);
+                Self
+            }
+        }
+
+        assert_eq!(core::mem::size_of::<Unit>(), 0);
+        assert_eq!(core::mem::align_of::<Unit>(), 64);
+        let source: Box<IdSlice<TestId, Unit>> =
+            IdVec::from_raw(alloc::vec![Unit, Unit, Unit]).into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert_eq!(cloned.len(), 3);
+        assert_eq!(CLONES.load(Ordering::Relaxed), 3);
+    }
+
+    #[test]
+    fn boxed_clone_aligned() {
+        #[repr(align(64))]
+        #[derive(Clone)]
+        struct Aligned(u8);
+
+        let source: Box<IdSlice<TestId, Aligned>> =
+            IdVec::from_raw(alloc::vec![Aligned(1), Aligned(2)]).into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert_eq!(cloned.len(), 2);
+        assert_eq!(cloned[TestId::from_usize(0)].0, 1);
+        assert_eq!(cloned[TestId::from_usize(1)].0, 2);
+        assert_eq!(cloned.as_raw().as_ptr().addr() % 64, 0);
+    }
+
+    #[test]
+    fn boxed_clone_unwind() {
+        static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+        struct PanicsOnThird(u8);
+
+        impl Clone for PanicsOnThird {
+            #[track_caller]
+            fn clone(&self) -> Self {
+                assert_ne!(self.0, 3, "third clone unwinds");
+                Self(self.0)
+            }
+        }
+
+        impl Drop for PanicsOnThird {
+            fn drop(&mut self) {
+                DROPS.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+
+        let source: Box<IdSlice<TestId, PanicsOnThird>> = IdVec::from_raw(alloc::vec![
+            PanicsOnThird(1),
+            PanicsOnThird(2),
+            PanicsOnThird(3),
+        ])
+        .into_boxed_slice();
+
+        let outcome = std::panic::catch_unwind(|| source.clone());
+
+        assert!(outcome.is_err());
+        assert_eq!(DROPS.load(Ordering::Relaxed), 2);
+        drop(source);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 5);
     }
 }

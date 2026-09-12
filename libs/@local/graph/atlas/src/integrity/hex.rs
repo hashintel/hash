@@ -73,8 +73,6 @@ const fn nibble(byte: u8) -> (u8, u8) {
 #[derive(
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     PartialOrd,
     Ord,
     zerocopy::ByteHash,
@@ -155,6 +153,15 @@ const impl<const N: usize> AsMut<[u8]> for HexBytes<N> {
         &mut self.0
     }
 }
+
+const impl<const N: usize> PartialEq for HexBytes<N> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl<const N: usize> Eq for HexBytes<N> {}
 
 impl<const N: usize> fmt::Debug for HexBytes<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

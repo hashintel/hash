@@ -70,7 +70,7 @@ mod tests;
 mod write;
 
 pub(crate) use self::{
-    read::{ArrayFile, OpenArrayError},
+    read::{ArrayFile, InvalidColumnError, OpenArrayError},
     write::{ArrayWriter, ColumnScalar, SizedArrayWriter, SizedColumn},
 };
 use super::region::machine::{Architecture, Machine};

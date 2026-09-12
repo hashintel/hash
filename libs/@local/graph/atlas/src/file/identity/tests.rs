@@ -18,7 +18,10 @@ use crate::{
         auxiliary::{Icon, Label, OwnedLegend},
         memory::{MemoryNodeId, MemoryOntologyId},
     },
-    file::region::{header::HeaderError, machine::Machine},
+    file::{
+        ArtifactFile as _,
+        region::{header::HeaderError, machine::Machine},
+    },
     identity::{NodeRowId, OntologyRowId},
 };
 

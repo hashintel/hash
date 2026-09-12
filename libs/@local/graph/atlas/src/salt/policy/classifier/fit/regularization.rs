@@ -1,15 +1,15 @@
 //! Regularization-strength selection by grouped cross-validation.
 //!
 //! [`select`](FoldedTraining::select) fits one model per candidate strength and fold over the
-//! shared seeded fold
-//! assignment. It scores every candidate by the weighted-mean out-of-fold cross-entropy of its
-//! uncalibrated posteriors and picks the minimizer. An exact tie prefers the stronger penalty. The
-//! fit evidence records the full curve alongside the winner, so a reader sees the plateau the
-//! selection stood on.
+//! shared seeded fold assignment. It scores every candidate by the weighted-mean out-of-fold
+//! cross-entropy of its uncalibrated posteriors and picks the minimizer. An exact tie prefers the
+//! stronger penalty. The fit evidence records the full curve alongside the winner to expose flat
+//! regions and competing minima.
 //!
-//! The candidate grid never changes. The preparation scaling normalizes coefficient coordinates
-//! before the solver sees any candidate, so the parity strength `1.0` is the natural center and the
-//! grid brackets it by three decades either side in a logarithmic 1-3 progression.
+//! The candidate grid never changes. It brackets the default strength `1.0` by three decades either
+//! side in a logarithmic 1-3 progression. Each candidate uses the solver's [initial
+//! scaling](super::solver::prepare) to normalize coordinate curvature. This scaling conditions the
+//! solve without changing the candidate's penalty in the physical objective.
 
 use core::{
     iter,
@@ -69,8 +69,10 @@ pub(super) struct Selection {
     pub out_of_fold_logits: IdVec<CardRow, [f64; GeometryClass::COUNT]>,
 }
 
-/// Returns the position of the minimum cross-entropy, with an exact tie going to the stronger
-/// penalty.
+/// Returns the index of the least cross-entropy, preferring the later entry on an exact tie.
+///
+/// An ascending strength curve therefore prefers the stronger penalty. Returns zero for an empty
+/// curve.
 pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
     let mut winner = 0;
     for (candidate, reading) in curve.iter().enumerate() {
@@ -85,9 +87,8 @@ pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
 impl FoldedTraining<'_> {
     /// Selects the deployment regularization strength over the shared fold assignment.
     ///
-    /// Every `(candidate, fold)` model fits in parallel; a fold reports completed to `progress`
-    /// when its last candidate finishes, so the fold counter keeps its meaning under the widened
-    /// wave.
+    /// Every `(candidate, fold)` model fits in parallel. A fold reports completed to `progress`
+    /// only when its last candidate succeeds. Failed models return before reporting completion.
     ///
     /// # Errors
     ///
@@ -106,10 +107,12 @@ impl FoldedTraining<'_> {
             .flat_map(|candidate| (0..config.folds).map(move |fold| (candidate, fold)))
             .collect();
 
+        let span = tracing::Span::current();
         // Rayon's collect preserves input order: candidate-major, fold-minor.
         let models: Vec<_> = pairs
             .into_par_iter()
             .map(|(candidate, fold)| {
+                let _entered = span.enter();
                 let mut candidate_config = config;
                 candidate_config.solver.preparation.regularization = CANDIDATES[candidate];
                 let (parameters, _) =
@@ -136,9 +139,12 @@ impl FoldedTraining<'_> {
                 return Err(FitError::NonFinite);
             }
 
-            // Non-negative by the mean's own derivation (targets and weights are validated at
-            // `TrainingSet::new`, posteriors lie in the unit interval), so the construction refuses
-            // exactly the non-finite escapes: a NaN or infinite mean is a weights defect.
+            // nonnegative targets and probabilities in [0, 1] give nonnegative cross-entropy.
+            // TrainingSet::new validates the targets and positive finite weights. The finite logits
+            // above yield valid posteriors at T = 1, and the 10⁻¹² probability floor makes every
+            // row loss finite. The weighted loss or total weight can still overflow during
+            // reduction. Therefore the mean cannot be negative, and this conversion rejects exactly
+            // its non-finite results.
             let cross_entropy = DNonNegative::new(calibration::raw_cross_entropy(
                 self.training.rows(),
                 &logits,

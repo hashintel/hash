@@ -20,6 +20,7 @@ use core::{num::NonZero, time::Duration};
 use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
     math::{AffinityCurve, DPositive, Log2, NonNegative, OpenUnitFraction, Positive, UnitFraction},
+    morton::Zoom,
     salt::{
         importance::RankingConfig,
         knn::{descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
@@ -57,38 +58,6 @@ mod seconds {
         let seconds = f64::deserialize(deserializer)?;
         Duration::try_from_secs_f64(seconds).map_err(|error| {
             D::Error::custom(format_args!("{seconds} is not a span of seconds: {error}"))
-        })
-    }
-}
-
-/// Serializes a [`Log2`] as its plain exponent.
-///
-/// Validates through [`Log2::new`] on deserialize.
-mod log2 {
-    use serde::{Deserialize as _, de::Error as _};
-
-    use crate::math::Log2;
-
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` contract passes the field by reference"
-    )]
-    pub(super) fn serialize<S>(exponent: &Log2, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_u8(exponent.get())
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Log2, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = u8::deserialize(deserializer)?;
-        Log2::new(value).ok_or_else(|| {
-            D::Error::custom(format_args!(
-                "the exponent {value} is not below the u64 shift width"
-            ))
         })
     }
 }
@@ -730,9 +699,9 @@ struct LayoutOptionsDef {
 struct LodConfigDef {
     // Published manifests carry the suffixed key, and the rename pins the wire name independent of
     // the field name.
-    #[serde(with = "log2", rename = "span_log2")]
+    #[serde(rename = "span_log2")]
     span: Log2,
-    max_tile_depth: u8,
+    max_tile_depth: Zoom,
 }
 
 /// serde shadow of [`RankingConfig`].

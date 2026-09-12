@@ -6,26 +6,28 @@ use alloc::sync::Arc;
 use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
-use axum::{extract::State, http::StatusCode};
-use hashql_core::id::IdVec;
-use tokio::sync::oneshot;
-use tracing::Instrument as _;
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse as _, Response},
+};
+use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
-    extract::{Body, Generation, VariantPath},
-    problem::{Problem, ProblemType, reject_generation, reject_variant},
-    saltile::{Saltile, spawn},
-    visibility::{Visibility, view_problem},
+    extract::Body,
+    problem::{Problem, ProblemType, unknown_entity},
+    saltile::{DocumentResponse, Saltile, spawn},
+    translate,
+    visibility::Visibility,
 };
 use crate::{
-    postgres::id::ArchivedEntityId,
+    identity::NodeRowId,
+    postgres::id::ArchivedOntologyTypeUuid,
     serve::{
-        LocateError, LocateRequest,
-        hydrate::{
-            DetailError, EdgeSlot, LocateHydration, LocateOrder, LocateStore, MaskingActor,
-            NodeSlot,
-        },
+        codec::EncodedRowId,
+        document::{Document as _, LocateDocument, LocateDocumentOptions, LocateSource},
+        membership::OntologySelection,
     },
 };
 
@@ -41,31 +43,30 @@ The JSON body is required and names the source in exactly one of two fields: `en
      geometry bytes for the same source.
 
 A source may also name an entity placed since the generation was fitted: it resolves through the \
-     serving session's own records in either field form, answers its frozen coordinate and \
-     captured display, and delivers alone - the generation's adjacency never names an entity \
-     placed after the fit, so its ego-graph is empty and complete. The row ids such entities \
-     carry die with the serving session that minted them, exactly as translate describes.
+     captured publication in either field form, with its recorded coordinate, display and visible \
+     incident links. Such row ids expire with the delta lifetime, as translate describes.
 
 The source is delivered first, partners follow ascending by row id, and edges are ordered \
      ascending by link-entity identity bytes (the `EDGE_IDS` column: each edge's 32-byte entity \
-     id, web uuid then entity uuid). The manifest's `limits.locateEdges` caps the edge set; under \
-     truncation the response keeps the edges whose partners lie nearest the source, the HEAD's \
-     `complete` key reads `false`, and a partner whose every edge was truncated is not delivered.
+     id, web uuid then entity uuid). The manifest's `limits.locate.edges` caps the edge set; \
+     under truncation the response keeps the edges whose partners lie nearest the source, the \
+     HEAD's `complete` key reads `false`, and a partner whose every edge was truncated is not \
+     delivered.
 
 The HEAD also carries the source's first visible zoom and its tile there (the fly-to target), the \
      source's entity id as 32 raw bytes, and two completeness flags: `typeIdsComplete` (the \
      request's `coloredTypeIds` cover every direct type of the source) and `propertiesComplete` \
      (the trailer's source property map is the entity's whole deliverable set - every property no \
      protection withholds from the requesting actor). `coloredTypeIds` behaves exactly as on the \
-     tile route.
+     tile route, with the cap in `limits.locate.coloredTypeIds`.
 
-The response always carries the detail trailer. Labels come from the generation (for an entity \
-     placed since the fit, from its placement's captured display) and are admitted only when the \
-     request-time store read resolves the corresponding entity. The store also supplies each \
-     node's representative type, the source's properties capped by `limits.locateProperties`, and \
-     each edge's direct types and properties capped by `limits.locateLinkTypeIds` and \
-     `limits.locateLinkProperties`. Each edge cap has a completeness flag. Type and property \
-     references are integer indexes into the trailer's two sorted URL tables.
+The response always carries the detail trailer. Labels use the captured publication and appear \
+     only when the request-time store read resolves the corresponding entity. The store also \
+     supplies each node's representative type, the source's properties capped by \
+     `limits.locate.properties`, and each edge's direct types and properties capped by \
+     `limits.locate.linkTypeIds` and `limits.locate.linkProperties`. Each edge cap has a \
+     completeness flag. Type and property references are integer indexes into the trailer's two \
+     sorted URL tables.
 
 A source that does not name a visible node answers `unknown-entity`: nonexistent, inaccessible, \
      unparsable, and out-of-range `row` values are indistinguishable by design.
@@ -74,146 +75,106 @@ Filtering binds at the manifest. This body has no `filter` field, and an unknown
      rejected as `invalid-body`.
 ";
 
+/// The POST body of one locate read.
+///
+/// Exactly one of `entityId` and `row` names the subject. Specifying both or neither produces
+/// `invalid-source` before assembly.
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(super) struct LocateRequest {
+    /// The source entity id, in the node identity domain.
+    ///
+    /// Exactly one of this and `row` names the source.
+    #[serde(default)]
+    pub entity_id: Option<String>,
+    /// The source as a wire node row id - the value a tile's `ROW_IDS` column delivered.
+    ///
+    /// Exactly one of this and `entityId` names the source.
+    #[serde(default)]
+    pub row: Option<EncodedRowId<NodeRowId>>,
+    /// Versioned type URLs conditioning the `TYPE_MASK` column. Absent or empty omits it.
+    ///
+    /// Also the `typeIdsComplete` reference set: the flag reads `true` exactly when these ids
+    /// cover the source's direct types. Entries parse at the transport boundary: a malformed URL
+    /// rejects the body, while a well-formed URL this generation never ingested is legal and
+    /// reads zero bits.
+    #[serde(default)]
+    #[schemars(with = "Vec<String>")]
+    pub colored_type_ids: Vec<VersionedUrl>,
+}
+
 /// `POST /v1/atlas/locate/{generation}/{variant}`.
 ///
-/// The source's spotlight subgraph, as `SALTILEL` bytes. The source id is the request's subject, so
-/// the route requires the body.
+/// The required body names exactly one source, by entity id or row id.
 pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
-    Generation(VariantPath {
-        generation,
-        variant,
-    }): Generation<VariantPath>,
-    Body(request): Body<LocateRequest>,
-) -> Result<Saltile, Problem<'static>> {
-    reject_generation(&state, generation)?;
-    reject_variant(&variant)?;
-
-    // The whole pipeline is one synchronous call on a rayon worker; only the store order and its
-    // answer cross back here, where the connections live and the two queries run concurrently.
-    let atlas = Arc::clone(&state.atlas);
-    let limits = state.limits;
-    let masking = visibility.masking();
-    let (order_sender, order_receiver) = oneshot::channel();
-    let (answer_sender, answer_receiver) = oneshot::channel();
-    let store = ChannelLocateStore {
-        order: order_sender,
-        answer: answer_receiver,
-    };
-
-    let (result, ()) = tokio::join!(
-        spawn(AssertUnwindSafe(move || {
-            let view = visibility.view(&atlas)?;
-
-            atlas.locate(&request, limits, view, store)
-        })),
-        async {
-            // An order never arrives when the pipeline rejects the request or panics first.
-            let Ok(order) = order_receiver.await else {
-                return;
-            };
-            let _: Result<(), _> = answer_sender.send(hydrate(&state, order, masking).await);
+    Body(LocateRequest {
+        entity_id,
+        row,
+        colored_type_ids,
+    }): Body<LocateRequest>,
+) -> Result<Response, Problem<'static>> {
+    // Both/neither is the caller's own malformed request, `invalid-source`. A malformed
+    // `entityId` string collapses into `unknown-entity` exactly as an unresolvable one does, since
+    // an id that cannot name an entity is an entity that does not exist. An out-of-domain `row`
+    // reaches the same answer from inside `LocateDocument::new`.
+    let source = match (entity_id.as_deref(), row) {
+        (Some(id), None) => match translate::parse_entity_id(id) {
+            Some(entity_id) => LocateSource::Key(entity_id),
+            None => return Err(unknown_entity()),
         },
-    );
-
-    let bytes = match result? {
-        Ok(bytes) => bytes,
-        Err(error @ LocateError::UnknownEntity) => {
-            return Err(Problem::new(
-                StatusCode::NOT_FOUND,
-                ProblemType::UnknownEntity,
-                error.to_string(),
-            ));
-        }
-        Err(error @ LocateError::Types { .. }) => {
-            return Err(Problem::new(
-                StatusCode::BAD_REQUEST,
-                ProblemType::TooManyTypes,
-                error.to_string(),
-            ));
-        }
-        Err(error @ LocateError::Source { .. }) => {
+        (None, Some(row)) => LocateSource::Row(row),
+        (entity, row) => {
             return Err(Problem::new(
                 StatusCode::BAD_REQUEST,
                 ProblemType::InvalidSource,
-                error.to_string(),
+                format!(
+                    "the request carries {} source fields where exactly one of entityId and row \
+                     names the subject",
+                    usize::from(entity.is_some()) + usize::from(row.is_some()),
+                ),
             ));
-        }
-        // A stale sealed offset answers the uniform refusal. A mismatched pair or width names
-        // an input this process produced and answers the internal problem.
-        Err(LocateError::View(error)) => return Err(view_problem(error)),
-        Err(error @ LocateError::Details(_)) => {
-            return Err(Problem::internal(error, "the detail hydration failed"));
         }
     };
 
-    Ok(Saltile::new(bytes))
-}
+    let limits = state.limits.locate;
+    let resolver = Arc::clone(&state.remote);
 
-/// One locate hydration order, owned for the trip between the pipeline and the store side.
-struct LocateOrderMessage {
-    /// The delivered node identities, source first.
-    nodes: IdVec<NodeSlot, ArchivedEntityId>,
-    /// The delivered link-entity identities, ascending identity bytes.
-    links: IdVec<EdgeSlot, ArchivedEntityId>,
-    /// Most properties the source's map delivers.
-    properties: u32,
-    /// Most direct-type URLs each link delivers.
-    link_type_ids: u32,
-    /// Most properties each link's map delivers.
-    link_properties: u32,
-}
+    // The whole pipeline is one synchronous call on a rayon worker, construction, hydration, and
+    // encoding all three. `LocateDocument` borrows the scene `visibility.scene()` resolves. None
+    // of them can outlive this closure. `AssertUnwindSafe` covers the resolver's connection pool
+    // handle, the same reason the legacy channel-backed store needed it here.
+    let (bytes, content_type) = spawn(AssertUnwindSafe(
+        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+            let ontology: Vec<ArchivedOntologyTypeUuid> = colored_type_ids
+                .iter()
+                .map(ArchivedOntologyTypeUuid::from_url)
+                .collect();
+            let types = OntologySelection::new(&ontology);
 
-/// The transport's locate store, carrying one order out to the handler and one answer back in.
-struct ChannelLocateStore {
-    order: oneshot::Sender<LocateOrderMessage>,
-    answer: oneshot::Receiver<Result<LocateHydration, DetailError>>,
-}
+            let scene = visibility.scene()?;
+            let document = LocateDocument::new(
+                scene,
+                source,
+                &LocateDocumentOptions {
+                    types,
+                    limits,
+                    resolver,
+                },
+            )?;
 
-impl LocateStore for ChannelLocateStore {
-    fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
-        self.order
-            .send(LocateOrderMessage {
-                // The channel is the one boundary that owns the identities, so the views
-                // materialize here and nowhere earlier.
-                nodes: order.nodes.iter().collect(),
-                links: order.links.iter().copied().collect(),
-                properties: order.properties,
-                link_type_ids: order.link_type_ids,
-                link_properties: order.link_properties,
-            })
-            .map_err(|_order| DetailError::Disconnected)?;
+            let mut buffer = Vec::new();
+            let envelope = document
+                .encode(&mut buffer)
+                .unwrap_or_else(|never| match never {});
 
-        self.answer
-            .blocking_recv()
-            .map_err(|_closed| DetailError::Disconnected)?
-    }
-}
+            Ok((buffer, envelope.content_type()))
+        },
+    ))
+    .await??;
 
-/// Answers one order against the serving store, both halves concurrently.
-async fn hydrate<R>(
-    state: &AppState<R>,
-    order: LocateOrderMessage,
-    masking: MaskingActor,
-) -> Result<LocateHydration, DetailError> {
-    let (nodes, links) = tokio::try_join!(
-        state
-            .remote
-            .locate_node_hydration(&order.nodes, order.properties, masking)
-            .in_current_span(),
-        state
-            .remote
-            .locate_link_hydration(
-                &order.links,
-                order.link_type_ids,
-                order.link_properties,
-                masking
-            )
-            .in_current_span(),
-    )?;
-
-    Ok(LocateHydration { nodes, links })
+    Ok(DocumentResponse::new(bytes, content_type).into_response())
 }
 
 /// Documents the operation.

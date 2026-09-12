@@ -25,7 +25,7 @@
 //!
 //! The artifact derives from the endpoint column in one counting pass and publishes as one
 //! structure-only [`crate::file::sprs`] matrix: `2N` compressed rows over the fencepost column,
-//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so no value
+//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values. No value
 //! bytes exist on disk.
 //!
 //! [`AdjacencyArchive`] reopens the file over a whole-file mapping and validates the list
@@ -33,17 +33,17 @@
 //!
 //! # List contract
 //!
-//! - Matrix row `2i` is node row `i`'s outgoing run and row `2i + 1` its incoming run, so one
-//!   fencepost column serves both directions and the whole incident slice is contiguous for free.
+//! - Matrix row `2i` is node row `i`'s outgoing run and row `2i + 1` its incoming run. One
+//!   fencepost column serves both directions. The incident slice is contiguous.
 //! - Every edge row occupies exactly one outgoing slot (at its source) and one incoming slot (at
-//!   its target). A self-loop occupies both slots of its one endpoint, so a consumer merging the
-//!   directions has to dedupe.
+//!   its target). A self-loop occupies both slots of its one endpoint. Merging the directions
+//!   requires deduplication.
 //! - Within each run the edge row ids are strictly ascending: runs are binary-searchable, and
 //!   filtered merges walk them linearly.
 //! - Zero-degree nodes hold two empty runs.
 //! - The column dimension records the edge-domain bound `max(E, 1)`. The shape encoding terminates
-//!   on zero extents, so an edgeless adjacency records the smallest bound and zero entries, and the
-//!   edge count reads from the entry count alone.
+//!   on zero extents. An edgeless adjacency records the smallest bound and zero entries. The edge
+//!   count reads from the entry count alone.
 
 mod artifact;
 
@@ -56,9 +56,7 @@ use std::io;
 use hashql_core::id::Id as _;
 use sprs::{CsMatBase, SpIndex};
 
-#[cfg(test)]
-pub(crate) use self::artifact::EdgeList;
-pub(crate) use self::artifact::{AdjacencyArchive, InvalidAdjacencyFile};
+pub(crate) use self::artifact::{AdjacencyArchive, EdgeList};
 use crate::{
     file::{
         WriteAs, WriteInto,
@@ -70,8 +68,8 @@ use crate::{
 
 /// Places edge row `edge` into its source's outgoing and its target's incoming slot.
 ///
-/// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling in
-/// edge-row order lands ascending edge rows ascending in place.
+/// `cursors` holds each run's next free slot. Filling slots in edge-row order keeps each run
+/// ascending.
 fn insert_edge<I: Copy>(
     cursors: &mut [u64],
     values: &mut [I],
@@ -93,9 +91,8 @@ fn insert_edge<I: Copy>(
 
 /// A unit-value array carried as its length alone.
 ///
-/// Sparse-matrix storage wants one value slot per structural entry, and a structure-only matrix's
-/// entries are units. A unit occupies no bytes, so the length is the whole value: `n` of them are
-/// recoverable from `n`, and holding the count costs what holding the array would have cost.
+/// Sparse-matrix storage requires one value slot per structural entry. A unit occupies no bytes,
+/// and `n` units are recoverable from the length `n`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct UnitSlice {
     length: usize,
@@ -105,7 +102,7 @@ impl Deref for UnitSlice {
     type Target = [()];
 
     fn deref(&self) -> &[()] {
-        // SAFETY: `()` is zero-sized, so the slice covers no bytes at any length. The pointer
+        // SAFETY: `()` is zero-sized. The slice covers no bytes at any length. The pointer
         // to `self` is non-null and trivially aligned for `()`, zero bytes are valid for reads
         // at any address, and no element count of a zero-sized type overflows `isize` in bytes.
         unsafe { core::slice::from_raw_parts(core::ptr::from_ref(self).cast::<()>(), self.length) }
@@ -150,7 +147,7 @@ impl Adjacency {
         let mut fenceposts = vec![0_u64; 2 * rows + 1];
 
         // Degrees first: slot 2i + 1 counts node i's outgoing edges and
-        // slot 2i + 2 its incoming, so the prefix sum below turns the
+        // slot 2i + 2 its incoming. The prefix sum below turns the
         // counts into the run fenceposts directly.
         for &[source, target] in endpoints {
             let source = source.as_usize();
@@ -202,7 +199,7 @@ impl Adjacency {
             AdjacencyGraph::U32(graph) => graph.rows(),
             AdjacencyGraph::U64(graph) => graph.rows(),
         };
-        // The list contract stores two runs per node, so the halving is exact.
+        // The list contract stores two runs per node. The halving is exact.
         runs.div_euclid(2)
     }
 

@@ -25,6 +25,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::{Device, Inference, Training},
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{GenerationRoot, StagedGeneration},
         repository::Artifact as _,

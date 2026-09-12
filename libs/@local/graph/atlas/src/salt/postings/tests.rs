@@ -777,7 +777,7 @@ fn closure_expands_the_fixture_graph() {
 }
 
 #[test]
-fn closure_rejects_parent_cycles() {
+fn closure_parent_cycles() {
     let dir = scratch("cycle");
 
     // Types 0 and 1 parent each other. Type 2 stands free and
@@ -794,16 +794,9 @@ fn closure_rejects_parent_cycles() {
     assert_eq!(error.entangled, 2);
 }
 
-/// The icon memo resolves the nearest icon-bearing ancestor, exactly where a request-time cache
-/// went wrong.
-///
-/// The graph is the counterexample that killed the cross-position icon cache: parents `1 <- 3`,
-/// `3 <- {4, 5}`, `{2, 5} <- 0`, icons on 0 and 4. A walk from direct types `{1, 2}` finds 0's
-/// icon after visiting 3, so a cache keyed by visited types would poison 3 with 0's icon - yet
-/// 3's own nearest icon is 4's at depth one. The memo resolves each type over the whole graph,
-/// so 3 reads 4.
+/// Each type resolves its own nearest icon regardless of other types' traversal paths.
 #[test]
-fn icon_memo_resolves_the_nearest_ancestor_icon() {
+fn icon_memo_nearest_ancestor() {
     let dir = scratch("icon-memo");
 
     // Types 6 and 7 chain icon-free, so their cones record no source.
@@ -821,7 +814,6 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
     assert_eq!(closure.icon_source(id(0)), source(id(0), 0));
     assert_eq!(closure.icon_source(id(1)), source(id(4), 2));
     assert_eq!(closure.icon_source(id(2)), source(id(0), 1));
-    // The cell the request-time cache poisoned: 3's nearest icon is 4's, not 0's.
     assert_eq!(closure.icon_source(id(3)), source(id(4), 1));
     assert_eq!(closure.icon_source(id(4)), source(id(4), 0));
     assert_eq!(closure.icon_source(id(5)), source(id(0), 1));
@@ -829,6 +821,8 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
     // An icon-free cone records no source, at any height.
     assert_eq!(closure.icon_source(id(6)), None);
     assert_eq!(closure.icon_source(id(7)), None);
+    assert_eq!(closure.icon_source(id(8)), None);
+    assert_eq!(closure.icon_source(id(u64::MAX)), None);
 }
 
 /// Depth beats run order, and run order breaks equal-depth ties.
@@ -838,7 +832,7 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
 /// resolve at depth one, so the earlier parent in the run - ascending rows, the artifact
 /// contract - decides.
 #[test]
-fn icon_memo_ties_resolve_by_depth_then_run_order() {
+fn icon_memo_depth_and_run_order() {
     let dir = scratch("icon-ties");
     let postings = Postings::build(
         &types(&[&[3, 4]]),

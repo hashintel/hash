@@ -6,9 +6,12 @@ use std::path::Path;
 use zerocopy::FromBytes as _;
 
 use super::{FileHeader, KeyKind, Kind, PayloadSpan};
-use crate::file::region::{
-    PAGE,
-    header::{HeaderError, HeaderMap},
+use crate::file::{
+    ArtifactFile,
+    region::{
+        PAGE,
+        header::{HeaderError, HeaderMap},
+    },
 };
 
 /// Opening an identity file failed.
@@ -75,7 +78,9 @@ pub(crate) struct IdentityFile {
     map: HeaderMap<FileHeader>,
 }
 
-impl IdentityFile {
+impl ArtifactFile for IdentityFile {
+    type Error = OpenIdentityError;
+
     /// Opens and maps the identity file at `path`.
     ///
     /// # Errors
@@ -84,7 +89,7 @@ impl IdentityFile {
     /// [`OpenIdentityError::Length`] when the file length contradicts the header's geometry, and
     /// [`OpenIdentityError::Index`] when the index region is not an fst map.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenIdentityError> {
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenIdentityError::Header)?;
 
         let expected = map.header().expected_file_len();
@@ -99,7 +104,9 @@ impl IdentityFile {
 
         Ok(file)
     }
+}
 
+impl IdentityFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]

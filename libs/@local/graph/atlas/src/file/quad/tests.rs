@@ -15,12 +15,15 @@ use super::{
     write::write_regions,
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    file::{
+        ArtifactFile as _,
+        region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    },
     morton::{Depth, MortonCell},
 };
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 fn cell(depth_value: u8, x: u32, y: u32) -> MortonCell {

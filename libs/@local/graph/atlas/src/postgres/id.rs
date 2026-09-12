@@ -206,6 +206,22 @@ impl From<ArchivedEntityId> for EntityId {
     }
 }
 
+impl serde::Serialize for ArchivedEntityId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&EntityId::from(*self))
+    }
+}
+
+impl schemars::JsonSchema for ArchivedEntityId {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        "EntityId".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        String::json_schema(generator)
+    }
+}
+
 impl Key for ArchivedEntityId {
     type Payload = Legend;
 
@@ -251,7 +267,7 @@ impl ArchivedOntologyTypeUuid {
     }
 }
 
-impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
+const impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
         Self(id.into_bytes())

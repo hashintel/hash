@@ -231,6 +231,24 @@ impl Bounds2 {
         }
     }
 
+    /// Folds one more point into an extent accumulated so far.
+    ///
+    /// The incremental form of [`from_points`](Self::from_points) for callers that visit their
+    /// points one at a time. `None` seeds the extent with the point. A non-finite point yields
+    /// [`None`], as [`from_points`](Self::from_points) does, and a later finite point re-seeds.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn extend(extent: Option<Self>, point: Vec2) -> Option<Self> {
+        match extent {
+            Some(bounds) if point.is_finite() => Some(Self {
+                min: bounds.min.min(point),
+                max: bounds.max.max(point),
+            }),
+            Some(_) => None,
+            None => Self::new(point, point),
+        }
+    }
+
     /// Widens any axis narrower than `minimum` to exactly `minimum`.
     ///
     /// Symmetrically around its centre.
@@ -417,9 +435,34 @@ impl Bounds2 {
 
         mapped
     }
-}
 
-impl Bounds2 {
+    /// Maps this box onto `target`: the image of [`normalize_into`](Self::normalize_into).
+    ///
+    /// An axis with positive extent covers the target's whole axis, and a zero-extent axis maps to
+    /// the target's centre. When this box is the tight box of a point set, the result is the tight
+    /// box of that set normalized, read from the corners alone.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let world = Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+    ///     .expect("corners are finite and ordered");
+    /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
+    ///
+    /// assert_eq!(world.image_in(frame), frame);
+    /// ```
+    #[must_use]
+    pub(crate) fn image_in(self, target: Self) -> Self {
+        let x = AxisMap::new(self.min.x(), self.max.x(), target.min.x(), target.max.x());
+        let y = AxisMap::new(self.min.y(), self.max.y(), target.min.y(), target.max.y());
+
+        // An affine map with non-negative scale keeps the corners ordered and finite.
+        Self {
+            min: Vec2::new(x.apply(self.min.x()), y.apply(self.min.y())),
+            max: Vec2::new(x.apply(self.max.x()), y.apply(self.max.y())),
+        }
+    }
+
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
     /// Each axis maps affinely onto `[0, 2^32)` in `f64` (so every `f32` coordinate quantizes

@@ -663,8 +663,9 @@ struct BuildMeasurementsDef {
 
 /// Serializes a [`Depth`] as its subdivision count.
 ///
-/// Validates through [`Depth::new`] on deserialize.
+/// Validates through [`Depth::try_new`] on deserialize.
 mod depth {
+    use hashql_core::id::Id as _;
     use serde::{Deserialize as _, de::Error as _};
 
     use crate::morton::Depth;
@@ -685,7 +686,7 @@ mod depth {
         D: serde::Deserializer<'de>,
     {
         let value = u8::deserialize(deserializer)?;
-        Depth::new(value).ok_or_else(|| {
+        Depth::try_new(value).ok_or_else(|| {
             D::Error::custom(format_args!(
                 "the depth {value} exceeds the {} subdivisions a 64-bit Morton key resolves",
                 Depth::MAX.get(),

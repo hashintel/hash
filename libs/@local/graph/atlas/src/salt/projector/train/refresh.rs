@@ -286,6 +286,38 @@ where
     }
 }
 
+/// Replaces `frame` with projected coordinates, including any non-finite output.
+pub(crate) fn forward_unchecked_in<N, B: Backend<FloatElem = f32>>(
+    model: &Projector<B>,
+    columns: NodeColumns<'_, N>,
+    eta: NonNegative,
+    forward_rows: NonZero<usize>,
+    device: &B::Device,
+    frame: &mut IdVec<N, Vec2>,
+) where
+    N: Id,
+{
+    frame.clear();
+    let rows = columns.representations.len();
+    let mut start = 0;
+
+    while start < rows {
+        let end = (start + forward_rows.get()).min(rows);
+        let coordinates = model.forward(columns.input_range(start..end, eta, device));
+
+        let data = coordinates.into_data();
+        let values = data
+            .as_slice::<f32>()
+            .expect("the projector's coordinates are an f32 tensor");
+
+        let points =
+            Vec2::from_slice(values).expect("a [rows, 2] tensor reads back an even length");
+
+        frame.extend_from_slice(IdSlice::from_raw(points));
+        start = end;
+    }
+}
+
 /// Projects the whole corpus at one step, in bounded row slices.
 ///
 /// `forward_rows` bounds each slice's row count, and with it the peak device memory of a corpus

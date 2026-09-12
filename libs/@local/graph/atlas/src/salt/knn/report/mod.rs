@@ -26,6 +26,7 @@ use hashql_core::id::IdSlice;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, OpenArrayError},
         generation::{CurrentError, GenerationId, GenerationRoot, OpenError},
     },

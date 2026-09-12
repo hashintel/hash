@@ -83,6 +83,12 @@ impl<T> CompressedBitSet<T> {
         self.rows.is_empty()
     }
 
+    /// Returns whether the set admits every row of `[0, n)`.
+    #[must_use]
+    pub(crate) fn is_full(&self) -> bool {
+        self.rows.is_full()
+    }
+
     /// Returns the set's retained container bytes.
     ///
     /// The figure sums the bitmap's array, run and bitset container payloads plus

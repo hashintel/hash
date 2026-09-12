@@ -180,7 +180,7 @@
 //! fields rather than as files of their own. Activation is one current-generation pointer above the
 //! versioned directories.
 
-use std::io;
+use std::{io, path::Path};
 
 use crate::integrity::Sha256Digest;
 
@@ -198,6 +198,16 @@ pub(crate) mod region;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;
+
+pub(crate) trait ArtifactFile {
+    type Error: core::error::Error;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}
+
+pub(crate) trait OpenAs<A>: ArtifactFile {}
 
 /// A value that writes itself as one artifact stream and names the written bytes.
 ///
@@ -251,7 +261,7 @@ pub(crate) fn digest_file(path: impl AsRef<camino::Utf8Path>) -> io::Result<Sha2
         accumulator: crate::integrity::Sha256::new(),
         writer: io::sink(),
     };
-    io::copy(&mut std::fs::File::open(path)?, &mut writer)?;
+    io::copy(&mut std::fs::File::open_buffered(path)?, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
 }

@@ -14,7 +14,7 @@ use hashql_core::{
 
 use super::rank::Ranking;
 use crate::{
-    identity::ImportanceRank,
+    math::Log2,
     morton::{Depth, MortonKey},
 };
 
@@ -23,10 +23,9 @@ use crate::{
 /// The bucket is the shallowest grid depth at which the point first occupies its cell.
 ///
 /// The cascade scans depths coarse to fine. At each depth, every occupied cell that no
-/// earlier-assigned point lies in receives its first still-unassigned point in rank order; the rest
-/// continue deeper. Points never claiming a cell - co-located within one deepest-grid cell - take
-/// `deepest`, the catch-all bucket, so `deepest` is the one bucket holding more than one point per
-/// cell.
+/// earlier-assigned point lies in receives its first still-unassigned point in rank order. The rest
+/// continue deeper. Points never claiming a cell take `deepest`, the catch-all bucket. Only the
+/// catch-all can hold more than one point per cell.
 ///
 /// Delivering every point with a bucket at or below a cut depth therefore covers every occupied
 /// cell of the cut's grid. [`verify_coverage`] rechecks that claim for one generation.
@@ -53,10 +52,9 @@ pub(crate) fn buckets<R: Id>(
     let mut buckets = IdVec::<R, Depth>::from_elem(deepest, keys.len());
     let mut assigned = DenseBitSet::<R>::new_empty(keys.len());
 
-    // A hash set holds the cells. Its elements are `prefix(depth)` keys, and their `4^depth`-cell
-    // domain outgrows the row count from depth ~10 on while the populated cells stay bounded by the
-    // rows, so the hash set pays only for the cells the cascade touches. The row set fills a linear
-    // domain, which a dense bit set fits.
+    // The occupied cells number at most one per row, while the cell domain grows as 4ᵈ at depth d.
+    // A hash set allocates for occupied cells. The row set has a linear domain and uses a dense bit
+    // set.
     let mut seen = fast_hash_set();
 
     // One rank-ordered pass per depth suffices with a single cell set. Within any cell an
@@ -65,7 +63,8 @@ pub(crate) fn buckets<R: Id>(
     // assigned point therefore marks its cell before any unassigned visitor arrives. The first
     // unassigned visitor of an unmarked cell holds the cell's best still-unassigned rank.
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         seen.clear();
         for &row in ranking.row_of_rank.iter() {
@@ -94,18 +93,17 @@ pub(crate) fn buckets<R: Id>(
 /// point sharing its key with a better-ranked point shares every grid and takes [`Depth::MAX`],
 /// the catch-all.
 ///
-/// The keys ascend, so the deepest grid a point shares with any better-ranked point is the
-/// deepest it shares with the key-nearest better-ranked point on either side. One
-/// monotonic-stack pass finds both neighbours, and the assignment costs `O(points)` after the
-/// sort that ordered them.
+/// Among key-sorted points, the key-nearest better-ranked point on either side attains the deepest
+/// shared grid. One monotonic-stack pass finds both neighbours, and the assignment costs
+/// `O(points)` after the sort that ordered them.
 ///
 /// Caller requirement: `points` ascends by `(key, rank)` under the given accessors, and the
 /// ranks are pairwise distinct.
 #[must_use]
-pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
+pub(crate) fn separation_buckets_in<T, P: Ord, A: Allocator, S: Allocator>(
     points: &[T],
     key: impl Fn(&T) -> MortonKey,
-    rank: impl Fn(&T) -> ImportanceRank,
+    rank: impl Fn(&T) -> P,
     alloc: A,
     scratch: S,
 ) -> Box<[Depth], A> {
@@ -116,7 +114,8 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
         "the points must ascend by (key, rank)",
     );
 
-    let separation = |left: &T, right: &T| key(left).shared_depth(key(right)).saturating_add(1);
+    let separation =
+        |left: &T, right: &T| key(left).shared_depth(key(right)).saturating_add(Log2::ONE);
 
     // The stack holds the points whose nearest better-ranked right neighbour is still unseen, ranks
     // ascending from bottom to top. The point that pops an entry is that neighbour, and
@@ -154,10 +153,10 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
 ///
 /// See: [`separation_buckets_in`].
 #[must_use]
-pub(crate) fn separation_buckets<T>(
+pub(crate) fn separation_buckets<T, P: Ord>(
     points: &[T],
     key: impl Fn(&T) -> MortonKey,
-    rank: impl Fn(&T) -> ImportanceRank,
+    rank: impl Fn(&T) -> P,
 ) -> Box<[Depth]> {
     separation_buckets_in(points, key, rank, Global, Global)
 }
@@ -175,7 +174,7 @@ pub(crate) struct CoverageGap {
 /// Checks the cascade's coverage contract over one assignment.
 ///
 /// For every depth up to `deepest` and every occupied cell of that depth's grid, at least one point
-/// of the cell carries a bucket at or below the depth; delivering the buckets-at-or-below-cut
+/// of the cell carries a bucket at or below the depth. Delivering the buckets-at-or-below-cut
 /// prefix then shows every occupied cell. The cascade guarantees this by construction - the check
 /// is the publishable evidence, not a consumer's obligation.
 ///
@@ -185,7 +184,7 @@ pub(crate) struct CoverageGap {
 #[cfg(any(test, feature = "bench"))]
 #[expect(
     clippy::panic_in_result_fn,
-    reason = "mismatched row counts are a programmer error, not a coverage gap"
+    reason = "mismatched row counts violate the assignment's input contract"
 )]
 pub(crate) fn verify_coverage<R: Id>(
     keys: &IdSlice<R, MortonKey>,
@@ -202,7 +201,8 @@ pub(crate) fn verify_coverage<R: Id>(
 
     let mut covered = HashSet::new();
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         covered.clear();
         covered.extend(

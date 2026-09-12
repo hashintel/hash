@@ -1,1333 +1,1807 @@
-use hash_graph_postgres_store::store::{EntityDeletion, EntityEnd, EntityEvent, EntityUpdate};
-use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hashql_core::collections::FastHashMap;
-use type_system::knowledge::entity::{
-    EntityId,
-    id::{EntityEditionId, EntityUuid},
-    provenance::EntityDeletionProvenance,
+use alloc::sync::Arc;
+use core::{assert_matches, cell::RefCell, iter, ptr};
+
+use arc_swap::Guard;
+use error_stack::Report;
+use hashql_core::id::Id as _;
+use rand::{SeedableRng as _, rngs::StdRng};
+use type_system::{
+    knowledge::entity::EntityId,
+    principal::actor::{ActorId, ActorType},
 };
 use uuid::Uuid;
 
 use super::{
-    DeltaCell, DeltaEdge, DeltaEvent, DeltaNode, DeltaRegister, DeltaRevision, Disposition,
-    IdentityTables, ProjectedArrival, Standing,
-    consumer::{DeltaPolling, PollOutcome},
-    register::UniverseExhausted,
-    staging::{MissAction, StagingPipeline},
+    Delta, DeltaRevision,
+    epoch::Epoch,
+    overlay::{DeltaIdentityProvider, NaiveIdentityProvider},
 };
 use crate::{
-    dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel, OwnedLegend},
+    bitset::CompressedBitSet,
+    dataset::auxiliary::{Label, OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{BoxedVecN, Vec2},
-    postgres::{
-        Classification,
-        edition_display::DisplayParts,
-        id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
+    math::{Bounds2, Log2, Vec2},
+    morton::{Depth, MortonCell, Zoom},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    salt::{
+        fit::prepare::IdentityProvider as _,
+        lod::stage::{LodConfig, WIRE_FRAME},
     },
-    serve::codec::Universe,
+    serve::{
+        document::{
+            LocateDocument, LocateDocumentError, LocateDocumentOptions, LocateLimits, LocateSource,
+        },
+        hydrate::{HydrateError, LocateProperties, LocateRequest, LocateResolver},
+        membership::OntologySelection,
+        scene::Scene,
+        schedule::{BucketSchedule, DeliveredNodes, DeliverySchedule, ScopeSchedule, ViewSchedule},
+        tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
+        visibility::{VisibilityActor, VisibilityMask},
+        walk::Walk,
+        world::World,
+    },
 };
 
-/// The fixture generation's base row bound, past every fitted row the tables name.
-const BASE: u32 = 100;
+fn fixture(name: &str) -> (TamperFixture, Delta) {
+    let fixture = TamperFixture::publish(name);
+    let world = World::open(fixture.generation().clone(), &secret())
+        .expect("should open the synthetic world");
+    let delta = Delta::new(Arc::new(world), StdRng::seed_from_u64(17))
+        .expect("should allocate a delta identity");
+    (fixture, delta)
+}
 
-/// The fixture generation's tabulated type bound, where ontology row allocation starts.
-const ONTOLOGY_BASE: u64 = 8;
+fn entity(seed: u128) -> ArchivedEntityId {
+    ArchivedEntityId {
+        web_id: Uuid::from_u128(1).into(),
+        entity_uuid: Uuid::from_u128(seed).into(),
+    }
+}
 
-/// The fixture generation's fitted edge bound, where edge row allocation starts.
-const EDGE_BASE: u64 = 40;
+fn legend(label: &str) -> OwnedLegend {
+    OwnedLegend::new(OntologyRowId::MIN, Label::new(label))
+}
 
-/// An empty register whose row allocation starts at the fixture's bounds.
-fn register() -> DeltaRegister {
-    DeltaRegister::new(
-        Universe::new(slot(BASE)),
-        Universe::new(EdgeRowId::new(EDGE_BASE)),
-        Universe::new(OntologyRowId::new(ONTOLOGY_BASE)),
+fn epoch(delta: &Delta) -> Epoch {
+    Epoch::from(Guard::from_inner(Arc::new(delta.clone())))
+}
+
+#[test]
+fn decode_base() {
+    let (_fixture, delta) = fixture("decode-base");
+    let index = &delta.world.layout.index;
+    let captured = epoch(&delta);
+    for row in (0..NODES).map(NodeRowId::new) {
+        assert_eq!(
+            index.decode(&captured, index.encode(row)),
+            Some(row),
+            "should invert each allocated base row"
+        );
+    }
+    for row in [NodeRowId::new(NODES), NodeRowId::from_u32(u32::MAX)] {
+        assert_eq!(
+            index.decode(&captured, index.encode(row)),
+            None,
+            "should reject rows outside the captured allocation domain"
+        );
+    }
+}
+
+#[test]
+fn decode_captures() {
+    let (_fixture, mut delta) = fixture("decode-captures");
+    let world = Arc::clone(&delta.world);
+    let index = &world.layout.index;
+    let rows = [NodeRowId::MIN, NodeRowId::new(NODES)];
+    let wires = rows.map(|row| index.encode(row));
+    let identities = [
+        index
+            .identity
+            .key_of(rows[0])
+            .expect("should resolve the base node"),
+        entity(905),
+    ];
+    let before = epoch(&delta);
+
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert_eq!(
+            delta.update_node(identity, legend("live"), Vec2::ZERO),
+            Some(true),
+            "should activate the base and added nodes"
+        );
+    }
+    let live = epoch(&delta);
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert!(delta.withdraw(identity), "should withdraw the node");
+    }
+    let withdrawn = epoch(&delta);
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert_eq!(
+            delta.update_node(identity, legend("revived"), Vec2::ZERO),
+            Some(true),
+            "should revive the existing row"
+        );
+    }
+    let revived = epoch(&delta);
+    drop(delta);
+
+    for ((row, wire), earlier) in rows.into_iter().zip(wires).zip([Some(rows[0]), None]) {
+        assert_eq!(
+            index.decode(&before, wire),
+            earlier,
+            "should preserve pre-allocation capture"
+        );
+        assert_eq!(
+            index.decode(&live, wire),
+            Some(row),
+            "should decode the live capture"
+        );
+        assert_eq!(
+            index.decode(&withdrawn, wire),
+            None,
+            "should reject the withdrawn capture"
+        );
+        assert_eq!(
+            index.decode(&revived, wire),
+            Some(row),
+            "should decode the revived row"
+        );
+        assert_eq!(
+            index.encode(row),
+            wire,
+            "should preserve the row's encoded identity"
+        );
+    }
+    let outside = index.encode(NodeRowId::new(NODES + 1));
+    assert_eq!(
+        index.decode(&revived, outside),
+        None,
+        "should reject the next unallocated row"
+    );
+}
+
+#[test]
+#[should_panic(expected = "index must belong to the epoch's world")]
+fn decode_foreign_world() {
+    let (_left_files, left) = fixture("decode-foreign-left");
+    let (_right_files, right) = fixture("decode-foreign-right");
+    let index = &left.world.layout.index;
+    let _row = index.decode(&epoch(&right), index.encode(NodeRowId::MIN));
+}
+
+#[test]
+fn mask_actor() {
+    let (_fixture, delta) = fixture("mask-actor");
+    let captured = epoch(&delta);
+    for (seed, kind, instance_admin) in [(1, ActorType::User, false), (2, ActorType::Machine, true)]
+    {
+        let actor = VisibilityActor {
+            id: ActorId::new(Uuid::from_u128(seed), kind),
+            instance_admin,
+        };
+        for mask in [
+            VisibilityMask::full(&captured, actor),
+            VisibilityMask::partial(
+                &captured,
+                actor,
+                CompressedBitSet::default(),
+                CompressedBitSet::default(),
+            ),
+        ] {
+            let bound = mask.actor();
+            assert_eq!(bound.id, actor.id, "should retain the bound actor identity");
+            assert_eq!(
+                bound.instance_admin, actor.instance_admin,
+                "should retain the bound privilege"
+            );
+        }
+    }
+}
+
+/// Repeated insertion and revival preserve the node row and its first coordinates.
+#[test]
+fn node_added_revival() {
+    let (_fixture, mut delta) = fixture("delta-node-added-revival");
+    let world = Arc::clone(&delta.world);
+    let before = epoch(&delta);
+    let entity = entity(100);
+    let position = Vec2::new(0.25, -0.5);
+    delta.revision = DeltaRevision::new(1);
+    assert_eq!(
+        delta.update_node(entity, legend("first"), position),
+        Some(true)
+    );
+    let row = delta.node_row(entity).expect("should allocate a node row");
+    let first = epoch(&delta);
+    let first_payload = world
+        .layout
+        .index
+        .payload(&first, row)
+        .expect("should borrow the added node legend");
+    assert!(world.layout.index.payload(&before, row).is_none());
+    assert_eq!(row, NodeRowId::new(NODES));
+    assert_eq!(delta.world.layout.position(&first, row), Some(position));
+    let count = usize::try_from(NODES).expect("should fit the fixture count") + 1;
+    assert_eq!(delta.world.topology.node_count(&first), count);
+    assert_eq!(delta.world.layout.node_count(&first), count);
+    assert_eq!(
+        delta.update_node(entity, legend("first"), Vec2::ZERO),
+        Some(false)
+    );
+
+    delta.revision = DeltaRevision::new(2);
+    assert!(delta.withdraw(entity), "should withdraw the placed node");
+    assert!(
+        !delta.withdraw(entity),
+        "should leave a repeated withdrawal unchanged"
+    );
+    assert_eq!(delta.node_row(entity), Some(row));
+    let withdrawn = epoch(&delta);
+    assert_eq!(delta.world.layout.position(&withdrawn, row), None);
+
+    delta.revision = DeltaRevision::new(3);
+    assert_eq!(
+        delta.update_node(entity, legend("latest"), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = epoch(&delta);
+    assert_eq!(delta.world.layout.position(&revived, row), Some(position));
+    assert_eq!(delta.world.layout.position(&withdrawn, row), None);
+    assert_eq!(delta.world.layout.position(&first, row), Some(position));
+    assert_eq!(
+        world
+            .layout
+            .index
+            .payload(&revived, row)
+            .expect("should borrow the revived node legend")
+            .label(),
+        "latest"
+    );
+    assert!(world.layout.index.payload(&withdrawn, row).is_none());
+    assert_eq!(first_payload.label(), "first");
+}
+
+/// Full identities keep equal entity UUIDs in different webs independent.
+#[test]
+fn withdraw_other_web() {
+    let (_fixture, mut delta) = fixture("delta-withdraw-other-web");
+    let left = entity(101);
+    let right = ArchivedEntityId {
+        web_id: Uuid::from_u128(2).into(),
+        ..left
+    };
+    assert_eq!(
+        delta.update_node(left, legend("left"), Vec2::ZERO),
+        Some(true)
+    );
+    assert_eq!(
+        delta.update_node(right, legend("right"), Vec2::splat(0.5)),
+        Some(true)
+    );
+    let left_row = delta.node_row(left).expect("should resolve the left node");
+    let right_row = delta
+        .node_row(right)
+        .expect("should resolve the right node");
+    delta.revision.increment_by(1);
+    assert!(
+        delta.withdraw(left),
+        "should withdraw only the addressed identity"
+    );
+    assert!(
+        !delta.withdraw(entity(999)),
+        "should ignore an unknown identity"
+    );
+    let epoch = epoch(&delta);
+    assert_eq!(delta.world.layout.position(&epoch, left_row), None);
+    assert_eq!(
+        delta.world.layout.position(&epoch, right_row),
+        Some(Vec2::splat(0.5))
+    );
+}
+
+/// Node revival restores incident edges unless the edge has its own withdrawal.
+#[test]
+fn endpoints_node_and_edge_withdrawals() {
+    let (_fixture, mut delta) = fixture("delta-endpoint-withdrawals");
+    let node = ENDPOINTS[0][1];
+    let entity = delta
+        .world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted node");
+    let edge = EdgeRowId::MIN;
+    let edge_entity = delta
+        .world
+        .topology
+        .identity
+        .key_of(edge)
+        .expect("should resolve the fitted edge");
+    let held_legend = delta
+        .world
+        .layout
+        .index
+        .identity
+        .payload_of_row(node)
+        .expect("should read the fitted legend")
+        .to_owned();
+    let before = epoch(&delta);
+    assert_eq!(
+        delta.world.topology.endpoints(&before, edge),
+        Some(ENDPOINTS[0])
+    );
+
+    delta.revision.increment_by(1);
+    assert!(
+        delta.withdraw(entity),
+        "should withdraw the fitted endpoint"
+    );
+    let hidden = epoch(&delta);
+    assert_eq!(delta.world.topology.endpoints(&hidden, edge), None);
+    assert_eq!(
+        delta.world.topology.endpoints(&hidden, EdgeRowId::new(1)),
+        None
+    );
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .incoming(&hidden, node)
+            .collect::<Vec<_>>(),
+        []
+    );
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .outgoing(&hidden, ENDPOINTS[0][0])
+            .collect::<Vec<_>>(),
+        []
+    );
+    assert_eq!(
+        delta.world.topology.endpoints(&before, edge),
+        Some(ENDPOINTS[0])
+    );
+    assert_eq!(
+        delta.world.topology.edge_count(&hidden),
+        usize::try_from(EDGES).expect("should fit the fixture count")
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(entity, held_legend.clone(), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = epoch(&delta);
+    assert_eq!(
+        delta.world.topology.endpoints(&revived, edge),
+        Some(ENDPOINTS[0])
+    );
+    assert_eq!(
+        delta.world.layout.position(&revived, node),
+        delta.world.layout.position(&before, node)
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(entity), "should withdraw the endpoint again");
+    assert!(
+        delta.withdraw(edge_entity),
+        "should record the edge's own withdrawal"
+    );
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(entity, held_legend, Vec2::ZERO),
+        Some(true)
+    );
+    let independent = epoch(&delta);
+    assert_eq!(delta.world.topology.endpoints(&independent, edge), None);
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .endpoints(&independent, EdgeRowId::new(1)),
+        Some(ENDPOINTS[1])
+    );
+}
+
+/// Added edges remain unbound until endpoint rows resolve and retain their first pair.
+#[test]
+fn edge_unbound_revival() {
+    let (_fixture, mut delta) = fixture("delta-edge-unbound-revival");
+    let entity = entity(102);
+    let edge = EdgeRowId::new(EDGES);
+    delta.revision.increment_by(1);
+    assert_eq!(delta.update_edge(entity, legend("edge"), None), Some(true));
+    let unbound = epoch(&delta);
+    assert_eq!(
+        delta.world.topology.edge_count(&unbound),
+        usize::try_from(EDGES).expect("should fit the fixture count") + 1
+    );
+    assert_eq!(delta.world.topology.endpoints(&unbound, edge), None);
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_edge(entity, legend("edge"), Some(ENDPOINTS[0])),
+        Some(true)
+    );
+    let bound = epoch(&delta);
+    assert_eq!(
+        delta.world.topology.endpoints(&bound, edge),
+        Some(ENDPOINTS[0])
+    );
+    assert_eq!(delta.world.topology.endpoints(&unbound, edge), None);
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .incoming(&bound, ENDPOINTS[0][1])
+            .collect::<Vec<_>>(),
+        [EdgeRowId::MIN, edge]
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(entity), "should withdraw the added edge");
+    assert!(
+        !delta.withdraw(entity),
+        "should leave a repeated edge withdrawal unchanged"
+    );
+    let hidden = epoch(&delta);
+    assert_eq!(delta.world.topology.endpoints(&hidden, edge), None);
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_edge(entity, legend("edge"), Some(ENDPOINTS[1])),
+        Some(true)
+    );
+    let revived = epoch(&delta);
+    assert_eq!(
+        delta.world.topology.endpoints(&revived, edge),
+        Some(ENDPOINTS[0])
+    );
+    assert_eq!(
+        delta.world.topology.edge_count(&revived),
+        usize::try_from(EDGES).expect("should fit the fixture count") + 1
+    );
+}
+
+/// An added self-loop follows the visibility of its one endpoint node.
+#[test]
+fn endpoints_added_self_loop() {
+    let (_fixture, mut delta) = fixture("delta-added-self-loop");
+    let node_entity = entity(103);
+    let edge_entity = entity(104);
+    assert_eq!(
+        delta.update_node(node_entity, legend("node"), Vec2::ZERO),
+        Some(true)
+    );
+    let row = delta
+        .node_row(node_entity)
+        .expect("should resolve the node");
+    assert_eq!(
+        delta.update_edge(edge_entity, legend("edge"), Some([row, row])),
+        Some(true)
+    );
+    let edge = EdgeRowId::new(EDGES);
+    let live = epoch(&delta);
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .incoming(&live, row)
+            .collect::<Vec<_>>(),
+        [edge]
+    );
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .outgoing(&live, row)
+            .collect::<Vec<_>>(),
+        [edge]
+    );
+    delta.revision.increment_by(1);
+    assert!(
+        delta.withdraw(node_entity),
+        "should hide the self-loop's endpoint"
+    );
+    let hidden = epoch(&delta);
+    assert_eq!(delta.world.topology.endpoints(&hidden, edge), None);
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .incoming(&hidden, row)
+            .collect::<Vec<_>>(),
+        []
+    );
+    assert_eq!(
+        delta
+            .world
+            .topology
+            .outgoing(&hidden, row)
+            .collect::<Vec<_>>(),
+        []
+    );
+}
+
+/// Fitted and added ontology rows keep their identities across icon replacement.
+#[test]
+fn ontology_icon_replacement() {
+    let (_fixture, mut delta) = fixture("delta-ontology-icon-replacement");
+    let world = Arc::clone(&delta.world);
+    let before = epoch(&delta);
+    delta.revision.increment_by(1);
+    let row = OntologyRowId::MIN;
+    let fitted = delta
+        .world
+        .ontology
+        .identity
+        .key_of(row)
+        .expect("should resolve the fitted type");
+    let icon = delta
+        .world
+        .ontology
+        .identity
+        .payload_of_row(row)
+        .expect("should read the fitted icon")
+        .to_owned();
+    assert_eq!(delta.register_ontology(fitted, icon), Some((row, false)));
+    assert_eq!(
+        delta.register_ontology(fitted, OwnedIcon::from("changed")),
+        Some((row, true))
+    );
+    let added: ArchivedOntologyTypeUuid = Uuid::from_u128(101).into();
+    let added_row = OntologyRowId::new(TYPES);
+    assert_eq!(
+        delta.register_ontology(added, OwnedIcon::from("added")),
+        Some((added_row, true))
+    );
+    assert_eq!(
+        delta.register_ontology(added, OwnedIcon::from("added")),
+        Some((added_row, false))
+    );
+    let identities = DeltaIdentityProvider::from_parts(
+        &delta.ontology,
+        NaiveIdentityProvider::from_ref(&delta.world.ontology.identity),
+    );
+    assert_eq!(
+        identities
+            .payload_of_row(row)
+            .expect("should read the replacement")
+            .as_ref(),
+        "changed"
+    );
+    assert_eq!(
+        identities.count(),
+        usize::try_from(TYPES).expect("should fit the fixture count") + 1
+    );
+
+    let captured = epoch(&delta);
+    let rows = [row, added_row];
+    let held = rows.map(|row| {
+        world
+            .ontology
+            .payload(&captured, row)
+            .expect("should borrow the captured icon")
+    });
+    assert!(world.ontology.payload(&before, added_row).is_none());
+    assert!(world.ontology.icon(&before, added_row).is_none());
+    delta.revision.increment_by(1);
+    for (key, row) in [fitted, added].into_iter().zip(rows) {
+        assert_eq!(
+            delta.register_ontology(key, OwnedIcon::from("latest")),
+            Some((row, true))
+        );
+    }
+    let replaced = epoch(&delta);
+    drop(delta);
+    for ((row, icon), expected) in rows.into_iter().zip(held).zip(["changed", "added"]) {
+        assert_eq!(icon.as_ref(), expected);
+        assert!(
+            ptr::eq(
+                icon,
+                world
+                    .ontology
+                    .icon(&captured, row)
+                    .expect("should borrow the captured icon")
+            ),
+            "should resolve the same captured payload"
+        );
+        assert_eq!(
+            world
+                .ontology
+                .icon(&replaced, row)
+                .expect("should borrow the replaced icon")
+                .as_ref(),
+            "latest"
+        );
+    }
+    assert!(world.ontology.icon(&replaced, OntologyRowId::MAX).is_none());
+}
+
+#[test]
+fn ontology_icon_inherited() {
+    let (_fixture, mut delta) = fixture("delta-ontology-icon-inherited");
+    let world = Arc::clone(&delta.world);
+    let ancestor = OntologyRowId::MIN;
+    let child = OntologyRowId::new(1);
+    delta.revision.increment_by(1);
+    for (row, label) in [(ancestor, "ancestor"), (child, "direct")] {
+        let key = world
+            .ontology
+            .identity
+            .key_of(row)
+            .expect("should resolve the base type");
+        assert_eq!(
+            delta.register_ontology(key, OwnedIcon::from(label)),
+            Some((row, true))
+        );
+    }
+    let captured = epoch(&delta);
+    let inherited = world
+        .ontology
+        .icon(&captured, child)
+        .expect("should borrow the ancestor icon");
+    assert_eq!(inherited.as_ref(), "ancestor");
+    assert_eq!(
+        world
+            .ontology
+            .payload(&captured, child)
+            .expect("should retain the distinct direct icon")
+            .as_ref(),
+        "direct"
+    );
+    assert!(
+        ptr::eq(
+            inherited,
+            world
+                .ontology
+                .payload(&captured, ancestor)
+                .expect("should borrow the source payload")
+        ),
+        "should borrow the ancestor's captured payload"
+    );
+
+    delta.revision.increment_by(1);
+    let key = world
+        .ontology
+        .identity
+        .key_of(ancestor)
+        .expect("should resolve the ancestor");
+    assert_eq!(
+        delta.register_ontology(key, OwnedIcon::from("latest")),
+        Some((ancestor, true))
+    );
+    let replaced = epoch(&delta);
+    drop(delta);
+    assert_eq!(
+        world
+            .ontology
+            .icon(&replaced, child)
+            .expect("should borrow the replaced ancestor icon")
+            .as_ref(),
+        "latest"
+    );
+    assert_eq!(inherited.as_ref(), "ancestor");
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_icon_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-icon-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-icon-foreign-right");
+    let foreign = epoch(&right);
+    let _icon = left.world.ontology.icon(&foreign, OntologyRowId::MIN);
+}
+
+/// Base payload queries borrow the mapped legend without copying it.
+#[test]
+fn payload_base() {
+    let (_fixture, mut delta) = fixture("delta-payload-base");
+    let world = Arc::clone(&delta.world);
+    let captured = epoch(&delta);
+    let mapped = world
+        .topology
+        .identity
+        .payload_of_row(EdgeRowId::MIN)
+        .expect("should read the base legend");
+    let payload = world
+        .topology
+        .payload(&captured, EdgeRowId::MIN)
+        .expect("should borrow the base legend");
+
+    assert!(
+        ptr::eq(mapped, payload),
+        "should borrow the same mapped legend"
+    );
+    assert!(world.topology.payload(&captured, EdgeRowId::MAX).is_none());
+
+    let node = NodeRowId::MIN;
+    let mapped_node = world
+        .layout
+        .index
+        .identity
+        .payload_of_row(node)
+        .expect("should read the base node legend");
+    let node_payload = world
+        .layout
+        .index
+        .payload(&captured, node)
+        .expect("should borrow the base node legend");
+    assert!(
+        ptr::eq(mapped_node, node_payload),
+        "should borrow the same mapped node legend"
+    );
+    assert!(
+        world
+            .layout
+            .index
+            .payload(&captured, NodeRowId::MAX)
+            .is_none()
+    );
+
+    let ontology = OntologyRowId::MIN;
+    let mapped_icon = world
+        .ontology
+        .identity
+        .payload_of_row(ontology)
+        .expect("should read the base icon");
+    let icon = world
+        .ontology
+        .payload(&captured, ontology)
+        .expect("should borrow the base icon");
+    assert!(
+        ptr::eq(mapped_icon, icon),
+        "should borrow the same mapped icon"
+    );
+    assert!(
+        world
+            .ontology
+            .payload(&captured, OntologyRowId::MAX)
+            .is_none()
+    );
+
+    let key = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the base node");
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(key, legend("replacement"), Vec2::ZERO),
+        Some(true)
+    );
+    let replaced = epoch(&delta);
+    assert_eq!(
+        world
+            .layout
+            .index
+            .payload(&replaced, node)
+            .expect("should borrow the replacement legend")
+            .label(),
+        "replacement"
+    );
+    drop(delta);
+    assert_eq!(payload.label(), mapped.label());
+    assert_eq!(node_payload.label(), mapped_node.label());
+    assert_eq!(icon.as_ref(), mapped_icon.as_ref());
+}
+
+/// Captures retain base overrides and added legends through withdrawal and revival.
+#[test]
+fn payload_captures() {
+    let (_fixture, mut delta) = fixture("delta-payload-captures");
+    let world = Arc::clone(&delta.world);
+    let rows = [EdgeRowId::MIN, EdgeRowId::new(EDGES)];
+    let keys = [
+        world
+            .topology
+            .identity
+            .key_of(rows[0])
+            .expect("should resolve the base edge"),
+        entity(903),
+    ];
+    let before = epoch(&delta);
+    assert!(world.topology.payload(&before, rows[1]).is_none());
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert_eq!(
+            delta.update_edge(key, legend("first"), Some(ENDPOINTS[0])),
+            Some(true)
+        );
+    }
+    let captured = epoch(&delta);
+    let held = rows.map(|row| {
+        world
+            .topology
+            .payload(&captured, row)
+            .expect("should borrow the captured legend")
+    });
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert!(delta.withdraw(key), "should withdraw the edge");
+    }
+    let withdrawn = epoch(&delta);
+    for row in rows {
+        assert!(world.topology.payload(&withdrawn, row).is_none());
+    }
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert_eq!(
+            delta.update_edge(key, legend("revived"), Some(ENDPOINTS[0])),
+            Some(true)
+        );
+    }
+    let revived = epoch(&delta);
+    drop(delta);
+    for (row, payload) in rows.into_iter().zip(held) {
+        assert_eq!(payload.label(), "first");
+        assert_eq!(
+            world
+                .topology
+                .payload(&revived, row)
+                .expect("should borrow the revived legend")
+                .label(),
+            "revived"
+        );
+        assert!(world.topology.payload(&withdrawn, row).is_none());
+    }
+    assert!(world.topology.payload(&before, rows[1]).is_none());
+}
+
+/// Captured ontology keys exclude later registrations and unknown rows.
+#[test]
+fn ontology_keys_captured() {
+    let (_fixture, mut delta) = fixture("delta-ontology-keys-captured");
+    let world = Arc::clone(&delta.world);
+    let base = OntologyRowId::MIN;
+    let base_key = world
+        .ontology
+        .identity
+        .key_of(base)
+        .expect("should resolve the base type");
+    let before = epoch(&delta);
+    assert_eq!(world.ontology.key_of(&before, base), Some(base_key));
+    assert_eq!(world.ontology.key_of(&before, OntologyRowId::MAX), None);
+
+    let added: ArchivedOntologyTypeUuid = Uuid::from_u128(904).into();
+    let row = OntologyRowId::new(TYPES);
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.register_ontology(added, OwnedIcon::from("added")),
+        Some((row, true))
+    );
+    let captured = epoch(&delta);
+    drop(delta);
+
+    assert_eq!(world.ontology.key_of(&captured, base), Some(base_key));
+    assert_eq!(world.ontology.key_of(&captured, row), Some(added));
+    assert_eq!(world.ontology.key_of(&before, row), None);
+    assert_eq!(world.ontology.key_of(&captured, OntologyRowId::MAX), None);
+}
+
+#[test]
+#[should_panic(expected = "topology must belong to the epoch's world")]
+fn payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-payload-foreign-right");
+    let _payload = left.world.topology.payload(&epoch(&right), EdgeRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_keys_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-foreign-right");
+    let _key = left
+        .world
+        .ontology
+        .key_of(&epoch(&right), OntologyRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "index must belong to the epoch's world")]
+fn node_payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-node-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-node-payload-foreign-right");
+    let foreign = epoch(&right);
+    let _payload = left.world.layout.index.payload(&foreign, NodeRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-payload-foreign-right");
+    let foreign = epoch(&right);
+    let _payload = left.world.ontology.payload(&foreign, OntologyRowId::MIN);
+}
+
+/// Reusing a delta allocation copies component state without mutating a held publication.
+#[test]
+fn clone_from_publication() {
+    let (_fixture, mut source) = fixture("delta-clone-from-publication");
+    let mut reusable = source.clone();
+    let entity = entity(105);
+    assert_eq!(
+        source.update_node(entity, legend("added"), Vec2::ZERO),
+        Some(true)
+    );
+    reusable.clone_from(&source);
+    let row = source
+        .node_row(entity)
+        .expect("should resolve the added node");
+    let publication = epoch(&reusable);
+    source.revision.increment_by(1);
+    assert!(source.withdraw(entity), "should withdraw the mutable copy");
+    reusable.clone_from(&source);
+    let current = epoch(&reusable);
+    assert_eq!(reusable.world.layout.position(&current, row), None);
+    assert_eq!(
+        reusable.world.layout.position(&publication, row),
+        Some(Vec2::ZERO)
+    );
+    assert_eq!(current.revision(), source.revision);
+}
+
+/// Schedule construction composes the mask with captured placement visibility.
+#[test]
+fn schedule_captured_visibility() {
+    let (_fixture, mut delta) = fixture("delta-schedule-captured");
+    let fitted = NodeRowId::MIN;
+    let fitted_id = delta
+        .world
+        .layout
+        .index
+        .identity
+        .key_of(fitted)
+        .expect("should resolve the fitted identity");
+    let position = delta
+        .world
+        .layout
+        .position(&epoch(&delta), fitted)
+        .expect("should resolve the fitted placement");
+    let higher = entity(200);
+    let lower = entity(100);
+    assert_eq!(
+        delta.update_node(higher, legend("higher"), position),
+        Some(true)
+    );
+    assert_eq!(
+        delta.update_node(lower, legend("lower"), position),
+        Some(true)
+    );
+    let higher_row = delta
+        .node_row(higher)
+        .expect("should resolve the added row");
+    let lower_row = delta.node_row(lower).expect("should resolve the added row");
+    let mut nodes = CompressedBitSet::default();
+    for row in [fitted, higher_row, lower_row] {
+        nodes.insert(row);
+    }
+    let captured = epoch(&delta);
+    let mask = VisibilityMask::partial(
+        &captured,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        nodes,
+        CompressedBitSet::default(),
+    );
+    let buckets = BucketSchedule::new(LodConfig {
+        span: Log2::new(0).expect("should fit the exponent domain"),
+        max_tile_depth: Zoom::new(1).expect("should fit the zoom domain"),
+    })
+    .expect("should fit the key width");
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let leaf_zoom = Zoom::new(1).expect("should fit the zoom domain");
+    let (before, _) = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    let before_cut = before.cut(buckets, Zoom::MIN).expect("should bind the cut");
+    assert_eq!(before_cut.total(Zoom::MIN, root).rows, [fitted]);
+    assert_eq!(
+        before_cut.total(leaf_zoom, root).rows,
+        [fitted, lower_row, higher_row]
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(fitted_id), "should withdraw the fitted row");
+    assert!(
+        delta.withdraw(lower),
+        "should withdraw the better added priority"
+    );
+    let hidden = epoch(&delta);
+    let (after, _) = ScopeSchedule::of(&delta.world.layout, &hidden, &mask);
+    let after_cut = after.cut(buckets, Zoom::MIN).expect("should bind the cut");
+    assert_eq!(after_cut.total(Zoom::MIN, root).rows, [higher_row]);
+    assert_eq!(after_cut.root_delivered(), 1);
+    assert_eq!(after_cut.min_resolution(), Depth::MIN);
+    assert_eq!(after_cut.children(Zoom::MIN, root), 0);
+    assert_eq!(after_cut.first_zoom(fitted), None);
+    assert_eq!(after_cut.first_zoom(lower_row), None);
+    let (rebuilt, _) = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    assert_eq!(
+        rebuilt
+            .cut(buckets, Zoom::MIN)
+            .expect("should bind the cut")
+            .total(leaf_zoom, root),
+        before_cut.total(leaf_zoom, root)
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(fitted_id, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    let (revived, _) = ScopeSchedule::of(&delta.world.layout, &epoch(&delta), &mask);
+    assert_eq!(
+        revived
+            .cut(buckets, Zoom::MIN)
+            .expect("should bind the cut")
+            .total(leaf_zoom, root)
+            .rows,
+        [fitted, higher_row]
+    );
+}
+
+#[test]
+fn schedule_corpus_withdrawal() {
+    let (_fixture, mut delta) = fixture("schedule-corpus-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let schedule = DeliverySchedule::corpus(&world);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let baseline = schedule.total(zoom, root);
+    let root_count = schedule.root_delivered();
+    let resolution = schedule.min_resolution();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
+    let captured = epoch(&delta);
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let withdrawn = epoch(&delta);
+    assert!(world.layout.position(&captured, node).is_some());
+    assert_eq!(world.layout.position(&withdrawn, node), None);
+    assert_eq!(schedule.total(zoom, root), baseline);
+    assert_eq!(schedule.root_delivered(), root_count);
+    assert_eq!(schedule.min_resolution(), resolution);
+    assert!(schedule.bucket_of(node).is_some());
+
+    let mut nodes = CompressedBitSet::default();
+    for row in 0..NODES {
+        nodes.insert(NodeRowId::new(row));
+    }
+    let mask = VisibilityMask::partial(
+        &withdrawn,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        nodes,
+        CompressedBitSet::default(),
+    );
+    let (scope, _) = ScopeSchedule::of(&world.layout, &withdrawn, &mask);
+    let cut = scope
+        .cut(world.schedule(), Zoom::MIN)
+        .expect("should bind the scoped schedule");
+    assert_eq!(cut.bucket_of(node), None);
+    assert_eq!(cut.total(zoom, root).rows.len() + 1, baseline.rows.len());
+}
+
+fn schedule_mask(epoch: &Epoch, nodes: impl IntoIterator<Item = NodeRowId>) -> VisibilityMask {
+    let mut mask = CompressedBitSet::default();
+    for node in nodes {
+        mask.insert(node);
+    }
+    VisibilityMask::partial(
+        epoch,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        mask,
+        CompressedBitSet::default(),
     )
 }
 
-/// The row id `n` names in the fixture's allocated node domain.
-fn slot(n: u32) -> NodeRowId {
-    NodeRowId::new(u64::from(n))
-}
-
-/// Identity tables over a handful of fitted rows, standing in for a generation.
-#[derive(Debug, Default)]
-struct Tables {
-    nodes: Vec<(ArchivedEntityId, NodeRowId)>,
-    edges: Vec<(ArchivedEntityId, EdgeRowId)>,
-    ontology: Vec<(ArchivedOntologyTypeUuid, OntologyRowId)>,
-}
-
-impl IdentityTables for Tables {
-    fn node_row_of(&self, id: ArchivedEntityId) -> Option<NodeRowId> {
-        self.nodes
-            .iter()
-            .find(|&&(key, _)| key == id)
-            .map(|&(_, row)| row)
-    }
-
-    fn edge_row_of(&self, id: ArchivedEntityId) -> Option<EdgeRowId> {
-        self.edges
-            .iter()
-            .find(|&&(key, _)| key == id)
-            .map(|&(_, row)| row)
-    }
-
-    fn ontology_row_of(&self, id: ArchivedOntologyTypeUuid) -> Option<OntologyRowId> {
-        self.ontology
-            .iter()
-            .find(|&&(key, _)| key == id)
-            .map(|&(_, row)| row)
-    }
-}
-
-fn entity(n: u128) -> ArchivedEntityId {
-    ArchivedEntityId {
-        web_id: Uuid::from_u128(0xAB).into(),
-        entity_uuid: ArchivedEntityUuid::from_bytes(Uuid::from_u128(n).into_bytes()),
-    }
-}
-
-fn at(seconds: i64) -> Timestamp<TransactionTime> {
-    Timestamp::from_unix_timestamp(seconds)
-}
-
-fn edition(n: u128) -> EntityEditionId {
-    EntityEditionId::new(Uuid::from_u128(n))
-}
-
-fn live(n: u128) -> Standing {
-    Standing::Live {
-        edition: edition(n),
-    }
-}
-
-/// The fixture's shared representative type, unknown to the tables, so the register's own
-/// extension allocates its row.
-fn type_uuid() -> ArchivedOntologyTypeUuid {
-    ArchivedOntologyTypeUuid::from(Uuid::from_u128(0xE0))
-}
-
-/// A display read answer carrying `text`, the fixture icon, and the fixture's shared
-/// representative type.
-fn display(text: &str) -> DisplayParts {
-    DisplayParts {
-        label: OwnedLabel::from(text),
-        icon: OwnedIcon::from("capture-icon"),
-        representative: type_uuid(),
-    }
-}
-
-/// The legend the fixture's display read produces: the extension's first ontology row.
-fn legend(text: &str) -> OwnedLegend {
-    OwnedLegend::new(OntologyRowId::new(ONTOLOGY_BASE), Label::new(text))
-}
-
-/// Captures `text` for the identity through `tables`, panicking where the fixture cannot
-/// exhaust the ontology domain.
-fn capture(
-    register: &mut DeltaRegister,
-    entity_n: u128,
-    edition_n: u128,
-    text: &str,
-    tables: &Tables,
-) {
-    let DisplayParts {
-        label,
-        icon,
-        representative,
-    } = display(text);
-    register
-        .capture_display(
-            entity(entity_n),
-            edition(edition_n),
-            &label,
-            &icon,
-            representative,
-            tables,
-        )
-        .expect("the fixture ontology domain has room");
-}
-
-fn link_between(source: u128, target: u128) -> Classification {
-    Classification::Edge {
-        source: Some(entity(source)),
-        target: Some(entity(target)),
-    }
-}
-
-fn store_id(n: u128) -> EntityId {
-    EntityId {
-        web_id: type_system::principal::actor_group::WebId::new(Uuid::from_u128(0xAB)),
-        entity_uuid: EntityUuid::new(Uuid::from_u128(n)),
-        draft_id: None,
-    }
-}
-
-fn updated(entity_n: u128, seconds: i64, edition_n: u128, archived: bool) -> EntityEvent {
-    EntityEvent::Updated(EntityUpdate {
-        entity: store_id(entity_n),
-        edition: edition(edition_n),
-        archived,
-        changed_at: at(seconds),
-    })
-}
-
-fn event(entity_n: u128, seconds: i64, standing: Standing) -> DeltaEvent {
-    DeltaEvent {
-        entity: entity(entity_n),
-        version: at(seconds),
-        standing,
-    }
-}
-
-/// Publishes under fixed publication inputs, so two snapshots compare on resolution alone.
-fn snapshot(register: &DeltaRegister, tables: &Tables) -> super::DeltaSnapshot {
-    register.snapshot(tables, DeltaRevision::FIRST, at(100))
-}
-
 #[test]
-fn newer_event_wins() {
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.apply(event(1, 2, Standing::Withdrawn)));
-
-    assert!(snapshot(&register, &Tables::default()).withdraws(entity(1)));
-}
-
-#[test]
-fn unarchive_replaces_tombstone() {
-    let tables = Tables {
-        nodes: vec![(entity(1), NodeRowId::new(4))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, Standing::Withdrawn)));
-    assert!(register.apply(event(1, 2, live(10))));
-
-    // The live standing cleared the tombstone, and a fitted live identity resolves to nothing.
-    let snapshot = snapshot(&register, &tables);
-    assert!(!snapshot.withdraws(entity(1)));
-    assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-}
-
-#[test]
-fn older_event_is_ignored() {
-    let mut register = register();
-
-    assert!(register.apply(event(1, 2, Standing::Withdrawn)));
-    assert!(!register.apply(event(1, 1, live(10))));
-
-    assert!(snapshot(&register, &Tables::default()).withdraws(entity(1)));
-}
-
-#[test]
-fn redelivery_idempotent() {
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert!(!register.apply(event(1, 1, live(10))));
-    assert!(register.apply(event(2, 1, Standing::Withdrawn)));
-    assert!(!register.apply(event(2, 1, Standing::Withdrawn)));
-}
-
-#[test]
-fn equal_version_withdrawn_bias() {
-    let tables = Tables::default();
-
-    let mut withdrawal_last = register();
-    assert!(withdrawal_last.apply(event(1, 1, live(10))));
-    assert!(withdrawal_last.apply(event(1, 1, Standing::Withdrawn)));
-
-    let mut withdrawal_first = register();
-    assert!(withdrawal_first.apply(event(1, 1, Standing::Withdrawn)));
-    assert!(!withdrawal_first.apply(event(1, 1, live(10))));
-
-    assert!(snapshot(&withdrawal_last, &tables).withdraws(entity(1)));
-    assert!(snapshot(&withdrawal_first, &tables).withdraws(entity(1)));
-}
-
-#[test]
-fn version_moves_without_flipping_standing() {
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    // The same standing at a newer version replaces the register without changing resolution.
-    assert!(!register.apply(event(1, 3, live(10))));
-    // The version moved even though resolution did not, so an older withdrawal still loses.
-    assert!(!register.apply(event(1, 2, Standing::Withdrawn)));
-
-    assert!(!snapshot(&register, &Tables::default()).withdraws(entity(1)));
-}
-
-#[test]
-fn equal_version_live_editions_converge() {
-    let tables = Tables::default();
-
-    let mut ascending = register();
-    assert!(ascending.apply(event(1, 1, live(10))));
-    assert!(ascending.apply(event(1, 1, live(11))));
+fn bounds_extension() {
+    let (_fixture, mut delta) = fixture("view-bounds-extension");
+    let world = Arc::clone(&delta.world);
+    let visible = entity(100);
+    let hidden = entity(200);
+    let position = Vec2::new(-2.0, 3.0);
     assert_eq!(
-        ascending.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-
-    let mut descending = register();
-    assert!(descending.apply(event(1, 1, live(11))));
-    assert!(!descending.apply(event(1, 1, live(10))));
-    assert_eq!(
-        descending.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-
-    assert_eq!(
-        snapshot(&ascending, &tables)
-            .staged
-            .get(&entity(1))
-            .copied(),
-        Some(edition(11))
+        delta.update_node(visible, legend("visible"), position),
+        Some(true)
     );
     assert_eq!(
-        snapshot(&ascending, &tables),
-        snapshot(&descending, &tables)
+        delta.update_node(hidden, legend("hidden"), Vec2::new(4.0, -5.0)),
+        Some(true)
     );
-}
+    let row = delta
+        .node_row(visible)
+        .expect("should allocate the visible row");
+    let captured = epoch(&delta);
+    let admitted = schedule_mask(&captured, (0..NODES).map(NodeRowId::new).chain([row]));
+    let saturated = ViewSchedule::of(Arc::clone(&world), &captured, &admitted);
+    let point = Bounds2::new(position, position).expect("should bound the finite point");
+    let base = world.layout.base_bounds().expect("should have base points");
+    assert_eq!(saturated.bounds(), Some(base.union(point)));
 
-#[test]
-fn withdrawn_fitted_subtract() {
-    let tables = Tables {
-        nodes: vec![(entity(1), NodeRowId::new(4))],
-        edges: vec![(entity(2), EdgeRowId::new(7))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, Standing::Withdrawn)));
-    assert!(register.apply(event(2, 1, Standing::Withdrawn)));
-
-    let snapshot = snapshot(&register, &tables);
-    assert!(snapshot.withdraws(entity(1)));
-    assert!(snapshot.withdraws(entity(2)));
-    assert!(snapshot.withdraws_node(NodeRowId::new(4)));
-    assert!(snapshot.withdraws_edge(EdgeRowId::new(7)));
-}
-
-#[test]
-fn withdrawn_unfitted_identity_only() {
-    let tables = Tables {
-        nodes: vec![(entity(1), NodeRowId::new(4))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    assert!(register.apply(event(9, 1, Standing::Withdrawn)));
-
-    let snapshot = snapshot(&register, &tables);
-    assert!(snapshot.withdraws(entity(9)));
-    assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged.get(&entity(9)).copied(), None);
-}
-
-#[test]
-fn live_fitted_identity_resolves_to_nothing() {
-    let tables = Tables {
-        nodes: vec![(entity(1), NodeRowId::new(4))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-
-    let snapshot = snapshot(&register, &tables);
-    assert!(!snapshot.withdraws(entity(1)));
-    assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-}
-
-#[test]
-fn arrival_stages_on_node_verdict() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.apply(event(1, 2, live(11))));
-    assert!(register.apply(event(2, 1, Standing::Withdrawn)));
-
-    // Unclassified, the arrival publishes nowhere while everything else proceeds.
-    let unclassified = snapshot(&register, &tables);
-    assert_eq!(unclassified.staged.get(&entity(1)).copied(), None);
-    assert_eq!(unclassified.edge(entity(1)), None);
-    assert!(unclassified.withdraws(entity(2)));
-
-    assert_eq!(
-        register.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
+    let narrow = ViewSchedule::of(
+        Arc::clone(&world),
+        &captured,
+        &schedule_mask(&captured, [row]),
     );
-
-    assert_eq!(
-        snapshot(&register, &tables).staged.get(&entity(1)).copied(),
-        Some(edition(11))
-    );
-}
-
-#[test]
-fn unclassified_live_unfitted_only() {
-    let tables = Tables {
-        nodes: vec![(entity(3), NodeRowId::new(4))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    // A live arrival, a withdrawn identity, a live fitted identity, a classified arrival.
-    assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.apply(event(2, 1, Standing::Withdrawn)));
-    assert!(register.apply(event(3, 1, live(30))));
-    assert!(register.apply(event(4, 1, live(40))));
-    assert_eq!(
-        register.classify(entity(4), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-
-    assert_eq!(
-        register.unclassified(&tables).collect::<Vec<_>>(),
-        [entity(1)]
-    );
-}
-
-#[test]
-fn classification_final() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert_eq!(
-        register.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-
-    // A later conflicting verdict changes nothing: the first verdict holds.
-    assert_eq!(
-        register.classify(entity(1), link_between(8, 9)),
-        Ok(Disposition::AlreadyHeld)
-    );
-
-    let snapshot = snapshot(&register, &tables);
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), Some(edition(10)));
-    assert_eq!(snapshot.edge(entity(1)), None);
-}
-
-#[test]
-fn resolving_changes_resolution() {
-    assert!(Disposition::Resolving.changes_resolution());
-    assert!(!Disposition::Dormant.changes_resolution());
-    assert!(!Disposition::AlreadyHeld.changes_resolution());
-}
-
-#[test]
-fn dispositions_join_by_resolution_strength() {
-    let all = [
-        Disposition::Resolving,
-        Disposition::Dormant,
-        Disposition::AlreadyHeld,
-    ];
-
-    // The nine-case table by exhaustion: AlreadyHeld is the neutral element and Resolving
-    // absorbs, in either operand order.
-    for disposition in all {
-        assert_eq!(disposition | Disposition::AlreadyHeld, disposition);
-        assert_eq!(Disposition::AlreadyHeld | disposition, disposition);
-        assert_eq!(disposition | Disposition::Resolving, Disposition::Resolving);
-        assert_eq!(Disposition::Resolving | disposition, Disposition::Resolving);
-    }
-    assert_eq!(
-        Disposition::Dormant | Disposition::Dormant,
-        Disposition::Dormant
-    );
-
-    let mut folded = Disposition::AlreadyHeld;
-    folded |= Disposition::Dormant;
-    assert_eq!(folded, Disposition::Dormant);
-    folded |= Disposition::Resolving;
-    assert_eq!(folded, Disposition::Resolving);
-}
-
-#[test]
-fn publish_withholds_uncaptured() {
-    // The link attaches two fitted rows, so publication resolves them row-typed and the
-    // capture alone decides whether the link publishes.
-    let tables = Tables {
-        nodes: vec![
-            (entity(8), NodeRowId::new(2)),
-            (entity(9), NodeRowId::new(3)),
-        ],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert_eq!(
-        register.classify(entity(1), link_between(8, 9)),
-        Ok(Disposition::Resolving)
-    );
-
-    // Classified but uncaptured: publication withholds the link, and the pending listing
-    // carries the link's edition.
-    let withheld = snapshot(&register, &tables);
-    assert_eq!(withheld.edge(entity(1)), None);
-    assert_eq!(withheld.legend_of(entity(1)), None);
-    let pending: Vec<_> = register.pending_captures(&tables).collect();
-    assert_eq!(pending, [(entity(1), edition(10))]);
-
-    capture(&mut register, 1, 10, "wrote", &tables);
-    assert_eq!(register.pending_captures(&tables).count(), 0);
-
-    let snapshot = snapshot(&register, &tables);
-    assert_eq!(
-        snapshot.edge(entity(1)),
-        Some(DeltaEdge {
-            id: EdgeRowId::new(EDGE_BASE),
-            edition: edition(10),
-            source: NodeRowId::new(2),
-            target: NodeRowId::new(3),
-        })
-    );
-    assert_eq!(snapshot.legend_of(entity(1)), Some(&*legend("wrote")));
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-    assert!(!snapshot.withdraws(entity(1)));
-}
-
-#[test]
-fn revised_fitted_display() {
-    let tables = Tables {
-        nodes: vec![(entity(2), NodeRowId::new(5))],
-        edges: vec![(entity(3), EdgeRowId::new(7))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    // A post-fit edition on either fitted domain lists for a capture.
-    assert!(register.apply(event(2, 1, live(20))));
-    assert!(register.apply(event(3, 1, live(30))));
-    assert_eq!(register.pending_captures(&tables).count(), 2);
-
-    // An uncaptured revision publishes no legend, so holders answer from the baked
-    // fit-time payload.
-    let uncaptured = snapshot(&register, &tables);
-    assert_eq!(uncaptured.legend_of(entity(2)), None);
-    assert_eq!(uncaptured.legend_of(entity(3)), None);
-
-    capture(&mut register, 2, 20, "revised", &tables);
-    let captured = snapshot(&register, &tables);
-    assert_eq!(captured.legend_of(entity(2)), Some(&*legend("revised")));
-    assert_eq!(captured.legend_of(entity(3)), None);
-
-    // An edition move re-lists the identity while the held capture keeps serving.
-    assert!(register.apply(event(2, 2, live(21))));
-    assert!(
-        register
-            .pending_captures(&tables)
-            .any(|(id, owed)| id == entity(2) && owed == edition(21))
-    );
-    let stale = snapshot(&register, &tables);
-    assert_eq!(stale.legend_of(entity(2)), Some(&*legend("revised")));
-}
-
-/// Allocation records the first capture's icon, and a later read replaces nothing.
-///
-/// Hand-derivation: `type_uuid()` is unknown to the tables, so the first capture allocates
-/// ontology row `ONTOLOGY_BASE` and records its icon beside the row. The second capture names
-/// the same type with a different icon and must change nothing, exactly as a later edition
-/// moves no placement coordinate: the refit repairs icon staleness.
-#[test]
-fn allocation_records_first_icon() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    register
-        .capture_display(
-            entity(1),
-            edition(10),
-            Label::new("first"),
-            Icon::new("the first icon"),
-            type_uuid(),
-            &tables,
-        )
-        .expect("the fixture ontology domain has room");
-    register
-        .capture_display(
-            entity(2),
-            edition(20),
-            Label::new("second"),
-            Icon::new("a later icon"),
-            type_uuid(),
-            &tables,
-        )
-        .expect("the fixture ontology domain has room");
-
-    let published = snapshot(&register, &tables);
-    assert_eq!(
-        published.allocated_icon_of(OntologyRowId::new(ONTOLOGY_BASE)),
-        Some(Icon::new("the first icon"))
-    );
-    // A row below the baked bound answers from the generation's artifacts, never here.
-    assert_eq!(published.allocated_icon_of(OntologyRowId::new(0)), None);
-}
-
-/// A capture for a tabulated type stores no extension icon, whose resolution stays the baked
-/// closure artifact's.
-#[test]
-fn tabulated_capture_stores_no_extension_icon() {
-    let known = ArchivedOntologyTypeUuid::from(Uuid::from_u128(0xE1));
-    let tables = Tables {
-        ontology: vec![(known, OntologyRowId::new(3))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    register
-        .capture_display(
-            entity(1),
-            edition(10),
-            Label::new("known"),
-            Icon::new("a fetched icon"),
-            known,
-            &tables,
-        )
-        .expect("the tabulated type allocates nothing");
-
-    let published = snapshot(&register, &tables);
-    assert_eq!(published.allocated_icon_of(OntologyRowId::new(3)), None);
-}
-
-#[test]
-fn pending_captures_serving_only() {
-    let tables = Tables {
-        nodes: vec![(entity(4), NodeRowId::new(6))],
-        ..Tables::default()
-    };
-    let mut register = register();
-
-    // A node-classified arrival never lists, because staging captures its display.
-    assert!(register.apply(event(1, 1, live(10))));
-    assert_eq!(
-        register.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-
-    // An incomplete link never lists, because it never serves.
-    assert!(register.apply(event(2, 1, live(11))));
-    assert_eq!(
-        register.classify(
-            entity(2),
-            Classification::Edge {
-                source: Some(entity(8)),
-                target: None,
-            }
-        ),
-        Ok(Disposition::Resolving)
-    );
-
-    // An unclassified arrival never lists, because no verdict says its display serves.
-    assert!(register.apply(event(3, 1, live(12))));
-
-    // A withdrawn fitted identity never lists, because it serves nothing.
-    assert!(register.apply(event(4, 1, Standing::Withdrawn)));
-
-    assert_eq!(register.pending_captures(&tables).count(), 0);
-}
-
-#[test]
-fn incomplete_link_publishes_nowhere() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    // The verdict is new and the identity lives, so publication's input changed even though
-    // the incomplete pair resolves to nothing served.
-    assert_eq!(
-        register.classify(
-            entity(1),
-            Classification::Edge {
-                source: Some(entity(8)),
-                target: None,
-            }
-        ),
-        Ok(Disposition::Resolving)
-    );
-
-    let snapshot = snapshot(&register, &tables);
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-    assert_eq!(snapshot.edge(entity(1)), None);
-    assert!(!snapshot.withdraws(entity(1)));
-    // The verdict holds, so the identity never re-lists for classification.
-    assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
-}
-
-#[test]
-fn classify_withdrawn_no_input_change() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, Standing::Withdrawn)));
-    assert_eq!(
-        register.classify(entity(1), Classification::Node),
-        Ok(Disposition::Dormant)
-    );
-
-    let snapshot = snapshot(&register, &tables);
-    assert!(snapshot.withdraws(entity(1)));
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-}
-
-#[test]
-fn withdraw_unarchive_keeps_verdict() {
-    let tables = Tables::default();
-    let mut register = register();
-
-    assert!(register.apply(event(1, 1, live(10))));
-    assert_eq!(
-        register.classify(entity(1), Classification::Node),
-        Ok(Disposition::Resolving)
-    );
-    assert!(register.apply(event(1, 2, Standing::Withdrawn)));
-
-    let withdrawn = snapshot(&register, &tables);
-    assert!(withdrawn.withdraws(entity(1)));
-    assert_eq!(withdrawn.staged.get(&entity(1)).copied(), None);
-
-    // The unarchive re-stages through the held verdict, with no second lookup owed.
-    assert!(register.apply(event(1, 3, live(11))));
-    assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
-    assert_eq!(
-        snapshot(&register, &tables).staged.get(&entity(1)).copied(),
-        Some(edition(11))
-    );
-}
-
-#[test]
-fn replay_order_invariance() {
-    let tables = Tables {
-        nodes: vec![(entity(1), NodeRowId::new(4))],
-        edges: vec![(entity(3), EdgeRowId::new(7))],
-        ..Tables::default()
-    };
-    let events = [
-        event(1, 1, live(10)),
-        event(1, 2, Standing::Withdrawn),
-        event(2, 1, live(20)),
-        event(2, 1, Standing::Withdrawn),
-        event(3, 2, Standing::Withdrawn),
-        event(3, 3, live(30)),
-        event(4, 1, live(40)),
-        event(4, 1, live(41)),
-    ];
-
-    let mut forward = register();
-    for event in events {
-        forward.apply(event);
-    }
-
-    let mut reversed = register();
-    for event in events.into_iter().rev() {
-        reversed.apply(event);
-    }
-
-    assert_eq!(snapshot(&forward, &tables), snapshot(&reversed, &tables));
-}
-
-#[test]
-fn feed_events_resolve_standing_and_version() {
-    let id = store_id(1);
-
-    assert_eq!(
-        DeltaEvent::from(&updated(1, 1, 10, false)),
-        event(1, 1, live(10))
-    );
-    assert_eq!(
-        DeltaEvent::from(&updated(1, 2, 10, true)),
-        event(1, 2, Standing::Withdrawn)
-    );
-
-    let ended = EntityEvent::Ended(EntityEnd {
-        entity: id,
-        ended_at: at(3),
-    });
-    assert_eq!(DeltaEvent::from(&ended), event(1, 3, Standing::Withdrawn));
-
-    let deleted = EntityEvent::Deleted(EntityDeletion {
-        entity: id,
-        provenance: EntityDeletionProvenance {
-            deleted_by_id: type_system::principal::actor::ActorEntityUuid::new(Uuid::from_u128(
-                0xCD,
-            )),
-            deleted_at_transaction_time: at(4),
-            deleted_at_decision_time: Timestamp::from_unix_timestamp(4),
+    assert_eq!(narrow.bounds(), Some(point));
+    let occupancy = narrow
+        .occupancy()
+        .expect("a scope should have an occupancy profile");
+    assert_eq!(occupancy.distinct_keys(), 1);
+    let full = VisibilityMask::full(
+        &captured,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
         },
-    });
-    assert_eq!(DeltaEvent::from(&deleted), event(1, 4, Standing::Withdrawn));
-}
-
-#[test]
-fn poll_outcome_advances_past_ignored() {
-    let mut register = register();
-    let mut outcome = PollOutcome::default();
-
-    outcome.fold(&mut register, &updated(1, 5, 10, false));
-    assert!(outcome.changed());
-
-    // The register ignores an older event for the same identity, and the poll still counts it
-    // while the watermark keeps the newest time read.
-    outcome.fold(&mut register, &updated(1, 3, 11, false));
-    assert_eq!(outcome.events(), 2);
-    assert_eq!(outcome.watermark(), Some(at(5)));
-}
-
-#[test]
-fn poll_outcome_redelivery_no_change() {
-    let mut register = register();
-
-    let mut first = PollOutcome::default();
-    first.fold(&mut register, &updated(1, 5, 10, false));
-    assert!(first.changed());
-
-    let mut redelivery = PollOutcome::default();
-    redelivery.fold(&mut register, &updated(1, 5, 10, false));
-    assert!(!redelivery.changed());
-    assert_eq!(redelivery.events(), 1);
-    assert_eq!(redelivery.watermark(), Some(at(5)));
-}
-
-#[test]
-fn polling_defaults() {
-    // The defaults give each side of the ensure twelve staging cycles at the five-second cadence:
-    // a minute per side and about two minutes end to end, over the sixty-second safety lag. The
-    // backlog capacity is a channel bound outside this arithmetic and stays unpinned.
-    let polling = DeltaPolling::default();
-    assert_eq!(polling.interval, core::time::Duration::from_secs(5));
-    assert_eq!(polling.retry_polls, 12);
-    assert_eq!(polling.safety_lag, core::time::Duration::from_secs(60));
-}
-
-#[test]
-fn cell_swaps_publications_whole() {
-    let cell = DeltaCell::default();
-    assert!(cell.load().is_none());
-
-    let register = register();
-    cell.publish(register.snapshot(&Tables::default(), DeltaRevision::FIRST, at(1)));
-    let first = cell.load();
+    );
+    let corpus = ViewSchedule::of(Arc::clone(&world), &captured, &full);
     assert_eq!(
-        first.as_ref().map(|snapshot| snapshot.revision),
-        Some(DeltaRevision::FIRST)
+        corpus.bounds(),
+        Bounds2::new(Vec2::new(-2.0, -5.0), Vec2::new(4.0, 3.0))
     );
 
-    cell.publish(register.snapshot(&Tables::default(), DeltaRevision::FIRST.next(), at(2)));
-    assert_eq!(
-        cell.load().as_ref().map(|snapshot| snapshot.revision),
-        Some(DeltaRevision::FIRST.next())
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(visible));
+    let withdrawn = epoch(&delta);
+    let current = ViewSchedule::of(
+        Arc::clone(&world),
+        &withdrawn,
+        &schedule_mask(&withdrawn, [row]),
     );
-    // The guard loaded before the swap keeps reading its own publication.
+    assert_eq!(current.bounds(), None);
     assert_eq!(
-        first.as_ref().map(|snapshot| snapshot.watermark),
-        Some(at(1))
+        current
+            .occupancy()
+            .expect("an empty scope should have a profile")
+            .occupied_cells(Depth::MIN),
+        0
+    );
+    assert_eq!(narrow.occupancy(), Some(occupancy));
+    let current = ViewSchedule::of(Arc::clone(&world), &withdrawn, &admitted);
+    assert_eq!(current.bounds(), Some(base));
+    assert_eq!(narrow.bounds(), Some(point));
+    assert_eq!(saturated.bounds(), Some(base.union(point)));
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(visible, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = epoch(&delta);
+    let current = ViewSchedule::of(
+        Arc::clone(&world),
+        &revived,
+        &schedule_mask(&revived, [row]),
+    );
+    assert_eq!(current.bounds(), Some(point));
+}
+
+#[test]
+fn bounds_base_withdrawal() {
+    let (_fixture, mut delta) = fixture("view-bounds-base-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let recorded = world.layout.base_bounds();
+    let initial = epoch(&delta);
+    let mask = schedule_mask(&initial, (0..NODES).map(NodeRowId::new));
+    let captured = ViewSchedule::of(Arc::clone(&world), &initial, &mask);
+
+    delta.revision.increment_by(1);
+    for index in 0..NODES {
+        let identity = world
+            .layout
+            .index
+            .identity
+            .key_of(NodeRowId::new(index))
+            .expect("should resolve the base identity");
+        assert!(delta.withdraw(identity));
+    }
+    let withdrawn = epoch(&delta);
+    let scoped = ViewSchedule::of(Arc::clone(&world), &withdrawn, &mask);
+    assert_eq!(scoped.bounds(), None);
+    assert_eq!(captured.bounds(), recorded);
+    let full = VisibilityMask::full(
+        &withdrawn,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+    );
+    let corpus = ViewSchedule::of(Arc::clone(&world), &withdrawn, &full);
+    assert_eq!(corpus.bounds(), recorded);
+}
+
+#[test]
+#[should_panic(expected = "visible placements must have finite coordinates")]
+fn bounds_nonfinite_placement() {
+    let (_fixture, mut delta) = fixture("view-bounds-nonfinite");
+    let identity = entity(100);
+    assert_eq!(
+        delta.update_node(identity, legend("nonfinite"), Vec2::new(f32::NAN, 0.0)),
+        Some(true)
+    );
+    let row = delta.node_row(identity).expect("should allocate the row");
+    let captured = epoch(&delta);
+    let base = ViewSchedule::of(
+        Arc::clone(&delta.world),
+        &captured,
+        &schedule_mask(&captured, (0..NODES).map(NodeRowId::new)),
+    );
+    assert_eq!(base.bounds(), delta.world.layout.base_bounds());
+    ViewSchedule::of(
+        Arc::clone(&delta.world),
+        &captured,
+        &schedule_mask(&captured, [row]),
     );
 }
 
-/// The staged map one publication would carry, from `(identity, edition)` pairs.
-fn staged_map(pairs: &[(u128, u128)]) -> FastHashMap<ArchivedEntityId, EntityEditionId> {
-    pairs
-        .iter()
-        .map(|&(entity_n, edition_n)| (entity(entity_n), edition(edition_n)))
-        .collect()
-}
-
-#[test]
-fn sync_stages_fresh_pending() {
-    let mut pipeline = StagingPipeline::new(2);
-
-    pipeline.sync(&staged_map(&[(1, 10)]));
-
-    assert_eq!(pipeline.pending(), vec![entity(1)]);
-    assert_eq!(pipeline.ready().count(), 0);
-}
-
-#[test]
-fn budget_read_obliges_ensure() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-
-    // The first miss waits, and the second - the budget-spending final read - obliges the
-    // ensure in its own cycle.
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-}
-
-#[test]
-fn unconfirmed_ensure_reobliged() {
-    let mut pipeline = StagingPipeline::new(1);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-
-    // The ensure start failed, so `ensured` never confirmed it and each miss retries it.
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-}
-
-#[test]
-fn post_ensure_exhaustion() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-    pipeline.ensured(entity(1));
-
-    // The post-ensure side reads under the same budget: one waiting miss, then the parking one.
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Park);
-
-    // An exhausted arrival stops reading, and the mirror keeps it parked while it stays staged.
-    assert!(pipeline.pending().is_empty());
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert!(pipeline.pending().is_empty());
-}
-
-#[test]
-fn exhaustion_survives_edition_move() {
-    let mut pipeline = StagingPipeline::new(1);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
-    pipeline.ensured(entity(1));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Park);
-
-    // A parked arrival stays parked until reconciliation or refit: a later edition moves the
-    // recorded edition and nothing else.
-    pipeline.sync(&staged_map(&[(1, 11)]));
-    assert!(pipeline.pending().is_empty());
-}
-
-#[test]
-fn withdrawal_drops_unarchive_restages() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-
-    // The withdrawal removes the identity from the staged set, and its state drops with it.
-    pipeline.sync(&staged_map(&[]));
-    assert!(pipeline.pending().is_empty());
-
-    // The unarchive restages it with the full budget. A held budget of 1 would oblige the
-    // ensure here, and a fresh budget of 2 waits.
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-}
-
-#[test]
-fn sync_moves_edition_in_place() {
-    let mut pipeline = StagingPipeline::new(1);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-
-    // The ensure names the newest feed edition, not the one the arrival staged under.
-    pipeline.sync(&staged_map(&[(1, 11)]));
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(11)));
-}
-
-#[test]
-fn hit_completes_either_phase() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10), (2, 20)]));
-
-    // Identity 2 is post-ensure when its row returns, and identity 1 is still pre-ensure.
-    assert_eq!(pipeline.miss(entity(2)), MissAction::Wait);
-    assert_eq!(pipeline.miss(entity(2)), MissAction::Ensure(edition(20)));
-    pipeline.ensured(entity(2));
-
-    pipeline.complete(entity(1), BoxedVecN::zero());
-    pipeline.complete(entity(2), BoxedVecN::zero());
-
-    assert!(pipeline.pending().is_empty());
-    let mut uncaptured = pipeline.uncaptured();
-    uncaptured.sort_unstable_by_key(|&(identity, _)| identity);
-    assert_eq!(
-        uncaptured,
-        vec![(entity(1), edition(10)), (entity(2), edition(20))]
-    );
-
-    pipeline.captured(entity(1), display("one"));
-    pipeline.captured(entity(2), display("two"));
-    let mut ready: Vec<_> = pipeline
-        .ready()
-        .map(|(identity, recorded, _, _)| (identity, recorded))
-        .collect();
-    ready.sort_unstable_by_key(|&(identity, _)| identity);
-    assert_eq!(
-        ready,
-        vec![(entity(1), edition(10)), (entity(2), edition(20))]
-    );
-
-    // A completed arrival survives the mirror without re-entering pending.
-    pipeline.sync(&staged_map(&[(1, 10), (2, 20)]));
-    assert!(pipeline.pending().is_empty());
-    assert_eq!(pipeline.ready().count(), 2);
-}
-
-#[test]
-fn placement_waits_for_capture() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    pipeline.complete(entity(1), BoxedVecN::zero());
-
-    // The embedding is ready and the display is not, so nothing places yet.
-    assert_eq!(pipeline.ready().count(), 0);
-    assert_eq!(pipeline.uncaptured(), vec![(entity(1), edition(10))]);
-
-    pipeline.captured(entity(1), display("labeled arrival"));
-    assert!(pipeline.uncaptured().is_empty());
-    let ready: Vec<_> = pipeline
-        .ready()
-        .map(|(identity, recorded, _, payload)| (identity, recorded, payload.clone()))
-        .collect();
-    assert_eq!(
-        ready,
-        vec![(entity(1), edition(10), display("labeled arrival"))]
-    );
-
-    // A second capture for the same identity changes nothing: the first one stands.
-    pipeline.captured(entity(1), display("a later read"));
-    let ready: Vec<_> = pipeline
-        .ready()
-        .map(|(_, _, _, payload)| payload.clone())
-        .collect();
-    assert_eq!(ready, vec![display("labeled arrival")]);
-}
-
-#[test]
-fn departed_capture_dropped() {
-    let mut pipeline = StagingPipeline::new(1);
-    pipeline.sync(&staged_map(&[]));
-
-    // The display read raced a withdrawal, so the identity left the staged set first.
-    pipeline.captured(entity(1), display("gone"));
-
-    assert_eq!(pipeline.ready().count(), 0);
-    assert!(pipeline.uncaptured().is_empty());
-}
-
-#[test]
-fn departed_completion_dropped() {
-    let mut pipeline = StagingPipeline::new(1);
-    pipeline.sync(&staged_map(&[]));
-
-    // The row raced a withdrawal, so the identity left the staged set before its read answered.
-    pipeline.complete(entity(1), BoxedVecN::zero());
-
-    assert_eq!(pipeline.ready().count(), 0);
-    assert!(pipeline.pending().is_empty());
-}
-
-/// A projected arrival at a distinct fixture coordinate.
-fn projected(edition_n: u128, x: f32, y: f32) -> ProjectedArrival {
-    let DisplayParts {
-        label,
-        icon,
-        representative,
-    } = display("arrival");
-    ProjectedArrival {
-        edition: edition(edition_n),
-        position: Vec2::new(x, y),
-        label,
-        icon,
-        representative,
+#[track_caller]
+fn assert_scoped_delivery(world: &Arc<World>, epoch: &Epoch, mask: &VisibilityMask) {
+    let view = ViewSchedule::of(Arc::clone(world), epoch, mask);
+    let (combined, bounds) = ScopeSchedule::of(&world.layout, epoch, mask);
+    assert_eq!(view.bounds(), bounds);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    for offset in [0, 1, 5] {
+        let offset = Zoom::new(offset).expect("should fit the offset");
+        let actual = view.cut(offset).expect("should bind the view");
+        let expected = combined
+            .cut(world.schedule(), offset)
+            .expect("should bind the combined cascade");
+        assert_eq!(actual.root_delivered(), expected.root_delivered());
+        assert_eq!(actual.min_resolution(), expected.min_resolution());
+        for index in 0..=world.layout.node_count(epoch) {
+            let node = NodeRowId::from_usize(index);
+            assert_eq!(actual.bucket_of(node), expected.bucket_of(node));
+            assert_eq!(actual.first_zoom(node), expected.first_zoom(node));
+        }
+        for zoom in 0..=world.schedule().max_tile_depth().get() {
+            let zoom = Zoom::new(zoom).expect("should fit the served zoom");
+            for cell in iter::once(root).chain(root.children().expect("should have root children"))
+            {
+                assert_eq!(actual.total(zoom, cell), expected.total(zoom, cell));
+                assert_eq!(actual.delta(zoom, cell), expected.delta(zoom, cell));
+                assert_eq!(actual.children(zoom, cell), expected.children(zoom, cell));
+            }
+        }
     }
 }
 
 #[test]
-fn captured_label_priced() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    let bare = register.resident_estimate();
-
-    let label = "a label the estimate carries";
-    let arrival = ProjectedArrival {
-        edition: edition(10),
-        position: Vec2::new(0.25, -0.5),
-        label: OwnedLabel::from(label),
-        icon: OwnedIcon::from("an icon"),
-        representative: type_uuid(),
+fn schedule_extension_visibility() {
+    let (_fixture, mut delta) = fixture("schedule-extension-visibility");
+    let world = Arc::clone(&delta.world);
+    let base = NodeRowId::MIN;
+    let position = world
+        .layout
+        .position(&epoch(&delta), base)
+        .expect("should resolve the base position");
+    let higher = entity(300);
+    let lower = entity(200);
+    let hidden = entity(100);
+    for identity in [higher, lower, hidden] {
+        assert_eq!(
+            delta.update_node(identity, legend("extension"), position),
+            Some(true)
+        );
+    }
+    let higher_row = delta
+        .node_row(higher)
+        .expect("should allocate the higher row");
+    let lower_row = delta
+        .node_row(lower)
+        .expect("should allocate the lower row");
+    let hidden_row = delta
+        .node_row(hidden)
+        .expect("should allocate the hidden row");
+    let captured = epoch(&delta);
+    let mask = schedule_mask(
+        &captured,
+        (0..NODES)
+            .map(NodeRowId::new)
+            .chain([higher_row, lower_row]),
+    );
+    assert_scoped_delivery(&world, &captured, &mask);
+    let before = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let cut = before.cut(Zoom::MIN).expect("should bind the view");
+    let baseline = cut.total(zoom, root);
+    assert_eq!(cut.bucket_of(hidden_row), None);
+    assert_eq!(
+        baseline.rows.len(),
+        usize::try_from(NODES).expect("should fit the fixture count") + 2
+    );
+    let at = |node| {
+        baseline
+            .rows
+            .iter()
+            .position(|&row| row == node)
+            .expect("should deliver the row")
     };
-    assert_eq!(place(&mut register, 1, &arrival), Disposition::Resolving);
-
-    // The estimate grows by at least the label's text, whatever the map allocation adds.
-    assert!(register.resident_estimate() >= bare + label.len());
-}
-
-#[test]
-fn placed_arrival_leaves_staged() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Resolving
+    assert!(at(base) < at(lower_row));
+    assert!(at(lower_row) < at(higher_row));
+    let base_only = ViewSchedule::of(
+        Arc::clone(&world),
+        &captured,
+        &schedule_mask(&captured, (0..NODES).map(NodeRowId::new)),
     );
+    assert_eq!(before.occupancy(), base_only.occupancy());
 
-    let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(lower), "should withdraw the extension row");
+    let withdrawn = epoch(&delta);
+    assert_scoped_delivery(&world, &withdrawn, &mask);
+    let after = ViewSchedule::of(Arc::clone(&world), &withdrawn, &mask);
     assert_eq!(
-        snapshot.node(entity(1)),
-        Some(&DeltaNode {
-            edition: edition(10),
-            position: Vec2::new(0.25, -0.5),
-            id: slot(BASE),
-            legend: legend("arrival"),
-        })
+        after
+            .cut(Zoom::MIN)
+            .expect("should bind the view")
+            .bucket_of(lower_row),
+        None
     );
-}
-
-#[test]
-fn first_placement_stands() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
     assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Resolving
+        before
+            .cut(Zoom::MIN)
+            .expect("should bind the captured view")
+            .total(zoom, root),
+        baseline
     );
+    assert_scoped_delivery(&world, &captured, &mask);
 
-    // A re-delivered placement changes nothing, coordinate and slot included.
+    delta.revision.increment_by(1);
     assert_eq!(
-        place(&mut register, 1, &projected(11, 0.75, 0.75)),
-        Disposition::AlreadyHeld
+        delta.update_node(lower, legend("revived"), Vec2::ZERO),
+        Some(true)
     );
-
-    // A later edition moves the published edition and never the coordinate.
-    register.apply(event(1, 2, live(11)));
-    let snapshot = snapshot(&register, &Tables::default());
+    let revived = ViewSchedule::of(Arc::clone(&world), &epoch(&delta), &mask);
     assert_eq!(
-        snapshot.node(entity(1)),
-        Some(&DeltaNode {
-            edition: edition(11),
-            position: Vec2::new(0.25, -0.5),
-            id: slot(BASE),
-            legend: legend("arrival"),
-        })
+        revived
+            .cut(Zoom::MIN)
+            .expect("should bind the revived view")
+            .total(zoom, root),
+        baseline
     );
 }
 
 #[test]
-fn post_withdrawal_placement_unserved() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    register.apply(event(1, 2, Standing::Withdrawn));
-
-    // The completion raced the withdrawal. The register still records the placement while the
-    // standing keeps the row unserved, so it moves no publication input.
+fn schedule_base_withdrawal_dispatch() {
+    let (_fixture, mut delta) = fixture("schedule-base-withdrawal-dispatch");
+    let world = Arc::clone(&delta.world);
+    let base = NodeRowId::MIN;
+    let base_identity = world
+        .layout
+        .index
+        .identity
+        .key_of(base)
+        .expect("should resolve the base identity");
+    let position = world
+        .layout
+        .position(&epoch(&delta), base)
+        .expect("should resolve the base position");
+    let extension = entity(100);
     assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Dormant
+        delta.update_node(extension, legend("extension"), position),
+        Some(true)
+    );
+    let extension_row = delta
+        .node_row(extension)
+        .expect("should allocate the extension row");
+    let captured = epoch(&delta);
+    let partial = schedule_mask(&captured, (0..=NODES).map(NodeRowId::new));
+    let full = VisibilityMask::full(
+        &captured,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+    );
+    let corpus = ViewSchedule::of(Arc::clone(&world), &captured, &full);
+    let baseline = corpus.cut(Zoom::MIN).expect("should bind the corpus");
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    assert_eq!(baseline.bucket_of(extension_row), Some(baseline.deepest()));
+    assert_eq!(
+        baseline.total(zoom, root).rows.len(),
+        usize::try_from(NODES).expect("should fit the fixture count") + 1
+    );
+    assert_scoped_delivery(&world, &captured, &partial);
+
+    delta.revision.increment_by(1);
+    assert!(
+        delta.withdraw(base_identity),
+        "should withdraw the base row"
+    );
+    let withdrawn = epoch(&delta);
+    assert_scoped_delivery(&world, &withdrawn, &partial);
+    let scoped = ViewSchedule::of(Arc::clone(&world), &withdrawn, &partial);
+    assert_eq!(
+        scoped
+            .cut(Zoom::MIN)
+            .expect("should bind the scoped view")
+            .bucket_of(base),
+        None
+    );
+    let corpus_after = ViewSchedule::of(Arc::clone(&world), &withdrawn, &full);
+    let recorded = corpus_after
+        .cut(Zoom::MIN)
+        .expect("should bind the recorded view");
+    assert_eq!(recorded.total(zoom, root), baseline.total(zoom, root));
+    assert_eq!(recorded.root_delivered(), baseline.root_delivered());
+    assert_eq!(recorded.min_resolution(), baseline.min_resolution());
+    assert_eq!(
+        recorded.first_zoom(extension_row),
+        baseline.first_zoom(extension_row)
+    );
+    assert_eq!(
+        recorded.children(Zoom::MIN, root),
+        baseline.children(Zoom::MIN, root)
     );
 
-    let withdrawn = snapshot(&register, &Tables::default());
-    assert!(withdrawn.withdraws(entity(1)));
-    assert_eq!(withdrawn.staged.get(&entity(1)).copied(), None);
-    assert_eq!(withdrawn.node(entity(1)), None);
-
-    // The unarchive republishes the recorded coordinate on its former slot without re-entering
-    // the staged set.
-    register.apply(event(1, 3, live(11)));
-    let restored = snapshot(&register, &Tables::default());
-    assert_eq!(restored.staged.get(&entity(1)).copied(), None);
+    delta.revision.increment_by(1);
     assert_eq!(
-        restored.node(entity(1)),
-        Some(&DeltaNode {
-            edition: edition(11),
-            position: Vec2::new(0.25, -0.5),
-            id: slot(BASE),
-            legend: legend("arrival"),
-        })
+        delta.update_node(base_identity, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    assert_scoped_delivery(&world, &epoch(&delta), &partial);
+}
+
+#[track_caller]
+fn assert_partitioned(delivered: &DeliveredNodes) {
+    assert_eq!(
+        delivered.runs.iter().sum::<usize>(),
+        delivered.rows.len(),
+        "the runs should re-sum to the delivered count"
     );
 }
 
+/// A corpus walk subtracts current withdrawals from a recorded schedule.
+///
+/// The schedule preserves the withdrawn row, and a revival restores the recorded delivery.
 #[test]
-fn unclassified_placement_unpublished() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
+fn walk_corpus_withdrawal() {
+    let (_fixture, mut delta) = fixture("walk-corpus-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let walk = Walk {
+        schedule: DeliverySchedule::corpus(&world),
+        index: &world.layout.index,
+    };
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
 
-    // An arrival without a verdict serves nothing, so the placement waits for the
-    // classification it cannot precede in any live pipeline, and publication stays fail-closed
-    // if one ever does.
+    let captured = epoch(&delta);
+    let recorded = walk.schedule.total(zoom, root);
+    assert_eq!(walk.total(&captured, zoom, root), recorded);
     assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Resolving
+        walk.delta(&captured, Zoom::MIN, root),
+        walk.schedule.delta(Zoom::MIN, root)
     );
 
-    let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
-    assert_eq!(snapshot.node(entity(1)), None);
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let withdrawn = epoch(&delta);
+    assert_eq!(
+        walk.schedule.total(zoom, root),
+        recorded,
+        "the recorded schedule should preserve the withdrawn row"
+    );
+
+    let subtracted = walk.total(&withdrawn, zoom, root);
+    assert!(
+        !subtracted.rows.contains(&node),
+        "the withdrawn row should leave the delivery"
+    );
+    assert_eq!(subtracted.rows.len() + 1, recorded.rows.len());
+    assert_eq!(subtracted.first_bucket, recorded.first_bucket);
+    assert_eq!(subtracted.runs.len(), recorded.runs.len());
+    assert_partitioned(&subtracted);
+    assert_eq!(
+        walk.total(&captured, zoom, root),
+        recorded,
+        "the earlier epoch should preserve its delivery"
+    );
+
+    let bucket = walk
+        .schedule
+        .bucket_of(node)
+        .expect("the recorded schedule should keep the withdrawn row");
+    let index = usize::from(bucket.get() - recorded.first_bucket.get());
+    assert_eq!(
+        subtracted.runs[index] + 1,
+        recorded.runs[index],
+        "the withdrawal should debit the row's own bucket"
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(identity, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    assert_eq!(
+        walk.total(&epoch(&delta), zoom, root),
+        recorded,
+        "a revival should restore the recorded delivery"
+    );
 }
 
-/// Places through the fixture universe, panicking where the fixture cannot exhaust it.
-fn place(register: &mut DeltaRegister, entity_n: u128, arrival: &ProjectedArrival) -> Disposition {
-    register
-        .place(entity(entity_n), arrival, &Tables::default())
-        .expect("the fixture universe has room")
-}
-
+/// A scoped walk subtracts a withdrawal newer than the schedule it reads.
 #[test]
-fn slots_assign_monotonically_in_placement_order() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register.apply(event(2, 1, live(20)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    register
-        .classify(entity(2), Classification::Node)
-        .expect("a node verdict allocates no edge row");
+fn walk_scope_withdrawal() {
+    let (_fixture, mut delta) = fixture("walk-scope-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
 
-    // Placement order assigns the slots, and the base bound is the first one taken.
-    assert_eq!(
-        place(&mut register, 2, &projected(20, 0.5, 0.5)),
-        Disposition::Resolving
+    let captured = epoch(&delta);
+    let mask = schedule_mask(&captured, (0..NODES).map(NodeRowId::new));
+    let view = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+    let walk = Walk {
+        schedule: view.cut(Zoom::MIN).expect("should bind the view"),
+        index: &world.layout.index,
+    };
+    let recorded = walk.schedule.total(zoom, root);
+    assert!(
+        recorded.rows.contains(&node),
+        "the captured schedule should deliver the row"
     );
-    assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Resolving
-    );
+    assert_eq!(walk.total(&captured, zoom, root), recorded);
 
-    let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(
-        snapshot.node(entity(2)).map(|arrival| arrival.id),
-        Some(slot(BASE))
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let subtracted = walk.total(&epoch(&delta), zoom, root);
+    assert!(
+        !subtracted.rows.contains(&node),
+        "the withdrawn row should leave the captured delivery"
     );
-    assert_eq!(
-        snapshot.node(entity(1)).map(|arrival| arrival.id),
-        Some(slot(BASE + 1))
-    );
-    assert_eq!(snapshot.universe(), Universe::new(slot(BASE + 2)));
+    assert_eq!(subtracted.rows.len() + 1, recorded.rows.len());
+    assert_partitioned(&subtracted);
 }
 
-#[test]
-fn withdrawn_slot_never_reused() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    assert_eq!(
-        place(&mut register, 1, &projected(10, 0.25, -0.5)),
-        Disposition::Resolving
-    );
-
-    // The withdrawal leaves the slot allocated, so the next placement takes the one after it
-    // and the universe still counts both.
-    register.apply(event(1, 2, Standing::Withdrawn));
-    register.apply(event(2, 1, live(20)));
-    register
-        .classify(entity(2), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-    assert_eq!(
-        place(&mut register, 2, &projected(20, 0.5, 0.5)),
-        Disposition::Resolving
-    );
-
-    let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(
-        snapshot.node(entity(2)).map(|arrival| arrival.id),
-        Some(slot(BASE + 1))
-    );
-    assert_eq!(snapshot.universe(), Universe::new(slot(BASE + 2)));
+/// A resolver that records the delivered node identities and answers no details.
+struct RecordingResolver {
+    nodes: RefCell<Vec<ArchivedEntityId>>,
 }
 
-#[test]
-fn universe_base_bound_first() {
-    let mut register = register();
-    register.apply(event(1, 1, live(10)));
+impl LocateResolver for RecordingResolver {
+    fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
+        self.nodes
+            .borrow_mut()
+            .extend(request.nodes.iter().map(|node| node.identity));
+        Ok(None)
+    }
+}
 
+/// A scene whose view schedule predates two partners linked to fixture node 4.
+///
+/// The scene captures the schedule at one revision and reads its epoch at the next. The next
+/// revision places the partners, and the schedule holds no delivery zoom for them.
+struct LaterEpochScene {
+    world: Arc<World>,
+    epoch: Epoch,
+    mask: VisibilityMask,
+    schedule: ViewSchedule,
+    source: ArchivedEntityId,
+    partners: [ArchivedEntityId; 2],
+    rows: [NodeRowId; 2],
+    _fixture: TamperFixture,
+}
+
+impl LaterEpochScene {
+    #[track_caller]
+    fn new(name: &str) -> Self {
+        let (files, mut delta) = fixture(name);
+        let world = Arc::clone(&delta.world);
+        let source_row = NodeRowId::new(4);
+        let source = world
+            .layout
+            .index
+            .identity
+            .key_of(source_row)
+            .expect("should resolve the fitted identity");
+        let captured = epoch(&delta);
+        let actor = VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        };
+        let mask = VisibilityMask::full(&captured, actor);
+        let schedule = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+
+        delta.revision.increment_by(1);
+        let partners = [entity(400), entity(401)];
+        let links = [entity(410), entity(411)];
+        let positions = [Vec2::new(0.25, 0.0), Vec2::new(0.5, 0.0)];
+        let mut rows = [NodeRowId::MIN; 2];
+        for (index, ((partner, link), position)) in
+            partners.into_iter().zip(links).zip(positions).enumerate()
+        {
+            assert_eq!(
+                delta.update_node(partner, legend("partner"), position),
+                Some(true)
+            );
+            let row = delta
+                .node_row(partner)
+                .expect("should allocate the partner");
+            assert_eq!(
+                delta.update_edge(link, legend("link"), Some([source_row, row])),
+                Some(true)
+            );
+            rows[index] = row;
+        }
+        let later = epoch(&delta);
+        let delivery = schedule
+            .cut(Zoom::MIN)
+            .expect("should bind the zero offset");
+        for row in rows {
+            assert!(
+                later.contains_node(row),
+                "the partner should have a placement"
+            );
+            assert_eq!(
+                delivery.first_zoom(row),
+                None,
+                "the captured schedule should hold no delivery zoom for the partner"
+            );
+        }
+
+        Self {
+            world,
+            epoch: later,
+            mask,
+            schedule,
+            source,
+            partners,
+            rows,
+            _fixture: files,
+        }
+    }
+
+    #[track_caller]
+    fn locate<'scene>(
+        &'scene self,
+        edges: u32,
+        resolver: &RecordingResolver,
+    ) -> Result<LocateDocument<'scene>, Report<LocateDocumentError>> {
+        let scene = Scene {
+            world: &self.world,
+            epoch: &self.epoch,
+            mask: &self.mask,
+            schedule: &self.schedule,
+            delivery: self
+                .schedule
+                .cut(Zoom::MIN)
+                .expect("should bind the zero offset"),
+        };
+        LocateDocument::new(
+            scene,
+            LocateSource::Key(EntityId::from(self.source)),
+            &LocateDocumentOptions {
+                types: OntologySelection::new(&[]),
+                limits: LocateLimits { edges, .. },
+                resolver,
+            },
+        )
+    }
+}
+
+/// A locate within capacity skips partner ranking.
+///
+/// Partners without a scheduled delivery zoom remain deliverable. A zero-capacity locate delivers
+/// the source alone, also without ranking.
+#[test]
+fn locate_partner_after_schedule_complete() {
+    let scene = LaterEpochScene::new("delta-locate-partner-after-schedule-complete");
+    let mut expected: Vec<_> = iter::once(scene.source).chain(scene.partners).collect();
+    expected.sort_unstable();
+
+    for capacity in [2, 512] {
+        let resolver = RecordingResolver {
+            nodes: RefCell::new(Vec::new()),
+        };
+        let _document = scene
+            .locate(capacity, &resolver)
+            .expect("should deliver the complete incident set without a delivery zoom");
+        let mut delivered = resolver.nodes.borrow().clone();
+        assert_eq!(
+            delivered[0], scene.source,
+            "should deliver the source first"
+        );
+        delivered.sort_unstable();
+        assert_eq!(
+            delivered, expected,
+            "should deliver both added partners at capacity {capacity}"
+        );
+    }
+
+    let resolver = RecordingResolver {
+        nodes: RefCell::new(Vec::new()),
+    };
+    let _document = scene
+        .locate(0, &resolver)
+        .expect("should deliver an empty edge set at zero capacity without ranking");
     assert_eq!(
-        snapshot(&register, &Tables::default()).universe(),
-        Universe::new(slot(BASE))
+        *resolver.nodes.borrow(),
+        [scene.source],
+        "should deliver the source alone at zero capacity"
     );
 }
 
+/// A truncating locate rejects an unrankable partner before hydration.
+///
+/// Ranking requires a delivery zoom for the partner in the schedule.
 #[test]
-fn exhausted_universe_refuses_placement() {
-    let bound = NodeRowId::new(u64::from(u32::MAX) + 1);
-    let mut register = DeltaRegister::new(
-        Universe::new(bound),
-        Universe::new(EdgeRowId::new(EDGE_BASE)),
-        Universe::new(OntologyRowId::new(ONTOLOGY_BASE)),
+fn locate_partner_after_schedule_truncated() {
+    let scene = LaterEpochScene::new("delta-locate-partner-after-schedule-truncated");
+    let resolver = RecordingResolver {
+        nodes: RefCell::new(Vec::new()),
+    };
+    let Err(report) = scene.locate(1, &resolver) else {
+        panic!("should refuse to rank a partner without a delivery zoom");
+    };
+    assert_matches!(
+        report.current_context(),
+        LocateDocumentError::Node { row } if scene.rows.contains(row),
     );
-    register.apply(event(1, 1, live(10)));
-    register
-        .classify(entity(1), Classification::Node)
-        .expect("a node verdict allocates no edge row");
-
-    // One more node row would take a value the wire codec cannot encode, so the refusal
-    // repeats and the bound never moves.
-    assert_eq!(
-        register.place(entity(1), &projected(10, 0.25, -0.5), &Tables::default()),
-        Err(UniverseExhausted)
+    assert!(
+        resolver.nodes.borrow().is_empty(),
+        "should refuse before hydration"
     );
-    assert_eq!(
-        register.place(entity(1), &projected(10, 0.25, -0.5), &Tables::default()),
-        Err(UniverseExhausted)
-    );
-
-    let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged.get(&entity(1)).copied(), Some(edition(10)));
-    assert_eq!(snapshot.node(entity(1)), None);
-    assert_eq!(snapshot.universe(), Universe::new(bound));
 }
 
+/// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.
 #[test]
-fn handed_off_entry_rests_until_retired() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    pipeline.complete(entity(1), BoxedVecN::zero());
-    pipeline.handed_off(entity(1));
-
-    // After the hand-off nothing reads and nothing re-places.
-    assert!(pipeline.pending().is_empty());
-    assert_eq!(pipeline.ready().count(), 0);
-
-    // The mirror keeps it resting while the publication still stages the identity.
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert!(pipeline.pending().is_empty());
-    assert_eq!(pipeline.ready().count(), 0);
-
-    // The publication that placed it retires the entry, and a later unarchive restages fresh.
-    pipeline.sync(&staged_map(&[]));
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert_eq!(pipeline.pending(), vec![entity(1)]);
-}
-
-#[test]
-fn out_of_frame_entry_stays_parked() {
-    let mut pipeline = StagingPipeline::new(2);
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    pipeline.complete(entity(1), BoxedVecN::zero());
-    pipeline.out_of_frame(entity(1));
-
-    // An out-of-frame arrival neither reads nor re-projects, because only a refit moves the
-    // fitted frame.
-    assert!(pipeline.pending().is_empty());
-    assert_eq!(pipeline.ready().count(), 0);
-    assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
-
-    pipeline.sync(&staged_map(&[(1, 10)]));
-    assert!(pipeline.pending().is_empty());
-    assert_eq!(pipeline.ready().count(), 0);
+fn normalize_fitted_frame() {
+    let (fixture, delta) = fixture("delta-normalize-fitted-frame");
+    let bounds = fixture
+        .generation()
+        .repository()
+        .metadata
+        .evidence
+        .lod
+        .world;
+    let positions = [bounds.min(), bounds.centre(), bounds.max()];
+    let normalized = delta.world.bounds().normalize_into(WIRE_FRAME, &positions);
+    assert_eq!(
+        normalized,
+        [Vec2::splat(-1.0), Vec2::ZERO, Vec2::splat(1.0)]
+    );
 }

@@ -12,6 +12,7 @@ use core::{
     ops::{Deref, Index},
     simd::{Simd, num::SimdFloat as _},
 };
+use std::alloc::Global;
 
 use hashql_core::id::{Id, IdSlice, IdVec};
 use rayon::iter::ParallelIterator as _;
@@ -95,11 +96,9 @@ fn chunk_squared_deviations(points: &[Vec2], centre: DVec2) -> f64 {
 
 /// A view of a point slice whose every coordinate is finite, proven at construction.
 ///
-/// The constructor owns the finiteness scan, four points at a time on SIMD lanes, and a
-/// consumer holding a field divides, squares, and folds without re-checking. Reads flow
-/// through the slice's own API, and every write path carries the `_unchecked` suffix -
-/// [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked) and its siblings - where the caller
-/// keeps the proof.
+/// [`new`](Self::new) validates the initial points and [`copy_from`](Self::copy_from) validates
+/// replacements before writing them. Writes through the `_unchecked` methods must preserve
+/// finiteness.
 #[derive(Debug, PartialEq, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub(crate) struct FinitePointField<I>(IdSlice<I, Vec2>);
@@ -108,6 +107,31 @@ impl<I> FinitePointField<I>
 where
     I: Id,
 {
+    #[must_use]
+    #[inline]
+    pub(crate) fn zeroed(count: usize) -> Box<Self> {
+        Self::zeroed_in(count, Global)
+    }
+
+    #[inline]
+    pub(crate) fn zeroed_in<A: Allocator>(count: usize, alloc: A) -> Box<Self, A> {
+        const {
+            const fn assert_is_zeroed<T: zerocopy::FromZeros>() {}
+            assert_is_zeroed::<Vec2>();
+
+            let bytes = [0_u8; size_of::<Vec2>()];
+            let vec: Vec2 = zerocopy::transmute!(bytes);
+            assert!(vec == Vec2::ZERO);
+            assert!(vec.is_finite());
+        }
+
+        // SAFETY: `Vec2` is a valid zero-initialized type, and is finite, see proof above
+        let boxed = unsafe { Box::new_zeroed_slice_in(count, alloc).assume_init() };
+        let boxed = IdSlice::from_boxed_slice(boxed);
+
+        Self::new_boxed_unchecked(boxed)
+    }
+
     /// Validates every point finite and wraps the slice.
     ///
     /// The scan runs serially, four points at a time on SIMD lanes. The `math_kernels`
@@ -219,6 +243,29 @@ where
         // SAFETY: `Self` is `repr(transparent)` over `IdSlice<I, Vec2>`, so the box pointer
         // reinterprets in place at the same layout, in the same allocator.
         unsafe { Box::from_raw_in(ptr as *mut Self, alloc) }
+    }
+
+    /// Copies finite points into the rows starting at `offset`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first non-finite point's destination id and leaves the field unchanged.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the destination range extends beyond the field.
+    pub(crate) fn copy_from(
+        &mut self,
+        offset: I,
+        points: &IdSlice<I, Vec2>,
+    ) -> Result<(), NonFinitePoint<I>> {
+        let target = &mut self.0.as_raw_mut()[offset.as_usize()..][..points.len()];
+        let finite = Self::new(points).map_err(|error| NonFinitePoint {
+            id: offset.plus(error.id.as_usize()),
+        })?;
+        target.copy_from_slice(finite.as_slice().as_raw());
+
+        Ok(())
     }
 
     /// Returns the underlying point slice.
@@ -423,7 +470,76 @@ mod tests {
     }
 
     #[test]
-    fn the_scan_admits_a_finite_set_and_names_the_smallest_offender() {
+    fn zeroed_lengths() {
+        for count in [0, 1, 7] {
+            let field = FinitePointField::<RowId>::zeroed(count);
+            assert_eq!(field.len(), count);
+            assert!(field.iter().all(|&point| point == Vec2::ZERO));
+        }
+    }
+
+    #[test]
+    fn copy_range() {
+        let mut field = FinitePointField::<RowId>::zeroed(5);
+        let replacement = [Vec2::new(1.0, 2.0), Vec2::new(3.0, 4.0)];
+        field
+            .copy_from(RowId::new(2), IdSlice::from_raw(&replacement))
+            .expect("should copy finite points");
+        assert_eq!(
+            field.as_slice().as_raw(),
+            [
+                Vec2::ZERO,
+                Vec2::ZERO,
+                replacement[0],
+                replacement[1],
+                Vec2::ZERO
+            ]
+        );
+    }
+
+    #[test]
+    fn copy_empty() {
+        for count in [0, 4] {
+            let mut field = FinitePointField::<RowId>::zeroed(count);
+            field
+                .copy_from(RowId::from_usize(count), IdSlice::from_raw(&[]))
+                .expect("should accept an empty copy at the end");
+            assert_eq!(field.len(), count);
+            assert!(field.iter().all(|&point| point == Vec2::ZERO));
+        }
+    }
+
+    #[test]
+    fn copy_non_finite() {
+        for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            for point in [Vec2::new(value, 0.0), Vec2::new(0.0, value)] {
+                let mut field = FinitePointField::<RowId>::zeroed(5);
+                let replacement = [Vec2::new(1.0, 2.0), point, point];
+                let error = field
+                    .copy_from(RowId::new(2), IdSlice::from_raw(&replacement))
+                    .expect_err("should refuse non-finite points");
+                assert_eq!(error.id, RowId::new(3));
+                assert_eq!(field.as_slice().as_raw(), [Vec2::ZERO; 5]);
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "out of range")]
+    fn copy_overrun() {
+        let mut field = FinitePointField::<RowId>::zeroed(2);
+        let _result = field.copy_from(RowId::new(1), IdSlice::from_raw(&[Vec2::ZERO; 2]));
+    }
+
+    #[test]
+    #[should_panic(expected = "out of range")]
+    fn copy_offset_past_end() {
+        let mut field = FinitePointField::<RowId>::zeroed(2);
+        let _result = field.copy_from(RowId::new(3), IdSlice::from_raw(&[]));
+    }
+
+    #[test]
+    fn scan_first_non_finite() {
         let finite = points();
         let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&finite))
             .expect("every point is finite");
@@ -452,7 +568,7 @@ mod tests {
     }
 
     #[test]
-    fn gather_carries_the_points_in_draw_order() {
+    fn gather_draw_order() {
         let points = points();
         let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
             .expect("every point is finite");
@@ -473,7 +589,7 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "index out of bounds")]
-    fn gather_panics_outside_the_row_domain() {
+    fn gather_out_of_domain() {
         let points = points();
         let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
             .expect("every point is finite");
@@ -483,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn the_statistics_read_exact_dyadic_values() {
+    fn statistics_dyadic_values() {
         // Centroid (2, -1), deviations (∓2, ±1): the sums are exact dyadics.
         let square = [
             Vec2::new(0.0, 0.0),

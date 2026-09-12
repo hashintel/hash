@@ -1,23 +1,3 @@
-//! The hydration statements, built through the store's query compiler.
-//!
-//! Every read builds through the store's own [`SelectCompiler`], so a statement reads under
-//! the live temporal axes and the draft exclusion and masks properties per actor, by
-//! construction. Each column set adds its selections to a caller's
-//! compiler and decodes the rows the compiled statement answers, so a row position is known
-//! to exactly the type that assigned it.
-//!
-//! # The masking contract
-//!
-//! A statement reads property values only through the compiler's scalar-properties
-//! selection, which reads the properties column through the same column compilation every
-//! entity read uses, so a configured masking reaches the delivered map and the count for
-//! exactly the actor the caller names. The compiler's masking hook fires when a property
-//! selection compiles, so masking configures before any selection is added, which
-//! [`DetailColumns::select`] holds by taking the masking itself. Label attribution reads the
-//! cache's per-edition `label_properties` column and no property value, so no masking
-//! applies to it. The tests hold this module to zero hand-composed reads of the properties
-//! column.
-
 use hash_graph_postgres_store::store::postgres::query::SelectCompiler;
 use hash_graph_store::{
     entity::EntityQueryPath,
@@ -37,16 +17,9 @@ use type_system::{
     principal::actor_group::WebId,
 };
 
-use super::{
-    columns::ScalarValue,
-    select::{scalar_properties, select_properties},
-};
+use super::scalar::ScalarProperties;
 use crate::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId};
 
-/// Builds the filter naming exactly the requested identities, excluding archived editions.
-///
-/// Every identity is a non-draft entity id, so the membership set is a disjunction of the read
-/// path's own per-entity filters.
 pub(super) fn identity_filter<'params>(
     ids: impl IntoIterator<Item = EntityId>,
 ) -> Filter<'params, Entity> {
@@ -99,7 +72,7 @@ impl TypeColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position.
+    /// Panics if a column fails to decode or the direct-type count is negative.
     pub(super) fn direct_type_urls(&self, row: &tokio_postgres::Row) -> Vec<VersionedUrl> {
         let direct: i32 = row.get(self.direct_types);
         let direct = usize::try_from(direct).expect("the store counts direct types non-negatively");
@@ -171,7 +144,7 @@ pub(super) struct DetailColumns {
 impl DetailColumns {
     /// Configures `masking` and adds the detail selections to `compiler`.
     ///
-    /// The masking configures first, so every property selection compiles against the masked
+    /// The masking configures first. Every property selection then compiles against the masked
     /// column.
     pub(super) fn select<'params, 'query: 'params>(
         compiler: &mut SelectCompiler<'params, 'query, Entity>,
@@ -207,7 +180,7 @@ impl DetailColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position.
+    /// Panics if a column fails to decode or the direct-type count is negative.
     pub(super) fn direct_type_urls(&self, row: &tokio_postgres::Row) -> Vec<VersionedUrl> {
         self.types.direct_type_urls(row)
     }
@@ -222,22 +195,23 @@ impl DetailColumns {
     ///
     /// # Panics
     ///
-    /// This panics when a column does not decode at its assigned position, and when a stored
-    /// key does not parse as a base URL.
+    /// Panics if a column fails to decode or the scalar-property aggregate is not a JSON object.
     pub(super) fn capped_properties(
         &self,
         row: &tokio_postgres::Row,
-        cap: usize,
-    ) -> (Vec<(BaseUrl, ScalarValue)>, bool) {
+        maximum: usize,
+    ) -> (ScalarProperties, bool) {
         let scalars: Option<serde_json::Value> = row.get(self.scalars);
         let total: i32 = row.get(self.total);
         let label: Option<BaseUrl> = row.get(self.label);
 
-        let entries = scalars.map_or_else(Vec::new, scalar_properties);
-        let total = usize::try_from(total).expect("the store counts properties non-negatively");
-        let complete = entries.len() == total && entries.len() <= cap;
+        let (properties, truncated) = scalars
+            .map_or((ScalarProperties::EMPTY, false), |properties| {
+                ScalarProperties::new(properties, label.as_ref(), maximum)
+            });
 
-        (select_properties(entries, label.as_ref(), cap), complete)
+        let complete = !truncated && properties.len() == usize::try_from(total).unwrap_or(0);
+        (properties, complete)
     }
 }
 
@@ -279,7 +253,7 @@ mod tests {
     /// The masked spelling is the subtraction inside `jsonb_each(`, which is the compiler's
     /// column hook firing inside each property subquery. The count is over the masked object
     /// too, because a whole-object count against a masked map would tell an actor how many
-    /// properties were withheld, the enumeration signal the protection exists to close.
+    /// properties the masking withheld, the enumeration signal the protection exists to close.
     #[test]
     fn detail_masked_both_subqueries() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -318,11 +292,10 @@ mod tests {
 
     /// The rendered type-URL read, pinned as the text the store receives.
     ///
-    /// The pin makes any rendering change - a selection edit here, or a change in the
-    /// compiler upstream - a visible snapshot diff in review instead of a silent swap of what
-    /// runs against the store. Each compiled pin holds the one-identity request, which is the
+    /// The snapshot detects rendering changes to the query selections or compiler output.
+    /// Each compiled pin holds the one-identity request, which is the
     /// shape the masking assertions read. A request naming more identities compiles its
-    /// membership as a row comparison over unnested arrays, so the pinned grammar belongs to
+    /// membership as a row comparison over unnested arrays. The pinned grammar belongs to
     /// the one-identity request alone.
     #[test]
     fn types_statement_text() {
@@ -363,8 +336,7 @@ mod tests {
 
     /// The rendered bare detail read, pinned without any masking configured.
     ///
-    /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
-    /// bare object, and the text carries no CASE subtraction.
+    /// Both property subqueries read the bare object, and the SQL contains no `CASE` subtraction.
     #[test]
     fn bare_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -381,9 +353,9 @@ mod tests {
 
     /// The rendered type-URL resolution read, pinned as the text the store receives.
     ///
-    /// The membership array binds as one parameter, so this text is the rendering at every
+    /// The membership array binds as one parameter. This text is the rendering at every
     /// batch width. The read carries no temporal condition on purpose. A type uuid derives
-    /// from the URL it names, so any row that exists answers correctly whatever its archival
+    /// from the URL it names. Any row that exists answers correctly whatever its archival
     /// state, and the pin makes an upstream compiler change that reintroduced a temporal
     /// predicate a visible snapshot diff.
     #[test]

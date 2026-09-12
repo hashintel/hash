@@ -428,16 +428,63 @@ describe("decodeSaltileLocate", () => {
     );
   });
 
-  it("rejects an unsorted intern table", () => {
+  it("preserves detail after remapping unsorted intern tables", () => {
+    const original = fixture();
+    const expected = decodeSaltileLocate(original.buffer, original.request);
+    const typeTable = [
+      "https://t.test/person/v/3",
+      "https://t.test/authored/v/1",
+    ];
+    const propertyTable = [
+      "https://x.test/score/",
+      "https://x.test/age/",
+      "https://x.test/name/",
+    ];
+    const { buffer, request } = fixture({
+      tail: cborMap([
+        [0, cborArray(typeTable.map((url) => cborTstr(url)))],
+        [1, cborArray(propertyTable.map((url) => cborTstr(url)))],
+        [2, cborArray([cborTstr("Café"), cborNull()])],
+        [3, cborArray([cborUint(0), cborNull()])],
+        [
+          4,
+          cborMap([
+            [0, cborF64(0.5)],
+            [1, cborNegInt(-3)],
+            [2, cborTstr("Ada")],
+          ]),
+        ],
+        [5, cborArray([cborTstr("cites")])],
+        [6, cborArray([cborArray([cborUint(0), cborUint(1)])])],
+        [7, maskWord(0b0000_0001)],
+        [8, cborArray([cborMap([[1, cborUint(7)]])])],
+        [9, maskWord(0b0000_0000)],
+      ]),
+    });
+    expect(decodeSaltileLocate(buffer, request).detail).toEqual({
+      ...expected.detail,
+      typeTable,
+      propertyTable,
+    });
+  });
+
+  it.each([
+    {
+      name: "adjacent",
+      propertyTable: ["https://x.test/a/", "https://x.test/a/"],
+    },
+    {
+      name: "separated",
+      propertyTable: [
+        "https://x.test/a/",
+        "https://x.test/z/",
+        "https://x.test/a/",
+      ],
+    },
+  ])("rejects $name duplicate property-table entries", ({ propertyTable }) => {
     const badTrailer = cborMap([
       [0, cborArray([cborTstr("https://t.test/authored/v/1")])],
-      [
-        1,
-        cborArray([
-          cborTstr("https://x.test/z/"),
-          cborTstr("https://x.test/a/"),
-        ]),
-      ],
+      [1, cborArray(propertyTable.map((url) => cborTstr(url)))],
       [2, cborArray([cborTstr("Café"), cborNull()])],
       [3, cborArray([cborNull(), cborNull()])],
       [4, cborNull()],
@@ -448,7 +495,7 @@ describe("decodeSaltileLocate", () => {
       [9, maskWord(0)],
     ]);
     expect(failure(fixture({ tail: badTrailer }))).toMatch(
-      /propertyTable must be bytewise-sorted/u,
+      /propertyTable must contain unique entries/u,
     );
   });
 

@@ -1,55 +1,56 @@
-//! `GET /v1/atlas/current`: the one mutable read.
+//! `GET /v1/atlas/current`: the generation currently promoted for new requests.
 
-use aide::{axum::IntoApiResponse, transform::TransformOperation};
-use axum::{Json, extract::State, http::header};
+use aide::transform::TransformOperation;
+use axum::{
+    Json,
+    extract::State,
+    http::{HeaderValue, header},
+    response::{IntoResponse as _, Response},
+};
 
-use super::{AppState, headers};
-use crate::file::generation::GenerationId;
+use super::{AppState, headers, problem::Problem, saltile::DocumentResponse};
+use crate::serve::document::{CurrentDocument, Document as _};
 
-/// The operation's description.
-const DESCRIPTION: &str = "Returns the generation this server serves, pinned at startup.
+pub(super) async fn handler<R>(
+    State(state): State<AppState<R>>,
+) -> Result<Response, Problem<'static>> {
+    let observation = state.registry.observe(None)?;
 
-Every other route's geometry and configuration are pinned per generation. Detail provenance varies \
-                           by route: tile detail is generation-local, while edges and locate \
-                           combine generation payloads with request-time store state. This \
-                           pointer is the only generation read that changes. Re-read it whenever \
-                           any route answers `unknown-generation`, then retry against the \
-                           returned generation.";
+    let document = CurrentDocument::new(observation.present().epoch().generation());
+    let mut bytes = Vec::new();
+    let envelope = document.encode(&mut bytes).map_err(|error| {
+        tracing::error!(?error, "unable to encode current generation");
+        Problem::internal(error, "encoding the current generation failed")
+    })?;
 
-/// The `current` document: the one mutable read.
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
-)]
-struct CurrentResponse {
-    /// The active generation's sha256 identity.
-    generation: GenerationId,
+    let mut response = DocumentResponse::new(bytes, envelope.content_type()).into_response();
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static(headers::REVALIDATE),
+    );
+    Ok(response)
 }
 
-/// `GET /v1/atlas/current`: the one mutable read.
-pub(super) async fn handler<R>(State(state): State<AppState<R>>) -> impl IntoApiResponse {
-    (
-        [(header::CACHE_CONTROL, headers::REVALIDATE)],
-        Json(CurrentResponse {
-            generation: state.atlas.generation(),
-        }),
-    )
-}
-
-/// Documents the operation.
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation
         .id("current")
         .summary("The active generation")
-        .description(DESCRIPTION)
-        .response_with::<200, Json<CurrentResponse>, _>(|mut response| {
+        .description(
+            "Returns the successfully initialized generation currently promoted for new requests. \
+             Re-read this pointer after an unknown-generation response. Before initial \
+             publication, or after admission closes, the request answers 503.",
+        )
+        .response_with::<200, Json<CurrentDocument>, _>(|mut response| {
             response.inner().headers.insert(
                 "Cache-Control".to_owned(),
                 headers::cache_control(
                     headers::REVALIDATE,
-                    "the one mutable read revalidates on every use - a stale pointer is exactly \
-                     the failure this route exists to prevent",
+                    "the promoted generation can change between requests",
                 ),
             );
             response.description("the generation this process serves")
+        })
+        .response_with::<503, Problem<'static>, _>(|response| {
+            response.description("no generation is ready to serve requests")
         })
 }

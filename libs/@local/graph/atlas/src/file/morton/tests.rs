@@ -15,13 +15,16 @@ use super::{
     write::{PAGE_STRIDE, write_regions},
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    file::{
+        ArtifactFile as _,
+        region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    },
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 /// Fenceposts holding `lengths.len()` leading segments and empty ones behind them.

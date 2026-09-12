@@ -1,7 +1,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use alloc::boxed::Box;
+use alloc::{alloc::Allocator, boxed::Box};
 use core::{
+    clone::CloneToUninit,
     fmt, iter,
     marker::PhantomData,
     ops::{Index, IndexMut, Range},
@@ -460,52 +461,30 @@ impl<T: Id> DenseBitSlice<T> {
     }
 }
 
-/// Iterator over the rows a [`DenseBitSlice`] admits inside a range, ascending.
-///
-/// The cursor is `u64` so the word-boundary jump cannot overflow at the top of a `u32` row
-/// domain. The end is at most the domain, so every word the cursor touches is in memory.
-#[derive(Debug)]
-pub(crate) struct RowsIn<'set, T> {
-    /// The set's member bits.
-    words: &'set [U64<LE>],
-    /// The next row to examine.
-    position: u64,
-    /// The first row past the range.
-    end: u64,
-    marker: PhantomData<T>,
+unsafe impl<T> CloneToUninit for DenseBitSlice<T> {
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        let bytes = self.as_bytes();
+
+        unsafe {
+            bytes.clone_to_uninit(dest);
+        }
+    }
 }
 
-impl<T: Id> Iterator for RowsIn<'_, T> {
-    type Item = T;
+impl<T, A: Allocator + Clone> Clone for Box<DenseBitSlice<T>, A> {
+    fn clone(&self) -> Self {
+        Self::clone_from_ref_in(&**self, Self::allocator(self).clone())
+    }
 
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the quotient names the cursor's word and the remainder its bit within that word"
-    )]
-    fn next(&mut self) -> Option<T> {
-        while self.position < self.end {
-            // Every row below `end` lies in the domain, so the word index is in bounds.
-            #[expect(clippy::cast_possible_truncation)]
-            let word = self.words[(self.position / WORD_BITS as u64) as usize].get();
-            // Mask off the bits below the cursor, then jump to the next set bit inside this
-            // word, if any.
-            let masked = word & (u64::MAX << (self.position % WORD_BITS as u64));
-            let next = (self.position / WORD_BITS as u64) * WORD_BITS as u64
-                + u64::from(masked.trailing_zeros());
-            if masked != 0 {
-                if next >= self.end {
-                    // The next set bit lies at or beyond the range.
-                    break;
-                }
-                self.position = next + 1;
-                return Some(T::from_u64(next));
-            }
-            // Skip to the next word boundary.
-            self.position = (self.position / WORD_BITS as u64 + 1) * WORD_BITS as u64;
-        }
+    fn clone_from(&mut self, source: &Self) {
+        let &mut DenseBitSlice {
+            domain_size,
+            ref mut words,
+            marker: _,
+        } = &mut **self;
 
-        None
+        assert_eq!(domain_size, source.domain_size);
+        words.clone_from_slice(&source.words);
     }
 }
 
@@ -716,6 +695,55 @@ impl core::error::Error for ParseDenseBitSliceArrayError {
             Self::Frame { error, .. } => Some(error),
             Self::Length { .. } | Self::Header { .. } | Self::Domain { .. } => None,
         }
+    }
+}
+
+/// Iterator over the rows a [`DenseBitSlice`] admits inside a range, ascending.
+///
+/// The cursor is `u64` so the word-boundary jump cannot overflow at the top of a `u32` row
+/// domain. The end is at most the domain, so every word the cursor touches is in memory.
+#[derive(Debug)]
+pub(crate) struct RowsIn<'set, T> {
+    /// The set's member bits.
+    words: &'set [U64<LE>],
+    /// The next row to examine.
+    position: u64,
+    /// The first row past the range.
+    end: u64,
+    marker: PhantomData<T>,
+}
+
+impl<T: Id> Iterator for RowsIn<'_, T> {
+    type Item = T;
+
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "the quotient names the cursor's word and the remainder its bit within that word"
+    )]
+    fn next(&mut self) -> Option<T> {
+        while self.position < self.end {
+            // Every row below `end` lies in the domain, so the word index is in bounds.
+            #[expect(clippy::cast_possible_truncation)]
+            let word = self.words[(self.position / WORD_BITS as u64) as usize].get();
+            // Mask off the bits below the cursor, then jump to the next set bit inside this
+            // word, if any.
+            let masked = word & (u64::MAX << (self.position % WORD_BITS as u64));
+            let next = (self.position / WORD_BITS as u64) * WORD_BITS as u64
+                + u64::from(masked.trailing_zeros());
+            if masked != 0 {
+                if next >= self.end {
+                    // The next set bit lies at or beyond the range.
+                    break;
+                }
+                self.position = next + 1;
+                return Some(T::from_u64(next));
+            }
+            // Skip to the next word boundary.
+            self.position = (self.position / WORD_BITS as u64 + 1) * WORD_BITS as u64;
+        }
+
+        None
     }
 }
 

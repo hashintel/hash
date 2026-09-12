@@ -24,6 +24,7 @@ use super::super::fit::{FitConfig, TrainingRow};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{GenerationId, GenerationRoot},
         repository::Artifact as _,

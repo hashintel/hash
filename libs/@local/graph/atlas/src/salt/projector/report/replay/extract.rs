@@ -6,6 +6,7 @@ use super::error::ReplayError;
 use crate::{
     dataset::{PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{Generation, GenerationId},
         identity::read::IdentityFile,
@@ -175,7 +176,7 @@ impl GenerationArtifacts {
         GenerationColumns::new(
             id,
             generation.repository().metadata.snapshot.axes,
-            self.identities.ids(),
+            self.identities.keys(),
             IdSlice::from_raw(representations),
             wire_of_row,
         )
@@ -215,11 +216,11 @@ impl WireArtifacts<'_> {
         let positions = self
             .positions
             .column::<NodeRowId, BasePosition>()
-            .ok_or(ReplayError::InvalidPositions { generation })?;
+            .map_err(|_invalid| ReplayError::InvalidPositions { generation })?;
         let wire = self
             .wire
             .column::<BasePosition, Vec2>()
-            .ok_or(ReplayError::InvalidWireCoordinates { generation })?;
+            .map_err(|_invalid| ReplayError::InvalidWireCoordinates { generation })?;
 
         Ok(positions.iter().map(|&position| wire[position]).collect())
     }
@@ -264,7 +265,7 @@ impl EndpointArtifact {
     ) -> Result<&IdSlice<EdgeRowId, [NodeRowId; 2]>, ReplayError> {
         self.file
             .column::<EdgeRowId, [NodeRowId; 2]>()
-            .ok_or(ReplayError::InvalidEndpoints { generation })
+            .map_err(|_invalid| ReplayError::InvalidEndpoints { generation })
     }
 }
 
@@ -281,7 +282,7 @@ mod tests {
     };
     use crate::{
         file::{
-            WriteInto as _,
+            ArtifactFile as _, WriteInto as _,
             array::{ArrayVariant, ArrayWriter, Dim, SizedColumn},
         },
         identity::{BasePosition, NodeRowId},
