@@ -369,6 +369,8 @@ where
             return Ok(Promotion { id });
         }
 
+        // TODO(BE-855): concurrent republication of retained metadata is outside the fit-only
+        // publication model. It can race with pruning after reusing active artifacts.
         #[expect(
             clippy::collapsible_if,
             reason = "side effect is better expressed through nested if"
