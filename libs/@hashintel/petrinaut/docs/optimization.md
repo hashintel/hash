@@ -100,7 +100,7 @@ running in the browser, which can then be continued (see [Running in the
 browser](#running-in-the-browser)). Completed, cancelled, stopped, and failed
 records can be removed from their result drawer.
 
-Every study's drawer opens with a summary strip: the status, the steps
+Every study's drawer opens with a **Summary** card: the status, the steps
 finished over the steps requested (with the runs per step when above one), and
 the best value so far (hover it for the best step's parameters), with a
 progress bar for the steps beneath. The steps table sits at the bottom of the
@@ -149,23 +149,28 @@ view on a laptop screen while the study streams:
   state line reads **Could not compute** followed by the reason, and the
   objective's chart stays empty; a step that fails this way is pruned. Moving
   to another point, or back to this one, tries again.
-- The **Surface**, on the left below the band, whenever two or more numeric
-  parameters are optimized (the **Optimization surface** setting applies to
-  studies on the service only). It draws the study's steps: each step is a dot
-  at its parameters, the best emphasized, pruned steps hollow, and the field
-  is interpolated between them, so it fills in as steps report. The ringed dot
-  is the step being evaluated, its running value streaming into the field as
-  the runs complete; the caption counts the steps placed and the best so far,
-  and the info icon beside the axis pickers explains the marks. While the
+- The **Objective surface** card, on the left below the band, whenever two
+  or more numeric parameters are optimized (the **Optimization surface**
+  setting applies to studies on the service only). It draws the study's
+  steps: each step is a dot at its parameters, the best emphasized, pruned
+  steps hollow, and the field is interpolated between them, so it fills in as
+  steps report. The ringed dot is the step being evaluated, its running value
+  streaming into the field as the runs complete. The line under the card's
+  title counts the steps placed and the best so far, the **X** and **Y**
+  pickers sit in the row under the plot, and the info icon in the card's
+  header explains the marks. While the
   study runs with **Follow steps** on, the plot only displays. Once the study
   is over, or **Follow steps** is off, the ringed dot is the point the
   Parameters band holds: click or drag the plot to move it, and the point's
   value enters the field as it refines.
-- The objective metric's chart, beside the surface: its distribution over
-  simulation time at that position: the step being evaluated while
-  following, otherwise the point you picked. It streams again whenever the
-  position changes, so the surface and the chart always describe the same
-  point.
+- The objective metric's chart, in a card of the same height beside the
+  surface: its distribution over simulation time at that position: the step
+  being evaluated while following, otherwise the point you picked. It streams
+  again whenever the position changes, so the surface and the chart always
+  describe the same point. Its **Chart options** menu, in the card's header,
+  offers the same views as an experiment's [metric
+  charts](experiments.md#metric-charts), and the line under the title reads
+  the current choice.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.
@@ -178,8 +183,9 @@ dialog](visual-settings.md#optimization-surface-experimental) to see it.
 
 A study run on the optimization service with two or more optimized numeric
 parameters grows a **Surface** section between the best parameters and the
-step list: an Optuna-style contour of the objective over two parameters you
-pick. The study's own trials appear as rings (the best trial highlighted), and
+step list, holding an **Objective surface** card: an Optuna-style contour of
+the objective over two parameters you pick with the **X** and **Y** pickers
+under the plot. The study's own trials appear as rings (the best trial highlighted), and
 the filled contour comes from points **computed locally on your machine** —
 the study's model snapshot runs on a background worker, a few runs per point,
 and the plot fills in coarse shape first.

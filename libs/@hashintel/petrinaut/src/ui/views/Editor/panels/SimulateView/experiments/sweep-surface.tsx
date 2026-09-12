@@ -25,8 +25,9 @@ import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
   describeSurfaceSampling,
+  SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
-  SurfaceCaption,
+  surfaceCaption,
   SurfaceControlLabel,
   SurfaceFrame,
 } from "../shared/surface-frame";
@@ -197,30 +198,50 @@ export const SweepSurface = ({
       : 0;
 
   return (
-    <SurfaceFrame>
-      <SurfaceAxisControls
-        axes={axes}
-        xAxisId={xAxisId}
-        yAxisId={yAxisId}
-        onXAxisIdChange={setXAxisId}
-        onYAxisIdChange={setYAxisId}
-      >
-        <SurfaceControlLabel>Metric</SurfaceControlLabel>
-        <Select
-          size="xs"
-          aria-label="Surface metric"
-          items={experiment.metricSpecs.map((spec) => ({
-            value: spec.id,
-            text: spec.label,
-          }))}
-          value={metricId}
-          onChange={(value) => setMetricId(value ?? "")}
-        />
-      </SurfaceAxisControls>
+    <SurfaceFrame
+      title="Surface"
+      caption={surfaceCaption({
+        preview:
+          preview && xAxis && yAxis
+            ? {
+                x: readoutAt(xAxis, preview.x),
+                y: readoutAt(yAxis, preview.y),
+              }
+            : null,
+        text: describeSurfaceSampling({
+          sampledCount: cellValues.size,
+          totalCells,
+          runsPerCell: SURFACE_CELL_RUNS,
+        }),
+      })}
+      bodyHeight={SURFACE_PLOT_HEIGHT}
+      footer={
+        <SurfaceAxisControls
+          axes={axes}
+          xAxisId={xAxisId}
+          yAxisId={yAxisId}
+          onXAxisIdChange={setXAxisId}
+          onYAxisIdChange={setYAxisId}
+        >
+          <SurfaceControlLabel>Metric</SurfaceControlLabel>
+          <Select
+            size="xs"
+            aria-label="Surface metric"
+            items={experiment.metricSpecs.map((spec) => ({
+              value: spec.id,
+              text: spec.label,
+            }))}
+            value={metricId}
+            onChange={(value) => setMetricId(value ?? "")}
+          />
+        </SurfaceAxisControls>
+      }
+    >
       {xAxis && yAxis ? (
         <ContourSurface
           nx={surfacePositions(xAxis).length}
           ny={surfacePositions(yAxis).length}
+          height={SURFACE_PLOT_HEIGHT}
           contentKey={`${xAxisId}|${yAxisId}|${metricId}`}
           values={cellValues}
           markers={[
@@ -236,18 +257,6 @@ export const SweepSurface = ({
           aria-label="Sweep surface"
         />
       ) : null}
-      <SurfaceCaption
-        preview={
-          preview && xAxis && yAxis
-            ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
-            : null
-        }
-        text={describeSurfaceSampling({
-          sampledCount: cellValues.size,
-          totalCells,
-          runsPerCell: SURFACE_CELL_RUNS,
-        })}
-      />
     </SurfaceFrame>
   );
 };

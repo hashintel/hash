@@ -79,13 +79,12 @@ const connectedStepsHeightStyle = css({
   minHeight: "[96px]",
 });
 
-// The surface and the objective's chart side by side, each with its own
-// control row over a plot of the same height; they stack when the drawer is
-// too narrow for two readable plots.
+// The surface and the objective's chart side by side, two cards of the same
+// height; they stack when the drawer is too narrow for two readable plots.
 const panesStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
-  alignItems: "start",
+  alignItems: "stretch",
   gap: "5",
   paddingTop: "2.5",
   paddingBottom: "2",
@@ -255,7 +254,7 @@ const ConnectedStudySections = ({
             optimization={optimization}
             connected={connected}
             onNavigationChange={onNavigationChange}
-            controls={<HelpTooltip content={SURFACE_HELP} />}
+            actions={<HelpTooltip content={SURFACE_HELP} align="center" />}
           />
         ) : null}
         {/* Keyed so faded previous pictures never leak from one study into

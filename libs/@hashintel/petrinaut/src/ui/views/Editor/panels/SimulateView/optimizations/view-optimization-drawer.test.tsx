@@ -97,27 +97,43 @@ vi.mock("./optimization-surface", () => ({
   ),
 }));
 
-vi.mock("../experiments/experiment-metric-timeline", () => ({
-  ExperimentMetricTimeline: ({
-    frames,
-    label,
-    contentEpoch,
-    onDisplaySizeChange,
-  }: {
-    frames: readonly unknown[];
-    label: string;
-    contentEpoch: string;
-    onDisplaySizeChange?: () => void;
-  }) => (
-    <div
-      data-testid="metric-timeline"
-      data-epoch={contentEpoch}
-      data-resizable={onDisplaySizeChange !== undefined}
-    >
-      {label}: {frames.length} frames
-    </div>
-  ),
-}));
+// The timeline module pulls in uPlot, which jsdom cannot host; the card
+// chrome around the chart is real, so the menu and the subtitle are too.
+vi.mock("../experiments/experiment-metric-timeline", async () => {
+  const [menu, describeView, viewState] = await Promise.all([
+    vi.importActual<
+      typeof import("../experiments/experiment-metric-timeline/metric-view-menu")
+    >("../experiments/experiment-metric-timeline/metric-view-menu"),
+    vi.importActual<
+      typeof import("../experiments/experiment-metric-timeline/describe-metric-view")
+    >("../experiments/experiment-metric-timeline/describe-metric-view"),
+    vi.importActual<
+      typeof import("../experiments/experiment-metric-timeline/view-state")
+    >("../experiments/experiment-metric-timeline/view-state"),
+  ]);
+  return {
+    MetricViewMenu: menu.MetricViewMenu,
+    describeMetricView: describeView.describeMetricView,
+    DEFAULT_METRIC_VIEW_SETTINGS: viewState.DEFAULT_METRIC_VIEW_SETTINGS,
+    ExperimentMetricTimeline: ({
+      frames,
+      contentEpoch,
+      plotHeight,
+    }: {
+      frames: readonly unknown[];
+      contentEpoch: string;
+      plotHeight: number;
+    }) => (
+      <div
+        data-testid="metric-timeline"
+        data-epoch={contentEpoch}
+        data-plot-height={plotHeight}
+      >
+        {frames.length} frames
+      </div>
+    ),
+  };
+});
 
 afterEach(cleanup);
 
@@ -284,10 +300,14 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     );
     const timeline = screen.getByTestId("metric-timeline");
     expect(timeline.dataset.epoch).toBe("trial:2");
-    expect(timeline.dataset.resizable).toBe("false");
-    expect(timeline.textContent).toContain(
-      `${input.model.definition.metrics![0]!.name}: 5 frames`,
+    expect(timeline.textContent).toContain("5 frames");
+    // The chart sits in a card titled after the metric, its view menu in the
+    // card header rather than a footer under the plot.
+    const card = timeline.closest<HTMLElement>("[data-chart-card]")!;
+    expect(card.textContent).toContain(
+      input.model.definition.metrics![0]!.name,
     );
+    expect(screen.getByRole("button", { name: "Chart options" })).toBeTruthy();
   });
 
   it("summarizes the study in one strip and stars the best step in the table", () => {
@@ -335,7 +355,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     );
     expect(status.dataset.tone).toBe("error");
     expect(screen.getByTestId("metric-timeline").textContent).toContain(
-      `${input.model.definition.metrics![0]!.name}: 0 frames`,
+      "0 frames",
     );
   });
 

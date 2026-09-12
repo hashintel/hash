@@ -1,26 +1,29 @@
 /**
- * The shell both surface views share: a column holding the X/Y axis selects,
- * whatever else the view controls, the plot, and a caption that reads out the
- * drag position or the view's state line.
+ * The card both surface views share: the plot in the body, the state line
+ * (or the drag readout) in the subtitle, and the X/Y axis selects, with
+ * whatever else the view controls, in the footer.
  */
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ChartCard } from "./chart-card";
+
 import type { ReactNode } from "react";
 
-const frameStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-});
+/** The plot's height in pixels inside a surface card. */
+export const SURFACE_PLOT_HEIGHT = 280;
+/** The footer's content height: an extra-small Select. */
+export const SURFACE_FOOTER_HEIGHT = 24;
 
 const controlsStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
-  flexWrap: "wrap",
+  minWidth: "[0]",
   // Compact inline controls; the ds Select otherwise stretches to the row.
-  "& [data-scope='select']": { width: "[170px]" },
+  // No content floor either: in a narrow card the selects shrink evenly and
+  // ellipsize their labels rather than the fixed-height footer clipping one.
+  "& [data-scope='select']": { width: "[170px]", minWidth: "[0]" },
   // The Select's root insists on min-content width, which overflows the
   // 170px box over the next label; a long option name fits by ellipsis.
   "& > div > div": { minWidth: "[0]" },
@@ -33,19 +36,35 @@ const controlLabelStyle = css({
   flexShrink: 0,
 });
 
-const captionStyle = css({
-  display: "block",
-  minHeight: "[16px]",
-  fontSize: "xs",
-  color: "neutral.s80",
-  fontVariantNumeric: "tabular-nums",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
-
-export const SurfaceFrame = ({ children }: { children: ReactNode }) => (
-  <div className={frameStyle}>{children}</div>
+export const SurfaceFrame = ({
+  title,
+  caption,
+  actions,
+  bodyHeight,
+  footer,
+  children,
+}: {
+  title: string;
+  /** The state line, or the drag readout, under the title. */
+  caption: string;
+  /** The header's right side, e.g. a help tooltip. */
+  actions?: ReactNode;
+  /** Fixed when the card shares a row; omitted when its content sizes it. */
+  bodyHeight?: number;
+  /** The axis selects and whatever else the view controls. */
+  footer: ReactNode;
+  children: ReactNode;
+}) => (
+  <ChartCard
+    title={title}
+    subtitle={caption}
+    actions={actions}
+    bodyHeight={bodyHeight}
+    footer={footer}
+    footerHeight={SURFACE_FOOTER_HEIGHT}
+  >
+    {children}
+  </ChartCard>
 );
 
 export const SurfaceControlLabel = ({ children }: { children: ReactNode }) => (
@@ -115,7 +134,8 @@ export const describeSurfaceSampling = ({
     "drag or click to navigate",
   ].join(" · ");
 
-export const SurfaceCaption = ({
+/** The caption: the axis readouts under the pointer mid-drag, the state line otherwise. */
+export const surfaceCaption = ({
   preview,
   text,
 }: {
@@ -123,8 +143,5 @@ export const SurfaceCaption = ({
   preview: { x: string; y: string } | null;
   /** The state line shown outside a drag. */
   text: string;
-}) => (
-  <span className={captionStyle}>
-    {preview ? `${preview.x} · ${preview.y} — release to navigate` : text}
-  </span>
-);
+}): string =>
+  preview ? `${preview.x} · ${preview.y} — release to navigate` : text;

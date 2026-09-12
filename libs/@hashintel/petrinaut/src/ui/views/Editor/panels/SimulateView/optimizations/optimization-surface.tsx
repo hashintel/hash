@@ -72,6 +72,7 @@ const sliderRowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  marginTop: "2",
 });
 
 const sliderNameStyle = css({
@@ -99,6 +100,7 @@ const sliderValueStyle = css({
 });
 
 const readoutStyle = css({
+  marginTop: "2",
   fontSize: "xs",
   color: "neutral.s100",
   fontVariantNumeric: "tabular-nums",
@@ -329,14 +331,14 @@ export const NavigatedOptimizationSurface = ({
   optimization,
   connected,
   onNavigationChange,
-  controls,
+  actions,
 }: {
   optimization: OptimizationRecord;
   /** The study's local state: its navigation, the stream at the navigated point (or the followed step) and the trials in flight. */
   connected: ConnectedStudyState;
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
-  /** Further controls at the end of the axis row, e.g. a help tooltip. */
-  controls?: ReactNode;
+  /** The card header's right side, e.g. a help tooltip. */
+  actions?: ReactNode;
 }) => {
   const { input, axes } = optimization;
   const { navigation, selection } = connected;
@@ -408,7 +410,8 @@ export const NavigatedOptimizationSurface = ({
         interaction,
         selection,
       })}
-      controls={controls}
+      actions={actions}
+      fixedHeight
     />
   );
 };

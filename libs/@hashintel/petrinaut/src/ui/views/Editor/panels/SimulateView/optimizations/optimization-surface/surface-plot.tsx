@@ -1,7 +1,8 @@
 /**
- * The plot of a study's surface: the X/Y axis selects, a contour over the
- * field the owner hands in, the study's trials as markers, the navigation
- * marker where the parameters are, and a caption. The pure helpers beside it
+ * The plot of a study's surface, in its card: a contour over the field the
+ * owner hands in, the study's trials as markers, the navigation marker where
+ * the parameters are, the state line as the card's subtitle and the X/Y axis
+ * selects in its footer. The pure helpers beside it
  * turn a study's trials and its live selection stream into that field, and
  * decide whether the plot navigates or only displays.
  */
@@ -22,8 +23,9 @@ import {
 } from "../../../../../../components/contour-surface";
 import { formatAxisValue } from "../../shared/format-axis-value";
 import {
+  SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
-  SurfaceCaption,
+  surfaceCaption,
   SurfaceFrame,
 } from "../../shared/surface-frame";
 import { surfacePositions } from "../../shared/surface-sampling";
@@ -297,7 +299,8 @@ export const OptimizationSurfacePlot = ({
   contentKey,
   onPick,
   caption,
-  controls,
+  actions,
+  fixedHeight = false,
   children,
 }: {
   axes: readonly OptimizationSurfaceAxis[];
@@ -316,11 +319,16 @@ export const OptimizationSurfacePlot = ({
    * makes the plot display-only.
    */
   onPick: ((positions: Record<string, number>) => void) | undefined;
-  /** The state line under the plot, outside a drag. */
+  /** The state line under the title, outside a drag. */
   caption: string;
-  /** Further controls at the end of the axis row. */
-  controls?: ReactNode;
-  /** Rows between the axis selects and the plot. */
+  /** The card header's right side, e.g. a help tooltip. */
+  actions?: ReactNode;
+  /**
+   * Fix the body to the plot's height, for a card sharing a row with another
+   * of the same height. Off when `children` add rows of their own.
+   */
+  fixedHeight?: boolean;
+  /** Rows under the plot. */
   children?: ReactNode;
 }) => {
   const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
@@ -343,21 +351,35 @@ export const OptimizationSurfacePlot = ({
     )}`;
 
   return (
-    <SurfaceFrame>
-      <SurfaceAxisControls
-        axes={axes}
-        xAxisId={view.xAxisId}
-        yAxisId={view.yAxisId}
-        onXAxisIdChange={(xAxisId) => onViewChange({ ...view, xAxisId })}
-        onYAxisIdChange={(yAxisId) => onViewChange({ ...view, yAxisId })}
-      >
-        {controls}
-      </SurfaceAxisControls>
-      {children}
+    <SurfaceFrame
+      title="Objective surface"
+      caption={surfaceCaption({
+        preview:
+          preview && xAxis && yAxis
+            ? {
+                x: readoutAt(xAxis, preview.x),
+                y: readoutAt(yAxis, preview.y),
+              }
+            : null,
+        text: caption,
+      })}
+      actions={actions}
+      bodyHeight={fixedHeight ? SURFACE_PLOT_HEIGHT : undefined}
+      footer={
+        <SurfaceAxisControls
+          axes={axes}
+          xAxisId={view.xAxisId}
+          yAxisId={view.yAxisId}
+          onXAxisIdChange={(xAxisId) => onViewChange({ ...view, xAxisId })}
+          onYAxisIdChange={(yAxisId) => onViewChange({ ...view, yAxisId })}
+        />
+      }
+    >
       {xAxis && yAxis ? (
         <ContourSurface
           nx={surfacePositions(xAxis).length}
           ny={surfacePositions(yAxis).length}
+          height={SURFACE_PLOT_HEIGHT}
           contentKey={contentKey}
           values={values}
           markers={[
@@ -374,14 +396,7 @@ export const OptimizationSurfacePlot = ({
           aria-label="Optimization surface"
         />
       ) : null}
-      <SurfaceCaption
-        preview={
-          preview && xAxis && yAxis
-            ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
-            : null
-        }
-        text={caption}
-      />
+      {children}
     </SurfaceFrame>
   );
 };
