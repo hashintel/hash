@@ -1,6 +1,6 @@
 [package]
 name              = "problematic"
-version           = "0.0.0-reserved"
+version           = "0.0.0"
 authors.workspace = true
 edition.workspace = true
 description       = "HTTP Problem Details with typed extensions and JSON Schema support"

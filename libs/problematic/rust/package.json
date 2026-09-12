@@ -1,6 +1,6 @@
 {
   "name": "@rust/problematic",
-  "version": "0.0.0-reserved",
+  "version": "0.0.0",
   "private": true,
   "description": "HTTP Problem Details with typed extensions and JSON Schema support",
   "license": "MIT OR Apache-2.0",
