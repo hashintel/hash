@@ -251,6 +251,18 @@ describe("experimentResultsModel for an idle sweep", () => {
     expect(surfaceOf(result).disabled).toBe(false);
   });
 
+  it("offers no Optimize control once the sweep is cancelled, whose session is gone", () => {
+    const cancelled = model(
+      { ...idleSweep, status: "cancelled" },
+      { optimizer: { ...idleOptimizer, available: true } },
+    );
+    expect(cancelled.bands[0]!.trailing).toBeNull();
+    expect(
+      model(idleSweep, { optimizer: { ...idleOptimizer, available: true } })
+        .bands[0]!.trailing,
+    ).not.toBeNull();
+  });
+
   it("puts the error in the note row when the sweep failed", () => {
     const failed = {
       ...idleSweep,

@@ -276,12 +276,15 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            trailing: optimizer.available ? (
-              <SweepOptimizeControl
-                experiment={experiment}
-                optimizer={optimizer}
-              />
-            ) : null,
+            // A cancelled sweep's session is gone, so a study could not
+            // navigate it: nothing is left to optimize.
+            trailing:
+              optimizer.available && experiment.status !== "cancelled" ? (
+                <SweepOptimizeControl
+                  experiment={experiment}
+                  optimizer={optimizer}
+                />
+              ) : null,
             content: (
               <SweepNavigator
                 axes={experiment.parameterAxes}
