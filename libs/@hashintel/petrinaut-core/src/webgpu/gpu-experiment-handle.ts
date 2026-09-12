@@ -578,20 +578,21 @@ export async function createGpuMonteCarloExperiment(
       return;
     }
     const { result } = calibrated;
-    if (result.overflowRuns > 0 && !result.cancelled) {
-      fail(
-        "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
-      );
-      return;
-    }
     // The CPU evaluator throws on the first non-finite value and the
     // experiment errors; the device halts the run instead, so the same
-    // failure is reported once the attempt returns.
+    // failure is reported once the attempt returns — ahead of an overflow
+    // the same attempt may carry, since the CPU would fail on the same sample.
     const runFailure = result.cancelled
       ? null
       : metricFailureIn(result.metricErrors, config.runCount);
     if (runFailure !== null) {
       fail(runFailure);
+      return;
+    }
+    if (result.overflowRuns > 0 && !result.cancelled) {
+      fail(
+        "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
+      );
       return;
     }
     if (!result.cancelled) {

@@ -7,7 +7,9 @@
  * slab overflow grows the slab (a recompile, capacities are baked); a window
  * escape replans the window (a uniform). Seeds derive from absolute run
  * indices, so a re-run reproduces the same trajectories: a window re-run
- * cannot escape again, and slab growth is monotone.
+ * cannot escape again, slab growth is monotone, and a run a non-finite metric
+ * sample halted would halt again, so an attempt with one is handed back at
+ * once.
  *
  * A slab stops growing at its place's `derivedSlabCeiling`; an attempt that
  * still overflows there is handed back as it stands, and the caller sends the
@@ -170,10 +172,15 @@ const grownSlabs = (
   );
 };
 
+/** Whether a non-finite metric sample halted any of the attempt's runs. */
+export const anyMetricHalted = (result: GpuExperimentResult): boolean =>
+  result.metricErrors.some((runs) => runs > 0);
+
 /**
  * Runs an attempt until neither a slab overflow nor a window escape remains,
- * or the policy's retry budget runs out. Returns the last attempt's result —
- * a remaining overflow is the caller's to report — with the windows it ran at.
+ * the policy's retry budget runs out, or a metric halts a run. Returns the
+ * last attempt's result — a remaining overflow or a halted run is the
+ * caller's to report — with the windows it ran at.
  */
 export const runUntilCalibrated = async (options: {
   session: CalibrationSession;
@@ -201,6 +208,10 @@ export const runUntilCalibrated = async (options: {
     }
     const { result } = attempt;
     if (result.cancelled || stopped()) {
+      return { ok: true, result, windows };
+    }
+    // The same seeds halt the same run whatever the slab or the window.
+    if (anyMetricHalted(result)) {
       return { ok: true, result, windows };
     }
     if (result.overflowRuns > 0) {
@@ -285,7 +296,8 @@ export const slabsFromProbe = (
  * place's slab from the observed maxima, and recompiles at those. The same
  * probe observes the metric ranges, seeding the histogram windows, and counts
  * the runs a non-finite metric sample halted, which the handle reports as the
- * full run would.
+ * full run would — ahead of an overflow the same probe may show, since the
+ * CPU would fail on the same sample.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -332,7 +344,7 @@ export const probeDerivedCapacities = async (options: {
       reason: "The capacity probe was abandoned before it finished.",
     };
   }
-  if (probe.result.overflowRuns > 0) {
+  if (probe.result.overflowRuns > 0 && !anyMetricHalted(probe.result)) {
     const largest = Math.max(0, ...session.capacities.values());
     return {
       ok: false,
