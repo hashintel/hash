@@ -89,6 +89,10 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// is total, no `new_unchecked` is generated, and conversions only reject
 /// values the backing type cannot hold.
 ///
+/// Plain type parameters, as in `struct TableIndex<T>(u32)`, act as covariant domain markers with a
+/// `?Sized` bound. The domain type need not implement the ID's traits. The generated `Id`, `HasId`
+/// and [`Step`](core::iter::Step) implementations retain `Id`'s `'static` requirement.
+///
 /// # Attributes
 ///
 /// Placed inside an `#[id(...)]` annotation on the item:

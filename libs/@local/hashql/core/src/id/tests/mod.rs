@@ -1,5 +1,7 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
+mod generic;
+
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{Id as _, IdError, newtype};
@@ -30,7 +32,7 @@ newtype!(
 );
 
 #[test]
-fn unbounded_id_covers_backing_type() {
+fn unbounded_range() {
     assert_eq!(UnboundedId::MIN.as_u64(), 0);
     assert_eq!(UnboundedId::MAX.as_u64(), u64::MAX);
     assert_eq!(
@@ -40,7 +42,7 @@ fn unbounded_id_covers_backing_type() {
 }
 
 #[test]
-fn unbounded_id_rejects_values_wider_than_backing_type() {
+fn unbounded_overflow() {
     let above = u64::from(u16::MAX) + 1;
 
     assert_eq!(
@@ -58,7 +60,7 @@ fn unbounded_id_rejects_values_wider_than_backing_type() {
 }
 
 #[test]
-fn byte_encoded_id_has_alignment_one() {
+fn bytes_alignment() {
     assert_eq!(align_of::<LittleId>(), 1);
     assert_eq!(size_of::<LittleId>(), 8);
     assert_eq!(align_of::<BigId>(), 1);
@@ -68,21 +70,21 @@ fn byte_encoded_id_has_alignment_one() {
 }
 
 #[test]
-fn little_endian_id_encodes_low_byte_first() {
+fn little_endian_encoding() {
     let id = LittleId::new(0x0102_0304_0506_0708);
 
     assert_eq!(id.as_bytes(), [8, 7, 6, 5, 4, 3, 2, 1]);
 }
 
 #[test]
-fn big_endian_id_encodes_high_byte_first() {
+fn big_endian_encoding() {
     let id = BigId::new(0x0102_0304);
 
     assert_eq!(id.as_bytes(), [1, 2, 3, 4]);
 }
 
 #[test]
-fn byte_encoded_id_reads_back_from_bytes() {
+fn bytes_round_trip() {
     let id = LittleId::new(0xDEAD_BEEF);
 
     assert_eq!(
@@ -92,13 +94,13 @@ fn byte_encoded_id_reads_back_from_bytes() {
 }
 
 #[test]
-fn byte_encoded_id_orders_by_value() {
+fn bytes_numeric_order() {
     // Byte-lexicographic order over little-endian encodings would invert this pair.
     assert!(LittleId::new(2) < LittleId::new(256));
 }
 
 #[test]
-fn byte_encoded_id_formats_value() {
+fn bytes_format() {
     assert_eq!(LittleId::new(42).to_string(), "42");
     assert_eq!(format!("{:?}", BigId::new(7)), "BigId(7)");
 }
@@ -109,7 +111,7 @@ newtype!(
 );
 
 #[test]
-fn get_returns_the_raw_scalar() {
+fn get_scalar() {
     const IN_CONST: u64 = UnboundedId::new(3).get();
 
     assert_eq!(UnboundedId::new(7).get(), 7_u64);
@@ -119,7 +121,7 @@ fn get_returns_the_raw_scalar() {
 }
 
 #[test]
-fn bounded_byte_id_reads_only_in_range_bytes() {
+fn bounded_bytes_range() {
     let id = WindowId::try_read_from_bytes(&[0, 20]).expect("20 lies in the range");
     assert_eq!(id, WindowId::new(20));
     assert_eq!(
@@ -134,14 +136,14 @@ fn bounded_byte_id_reads_only_in_range_bytes() {
 }
 
 #[test]
-fn bounded_byte_id_still_writes_bytes() {
+fn bounded_bytes_encoding() {
     let id = WindowId::new(18);
 
     assert_eq!(id.as_bytes(), [0, 18]);
 }
 
 #[test]
-fn native_bytes_id_round_trips() {
+fn native_bytes_round_trip() {
     let id = NativeBytesId::new(0x1234);
 
     assert_eq!(
@@ -161,7 +163,7 @@ mod par {
     use crate::id::{Id as _, IdVec};
 
     #[test]
-    fn par_iter_enumerated_matches_serial() {
+    fn iter_enumerated_serial_agreement() {
         let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![10, 20, 30]);
 
         let serial: Vec<(UnboundedId, u32)> = vec
@@ -177,7 +179,7 @@ mod par {
     }
 
     #[test]
-    fn par_ids_matches_ids() {
+    fn ids_serial_agreement() {
         let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![1, 2, 3, 4]);
 
         let serial: Vec<UnboundedId> = vec.ids().collect();
@@ -187,7 +189,7 @@ mod par {
     }
 
     #[test]
-    fn par_collect_and_extend_preserve_order() {
+    fn collect_extend_order() {
         let collected: IdVec<UnboundedId, u32> = (0..64_u32).into_par_iter().collect();
         assert_eq!(collected.as_raw(), (0..64).collect::<Vec<u32>>());
 
@@ -197,7 +199,7 @@ mod par {
     }
 
     #[test]
-    fn into_par_iter_enumerated_yields_typed_ids() {
+    fn into_iter_enumerated_ids() {
         let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![7, 8]);
 
         let pairs: Vec<(UnboundedId, u32)> = vec.into_par_iter_enumerated().collect();
@@ -220,7 +222,7 @@ mod bytes {
     use crate::id::{IdArray, IdSlice};
 
     #[test]
-    fn id_slice_writes_its_elements_bytes() {
+    fn slice_bytes() {
         let data: [u32; 3] = [1, 2, 3];
         let slice = IdSlice::<UnboundedId, u32>::from_raw(&data);
 
@@ -228,7 +230,7 @@ mod bytes {
     }
 
     #[test]
-    fn id_array_round_trips_through_bytes() {
+    fn array_round_trip() {
         let array = IdArray::<UnboundedId, u32, 3>::from_raw([4, 5, 6]);
 
         let back = <IdArray<UnboundedId, u32, 3>>::read_from_bytes(array.as_bytes())

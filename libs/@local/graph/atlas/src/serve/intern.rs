@@ -53,8 +53,6 @@ impl Reference for VersionedUrl {
 /// distinct types, and one response builds exactly one table per domain, so an index cannot
 /// reach the wrong table. Index order is the table's wire order: ascending bytewise over the
 /// interned renderings.
-// Manual implementations: a derive would bound `T`, and the parameter is phantom - `fn() -> T`
-// keeps the index `Copy`, `Send` and `Sync` for every domain.
 pub(crate) struct TableIndex<T>(u32, PhantomData<fn() -> T>);
 
 impl<T> TableIndex<T> {
