@@ -487,6 +487,37 @@ describe("createConnectedStudy", () => {
     expect(paused.latest()?.selection).toBeNull();
   });
 
+  it("resuming leaves the parked best behind: a step draining after a later pause moves nothing and refines nothing unasked", () => {
+    const { study, startTrial, latest, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.3));
+    study.settle("paused");
+    study.refineBest();
+    study.resume();
+    startTrial(1, 0.02);
+    // Follow steps off without a move: the user parks at step 1's point.
+    study.setNavigation({ followTrials: false });
+    const userPosition = optimizationAxisPositionFor(axis, 0.02);
+    const runsBefore = refinementRuns.runs.length;
+
+    // A later pause drains a step that turns out the best (the study
+    // minimizes): the navigation stays put and no refinement starts.
+    const draining = startTrial(2, 0.01);
+    study.settle("paused");
+    const result = completedRunResult({
+      metricId,
+      frames: [distributionFrame(metricId, 180, [[0.1, 3]])],
+      runValues: [0.1, 0.1, 0.1],
+    });
+    study.trialSettled(2, result);
+    draining.settle(result);
+    study.trialReported(trialEvent(2, 0.01, 0.1));
+    expect(latest()?.navigation.positions).toEqual({
+      infected_ratio: userPosition,
+    });
+    expect(latest()?.selection?.key).toBe(`infected_ratio=${userPosition}`);
+    expect(refinementRuns.runs).toHaveLength(runsBefore);
+  });
+
   it("refineBest moves to the best step's point and climbs the ladder there; settling a failed study starts nothing", () => {
     const { study, latest, refinementRuns } = setup();
     study.trialReported(trialEvent(0, 0.05, 0.3));

@@ -108,7 +108,8 @@ export type ConnectedStudy = {
   refineBest(this: void): void;
   /**
    * More steps were asked of a settled study: following turns back on so the
-   * next step is followed, and the point refining stops.
+   * next step is followed, the point refining stops and the parked best is
+   * forgotten.
    */
   resume(this: void): void;
   dispose(this: void): void;
@@ -530,6 +531,11 @@ export const createConnectedStudy = ({
         return;
       }
       terminal = null;
+      // The parked point is left behind: the next settle re-parks through
+      // settleOnBest, so a step draining after a later pause moves nothing
+      // and refines nothing unasked.
+      parkedOnBest = false;
+      parkedRefining = false;
       refinement.stop();
       navigation = { ...navigation, followTrials: true };
       publish();
