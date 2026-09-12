@@ -328,7 +328,12 @@ export const experimentResultsModel = (
             size="sm"
             prefix={<Icon name="stop" size="sm" />}
             disabled={!canCancel}
-            onClick={() => actions.cancelExperiment(experiment.id)}
+            // A study driving the sweep stops first, or it would prune
+            // every remaining step against a sweep that is gone.
+            onClick={() => {
+              optimizer.stop();
+              actions.cancelExperiment(experiment.id);
+            }}
           >
             Cancel
           </Button>
