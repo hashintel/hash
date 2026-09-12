@@ -102,22 +102,117 @@ Storybook provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                             | Required         | Used by          | Notes                                                      |
-| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
-| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
-| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.    |
-| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
-| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the `/optimization` route.      |
-| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
+| Name                             | Required         | Used by          | Notes                                                                                         |
+| -------------------------------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                            |
+| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                    |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.                                       |
+| `PETRINAUT_VOICE_PROVIDER`       | no               | voice API        | `realtime` (default) or `live` (detached experiment). Invalid values disable Voice discovery. |
+| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                        |
+| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                                                   |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                    |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the `/optimization` route.                                         |
+| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                     |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
+### Experimental Live interview (FE-1663)
+
+`PETRINAUT_VOICE_PROVIDER=live` selects a standalone GPT-Live-1 conversation
+inside the existing Voice entry. **It is not Brunch output.** It cannot see or
+submit chat, execute tools, or change the model/workpiece. No experimental
+transcripts are displayed or saved. The server uses client delegation, not
+managed Responses; transcript deltas and delegation metadata are ignored.
+The short process-interview prompt is conversational guidance, not a domain
+system or a guarantee of model compliance.
+
+From the repository root, with `OPENAI_VOICE_API_KEY` already exported (or in
+this worktree's `apps/petrinaut-website/.env.local`):
+
+```sh
+# Initial local preparation, without inference:
+turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-website^...'
+yarn workspace @apps/petrinaut-website codegen
+yarn workspace @apps/petrinaut-website examples:generate
+
+# Standalone Live needs only the existing panel launcher, not a running Brunch server.
+PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunch:panel
+```
+
+Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
+and select the waveform **Start voice mode** action in the empty composer.
+Read the experimental label, check consent, then choose **Start voice**.
+Only that last action requests microphone access and a billable Live session.
+Use headphones for the first trial. HTTPS or localhost and an OpenAI project
+with GPT-Live-1 access are required.
+
+Once connected, the existing Voice dock replaces the composer with
+**Listening** or **Speaking**, collapse/expand and **End voice mode**.
+The experimental label appears only during consent. Local WebRTC audio levels
+drive the microphone ribbon and Speaking indicator; Listening means the session
+is open for input, including while output is active. These are activity indicators,
+not authoritative turn boundaries or proof of heard playback. Browsers without
+audio-level telemetry retain Listening without an animated input level.
+There is no separate experiment panel, replay menu, or microphone toggle.
+Connection errors return to setup; starting again requires fresh consent.
+Brief WebRTC interruptions show **Connecting** while the existing session has up
+to the connection timeout (15 seconds by default) to recover. Media stays open;
+no new session is created and no input is replayed. End still stops both directions
+immediately. A failed connection or an expired recovery deadline ends the session.
+
+**End voice mode**, **Exit experiment** during setup, closing the panel, switching to text,
+changing conversation, and leaving the page stop local experimental capture
+and playback. Stop requests `session.close` only after `session.started` and
+waits up to two seconds for `session.closed` before releasing the transport.
+Local silence is not proof of remote closure or final usage. Connection failures are not retried.
+Starting again creates a new session with fresh consent; there is no resume,
+replay, "Your turn", or fabricated Realtime terminal lifecycle.
+
+To return to the **unchanged integrated Realtime path**, Exit, stop the panel
+dev command with Ctrl-C, configure the existing local Brunch environment, and run:
+
+```sh
+PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=realtime yarn dev:brunch
+```
+
+Reload the page before starting a new session. Unsetting
+`PETRINAUT_VOICE_PROVIDER` also selects Realtime. Provider/config selection is
+pinned for the mounted conversation; there is no provider switching or input
+resubmission mid-session. The launcher sets the existing `/agents/chat` route;
+the ordinary website launcher still needs `VITE_BRUNCH_CHAT_ENDPOINT` configured
+to expose Voice. Export variables to the launcher directly or use `.env.local`;
+the website's generic Turbo `dev` task does not forward arbitrary shell variables.
+
+#### Manual test — 10–15 minutes
+
+1. **3 minutes:** explain a familiar process. Let Live ask relevant follow-ups.
+2. **2 minutes:** hesitate, pause, answer with one word, then elaborate. Note
+   whether it leaves room and follows the meaning rather than guessing a turn end.
+3. **2 minutes:** interrupt mid-sentence and correct an earlier detail. Note
+   whether the correction is retained and the interview advances.
+4. **2 minutes:** speak while Live responds. Listen for lost words, overlap,
+   unwanted acknowledgements, and long monologues. A button click is not an
+   acoustic-interruption test.
+5. **2–4 minutes:** End voice mode and check the browser microphone indicator and actual
+   speaker silence. Change to Realtime using the commands above, reload,
+   and begin a fresh session. Confirm the experiment added no canonical chat
+   messages or model changes.
+
+Record **feeling heard and advancing the interview** separately from transport
+correctness. Note browser/headset, representative pauses/corrections, and which
+responses were excessive or useful. Prior relay/rephrasing/harness evidence is
+not a passing comparative baseline. This experiment has no audio harness or
+synthetic recordings.
+
+The intended successor is **Experiment Live Full Brunch Integration**, stacked
+on this branch; it is not implemented here. See [MISSION.md](MISSION.md) for
+the authority boundary and unresolved finalization/output-control questions.
+The existing unauthenticated Voice endpoint risk below also applies to Live;
+do not expose this local experiment publicly without addressing that boundary.
+
 ### Brunch Voice mode
 
-Voice mode is disabled by default. To enable it, configure a real
+The following describes Realtime, the default provider. Voice mode is disabled by default. To enable it, configure a real
 `VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
 provide a dedicated `OPENAI_VOICE_API_KEY`.
 

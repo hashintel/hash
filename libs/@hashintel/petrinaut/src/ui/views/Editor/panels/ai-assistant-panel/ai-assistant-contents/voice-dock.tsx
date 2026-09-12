@@ -74,6 +74,7 @@ const statusStyle = cva({
   },
   variants: {
     phase: {
+      connected: { color: "blue.s90" },
       connecting: { color: "neutral.s90" },
       error: { color: "neutral.s100" },
       listening: { color: "blue.s90" },
@@ -172,14 +173,17 @@ export const VoiceDock = ({
           type="button"
           variant="ghost"
         />
-        {actions !== null && (
-          <VoicePlaybackMenu
-            actions={actions}
-            canReadFullResponse={canReadFullResponse}
-            canRepeatQuestion={canRepeatQuestion}
-            interruptionBySpeaking={interruptionBySpeaking}
-          />
-        )}
+        {actions !== null &&
+          (actions.readFullResponse ||
+            actions.repeatQuestion ||
+            actions.setInterruptionBySpeaking) && (
+            <VoicePlaybackMenu
+              actions={actions}
+              canReadFullResponse={canReadFullResponse}
+              canRepeatQuestion={canRepeatQuestion}
+              interruptionBySpeaking={interruptionBySpeaking}
+            />
+          )}
       </span>
 
       <div className={centerStyle}>
@@ -203,39 +207,45 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
-            {phase === "error" ? (
-              <Button
-                aria-label={voiceSessionActionLabels.reconnect}
-                iconName="rotate"
-                onClick={actions.reconnect}
-                size="sm"
-                tooltip="Reconnect"
-                type="button"
-                variant="ghost"
-              />
-            ) : phase === "paused" ? (
-              <Button
-                aria-label={voiceSessionActionLabels.resume}
-                iconName="play"
-                onClick={actions.resume}
-                size="sm"
-                tooltip="Resume"
-                type="button"
-                variant="ghost"
-              />
-            ) : (
-              <Button
-                aria-label={microphoneLabel}
-                disabled={phase === "connecting"}
-                onClick={() => actions.setMicrophoneMuted(!microphoneMuted)}
-                prefix={<MicrophoneIcon muted={microphoneMuted} />}
-                pressed={microphoneMuted}
-                size="sm"
-                tooltip={microphoneLabel}
-                type="button"
-                variant="ghost"
-              />
-            )}
+            {phase === "error"
+              ? actions.reconnect && (
+                  <Button
+                    aria-label={voiceSessionActionLabels.reconnect}
+                    iconName="rotate"
+                    onClick={actions.reconnect}
+                    size="sm"
+                    tooltip="Reconnect"
+                    type="button"
+                    variant="ghost"
+                  />
+                )
+              : phase === "paused"
+                ? actions.resume && (
+                    <Button
+                      aria-label={voiceSessionActionLabels.resume}
+                      iconName="play"
+                      onClick={actions.resume}
+                      size="sm"
+                      tooltip="Resume"
+                      type="button"
+                      variant="ghost"
+                    />
+                  )
+                : actions.setMicrophoneMuted && (
+                    <Button
+                      aria-label={microphoneLabel}
+                      disabled={phase === "connecting"}
+                      onClick={() =>
+                        actions.setMicrophoneMuted?.(!microphoneMuted)
+                      }
+                      prefix={<MicrophoneIcon muted={microphoneMuted} />}
+                      pressed={microphoneMuted}
+                      size="sm"
+                      tooltip={microphoneLabel}
+                      type="button"
+                      variant="ghost"
+                    />
+                  )}
             <Button
               aria-label={voiceSessionActionLabels.end}
               iconName="close"

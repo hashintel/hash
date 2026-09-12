@@ -747,18 +747,25 @@ const ConversationAiAssistantPanel = ({
         ...(controls.readFullResponse
           ? { readFullResponse: () => controls.readFullResponse?.() }
           : {}),
-        reconnect: () => controls.reconnect(),
+        ...(controls.reconnect
+          ? { reconnect: () => controls.reconnect?.() }
+          : {}),
         ...(controls.repeatQuestion
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
           : {}),
-        resume: () => controls.resume(),
+        ...(controls.resume ? { resume: () => controls.resume?.() } : {}),
         ...(controls.setInterruptionBySpeaking
           ? {
               setInterruptionBySpeaking: (enabled: boolean) =>
                 controls.setInterruptionBySpeaking?.(enabled),
             }
           : {}),
-        setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
+        ...(controls.setMicrophoneMuted
+          ? {
+              setMicrophoneMuted: (muted: boolean) =>
+                controls.setMicrophoneMuted?.(muted),
+            }
+          : {}),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
 

@@ -61,6 +61,18 @@ understand and selecting **Start voice mode**. Petrinaut remembers that acknowle
 browser for the current disclosure version, so later uses of **Start voice mode** start directly. If
 browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
+Some hosts offer a **GPT-Live · Experimental interview** instead. It uses the same
+Voice setup and dock, but is a standalone conversation: it does not add chat messages
+or edit the net. Consent and **Start voice** are required for each session. Its dock
+shows **Listening** or **Speaking**, with collapse/expand and **End voice mode**
+only. Speaking reflects local audio activity, not a completed turn; the microphone
+stays open while it speaks. The input ribbon follows your microphone level where
+the browser supports it. The experimental label appears only during consent.
+Ending Voice stops microphone capture and playback; closing the panel ends
+the experiment rather than pausing it. A connection error returns to setup without
+retrying. The following turn-taking and playback controls apply to integrated
+Brunch Voice, not that experiment.
+
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
 a ribbon that fades out at both ends and one short state -- **Connecting**, **Listening**,
 **Muted**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. The ribbon is three
@@ -75,7 +87,8 @@ stays current while the session runs and tools that edit the net remain visible.
 voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and
 host Voice region without ending the session. Select **Expand voice session** to restore them. Ending
 Voice while collapsed also closes the AI panel; ending Voice while expanded returns to the text
-composer. Only finalized answers and canonical Brunch text become chat history; provisional
+composer. When Voice is collapsed, the zoom and fullscreen controls sit above the compact dock
+at the right edge; the bottom toolbar stays beside it. Only finalized answers and canonical Brunch text become chat history; provisional
 transcription and Realtime audio are ephemeral. Finalized spoken user messages carry a small
 **Voice** chip in front of the words themselves, and the exact inline answer completed by speech
 carries the same chip, so Voice provenance remains visible without duplicating an answer while the

@@ -55,10 +55,8 @@ export const ViewportControls: React.FC<{
   const { fitView, zoomIn, zoomOut } = useCanvasController();
   const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
-  // Shared with the bottom toolbar, so the two keep clear of the same panels
-  // by the same rules — the assistant panel included, which used to cover the
-  // column when it opened.
-  const insets = useCanvasInsets();
+  // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
+  const insets = useCanvasInsets({ aboveCollapsedDock: true });
   const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
   const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
 
