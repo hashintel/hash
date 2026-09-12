@@ -210,6 +210,29 @@ describe("runCalibratedExperiment", () => {
     });
   });
 
+  it("hands back a cached calibration's attempt a metric halted instead of probing afresh", async () => {
+    // The same seeds halt the same run at any slab, so the re-probe could
+    // only repeat the failure the handle is about to report.
+    const current = session({ p: 10 });
+    const { execute, attempts } = scripted([
+      { ok: true, result: outcome({ overflowRuns: 1, metricErrors: [2] }) },
+      { ok: true, result: outcome({ completedRuns: 1000 }) },
+    ]);
+
+    const { run, remembered } = runWith(current, execute, {
+      calibratedWindows: [{ lo: 0, stride: 1, integer: true }],
+    });
+    const result = await run;
+
+    expect(attempts).toHaveLength(1);
+    expect(current.capacities.get("p")).toBe(10);
+    expect(remembered).toHaveLength(0);
+    expect(result).toMatchObject({
+      kind: "calibrated",
+      result: { overflowRuns: 1, metricErrors: [2] },
+    });
+  });
+
   it("probes blind windows alone when no place needs a slab", async () => {
     const current = session({});
     const { execute, attempts } = scripted([
