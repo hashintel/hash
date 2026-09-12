@@ -87,6 +87,39 @@ describe("toObjectiveHistoryData", () => {
       [3, 3, 5],
     ]);
   });
+
+  it("breaks the best-so-far series before each divider", () => {
+    const points = [10, 12, 12, 5, 9].map((bestSoFar, index) => ({
+      step: index + 1,
+      objective: bestSoFar,
+      bestSoFar,
+      feasibility: "unknown" as const,
+    }));
+
+    expect(toObjectiveHistoryData(points, [4])).toEqual([
+      [1, 2, 3, 3.5, 4, 5],
+      [10, 12, 12, null, 5, 9],
+      [10, 12, 12, null, 5, 9],
+    ]);
+    expect(toObjectiveHistoryData(points, [])).toEqual([
+      [1, 2, 3, 4, 5],
+      [10, 12, 12, 5, 9],
+      [10, 12, 12, 5, 9],
+    ]);
+  });
+
+  it("lays no gap for a divider no step has reached yet", () => {
+    const points = buildObjectiveHistory(
+      [trial(0, 3), trial(1, 5)],
+      "maximize",
+    );
+
+    expect(toObjectiveHistoryData(points, [3])).toEqual([
+      [1, 2],
+      [3, 5],
+      [3, 5],
+    ]);
+  });
 });
 
 describe("trialFeasibility", () => {

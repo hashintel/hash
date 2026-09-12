@@ -16,7 +16,7 @@ import {
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { Table, type TableColumn } from "../../../../../../components/table";
 import { formatNumber, formatParameters } from "../../shared/format-value";
-import { INFEASIBLE_COLOR } from "./shared/infeasible-color";
+import { INFEASIBLE_COLOR } from "../../shared/infeasible-color";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 

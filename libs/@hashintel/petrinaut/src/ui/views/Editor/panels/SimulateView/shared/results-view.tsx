@@ -102,6 +102,7 @@ export const ResultsView = ({
           tone={band.tone}
         >
           {band.content}
+          {band.below}
         </FrameCard>
       ))}
       <FrameColumns

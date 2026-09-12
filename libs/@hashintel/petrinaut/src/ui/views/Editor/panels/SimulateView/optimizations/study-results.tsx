@@ -63,7 +63,7 @@ import {
   OptimizationSurface,
 } from "./optimization-surface";
 import { ConstraintSummaryCard } from "./study-results/constraint-summary";
-import { ObjectiveHistoryCard } from "./study-results/objective-history-chart";
+import { ObjectiveHistoryCard } from "./study-results/objective-history-card";
 import {
   OptimizationNavigator,
   OptimizationNavigatorStatus,
@@ -359,6 +359,7 @@ const parametersBand = (
         onNavigationChange={onNavigationChange}
       />
     ),
+    below: null,
     more:
       fixedCount === 0
         ? null
@@ -435,6 +436,7 @@ const bestParametersBand = (optimization: OptimizationRecord): ResultsBand => {
         )}
       />
     ),
+    below: null,
     more: null,
     tone: "default",
   };
