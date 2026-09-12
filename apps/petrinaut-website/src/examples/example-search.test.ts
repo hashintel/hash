@@ -72,4 +72,23 @@ describe("example search contract", () => {
       }),
     ).toBe("itemId=place-1&itemType=place&scenario=scenario-1&subnet=subnet-1");
   });
+
+  it("carries the presentation of an open optimization, dropping anything else", () => {
+    expect(validateSharedExampleSearch({ present: "full" }).present).toBe(
+      "full",
+    );
+    expect(validateSharedExampleSearch({ present: "drawer" }).present).toBe(
+      "drawer",
+    );
+    expect(
+      validateSharedExampleSearch({ present: "sideways" }).present,
+    ).toBeUndefined();
+    expect(
+      canonicalSearchString({
+        present: "full",
+        view: "optimizations",
+        mode: "simulate",
+      }),
+    ).toBe("mode=simulate&present=full&view=optimizations");
+  });
 });

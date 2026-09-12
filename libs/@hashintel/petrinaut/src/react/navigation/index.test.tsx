@@ -9,6 +9,7 @@ import {
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
@@ -548,5 +549,19 @@ describe("Petrinaut navigation", () => {
         id: "optimization-a",
       }),
     ).toEqual({ type: "closed" });
+  });
+
+  test("tells the two presentations of one record apart", () => {
+    const drawer: PetrinautNavigationState = {
+      ...defaultPetrinautNavigationState,
+      simulateResource: { type: "optimization", id: "optimization-a" },
+    };
+    expect(
+      petrinautNavigationStatesMatch(drawer, {
+        ...drawer,
+        simulatePresentation: "full",
+      }),
+    ).toBe(false);
+    expect(petrinautNavigationStatesMatch(drawer, { ...drawer })).toBe(true);
   });
 });

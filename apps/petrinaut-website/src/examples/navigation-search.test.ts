@@ -42,6 +42,24 @@ describe("navigation state projection", () => {
     expect(state.mode).toBe("edit");
     expect(state.overlay).toBeNull();
     expect(state.simulateResource).toBeNull();
+    expect(state.simulatePresentation).toBe("drawer");
+  });
+
+  it("round-trips the full presentation and omits the drawer baseline", () => {
+    const full = sharedSearchToNavigationState({
+      mode: "simulate",
+      view: "optimizations",
+      present: "full",
+    });
+    expect(full.simulatePresentation).toBe("full");
+    expect(navigationStateToSharedSearch(full).present).toBe("full");
+
+    const drawer = sharedSearchToNavigationState({
+      mode: "simulate",
+      view: "optimizations",
+    });
+    expect(drawer.simulatePresentation).toBe("drawer");
+    expect(navigationStateToSharedSearch(drawer).present).toBeUndefined();
   });
 });
 
