@@ -375,6 +375,22 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBeNull();
   });
 
+  it("reads the strip's row as 0 steps, without a metric, when the sweep's only study failed before its first step", () => {
+    renderDrawerWithStudies({ ...sweep, status: "idle" }, [
+      sweepStudy(sweep, "cancelled", {
+        status: "error",
+        error: "worker crashed",
+        trials: [],
+        best: null,
+        completedTrials: 0,
+        prunedTrials: 0,
+      }),
+    ]);
+
+    const row = screen.getByRole("button", { name: /^Objective by step/u });
+    expect(row.textContent).toMatch(/step0 steps$/u);
+  });
+
   it("draws the study's objective under the sliders while it drives the sweep and once it settles, at one layout", () => {
     const signatures = (["running", "cancelled"] as const).map((status) => {
       const view = renderDrawerWithStudy({ ...sweep, status: "idle" }, status);

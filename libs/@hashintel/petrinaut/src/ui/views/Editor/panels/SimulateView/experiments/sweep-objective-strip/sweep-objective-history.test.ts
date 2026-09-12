@@ -158,6 +158,21 @@ describe("buildSweepObjectiveHistory", () => {
     });
   });
 
+  it("summarises nothing when the only study failed before its first step", () => {
+    expect(
+      buildSweepObjectiveHistory([
+        study([], { requestedTrials: 30, status: "error", best: null }),
+      ]),
+    ).toEqual({
+      points: [],
+      xMax: 0,
+      dividers: [],
+      studyCount: 0,
+      metricName: "",
+      best: null,
+    });
+  });
+
   it("divides before a study that has just started, where its first step will land", () => {
     const history = buildSweepObjectiveHistory([
       study([1, 2]),

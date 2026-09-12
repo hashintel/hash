@@ -216,7 +216,7 @@ export const ObjectiveHistoryChart = ({
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef);
   const plotRef = useRef<uPlot | null>(null);
-  const data = toObjectiveHistoryData(points);
+  const data = toObjectiveHistoryData(points, dividers);
   const width = size?.width ?? 0;
   const hasWidth = width > 0;
   // The dividers reach the plot through its options; a change of them (a

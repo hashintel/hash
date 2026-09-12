@@ -72,11 +72,33 @@ export const buildObjectiveHistory = (
   });
 };
 
-/** uPlot aligned data: `[steps, objectives, bestSoFar]`. */
+/**
+ * uPlot aligned data: `[steps, objectives, bestSoFar]`. Half a step before
+ * each divider step a gap sample (a null objective and best) is laid in, so
+ * the stepped best-so-far line ends with one study and starts anew with the
+ * next instead of holding across the divider; the dots skip the null, and
+ * the x axis labels whole steps alone.
+ */
 export const toObjectiveHistoryData = (
   points: readonly ObjectiveHistoryPoint[],
-): uPlot.AlignedData => [
-  points.map((point) => point.step),
-  points.map((point) => point.objective),
-  points.map((point) => point.bestSoFar),
-];
+  dividers: readonly number[] = [],
+): uPlot.AlignedData => {
+  const steps: number[] = [];
+  const objectives: (number | null)[] = [];
+  const bestSoFar: (number | null)[] = [];
+  const pendingDividers = dividers.toSorted((left, right) => left - right);
+  let nextDivider = pendingDividers.at(0);
+  for (const point of points) {
+    while (nextDivider !== undefined && nextDivider <= point.step) {
+      steps.push(nextDivider - 0.5);
+      objectives.push(null);
+      bestSoFar.push(null);
+      pendingDividers.shift();
+      nextDivider = pendingDividers.at(0);
+    }
+    steps.push(point.step);
+    objectives.push(point.objective);
+    bestSoFar.push(point.bestSoFar);
+  }
+  return [steps, objectives, bestSoFar];
+};

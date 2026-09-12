@@ -132,7 +132,7 @@ const chartWrapStyle = css({
   paddingTop: "2",
 });
 
-/** `Infected peak · 47 steps in 2 optimizations · best 650.500`. */
+/** `Infected peak · 47 steps in 2 optimizations · best 650.500`; without a metric name, `0 steps`. */
 const describeHistory = (
   metricName: string,
   steps: number,
@@ -140,7 +140,8 @@ const describeHistory = (
   best: number | null,
 ): string =>
   [
-    `${metricName} · ${steps} ${steps === 1 ? "step" : "steps"}${
+    ...(metricName === "" ? [] : [metricName]),
+    `${steps} ${steps === 1 ? "step" : "steps"}${
       studies > 1 ? ` in ${studies} optimizations` : ""
     }`,
     ...(best === null ? [] : [`best ${formatNumber(best)}`]),

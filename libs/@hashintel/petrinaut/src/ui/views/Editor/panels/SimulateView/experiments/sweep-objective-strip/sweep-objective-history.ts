@@ -42,7 +42,8 @@ type SweepStudy = Pick<
  * numbered after the previous study's run steps (`trials.length`, so a
  * stopped study leaves no gap), and best-so-far restarts with each study,
  * whose metric and direction may differ from the last. A study that ended
- * without a step, failed at start, adds no divider and no count.
+ * without a step, failed at start, adds no divider and no count; a sweep
+ * whose studies all did is summarised as one that ran none.
  */
 export const buildSweepObjectiveHistory = (
   studies: readonly SweepStudy[],
@@ -70,7 +71,7 @@ export const buildSweepObjectiveHistory = (
     offset += study.trials.length;
   }
   const last = studies.at(-1);
-  if (last === undefined) {
+  if (last === undefined || lastCounted === null) {
     return {
       points,
       xMax: 0,
@@ -80,7 +81,6 @@ export const buildSweepObjectiveHistory = (
       best: null,
     };
   }
-  const summarised = lastCounted ?? last;
   return {
     points,
     xMax: isOptimizationActive(last)
@@ -91,7 +91,7 @@ export const buildSweepObjectiveHistory = (
       : points.length,
     dividers,
     studyCount,
-    metricName: objectiveMetricName(summarised.input),
-    best: summarised.best?.objective ?? null,
+    metricName: objectiveMetricName(lastCounted.input),
+    best: lastCounted.best?.objective ?? null,
   };
 };
