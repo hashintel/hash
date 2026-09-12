@@ -16,6 +16,11 @@ pub(crate) struct RemoteGeneration {
 }
 
 impl RemoteGeneration {
+    /// Returns the prefix containing this generation's metadata and artifacts.
+    pub(crate) const fn directory(&self) -> &FilePath {
+        &self.path
+    }
+
     /// Locates the document completing this publication.
     ///
     /// # Errors

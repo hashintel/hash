@@ -28,8 +28,11 @@ pub(crate) enum UploadError {
     Integrity(IntegrityVerificationError),
     /// A filesystem worker failed to return its result.
     Join(JoinError),
-    /// The destination current pointer is not a canonical generation identity.
-    Current(ParseHexError),
+    /// A destination pointer is not a generation identity.
+    Pointer {
+        path: FilePath,
+        error: ParseHexError,
+    },
     /// Reading an object body failed.
     Io(io::Error),
     /// An existing object contains bytes different from the expected artifact.
@@ -50,8 +53,11 @@ impl fmt::Display for UploadError {
             Self::Storage(error) => write!(fmt, "generation transfer failed: {error}"),
             Self::Integrity(error) => write!(fmt, "the local upload artifact is invalid: {error}"),
             Self::Join(error) => write!(fmt, "the upload filesystem worker failed: {error}"),
-            Self::Current(error) => {
-                write!(fmt, "the destination current pointer is invalid: {error}")
+            Self::Pointer { path, error } => {
+                write!(
+                    fmt,
+                    "the destination generation pointer {path} is invalid: {error}"
+                )
             }
             Self::Io(error) => write!(fmt, "reading the destination file failed: {error}"),
             Self::Checksum {
@@ -74,7 +80,7 @@ impl Error for UploadError {
             Self::Storage(error) | Self::Conflict(error) => Some(error),
             Self::Integrity(error) => Some(error),
             Self::Join(error) => Some(error),
-            Self::Current(error) => Some(error),
+            Self::Pointer { error, .. } => Some(error),
             Self::Io(error) => Some(error),
             Self::Checksum { .. } => None,
         }
@@ -108,12 +114,6 @@ impl From<IntegrityVerificationError> for UploadError {
 impl From<JoinError> for UploadError {
     fn from(error: JoinError) -> Self {
         Self::Join(error)
-    }
-}
-
-impl From<ParseHexError> for UploadError {
-    fn from(error: ParseHexError) -> Self {
-        Self::Current(error)
     }
 }
 

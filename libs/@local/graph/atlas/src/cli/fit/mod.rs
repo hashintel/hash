@@ -15,7 +15,7 @@ use crate::{
     file::{
         generation::{
             GenerationRoot,
-            upload::{Promotion, Upload},
+            upload::{Promotion, PromotionOptions, Upload},
         },
         storage::{Storage, error::StorageError, path::FilePath},
     },
@@ -38,7 +38,9 @@ pub(crate) mod error;
     reason = "the flags are independent operator switches"
 )]
 pub struct FitArgs {
-    /// The run seed; equal seeds replay every draw, the admission probe's included.
+    /// The run seed.
+    ///
+    /// Equal seeds replay every draw, including the admission probe.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
     seed: u64,
 
@@ -93,7 +95,7 @@ pub struct FitArgs {
 
     /// Override the trained placement's step count.
     ///
-    /// Keeps the ratified options and the midpoint boundary.
+    /// Preserves the other placement options and the midpoint boundary.
     #[arg(long)]
     projector_steps: Option<NonZero<usize>>,
 
@@ -114,13 +116,19 @@ pub struct FitArgs {
     #[arg(long)]
     nn_descent: bool,
 
-    /// Where the admission report JSON lands.
+    /// Destination of the admission report JSON.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 
     /// Destination prefix for generated artifacts. No upload runs by default.
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
+
+    /// Remove the old previous active generation after remote promotion, enabled by default.
+    ///
+    /// Set `--prune-active-generations=false` to retain it. Repository history is always retained.
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    prune_active_generations: bool,
 }
 
 /// A fit's result, admission-report path and fitting duration.
@@ -176,6 +184,7 @@ pub struct FitCommand<P> {
     report: Utf8PathBuf,
     options: Options<P>,
     upload: Option<(FilePath, Storage)>,
+    promotion: PromotionOptions,
 }
 
 impl<P> FitCommand<P> {
@@ -200,6 +209,7 @@ impl<P> FitCommand<P> {
                 progress,
             },
             upload: self.upload,
+            promotion: self.promotion,
         }
     }
 }
@@ -272,12 +282,8 @@ where
             upload.upload(summary.generation).await?;
 
             if summary.activated {
-                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                let Promotion { id } = upload.promote(summary.generation, self.promotion).await?;
                 tracing::info!(%id, "promoted generation");
-
-                if let Some(previous_error) = previous_error {
-                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
-                }
             }
         }
 
@@ -336,12 +342,8 @@ where
             upload.upload(summary.generation).await?;
 
             if summary.activated {
-                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                let Promotion { id } = upload.promote(summary.generation, self.promotion).await?;
                 tracing::info!(%id, "promoted generation");
-
-                if let Some(previous_error) = previous_error {
-                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
-                }
             }
         }
 
@@ -417,6 +419,9 @@ impl FitCommand<NoProgress> {
                 progress: NoProgress,
             },
             upload: args.upload.map(|path| (path, storage)),
+            promotion: PromotionOptions {
+                prune_active_generations: args.prune_active_generations,
+            },
         })
     }
 }

@@ -2,13 +2,15 @@
     clippy::significant_drop_tightening,
     reason = "fixture is alive until end of scope on purpose"
 )]
-use core::{assert_matches, cell::RefCell};
+use alloc::rc::Rc;
+use core::{assert_matches, cell::RefCell, pin::pin, task::Poll};
 use std::{collections::HashMap, fs, io};
 
 use aws_sdk_s3::{error::SdkError, operation::put_object::PutObjectError};
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
-use tokio::io::AsyncBufRead;
+use futures::{future, poll};
+use tokio::{io::AsyncBufRead, sync::Notify};
 use uuid::Uuid;
 
 use super::{
@@ -16,7 +18,7 @@ use super::{
         GenerationId, GenerationRoot, METADATA_FILE, ScratchDirectory,
         tests::{make_writable, publish_noncanonical, repository, root},
     },
-    Promotion, Upload,
+    Promotion, PromotionOptions, Upload,
     backend::GenerationUploadBackend,
     error::UploadError,
 };
@@ -53,9 +55,14 @@ fn repository_metadata_path(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
     repository_path(root, id, METADATA_FILE)
 }
 
+/// Locates the destination's active prefix for one generation.
+fn active_directory(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
+    root.join(format!("generations/active/{id}"))
+}
+
 /// Locates a generation artifact under the destination's active prefix.
 fn active_path(root: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
-    root.join(format!("generations/active/{id}/{name}"))
+    active_directory(root, id).join(name)
 }
 
 /// Locates the metadata that completes the destination's active prefix.
@@ -70,6 +77,58 @@ fn seed(path: &Utf8Path, content: impl AsRef<[u8]>) {
     fs::write(path, content).expect("should write the fixture content");
 }
 
+/// The artifact name every seeded active prefix carries.
+const SEEDED_ARTIFACT: &str = "representations.arr";
+
+/// Writes a complete active prefix for a generation this test never publishes locally.
+///
+/// The bytes belong to no local publication, which keeps a surviving prefix distinguishable from
+/// one the promotion under test wrote.
+fn seed_active(root: &Utf8Path, id: GenerationId) {
+    seed(&active_path(root, id, SEEDED_ARTIFACT), b"seeded artifact");
+    seed(&active_metadata_path(root, id), b"seeded metadata");
+}
+
+/// Checks that the complete seeded prefix of `id` survives.
+#[track_caller]
+fn assert_seeded_active_retained(root: &Utf8Path, id: GenerationId) {
+    assert_eq!(
+        fs::read(active_metadata_path(root, id)).expect("should retain the seeded metadata"),
+        b"seeded metadata".as_slice(),
+        "should leave the seeded metadata unchanged"
+    );
+    assert_eq!(
+        fs::read(active_path(root, id, SEEDED_ARTIFACT))
+            .expect("should retain the seeded artifact"),
+        b"seeded artifact".as_slice(),
+        "should leave the seeded artifact unchanged"
+    );
+}
+
+/// The identities a destination's pointers name before a promotion.
+struct Pointers {
+    current: GenerationId,
+    previous: GenerationId,
+}
+
+/// Seeds distinct current and previous pointers, each with a complete active prefix.
+///
+/// Neither identity belongs to a local publication: a promotion can only retain or remove the two
+/// prefixes, never rewrite them.
+fn seed_pointers(fixture: &Fixture) -> Pointers {
+    let pointers = Pointers {
+        current: GenerationId::from_digest(Sha256Digest::of(b"old-current-generation")),
+        previous: GenerationId::from_digest(Sha256Digest::of(b"old-previous-generation")),
+    };
+
+    seed(&current_path(&fixture.root), pointers.current.to_string());
+    seed(&previous_path(&fixture.root), pointers.previous.to_string());
+    seed_active(&fixture.root, pointers.current);
+    seed_active(&fixture.root, pointers.previous);
+
+    pointers
+}
+
 /// A write precondition recorded without its revision.
 #[derive(Debug, Clone, PartialEq)]
 enum Condition {
@@ -78,8 +137,8 @@ enum Condition {
     Match,
 }
 
-impl From<&WriteCondition> for Condition {
-    fn from(condition: &WriteCondition) -> Self {
+impl From<&WriteCondition<'_>> for Condition {
+    fn from(condition: &WriteCondition<'_>) -> Self {
         match condition {
             WriteCondition::Any => Self::Any,
             WriteCondition::Absent => Self::Absent,
@@ -110,6 +169,12 @@ enum Event {
         destination: String,
         condition: Condition,
     },
+    Remove {
+        path: String,
+    },
+    RemoveDirAll {
+        path: String,
+    },
 }
 
 impl Event {
@@ -119,7 +184,9 @@ impl Event {
             Self::Get { path }
             | Self::Read { path }
             | Self::Put { path, .. }
-            | Self::Upload { path, .. } => path.contains(needle),
+            | Self::Upload { path, .. }
+            | Self::Remove { path }
+            | Self::RemoveDirAll { path } => path.contains(needle),
             Self::Copy {
                 source,
                 destination,
@@ -135,6 +202,8 @@ enum Fault {
     Generic,
     /// A request that fails before the client sends it.
     Construction,
+    /// A completed S3 request that refused its metadata deletion.
+    DeletionRefused,
 }
 
 impl Fault {
@@ -142,6 +211,15 @@ impl Fault {
     fn error(self) -> StorageError {
         match self {
             Self::Generic => StorageError::Io(io::Error::other("fixture storage failure")),
+            Self::DeletionRefused => StorageError::DeleteRefused {
+                failures: vec![
+                    aws_sdk_s3::types::Error::builder()
+                        .key("metadata.json")
+                        .code("AccessDenied")
+                        .message("metadata removal denied")
+                        .build(),
+                ],
+            },
             Self::Construction => SdkError::<PutObjectError>::construction_failure(
                 io::Error::other("fixture construction failure"),
             )
@@ -150,7 +228,25 @@ impl Fault {
     }
 }
 
-/// A destination directory with recorded calls and one-shot injected faults.
+/// Arrival and release notifications for one suspended backend call.
+struct Hold {
+    entered: Notify,
+    resumed: Notify,
+}
+
+impl Hold {
+    /// Waits until the suspended call reaches its entry.
+    async fn entered(&self) {
+        self.entered.notified().await;
+    }
+
+    /// Resumes the suspended call.
+    fn release(&self) {
+        self.resumed.notify_one();
+    }
+}
+
+/// A destination directory with recorded calls, one-shot injected faults and one-shot holds.
 ///
 /// Object operations use [`Storage`]'s local backend unless a [`Fault`] replaces the call's
 /// result.
@@ -160,6 +256,7 @@ struct Fixture {
     destination: FilePath,
     storage: Storage,
     faults: RefCell<HashMap<String, Fault>>,
+    holds: RefCell<HashMap<String, Rc<Hold>>>,
     events: RefCell<Vec<Event>>,
 }
 
@@ -181,6 +278,7 @@ impl Fixture {
             destination,
             storage: Storage::in_temp_dir(),
             faults: RefCell::new(HashMap::new()),
+            holds: RefCell::new(HashMap::new()),
             events: RefCell::new(Vec::new()),
         }
     }
@@ -205,30 +303,65 @@ impl Fixture {
         self.events.borrow_mut().push(event);
     }
 
+    /// Suspends the next call on `path` at its entry until the returned hold releases it.
+    fn hold(&self, path: &Utf8Path) -> Rc<Hold> {
+        let hold = Rc::new(Hold {
+            entered: Notify::new(),
+            resumed: Notify::new(),
+        });
+
+        self.holds
+            .borrow_mut()
+            .insert(path.to_string(), Rc::clone(&hold));
+
+        hold
+    }
+
+    /// Records one call, awaits any hold on `path` and returns the fault installed for it.
+    async fn enter(&self, event: Event, path: &FilePath) -> Option<Fault> {
+        self.record(event);
+
+        let hold = self.holds.borrow_mut().remove(&path.to_string());
+        if let Some(hold) = hold {
+            hold.entered.notify_one();
+            hold.resumed.notified().await;
+        }
+
+        self.take_fault(path)
+    }
+
     /// Copies the recorded calls in their execution order.
     fn events(&self) -> Vec<Event> {
         self.events.borrow().clone()
+    }
+
+    /// Copies the recorded removal calls in their execution order.
+    fn deletions(&self) -> Vec<Event> {
+        self.events
+            .borrow()
+            .iter()
+            .filter(|event| matches!(event, Event::Remove { .. } | Event::RemoveDirAll { .. }))
+            .cloned()
+            .collect()
     }
 }
 
 impl GenerationUploadBackend for &Fixture {
     async fn get(&self, path: &FilePath) -> Result<FileContents<impl AsyncBufRead>, StorageError> {
-        self.record(Event::Get {
+        let event = Event::Get {
             path: path.to_string(),
-        });
-
-        if let Some(fault) = self.take_fault(path) {
+        };
+        if let Some(fault) = self.enter(event, path).await {
             return Err(fault.error());
         }
-
         path.get(&self.storage).await
     }
 
     async fn read(&self, path: &FilePath) -> Result<impl AsyncBufRead, StorageError> {
-        self.record(Event::Read {
+        let event = Event::Read {
             path: path.to_string(),
-        });
-        if let Some(fault) = self.take_fault(path) {
+        };
+        if let Some(fault) = self.enter(event, path).await {
             return Err(fault.error());
         }
         path.read(&self.storage).await
@@ -238,13 +371,13 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         path: &FilePath,
         body: Bytes,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
-        self.record(Event::Put {
+        let event = Event::Put {
             path: path.to_string(),
             condition: Condition::from(&condition),
-        });
-        if let Some(fault) = self.take_fault(path) {
+        };
+        if let Some(fault) = self.enter(event, path).await {
             return Err(fault.error());
         }
         path.put(&self.storage, body, condition).await
@@ -254,13 +387,13 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         destination: &FilePath,
         source: &Utf8Path,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
-        self.record(Event::Upload {
+        let event = Event::Upload {
             path: destination.to_string(),
             condition: Condition::from(&condition),
-        });
-        if let Some(fault) = self.take_fault(destination) {
+        };
+        if let Some(fault) = self.enter(event, destination).await {
             return Err(fault.error());
         }
         destination.upload(&self.storage, source, condition).await
@@ -270,19 +403,39 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         source: &FilePath,
         destination: &FilePath,
-        condition: WriteCondition,
+        condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
-        self.record(Event::Copy {
+        let event = Event::Copy {
             source: source.to_string(),
             destination: destination.to_string(),
             condition: Condition::from(&condition),
-        });
-        if let Some(fault) = self.take_fault(destination) {
+        };
+        if let Some(fault) = self.enter(event, destination).await {
             return Err(fault.error());
         }
         destination
             .copy_from(&self.storage, source, condition)
             .await
+    }
+
+    async fn remove(&self, path: &FilePath) -> Result<(), StorageError> {
+        let event = Event::Remove {
+            path: path.to_string(),
+        };
+        if let Some(fault) = self.enter(event, path).await {
+            return Err(fault.error());
+        }
+        path.remove(&self.storage).await
+    }
+
+    async fn remove_dir_all(&self, path: &FilePath) -> Result<(), StorageError> {
+        let event = Event::RemoveDirAll {
+            path: path.to_string(),
+        };
+        if let Some(fault) = self.enter(event, path).await {
+            return Err(fault.error());
+        }
+        path.remove_dir_all(&self.storage).await
     }
 }
 
@@ -333,12 +486,18 @@ async fn prepare_pointer_invalid_character() {
         .err()
         .expect("should refuse preparation for a non-hexadecimal pointer");
 
+    assert!(
+        error
+            .to_string()
+            .contains(current_path(&fixture.root).as_str()),
+        "should name the malformed pointer in the diagnostic"
+    );
     assert_matches!(
         error,
-        UploadError::Current(ParseHexError::Character {
+        UploadError::Pointer { path, error: ParseHexError::Character {
             index: 0,
             byte: b'z'
-        })
+        } } if path.to_string() == current_path(&fixture.root).as_str()
     );
 }
 
@@ -354,12 +513,18 @@ async fn prepare_pointer_short() {
         .err()
         .expect("should refuse preparation for a short pointer");
 
+    assert!(
+        error
+            .to_string()
+            .contains(current_path(&fixture.root).as_str()),
+        "should name the malformed pointer in the diagnostic"
+    );
     assert_matches!(
         error,
-        UploadError::Current(ParseHexError::Length {
+        UploadError::Pointer { path, error: ParseHexError::Length {
             expected: 64,
             actual: 4
-        })
+        } } if path.to_string() == current_path(&fixture.root).as_str()
     );
 }
 
@@ -377,12 +542,47 @@ async fn prepare_pointer_over_length() {
             "should refuse preparation for a 65-byte pointer rather than parse a truncated prefix",
         );
 
+    assert!(
+        error
+            .to_string()
+            .contains(current_path(&fixture.root).as_str()),
+        "should name the malformed pointer in the diagnostic"
+    );
     assert_matches!(
         error,
-        UploadError::Current(ParseHexError::Length {
+        UploadError::Pointer { path, error: ParseHexError::Length {
             expected: 64,
             actual: 65
-        })
+        } } if path.to_string() == current_path(&fixture.root).as_str()
+    );
+}
+
+/// Preparation rejects a previous pointer containing a non-hexadecimal character.
+#[tokio::test]
+async fn prepare_previous_pointer_invalid_character() {
+    let (_scratch, root) = root();
+    let fixture = Fixture::new();
+    let old_id = GenerationId::from_digest(Sha256Digest::of(b"old-current-generation"));
+    seed(&current_path(&fixture.root), old_id.to_string());
+    seed(&previous_path(&fixture.root), "z".repeat(64));
+
+    let error = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .err()
+        .expect("should refuse preparation for a non-hexadecimal previous pointer");
+
+    assert!(
+        error
+            .to_string()
+            .contains(previous_path(&fixture.root).as_str()),
+        "should name the malformed pointer in the diagnostic"
+    );
+    assert_matches!(
+        error,
+        UploadError::Pointer { path, error: ParseHexError::Character {
+            index: 0,
+            byte: b'z'
+        } } if path.to_string() == previous_path(&fixture.root).as_str()
     );
 }
 
@@ -669,15 +869,11 @@ async fn promote_current_absent() {
 
     let before = fixture.events().len();
     let promotion = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect("should complete the promotion");
 
     assert_eq!(promotion.id, id);
-    assert!(
-        promotion.previous_error.is_none(),
-        "should skip the previous write entirely for an absent prior current pointer"
-    );
 
     let promote_events = fixture.events()[before..].to_vec();
     let mut expected = vec![Event::Read {
@@ -735,15 +931,11 @@ async fn promote_current_replaces_previous() {
 
     let before = fixture.events().len();
     let promotion = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect("should complete the promotion");
 
     assert_eq!(promotion.id, id);
-    assert!(
-        promotion.previous_error.is_none(),
-        "should succeed at the previous write"
-    );
 
     let promote_events = fixture.events()[before..].to_vec();
     let mut expected = vec![Event::Read {
@@ -808,7 +1000,7 @@ async fn promote_active_copy_failure() {
     upload.upload(id).await.expect("should complete the upload");
 
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should prevent selection after a failed active copy");
 
@@ -837,7 +1029,7 @@ async fn promote_active_metadata_failure() {
 
     let before = fixture.events().len();
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should prevent selection after a failed active metadata write");
 
@@ -873,7 +1065,7 @@ async fn promote_active_metadata_mismatch() {
     seed(&active_metadata_path(&fixture.root, id), b"wrong metadata");
 
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should prevent selection for mismatching active metadata");
 
@@ -904,7 +1096,7 @@ async fn promote_repository_metadata_mismatch() {
 
     let before = fixture.events().len();
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should prevent copying from a mismatching repository marker");
 
@@ -926,15 +1118,18 @@ async fn promote_repository_metadata_mismatch() {
     );
 }
 
-/// Selection fails when current changes after capture, without writing previous.
+/// Selection fails when current changes after capture, writing no previous and removing nothing.
 #[tokio::test]
 async fn promote_current_conflict_present() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
+    let old_previous_id = GenerationId::from_digest(Sha256Digest::of(b"old-previous-generation"));
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
+    seed(&previous_path(&fixture.root), old_previous_id.to_string());
+    seed_active(&fixture.root, old_previous_id);
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -946,7 +1141,7 @@ async fn promote_current_conflict_present() {
 
     let before = fixture.events().len();
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should refuse selection for a stale captured revision");
 
@@ -981,10 +1176,17 @@ async fn promote_current_conflict_present() {
         "should make no previous put call after a rejected selection"
     );
 
-    assert!(
-        fs::metadata(previous_path(&fixture.root)).is_err(),
-        "should not write previous after a rejected selection"
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should leave the previous pointer present"),
+        old_previous_id.to_string().as_bytes(),
+        "should not change previous after a rejected selection"
     );
+    assert!(
+        fixture.deletions().is_empty(),
+        "should make no removal call after a rejected selection: {:?}",
+        fixture.deletions()
+    );
+    assert_seeded_active_retained(&fixture.root, old_previous_id);
 }
 
 /// Selection fails if another writer creates current after an absent capture.
@@ -993,6 +1195,9 @@ async fn promote_current_conflict_absent() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
+    let old_previous_id = GenerationId::from_digest(Sha256Digest::of(b"old-previous-generation"));
+    seed(&previous_path(&fixture.root), old_previous_id.to_string());
+    seed_active(&fixture.root, old_previous_id);
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -1005,7 +1210,7 @@ async fn promote_current_conflict_absent() {
 
     let before = fixture.events().len();
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should refuse an absent write for a concurrently created current pointer");
 
@@ -1040,10 +1245,17 @@ async fn promote_current_conflict_absent() {
         "should make no previous put call after a rejected selection"
     );
 
-    assert!(
-        fs::metadata(previous_path(&fixture.root)).is_err(),
-        "should not write previous after a rejected selection"
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should leave the previous pointer present"),
+        old_previous_id.to_string().as_bytes(),
+        "should not change previous after a rejected selection"
     );
+    assert!(
+        fixture.deletions().is_empty(),
+        "should make no removal call after a rejected selection: {:?}",
+        fixture.deletions()
+    );
+    assert_seeded_active_retained(&fixture.root, old_previous_id);
 }
 
 /// A current write failing during request construction leaves previous unwritten.
@@ -1053,6 +1265,9 @@ async fn promote_current_construction_failure() {
     let (_repository, id) = publish(&root);
     let fixture = Fixture::new();
     let current_pointer = current_path(&fixture.root);
+    let old_previous_id = GenerationId::from_digest(Sha256Digest::of(b"old-previous-generation"));
+    seed(&previous_path(&fixture.root), old_previous_id.to_string());
+    seed_active(&fixture.root, old_previous_id);
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -1062,7 +1277,7 @@ async fn promote_current_construction_failure() {
 
     let before = fixture.events().len();
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should refuse selection for a construction failure");
 
@@ -1093,13 +1308,20 @@ async fn promote_current_construction_failure() {
         ),
         "should make no previous put call after a failed current write"
     );
-    assert!(
-        fs::metadata(previous_path(&fixture.root)).is_err(),
-        "should not write previous after a failed current write"
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should leave the previous pointer present"),
+        old_previous_id.to_string().as_bytes(),
+        "should not change previous after a failed current write"
     );
+    assert!(
+        fixture.deletions().is_empty(),
+        "should make no removal call after a failed current write: {:?}",
+        fixture.deletions()
+    );
+    assert_seeded_active_retained(&fixture.root, old_previous_id);
 }
 
-/// Promotion succeeds with the advisory error when writing previous fails.
+/// Promotion succeeds when the advisory previous write fails.
 #[tokio::test]
 async fn promote_previous_write_failure() {
     let (_scratch, root) = root();
@@ -1108,26 +1330,29 @@ async fn promote_previous_write_failure() {
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
-    fixture.fault(&previous_path(&fixture.root), Fault::Generic);
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should capture the existing current pointer during preparation");
     upload.upload(id).await.expect("should complete the upload");
+    fixture.fault(&previous_path(&fixture.root), Fault::Generic);
 
     let promotion: Promotion = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect("should still complete despite the failed previous write");
 
     assert_eq!(promotion.id, id);
-    assert_matches!(promotion.previous_error, Some(StorageError::Io(_)));
 
     let current = fs::read(&current_pointer).expect("should have advanced the current pointer");
     assert_eq!(
         current,
         id.to_string().as_bytes(),
         "should carry the newly promoted identity in the current pointer"
+    );
+    assert!(
+        fs::metadata(previous_path(&fixture.root)).is_err(),
+        "should leave no previous object after its write failed"
     );
 }
 
@@ -1148,7 +1373,7 @@ async fn promote_checksum_mismatch() {
     );
 
     let error = upload
-        .promote(id)
+        .promote(id, PromotionOptions::default())
         .await
         .expect_err("should refuse selection for mismatching preexisting active content");
 
@@ -1161,5 +1386,502 @@ async fn promote_checksum_mismatch() {
     assert!(
         fs::metadata(current_path(&fixture.root)).is_err(),
         "should never select current after a checksum mismatch during promotion"
+    );
+}
+
+/// Pruning removes the captured old previous prefix after both pointer writes.
+#[tokio::test]
+async fn promote_prune_previous() {
+    let (_scratch, root) = root();
+    let (repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let before = fixture.events().len();
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+
+    let mut expected = vec![Event::Read {
+        path: repository_metadata_path(&fixture.root, id).to_string(),
+    }];
+    expected.extend(repository.files.files().map(|file| Event::Copy {
+        source: repository_path(&fixture.root, id, file.name.as_str()).to_string(),
+        destination: active_path(&fixture.root, id, file.name.as_str()).to_string(),
+        condition: Condition::Absent,
+    }));
+    expected.push(Event::Put {
+        path: active_metadata_path(&fixture.root, id).to_string(),
+        condition: Condition::Absent,
+    });
+    expected.push(Event::Put {
+        path: current_path(&fixture.root).to_string(),
+        condition: Condition::Match,
+    });
+    expected.push(Event::Put {
+        path: previous_path(&fixture.root).to_string(),
+        condition: Condition::Any,
+    });
+    expected.push(Event::Remove {
+        path: active_metadata_path(&fixture.root, pointers.previous).to_string(),
+    });
+    expected.push(Event::RemoveDirAll {
+        path: active_directory(&fixture.root, pointers.previous).to_string(),
+    });
+
+    assert_eq!(
+        fixture.events()[before..].to_vec(),
+        expected,
+        "should prune the replaced generation after both pointer writes, metadata first"
+    );
+
+    assert_eq!(
+        fs::read(current_path(&fixture.root)).expect("should have written the current pointer"),
+        id.to_string().as_bytes(),
+        "should carry the promoted identity in current"
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should have written the previous pointer"),
+        pointers.current.to_string().as_bytes(),
+        "should carry the superseded identity in previous"
+    );
+
+    assert_active_matches(&root, &fixture.root, id, &repository);
+    assert_seeded_active_retained(&fixture.root, pointers.current);
+    assert!(
+        fs::metadata(active_directory(&fixture.root, pointers.previous)).is_err(),
+        "should remove the pruned generation's prefix"
+    );
+
+    for file in repository.files.files() {
+        assert!(
+            fs::metadata(repository_path(&fixture.root, id, file.name.as_str())).is_ok(),
+            "should retain repository artifact {}",
+            file.name
+        );
+    }
+    assert!(
+        fs::metadata(repository_metadata_path(&fixture.root, id)).is_ok(),
+        "should retain the promoted generation's repository metadata"
+    );
+}
+
+#[tokio::test]
+async fn promote_prune_disabled() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let promotion = upload
+        .promote(
+            id,
+            PromotionOptions {
+                prune_active_generations: false,
+            },
+        )
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+    assert!(
+        fixture.deletions().is_empty(),
+        "should make no removal call while pruning is off: {:?}",
+        fixture.deletions()
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should have written the previous pointer"),
+        pointers.current.to_string().as_bytes(),
+        "should still record the superseded identity in previous"
+    );
+    assert_seeded_active_retained(&fixture.root, pointers.previous);
+    assert_seeded_active_retained(&fixture.root, pointers.current);
+}
+
+/// A failed previous write retains the generation the unchanged pointer names.
+///
+/// Pruning after this failure would remove the generation a reader still resolves through
+/// previous.
+#[tokio::test]
+async fn promote_previous_write_failure_retains_target() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+    fixture.fault(&previous_path(&fixture.root), Fault::Generic);
+
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should still complete despite the failed previous write");
+
+    assert_eq!(promotion.id, id);
+    assert!(
+        fixture.deletions().is_empty(),
+        "should make no removal call after a failed previous write: {:?}",
+        fixture.deletions()
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should leave the previous pointer present"),
+        pointers.previous.to_string().as_bytes(),
+        "should leave previous naming the retained generation"
+    );
+    assert_seeded_active_retained(&fixture.root, pointers.previous);
+}
+
+/// A failed metadata removal stops cleanup before the prefix removal.
+#[tokio::test]
+async fn promote_prune_metadata_failure() {
+    for fault in [Fault::Generic, Fault::DeletionRefused] {
+        let (_scratch, root) = root();
+        let (_repository, id) = publish(&root);
+        let fixture = Fixture::new();
+        let pointers = seed_pointers(&fixture);
+        let metadata = active_metadata_path(&fixture.root, pointers.previous);
+        fixture.fault(&metadata, fault);
+
+        let upload = Upload::prepare(&fixture, &root, fixture.destination())
+            .await
+            .expect("should capture both pointers during preparation");
+        upload.upload(id).await.expect("should complete the upload");
+
+        let promotion = upload
+            .promote(id, PromotionOptions::default())
+            .await
+            .expect("should still complete despite the failed cleanup");
+
+        assert_eq!(promotion.id, id);
+        assert_eq!(
+            fixture.deletions(),
+            vec![Event::Remove {
+                path: metadata.to_string()
+            }],
+            "should skip the prefix removal after a failed metadata removal"
+        );
+        assert_seeded_active_retained(&fixture.root, pointers.previous);
+    }
+}
+
+/// A failed prefix removal preserves the confirmed promotion.
+#[tokio::test]
+async fn promote_prune_prefix_failure() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+    let directory = active_directory(&fixture.root, pointers.previous);
+    fixture.fault(&directory, Fault::Generic);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should still complete despite the failed cleanup");
+
+    assert_eq!(promotion.id, id);
+    assert_eq!(
+        fixture.deletions(),
+        vec![
+            Event::Remove {
+                path: active_metadata_path(&fixture.root, pointers.previous).to_string()
+            },
+            Event::RemoveDirAll {
+                path: directory.to_string()
+            },
+        ],
+        "should attempt the prefix removal after removing the metadata"
+    );
+    assert!(
+        fs::metadata(active_metadata_path(&fixture.root, pointers.previous)).is_err(),
+        "should have removed the pruned generation's metadata"
+    );
+    assert_eq!(
+        fs::read(active_path(
+            &fixture.root,
+            pointers.previous,
+            SEEDED_ARTIFACT
+        ))
+        .expect("should retain the unremoved artifact"),
+        b"seeded artifact".as_slice(),
+        "should leave the artifacts of the incomplete prefix in place"
+    );
+    assert_eq!(
+        fs::read(current_path(&fixture.root)).expect("should have written the current pointer"),
+        id.to_string().as_bytes(),
+        "should carry the promoted identity in current"
+    );
+}
+
+/// Cleanup removes artifacts even when metadata is already absent.
+#[tokio::test]
+async fn promote_prune_metadata_absent() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+    fs::remove_file(active_metadata_path(&fixture.root, pointers.previous))
+        .expect("should remove the fixture metadata");
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+    assert_eq!(
+        fixture.deletions(),
+        vec![
+            Event::Remove {
+                path: active_metadata_path(&fixture.root, pointers.previous).to_string()
+            },
+            Event::RemoveDirAll {
+                path: active_directory(&fixture.root, pointers.previous).to_string()
+            },
+        ],
+        "should continue cleanup after an absent metadata document"
+    );
+    assert!(
+        fs::metadata(active_directory(&fixture.root, pointers.previous)).is_err(),
+        "should remove the remaining artifacts of the incomplete prefix"
+    );
+}
+
+/// An absent prefix completes cleanup.
+#[tokio::test]
+async fn prune_prefix_absent() {
+    let (_scratch, root) = root();
+    let fixture = Fixture::new();
+    let id = GenerationId::from_digest(Sha256Digest::of(b"absent-generation"));
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture the absent pointers");
+
+    upload
+        .prune(id)
+        .await
+        .expect("should accept an already-absent prefix");
+    assert_eq!(
+        fixture.deletions(),
+        vec![
+            Event::Remove {
+                path: active_metadata_path(&fixture.root, id).to_string()
+            },
+            Event::RemoveDirAll {
+                path: active_directory(&fixture.root, id).to_string()
+            },
+        ],
+        "should attempt both removals against the absent prefix"
+    );
+}
+
+/// An absent captured current leaves previous and the generation it names untouched.
+#[tokio::test]
+async fn promote_current_absent_previous_present() {
+    let (_scratch, root) = root();
+    let (repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let old_previous_id = GenerationId::from_digest(Sha256Digest::of(b"old-previous-generation"));
+    seed(&previous_path(&fixture.root), old_previous_id.to_string());
+    seed_active(&fixture.root, old_previous_id);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture the previous pointer against an absent current pointer");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let before = fixture.events().len();
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+
+    let mut expected = vec![Event::Read {
+        path: repository_metadata_path(&fixture.root, id).to_string(),
+    }];
+    expected.extend(repository.files.files().map(|file| Event::Copy {
+        source: repository_path(&fixture.root, id, file.name.as_str()).to_string(),
+        destination: active_path(&fixture.root, id, file.name.as_str()).to_string(),
+        condition: Condition::Absent,
+    }));
+    expected.push(Event::Put {
+        path: active_metadata_path(&fixture.root, id).to_string(),
+        condition: Condition::Absent,
+    });
+    expected.push(Event::Put {
+        path: current_path(&fixture.root).to_string(),
+        condition: Condition::Absent,
+    });
+
+    assert_eq!(
+        fixture.events()[before..].to_vec(),
+        expected,
+        "should select current without writing previous or removing a prefix"
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should leave the previous pointer present"),
+        old_previous_id.to_string().as_bytes(),
+        "should leave previous naming its original generation"
+    );
+    assert_seeded_active_retained(&fixture.root, old_previous_id);
+}
+
+/// Pruning skips a captured previous identity equal to the captured current.
+#[tokio::test]
+async fn promote_prune_previous_matches_current() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let shared_id = GenerationId::from_digest(Sha256Digest::of(b"shared-generation"));
+    seed(&current_path(&fixture.root), shared_id.to_string());
+    seed(&previous_path(&fixture.root), shared_id.to_string());
+    seed_active(&fixture.root, shared_id);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture one identity in both pointers");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+    assert!(
+        fixture.deletions().is_empty(),
+        "should retain the generation previous still names: {:?}",
+        fixture.deletions()
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should have written the previous pointer"),
+        shared_id.to_string().as_bytes(),
+        "should record the superseded identity in previous"
+    );
+    assert_seeded_active_retained(&fixture.root, shared_id);
+}
+
+/// Pruning skips a captured previous identity equal to the promoted generation.
+#[tokio::test]
+async fn promote_prune_previous_matches_promoted() {
+    let (_scratch, root) = root();
+    let (repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let old_current_id = GenerationId::from_digest(Sha256Digest::of(b"old-current-generation"));
+    seed(&current_path(&fixture.root), old_current_id.to_string());
+    seed(&previous_path(&fixture.root), id.to_string());
+    seed_active(&fixture.root, old_current_id);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture a previous pointer naming the promoted generation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let promotion = upload
+        .promote(id, PromotionOptions::default())
+        .await
+        .expect("should complete the promotion");
+
+    assert_eq!(promotion.id, id);
+    assert!(
+        fixture.deletions().is_empty(),
+        "should retain the generation this promotion selected: {:?}",
+        fixture.deletions()
+    );
+    assert_active_matches(&root, &fixture.root, id, &repository);
+    assert_eq!(
+        fs::read(current_path(&fixture.root)).expect("should have written the current pointer"),
+        id.to_string().as_bytes(),
+        "should carry the promoted identity in current"
+    );
+    assert_eq!(
+        fs::read(previous_path(&fixture.root)).expect("should have written the previous pointer"),
+        old_current_id.to_string().as_bytes(),
+        "should carry the superseded identity in previous"
+    );
+}
+
+/// Prefix removal waits for the metadata removal to complete.
+#[tokio::test]
+async fn promote_prune_metadata_awaited() {
+    let (_scratch, root) = root();
+    let (_repository, id) = publish(&root);
+    let fixture = Fixture::new();
+    let pointers = seed_pointers(&fixture);
+    let metadata = active_metadata_path(&fixture.root, pointers.previous);
+
+    let upload = Upload::prepare(&fixture, &root, fixture.destination())
+        .await
+        .expect("should capture both pointers during preparation");
+    upload.upload(id).await.expect("should complete the upload");
+
+    let hold = fixture.hold(&metadata);
+    let mut promoting = pin!(upload.promote(id, PromotionOptions::default()));
+
+    match future::select(pin!(hold.entered()), promoting.as_mut()).await {
+        future::Either::Left(_) => {}
+        future::Either::Right((result, _)) => {
+            panic!("should reach the held metadata removal before returning: {result:?}")
+        }
+    }
+    assert_matches!(poll!(promoting.as_mut()), Poll::Pending);
+    assert_eq!(
+        fixture.deletions(),
+        vec![Event::Remove {
+            path: metadata.to_string()
+        }],
+        "should hold the prefix removal until the metadata removal completes"
+    );
+
+    hold.release();
+
+    let promotion = promoting
+        .await
+        .expect("should complete the promotion after the release");
+
+    assert_eq!(promotion.id, id);
+    assert_eq!(
+        fixture.deletions(),
+        vec![
+            Event::Remove {
+                path: metadata.to_string()
+            },
+            Event::RemoveDirAll {
+                path: active_directory(&fixture.root, pointers.previous).to_string()
+            },
+        ],
+        "should remove the prefix after the released metadata removal"
+    );
+    assert!(
+        fs::metadata(active_directory(&fixture.root, pointers.previous)).is_err(),
+        "should remove the pruned generation's prefix"
     );
 }

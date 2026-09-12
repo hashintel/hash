@@ -4,7 +4,7 @@ use zerocopy::AllocError;
 
 /// The part of an S3 path a refusal names.
 #[derive(Debug)]
-pub(crate) enum PathComponent {
+pub enum PathComponent {
     /// The bucket component after `s3://`.
     Bucket,
     /// The object key after the bucket separator.
@@ -13,7 +13,7 @@ pub(crate) enum PathComponent {
 
 /// A failure to parse an S3 object location.
 #[derive(Debug)]
-pub(crate) enum FilePathError {
+pub enum FilePathError {
     /// The text does not start with `s3://`.
     Scheme,
     /// The text carries a bucket with no slash after it.

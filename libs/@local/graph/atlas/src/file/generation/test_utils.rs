@@ -10,7 +10,7 @@ use super::{
     GenerationId, GenerationRoot, ScratchDirectory,
     download::{Download, DownloadError},
     fixture::{publish_noncanonical, repository, root},
-    upload::{Upload, UploadError},
+    upload::{PromotionOptions, Upload, UploadError},
 };
 use crate::{file::storage::Storage, integrity::Sha256Digest, test_utils::s3::Bucket};
 
@@ -205,15 +205,11 @@ pub async fn promotion_initial() {
                 .expect("should publish the repository");
 
             let promotion = upload
-                .promote(id)
+                .promote(id, PromotionOptions::default())
                 .await
                 .expect("should promote the publication");
 
             assert_eq!(promotion.id, id);
-            assert!(
-                promotion.previous_error.is_none(),
-                "should have no previous-pointer error"
-            );
             assert_remote(bucket, &source, id, "active").await;
             assert_eq!(
                 bucket
@@ -248,21 +244,106 @@ pub async fn promotion_stale_writer() {
 
         let initial_upload = Upload::prepare(&storage, &source, &destination).await.expect("should prepare initial publication");
         initial_upload.upload(initial).await.expect("should upload initial publication");
-        initial_upload.promote(initial).await.expect("should select initial publication");
+        initial_upload.promote(initial, PromotionOptions::default()).await.expect("should select initial publication");
 
         let winner = Upload::prepare(&storage, &source, &destination).await.expect("should capture current for the winner");
         let loser = Upload::prepare(&storage, &source, &destination).await.expect("should capture the same current for the loser");
         winner.upload(winner_id).await.expect("should upload the winning publication");
         loser.upload(loser_id).await.expect("should upload the losing publication");
 
-        let promotion = winner.promote(winner_id).await.expect("should promote the winner");
-        assert!(promotion.previous_error.is_none(), "should retain the replaced identity");
-        assert_matches!(loser.promote(loser_id).await, Err(UploadError::Conflict(error)) if error.is_precondition_failed());
+        let promotion = winner.promote(winner_id, PromotionOptions::default()).await.expect("should promote the winner");
+        assert_eq!(promotion.id, winner_id);
+        assert_matches!(loser.promote(loser_id, PromotionOptions::default()).await, Err(UploadError::Conflict(error)) if error.is_precondition_failed());
         assert_eq!(bucket.read(&format!("{PREFIX}/generations/current")).await.as_ref(), winner_id.to_string().as_bytes());
         assert_eq!(bucket.read(&format!("{PREFIX}/generations/previous")).await.as_ref(), initial.to_string().as_bytes());
 
         assert_remote(bucket, &source, winner_id, "active").await;
     }).await;
+}
+
+/// Checks active retention across successive promotions while preserving repository history.
+///
+/// # Panics
+///
+/// Panics if pruning changes a retained prefix or leaves objects in the superseded prefix.
+pub async fn promotion_retention(prune_active_generations: bool) {
+    Bucket::new()
+        .await
+        .run(async |bucket| {
+            let (scratch, source) = root();
+            let storage = storage(&scratch, bucket.client.clone());
+            let destination = bucket.path(PREFIX);
+            let generations = [7, 8, 9].map(|seed| publication(&source, seed));
+            let [oldest, previous, current] = generations;
+            let adjacent = format!("{PREFIX}/generations/active/{oldest}-retained/artifact");
+            let unselected = format!("{PREFIX}/generations/active/unselected/artifact");
+            bucket.write(&adjacent, "adjacent prefix").await;
+            bucket.write(&unselected, "unselected prefix").await;
+
+            for id in generations {
+                let upload = Upload::prepare(&storage, &source, &destination)
+                    .await
+                    .expect("should capture the pointers");
+                upload
+                    .upload(id)
+                    .await
+                    .expect("should upload the generation");
+                let promotion = upload
+                    .promote(
+                        id,
+                        PromotionOptions {
+                            prune_active_generations,
+                        },
+                    )
+                    .await
+                    .expect("should promote the generation");
+                assert_eq!(promotion.id, id);
+            }
+
+            assert_eq!(
+                bucket
+                    .read(&format!("{PREFIX}/generations/current"))
+                    .await
+                    .as_ref(),
+                current.to_string().as_bytes()
+            );
+            assert_eq!(
+                bucket
+                    .read(&format!("{PREFIX}/generations/previous"))
+                    .await
+                    .as_ref(),
+                previous.to_string().as_bytes()
+            );
+            for id in generations {
+                assert_remote(bucket, &source, id, "repository").await;
+            }
+            for id in [previous, current] {
+                assert_remote(bucket, &source, id, "active").await;
+            }
+            if prune_active_generations {
+                let remaining = bucket
+                    .client
+                    .list_objects_v2()
+                    .bucket(&bucket.name)
+                    .prefix(format!("{PREFIX}/generations/active/{oldest}/"))
+                    .max_keys(1)
+                    .send()
+                    .await
+                    .expect("should list the pruned prefix");
+                assert!(
+                    remaining.contents().is_empty(),
+                    "should remove every object of the old previous generation"
+                );
+            } else {
+                assert_remote(bucket, &source, oldest, "active").await;
+            }
+            assert_eq!(bucket.read(&adjacent).await.as_ref(), b"adjacent prefix");
+            assert_eq!(
+                bucket.read(&unselected).await.as_ref(),
+                b"unselected prefix"
+            );
+        })
+        .await;
 }
 
 /// Checks that an existing corrupt artifact prevents completion of repository metadata.

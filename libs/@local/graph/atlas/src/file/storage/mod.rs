@@ -30,16 +30,16 @@ pub(crate) struct Revision(RevisionKind);
 
 /// A precondition checked atomically with destination replacement.
 #[derive(Debug)]
-pub(crate) enum WriteCondition {
+pub(crate) enum WriteCondition<'revision> {
     /// Replaces the destination regardless of its current contents.
     Any,
     /// Creates the destination only when it does not exist.
     Absent,
     /// Replaces the destination only when its content identity matches the captured revision.
-    Match(Revision),
+    Match(&'revision Revision),
 }
 
-impl WriteCondition {
+impl WriteCondition<'_> {
     /// Restates the condition as the object-write precondition an S3 request carries.
     ///
     /// # Errors
