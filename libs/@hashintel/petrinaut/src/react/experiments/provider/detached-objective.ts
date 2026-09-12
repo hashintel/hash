@@ -3,6 +3,7 @@ import {
   createReadableStore,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getOwn,
+  prepareScenarioCompiler,
   runExperimentToCompletion,
   type MonteCarloExperiment,
   type MonteCarloUserDefinedMetricFrame,
@@ -21,6 +22,7 @@ import { instantiateOnBackend } from "./shared/instantiate-on-backend";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type {
+  DetachedObjectiveParametersRequest,
   DetachedObjectiveRequest,
   DetachedObjectiveRun,
   DetachedObjectiveRunOutcome,
@@ -74,6 +76,15 @@ export type DetachedObjectiveSampler = {
    * error, or the count of errored runs.
    */
   run: (request: DetachedObjectiveRunRequest) => DetachedObjectiveRun;
+  /**
+   * The net parameter values a batch at `request`'s point simulates with:
+   * the scenario's overrides applied to the net's defaults, compiled from
+   * the study's cached snapshot. Rejects when the scenario does not compile
+   * there.
+   */
+  resolveParameters: (
+    request: DetachedObjectiveParametersRequest,
+  ) => Promise<Readonly<Record<string, number | boolean>>>;
   /** Cancels every run in flight and releases the backends runs chose. */
   dispose: () => void;
 };
@@ -106,7 +117,7 @@ const failedOutcome = (reason: string): DetachedObjectiveRunOutcome => ({
  */
 const compileStudy = async (
   languageClient: LanguageClient,
-  request: DetachedObjectiveRequest,
+  request: DetachedObjectiveParametersRequest,
   includeHir: boolean,
 ): Promise<CompiledStudy> => {
   const scenario = (request.definition.scenarios ?? []).find(
@@ -178,7 +189,7 @@ export const createDetachedObjectiveSampler = ({
   const runShards = Math.max(1, Math.floor(shardCount / 3));
 
   const compiledFor = (
-    request: DetachedObjectiveRequest,
+    request: DetachedObjectiveParametersRequest,
     includeHir: boolean,
   ): Promise<CompiledStudy> => {
     const key = `${request.cacheKey}|${includeHir ? "hir" : "flat"}`;
@@ -241,6 +252,19 @@ export const createDetachedObjectiveSampler = ({
           runOutput: { type: "distribution" },
           artifact: metricArtifact,
         },
+        // `code` is display-only on a spec; execution uses the artifact.
+        ...(request.auxiliaryMetrics ?? []).map(
+          (auxiliary): ExperimentRequest["metricSpecs"][number] => ({
+            kind: "expression",
+            id: auxiliary.id,
+            label: auxiliary.label,
+            code: "",
+            sampleRuns: "all",
+            runOutput: { type: "scalar", aggregateRuns: "mean" },
+            aggregateTime: auxiliary.aggregateTime,
+            artifact: auxiliary.artifact,
+          }),
+        ),
       ],
       hirArtifacts: artifacts,
       ...(options.runSeeds === undefined
@@ -248,6 +272,27 @@ export const createDetachedObjectiveSampler = ({
         : { runs: options.runSeeds.map((seed) => ({ seed })) }),
     };
   };
+
+  const resolveParameters: DetachedObjectiveSampler["resolveParameters"] =
+    async (request) => {
+      const { scenario, scenarioHir } = await compiledFor(request, false);
+      const compiled = prepareScenarioCompiler(
+        scenario,
+        scenarioHir,
+        request.definition.parameters,
+        request.definition.places,
+        request.definition.types,
+      ).compileParameterNumbers(
+        numericScenarioValues(request.scenarioParameterValues),
+      );
+      if (!compiled.ok) {
+        throw new Error(
+          compiled.errors.map((error) => error.message).join("; ") ||
+            `Scenario "${scenario.name}" did not compile at this point`,
+        );
+      }
+      return compiled.parameters;
+    };
 
   /** A run's handle on the backend its study settled on. */
   const instantiateOnChosen = async (
@@ -521,6 +566,7 @@ export const createDetachedObjectiveSampler = ({
         : null;
     },
     run,
+    resolveParameters,
     dispose: () => {
       for (const controller of runsInFlight) {
         controller.abort();

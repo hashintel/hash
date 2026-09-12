@@ -332,6 +332,21 @@ describe("petrinautOptimizationManifestSchema", () => {
     expect(stepped.success).toBe(false);
   });
 
+  it("accepts a constraint policy with alpha strictly between 0 and 1", () => {
+    const withPolicy = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      constraintPolicy: { alpha: 0.1 },
+    });
+    expect(withPolicy.success).toBe(true);
+    for (const alpha of [0, 1, -0.1]) {
+      const invalid = petrinautOptimizationManifestSchema.safeParse({
+        ...validManifest,
+        constraintPolicy: { alpha },
+      });
+      expect(invalid.success).toBe(false);
+    }
+  });
+
   it("requires at least one optimized parameter", () => {
     const parsed = petrinautOptimizationManifestSchema.safeParse({
       ...validManifest,
@@ -467,6 +482,39 @@ describe("petrinautOptimizationEventSchema", () => {
         expect(withSeq.data.seq).toBe(index + 1);
       }
     }
+  });
+
+  it("accepts a trial event carrying constraint results, and rejects malformed ones", () => {
+    const trial = events[1];
+    const withConstraints = petrinautOptimizationEventSchema.safeParse({
+      ...trial,
+      constraints: {
+        parameters: [{ constraintId: "order", margin: -0.5 }],
+        state: [{ constraintId: "queue", runsPassed: 52, runsTotal: 60 }],
+      },
+    });
+    expect(withConstraints.success).toBe(true);
+
+    const infeasible = petrinautOptimizationEventSchema.safeParse({
+      ...trial,
+      objective: null,
+      state: "pruned",
+      constraints: {
+        parameters: [{ constraintId: "order", margin: -0.5 }],
+        state: [],
+        infeasible: "order",
+      },
+    });
+    expect(infeasible.success).toBe(true);
+
+    const zeroRuns = petrinautOptimizationEventSchema.safeParse({
+      ...trial,
+      constraints: {
+        parameters: [],
+        state: [{ constraintId: "queue", runsPassed: 0, runsTotal: 0 }],
+      },
+    });
+    expect(zeroRuns.success).toBe(false);
   });
 
   it("rejects negative or fractional sequence numbers", () => {

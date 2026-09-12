@@ -14,8 +14,10 @@
  *   boolean. It is observed while a run goes.
  *
  * A constraint belongs to whatever carries it (today the optimization
- * manifest); this module owns the shape, not the placement. Nothing enforces
- * constraints yet: they are declared, validated, and evaluable.
+ * manifest); this module owns the shape, not the placement. `margin.ts`
+ * evaluates a parameter constraint's signed slack at one point, and
+ * `indicator-metric.ts` compiles a state constraint as a 0/1 metric the
+ * simulation observes per run. Both report; neither changes an objective.
  *
  * @layerRoot core.constraints
  * @role Boolean conditions over the parameter space or the simulation state, authored as TypeScript, carried as HIR, and shaped once for every consumer
@@ -145,3 +147,8 @@ export function constraintsInSpace<S extends ConstraintSpace>(
       constraint.space === space,
   );
 }
+
+/** How a constraint is named wherever it is reported: its display name, else its id. */
+export const constraintLabel = (
+  constraint: Pick<Constraint, "id" | "name">,
+): string => constraint.name ?? constraint.id;

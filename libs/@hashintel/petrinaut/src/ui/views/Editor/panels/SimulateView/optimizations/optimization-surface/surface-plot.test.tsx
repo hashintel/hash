@@ -187,6 +187,28 @@ describe("trialSurfaceField", () => {
     );
   });
 
+  it("mutes an infeasible draw among rings as among dots", () => {
+    const infeasible: PetrinautOptimizationTrialEvent = {
+      ...trial(3, { production_rate: 400, selling_price: 20 }, null),
+      constraints: {
+        parameters: [{ constraintId: "rate-cap", margin: -50 }],
+        state: [],
+        infeasible: "rate-cap",
+      },
+    };
+    for (const mark of ["dot", "ring"] as const) {
+      const field = trialSurfaceField({
+        trials: [...trials, infeasible],
+        best,
+        xAxis,
+        yAxis,
+        mark,
+      });
+      expect(field.markers.at(-1)).toEqual({ x: 10, y: 0, kind: "muted" });
+      expect(field.values.has(contourSurfaceKey(10, 0))).toBe(false);
+    }
+  });
+
   it("skips a trial without a numeric value on a shown axis", () => {
     const field = trialSurfaceField({
       trials: [trial(0, { production_rate: 225 }, 4)],

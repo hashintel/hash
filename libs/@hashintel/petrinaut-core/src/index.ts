@@ -141,7 +141,9 @@ export type {
   PetrinautOptimizationDescribeParameter,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationStudy,
+  PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialEvent,
+  PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
 export { createPetrinautActions } from "./actions";
@@ -451,6 +453,7 @@ export type {
 export {
   CONSTRAINT_SPACES,
   CONSTRAINT_SURFACES,
+  constraintLabel,
   constraintListSchema,
   constraintSchema,
   constraintSpaceSchema,
@@ -464,6 +467,16 @@ export type {
   ParameterConstraint,
   StateConstraint,
 } from "./constraint/constraint";
+export {
+  compileStateConstraintIndicator,
+  wrapHirAsIndicator,
+} from "./constraint/indicator-metric";
+export {
+  constraintMargin,
+  evaluateParameterConstraints,
+  type ParameterConstraintResult,
+} from "./constraint/margin";
+export type { HirInterpretBindings } from "./hir/interpret";
 // Type-only: lowering itself stays in ./hir (worker/Node).
 export type {
   ConstraintSource,

@@ -4,6 +4,7 @@ import { createOptimizationManifest } from "../shared/optimization-manifest.fixt
 import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
+  resolveTrialScenarioBindings,
   resolveTrialScenarioParameterValues,
 } from "./describe";
 
@@ -136,5 +137,48 @@ describe("resolveTrialScenarioParameterValues", () => {
         enabled: true,
       }),
     ).toThrow('Optimization parameter "rate" must be numeric');
+  });
+});
+
+describe("resolveTrialScenarioBindings", () => {
+  const manifest = createOptimizationManifest();
+
+  it("binds a boolean parameter's 0/1 as the boolean the scenario compiler reads, and every other value as it is", () => {
+    expect(
+      resolveTrialScenarioBindings(manifest, {
+        rate: 1.5,
+        count: 6,
+        enabled: 1,
+        share: 0.25,
+      }),
+    ).toEqual({ rate: 1.5, count: 6, enabled: true, share: 0.25 });
+    expect(
+      resolveTrialScenarioBindings(manifest, {
+        rate: 1.5,
+        count: 6,
+        enabled: 0,
+        share: 0.25,
+      }).enabled,
+    ).toBe(false);
+  });
+
+  it("decodes the values a trial resolved, and reads a parameter the values lack at its default", () => {
+    const values = resolveTrialScenarioParameterValues(manifest, {
+      rate: 0.1,
+      count: 10,
+      enabled: true,
+    });
+    expect(resolveTrialScenarioBindings(manifest, values)).toEqual({
+      rate: 0.1,
+      count: 10,
+      enabled: true,
+      share: 0.25,
+    });
+    expect(resolveTrialScenarioBindings(manifest, {})).toEqual({
+      rate: 0.5,
+      count: 10,
+      enabled: true,
+      share: 0.25,
+    });
   });
 });

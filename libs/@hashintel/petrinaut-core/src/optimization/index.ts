@@ -235,6 +235,16 @@ function validateScenarioParameterDefault(
   }
 }
 
+/** The pass threshold as one experiment-level setting; `1 - alpha` of a step's runs must hold for the step to pass a state constraint. */
+export const DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA = 0.05;
+
+export const petrinautOptimizationConstraintPolicySchema = z
+  .strictObject({ alpha: z.number().gt(0).lt(1) })
+  .meta({
+    description:
+      "The pass threshold for a step: a state constraint passes the step when at least 1 - alpha of its runs held. Default 0.05.",
+  });
+
 export const petrinautOptimizationManifestSchema = z
   .strictObject({
     kind: z.literal("petrinaut-optimization"),
@@ -245,8 +255,9 @@ export const petrinautOptimizationManifestSchema = z
     objective: petrinautOptimizationObjectiveSchema,
     constraints: constraintListSchema.optional().meta({
       description:
-        'Optional boolean conditions over the parameter space (`space: "parameters"`) and the simulation state (`space: "state"`). Absent means unconstrained; nothing enforces them yet.',
+        'Optional boolean conditions over the parameter space (`space: "parameters"`) and the simulation state (`space: "state"`). Absent means unconstrained. The browser runtime evaluates parameter constraints before each trial simulates and observes state constraints on every run; the results are reported, never enforced on the objective.',
     }),
+    constraintPolicy: petrinautOptimizationConstraintPolicySchema.optional(),
     execution: petrinautOptimizationExecutionSchema,
     study: petrinautOptimizationStudySchema,
   })
@@ -612,6 +623,35 @@ export const petrinautOptimizationStartedEventSchema = z
   })
   .meta({ description: "The optimizer accepted and started the study." });
 
+/** One parameter constraint's signed slack at the trial's values. `margin >= 0` means satisfied. */
+export const petrinautOptimizationParameterConstraintResultSchema =
+  z.strictObject({
+    constraintId: z.string().min(1),
+    margin: z.number(),
+  });
+
+/** One state constraint's per-run verdicts within the trial: how many runs it held on, over how many ran. */
+export const petrinautOptimizationStateConstraintResultSchema = z.strictObject({
+  constraintId: z.string().min(1),
+  runsPassed: z.number().int().nonnegative(),
+  runsTotal: z.number().int().positive(),
+});
+
+export const petrinautOptimizationTrialConstraintsSchema = z
+  .strictObject({
+    parameters: z.array(petrinautOptimizationParameterConstraintResultSchema),
+    state: z.array(petrinautOptimizationStateConstraintResultSchema),
+    /**
+     * The parameter constraint the draw broke, when the trial was pruned for
+     * it before any simulation ran. Set exactly on those trials. `state` is
+     * empty on them: nothing simulated, so nothing was observed.
+     */
+    infeasible: z.string().min(1).optional(),
+  })
+  .meta({
+    description: "Constraint results of one trial, browser runtime only.",
+  });
+
 export const petrinautOptimizationTrialEventSchema = z
   .strictObject({
     type: z.literal("trial"),
@@ -620,6 +660,8 @@ export const petrinautOptimizationTrialEventSchema = z
     objective: z.number().nullable(),
     state: z.enum(["complete", "pruned", "failed"]),
     best: optimizationBestSchema.nullable(),
+    /** Present on the trials of a study evaluated in the browser with constraints declared. */
+    constraints: petrinautOptimizationTrialConstraintsSchema.optional(),
     seq: optimizationEventSeqSchema,
   })
   .meta({ description: "One completed Optuna trial and the running best." });
@@ -723,6 +765,18 @@ export type PetrinautOptimizationEvent = z.infer<
 export type PetrinautOptimizationTrialEvent = z.infer<
   typeof petrinautOptimizationTrialEventSchema
 >;
+export type PetrinautOptimizationConstraintPolicy = z.infer<
+  typeof petrinautOptimizationConstraintPolicySchema
+>;
+export type PetrinautOptimizationParameterConstraintResult = z.infer<
+  typeof petrinautOptimizationParameterConstraintResultSchema
+>;
+export type PetrinautOptimizationStateConstraintResult = z.infer<
+  typeof petrinautOptimizationStateConstraintResultSchema
+>;
+export type PetrinautOptimizationTrialConstraints = z.infer<
+  typeof petrinautOptimizationTrialConstraintsSchema
+>;
 
 /**
  * Host-provided optimization capability for Petrinaut: the self-contained
@@ -778,6 +832,8 @@ export type PetrinautOptimizationTrialRequest = {
   /**
    * Every scenario parameter's value for this trial: fixed bindings merged
    * with the suggestions, booleans as 0/1 as the scenario compiler expects.
+   * `resolveTrialScenarioBindings` decodes them for a constraint's
+   * `scenario.*`.
    */
   readonly scenarioParameterValues: Readonly<Record<string, number>>;
   /**
@@ -794,11 +850,15 @@ export type PetrinautOptimizationTrialOutcome =
       readonly kind: "objective";
       /** The mean of the per-seed objectives; finite. */
       readonly objective: number;
+      /** What the trial's constraints reported, when the study declares any. */
+      readonly constraints?: PetrinautOptimizationTrialConstraints;
     }
   | {
       /** The host could not run the trial; Optuna records it as pruned. */
       readonly kind: "pruned";
       readonly reason: string;
+      /** Set when the trial was pruned for an infeasible draw, naming it. */
+      readonly constraints?: PetrinautOptimizationTrialConstraints;
     };
 
 /**
@@ -887,5 +947,6 @@ export const isConnectedOptimization = (
 export {
   deriveOptimizationTrialSeeds,
   describeOptimization,
+  resolveTrialScenarioBindings,
   resolveTrialScenarioParameterValues,
 } from "./describe";

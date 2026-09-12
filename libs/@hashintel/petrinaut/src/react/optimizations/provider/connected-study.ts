@@ -32,6 +32,7 @@ import type {
 } from "../context";
 import type { OptimizationSurfaceAxis } from "../surface-grid";
 import type {
+  MonteCarloUserDefinedMetricFrame,
   PetrinautOptimizationInput,
   PetrinautOptimizationTrialEvent,
 } from "@hashintel/petrinaut-core";
@@ -149,6 +150,12 @@ export const createConnectedStudy = ({
       `The study has no metric "${input.objective.metricId}" to optimize`,
     );
   }
+  // A trial's batch also runs the study's state constraints as metrics; the
+  // selection stream describes the objective alone.
+  const objectiveFrames = (
+    frames: readonly MonteCarloUserDefinedMetricFrame[],
+  ): readonly MonteCarloUserDefinedMetricFrame[] =>
+    frames.filter((frame) => frame.metricId === metric.id);
 
   let navigation: OptimizationNavigation = {
     positions: Object.fromEntries(
@@ -304,7 +311,7 @@ export const createConnectedStudy = ({
     const mirror = () => {
       selection = {
         key,
-        metricFrames: run.frames.get(),
+        metricFrames: objectiveFrames(run.frames.get()),
         runsCompleted: run.progress.get()?.completedRuns ?? 0,
         runTarget: null,
         computing: true,
@@ -412,7 +419,7 @@ export const createConnectedStudy = ({
       selection = outcome.ok
         ? {
             key: `trial:${trial}`,
-            metricFrames: outcome.metricFrames,
+            metricFrames: objectiveFrames(outcome.metricFrames),
             runsCompleted: outcome.runsCompleted,
             runTarget: null,
             computing: false,

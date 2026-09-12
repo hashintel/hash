@@ -34,6 +34,7 @@ import type {
   PetrinautOptimizationChannel,
   PetrinautOptimizationEvent,
   PetrinautOptimizationManifest,
+  PetrinautOptimizationTrialConstraints,
 } from "../index";
 import type {
   OptimizerEvaluateMessage,
@@ -60,6 +61,12 @@ type RunRecord = {
   readonly manifest: PetrinautOptimizationManifest;
   readonly seeds: readonly number[];
   readonly log: OptimizationRunLog;
+  /**
+   * What the channel reported for each trial's constraints, kept from the
+   * evaluation until the worker reports the trial, whose event carries it.
+   * The worker and the Python study never see these.
+   */
+  readonly trialConstraints: Map<number, PetrinautOptimizationTrialConstraints>;
   status: RunStatus;
   /** The segment the worker runs when it takes this run. */
   command: OptimizerStartMessage | OptimizerExtendMessage;
@@ -214,6 +221,7 @@ const connectBrowserOptimization = (options: {
     // A failure can leave the host evaluating trials whose outcomes no one
     // will read; a completed or stopped segment has nothing left in flight.
     run.controller.abort();
+    run.trialConstraints.clear();
     const queuedAt = queue.indexOf(run);
     if (queuedAt !== -1) {
       queue.splice(queuedAt, 1);
@@ -299,6 +307,9 @@ const connectBrowserOptimization = (options: {
         signal: controller.signal,
       });
       if (segmentIsCurrent()) {
+        if (outcome.constraints) {
+          run.trialConstraints.set(message.trial, outcome.constraints);
+        }
         post({ type: "evaluated", requestId: message.requestId, outcome });
       }
     } catch (error) {
@@ -324,14 +335,20 @@ const connectBrowserOptimization = (options: {
         return;
       case "trial": {
         const run = activeRunFor(message.runId);
+        if (!run) {
+          return;
+        }
         const { event } = message;
-        run?.log.append({
+        const constraints = run.trialConstraints.get(event.trial);
+        run.trialConstraints.delete(event.trial);
+        run.log.append({
           type: "trial",
           trial: event.trial,
           parameters: event.parameters,
           objective: event.state === "complete" ? event.objective : null,
           state: event.state,
           best: event.best,
+          ...(constraints ? { constraints } : {}),
         });
         return;
       }
@@ -451,6 +468,7 @@ const connectBrowserOptimization = (options: {
           manifest.execution.seedsPerTrial ?? 1,
         ),
         log: createOptimizationRunLog(),
+        trialConstraints: new Map(),
         status: "queued",
         command: {
           type: "start",

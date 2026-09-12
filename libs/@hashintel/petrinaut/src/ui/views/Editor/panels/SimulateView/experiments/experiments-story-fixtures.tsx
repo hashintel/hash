@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   createReadableStore,
   DEFAULT_PETRINAUT_EXTENSIONS,
+  deriveDefaultParameterValues,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
@@ -696,6 +697,10 @@ export function FakeExperimentsProvider({
       });
     },
     runDetachedObjective: fakeRunDetachedObjective,
+    resolveDetachedObjectiveParameters: (request) =>
+      Promise.resolve(
+        deriveDefaultParameterValues(request.definition.parameters),
+      ),
     ...overrides,
   }));
 

@@ -35,11 +35,13 @@ import type {
   OptimizationStatus,
 } from "../../../../../../react/optimizations/context";
 import type {
+  Constraint,
   MonteCarloUserDefinedMetricFrame,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   PetrinautOptimizationTrialEvent,
 } from "@hashintel/petrinaut-core";
+import type { HirExpr } from "@hashintel/petrinaut-core/hir";
 
 /**
  * A smooth profit-like surface over the supply-chain scenario's parameters:
@@ -539,6 +541,175 @@ export const fakeStudyInput = makeOptimizationInput(
 );
 export const fakeStudyTrials = makeTrials(fakeStudyInput, 30);
 
+const hirSpan = { start: 0, length: 0 };
+const hirNumber = (id: number, value: number): HirExpr => ({
+  kind: "numberLit",
+  id,
+  span: hirSpan,
+  value,
+  raw: String(value),
+});
+const hirField = (id: number, target: HirExpr, field: string): HirExpr => ({
+  kind: "fieldAccess",
+  id,
+  span: hirSpan,
+  target,
+  field,
+  fieldSpan: hirSpan,
+});
+
+/** The rate cap the stories' parameter constraint imposes on `production_rate`. */
+export const FAKE_RATE_CAP = 320;
+/** The runs each step of the constrained study runs; the state rates are fractions of it. */
+export const FAKE_CONSTRAINED_RUNS = 60;
+
+/**
+ * The stories' two constraints, hand-lowered so the fixtures need no
+ * TypeScript compiler: `scenario.production_rate <= 320` over the parameter
+ * space, and `return state.places.FinishedGoods.count <= 500;` over the
+ * state.
+ */
+export const fakeStudyConstraints: Constraint[] = [
+  {
+    space: "parameters",
+    id: "rate-cap",
+    name: "Production rate under 320",
+    code: `scenario.production_rate <= ${FAKE_RATE_CAP}`,
+    hir: {
+      hirVersion: 1,
+      surface: "scenario-expression",
+      params: [],
+      span: hirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: hirSpan,
+        op: "<=",
+        left: {
+          kind: "scenarioRef",
+          id: 1,
+          span: hirSpan,
+          name: "production_rate",
+        },
+        right: hirNumber(2, FAKE_RATE_CAP),
+      },
+    },
+  },
+  {
+    space: "state",
+    id: "stock-cap",
+    name: "Finished goods under 500",
+    code: "return state.places.FinishedGoods.count <= 500;",
+    hir: {
+      hirVersion: 1,
+      surface: "metric",
+      params: [{ name: "state", span: hirSpan }],
+      span: hirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: hirSpan,
+        op: "<=",
+        left: hirField(
+          1,
+          hirField(
+            2,
+            hirField(
+              3,
+              { kind: "localRef", id: 4, span: hirSpan, name: "state" },
+              "places",
+            ),
+            "FinishedGoods",
+          ),
+          "count",
+        ),
+        right: hirNumber(5, 500),
+      },
+    },
+  },
+];
+
+/** The shared study with both constraints declared and sixty runs per step. */
+export const fakeConstrainedStudyInput: PetrinautOptimizationInput =
+  petrinautOptimizationInputSchema.parse({
+    ...fakeStudyInput,
+    constraints: fakeStudyConstraints,
+    execution: {
+      ...fakeStudyInput.execution,
+      seedsPerTrial: FAKE_CONSTRAINED_RUNS,
+    },
+  });
+
+/**
+ * The shared trials with constraint results: a draw over the rate cap is
+ * pruned as infeasible before it runs, every third simulated step holds the
+ * stock cap on 50 of its 60 runs (limited at the default threshold), the
+ * rest on 58 or more. The running best skips the infeasible draws.
+ */
+export function makeConstrainedTrials(
+  input: PetrinautOptimizationInput,
+  count: number,
+): {
+  trials: PetrinautOptimizationTrialEvent[];
+  best: OptimizationBest | null;
+} {
+  const trials: PetrinautOptimizationTrialEvent[] = [];
+  let best: OptimizationBest | null = null;
+  for (const trial of makeTrials(input, count).trials) {
+    const rate = trial.parameters.production_rate;
+    const margin =
+      typeof rate === "number" ? FAKE_RATE_CAP - rate : FAKE_RATE_CAP;
+    const parameters = [{ constraintId: "rate-cap", margin }];
+    if (margin < 0) {
+      trials.push({
+        ...trial,
+        objective: null,
+        state: "pruned",
+        best,
+        constraints: { parameters, state: [], infeasible: "rate-cap" },
+      });
+      continue;
+    }
+    if (
+      trial.objective !== null &&
+      (best === null || trial.objective > best.objective)
+    ) {
+      best = {
+        trial: trial.trial,
+        parameters: trial.parameters,
+        objective: trial.objective,
+      };
+    }
+    const runsPassed =
+      trial.trial % 3 === 2
+        ? 50
+        : FAKE_CONSTRAINED_RUNS - (trial.trial % 2 === 0 ? 0 : 2);
+    trials.push({
+      ...trial,
+      best,
+      constraints: {
+        parameters,
+        state:
+          trial.state === "complete"
+            ? [
+                {
+                  constraintId: "stock-cap",
+                  runsPassed,
+                  runsTotal: FAKE_CONSTRAINED_RUNS,
+                },
+              ]
+            : [],
+      },
+    });
+  }
+  return { trials, best };
+}
+
+export const fakeConstrainedStudyTrials = makeConstrainedTrials(
+  fakeConstrainedStudyInput,
+  30,
+);
+
 /** The refinement ladder a navigated point climbs in the stories, one rung per 900 ms. */
 const REFINEMENT_LADDER = [8, 25, 100];
 
@@ -552,16 +723,19 @@ const REFINEMENT_LADDER = [8, 25, 100];
  */
 export function useFakeConnectedStudy({
   running,
+  constrained = false,
   fallbackReason = null,
   refinementError = null,
 }: {
   running: boolean;
+  /** Use the study with two constraints and constraint results on its trials. */
+  constrained?: boolean;
   fallbackReason?: string | null;
   /** Set to have every navigated point fail with this reason instead of refining. */
   refinementError?: string | null;
 }): { optimization: OptimizationRecord; value: OptimizationsContextValue } {
-  const input = fakeStudyInput;
-  const allTrials = fakeStudyTrials;
+  const input = constrained ? fakeConstrainedStudyInput : fakeStudyInput;
+  const allTrials = constrained ? fakeConstrainedStudyTrials : fakeStudyTrials;
   const clock = useFakeStudyClock({
     steps: running ? allTrials.trials.length : 0,
     ticksPerStep: 8,
