@@ -123,7 +123,7 @@ const firstRunNote =
   "The first study in a browser downloads the Python runtime and the optimizer packages from jsDelivr and PyPI (about 10 MB, a few seconds); the headline reads Starting with no steps until then, and later studies reuse the browser's cache. The whole study runs in this tab: Optuna in a worker, each step as seeded runs of the sweep on the experiments backend.";
 
 const watchForNote =
-  "The sweep is created and its drawer opens; the study starts from the Parameters card as Optimize would, and Stop takes its place while it drives. Watch the sliders follow each step, the Objective by step strip under them gain a dot per step, the Surface fill in between the visited points, the headline count the steps with its convergence chip, the Steps column tick, and the steps table fill newest first with the best step starred. Once the study settles the sliders unlock parked on the best point, Optimize returns, and the Sensitivity card keeps its estimate.";
+  "The experiment is created with its study, as the Create Experiment drawer's Optimize does, and its drawer opens already optimizing with Stop on the Parameters card. Watch the sliders follow each step, the Objective by step strip under them gain a dot per step, the Surface fill in between the visited points, the headline count the steps with its convergence chip, the Steps column tick, and the steps table fill newest first with the best step starred. Once the study settles the sliders unlock parked on the best point, Stop leaves the card, and the Sensitivity card keeps its estimate.";
 
 const gpuNote =
   "With WebGPU on in settings, the create form's Backend switch appears, available when the metric translates to WGSL (counts, parameters, arithmetic, conditionals and one place's tokens) and greyed out with the reason on hover otherwise; a drafted state constraint greys it out too, since its indicator aggregates over time.";
@@ -207,7 +207,7 @@ export const Manual: Story = {
   parameters: {
     docs: {
       description: {
-        story: `The real optimizer with the In-browser optimization and Parameter sweeps settings on and the Experiments tab open, and no experiment: the entry point for hand-testing the Create Experiment drawer's Sweep toggles and Constraints section, then Optimize on the sweep's Parameters card. ${firstRunNote} ${watchForNote} ${gpuNote}`,
+        story: `The real optimizer with the In-browser optimization and Parameter sweeps settings on and the Experiments tab open, and no experiment: the entry point for hand-testing the Create Experiment drawer's Optimize toggles, Objective and Constraints sections, and the results drawer opening already optimizing. ${firstRunNote} ${watchForNote} ${gpuNote}`,
       },
     },
   },

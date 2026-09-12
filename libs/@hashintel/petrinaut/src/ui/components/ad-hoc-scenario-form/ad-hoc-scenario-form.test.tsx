@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -58,8 +59,8 @@ class ObserverStub {
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   ObserverStub as unknown as typeof IntersectionObserver;
-// jsdom implements no scrolling at all, and the Scale list scrolls itself to
-// the selected option when it opens.
+// jsdom implements no scrolling at all, and an open Select list (the type
+// column's) scrolls itself to the selected option when it opens.
 Element.prototype.scrollTo = () => {};
 
 afterEach(cleanup);
@@ -875,7 +876,7 @@ describe("AdHocScenarioForm", () => {
           name: "n",
           type: "integer",
           expression: "2",
-          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+          optimize: { min: "0", max: "10", scale: "linear" },
         },
       ],
       netParameters: [],
@@ -895,7 +896,7 @@ describe("AdHocScenarioForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "n" }));
     const minCell = await screen.findByRole("button", { name: "Min of n" });
     expect(document.activeElement).toBe(minCell);
-    expect(screen.getByText("Scale")).toBeTruthy();
+    expect(screen.getByText("Max")).toBeTruthy();
 
     // Arrows move between the bound cells; Enter opens the expression
     // editor in place (no per-cell path or Optimize chrome).
@@ -915,11 +916,11 @@ describe("AdHocScenarioForm", () => {
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Max of n" }),
     );
-    expect(screen.getByText("Scale")).toBeTruthy();
+    expect(screen.getByText("Max")).toBeTruthy();
 
     // ...then the whole slab.
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
-    expect(screen.queryByText("Scale")).toBe(null);
+    expect(screen.queryByText("Max")).toBe(null);
   });
 
   it("keeps the optimize bounds usable while the slab is open", async () => {
@@ -930,7 +931,7 @@ describe("AdHocScenarioForm", () => {
           name: "n",
           type: "integer",
           expression: "2",
-          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+          optimize: { min: "0", max: "10", scale: "linear" },
         },
       ],
       netParameters: [],
@@ -954,13 +955,6 @@ describe("AdHocScenarioForm", () => {
     // to the row beneath it — which the dismiss handler reads as a press
     // outside and closes the slab on.
     expect(slab?.className).toContain("pointer-events_auto");
-
-    // A layer opened from inside the slab lives inside it, so pressing its
-    // options is not an outside press.
-    fireEvent.click(screen.getByRole("combobox", { name: "Scale of n" }));
-    const scaleList = await screen.findByRole("listbox");
-    expect(slab?.contains(scaleList)).toBe(true);
-    fireEvent.keyDown(scaleList, { key: "Escape" });
 
     // Editing one bound keeps focus in its editor. Each keystroke dispatches
     // and re-renders the slab, and the one-shot Min selection must not
@@ -1419,8 +1413,15 @@ describe("AdHocScenarioForm", () => {
   });
 });
 
-describe("sweep selection", () => {
-  const SWEEP_STATE: AdHocScenarioState = {
+describe.each([
+  {
+    selection: "optimize" as const,
+    word: "Optimize",
+    gutter: "Optimized count",
+  },
+  { selection: "sweep" as const, word: "Sweep", gutter: "Swept count" },
+])("interval selection ($word)", ({ selection, word, gutter }) => {
+  const INTERVAL_STATE: AdHocScenarioState = {
     variables: [
       {
         name: "altitude",
@@ -1441,21 +1442,21 @@ describe("sweep selection", () => {
     places: {},
   };
 
-  it("run mode offers a Sweep toggle on numeric scenario parameters only", () => {
+  it("run mode offers the toggle on numeric scenario parameters only", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        selection="sweep"
+        selection={selection}
         mode="run"
-        initial={SWEEP_STATE}
+        initial={INTERVAL_STATE}
         onState={(state) => {
           latest = state;
         }}
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
-    fireEvent.click(screen.getByRole("button", { name: "Sweep altitude" }));
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: `${word} altitude` }));
     expect(latest?.variables[0]?.optimize).toEqual({
       min: "0",
       max: "1",
@@ -1463,21 +1464,23 @@ describe("sweep selection", () => {
     });
   });
 
-  it("authoring offers Sweep on numeric values and Parameters, never on booleans", () => {
-    render(<Harness selection="sweep" initial={SWEEP_STATE} />);
+  it("authoring offers the toggle on numeric values and Parameters, never on booleans", () => {
+    render(<Harness selection={selection} initial={INTERVAL_STATE} />);
 
-    expect(screen.getByRole("button", { name: "Sweep Rate" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Sweep altitude" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+    expect(screen.getByRole("button", { name: `${word} Rate` })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: `${word} altitude` }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
   });
 
-  it("run mode offers no Sweep on the computed net parameters", () => {
+  it("run mode offers no toggle on the computed net parameters", () => {
     render(
       <Harness
-        selection="sweep"
+        selection={selection}
         mode="run"
         initial={{
-          ...SWEEP_STATE,
+          ...INTERVAL_STATE,
           netParameters: [
             { parameterId: "param-rate", expression: "2", optimize: null },
           ],
@@ -1493,23 +1496,66 @@ describe("sweep selection", () => {
 
     // The computed parameters are a preview the host derives; a toggle on
     // them would revert on the next render.
-    expect(screen.getByRole("button", { name: "Sweep altitude" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Sweep Rate" })).toBe(null);
+    expect(
+      screen.getByRole("button", { name: `${word} altitude` }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: `${word} Rate` })).toBe(null);
   });
 
-  it("turns a Sweep off with a type change to boolean, as one undo step", async () => {
+  it.each(["integer", "real"] as const)(
+    "edits a toggled %s value as Min and Max cells only",
+    async (type) => {
+      render(
+        <Harness
+          selection={selection}
+          initial={{
+            ...INTERVAL_STATE,
+            variables: [
+              {
+                ...INTERVAL_STATE.variables[0]!,
+                type,
+                optimize: { min: "100", max: "800", scale: "linear" },
+              },
+            ],
+          }}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "altitude" }));
+      const minCell = await screen.findByRole("button", {
+        name: "Min of altitude",
+      });
+      expect(document.activeElement).toBe(minCell);
+      expect(
+        screen.getByRole("button", { name: "Max of altitude" }),
+      ).toBeTruthy();
+      // The interval is Min and Max under either word: no Step, no Scale.
+      const slab = document.querySelector<HTMLElement>("[data-adhoc-slab]")!;
+      expect(within(slab).queryByText("Step")).toBe(null);
+      expect(within(slab).queryByText("Scale")).toBe(null);
+      expect(within(slab).queryByRole("combobox")).toBe(null);
+      // The right arrow stops at Max.
+      fireEvent.keyDown(minCell, { key: "ArrowRight" });
+      const maxCell = screen.getByRole("button", { name: "Max of altitude" });
+      expect(document.activeElement).toBe(maxCell);
+      fireEvent.keyDown(maxCell, { key: "ArrowRight" });
+      expect(document.activeElement).toBe(maxCell);
+    },
+  );
+
+  it("turns the toggle off with a type change to boolean, as one undo step", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        selection="sweep"
+        selection={selection}
         initial={{
-          ...SWEEP_STATE,
+          ...INTERVAL_STATE,
           variables: [
             {
-              ...SWEEP_STATE.variables[0]!,
+              ...INTERVAL_STATE.variables[0]!,
               optimize: { min: "100", max: "800", scale: "linear" },
             },
-            SWEEP_STATE.variables[1]!,
+            INTERVAL_STATE.variables[1]!,
           ],
         }}
         onState={(state) => {
@@ -1519,7 +1565,7 @@ describe("sweep selection", () => {
     );
     expect(
       screen
-        .getByRole("button", { name: "Sweep altitude" })
+        .getByRole("button", { name: `${word} altitude` })
         .getAttribute("aria-pressed"),
     ).toBe("true");
 
@@ -1527,9 +1573,11 @@ describe("sweep selection", () => {
     fireEvent.click(await screen.findByRole("option", { name: "Boolean" }));
     await waitFor(() => expect(latest?.variables[0]?.type).toBe("boolean"));
     expect(latest?.variables[0]?.optimize).toBe(null);
-    expect(screen.queryByRole("button", { name: "Sweep altitude" })).toBe(null);
+    expect(screen.queryByRole("button", { name: `${word} altitude` })).toBe(
+      null,
+    );
 
-    // One step: undo restores the type and the Sweep together.
+    // One step: undo restores the type and the selection together.
     fireEvent.keyDown(
       screen.getByRole("button", {
         name: "Name of variable 1 (Top-level variables)",
@@ -1544,17 +1592,17 @@ describe("sweep selection", () => {
     });
   });
 
-  it("keeps a Sweep that arrived on a boolean clearable", () => {
+  it("keeps a toggle that arrived on a boolean clearable", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        selection="sweep"
+        selection={selection}
         initial={{
-          ...SWEEP_STATE,
+          ...INTERVAL_STATE,
           variables: [
-            SWEEP_STATE.variables[0]!,
+            INTERVAL_STATE.variables[0]!,
             {
-              ...SWEEP_STATE.variables[1]!,
+              ...INTERVAL_STATE.variables[1]!,
               optimize: { min: "0", max: "1", scale: "linear" },
             },
           ],
@@ -1565,12 +1613,29 @@ describe("sweep selection", () => {
       />,
     );
 
-    // Booleans offer no Sweep, but one already there shows its toggle so
+    // Booleans offer no toggle, but one already there shows its toggle so
     // the definition can be brought back to something that runs.
-    const toggle = screen.getByRole("button", { name: "Sweep armed" });
+    const toggle = screen.getByRole("button", { name: `${word} armed` });
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(toggle);
     expect(latest?.variables[1]?.optimize).toBe(null);
-    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
+  });
+
+  it("names the token gutter's interval kind after the word", async () => {
+    render(<Harness selection={selection} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    expect(
+      await screen.findByRole("menuitemradio", { name: gutter }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("menuitemradio", {
+        name: gutter === "Swept count" ? "Optimized count" : "Swept count",
+      }),
+    ).toBe(null);
   });
 });

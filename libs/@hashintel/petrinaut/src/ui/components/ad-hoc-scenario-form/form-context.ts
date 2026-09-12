@@ -4,7 +4,7 @@
  *
  * - the whole form state and the net context, for attribution labels and
  *   place totals;
- * - whether Optimize controls exist at all in this consumer;
+ * - what the selection toggle means in this consumer, if it exists at all;
  * - the LSP session the slots' Monaco documents belong to;
  * - per-slot error lookup, joining synthesis errors with LSP diagnostics
  *   through `adHocSlotKey`.
@@ -25,10 +25,11 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /**
- * What selecting a value means in this consumer: nothing, marking a value
- * for the optimizer (with bounds), sweeping a value over an interval in an
- * experiment (bounds only, no scale or step), or exposing a top-level
- * Variable as a scenario parameter the saved scenario's users can tune.
+ * What selecting a value means in this consumer: nothing; marking a numeric
+ * value's interval for an experiment — the toggle reads "Optimize" when the
+ * in-browser optimizer will search it, "Sweep" when the sweep waits for a
+ * selection (Min and Max, nothing else); or exposing a top-level Variable as
+ * a scenario parameter the saved scenario's users can tune.
  */
 export type AdHocFormSelection = "none" | "optimize" | "sweep" | "expose";
 
@@ -44,30 +45,27 @@ export const adHocSelectionText = (selection: AdHocFormSelection): string => {
   }
 };
 
+/** Whether the selection marks an interval on a value slot ("optimize" or "sweep"). */
+export const adHocIntervalSelection = (
+  selection: AdHocFormSelection,
+): selection is "optimize" | "sweep" =>
+  selection === "optimize" || selection === "sweep";
+
 /**
- * Whether a value of this domain can carry a selection in this consumer.
- * Optimization tries booleans as a two-way choice; a sweep is an interval,
- * so it needs a number. Text values never carry a selection: synthesis
- * reports them at the slot when a stale toggle is on.
+ * Whether a value of this domain can carry a selection in this consumer. An
+ * interval needs a number: real, integer, ratio or count. Text and boolean
+ * values never carry one: synthesis reports them at the slot when a stale
+ * toggle is on.
  */
 export const adHocSelectionApplies = (
   selection: AdHocFormSelection,
   kind: "real" | "integer" | "boolean" | "ratio" | "string" | "uuid" | "count",
-): boolean => {
-  switch (selection) {
-    case "optimize":
-      return true;
-    case "sweep":
-      return (
-        kind === "real" ||
-        kind === "integer" ||
-        kind === "ratio" ||
-        kind === "count"
-      );
-    default:
-      return false;
-  }
-};
+): boolean =>
+  adHocIntervalSelection(selection) &&
+  (kind === "real" ||
+    kind === "integer" ||
+    kind === "ratio" ||
+    kind === "count");
 
 /**
  * What the form lets the user change. "author" is the full editor. "run"

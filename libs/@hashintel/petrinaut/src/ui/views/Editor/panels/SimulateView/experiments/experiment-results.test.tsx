@@ -37,17 +37,14 @@ vi.mock("./experiment-metric-timeline", () => ({
   MetricViewMenu: () => null,
 }));
 
-// The strip draws through uPlot; the model hands it the studies and no more.
+// The strip draws through uPlot; the model hands it the study and no more.
 vi.mock("./sweep-objective-strip", () => ({
   SweepObjectiveStrip: () => null,
 }));
 
 const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
-  available: false,
-  studies: [],
   study: null,
   driving: null,
-  start: () => Promise.resolve(),
   stop: () => {},
   discard: () => {},
 };
@@ -100,6 +97,28 @@ const surfaceOf = (result: ReturnType<typeof model>) =>
 /** The footer's buttons: Cancel or null, then Close. */
 const footerButtonsOf = (result: ReturnType<typeof model>) =>
   propsOf<{ children: ReactNode[] }>(result.footer).children;
+
+/** The model with every element reduced to whether it is there: what must not change with a study's status. */
+const shapeOf = (result: ReturnType<typeof model>) => ({
+  title: result.header.title,
+  headline: isValidElement(result.header.headline),
+  stats: result.header.stats.map((stat) => stat.label),
+  bands: result.bands.map(
+    ({ more: _more, content, trailing, below, ...band }) => ({
+      ...band,
+      content: isValidElement(content),
+      trailing: isValidElement(trailing),
+      below: isValidElement(below),
+    }),
+  ),
+  surface: isValidElement(result.surface),
+  metrics: result.metrics && {
+    ...result.metrics,
+    tiles: result.metrics.tiles.length,
+    cards: isValidElement(result.metrics.cards),
+  },
+  after: isValidElement(result.after),
+});
 
 const sweep = makeParameterSweepExperiment();
 
@@ -267,18 +286,6 @@ describe("experimentResultsModel for an idle sweep", () => {
     expect(surfaceOf(result).disabled).toBe(false);
   });
 
-  it("offers no Optimize control once the sweep is cancelled, whose session is gone", () => {
-    const cancelled = model(
-      { ...idleSweep, status: "cancelled" },
-      { optimizer: { ...idleOptimizer, available: true } },
-    );
-    expect(cancelled.bands[0]!.trailing).toBeNull();
-    expect(
-      model(idleSweep, { optimizer: { ...idleOptimizer, available: true } })
-        .bands[0]!.trailing,
-    ).not.toBeNull();
-  });
-
   it("puts the error in the note row when the sweep failed", () => {
     const failed = {
       ...idleSweep,
@@ -373,15 +380,13 @@ const sweepStudy = (
   failedTrials: 0,
 });
 
-/** The optimizer with `study` as the sweep's latest study. */
+/** The optimizer with `study` as the sweep's study. */
 const withStudy = (
   study: OptimizationRecord,
   driving: ExperimentResultsDependencies["optimizer"]["driving"] = null,
 ): ExperimentResultsDependencies["optimizer"] => ({
   ...idleOptimizer,
-  available: true,
   study,
-  studies: [study],
   driving,
 });
 
@@ -390,35 +395,30 @@ describe("experimentResultsModel with the optimizer", () => {
   const driving = { step: 5, total: 30 };
   /** The record between two steps: the session idles until the next point. */
   const betweenSteps = model(idleSweep, {
-    optimizer: {
-      ...idleOptimizer,
-      available: true,
-      study,
-      studies: [study],
-      driving,
-    },
+    optimizer: withStudy(study, driving),
   });
 
-  it("offers the Optimize control on the Parameters card when the optimizer is available", () => {
-    const result = model(sweep, {
-      optimizer: { ...idleOptimizer, available: true },
-    });
-    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
-    expect(result.bands[0]!.tone).toBe("default");
+  it("puts Stop on the Parameters card only while the study drives the sweep", () => {
+    expect(model(sweep).bands[0]!.trailing).toBeNull();
+    const stop = vi.fn();
+    const drivingCard = model(sweep, {
+      optimizer: { ...withStudy(study, driving), stop },
+    }).bands[0]!;
+    expect(
+      propsOf<{ children: string; onClick: () => void }>(drivingCard.trailing),
+    ).toMatchObject({ children: "Stop", "data-sweep-optimizing": true });
+    propsOf<{ onClick: () => void }>(drivingCard.trailing).onClick();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(
+      model(idleSweep, {
+        optimizer: withStudy({ ...study, status: "complete" }),
+      }).bands[0]!.trailing,
+    ).toBeNull();
   });
 
   it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
-    const result = model(sweep, {
-      optimizer: {
-        ...idleOptimizer,
-        available: true,
-        study,
-        studies: [study],
-        driving,
-      },
-    });
+    const result = model(sweep, { optimizer: withStudy(study, driving) });
     expect(result.bands[0]!.tone).toBe("optimizing");
-    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
     expect(surfaceOf(result)).toMatchObject({
       following: true,
       disabled: true,
@@ -447,15 +447,7 @@ describe("experimentResultsModel with the optimizer", () => {
           { id: 7, kind: "selection", runCount: 8, completedRuns: 3 },
         ],
       },
-      {
-        optimizer: {
-          ...idleOptimizer,
-          available: true,
-          study,
-          studies: [study],
-          driving,
-        },
-      },
+      { optimizer: withStudy(study, driving) },
     );
     expect(result.header.activity?.map((batch) => batch.label)).toEqual([
       "Step 5",
@@ -466,28 +458,18 @@ describe("experimentResultsModel with the optimizer", () => {
     });
   });
 
-  it("puts the objective strip under the sliders from the first study on, driving or settled", () => {
-    expect(
-      model(sweep, { optimizer: { ...idleOptimizer, available: true } })
-        .bands[0]!.below,
-    ).toBeNull();
-    const strip = propsOf<{ studies: unknown[]; driving: boolean }>(
+  it("puts the objective strip under the sliders whenever the sweep has a study, driving or settled", () => {
+    expect(model(sweep).bands[0]!.below).toBeNull();
+    const strip = propsOf<{ study: unknown; driving: boolean }>(
       betweenSteps.bands[0]!.below,
     );
     expect(isValidElement(betweenSteps.bands[0]!.below)).toBe(true);
-    expect(strip.studies).toHaveLength(1);
+    expect(strip.study).toBe(study);
     expect(strip.driving).toBe(true);
     const settled = { ...study, status: "complete" as const };
     expect(
       propsOf<{ driving: boolean }>(
-        model(idleSweep, {
-          optimizer: {
-            ...idleOptimizer,
-            available: true,
-            study: settled,
-            studies: [settled],
-          },
-        }).bands[0]!.below,
+        model(idleSweep, { optimizer: withStudy(settled) }).bands[0]!.below,
       ).driving,
     ).toBe(false);
   });
@@ -497,14 +479,7 @@ describe("experimentResultsModel with the optimizer", () => {
     const cancelExperiment = vi.fn();
     const result = model(sweep, {
       actions: { ...dependencies.actions, cancelExperiment },
-      optimizer: {
-        ...idleOptimizer,
-        available: true,
-        study,
-        studies: [study],
-        driving,
-        stop,
-      },
+      optimizer: { ...withStudy(study, driving), stop },
     });
     propsOf<{ onClick: () => void }>(footerButtonsOf(result)[0]).onClick();
     expect(stop).toHaveBeenCalledOnce();
@@ -514,20 +489,28 @@ describe("experimentResultsModel with the optimizer", () => {
     );
   });
 
+  it("discards the study with the experiment from Remove", () => {
+    const discard = vi.fn();
+    const removeExperiment = vi.fn();
+    const onClose = vi.fn();
+    const result = model(idleSweep, {
+      actions: { ...dependencies.actions, removeExperiment },
+      optimizer: { ...withStudy({ ...study, status: "complete" }), discard },
+      onClose,
+    });
+    propsOf<{ onClick: () => void }>(result.footerSecondary).onClick();
+    expect(discard).toHaveBeenCalledOnce();
+    expect(removeExperiment).toHaveBeenCalledWith(sweep.id);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("keeps a settled study's outcome on the navigator's status line and frees the sliders", () => {
     const finished = {
       ...study,
       status: "complete" as const,
       completedTrials: 29,
     };
-    const result = model(idleSweep, {
-      optimizer: {
-        ...idleOptimizer,
-        available: true,
-        study: finished,
-        studies: [finished],
-      },
-    });
+    const result = model(idleSweep, { optimizer: withStudy(finished) });
     expect(result.header.status.label).toBe("Idle");
     expect(result.bands[0]!.tone).toBe("default");
     expect(navigatorOf(result)).toMatchObject({
@@ -547,14 +530,7 @@ describe("experimentResultsModel with the optimizer", () => {
       status: "error" as const,
       error: "The in-browser optimizer could not start",
     };
-    const result = model(idleSweep, {
-      optimizer: {
-        ...idleOptimizer,
-        available: true,
-        study: failed,
-        studies: [failed],
-      },
-    });
+    const result = model(idleSweep, { optimizer: withStudy(failed) });
     expect(result.header.note).toEqual({
       content: "The in-browser optimizer could not start",
       tone: "error",
@@ -562,14 +538,7 @@ describe("experimentResultsModel with the optimizer", () => {
     expect(
       model(
         { ...idleSweep, error: "worker crashed" },
-        {
-          optimizer: {
-            ...idleOptimizer,
-            available: true,
-            study: failed,
-            studies: [failed],
-          },
-        },
+        { optimizer: withStudy(failed) },
       ).header.note?.content,
     ).toBe("worker crashed");
   });
@@ -599,20 +568,8 @@ describe("experimentResultsModel with constraints", () => {
 
   it("changes nothing else about the model", () => {
     const shape = (result: ReturnType<typeof model>) => ({
-      title: result.header.title,
-      headline: result.header.headline,
-      stats: result.header.stats.map((stat) => stat.label),
+      ...shapeOf(result),
       status: result.header.status,
-      bands: result.bands.map(({ more: _more, content, ...band }) => ({
-        ...band,
-        content: isValidElement(content),
-      })),
-      surface: isValidElement(result.surface),
-      metrics: result.metrics && {
-        ...result.metrics,
-        tiles: result.metrics.tiles.length,
-      },
-      after: result.after,
     });
     expect(shape(model(constrained))).toEqual(shape(model(sweep)));
   });
@@ -620,14 +577,13 @@ describe("experimentResultsModel with constraints", () => {
 
 describe("experimentResultsModel with a study", () => {
   const driving = { step: 5, total: 30 };
+  const runningStudy = sweepStudy("running");
   const running = model(idleSweep, {
-    optimizer: withStudy(sweepStudy("running"), driving),
+    optimizer: withStudy(runningStudy, driving),
   });
 
-  it("shows nothing of a study before one exists", () => {
-    const result = model(sweep, {
-      optimizer: { ...idleOptimizer, available: true },
-    });
+  it("shows nothing of a study for a sweep created without one", () => {
+    const result = model(sweep);
     expect(result.header.headline).toBeNull();
     expect(Object.keys(statTexts(sweep))).toEqual([
       "Selection",
@@ -665,9 +621,9 @@ describe("experimentResultsModel with a study", () => {
 
   it("keeps the objective strip under the sliders beside the study's cards", () => {
     expect(isValidElement(running.bands[0]!.below)).toBe(true);
-    expect(
-      propsOf<{ studies: unknown[] }>(running.bands[0]!.below).studies,
-    ).toHaveLength(1);
+    expect(propsOf<{ study: unknown }>(running.bands[0]!.below).study).toBe(
+      runningStudy,
+    );
   });
 
   it("adds Steps clear and the Constraints card only for a constrained study, in the card's tone", () => {
@@ -710,7 +666,8 @@ describe("experimentResultsModel with a study", () => {
     ).toBe(false);
   });
 
-  it("keeps every slot filled once the study settles, stopped or failed", () => {
+  it("keeps every slot but Stop and the tone once the study settles, stopped or failed", () => {
+    const runningShape = shapeOf(running);
     for (const status of ["cancelled", "error"] as const) {
       const settled = model(idleSweep, {
         optimizer: withStudy({
@@ -718,13 +675,21 @@ describe("experimentResultsModel with a study", () => {
           error: status === "error" ? "worker crashed" : null,
         }),
       });
-      expect(isValidElement(settled.header.headline)).toBe(true);
-      expect(settled.header.stats.map((stat) => stat.label)).toEqual(
-        running.header.stats.map((stat) => stat.label),
-      );
-      expect(isValidElement(settled.metrics!.cards)).toBe(true);
-      expect(isValidElement(settled.after)).toBe(true);
       expect(settled.bands[0]!.tone).toBe("default");
+      expect(shapeOf(settled)).toEqual({
+        ...runningShape,
+        bands: runningShape.bands.map((band) => ({
+          ...band,
+          tone: "default",
+          trailing: false,
+        })),
+      });
     }
+  });
+
+  it("gives two renders of a sweep created without a study one shape", () => {
+    expect(shapeOf(model(idleSweep))).toEqual(
+      shapeOf(model({ ...idleSweep, status: "cancelled" })),
+    );
   });
 });

@@ -296,7 +296,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               </Chip>
             </>
           }
-          description="Add a Sweep toggle to numeric scenario parameters when creating an experiment, so it explores an interval of values instead of one"
+          description="Add an interval toggle to every numeric value of the experiment form — Sweep, or Optimize when In-browser optimization is on — so an experiment explores an interval instead of one value"
         >
           <Toggle
             value={enableParameterSweeps}
@@ -314,7 +314,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                 </Chip>
               </>
             }
-            description="Run optimization studies in this browser through the experiments backend, streaming each step's metrics as it is evaluated"
+            description="On, the experiment form's interval toggles read Optimize: creating the experiment starts a study over the selected intervals, with an Objective and Constraints chosen in the form. Off, the toggles read Sweep and the sweep waits for your selection; any running in-browser optimization is cancelled"
           >
             <Toggle
               value={enableInBrowserOptimization}

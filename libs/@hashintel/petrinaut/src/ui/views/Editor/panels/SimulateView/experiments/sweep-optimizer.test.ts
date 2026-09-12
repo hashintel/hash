@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import { synthesizeAdHocOptimization } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
+import { buildAdHocSweepAxes } from "../../../../../../react/experiments/parameter-grid";
 import {
   sirOptimizationConstraints,
   sirOptimizationMetric,
@@ -10,14 +12,22 @@ import {
 import { makeExperiment } from "./experiments-story-fixtures";
 import {
   buildSweepOptimizationInput,
+  startSweepStudy,
   sweepOptimizationMetric,
+  type SweepOptimizationExperiment,
+  type SweepStudyStarter,
 } from "./sweep-optimizer";
 
 import type {
   ExperimentMetricSpecInput,
   ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import type { Metric, Scenario } from "@hashintel/petrinaut-core";
+import type {
+  AdHocScenarioState,
+  Metric,
+  Scenario,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const definition = sirModel.petriNetDefinition;
 
@@ -35,10 +45,11 @@ const scenario: Scenario = {
   initialState: { type: "per_place", content: {} },
 };
 
-/** A sweep over `count` (integer) and `share` (continuous). */
+/** A sweep over `count` (integer) and `share` (continuous), keeping its scenario. */
 const experiment = makeExperiment(1, {
   name: "Mixed sweep",
   scenarioId: scenario.id,
+  scenario,
   seed: 42,
   dt: 0.5,
   maxTime: 20,
@@ -58,11 +69,9 @@ const build = (overrides: { steps?: number; runsPerStep?: number } = {}) =>
   buildSweepOptimizationInput({
     title: "SIR",
     definition,
-    scenario,
-    experiment,
+    experiment: { ...experiment, scenario },
     metric,
-    direction: "maximize",
-    steps: overrides.steps ?? 30,
+    objective: { direction: "maximize", steps: overrides.steps ?? 30 },
     runsPerStep: overrides.runsPerStep ?? 8,
   });
 
@@ -76,9 +85,7 @@ const sirScenario: Scenario = {
 };
 
 /** A sweep over the infected ratio, created with the population raised and vaccination off. */
-const sirExperiment: Parameters<
-  typeof buildSweepOptimizationInput
->[0]["experiment"] = {
+const sirExperiment: SweepOptimizationExperiment = {
   name: "Ratio sweep",
   seed: 7,
   dt: 0.5,
@@ -99,6 +106,7 @@ const sirExperiment: Parameters<
   },
   constraints: [],
   constraintPolicy: null,
+  scenario: sirScenario,
 };
 
 const buildSir = (
@@ -109,17 +117,71 @@ const buildSir = (
   buildSweepOptimizationInput({
     title: sirModel.title,
     definition,
-    scenario: sirScenario,
     experiment: { ...sirExperiment, ...overrides },
     metric: {
       id: sirOptimizationMetric.id,
       name: sirOptimizationMetric.name,
       code: sirOptimizationMetric.code,
     },
-    direction: "minimize",
-    steps: 12,
+    objective: { direction: "minimize", steps: 12 },
     runsPerStep: 8,
   });
+
+/** A one-place net for the ad-hoc definition below. */
+const queueSdcpn: SDCPN = {
+  places: [
+    {
+      id: "place-queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+/** The queue's count with an interval toggle on it. */
+const toggledAdHocScenario: AdHocScenarioState = {
+  variables: [],
+  netParameters: [],
+  places: {
+    "place-queue": {
+      kind: "uncoloured",
+      count: {
+        expression: "4",
+        optimize: { min: "2", max: "8", scale: "linear" },
+      },
+    },
+  },
+};
+
+/** The record `createExperiment` keeps for the toggled definition: the generated scenario and one axis per toggle. */
+const adHocExperiment = (): SweepOptimizationExperiment => {
+  const synthesized = synthesizeAdHocOptimization(toggledAdHocScenario, {
+    netParameters: [],
+    places: queueSdcpn.places,
+    types: [],
+  });
+  if (!synthesized.ok) {
+    throw new Error("The ad-hoc fixture does not synthesize");
+  }
+  const axes = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+  if (!axes.ok) {
+    throw new Error(axes.error);
+  }
+  return {
+    ...makeExperiment(2, { name: "Queue sweep", scenarioId: null }),
+    scenario: synthesized.output.scenario,
+    parameterAxes: axes.axes,
+    scenarioParameterValues: {},
+  };
+};
 
 describe("buildSweepOptimizationInput", () => {
   it("fixes the parameters the sweep leaves alone at their defaults, booleans as booleans", () => {
@@ -221,6 +283,110 @@ describe("buildSweepOptimizationInput", () => {
 
     expect(manifest).not.toHaveProperty("constraints");
     expect(manifest).not.toHaveProperty("constraintPolicy");
+  });
+
+  it("embeds an ad-hoc record's generated scenario and optimizes every generated parameter, fixing nothing", () => {
+    const record = adHocExperiment();
+    const manifest = buildSweepOptimizationInput({
+      title: "Queue",
+      definition: queueSdcpn,
+      experiment: record,
+      metric: {
+        id: "queued",
+        name: "Queued",
+        code: "return state.places.Queue.count;",
+      },
+      objective: { direction: "minimize", steps: 6 },
+      runsPerStep: 8,
+    });
+
+    expect(record.scenario.id).toBe("adhoc-scenario");
+    expect(manifest.model.definition.scenarios).toEqual([record.scenario]);
+    expect(manifest.scenario.id).toBe("adhoc-scenario");
+    expect(Object.keys(manifest.scenario.parameterBindings)).toEqual([
+      "adhoc_count_Queue",
+    ]);
+    expect(manifest.scenario.parameterBindings.adhoc_count_Queue).toEqual({
+      kind: "optimize",
+      domain: {
+        kind: "integer",
+        minimum: 2,
+        maximum: 8,
+        step: 1,
+        scale: "linear",
+      },
+    });
+  });
+});
+
+describe("startSweepStudy", () => {
+  const spec: ExperimentMetricSpecInput = {
+    kind: "expression",
+    id: "infected",
+    label: "Infected",
+    code: metric.code,
+    sampleRuns: "all",
+    runOutput: { type: "distribution" },
+  };
+  const record: ExperimentRecord = { ...experiment, metricSpecs: [spec] };
+  const fakeCreateOptimization = () =>
+    vi.fn<SweepStudyStarter["createOptimization"]>(() =>
+      Promise.resolve("study"),
+    );
+  const starter = (
+    createOptimization: SweepStudyStarter["createOptimization"] = fakeCreateOptimization(),
+  ): SweepStudyStarter => ({
+    title: "SIR",
+    definition,
+    createOptimization,
+  });
+
+  it("hands the manifest and the sweep's evaluator options to the optimizations context", async () => {
+    const createOptimization = fakeCreateOptimization();
+
+    await startSweepStudy(starter(createOptimization), record, {
+      metricId: "infected",
+      direction: "maximize",
+      steps: 30,
+    });
+
+    expect(createOptimization).toHaveBeenCalledOnce();
+    const [manifest, options] = createOptimization.mock.calls[0]!;
+    expect(manifest).toMatchObject({
+      name: "Mixed sweep · Maximize Infected",
+      execution: { seedsPerTrial: 8 },
+      study: { trials: 30 },
+    });
+    expect(options).toEqual({
+      sweep: {
+        experimentId: record.id,
+        axes: record.parameterAxes,
+        metricId: "infected",
+      },
+    });
+  });
+
+  it("rejects a record without a scenario before any study exists", async () => {
+    const createOptimization = fakeCreateOptimization();
+
+    await expect(
+      startSweepStudy(
+        starter(createOptimization),
+        { ...record, scenario: null },
+        { metricId: "infected", direction: "maximize", steps: 30 },
+      ),
+    ).rejects.toThrow("The experiment sweeps nothing");
+    expect(createOptimization).not.toHaveBeenCalled();
+  });
+
+  it("rejects a metric the experiment does not measure", async () => {
+    await expect(
+      startSweepStudy(starter(), record, {
+        metricId: "missing",
+        direction: "maximize",
+        steps: 30,
+      }),
+    ).rejects.toThrow("Pick a metric to optimize");
   });
 });
 

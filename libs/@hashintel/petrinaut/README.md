@@ -84,8 +84,9 @@ yarn workspace @hashintel/petrinaut dev
 ```
 
 The **Simulate / SimulateView / Run Supply Chain optimization (synthetic
-optimizer)** story creates a parameter sweep and drives it with an internal
-fake optimizer, so it does not require the Python service or Docker.
+optimizer)** story creates a parameter sweep with its study, as the Create
+Experiment drawer's Optimize does, and drives it with an internal fake
+optimizer, so it does not require the Python service or Docker.
 
 ## Host-owned interactive AI tools
 

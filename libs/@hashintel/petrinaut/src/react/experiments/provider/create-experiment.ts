@@ -205,6 +205,11 @@ export type CompiledExperimentScenario = {
   axes: ExperimentParameterAxis[];
   /** `parseFixedScenarioValues`' result; `{}` for an ad-hoc definition. */
   fixedScenarioValues: Readonly<Record<string, number>>;
+  /**
+   * The scenario compiled: the saved one, the generated ad-hoc scenario (with
+   * the interval toggles as its parameters, or plain), or null for none.
+   */
+  scenario: Scenario | null;
 };
 
 /**
@@ -282,6 +287,7 @@ export const compileExperimentScenario = async ({
       sweptCompiler,
       axes,
       fixedScenarioValues: fixed,
+      scenario,
     };
   }
 
@@ -318,6 +324,7 @@ export const compileExperimentScenario = async ({
           sweptCompiler,
           axes: adHocAxes.axes,
           fixedScenarioValues: {},
+          scenario: generated,
         };
       }
     }
@@ -342,6 +349,7 @@ export const compileExperimentScenario = async ({
       sweptCompiler: null,
       axes: [],
       fixedScenarioValues: {},
+      scenario: synthesized.scenario,
     };
   }
 
@@ -351,6 +359,7 @@ export const compileExperimentScenario = async ({
     sweptCompiler: null,
     axes: [],
     fixedScenarioValues: {},
+    scenario: null,
   };
 };
 
@@ -376,12 +385,14 @@ export const newExperimentRecord = ({
   scenarioName,
   axes,
   fixedScenarioValues,
+  scenario,
 }: {
   id: string;
   input: CreateExperimentInput;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
   fixedScenarioValues: Readonly<Record<string, number>>;
+  scenario: Scenario | null;
 }): ExperimentRecord => ({
   id,
   name: input.name.trim(),
@@ -408,6 +419,7 @@ export const newExperimentRecord = ({
   scenarioParameterValues: fixedScenarioValues,
   constraints: input.constraints ?? [],
   constraintPolicy: input.constraintPolicy ?? null,
+  scenario,
 });
 
 /**

@@ -100,7 +100,7 @@ describe("ExperimentScenarioRun", () => {
           scenario={scenario}
           context={context}
           inputs={{}}
-          sweepable={false}
+          selection="none"
           onInputsChange={() => {}}
         />
       </LanguageClientContext>,
@@ -136,7 +136,7 @@ describe("ExperimentScenarioRun", () => {
           scenario={current}
           context={context}
           inputs={{}}
-          sweepable={false}
+          selection="none"
           onInputsChange={() => {}}
         />
       </LanguageClientContext>
@@ -163,42 +163,49 @@ describe("ExperimentScenarioRun", () => {
     expect(toggle()).not.toBe(mounted);
   });
 
-  it("seeds a swept parameter's Sweep from its range and previews the range start", async () => {
-    render(
-      <LanguageClientContext value={languageClient}>
-        <ExperimentScenarioRun
-          scenario={parameterizedScenario}
-          context={context}
-          inputs={{ rate: { mode: "range", min: 20, max: 30 } }}
-          sweepable
-          onInputsChange={() => {}}
-        />
-      </LanguageClientContext>,
-    );
+  it.each([
+    { selection: "sweep" as const, word: "Sweep" },
+    { selection: "optimize" as const, word: "Optimize" },
+  ])(
+    "seeds a ranged parameter's $word toggle from its range and previews the range start",
+    async ({ selection, word }) => {
+      render(
+        <LanguageClientContext value={languageClient}>
+          <ExperimentScenarioRun
+            scenario={parameterizedScenario}
+            context={context}
+            inputs={{ rate: { mode: "range", min: 20, max: 30 } }}
+            selection={selection}
+            onInputsChange={() => {}}
+          />
+        </LanguageClientContext>,
+      );
 
-    // The range seeds the Variable's Sweep, so a reseed keeps every sweep
-    // instead of rebuilding the Variables from fixed values alone.
-    expect(
-      screen
-        .getByRole("button", { name: "Sweep rate" })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
+      // The range seeds the Variable's interval selection under either word,
+      // so a reseed keeps every sweep instead of rebuilding the Variables
+      // from fixed values alone.
+      expect(
+        screen
+          .getByRole("button", { name: `${word} rate` })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle Computed state section" }),
-    );
-    await waitFor(() => screen.getByText("Initial state"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Toggle Computed state section" }),
+      );
+      await waitFor(() => screen.getByText("Initial state"));
 
-    // A swept parameter previews at the start of its range — the first
-    // combination the sweep runs — not at the scenario's default, and the
-    // notice says which value stood in.
-    expect(
-      screen.getByText(
-        /Swept parameters shown at the start of their ranges: rate = 20/,
-      ),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Place 1 › count").textContent).toContain(
-      "20",
-    );
-  });
+      // A swept parameter previews at the start of its range — the first
+      // combination the sweep runs — not at the scenario's default, and the
+      // notice says which value stood in.
+      expect(
+        screen.getByText(
+          /Swept parameters shown at the start of their ranges: rate = 20/,
+        ),
+      ).toBeTruthy();
+      expect(screen.getByLabelText("Place 1 › count").textContent).toContain(
+        "20",
+      );
+    },
+  );
 });

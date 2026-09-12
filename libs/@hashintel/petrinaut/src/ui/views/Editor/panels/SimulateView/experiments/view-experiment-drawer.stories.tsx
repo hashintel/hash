@@ -1,10 +1,10 @@
 /**
  * The sweep-experiment drawer against fake compute: drag a parameter slider
  * and the charts bridge the compute gap with the previous picture, dimmed,
- * until the new selection's first frames arrive. With the in-browser
- * optimizer available the drawer also shows the study started from the
- * sweep: its headline, its Steps columns, its Constraints and Sensitivity
- * cards and its steps table, in one shape from the first Optimize on.
+ * until the new selection's first frames arrive. For a sweep created with
+ * Optimize the drawer also shows the study it was created with: its
+ * headline, its Steps columns, its Constraints and Sensitivity cards and its
+ * steps table, in one shape from its first frame.
  */
 import { use } from "react";
 
@@ -174,26 +174,18 @@ const sweepStudy = (
   };
 };
 
-/**
- * The sweep drawer with the in-browser optimizer available and `studies`
- * started from the sweep, newest first as the provider keeps them; the
- * first is the one the drawer shows.
- */
-const SweepWithStudies = ({
+/** The sweep drawer with the in-browser optimizer on and `study` the study the sweep was created with. */
+const SweepWithStudy = ({
   sweep,
-  studies,
+  study,
 }: {
   sweep: ExperimentRecord;
-  studies: readonly OptimizationRecord[];
+  study: OptimizationRecord;
 }) => (
   <WithUserSettings overrides={{ enableInBrowserOptimization: true }}>
     <PetrinautOptimizationContext value={storyOptimizer}>
       <SDCPNContext value={sirSdcpnContextValue}>
-        <OptimizationsContext
-          value={makeOptimizationsContextValue(studies[0]!, {
-            optimizations: [...studies],
-          })}
-        >
+        <OptimizationsContext value={makeOptimizationsContextValue(study)}>
           <FakeExperimentsProvider
             initialExperiments={[sweep]}
             restreamOnSelectionChange
@@ -206,65 +198,45 @@ const SweepWithStudies = ({
   </WithUserSettings>
 );
 
-/** The steps the latest study has landed in each state: 4 of 30 while it runs, 17 when Stop ended it. */
-const latestStudySteps = { running: 4, complete: 30, cancelled: 17 } as const;
+/** The steps the study has landed in each state: 4 of 30 while it runs, 17 when Stop ended it. */
+const studySteps = { running: 4, complete: 30, cancelled: 17 } as const;
 
 /**
- * The Parameters card offers Optimize, and with a study driving the sweep
- * it turns purple, the header reads Optimizing, its sliders follow the
- * steps, the button reads Stop and the objective strip under the sliders
+ * A sweep created with Optimize: while its study drives it the Parameters
+ * card turns purple, the header reads Optimizing, the sliders follow the
+ * steps, Stop sits on the card and the objective strip under the sliders
  * fills in step by step, its axis reaching to the steps asked for. Settled,
- * the strip keeps the whole history and its axis ends at the last step run,
- * complete or stopped; `previous` adds an earlier, stopped study before it,
- * so the strip shows the two end to end with a divider where the second
- * began.
+ * complete or stopped, the card offers no control, the sliders unlock and
+ * the strip keeps the history with its axis ending at the last step run.
  */
-const OptimizableSweep = ({
-  latest,
-  previous = false,
-}: {
-  latest: keyof typeof latestStudySteps;
-  previous?: boolean;
-}) => {
+const OptimizedSweep = ({ status }: { status: keyof typeof studySteps }) => {
   const sweep = makeParameterSweepExperiment();
-  const study = sweepStudy(sweep, {
-    id: "sweep-study-2",
-    status: latest,
-    steps: latestStudySteps[latest],
-    startedAgoMs: 90_000,
-  });
-  const studies = previous
-    ? [
-        study,
-        sweepStudy(sweep, {
-          id: "sweep-study-1",
-          status: "cancelled",
-          steps: 17,
-          startedAgoMs: 600_000,
-        }),
-      ]
-    : [study];
-  return <SweepWithStudies sweep={sweep} studies={studies} />;
+  return (
+    <SweepWithStudy
+      sweep={sweep}
+      study={sweepStudy(sweep, {
+        id: "sweep-study",
+        status,
+        steps: studySteps[status],
+        startedAgoMs: 90_000,
+      })}
+    />
+  );
 };
 
-export const Optimizable: Story = {
-  name: "Sweep, optimizer available",
-  render: () => <OptimizableSweep latest="complete" />,
+export const Optimized: Story = {
+  name: "Sweep, optimized",
+  render: () => <OptimizedSweep status="complete" />,
 };
 
 export const Optimizing: Story = {
   name: "Sweep, optimizer driving",
-  render: () => <OptimizableSweep latest="running" />,
+  render: () => <OptimizedSweep status="running" />,
 };
 
-export const StoppedOnce: Story = {
+export const Stopped: Story = {
   name: "Sweep, optimization stopped",
-  render: () => <OptimizableSweep latest="cancelled" />,
-};
-
-export const OptimizedTwice: Story = {
-  name: "Sweep, optimized twice",
-  render: () => <OptimizableSweep latest="running" previous />,
+  render: () => <OptimizedSweep status="cancelled" />,
 };
 
 /**
@@ -282,19 +254,16 @@ const ConstrainedSweep = ({
 }) => {
   const sweep = makeConstrainedSweepExperiment();
   return (
-    <SweepWithStudies
+    <SweepWithStudy
       sweep={sweep}
-      studies={[
-        sweepStudy(sweep, {
-          id: "sweep-study-constrained",
-          status,
-          steps,
-          startedAgoMs: 90_000,
-          input: fakeConstrainedStudyInput,
-          trials: makeConstrainedTrials(fakeConstrainedStudyInput, steps)
-            .trials,
-        }),
-      ]}
+      study={sweepStudy(sweep, {
+        id: "sweep-study-constrained",
+        status,
+        steps,
+        startedAgoMs: 90_000,
+        input: fakeConstrainedStudyInput,
+        trials: makeConstrainedTrials(fakeConstrainedStudyInput, steps).trials,
+      })}
     />
   );
 };
@@ -321,19 +290,17 @@ const ImportanceSweep = ({ steps }: { steps: 30 | 60 }) => {
   const trials =
     steps === 60 ? fakeLongStudyTrials.trials : fakeStudyTrials.trials;
   return (
-    <SweepWithStudies
+    <SweepWithStudy
       sweep={sweep}
-      studies={[
-        sweepStudy(sweep, {
-          id: "sweep-study-importance",
-          status: "complete",
-          steps,
-          startedAgoMs: 600_000,
-          input,
-          trials,
-          importance: makeImportance(input, trials),
-        }),
-      ]}
+      study={sweepStudy(sweep, {
+        id: "sweep-study-importance",
+        status: "complete",
+        steps,
+        startedAgoMs: 600_000,
+        input,
+        trials,
+        importance: makeImportance(input, trials),
+      })}
     />
   );
 };

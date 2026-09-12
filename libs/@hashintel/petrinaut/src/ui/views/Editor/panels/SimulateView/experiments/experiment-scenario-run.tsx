@@ -91,7 +91,7 @@ const noticeStyle = css({
 /**
  * The Variables a run form starts from: one per scenario parameter, seeded
  * from the experiment's input for it — a fixed value as the expression, a
- * range as a Sweep selection — so a reseed keeps every sweep.
+ * range as an interval selection — so a reseed keeps every sweep.
  */
 const seedRunVariables = (
   scenario: Scenario,
@@ -128,10 +128,10 @@ export interface ExperimentScenarioRunProps {
    */
   inputs: Readonly<Record<string, ExperimentParameterInput>>;
   /**
-   * Whether numeric scenario parameters carry a Sweep toggle: a swept one
-   * reports a range instead of a fixed value.
+   * What the toggle on each numeric scenario parameter means here — a
+   * toggled one reports a range instead of a fixed value; "none" hides it.
    */
-  sweepable: boolean;
+  selection: "none" | "optimize" | "sweep";
   onInputsChange: (updates: ScenarioRunInput[]) => void;
 }
 
@@ -139,7 +139,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
   scenario,
   context,
   inputs,
-  sweepable,
+  selection,
   onInputsChange,
 }) => {
   const hirState = useScenarioHir(scenario, { adHocContext: context });
@@ -284,7 +284,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       state={renderState}
       onChange={onFormChange}
       context={context}
-      selection={sweepable ? "sweep" : "none"}
+      selection={selection}
       mode="run"
       renderLayout={({ variables, parameters, places }) => (
         <FormLayoutColumn>

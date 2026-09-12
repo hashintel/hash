@@ -11,9 +11,9 @@ import { UserSettingsContext } from "../state/user-settings-context";
 /**
  * The host's optimization source as the UI may use it. A remote capability
  * passes through unchanged; a connected one counts only while the experimental
- * In-browser optimization setting is on. `null` hides the sweep's Optimize
- * control and the Create Experiment drawer's Constraints section, and
- * nothing connects.
+ * In-browser optimization setting is on. `null` turns the experiment form's
+ * interval toggles back to Sweep, hides the Create Experiment drawer's
+ * Objective and Constraints sections, and nothing connects.
  */
 export const useOptimizationSource = (): PetrinautOptimizationSource | null => {
   const source = use(PetrinautOptimizationContext);

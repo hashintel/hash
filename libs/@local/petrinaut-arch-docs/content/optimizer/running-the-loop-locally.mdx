@@ -47,7 +47,8 @@ pins the port for tooling that needs to know it.
 ## What reaches the service
 
 Since optimization folded into the Experiments tab, the editor starts a study
-only from a sweep's Parameters card, and only on a connected source: the
+only with a sweep, from the Create Experiment drawer's Optimize, and only on a
+connected source: the
 [browser runtime](layer:core.optimization.browser), which the demo website
 (`apps/petrinaut-website`) mounts and `useOptimizationSource()` returns while
 the experimental **In-browser optimization** setting is on. A plain
@@ -56,7 +57,7 @@ tab with no service involved ([the browser runtime](doc:optimizer/browser-runtim
 covers that path), and the website has no service-backed route.
 
 A remote capability such as the service passes through the hook, but the
-editor offers no Optimize control on it: the **With real optimizer** story and
+editor's interval toggles keep reading Sweep on it and offer no Objective: the **With real optimizer** story and
 the HASH embed's bridge mount the capability without a surface that starts a
 study. Driving a sweep study through a remote evaluator is a follow-up; until
 then the service is exercised by `@local/petrinaut-optimizer-client`'s tests
