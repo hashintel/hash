@@ -527,7 +527,8 @@ describe("ViewExperimentDrawer in the frame", () => {
 
   it("waits for the first step in the strip's fold while the driving study has drawn none yet", () => {
     renderDrawerWithStudies({ ...sweep, status: "idle" }, [
-      sweepStudy(sweep, "running", {
+      sweepStudy(sweep, {
+        status: "running",
         trials: [],
         best: null,
         completedTrials: 0,
