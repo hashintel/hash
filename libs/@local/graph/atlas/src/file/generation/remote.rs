@@ -16,7 +16,8 @@ pub(crate) struct RemoteGeneration {
 }
 
 impl RemoteGeneration {
-    pub(crate) fn directory(&self) -> &FilePath {
+    /// Returns the prefix containing this generation's metadata and artifacts.
+    pub(crate) const fn directory(&self) -> &FilePath {
         &self.path
     }
 
@@ -91,9 +92,5 @@ impl RemoteRoot {
         Ok(RemoteGeneration {
             path: self.0.join(&format!("generations/active/{id}"))?,
         })
-    }
-
-    pub(crate) fn active_root(&self) -> Result<FilePath, FilePathError> {
-        self.0.join("generations/active")
     }
 }

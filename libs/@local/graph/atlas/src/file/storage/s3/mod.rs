@@ -3,7 +3,7 @@
 //! Typed paths preserve literal object keys through request construction. Request failures retain
 //! their SDK variants and service responses for conditional-publication decisions.
 
-use core::pin::pin;
+use core::{mem, pin::pin};
 
 use aws_sdk_s3::{
     Client,
@@ -79,13 +79,9 @@ pub(crate) struct S3 {
     client: Client,
 }
 
-#[derive(PartialEq, Eq)]
-enum ListStrategy {
-    Recursive,
-    Simple,
-}
-
 impl S3 {
+    /// The maximum object count accepted by one S3 deletion request.
+    const DELETE_BATCH_SIZE: usize = 1000;
     /// The largest object sent by one upload or copy request.
     const SINGLE_REQUEST_BYTES: u64 = 5 * 1024 * 1024 * 1024;
 
@@ -147,27 +143,30 @@ impl S3 {
         Ok((output.e_tag.map(ETag::new), output.body.into_async_read()))
     }
 
+    /// Lists every object under the path's key, treated as a directory prefix.
+    ///
+    /// A slash delimits the prefix: `a/b` includes `a/b/c` and never the sibling key `a/bc`. Pages
+    /// include nested objects.
+    ///
+    /// # Errors
+    ///
+    /// The stream yields [`StorageError`] if a listing request fails.
     fn list(
         &self,
         path: &BucketPath,
-        recursive: ListStrategy,
     ) -> impl Stream<Item = Result<ListObjectsV2Output, StorageError>> {
         let mut prefix = path.key().to_owned();
         if !prefix.ends_with('/') {
             prefix.push('/');
         }
 
-        let mut paginator = self
+        let paginator = self
             .client
             .list_objects_v2()
             .bucket(path.bucket())
-            .prefix(prefix);
-
-        if recursive == ListStrategy::Simple {
-            paginator = paginator.delimiter("/");
-        }
-
-        let paginator = paginator.into_paginator().send();
+            .prefix(prefix)
+            .into_paginator()
+            .send();
 
         stream::unfold(paginator, async move |mut paginator| {
             let next = paginator.next().await;
@@ -175,94 +174,95 @@ impl S3 {
         })
     }
 
-    pub(crate) fn read_dir(
-        &self,
-        path: &BucketPath,
-    ) -> impl Stream<Item = Result<Box<BucketPath>, StorageError>> {
-        self.list(path, ListStrategy::Recursive)
-            .map_ok(|output| {
-                let files = output
-                    .contents
-                    .into_flat_iter()
-                    .filter_map(|object| object.key)
-                    .filter(|key| !key.ends_with('/'))
-                    .map(|key| BucketPath::from_parts(path.bucket(), &key));
+    /// Checks the per-object outcomes of a completed deletion request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::DeleteRefused`] with every reported refusal, including failures in
+    /// an otherwise successful response.
+    fn reject_refusals(output: DeleteObjectsOutput) -> Result<(), StorageError> {
+        let failures = output.errors.unwrap_or_default();
 
-                let directories = output
-                    .common_prefixes
-                    .into_flat_iter()
-                    .filter_map(|common_prefix| common_prefix.prefix)
-                    .map(|rollup| {
-                        BucketPath::from_parts(
-                            path.bucket(),
-                            rollup.strip_suffix('/').unwrap_or(&rollup),
-                        )
-                    });
-
-                stream::iter(files.chain(directories)).err_into::<StorageError>()
-            })
-            .try_flatten()
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(StorageError::DeleteRefused { failures })
+        }
     }
 
-    pub(crate) async fn delete(
+    /// Deletes the named objects from one bucket in a single request.
+    ///
+    /// `objects` must hold at least one and at most [`Self::DELETE_BATCH_SIZE`] identifiers.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if request construction fails or S3 refuses the request or any
+    /// individual object.
+    async fn delete(
         &self,
         bucket: &str,
-        objects: impl IntoIterator<Item = ObjectIdentifier>,
-    ) -> Result<DeleteObjectsOutput, StorageError> {
-        const DELETE_CHUNK_SIZE: usize = 1000;
+        objects: Vec<ObjectIdentifier>,
+    ) -> Result<(), StorageError> {
+        let delete = Delete::builder().set_objects(Some(objects)).build()?;
 
-        let mut delete = Delete::builder();
-        for object in objects.into_iter() {
-            delete = delete.objects(object);
-        }
-        let delete = delete.build()?;
-
-        self.client
+        let output = self
+            .client
             .delete_objects()
             .bucket(bucket)
             .delete(delete)
             .send()
-            .await
-            .map_err(From::from)
+            .await?;
+
+        Self::reject_refusals(output)
     }
 
+    /// Deletes the single object the path names.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if building the identifier fails, the request fails or the
+    /// response refuses the object.
     pub(crate) async fn remove(&self, path: &BucketPath) -> Result<(), StorageError> {
         self.delete(
             path.bucket(),
-            [ObjectIdentifier::builder().key(path.key()).build()?],
+            vec![ObjectIdentifier::builder().key(path.key()).build()?],
         )
         .await
-        .map(|_| ())
     }
 
+    /// Deletes every object under the path's key, treated as a directory prefix.
+    ///
+    /// Holds one listing page and one deletion batch at a time. A prefix with no objects succeeds
+    /// without a delete request. The first failing batch stops removal, preserving earlier
+    /// deletions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if listing fails, building an identifier fails, a delete request
+    /// fails or a response refuses any object.
     pub(crate) async fn remove_dir_all(&self, path: &BucketPath) -> Result<(), StorageError> {
-        const DELETE_CHUNK_SIZE: usize = 1000;
-
         let remaining = self
-            .list(path, ListStrategy::Recursive)
+            .list(path)
             .map_ok(|output| {
                 stream::iter(
                     output
                         .contents
                         .into_flat_iter()
                         .filter_map(|object| object.key)
-                        .map(|object| {
+                        .map(|key| {
                             ObjectIdentifier::builder()
-                                .key(object)
+                                .key(key)
                                 .build()
-                                .unwrap_or_else(|_error| {
-                                    unreachable!("the only required field - the key is supplied")
-                                })
-                        })
-                        .map(Ok::<_, StorageError>),
+                                .map_err(StorageError::from)
+                        }),
                 )
             })
             .try_flatten()
             .try_fold(Vec::new(), async |mut acc, object| {
                 acc.push(object);
 
-                if acc.len() == DELETE_CHUNK_SIZE {
-                    self.delete(path.bucket(), acc.drain(..)).await?;
+                if acc.len() == Self::DELETE_BATCH_SIZE {
+                    self.delete(path.bucket(), mem::take(&mut acc)).await?;
                 }
 
                 Ok(acc)
