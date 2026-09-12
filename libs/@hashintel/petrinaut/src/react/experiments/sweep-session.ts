@@ -466,14 +466,22 @@ export function createSweepSession(
     }
 
     // The value at a point axis, the range midpoint otherwise — taken in
-    // value space so a coarse axis does not round it onto an endpoint.
+    // value space so a coarse axis does not round it onto an endpoint. An
+    // integer axis's midpoint rounds, since the scenario compiles an
+    // integer parameter from it; a real one drops the float artifacts of
+    // the average.
     const parameterValues: Record<string, number> = {};
     for (const axis of axes) {
       const range = selection[axis.identifier]!;
-      parameterValues[axis.identifier] =
-        range.from === range.to
-          ? axisValueAt(axis, range.from)
-          : (axisValueAt(axis, range.from) + axisValueAt(axis, range.to)) / 2;
+      if (range.from === range.to) {
+        parameterValues[axis.identifier] = axisValueAt(axis, range.from);
+        continue;
+      }
+      const middle =
+        (axisValueAt(axis, range.from) + axisValueAt(axis, range.to)) / 2;
+      parameterValues[axis.identifier] = axis.integer
+        ? Math.round(middle)
+        : Number(middle.toPrecision(12));
     }
 
     let handle: MonteCarloExperiment;
