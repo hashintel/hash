@@ -1,0 +1,286 @@
+/**
+ * @vitest-environment jsdom
+ */
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  ComputeBatchesChip,
+  DrawerFrame,
+  FRAME_HEADER_CONDENSED_HEIGHT,
+  FRAME_HEADER_HEIGHT,
+  FrameBand,
+  FrameColumns,
+  FrameStat,
+  FrameStatusPill,
+} from "./drawer-frame";
+import {
+  frameHeader as header,
+  scrollFrameBody as scrollBodyTo,
+} from "./drawer-frame/frame-test-helpers";
+
+import type { ReactNode } from "react";
+
+// The computing list's popover positions itself on the next frame through a
+// ResizeObserver jsdom lacks; nothing here depends on a measurement.
+class ObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
+
+afterEach(cleanup);
+
+/** The computing chip's shape: a button in the stats line, disabled once nothing computes. */
+const computingChip = (computing: boolean) => (
+  <button type="button" disabled={!computing}>
+    {computing ? "1 computing" : "0 computing"}
+  </button>
+);
+
+const frame = ({
+  note = null,
+  stats,
+}: {
+  note?: { content: string; tone: "error" } | null;
+  stats?: ReactNode;
+} = {}) => (
+  <DrawerFrame
+    title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
+    headline={<span>Step 3 of 30</span>}
+    stats={
+      <>
+        <FrameStat label="Status" widest="" align="start">
+          <FrameStatusPill tone="active" widest="Initializing">
+            Running
+          </FrameStatusPill>
+        </FrameStat>
+        <FrameStat label="Runs" widest="1,000 complete">
+          100 complete
+        </FrameStat>
+        {stats}
+      </>
+    }
+    badge={<span>CPU</span>}
+    progress={40}
+    note={note}
+    footer={<button type="button">Close</button>}
+  >
+    <div style={{ height: 2000 }} />
+  </DrawerFrame>
+);
+
+const renderFrame = (note: { content: string; tone: "error" } | null = null) =>
+  render(frame({ note }));
+
+describe("DrawerFrame", () => {
+  it("renders the title, the stat columns sized by their widest value, the badge column, the bar and the footer at rest", () => {
+    renderFrame();
+
+    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
+    expect(
+      screen.getByText(
+        "SIR transmission sweep · Seasonal Flu · 100 runs · dt 1",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Step 3 of 30")).toBeTruthy();
+    const runs = screen.getByText("Runs").nextElementSibling!;
+    expect(runs.querySelector("[data-frame-stat-value]")?.textContent).toBe(
+      "100 complete",
+    );
+    expect(runs.querySelector("[data-frame-stat-sizer]")?.textContent).toBe(
+      "1,000 complete",
+    );
+    // The stats are labelled columns; the badge is the last of them.
+    const columns = [
+      ...document.querySelectorAll("[data-frame-stats] > [data-frame-stat]"),
+    ];
+    expect(
+      columns.map((column) => column.querySelector("span")?.textContent),
+    ).toEqual(["Status", "Runs", "Compute"]);
+    expect(columns.at(-1)?.getAttribute("data-trailing")).toBe("true");
+    expect(screen.getByText("CPU")).toBeTruthy();
+    expect(
+      document.querySelector<HTMLElement>("[data-frame-progress] > div")?.style
+        .width,
+    ).toBe("40%");
+    expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
+  });
+
+  it("condenses once the body has scrolled, folding the stats into the title line, and grows back under the pointer", () => {
+    renderFrame();
+
+    scrollBodyTo(48);
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
+    // The compact copy sits in the title line; the stats line is folded away.
+    const compact = document.querySelector("[data-frame-compact-stats]")!;
+    expect(compact.textContent).toContain("Running");
+    expect(compact.textContent).toContain("CPU");
+    expect(
+      [...compact.querySelectorAll("[data-frame-stat]")].map((stat) =>
+        stat.getAttribute("title"),
+      ),
+    ).toEqual(["Status", "Runs", "Compute"]);
+    expect(
+      document.querySelector("[data-frame-stats]")?.getAttribute("aria-hidden"),
+    ).toBe("true");
+
+    fireEvent.pointerEnter(header());
+    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(document.querySelector("[data-frame-compact-stats]")).toBeNull();
+
+    fireEvent.pointerLeave(header());
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+
+    scrollBodyTo(0);
+    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+  });
+
+  it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {
+    const view = render(frame({ stats: computingChip(true) }));
+    const chip = screen.getByRole("button", { name: "1 computing" });
+    act(() => chip.focus());
+
+    // Keyboard focus on a header control holds the header open.
+    scrollBodyTo(48);
+    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+
+    // The chip goes idle under the focus: disabled, so it fires no blur.
+    view.rerender(frame({ stats: computingChip(false) }));
+    scrollBodyTo(60);
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
+    view.unmount();
+
+    // The same when the focused control is unmounted.
+    const removed = render(frame({ stats: computingChip(true) }));
+    act(() => screen.getByRole("button", { name: "1 computing" }).focus());
+    removed.rerender(frame());
+    scrollBodyTo(60);
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+  });
+
+  it("keeps the note row mounted at one height whether or not there is a note", () => {
+    const empty = renderFrame();
+    const emptyRow = document.querySelector<HTMLElement>("[data-frame-note]")!;
+    expect(emptyRow.style.height).toBe("20px");
+    expect(emptyRow.textContent).toBe("");
+    empty.unmount();
+
+    renderFrame({ content: "metric__profit: Unexpected token", tone: "error" });
+    const row = document.querySelector<HTMLElement>("[data-frame-note]")!;
+    expect(row.style.height).toBe("20px");
+    expect(row.dataset.tone).toBe("error");
+    expect(row.textContent).toBe("metric__profit: Unexpected token");
+  });
+
+  it("draws the computing chip at zero, disabled, with room for a three-digit count", () => {
+    render(<ComputeBatchesChip batches={[]} />);
+
+    const chip = screen.getByRole("button", { name: "0 computing" });
+    expect(chip).toHaveProperty("disabled", true);
+    expect(
+      chip.closest("[data-compute-batches]")?.getAttribute("data-idle"),
+    ).toBe("true");
+    expect(chip.textContent).toContain("000 computing");
+  });
+
+  it("closes the computing list with the last batch and leaves it closed for the next one", async () => {
+    const batch = {
+      id: "selection",
+      label: "Selection",
+      tone: "priority" as const,
+      runCount: 100,
+      completedRuns: 10,
+    };
+    const view = render(<ComputeBatchesChip batches={[batch]} />);
+    fireEvent.click(screen.getByRole("button", { name: "1 computing" }));
+    expect(
+      screen
+        .getByRole("button", { name: "1 computing" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+    // The popover opens on the next frame.
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-compute-batches-list]"),
+      ).toBeTruthy(),
+    );
+
+    view.rerender(<ComputeBatchesChip batches={[]} />);
+    expect(document.querySelector("[data-compute-batches-list]")).toBeNull();
+
+    view.rerender(<ComputeBatchesChip batches={[batch]} />);
+    expect(document.querySelector("[data-compute-batches-list]")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "1 computing" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+
+  it("folds a collapsible band's controls away without unmounting them", () => {
+    render(
+      <FrameBand title="Parameters" collapsible>
+        <input aria-label="population" defaultValue="42" />
+      </FrameBand>,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Collapse Parameters" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(toggle);
+
+    const content = document.querySelector<HTMLElement>(
+      "[data-frame-band-content]",
+    )!;
+    expect(
+      document
+        .querySelector("[data-frame-band]")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("true");
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+    expect(content.hasAttribute("inert")).toBe(true);
+    expect(content.querySelector("input")?.value).toBe("42");
+    expect(
+      screen
+        .getByRole("button", { name: "Expand Parameters" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
+    expect(content.hasAttribute("inert")).toBe(false);
+    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+  });
+
+  it("gives the secondary column the whole width when there is no primary", () => {
+    const view = render(<FrameColumns secondary={<div>cards</div>} />);
+    expect(
+      view.container
+        .querySelector("[data-frame-columns]")
+        ?.getAttribute("data-primary"),
+    ).toBe("false");
+    view.unmount();
+
+    render(
+      <FrameColumns
+        primary={<div>surface</div>}
+        secondary={<div>cards</div>}
+      />,
+    );
+    expect(
+      document
+        .querySelector("[data-frame-columns]")
+        ?.getAttribute("data-primary"),
+    ).toBe("true");
+  });
+});

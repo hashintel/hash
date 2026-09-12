@@ -12,14 +12,17 @@ export type ComputeBackendSummary = Pick<
 // Local rather than the design system's `Badge`, whose `brand` scheme puts
 // #5EB1EF on a near-white #FBFDFF — about 2.3:1, below the 4.5:1 WCAG AA
 // needs for text this size.
+// 18px tall, like the status pill and the computing chip it shares the
+// header's strip with.
 const badgeStyle = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "1",
   paddingX: "1.5",
-  paddingY: "[2px]",
+  height: "[18px]",
   borderRadius: "sm",
   fontSize: "xs",
+  lineHeight: "[18px]",
   fontWeight: "medium",
   color: "neutral.s110",
   backgroundColor: "neutral.s10",
