@@ -8,7 +8,7 @@ use std::{
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::{GenerationId, METADATA_FILE, SealError};
+use super::{GenerationDocument, GenerationId, METADATA_FILE, SealError};
 use crate::{
     file::{
         WriteAs,
@@ -17,6 +17,9 @@ use crate::{
     },
     integrity::Sha256Digest,
 };
+
+#[cfg(test)]
+mod tests;
 
 /// Drops the write permission on a file about to publish.
 ///
@@ -107,59 +110,38 @@ impl StagedGeneration {
         Ok(Binding::new(hash))
     }
 
-    /// Seals the staging into a published generation.
-    ///
-    /// The staged file set must match the manifest exactly. Every file drops its write permission
-    /// before publication. A successful seal syncs every file and the staging directory before the
-    /// rename, then syncs the root directory. The returned generation is visible and durable.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the manifest disagrees with the staged file set or names a
-    /// generation that is already published. Serializing the metadata document returns an error
-    /// when it fails. A write, sync, permission, or rename failure returns an error as well.
-    pub(crate) fn seal(
-        self,
-        repository: &SaltRepository,
-    ) -> Result<PublishedGeneration, SealError> {
-        // Artifact names are distinct and exclude the metadata document's name.
+    fn validate_files(&self, repository: &SaltRepository) -> Result<BTreeSet<FileName>, SealError> {
+        // artifact names are distinct and exclude the metadata document's name.
         let expected: BTreeSet<FileName> = repository.files.files().map(|file| file.name).collect();
 
         let mut staged = BTreeSet::<FileName>::new();
-        for entry in fs::read_dir(&self.path).map_err(SealError::Io)? {
-            let name = entry.map_err(SealError::Io)?.file_name();
-            match name
-                .to_str()
-                .and_then(|utf8| FileName::new(utf8.to_owned()))
-            {
+        for entry in self.path.read_dir_utf8()? {
+            let entry = entry?;
+            let name = entry.file_name();
+
+            match FileName::new(name.to_owned()) {
                 Some(valid) => {
                     staged.insert(valid);
                 }
-                None => return Err(SealError::Unlisted { name }),
+                None => {
+                    return Err(SealError::Unlisted {
+                        name: name.to_owned(),
+                    });
+                }
             }
         }
 
         if let Some(name) = expected.difference(&staged).next() {
             return Err(SealError::Missing { name: name.clone() });
         }
+
         if let Some(name) = staged.difference(&expected).next() {
             return Err(SealError::Unlisted {
                 name: name.as_str().into(),
             });
         }
 
-        let document = serde_json::to_vec_pretty(repository).map_err(SealError::Document)?;
-        let id = GenerationId(Sha256Digest::of(&document));
-
-        let destination = self.root.join(id.to_string());
-        if destination.exists() {
-            return Err(SealError::AlreadyPublished(id));
-        }
-
-        self.persist(&document, &staged, &destination)
-            .map_err(SealError::Io)?;
-
-        Ok(PublishedGeneration { id })
+        Ok(staged)
     }
 
     fn persist(
@@ -169,6 +151,7 @@ impl StagedGeneration {
         destination: impl AsRef<Utf8Path>,
     ) -> io::Result<()> {
         let destination = destination.as_ref();
+
         let mut file = File::create(self.path.join(METADATA_FILE))?;
         file.write_all(document)?;
         file.sync_all()?;
@@ -179,6 +162,7 @@ impl StagedGeneration {
             file.sync_all()?;
             make_readonly(&file)?;
         }
+
         File::open(&self.path)?.sync_all()?;
 
         fs::rename(&self.path, destination)?;
@@ -186,11 +170,68 @@ impl StagedGeneration {
 
         Ok(())
     }
+
+    fn publish(
+        self,
+        id: GenerationId,
+        document: &[u8],
+        staged: &BTreeSet<FileName>,
+    ) -> Result<PublishedGeneration, SealError> {
+        let destination = self.root.join(id.to_string());
+        if destination.exists() {
+            return Err(SealError::AlreadyPublished(id));
+        }
+
+        self.persist(document, staged, &destination)?;
+        Ok(PublishedGeneration { id })
+    }
+
+    /// Seals the staging into a published generation.
+    ///
+    /// The staged file set must match the manifest exactly. Every file drops its write permission
+    /// before publication. A successful seal syncs every file and the staging directory before the
+    /// rename, then syncs the root directory. The returned generation is visible and durable.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SealError`] if the staged file set differs from the manifest, serialization fails
+    /// or publication fails. An error after rename can leave the generation visible.
+    pub(crate) fn seal(
+        self,
+        repository: &SaltRepository,
+    ) -> Result<PublishedGeneration, SealError> {
+        let staged = self.validate_files(repository)?;
+        let document = serde_json::to_vec_pretty(repository)?;
+        let id = GenerationId(Sha256Digest::of(&document));
+
+        self.publish(id, &document, &staged)
+    }
+
+    /// Publishes staged artifacts with the original metadata bytes and identity.
+    ///
+    /// The file-set and persistence requirements are those of [`Self::seal`]. Publication preserves
+    /// the metadata encoding from [`GenerationDocument`], including its whitespace.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SealError`] if the staged file set differs from the document or publication fails.
+    /// An error after rename can leave the generation visible.
+    pub(crate) fn import(
+        self,
+        document: &GenerationDocument,
+    ) -> Result<PublishedGeneration, SealError> {
+        let staged = self.validate_files(document.repository())?;
+        self.publish(document.id(), document.bytes(), &staged)
+    }
 }
 
 impl Drop for StagedGeneration {
     fn drop(&mut self) {
-        drop(fs::remove_dir_all(&self.path));
+        if let Err(error) = fs::remove_dir_all(&self.path)
+            && error.kind() != io::ErrorKind::NotFound
+        {
+            tracing::warn!(path = %self.path, ?error, "failed to remove staging directory");
+        }
     }
 }
 

@@ -1,5 +1,7 @@
-use alloc::sync::Arc;
-use core::{net::SocketAddr, ops::ControlFlow, time::Duration};
+use alloc::{rc::Rc, sync::Arc};
+use core::{
+    assert_matches, cell::Cell, future::ready, net::SocketAddr, ops::ControlFlow, time::Duration,
+};
 
 use axum::{
     Router,
@@ -29,11 +31,14 @@ use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
-use super::{ServeArgs, ServeCommand, ServeOptions, Serving};
+use super::{Serve, ServeArgs, ServeCommand, ServeError, ServeOptions};
 use crate::{
-    cli::RootArgs,
+    cli::{RootArgs, Storage},
     device::PinnedDevice,
-    file::generation::{GenerationRoot, ScratchDirectory},
+    file::{
+        generation::{GenerationRoot, ScratchDirectory},
+        storage::error::StorageError,
+    },
     integrity::SecretString,
     math::nz,
     serve::{
@@ -69,6 +74,7 @@ fn assert_redacted(rendered: &str, secret: &str) {
     }
 }
 
+/// Parses serving settings with a valid fixture secret.
 fn parse(arguments: &[&str]) -> ServeArgs {
     let secret = UPPERCASE.to_ascii_lowercase();
     let mut invocation = vec!["serve", "--secret", secret.as_str()];
@@ -80,6 +86,7 @@ fn parse(arguments: &[&str]) -> ServeArgs {
         .expect("parsed arguments should construct serving settings")
 }
 
+/// Maps cadence and queue limits into generation and delta maintenance settings.
 #[test]
 fn options_mapping() {
     let args = parse(&[
@@ -119,6 +126,7 @@ fn options_mapping() {
     );
 }
 
+/// Shares colored-type limits across routes while keeping directory removal opt-in.
 #[test]
 fn limits_mapping() {
     let args = parse(&[
@@ -144,17 +152,20 @@ fn limits_mapping() {
     );
 }
 
+/// An uppercase secret fails parsing without disclosing its characters.
 #[test]
 fn secret_uppercase() {
     assert_redacted(&refusal(&["serve", "--secret", UPPERCASE]), UPPERCASE);
 }
 
+/// A trailing newline fails secret parsing without disclosing its characters.
 #[test]
 fn secret_trailing_newline() {
     let secret = format!("{}\n", UPPERCASE.to_ascii_lowercase());
     assert_redacted(&refusal(&["serve", "--secret", &secret]), &secret);
 }
 
+/// A header-only actor provider for isolated route checks.
 struct HeaderActor;
 
 impl AuthenticationProvider<ActorId> for HeaderActor {
@@ -173,7 +184,8 @@ impl AuthenticationProvider<ActorId> for HeaderActor {
     }
 }
 
-async fn serving() -> (ScratchDirectory, Serving) {
+/// Returns serving construction with its fixture root, without connecting to the database.
+async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<ServeError>>) {
     let temporary = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should be UTF-8");
     let scratch = GenerationRoot::new(temporary)
@@ -208,7 +220,7 @@ async fn serving() -> (ScratchDirectory, Serving) {
             root,
             device: PinnedDevice::host(),
         },
-        parse(&[]),
+        parse(arguments),
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
@@ -230,12 +242,13 @@ async fn serving() -> (ScratchDirectory, Serving) {
             hard: Duration::from_secs(10),
         },
         workflow: None,
-    })
-    .expect("serving should construct before a generation exists");
+        storage: Storage::in_temp_dir(),
+    });
 
     (scratch, serving)
 }
 
+/// Dispatches a request with connection info under a bounded test wait.
 async fn send(router: &Router, request: Builder) -> Response {
     timeout(
         Duration::from_secs(5),
@@ -251,6 +264,7 @@ async fn send(router: &Router, request: Builder) -> Response {
     .expect("the router should respond")
 }
 
+/// Checks the problem media type and decodes its JSON body.
 async fn problem(response: Response) -> serde_json::Value {
     assert_eq!(
         response.headers()[header::CONTENT_TYPE],
@@ -262,9 +276,49 @@ async fn problem(response: Response) -> serde_json::Value {
     serde_json::from_slice(&bytes).expect("the problem body should be JSON")
 }
 
+/// Rejects an unavailable source backend before constructing serving tasks.
+#[tokio::test]
+async fn download_backend_unconfigured() {
+    let (_scratch, serving) = serving(&["--download", "s3://generation-bucket/prefix"]).await;
+    let error = serving
+        .err()
+        .expect("should reject an unavailable source backend");
+    assert_matches!(error.current_context(), ServeError::Download);
+    assert_matches!(
+        error.downcast_ref::<StorageError>(),
+        Some(StorageError::S3Unavailable)
+    );
+}
+
+/// Each configured background task receives a shutdown future from the mutable factory.
+#[tokio::test]
+async fn tasks_download_selection() {
+    let cases: [(&[&str], usize); 2] = [(&[], 1), (&["--download", "source"], 2)];
+    for (arguments, expected) in cases {
+        let (_scratch, serve) = serving(arguments).await;
+        let serve = serve.expect("should construct without a source object or S3 backend");
+        let calls = Rc::new(Cell::new(0_usize));
+        let observed = Rc::clone(&calls);
+        let mut issued = 0;
+        let (_router, maintenance, download) = serve.into_parts(move || {
+            issued += 1;
+            observed.set(issued);
+            ready(())
+        });
+        assert_eq!(calls.get(), expected, "should create one wait per task");
+        assert_eq!(download.is_some(), expected == 2);
+        maintenance.await;
+        if let Some(download) = download {
+            download.await;
+        }
+    }
+}
+
+/// Authenticated requests consume the actor budget and receive the rate-limit problem.
 #[tokio::test]
 async fn layers_actor_budget() {
-    let (_scratch, serving) = serving().await;
+    let (_scratch, serving) = serving(&[]).await;
+    let serving = serving.expect("should construct serving without a generation");
     let request = || {
         Request::get("/v1/atlas/openapi.json")
             .header(ACTOR_ID_HEADER, "00000000-0000-4000-8000-00000000da7a")
@@ -282,9 +336,11 @@ async fn layers_actor_budget() {
     assert_eq!(document["status"], 429);
 }
 
+/// A protected route refuses missing credentials before generation lookup.
 #[tokio::test]
 async fn layers_without_credentials() {
-    let (_scratch, serving) = serving().await;
+    let (_scratch, serving) = serving(&[]).await;
+    let serving = serving.expect("should construct serving without a generation");
     let response = send(&serving.router, Request::get("/v1/atlas/current")).await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let document = problem(response).await;
@@ -292,9 +348,11 @@ async fn layers_without_credentials() {
     assert_eq!(document["status"], 401);
 }
 
+/// Liveness remains available without credentials or a loaded generation.
 #[tokio::test]
 async fn liveness_without_credentials() {
-    let (_scratch, serving) = serving().await;
+    let (_scratch, serving) = serving(&[]).await;
+    let serving = serving.expect("should construct serving without a generation");
     let response = send(&serving.router, Request::get("/status")).await;
     assert_eq!(response.status(), StatusCode::OK);
 }

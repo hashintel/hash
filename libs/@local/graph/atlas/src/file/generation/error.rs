@@ -1,11 +1,11 @@
 //! Error types for [`GenerationRoot`](super::GenerationRoot) and [`Generation`](super::Generation).
 
 use core::{error::Error, fmt};
-use std::{ffi::OsString, io};
+use std::io;
 
 use super::GenerationId;
 use crate::{
-    file::repository::FileName,
+    file::repository::{FileName, IntegrityVerificationError},
     integrity::{ParseHexError, Sha256Digest},
 };
 
@@ -20,7 +20,7 @@ pub(crate) enum SealError {
     /// A staged file is not listed in the manifest.
     Unlisted {
         /// The unlisted file's name.
-        name: OsString,
+        name: String,
     },
     /// A generation with this metadata document is already published.
     AlreadyPublished(GenerationId),
@@ -36,11 +36,9 @@ impl fmt::Display for SealError {
             Self::Missing { name } => {
                 write!(fmt, "the manifest-listed file {name} is not staged")
             }
-            Self::Unlisted { name } => write!(
-                fmt,
-                "the staged file {} is not listed in the manifest",
-                name.display(),
-            ),
+            Self::Unlisted { name } => {
+                write!(fmt, "the staged file {name} is not listed in the manifest")
+            }
             Self::AlreadyPublished(id) => {
                 write!(fmt, "generation {id} is already published")
             }
@@ -59,6 +57,18 @@ impl Error for SealError {
             Self::Io(error) => Some(error),
             Self::Missing { .. } | Self::Unlisted { .. } | Self::AlreadyPublished(_) => None,
         }
+    }
+}
+
+impl From<io::Error> for SealError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl From<serde_json::Error> for SealError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Document(error)
     }
 }
 
@@ -100,6 +110,10 @@ impl Error for CurrentError {
 pub(crate) enum ActivateError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
+    /// Opening an existing publication failed metadata verification.
+    Open(OpenError),
+    /// A local artifact failed its recorded integrity check.
+    Integrity(IntegrityVerificationError),
     /// Locking the root or replacing the pointer failed.
     Io(io::Error),
 }
@@ -110,6 +124,8 @@ impl fmt::Display for ActivateError {
             Self::Unpublished(id) => {
                 write!(fmt, "generation {id} is not published in this root")
             }
+            Self::Open(error) => write!(fmt, "opening the activation generation failed: {error}"),
+            Self::Integrity(error) => write!(fmt, "the activation artifact is invalid: {error}"),
             Self::Io(error) => write!(fmt, "generation activation failed: {error}"),
         }
     }
@@ -119,6 +135,8 @@ impl Error for ActivateError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Unpublished(_) => None,
+            Self::Open(error) => Some(error),
+            Self::Integrity(error) => Some(error),
             Self::Io(error) => Some(error),
         }
     }
@@ -127,6 +145,18 @@ impl Error for ActivateError {
 impl From<io::Error> for ActivateError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
+    }
+}
+
+impl From<OpenError> for ActivateError {
+    fn from(error: OpenError) -> Self {
+        Self::Open(error)
+    }
+}
+
+impl From<IntegrityVerificationError> for ActivateError {
+    fn from(error: IntegrityVerificationError) -> Self {
+        Self::Integrity(error)
     }
 }
 

@@ -35,13 +35,19 @@ impl Backend for Remote<'_> {
     type Upload = String;
 
     async fn start(&mut self) -> Result<Self::Upload, StorageError> {
+        // MinIO's copy handler does not attach the checksum selected at initiation.
+        let checksum = match self.source {
+            Source::File(_) => Some(ChecksumAlgorithm::Crc32),
+            Source::Copy { .. } => None,
+        };
+
         let output = self
             .backend
             .client
             .create_multipart_upload()
             .bucket(self.destination.bucket())
             .key(self.destination.key())
-            .checksum_algorithm(ChecksumAlgorithm::Crc32)
+            .set_checksum_algorithm(checksum)
             .customize()
             .config_override(S3::single_attempt())
             .send()
@@ -71,7 +77,9 @@ impl Backend for Remote<'_> {
                     .send()
                     .await?;
 
-                (output.e_tag, output.checksum_crc32)
+                let etag = output.e_tag.ok_or(StorageError::MissingEntityTag)?;
+                let checksum = output.checksum_crc32.ok_or(StorageError::MissingChecksum)?;
+                (etag, Some(checksum))
             }
             Source::Copy { header, etag } => {
                 let output = self
@@ -91,11 +99,16 @@ impl Backend for Remote<'_> {
                 let output = output
                     .copy_part_result
                     .ok_or(StorageError::MissingEntityTag)?;
-                (output.e_tag, output.checksum_crc32)
+
+                (output.e_tag.ok_or(StorageError::MissingEntityTag)?, None)
             }
         };
 
-        part.complete(etag, checksum)
+        Ok(CompletedPart::builder()
+            .part_number(part.number)
+            .e_tag(etag)
+            .set_checksum_crc32(checksum)
+            .build())
     }
 
     async fn complete(

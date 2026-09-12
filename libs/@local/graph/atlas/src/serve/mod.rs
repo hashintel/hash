@@ -11,7 +11,7 @@ pub(crate) mod runtime;
 pub(crate) mod scene;
 mod schedule;
 pub(crate) mod secret;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub(crate) mod tests;
 pub(crate) mod visibility;
 mod walk;

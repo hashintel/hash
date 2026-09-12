@@ -1,6 +1,7 @@
 use core::{num::NonZero, time::Duration};
 
 use crate::{
+    file::{generation::download::DownloadOptions, storage::path::FilePath},
     integrity::SecretHexBytesValueParser,
     serve::{
         delta::{DeltaFeedTaskOptions, DeltaPlacementTaskOptions, DeltaTaskOptions},
@@ -25,6 +26,7 @@ const DEFAULT_DELTA: DeltaTaskOptions = DeltaTaskOptions {
     },
 };
 const DEFAULT_MANAGER: ManagerOptions = ManagerOptions { .. };
+const DEFAULT_DOWNLOAD: DownloadOptions = DownloadOptions { .. };
 
 /// Per-request limits also published by the manifest.
 #[derive(Debug, clap::Args)]
@@ -212,17 +214,55 @@ impl From<ManagerArgs> for ManagerOptions {
     }
 }
 
+/// Source selection and polling cadence for acquiring generations.
+#[derive(Debug, clap::Args)]
+pub(super) struct DownloadArgs {
+    /// Source prefix containing `generations/current` and `generations/active/`.
+    ///
+    /// Source polling is off by default. An S3 prefix requires a configured S3 client. Removing
+    /// expired local generations remains opt-in through `--unlink-expired-generations`.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
+    download: Option<FilePath>,
+
+    /// Seconds between source-current checks, one second by default.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL",
+        default_value_t = NonZero::new(DEFAULT_DOWNLOAD.poll_interval.as_secs())
+            .expect("the default download poll interval is positive"),
+    )]
+    download_poll_interval: NonZero<u64>,
+}
+
+impl From<DownloadArgs> for (Option<FilePath>, DownloadOptions) {
+    fn from(value: DownloadArgs) -> Self {
+        (
+            value.download,
+            DownloadOptions {
+                poll_interval: Duration::from_secs(value.download_poll_interval.get()),
+            },
+        )
+    }
+}
+
 /// Generation selection and request-serving settings.
 #[derive(Debug, clap::Args)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "see: BE-804, the whole CLI is currently a hot mess"
+)]
 pub struct ServeArgs {
     #[command(flatten)]
-    pub limits: LimitsArgs,
+    pub(super) limits: LimitsArgs,
 
     #[command(flatten)]
-    pub delta: DeltaArgs,
+    pub(super) delta: DeltaArgs,
 
     #[command(flatten)]
-    pub manager: ManagerArgs,
+    pub(super) manager: ManagerArgs,
+
+    #[command(flatten)]
+    pub(super) download: DownloadArgs,
 
     /// The server secret behind the wire row-id codec.
     ///
@@ -234,5 +274,41 @@ pub struct ServeArgs {
         hide_env_values = true,
         value_parser = SecretHexBytesValueParser::<ServeSecret, { size_of::<ServeSecret>() }>::new(),
     )]
-    pub secret: ServeSecret,
+    pub(super) secret: ServeSecret,
+}
+
+/// Supplies fixed serving parameters without reading CLI or environment configuration.
+#[cfg(feature = "test-utils")]
+pub(super) const fn integration_args(secret: ServeSecret) -> ServeArgs {
+    use crate::math::nz;
+
+    ServeArgs {
+        limits: LimitsArgs {
+            colored_type_ids: 4,
+            edges_tiles: 16,
+            edges: 256,
+            translate_entity_ids: 64,
+            locate_edges: 64,
+            locate_properties: 16,
+            locate_link_type_ids: 4,
+            locate_link_properties: 16,
+        },
+        delta: DeltaArgs {
+            delta_poll_interval: nz!(1),
+            delta_safety_lag: 0,
+            delta_retry_polls: 1,
+            delta_placement_backlog: nz!(16),
+            delta_minimum_projection_interval: 1,
+            no_delta: true,
+        },
+        manager: ManagerArgs {
+            generation_poll_interval: nz!(1),
+            unlink_expired_generations: false,
+        },
+        download: DownloadArgs {
+            download: None,
+            download_poll_interval: nz!(1),
+        },
+        secret,
+    }
 }

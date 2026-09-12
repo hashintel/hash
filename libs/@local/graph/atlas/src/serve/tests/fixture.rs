@@ -11,35 +11,37 @@
 //! verifies the digest of a file it opens. Every count a test compares against is a constant of
 //! this module.
 //!
-//! [`TamperFixture::tamper`] republishes the generation with one file rewritten and re-bound to
-//! the digest of its new bytes. The digest check passes and the structural check inside the open
+//! Tampered fixtures republish the generation with one file rewritten and re-bound to the
+//! digest of its new bytes. The digest check passes and the structural check inside the open
 //! refuses the file. A file edited in place fails the digest check first.
 
 use core::{borrow::Borrow, num::NonZero};
-use std::{io::Write as _, path::Path};
+use std::io::Write as _;
 
-use camino::{Utf8Path, Utf8PathBuf};
+// serving unit tests edit individual fixture artifacts.
+#[cfg(test)]
+use camino::Utf8Path;
+use camino::Utf8PathBuf;
 use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 use type_system::ontology::id::VersionedUrl;
 use uuid::Uuid;
-use zerocopy::U64;
 
 use super::super::secret::ServeSecret;
+// serving unit tests rebind edited artifacts to their metadata.
+#[cfg(test)]
+use crate::file::{digest_file, repository::FileName};
 use crate::{
     dataset::{
         DatasetOrigin,
         auxiliary::{Icon, Label, OwnedLegend},
     },
     file::{
-        ArtifactFile as _, WriteInto as _,
-        array::{ArrayVariant, Dim, SizedArrayWriter, SizedColumn},
-        digest_file,
+        WriteInto as _,
+        array::SizedColumn,
         generation::{Generation, GenerationRoot, StagedGeneration},
-        identity::{Key, Row},
-        postings::{read::PostingsFile, write::Regions},
-        quad::{Node, TypeSets, read::QuadFile},
-        repository::{Artifact, Binding, FileName, RepositoryVersion},
+        identity::Row,
+        repository::{Artifact, Binding, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository, artifact,
             metadata::{
@@ -51,7 +53,7 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{SecretHexBytes, Sha256Digest},
     math::{
-        AffinityCurve, FinitePointField, Vec2, d_non_negative, d_positive, non_negative,
+        AffinityCurve, DNonNegative, FinitePointField, Vec2, d_positive, non_negative,
         open_unit_fraction, unit_fraction,
     },
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -128,11 +130,13 @@ const SEED: u64 = 0x5E4E;
 pub(crate) const EDGE_SEED: u8 = 64;
 
 /// The suite's serving secret, an arbitrary value of the secret's width.
-const SECRET: [u8; 32] = *b"atlas-test-serve-secret-32-bytes";
+const SECRET: &[u8] = b"61746c61732d746573742d73657276652d7365637265742d33322d6279746573";
 
 /// The serving secret every suite open uses.
 pub(crate) fn secret() -> ServeSecret {
-    ServeSecret::from(SecretHexBytes::new(SECRET))
+    ServeSecret::from(
+        SecretHexBytes::from_encoded_bytes(SECRET).expect("should decode the fixture secret"),
+    )
 }
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -147,7 +151,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 }
 
 /// One synthetic entity identity per seed byte.
-fn entity_id_of(seed: u8) -> ArchivedEntityId {
+const fn entity_id_of(seed: u8) -> ArchivedEntityId {
     ArchivedEntityId {
         web_id: Uuid::from_bytes([seed; 16]).into(),
         entity_uuid: Uuid::from_bytes([seed ^ 0xFF; 16]).into(),
@@ -442,9 +446,9 @@ fn metadata(config: FitConfig, delivery: &Delivery) -> SaltMetadata {
                 neighbours_per_row: 0,
                 matched: 0,
                 expected: 0,
-                deviation: d_non_negative!(0.0),
+                deviation: DNonNegative::ZERO,
                 minimum_recall: unit_fraction!(0.89),
-                resolution: d_non_negative!(0.0),
+                resolution: DNonNegative::ZERO,
                 confidence: open_unit_fraction!(0.99),
             },
             landmarks: LandmarkEvidence {
@@ -463,8 +467,8 @@ fn metadata(config: FitConfig, delivery: &Delivery) -> SaltMetadata {
                 pruning_threshold: non_negative!(0.0),
                 retained_edges: edges,
                 pruned_edges: 0,
-                retained_mass: d_non_negative!(0.0),
-                pruned_mass: d_non_negative!(0.0),
+                retained_mass: DNonNegative::ZERO,
+                pruned_mass: DNonNegative::ZERO,
                 self_references: 1,
                 multi_typed_edges: vec![EDGES],
             },
@@ -490,9 +494,35 @@ pub(crate) struct TamperFixture {
 
 impl TamperFixture {
     /// Publishes the synthetic generation under a root named `name`.
-    #[expect(clippy::significant_drop_tightening, reason = "false-positive")]
+    ///
+    /// # Panics
+    ///
+    /// Panics if constructing or publishing the fixture fails.
+    // serving unit tests use the default layout.
+    #[cfg(test)]
     pub(crate) fn publish(name: &str) -> Self {
-        let config = config();
+        Self::with_config(name, config())
+    }
+
+    /// Publishes a one-cell root grid whose visible rows require a deeper scoped cut.
+    ///
+    /// # Panics
+    ///
+    /// Panics if constructing or publishing the fixture fails.
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn publish_scoped(name: &str) -> Self {
+        let mut config = config();
+        config.lod.span = crate::math::Log2::new(0).expect("should represent the one-cell span");
+        Self::with_config(name, config)
+    }
+
+    /// Builds and publishes the corpus using the supplied fixture configuration.
+    ///
+    /// # Panics
+    ///
+    /// Panics if constructing an artifact or publishing its generation fails.
+    #[expect(clippy::significant_drop_tightening, reason = "false-positive")]
+    fn with_config(name: &str, config: FitConfig) -> Self {
         let delivery = derive(&config);
 
         let root = GenerationRoot::new(scratch(name)).expect("the root should open");
@@ -517,6 +547,8 @@ impl TamperFixture {
     }
 
     /// Republishes the generation with `edit` applied to the artifact `name`.
+    // serving unit tests alter individual serialized artifacts.
+    #[cfg(test)]
     #[expect(clippy::significant_drop_tightening, reason = "false-positive")]
     pub(crate) fn tamper(&self, name: &FileName, edit: impl FnOnce(&Utf8Path)) -> Generation {
         let staging = self.root.stage().expect("the staging should create");
@@ -569,255 +601,291 @@ impl Drop for TamperFixture {
     }
 }
 
-/// Reopens a published artifact for rewriting.
-///
-/// Sealing dropped the write permission. A tamper therefore lifts it before truncating the file.
-fn recreate_writable(path: impl AsRef<Path>) -> std::fs::File {
-    let mut permissions = std::fs::metadata(path.as_ref())
-        .expect("the published artifact should stat")
-        .permissions();
-    #[expect(
-        clippy::permissions_set_readonly_false,
-        reason = "tests rewrite their own scratch files"
-    )]
-    permissions.set_readonly(false);
+// serving unit tests alter serialized fixture artifacts.
+#[cfg(test)]
+pub(crate) use self::tamper::{
+    constant_u32_column, constant_u64_column, respan_adjacency, retarget_postings_points,
+    retarget_quad_root, shorten_endpoints, shorten_entities, shorten_ontology, shorten_u32_column,
+};
 
-    std::fs::set_permissions(path.as_ref(), permissions).expect("the permissions should set");
-    std::fs::File::create(path).expect("the published artifact rewrites")
-}
+#[cfg(test)]
+mod tamper {
+    use core::borrow::Borrow as _;
+    use std::{io::Write as _, path::Path};
 
-/// Overwrites one identity artifact with a hand-built table and one payload per row.
-fn rewrite_identities<'payload, R, K>(
-    path: impl AsRef<Path>,
-    table: &IdentityTable<R, K>,
-    payloads: impl IntoIterator<Item = &'payload K::Payload>,
-) where
-    R: Row,
-    K: Key<Payload: 'payload>,
-{
-    let mut file = recreate_writable(path);
-    let _digest = table
-        .write_into(payloads, &mut file)
-        .expect("the identities should write");
-}
+    use hashql_core::id::{IdSlice, IdVec};
+    use zerocopy::U64;
 
-/// Rewrites an entity identity artifact with `rows` sequential fixture ids from `seed`.
-///
-/// Every row's legend names ontology row 0 under the empty label.
-pub(crate) fn shorten_entities<R: Row>(path: impl AsRef<Path>, rows: u64, seed: u8) {
-    let legend = OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY);
-    let legends = core::iter::repeat_n(
-        legend.borrow(),
-        usize::try_from(rows).expect("fixture row counts fit usize"),
-    );
-    rewrite_identities(path, &entity_table::<R>(rows, seed), legends);
-}
-
-/// Rewrites the ontology identity artifact with `rows` fixture type uuids and no icons.
-pub(crate) fn shorten_ontology(path: impl AsRef<Path>, rows: u64) {
-    let icons = core::iter::repeat_n(
-        Icon::empty(),
-        usize::try_from(rows).expect("fixture row counts fit usize"),
-    );
-    rewrite_identities(path, &ontology_table(rows), icons);
-}
-
-/// Rewrites the endpoint column with `pairs`, dropping whatever the fixture published beyond it.
-pub(crate) fn shorten_endpoints(path: impl AsRef<Path>, pairs: &[[NodeRowId; 2]]) {
-    let file = recreate_writable(path);
-    let _digest = SizedColumn::new(IdSlice::<EdgeRowId, [NodeRowId; 2]>::from_raw(pairs))
-        .write_into(file)
-        .expect("the endpoint column should write");
-}
-
-/// Rewrites the adjacency artifact over the same edges, spanning `rows` node rows.
-///
-/// The production builder writes it. The file therefore keeps every property the incident-list
-/// contract checks (paired runs, the domain-bound column dimension, one slot per edge per
-/// direction) and disagrees with the columns on the node domain alone.
-pub(crate) fn respan_adjacency(path: impl AsRef<Path>, rows: usize, endpoints: &[[NodeRowId; 2]]) {
-    let file = recreate_writable(path);
-    let _digest = Adjacency::build(rows, endpoints)
-        .write_into(file)
-        .expect("the adjacency should write");
-}
-
-/// Rewrites the quad artifact with the root's subtree count set to `points`.
-///
-/// The topology, the runs, and the type sets are the published ones. The quad format validates the
-/// header, the fenceposts, and the child indexes, and never the subtree counts, which is why `open`
-/// must.
-pub(crate) fn retarget_quad_root(path: impl AsRef<Path>, points: u32) {
-    // The mapping ends before the rewrite: the file backs the slices read here.
-    let (mut nodes, sets) = {
-        let quad = QuadFile::open(path.as_ref()).expect("the published quad artifact opens");
-        let nodes = quad.nodes().to_vec();
-        let sets: Vec<Vec<u32>> = (0..nodes.len())
-            .map(|node| {
-                let node = u32::try_from(node).expect("fixture node tables fit u32");
-                quad.type_set(node).iter().map(|id| id.get()).collect()
-            })
-            .collect();
-
-        (nodes, TypeSets::from_sets(&sets))
+    use super::{entity_table, ontology_table};
+    use crate::{
+        dataset::auxiliary::{Icon, Label, OwnedLegend},
+        file::{
+            ArtifactFile as _, WriteInto as _,
+            array::{ArrayVariant, Dim, SizedArrayWriter, SizedColumn},
+            identity::{Key, Row},
+            postings::{read::PostingsFile, write::Regions},
+            quad::{Node, TypeSets, read::QuadFile},
+        },
+        identity::{EdgeRowId, NodeRowId, OntologyRowId},
+        salt::{adjacency::Adjacency, fit::prepare::identity::IdentityTable},
     };
 
-    let root = *nodes.first().expect("the fixture quad holds a root");
-    let run = root.run();
-    let length = u32::try_from(run.end - run.start).expect("fixture runs fit u32");
-    nodes[0] = Node::new(root.children(), run.start, length, points);
+    /// Reopens a published artifact for rewriting.
+    ///
+    /// Sealing dropped the write permission. A tamper therefore lifts it before truncating the
+    /// file.
+    fn recreate_writable(path: impl AsRef<Path>) -> std::fs::File {
+        let mut permissions = std::fs::metadata(path.as_ref())
+            .expect("the published artifact should stat")
+            .permissions();
+        #[expect(
+            clippy::permissions_set_readonly_false,
+            reason = "tests rewrite their own scratch files"
+        )]
+        permissions.set_readonly(false);
 
-    let file = recreate_writable(path);
-    let mut file = std::io::BufWriter::new(file);
-    crate::file::quad::write::write_regions(&nodes, &sets, &mut file)
-        .expect("the quad regions write");
-    file.flush().expect("the quad artifact flushes");
-}
+        std::fs::set_permissions(path.as_ref(), permissions).expect("the permissions should set");
+        std::fs::File::create(path).expect("the published artifact rewrites")
+    }
 
-/// Rewrites the postings artifact with its point domain set to `points`.
-///
-/// Every other region restates the published one. The dense sets rebuild over the new domain,
-/// because every frame's own domain count restates the header's and open checks the agreement,
-/// and the direct fenceposts resize to cover it - truncating drops the stranded runs' ids,
-/// growing appends empty runs. Only the header's point count and the bound every list position
-/// must clear actually move.
-pub(crate) fn retarget_postings_points(path: impl AsRef<Path>, points: u64) {
-    // The mapping ends before the rewrite. The file backs the slices read here, hence every region
-    // copies into build vocabulary first.
-    let postings =
-        PostingsFile::open(path.as_ref()).expect("the published postings artifact opens");
+    /// Overwrites one identity artifact with a hand-built table and one payload per row.
+    fn rewrite_identities<'payload, R, K>(
+        path: impl AsRef<Path>,
+        table: &IdentityTable<R, K>,
+        payloads: impl IntoIterator<Item = &'payload K::Payload>,
+    ) where
+        R: Row,
+        K: Key<Payload: 'payload>,
+    {
+        let mut file = recreate_writable(path);
+        let _digest = table
+            .write_into(payloads, &mut file)
+            .expect("the identities should write");
+    }
 
-    let published = postings.flags();
-    let mut flags = crate::bitset::DenseBitSlice::new_empty(
-        usize::try_from(postings.types()).expect("fixture type domains fit usize"),
-    );
-    let mut dense_sets = crate::bitset::DenseBitSliceArray::new_empty(
-        usize::try_from(points).expect("fixture point domains fit usize"),
-        usize::try_from(published.count()).expect("fixture dense counts fit usize"),
-    );
-    for (rank, type_row) in published.iter().enumerate() {
-        flags.insert(type_row);
-        for member in postings.dense_sets()[rank].iter() {
-            dense_sets[rank].insert(member);
+    /// Rewrites an entity identity artifact with `rows` sequential fixture ids from `seed`.
+    ///
+    /// Every row's legend names ontology row 0 under the empty label.
+    pub(crate) fn shorten_entities<R: Row>(path: impl AsRef<Path>, rows: u64, seed: u8) {
+        let legend = OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY);
+        let legends = core::iter::repeat_n(
+            legend.borrow(),
+            usize::try_from(rows).expect("fixture row counts fit usize"),
+        );
+        rewrite_identities(path, &entity_table::<R>(rows, seed), legends);
+    }
+
+    /// Rewrites the ontology identity artifact with `rows` fixture type uuids and no icons.
+    pub(crate) fn shorten_ontology(path: impl AsRef<Path>, rows: u64) {
+        let icons = core::iter::repeat_n(
+            Icon::empty(),
+            usize::try_from(rows).expect("fixture row counts fit usize"),
+        );
+        rewrite_identities(path, &ontology_table(rows), icons);
+    }
+
+    /// Rewrites the endpoint column with `pairs`, dropping whatever the fixture published beyond
+    /// it.
+    pub(crate) fn shorten_endpoints(path: impl AsRef<Path>, pairs: &[[NodeRowId; 2]]) {
+        let file = recreate_writable(path);
+        let _digest = SizedColumn::new(IdSlice::<EdgeRowId, [NodeRowId; 2]>::from_raw(pairs))
+            .write_into(file)
+            .expect("the endpoint column should write");
+    }
+
+    /// Rewrites the adjacency artifact over the same edges, spanning `rows` node rows.
+    ///
+    /// The production builder writes it. The file therefore keeps every property the incident-list
+    /// contract checks (paired runs, the domain-bound column dimension, one slot per edge per
+    /// direction) and disagrees with the columns on the node domain alone.
+    pub(crate) fn respan_adjacency(
+        path: impl AsRef<Path>,
+        rows: usize,
+        endpoints: &[[NodeRowId; 2]],
+    ) {
+        let file = recreate_writable(path);
+        let _digest = Adjacency::build(rows, endpoints)
+            .write_into(file)
+            .expect("the adjacency should write");
+    }
+
+    /// Rewrites the quad artifact with the root's subtree count set to `points`.
+    ///
+    /// The topology, the runs, and the type sets are the published ones. The quad format validates
+    /// the header, the fenceposts, and the child indexes, and never the subtree counts, which
+    /// is why `open` must.
+    pub(crate) fn retarget_quad_root(path: impl AsRef<Path>, points: u32) {
+        // The mapping ends before the rewrite: the file backs the slices read here.
+        let (mut nodes, sets) = {
+            let quad = QuadFile::open(path.as_ref()).expect("the published quad artifact opens");
+            let nodes = quad.nodes().to_vec();
+            let sets: Vec<Vec<u32>> = (0..nodes.len())
+                .map(|node| {
+                    let node = u32::try_from(node).expect("fixture node tables fit u32");
+                    quad.type_set(node).iter().map(|id| id.get()).collect()
+                })
+                .collect();
+
+            (nodes, TypeSets::from_sets(&sets))
+        };
+
+        let root = *nodes.first().expect("the fixture quad holds a root");
+        let run = root.run();
+        let length = u32::try_from(run.end - run.start).expect("fixture runs fit u32");
+        nodes[0] = Node::new(root.children(), run.start, length, points);
+
+        let file = recreate_writable(path);
+        let mut file = std::io::BufWriter::new(file);
+        crate::file::quad::write::write_regions(&nodes, &sets, &mut file)
+            .expect("the quad regions write");
+        file.flush().expect("the quad artifact flushes");
+    }
+
+    /// Rewrites the postings artifact with its point domain set to `points`.
+    ///
+    /// Every other region restates the published one. The dense sets rebuild over the new domain,
+    /// because every frame's own domain count restates the header's and open checks the agreement,
+    /// and the direct fenceposts resize to cover it - truncating drops the stranded runs' ids,
+    /// growing appends empty runs. Only the header's point count and the bound every list position
+    /// must clear actually move.
+    pub(crate) fn retarget_postings_points(path: impl AsRef<Path>, points: u64) {
+        // The mapping ends before the rewrite. The file backs the slices read here, hence every
+        // region copies into build vocabulary first.
+        let postings =
+            PostingsFile::open(path.as_ref()).expect("the published postings artifact opens");
+
+        let published = postings.flags();
+        let mut flags = crate::bitset::DenseBitSlice::new_empty(
+            usize::try_from(postings.types()).expect("fixture type domains fit usize"),
+        );
+        let mut dense_sets = crate::bitset::DenseBitSliceArray::new_empty(
+            usize::try_from(points).expect("fixture point domains fit usize"),
+            usize::try_from(published.count()).expect("fixture dense counts fit usize"),
+        );
+        for (rank, type_row) in published.iter().enumerate() {
+            flags.insert(type_row);
+            for member in postings.dense_sets()[rank].iter() {
+                dense_sets[rank].insert(member);
+            }
         }
+
+        let posts_len = usize::try_from(points).expect("fixture point domains fit usize") + 1;
+        let mut direct_posts = postings
+            .direct_posts()
+            .iter()
+            .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
+            .collect::<Vec<_>>();
+        let mut direct_ids = postings.direct_ids().to_vec();
+        if direct_posts.len() > posts_len {
+            direct_posts.truncate(posts_len);
+            let close = *direct_posts
+                .last()
+                .expect("the fencepost region anchors at zero");
+            direct_ids.truncate(close);
+        } else {
+            let close = *direct_posts
+                .last()
+                .expect("the fencepost region anchors at zero");
+            direct_posts.resize(posts_len, close);
+        }
+
+        let lists = crate::runs::Runs::from_parts(
+            IdVec::from_raw(postings.list_posts().to_vec()),
+            postings.list_entries().to_vec(),
+        )
+        .expect("the published list columns satisfy the fencepost law");
+        let parents = crate::runs::Runs::from_parts(
+            IdVec::from_raw(postings.parent_posts().to_vec()),
+            postings.parent_ids().to_vec(),
+        )
+        .expect("the published parent columns satisfy the fencepost law");
+        let direct = crate::runs::Runs::from_parts(
+            IdVec::from_raw(
+                direct_posts
+                    .iter()
+                    .map(|&post| U64::new(post as u64))
+                    .collect(),
+            ),
+            direct_ids,
+        )
+        .expect("the resized direct columns satisfy the fencepost law");
+
+        drop(postings);
+
+        let file = recreate_writable(path);
+        let mut file = std::io::BufWriter::new(file);
+        crate::file::postings::write::write_regions(
+            Regions {
+                flags: &flags,
+                lists: &lists,
+                dense_sets: &dense_sets,
+                parents: &parents,
+                direct: &direct,
+            },
+            &mut file,
+        )
+        .expect("the postings regions write");
+        file.flush().expect("the postings artifact flushes");
     }
 
-    let posts_len = usize::try_from(points).expect("fixture point domains fit usize") + 1;
-    let mut direct_posts = postings
-        .direct_posts()
-        .iter()
-        .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
-        .collect::<Vec<_>>();
-    let mut direct_ids = postings.direct_ids().to_vec();
-    if direct_posts.len() > posts_len {
-        direct_posts.truncate(posts_len);
-        let close = *direct_posts
-            .last()
-            .expect("the fencepost region anchors at zero");
-        direct_ids.truncate(close);
-    } else {
-        let close = *direct_posts
-            .last()
-            .expect("the fencepost region anchors at zero");
-        direct_posts.resize(posts_len, close);
+    /// Rewrites a little-endian `u32` column with `rows` ascending values.
+    ///
+    /// The values do not matter to the check under test - `open` compares lengths - and ascending
+    /// keeps the file a plausible permutation prefix rather than a shape no producer would
+    /// write.
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the array format's `U32Le` columns are little-endian bytes"
+    )]
+    pub(crate) fn shorten_u32_column(path: impl AsRef<Path>, rows: u64) {
+        let file = recreate_writable(path);
+        let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
+            .expect("the header writes");
+        for row in 0..rows {
+            let value = u32::try_from(row).expect("fixture rows fit u32");
+            writer
+                .write_row(&value.to_le_bytes())
+                .expect("the row writes");
+        }
+        writer.finish().expect("the column seals");
     }
 
-    let lists = crate::runs::Runs::from_parts(
-        IdVec::from_raw(postings.list_posts().to_vec()),
-        postings.list_entries().to_vec(),
-    )
-    .expect("the published list columns satisfy the fencepost law");
-    let parents = crate::runs::Runs::from_parts(
-        IdVec::from_raw(postings.parent_posts().to_vec()),
-        postings.parent_ids().to_vec(),
-    )
-    .expect("the published parent columns satisfy the fencepost law");
-    let direct = crate::runs::Runs::from_parts(
-        IdVec::from_raw(
-            direct_posts
-                .iter()
-                .map(|&post| U64::new(post as u64))
-                .collect(),
-        ),
-        direct_ids,
-    )
-    .expect("the resized direct columns satisfy the fencepost law");
-
-    drop(postings);
-
-    let file = recreate_writable(path);
-    let mut file = std::io::BufWriter::new(file);
-    crate::file::postings::write::write_regions(
-        Regions {
-            flags: &flags,
-            lists: &lists,
-            dense_sets: &dense_sets,
-            parents: &parents,
-            direct: &direct,
-        },
-        &mut file,
-    )
-    .expect("the postings regions write");
-    file.flush().expect("the postings artifact flushes");
-}
-
-/// Rewrites a little-endian `u32` column with `rows` ascending values.
-///
-/// The values do not matter to the check under test - `open` compares lengths - and ascending keeps
-/// the file a plausible permutation prefix rather than a shape no producer would write.
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "the array format's `U32Le` columns are little-endian bytes"
-)]
-pub(crate) fn shorten_u32_column(path: impl AsRef<Path>, rows: u64) {
-    let file = recreate_writable(path);
-    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
-        .expect("the header writes");
-    for row in 0..rows {
-        let value = u32::try_from(row).expect("fixture rows fit u32");
-        writer
-            .write_row(&value.to_le_bytes())
-            .expect("the row writes");
+    /// Rewrites a little-endian `u32` column with `rows` copies of `value`.
+    ///
+    /// A constant column keeps its length and its format and cannot be a permutation. The roundtrip
+    /// sample refuses exactly that.
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the array format's `U32Le` columns are little-endian bytes"
+    )]
+    pub(crate) fn constant_u32_column(path: impl AsRef<Path>, rows: u64, value: u32) {
+        let file = recreate_writable(path);
+        let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
+            .expect("the header writes");
+        for _ in 0..rows {
+            writer
+                .write_row(&value.to_le_bytes())
+                .expect("the row writes");
+        }
+        writer.finish().expect("the column seals");
     }
-    writer.finish().expect("the column seals");
-}
 
-/// Rewrites a little-endian `u32` column with `rows` copies of `value`.
-///
-/// A constant column keeps its length and its format and cannot be a permutation. The roundtrip
-/// sample refuses exactly that.
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "the array format's `U32Le` columns are little-endian bytes"
-)]
-pub(crate) fn constant_u32_column(path: impl AsRef<Path>, rows: u64, value: u32) {
-    let file = recreate_writable(path);
-    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
-        .expect("the header writes");
-    for _ in 0..rows {
-        writer
-            .write_row(&value.to_le_bytes())
-            .expect("the row writes");
+    /// Rewrites a little-endian `u64` column with `rows` copies of `value`.
+    ///
+    /// The row column is the one `u64` column of the base order.
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the array format's `U64Le` columns are little-endian bytes"
+    )]
+    pub(crate) fn constant_u64_column(path: impl AsRef<Path>, rows: u64, value: u64) {
+        let file = recreate_writable(path);
+        let mut writer = SizedArrayWriter::new(file, ArrayVariant::U64Le, &[Dim::new(rows)])
+            .expect("the header writes");
+        for _ in 0..rows {
+            writer
+                .write_row(&value.to_le_bytes())
+                .expect("the row writes");
+        }
+        writer.finish().expect("the column seals");
     }
-    writer.finish().expect("the column seals");
-}
-
-/// Rewrites a little-endian `u64` column with `rows` copies of `value`.
-///
-/// The row column is the one `u64` column of the base order, and the same constant-column argument
-/// holds for it.
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "the array format's `U64Le` columns are little-endian bytes"
-)]
-pub(crate) fn constant_u64_column(path: impl AsRef<Path>, rows: u64, value: u64) {
-    let file = recreate_writable(path);
-    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U64Le, &[Dim::new(rows)])
-        .expect("the header writes");
-    for _ in 0..rows {
-        writer
-            .write_row(&value.to_le_bytes())
-            .expect("the row writes");
-    }
-    writer.finish().expect("the column seals");
 }

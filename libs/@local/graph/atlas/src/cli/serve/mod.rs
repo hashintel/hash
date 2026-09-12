@@ -1,4 +1,4 @@
-//! HTTP routing and owned generation maintenance.
+//! HTTP routing with independently retained generation maintenance and acquisition.
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt};
@@ -17,20 +17,25 @@ use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
 
-pub use self::args::ServeArgs;
-use self::args::{DeltaArgs, LimitsArgs, ManagerArgs};
+use self::args::{DeltaArgs, DownloadArgs, LimitsArgs, ManagerArgs};
 use super::RootArgs;
 use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
-    file::generation::GenerationRoot,
+    file::{
+        generation::{
+            GenerationRoot,
+            download::{Download, DownloadOptions, DownloadTask},
+        },
+        storage::{Storage, path::FilePath},
+    },
     integrity::SecretString,
     serve::{
         authorization::authority::Authority,
         delta::EmbeddingWorkflow,
         runtime::{
             FeedOptions,
-            manager::{GenerationManager, source::RuntimeSource},
+            manager::{GenerationManager, GenerationManagerTask, source::RuntimeSource},
         },
         secret::ServeSecret,
         visibility::cache::VisibilityLimits,
@@ -41,9 +46,13 @@ mod args;
 #[cfg(test)]
 mod tests;
 
+pub use self::args::ServeArgs;
+
 /// A failure constructing process-level serving resources.
 #[derive(Debug)]
 pub enum ServeError {
+    /// The configured source has no available storage backend.
+    Download,
     /// Drawing the process's authority-key salt failed.
     Authority,
     /// The generation-maintenance configuration is invalid.
@@ -53,6 +62,7 @@ pub enum ServeError {
 impl fmt::Display for ServeError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Download => fmt.write_str("could not configure generation download"),
             Self::Authority => fmt.write_str("could not initialize the authority key"),
             Self::Manager => fmt.write_str("could not configure generation maintenance"),
         }
@@ -78,26 +88,48 @@ pub struct ServeOptions<P> {
     pub visibility: VisibilityLimits,
     /// Optional embedding workflow submission for arrivals missing embeddings.
     pub workflow: Option<EmbeddingWorkflow>,
+    /// The storage backend for downloaded files.
+    pub storage: Storage,
 }
 
-/// HTTP routes and the owned generation-maintenance task.
-#[must_use = "generation maintenance must be retained and run by the host"]
-pub struct Serving {
+/// HTTP routes with owned generation maintenance and optional source polling.
+#[must_use = "the host must retain and run maintenance and any download task"]
+pub struct Serve {
     router: Router,
-    manager: GenerationManager,
+    manager: GenerationManagerTask,
+    download: Option<DownloadTask<Storage>>,
 }
 
-impl Serving {
-    /// Separates HTTP routing from maintenance retained until shutdown completes.
-    pub fn into_parts(
+impl Serve {
+    /// Separates routing from maintenance and the optional download future.
+    ///
+    /// The shutdown factory runs once for maintenance and once more for a configured downloader.
+    /// After signalling shutdown, await each future to finish its in-flight work.
+    pub fn into_parts<S>(
         self,
-        shutdown: impl Future<Output = ()> + Send,
-    ) -> (Router, impl Future<Output = ()> + Send) {
+        mut shutdown: impl FnMut() -> S,
+    ) -> (
+        Router,
+        impl Future<Output = ()> + Send,
+        Option<impl Future<Output = ()> + Send>,
+    )
+    where
+        S: Future<Output = ()> + Send,
+    {
         let Self {
             router,
-            mut manager,
+            manager,
+            download,
         } = self;
-        (router, async move { manager.run(shutdown).await })
+
+        (
+            router,
+            manager.run(shutdown()),
+            download.map(|task| {
+                let download_shutdown = shutdown();
+                task.run(download_shutdown)
+            }),
+        )
     }
 }
 
@@ -110,9 +142,22 @@ pub struct ServeCommand {
     secret: ServeSecret,
     delta: DeltaArgs,
     manager: ManagerArgs,
+    download: DownloadArgs,
 }
 
 impl ServeCommand {
+    /// Constructs a local-only serving invocation with fixed integration-test parameters.
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn for_integration(root: GenerationRoot, secret: ServeSecret) -> Self {
+        Self::new(
+            RootArgs {
+                root,
+                device: PinnedDevice::host(),
+            },
+            args::integration_args(secret),
+        )
+    }
+
     /// Resolves parsed flags into one serving invocation.
     #[must_use]
     pub fn new(root: RootArgs, args: ServeArgs) -> Self {
@@ -123,21 +168,24 @@ impl ServeCommand {
             secret: args.secret,
             delta: args.delta,
             manager: args.manager,
+            download: args.download,
         }
     }
 
-    /// Constructs HTTP routes and unstarted generation maintenance.
+    /// Constructs HTTP routes and unstarted generation-maintenance and download tasks.
     ///
     /// The read API answers 503 until maintenance publishes a generation. The liveness route
     /// answers outside request budgets. Retained-generation admission lasts for
     /// [`VisibilityLimits::hard`] after replacement promotion. The host must run and retain the
-    /// maintenance future returned by [`Serving::into_parts`] through listener failure and
-    /// shutdown.
+    /// maintenance future and any download future from [`Serve::into_parts`] through listener
+    /// failure and shutdown. Downloading verifies files and updates local current. Maintenance
+    /// observes that pointer to open and promote generations.
     ///
     /// # Errors
     ///
-    /// Returns [`ServeError::Authority`] for an entropy failure or [`ServeError::Manager`] for
-    /// invalid maintenance settings. Generation opening failures belong to the maintenance loop.
+    /// Returns [`ServeError`] for unavailable source backends, entropy failures or invalid
+    /// maintenance settings. Backend validation performs no source reads. Generation opening
+    /// failures belong to the maintenance loop.
     ///
     /// # Panics
     ///
@@ -151,12 +199,21 @@ impl ServeCommand {
             pool,
             visibility,
             workflow,
+            storage,
         }: ServeOptions<P>,
-    ) -> Result<Serving, Report<ServeError>>
+    ) -> Result<Serve, Report<ServeError>>
     where
         P: AuthenticationProvider<ActorId> + 'static,
     {
         crate::math::kernel::verify_cpu_baseline();
+
+        let (download_path, download_options): (Option<FilePath>, DownloadOptions) =
+            self.download.into();
+        if let Some(source) = &download_path {
+            source
+                .validate_backend(&storage)
+                .change_context(ServeError::Download)?;
+        }
 
         let authority = Authority::new(self.secret.as_ref(), visibility.hard, SysRng)
             .change_context(ServeError::Authority)?;
@@ -167,7 +224,7 @@ impl ServeCommand {
         });
         let manager = GenerationManager::new(
             RuntimeSource {
-                root: self.root,
+                root: self.root.clone(),
                 secret: self.secret,
                 pool: Arc::clone(&pool),
                 feed,
@@ -176,6 +233,14 @@ impl ServeCommand {
             visibility.hard,
         )
         .change_context(ServeError::Manager)?;
+
+        let download = if let Some(download) = download_path {
+            let download = Download::new(storage, self.root, download);
+            let task = download.into_task(download_options);
+            Some(task)
+        } else {
+            None
+        };
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
@@ -219,6 +284,10 @@ impl ServeCommand {
         )
         .layer(HttpTracingLayer::new(|path| path == STATUS_PATH));
 
-        Ok(Serving { router, manager })
+        Ok(Serve {
+            router,
+            manager: manager.into_task(),
+            download,
+        })
     }
 }

@@ -69,6 +69,9 @@
 //!   commands and the read-API routes build unconditionally. The `hash-graph` binary consumes them
 //!   feature-free.
 //!
+//! - `test-utils` exposes integration-test scenarios over private transfer machinery. It is off by
+//!   default. Enable it to build the `generation_transfer` integration target.
+//!
 //! # Performance
 //!
 //! Generation maintenance maps and validates serving artifacts before publication. Requests reuse
@@ -136,6 +139,7 @@
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]
+#![cfg_attr(feature = "test-utils", feature(async_fn_track_caller))]
 #![expect(
     unsafe_code,
     clippy::float_arithmetic,
@@ -172,3 +176,5 @@ pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
 pub(crate) mod serve;
+#[cfg(feature = "test-utils")]
+pub mod test_utils;
