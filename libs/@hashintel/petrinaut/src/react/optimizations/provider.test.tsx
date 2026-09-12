@@ -554,6 +554,100 @@ describe("OptimizationsProvider driving a sweep", () => {
     expect(calls.dispose).toBe(1);
   });
 
+  it("fails the study when a step's batch rejects and parks the sweep, uncapped, on the best step tried", async () => {
+    const { source } = createEvaluatingSource([0.05, 0.02, 0.15]);
+    // The third step's batch fails; every other navigation answers with the
+    // cell at its point.
+    let batches = 0;
+    const navigateSweep = vi.fn(
+      (
+        _experimentId: string,
+        selection: SweepSelection,
+        options?: { runCap?: number },
+      ) => {
+        if (options !== undefined) {
+          batches += 1;
+          if (batches === 3) {
+            return Promise.reject(new Error("device lost"));
+          }
+        }
+        return Promise.resolve(sweepCellAt(selection));
+      },
+    );
+    const { getValue } = renderProvider({ source, navigateSweep });
+
+    await act(async () => {
+      await getValue().createOptimization(input, { sweep });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("error"),
+    );
+
+    expect(getValue().optimizations[0]).toMatchObject({
+      error: "device lost",
+      completedTrials: 2,
+      best: { trial: 1 },
+    });
+    // The sweep parks, uncapped, on the best step, not on the one that failed.
+    expect(
+      navigateSweep.mock.calls.map(([, point, options]) => [point, options]),
+    ).toEqual([
+      [sweepPointOf(0.05), { runCap: 8 }],
+      [sweepPointOf(0.02), { runCap: 8 }],
+      [sweepPointOf(0.15), { runCap: 8 }],
+      [sweepPointOf(0.02), undefined],
+    ]);
+  });
+
+  it("parks the sweep, uncapped, on the best step when the worker fails the study", async () => {
+    const trial = { type: "trial", state: "complete", best: null } as const;
+    const navigateSweep = createNavigateSweep();
+    const { getValue } = renderProvider({
+      source: createScriptedSource([
+        {
+          ...trial,
+          trial: 0,
+          parameters: { infected_ratio: 0.05 },
+          objective: 0.03,
+          seq: 1,
+        },
+        {
+          ...trial,
+          trial: 1,
+          parameters: { infected_ratio: 0.02 },
+          objective: 0.01,
+          seq: 2,
+        },
+        {
+          type: "error",
+          code: "study_failed",
+          message: "The optimizer lost its worker",
+          retryable: false,
+          resumable: false,
+          seq: 3,
+        },
+      ]),
+      navigateSweep,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(input, { sweep });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("error"),
+    );
+
+    expect(getValue().optimizations[0]).toMatchObject({
+      error: "The optimizer lost its worker",
+      best: { trial: 1 },
+    });
+    // A scripted run evaluates nothing through the sweep: its one navigation
+    // is the park.
+    expect(navigateSweep.mock.calls).toEqual([
+      ["experiment-sweep", sweepPointOf(0.02), undefined],
+    ]);
+  });
+
   it("stops a sweep study once: the step in flight is let go, the sweep parks on it, and the worker's own cancel adds nothing", async () => {
     const { source, calls } = createEvaluatingSource([0.05, 0.02]);
     let releaseStep: (cell: SweepVisitedCell | null) => void = () => {};
