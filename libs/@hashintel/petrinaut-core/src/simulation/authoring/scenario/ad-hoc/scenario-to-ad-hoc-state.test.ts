@@ -155,6 +155,29 @@ describe("adHocStateFromScenario", () => {
     expect(result.state.places).toEqual(stored.places);
   });
 
+  it("drops a stale place from an adhoc scenario's stored definition", () => {
+    const content: AdHocScenarioState = {
+      ...stored,
+      netParameters: [gravityOverride],
+      places: {
+        ...stored.places,
+        "place-gone": {
+          kind: "uncoloured",
+          count: { expression: "1", optimize: null },
+        },
+      },
+    };
+    expect(synthesizeAdHocScenario(content, CONTEXT).ok).toBe(false);
+
+    const result = adHocStateFromScenario(
+      scenario({ type: "adhoc", content }),
+      CONTEXT,
+    );
+
+    expect(result.state.places).toEqual(stored.places);
+    expect(synthesizeAdHocScenario(result.state, CONTEXT).ok).toBe(true);
+  });
+
   it("drops every adhoc override when the context carries no net parameters", () => {
     const result = adHocStateFromScenario(
       scenario({ type: "adhoc", content: stored }),

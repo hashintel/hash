@@ -1,11 +1,11 @@
 /**
  * The form state a saved scenario edits through. The scenario form is the
  * one scenario editor, so a scenario stored in any format must open in it:
- * an `adhoc` scenario as its stored definition minus the overrides for
- * parameters the net no longer has, a `per_place` scenario converted
- * losslessly (saving stores it as `adhoc`), a `code` scenario with its
- * Variables and Parameters only — the code body stays with the caller, who
- * shows it read-only and writes it back verbatim.
+ * an `adhoc` scenario as its stored definition minus the overrides and
+ * places the net no longer has, a `per_place` scenario converted losslessly
+ * (saving stores it as `adhoc`), a `code` scenario with its Variables and
+ * Parameters only — the code body stays with the caller, who shows it
+ * read-only and writes it back verbatim.
  */
 
 import { adHocNeutralExpression } from "./ad-hoc-scenario";
@@ -25,7 +25,7 @@ import type {
 import type { AdHocSynthesisContext } from "./ad-hoc-scenario";
 
 export type AdHocStateFromScenario =
-  /** The stored definition, minus overrides for parameters the net no longer has. */
+  /** The stored definition, minus the overrides and places the net no longer has. */
   | { kind: "adhoc"; state: AdHocScenarioState }
   /** A lossless conversion; saving the form stores the scenario as `adhoc`. */
   | { kind: "per_place"; state: AdHocScenarioState }
@@ -62,16 +62,29 @@ const netParameterEntries = (
       optimize: null,
     }));
 
-/** The stored form state with the entries for unknown parameter ids dropped. */
+/**
+ * The stored form state with the entries for parameters and places the net
+ * no longer has dropped: synthesis rejects either, and the form — whose rows
+ * and place blocks come from the net — has nowhere to clear them from.
+ */
 const storedAdHocState = (
   content: AdHocScenarioState,
-  knownIds: ReadonlySet<string>,
-): AdHocScenarioState => ({
-  ...content,
-  netParameters: content.netParameters.filter(({ parameterId }) =>
-    knownIds.has(parameterId),
-  ),
-});
+  context: AdHocSynthesisContext,
+): AdHocScenarioState => {
+  const parameterIds = knownParameterIds(context);
+  const placeIds = new Set(context.places.map((place) => place.id));
+  return {
+    ...content,
+    netParameters: content.netParameters.filter(({ parameterId }) =>
+      parameterIds.has(parameterId),
+    ),
+    places: Object.fromEntries(
+      Object.entries(content.places).filter(([placeId]) =>
+        placeIds.has(placeId),
+      ),
+    ),
+  };
+};
 
 /**
  * Per-place content as form blocks, walked in the net's place order so a
@@ -132,8 +145,8 @@ const perPlaceStates = (
 };
 
 /**
- * An `adhoc` scenario keeps its stored definition, minus the overrides for
- * parameters the net no longer has ({@link storedAdHocState}). In the other
+ * An `adhoc` scenario keeps its stored definition, minus the overrides and
+ * places the net no longer has ({@link storedAdHocState}). In the other
  * formats, scenario parameters become exposed top-level Variables named by
  * their identifier verbatim (schema identifiers are snake_case, so
  * `adHocExposedParameterIdentifier` is the identity) with the default as a
@@ -148,13 +161,13 @@ export const adHocStateFromScenario = (
   context: AdHocSynthesisContext,
 ): AdHocStateFromScenario => {
   const { initialState } = scenario;
-  const knownIds = knownParameterIds(context);
   if (initialState.type === "adhoc") {
     return {
       kind: "adhoc",
-      state: storedAdHocState(initialState.content, knownIds),
+      state: storedAdHocState(initialState.content, context),
     };
   }
+  const knownIds = knownParameterIds(context);
   const variables = classicRunVariables(scenario, {});
   const netParameters = netParameterEntries(scenario, knownIds);
   if (initialState.type === "code") {
