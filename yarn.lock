@@ -15498,6 +15498,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/problematic@workspace:libs/problematic/rust":
+  version: 0.0.0-use.local
+  resolution: "@rust/problematic@workspace:libs/problematic/rust"
+  languageName: unknown
+  linkType: soft
+
 "@sec-ant/readable-stream@npm:^0.4.1":
   version: 0.4.1
   resolution: "@sec-ant/readable-stream@npm:0.4.1"
