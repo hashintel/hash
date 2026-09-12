@@ -2,7 +2,8 @@
  * The chrome every Simulate drawer shares: a header that condenses once the
  * body scrolls, a body of fixed-height cards, a footer of actions. The parts
  * in `drawer-frame/` (the header and its stat columns, the columns, the
- * spanning card, the computing chip, the fold) form the frame layer.
+ * spanning card, the computing chip, the fold) form the frame layer, and
+ * this file is their one public door.
  *
  * The header sits outside the body's scroll container, so condensing it
  * changes the body's available height and never its scroll offset. The body
@@ -32,6 +33,20 @@ import {
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+
+export {
+  type ComputeBatch,
+  ComputeBatchesChip,
+} from "./drawer-frame/compute-batches-chip";
+export { Fold } from "./drawer-frame/fold";
+export { FrameCard, type FrameCardMore } from "./drawer-frame/frame-card";
+export { FrameColumns } from "./drawer-frame/frame-columns";
+export {
+  FrameStat,
+  type FrameStatShort,
+  FrameStatusPill,
+  type FrameStatusTone,
+} from "./drawer-frame/frame-header";
 
 /** The reserved row under the header: a note in the muted or the error tone. */
 export type FrameNote = {

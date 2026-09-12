@@ -10,11 +10,14 @@ import { useEffect } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ChartCard, ChartCardGrid, chartCardHeight } from "./chart-card";
-import { DrawerFrame } from "./drawer-frame";
-import { ComputeBatchesChip } from "./drawer-frame/compute-batches-chip";
-import { FrameCard } from "./drawer-frame/frame-card";
-import { FrameColumns } from "./drawer-frame/frame-columns";
-import { FrameStat, FrameStatusPill } from "./drawer-frame/frame-header";
+import {
+  ComputeBatchesChip,
+  DrawerFrame,
+  FrameCard,
+  FrameColumns,
+  FrameStat,
+  FrameStatusPill,
+} from "./drawer-frame";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

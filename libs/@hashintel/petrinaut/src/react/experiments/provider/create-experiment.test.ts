@@ -246,7 +246,7 @@ describe("createExperimentRequestBuilder", () => {
           source: expect.any(String) as string,
           placeNames: ["Infected"],
         },
-        sampleRuns: "all",
+        sampleRuns: "notErrored",
         runOutput: { type: "distribution" },
         aggregateTime: "min",
       },

@@ -87,14 +87,14 @@ two places, both outside the study's own code:
   builds for the sweep, from creation on, as one precompiled indicator
   metric (`react/experiments/constraint-indicators.ts`): the body wrapped
   as `cond ? 1 : 0`, `aggregateTime: "min"` over each run's frames and
-  `sampleRuns: "all"`, under the id `constraint:<id>`. Those ids never
-  reach `record.metricSpecs`, so no tile, picker or surface option shows
-  them. A visited cell's mean of the indicator is `passed / total` over its
-  finished runs, and `sweepCellPassCount` turns it back into the count the
-  evaluator reports as `constraints.state`. Because `toGpuMetricSpecs`
-  refuses a time aggregation, a sweep with state constraints runs on the
-  CPU; the drawer's GPU gate carries a placeholder `min` spec per drafted
-  state row so the switch says so before creation.
+  `sampleRuns: "notErrored"`, under the id `constraint:<id>`. Those ids
+  never reach `record.metricSpecs`, so no tile, picker or surface option
+  shows them. A visited cell's mean of the indicator is `passed / total`
+  over the runs that did not error, and `sweepCellPassCount` turns it back
+  into the count the evaluator reports as `constraints.state`. Because
+  `toGpuMetricSpecs` refuses a time aggregation, a sweep with state
+  constraints runs on the CPU; the drawer's GPU gate carries a placeholder
+  `min` spec per drafted state row so the switch says so before creation.
 
 Downstream, `constraint-rates.ts` turns `trial.constraints` into the rates
 the Constraints card, the steps table and the objective strip's greyed

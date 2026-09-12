@@ -59,7 +59,7 @@ import {
 import { SweepSurface } from "./sweep-surface";
 
 import type { ChartCardTone } from "../shared/chart-card";
-import type { ComputeBatch } from "../shared/drawer-frame/compute-batches-chip";
+import type { ComputeBatch } from "../shared/drawer-frame";
 import type {
   ResultsModel,
   ResultsStat,

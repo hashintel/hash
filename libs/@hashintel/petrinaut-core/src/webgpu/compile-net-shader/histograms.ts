@@ -192,6 +192,7 @@ const sampledStatusCondition = (
       return "status == 0u";
     case "completed":
       return "(status == 1u || status == 2u)";
+    case "notErrored":
     case "all":
       return "status <= 2u";
   }
