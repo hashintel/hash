@@ -36,6 +36,7 @@ import {
   OBJECTIVE_PLOT_HEIGHT,
   OptimizationMetrics,
 } from "./study-view/optimization-metrics";
+import { ParameterImportancePanel } from "./study-view/parameter-importance-panel";
 import { StepsTable } from "./study-view/steps-table";
 import { type StudyPhase, studyPhase } from "./study-view/study-phase";
 import { StudySummaryBand } from "./study-view/study-summary-strip";
@@ -291,8 +292,9 @@ const RemoteStudyBody = ({
 
 /**
  * A study evaluated in this browser: the header and the summary, the
- * parameter controls with their state line, the three chart cards (a fourth,
- * Constraints, when the study declares any), and the steps filling what is
+ * parameter controls with their state line, the chart cards (the surface, the
+ * objective at the point, the objective by step, Constraints when the study
+ * declares any, and Sensitivity analysis), and the steps filling what is
  * left. The navigation drives the surface and the objective's timeline,
  * following each step while the study runs.
  */
@@ -354,6 +356,12 @@ const ConnectedStudyBody = ({
               plotHeight={OBJECTIVE_PLOT_HEIGHT}
             />
           ) : null}
+          {/* Only a study evaluated here receives importances; a remote study
+            has no panel rather than an empty one. */}
+          <ParameterImportancePanel
+            optimization={optimization}
+            plotHeight={OBJECTIVE_PLOT_HEIGHT}
+          />
         </div>
         <div className={connectedStepsStyle}>
           <StepsTable

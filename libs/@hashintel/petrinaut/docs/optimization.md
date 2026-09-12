@@ -239,6 +239,31 @@ view on a laptop screen while the study streams:
   headline sits in the summary band as **Steps clear**. Infeasible draws are
   hollow grey rings on the surface and grey rows in the steps table, and the
   best step so far is never one of them.
+- The **Sensitivity analysis** card, last in the row, ranks the optimized
+  parameters by how much each one matters for reaching the best steps, with
+  a bar and a **Share** percentage per parameter. The estimate is Optuna's
+  PED-ANOVA: it takes the best tenth of the completed steps and measures how
+  concentrated each parameter's values are there relative to its whole range,
+  a relative importance that sums to 100% rather than a share of the
+  objective's variance. It is computed by the optimizer running in your
+  browser once the study is over, and again every few steps while a long
+  study runs (every tenth step, or every twentieth of the requested steps
+  when that is more) once it is past the floor. The line under the title
+  names the statistic and says
+  how many completed steps it is fitted on. Below the floor, 50 completed
+  steps for a study of under 100 steps and 100 otherwise, the card is muted,
+  the bars fade and the line says **below the N-step floor, treat as a
+  hint**, N being the floor just named: a confident ranking over a handful of
+  steps would mislead. A
+  **Correlation** column beside the bars gives each parameter's signed
+  correlation with the objective over the completed steps (`+0.34`, `−0.12`),
+  computed from the steps themselves, so it is there from the third completed
+  step whatever the floor. Before the first estimate the rows show a dash. A
+  study that optimizes a single parameter has nothing to rank it against: its
+  line says **PED-ANOVA ranks two or more parameters**, the card is never
+  muted, and only the correlation column carries information. The card only
+  appears for a study run in the browser; a study on the service has no
+  sensitivity analysis yet.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.

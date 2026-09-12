@@ -208,7 +208,7 @@ export const Muted: Story = {
   render: () => (
     <div style={{ width: 480 }}>
       <ChartCard
-        title="Parameter importance"
+        title="Sensitivity analysis"
         subtitle="fitted on 12 completed steps · below the 100-step floor"
         tone="muted"
         actions={placeholderMenu}

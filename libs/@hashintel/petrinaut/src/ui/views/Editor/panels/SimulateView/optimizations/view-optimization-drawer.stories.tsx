@@ -11,6 +11,7 @@ import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtur
 import {
   fakeStudyInput,
   fakeStudyTrials,
+  type FakeStudyKind,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   useFakeConnectedStudy,
@@ -31,8 +32,10 @@ type Story = StoryObj<typeof meta>;
 const FakeConnectedStudy = (props: {
   /** Lands one step every 1.2 s and follows the next; else shows the complete study. */
   running: boolean;
-  /** The study with a parameter and a state constraint, results on every step. */
-  constrained?: boolean;
+  /** Which fake study to mount; the 60-step one is past the importance floor. */
+  study?: FakeStudyKind;
+  /** The complete study with the optimizer's PED-ANOVA estimate attached. */
+  importance?: boolean;
   fallbackReason?: string | null;
   refinementError?: string | null;
 }) => {
@@ -69,12 +72,38 @@ export const ConnectedWithConstraints: Story = {
       },
     },
   },
-  render: () => <FakeConnectedStudy running={false} constrained />,
+  render: () => <FakeConnectedStudy running={false} study="constrained" />,
 };
 
 export const ConnectedWithConstraintsRunning: Story = {
   name: "Connected study with constraints, following steps",
-  render: () => <FakeConnectedStudy running constrained />,
+  render: () => <FakeConnectedStudy running study="constrained" />,
+};
+
+export const ConnectedWithImportance: Story = {
+  name: "Connected study with sensitivity analysis",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A complete 60-step study, past the 50-step floor, with the PED-ANOVA estimate the optimizer attached at the end: the Sensitivity analysis card ranks the three optimized parameters with a bar each, the line under the title says how many completed steps the estimate is fitted on, and the Correlation column gives each parameter's signed Pearson correlation with the objective, computed from the steps.",
+      },
+    },
+  },
+  render: () => <FakeConnectedStudy running={false} study="long" importance />,
+};
+
+export const ConnectedBelowImportanceFloor: Story = {
+  name: "Connected study below the sensitivity analysis floor",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The complete 30-step study with an estimate: under the 50-step floor the card is muted, the bars fade to a quarter and stop setting the scale, and the line under the title says so. The Correlation column is as legible as above the floor.",
+      },
+    },
+  },
+  render: () => <FakeConnectedStudy running={false} importance />,
 };
 
 export const ConnectedRefinementFailed: Story = {

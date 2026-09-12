@@ -6,6 +6,7 @@ import type { OptimizationSurfaceAxis } from "./surface-grid";
 import type {
   MonteCarloUserDefinedMetricFrame,
   PetrinautOptimizationEvent,
+  PetrinautOptimizationImportances,
   PetrinautOptimizationInput,
   PetrinautOptimizationTrialEvent,
 } from "@hashintel/petrinaut-core";
@@ -43,6 +44,14 @@ export type OptimizationConnectionState = "streaming" | "reconnecting";
 export type OptimizationBest = NonNullable<
   Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"]
 >;
+
+/**
+ * PED-ANOVA importances as the optimizer last reported them: a share of
+ * relative importance per optimized parameter (how concentrated its values
+ * are among the best steps relative to its whole range), summing to 1, and
+ * the completed trials the estimate was fitted on.
+ */
+export type OptimizationImportance = PetrinautOptimizationImportances;
 
 /** The most runs a study's navigated point is refined to. */
 export const POINT_REFINEMENT_MAX_RUNS = 100;
@@ -169,6 +178,11 @@ export type OptimizationRecord = {
   failedTrials: number;
   trials: readonly PetrinautOptimizationTrialEvent[];
   best: OptimizationBest | null;
+  /**
+   * The latest importance estimate received on a trial or the complete
+   * event; null until the first, and always for a study run on the service.
+   */
+  importance: OptimizationImportance | null;
   /**
    * The backend the study's trials run on: the one asked for, until the
    * first trial that ran elsewhere reports where. `cpu` for a remote study.
