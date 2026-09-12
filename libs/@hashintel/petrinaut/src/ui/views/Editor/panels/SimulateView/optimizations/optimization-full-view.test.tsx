@@ -1,26 +1,28 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import {
-  frameHeader,
-  scrollFrameBody,
-} from "../shared/drawer-frame/frame-test-helpers";
+import { frameStats } from "../shared/drawer-frame.test-helpers";
 import { OptimizationFullView } from "./optimization-full-view";
 import {
+  fakeShortStudyInput,
+  fakeShortStudyNavigation,
+  fakeShortStudyTrials,
   makeConnectedStudyState,
-  makeOptimizationInput,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
   makeSelectionStream,
-  makeTrials,
-  navigationAtTrial,
-  optimizedBindingSets,
 } from "./optimizations-story-fixtures";
 
 import type { ReactNode } from "react";
@@ -55,9 +57,9 @@ vi.mock("../experiments/experiment-metric-timeline", () =>
 
 afterEach(cleanup);
 
-const input = makeOptimizationInput(optimizedBindingSets.base);
-const { trials } = makeTrials(input, 5);
-const navigation = navigationAtTrial(input, trials[2]!, true);
+const input = fakeShortStudyInput;
+const { trials } = fakeShortStudyTrials;
+const navigation = fakeShortStudyNavigation;
 
 /** The editor context with the full presentation and a spy on its setter. */
 const FullPresentation = ({
@@ -136,7 +138,7 @@ describe("OptimizationFullView", () => {
     expect(screen.getByText("Objective by step")).toBeTruthy();
     expect(screen.getByText("Objective at the step in flight")).toBeTruthy();
     expect(screen.getByTestId("navigated-surface")).toBeTruthy();
-    expect(screen.getByText("Best step so far")).toBeTruthy();
+    expect(within(frameStats()).getByText("Best step so far")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Stop/u })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Close/u })).toBeNull();
 
@@ -145,13 +147,6 @@ describe("OptimizationFullView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Show in drawer/u }));
     expect(setSimulatePresentation).toHaveBeenCalledWith("drawer");
-  });
-
-  it("condenses the header once the body scrolls", () => {
-    renderFullView(running);
-
-    scrollFrameBody(80);
-    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("shows the results once the study settled: no verdict, no live titles", () => {

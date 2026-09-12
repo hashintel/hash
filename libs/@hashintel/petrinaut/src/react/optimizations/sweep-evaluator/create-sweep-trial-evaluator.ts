@@ -15,7 +15,7 @@
  * the sweep there.
  */
 import { axisPositionFor } from "../../experiments/parameter-grid";
-import { prunedTrialOutcome } from "../channel/create-optimization-channel/trial-outcome";
+import { prunedTrialOutcome } from "../shared/pruned-trial-outcome";
 
 import type {
   ExperimentsActionsValue,
@@ -30,9 +30,6 @@ import type {
   PetrinautOptimizationChannel,
   PetrinautOptimizationTrialRequest,
 } from "@hashintel/petrinaut-core/optimization";
-
-/** Runs a trial's point computes before its value is read: the ladder's first rung. */
-export const SWEEP_TRIAL_RUNS = 8;
 
 export type SweepTrialEvaluator = PetrinautOptimizationChannel & {
   /**
@@ -65,7 +62,6 @@ export const createSweepTrialEvaluator = ({
   experimentId,
   axes,
   metricId,
-  runCap = SWEEP_TRIAL_RUNS,
   navigateSweep,
 }: {
   experimentId: string;
@@ -73,8 +69,6 @@ export const createSweepTrialEvaluator = ({
   axes: readonly ExperimentParameterAxis[];
   /** The experiment metric the study optimizes. */
   metricId: string;
-  /** Runs a trial's point computes before its value is read. */
-  runCap?: number;
   navigateSweep: ExperimentsActionsValue["navigateSweep"];
 }): SweepTrialEvaluator => {
   /** Where the sweep is parked once the study is over; "none" while it runs. */
@@ -95,10 +89,13 @@ export const createSweepTrialEvaluator = ({
       );
     }
     lastPoint = point;
+    // The manifest's runs per trial are what the point computes before its
+    // value is read. A failed batch or a gone sweep rejects here, and the
+    // rejection fails the study rather than pruning the trial.
     const cell: SweepVisitedCell | null = await navigateSweep(
       experimentId,
       point,
-      { runCap },
+      { runCap: request.manifest.execution.seedsPerTrial ?? 1 },
     );
     if (cell === null) {
       return prunedTrialOutcome(
@@ -127,7 +124,9 @@ export const createSweepTrialEvaluator = ({
       parked = next;
       const point = bestPoint ?? lastPoint;
       if (point !== null) {
-        void navigateSweep(experimentId, point);
+        // The sweep may be gone already (its experiment removed): nothing
+        // left to park.
+        void navigateSweep(experimentId, point).catch(() => undefined);
       }
     },
   };

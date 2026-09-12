@@ -9,6 +9,7 @@ import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   type PetrinautOptimization,
   type PetrinautOptimizationEvent,
+  type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
 import {
   type PetrinautConnectedOptimization,
@@ -18,6 +19,7 @@ import {
 import {
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
+  type SweepVisitedCell,
 } from "../experiments/context";
 import {
   PetrinautNavigationProvider,
@@ -26,6 +28,7 @@ import {
 import { PetrinautOptimizationContext } from "../optimization-context";
 import { UserSettingsContext } from "../state/user-settings-context";
 import {
+  type OptimizationBest,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
@@ -43,7 +46,12 @@ import {
   buildOptimizationSurfaceAxes,
   optimizationAxisPositionFor,
 } from "./surface-grid";
+import { sweepPointFor } from "./sweep-evaluator/create-sweep-trial-evaluator";
 
+import type {
+  ExperimentParameterAxis,
+  SweepSelection,
+} from "../experiments/parameter-grid";
 import type { PetrinautNavigationState } from "../navigation";
 import type { PropsWithChildren } from "react";
 
@@ -91,16 +99,24 @@ const InBrowserOptimizationSetting = ({
   );
 };
 
-/** Routes the provider's detached objective runs to a fake. */
+/** Routes the provider's detached objective runs, and sweep navigations, to fakes. */
 const ExperimentsActionsOverride = ({
   runDetachedObjective,
+  navigateSweep,
   children,
 }: PropsWithChildren<{
   runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+  navigateSweep?: ExperimentsActionsValue["navigateSweep"];
 }>) => {
   const value = use(ExperimentsActionsContext);
   return (
-    <ExperimentsActionsContext value={{ ...value, runDetachedObjective }}>
+    <ExperimentsActionsContext
+      value={{
+        ...value,
+        runDetachedObjective,
+        ...(navigateSweep ? { navigateSweep } : {}),
+      }}
+    >
       {children}
     </ExperimentsActionsContext>
   );
@@ -144,9 +160,26 @@ const createQuietConnectedSource = () => {
 /**
  * A connected source whose study evaluates one trial per value through the
  * channel, in order, then completes — the shape of the in-browser optimizer.
+ * A cancel stops the asking and ends the segment cancelled instead. The
+ * complete event carries the best trial when `bestOnComplete` asks for it,
+ * as the in-browser worker's does.
  */
-const createEvaluatingSource = (infectedRatios: readonly number[]) => {
-  const calls = { connect: 0, dispose: 0, release: [] as string[] };
+const createEvaluatingSource = (
+  infectedRatios: readonly number[],
+  {
+    manifest = input,
+    bestOnComplete = false,
+  }: { manifest?: PetrinautOptimizationInput; bestOnComplete?: boolean } = {},
+) => {
+  const calls = {
+    connect: 0,
+    dispose: 0,
+    cancel: 0,
+    release: [] as string[],
+  };
+  let cancelled = false;
+  // Read through a call so the flag is re-checked after each await.
+  const isCancelled = () => cancelled;
   const source: PetrinautConnectedOptimization = {
     kind: "connected",
     connect: (channel) => {
@@ -157,21 +190,35 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
         async *attachOptimizationRun(runId, options) {
           options?.onAttached?.();
           let seq = 0;
+          let best: OptimizationBest | null = null;
           for (const [trial, infectedRatio] of infectedRatios.entries()) {
             const suggestedValues = { infected_ratio: infectedRatio };
             const outcome = await channel.evaluateTrial({
               runId,
               trial,
-              manifest: input,
+              manifest,
               suggestedValues,
               scenarioParameterValues: resolveTrialScenarioParameterValues(
-                input,
+                manifest,
                 suggestedValues,
               ),
               seeds: [1, 2, 3],
               signal: options?.signal ?? new AbortController().signal,
             });
+            if (isCancelled()) {
+              break;
+            }
             seq += 1;
+            if (
+              outcome.kind === "objective" &&
+              (!best || outcome.objective < best.objective)
+            ) {
+              best = {
+                trial,
+                parameters: suggestedValues,
+                objective: outcome.objective,
+              };
+            }
             yield {
               type: "trial",
               trial,
@@ -184,18 +231,33 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
             };
           }
           seq += 1;
+          if (isCancelled()) {
+            yield {
+              type: "error",
+              code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+              message: "optimization cancelled",
+              retryable: false,
+              resumable: false,
+              seq,
+            };
+            return;
+          }
           yield {
             type: "complete",
             requestedTrials: infectedRatios.length,
             completedTrials: infectedRatios.length,
             prunedTrials: 0,
             failedTrials: 0,
-            best: null,
+            best: bestOnComplete ? best : null,
             resumable: true,
             seq,
           };
         },
-        cancelOptimizationRun: () => Promise.resolve(),
+        cancelOptimizationRun: () => {
+          calls.cancel += 1;
+          cancelled = true;
+          return Promise.resolve();
+        },
         extendOptimizationRun: () => Promise.resolve(),
         pauseOptimizationRun: () => Promise.resolve(),
         releaseOptimizationRun: (runId) => {
@@ -214,17 +276,22 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
 const renderConnectedProvider = ({
   source,
   runDetachedObjective,
+  navigateSweep,
   enabled = true,
 }: {
   source: PetrinautConnectedOptimization;
   runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+  navigateSweep?: ExperimentsActionsValue["navigateSweep"];
   enabled?: boolean;
 }) => {
   let latest: OptimizationsContextValue | null = null;
   const tree = (isEnabled: boolean) => (
     <InBrowserOptimizationSetting enabled={isEnabled}>
       <PetrinautOptimizationContext value={source}>
-        <ExperimentsActionsOverride runDetachedObjective={runDetachedObjective}>
+        <ExperimentsActionsOverride
+          runDetachedObjective={runDetachedObjective}
+          navigateSweep={navigateSweep}
+        >
           <OptimizationsProvider>
             <CaptureContext
               onValue={(value) => {
@@ -1412,6 +1479,203 @@ describe("OptimizationsProvider", () => {
     expect(calls.dispose).toBe(0);
     unmount();
     expect(calls.dispose).toBe(1);
+  });
+});
+
+/** The swept parameter of the SIR sweep a study drives, as the experiment quantizes it. */
+const SWEEP_AXES: readonly ExperimentParameterAxis[] = [
+  {
+    identifier: "infected_ratio",
+    min: 0.001,
+    max: 0.2,
+    stepCount: 50,
+    integer: false,
+  },
+];
+
+/** The sweep point a suggested ratio lands on. */
+const sweepPointOf = (infectedRatio: number): SweepSelection => {
+  const point = sweepPointFor(SWEEP_AXES, { infected_ratio: infectedRatio });
+  if (point === null) {
+    throw new Error("The ratio misses the sweep's axis");
+  }
+  return point;
+};
+
+/** The sweep's answer at a point: the objective grows with the position, so lower ratios win a minimization. */
+const sweepCellAt = (point: SweepSelection): SweepVisitedCell => {
+  const position = point.infected_ratio?.from ?? 0;
+  return {
+    position: { infected_ratio: position },
+    runsCompleted: 8,
+    means: { [metricId]: position / 100 },
+  };
+};
+
+describe("OptimizationsProvider driving a sweep", () => {
+  const sweepInput: PetrinautOptimizationInput = {
+    ...input,
+    execution: { ...input.execution, seedsPerTrial: 8 },
+  };
+  const sweep = {
+    experimentId: "experiment-sweep",
+    axes: SWEEP_AXES,
+    metricId,
+  };
+
+  it("evaluates every step through the sweep with the manifest's runs per step, parks on the best once done and releases the study on removal", async () => {
+    const { source, calls } = createEvaluatingSource([0.05, 0.02], {
+      manifest: sweepInput,
+      bestOnComplete: true,
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    const navigateSweep = vi.fn(
+      (_experimentId: string, selection: SweepSelection) =>
+        Promise.resolve(sweepCellAt(selection)),
+    );
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      navigateSweep,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(sweepInput, {
+        sweep,
+      });
+    });
+    // The study stays in the experiment's drawer: nothing navigates to it.
+    expect(getValue().selectedOptimizationId).toBeNull();
+    expect(getValue().optimizations[0]).toMatchObject({
+      origin: { kind: "sweep", experimentId: "experiment-sweep" },
+      connected: null,
+    });
+
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    // Every step went through the sweep at the manifest's runs per step;
+    // none ran on the channel's own compute.
+    expect(navigateSweep.mock.calls.slice(0, 2)).toEqual([
+      ["experiment-sweep", sweepPointOf(0.05), { runCap: 8 }],
+      ["experiment-sweep", sweepPointOf(0.02), { runCap: 8 }],
+    ]);
+    expect(fake.runs).toHaveLength(0);
+    expect(getValue().optimizations[0]).toMatchObject({
+      completedTrials: 2,
+      best: { trial: 1 },
+    });
+    // Done: the sweep parks, uncapped, on the best point.
+    expect(navigateSweep).toHaveBeenCalledTimes(3);
+    expect(navigateSweep).toHaveBeenLastCalledWith(
+      "experiment-sweep",
+      sweepPointOf(0.02),
+      undefined,
+    );
+
+    act(() => getValue().removeOptimization(optimizationId));
+    expect(calls.release).toEqual(["run-connected"]);
+    expect(getValue().optimizations).toHaveLength(0);
+    unmount();
+  });
+
+  it("stops a sweep study once: the step in flight is let go, the sweep parks on it, and the worker's own cancel adds nothing", async () => {
+    const { source, calls } = createEvaluatingSource([0.05, 0.02], {
+      manifest: sweepInput,
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    let releaseStep: (cell: SweepVisitedCell | null) => void = () => {};
+    const navigateSweep = vi.fn(
+      (
+        _experimentId: string,
+        _selection: SweepSelection,
+        options?: { runCap?: number },
+      ) =>
+        options
+          ? new Promise<SweepVisitedCell | null>((resolve) => {
+              releaseStep = resolve;
+            })
+          : Promise.resolve(null),
+    );
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      navigateSweep,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(sweepInput, {
+        sweep,
+      });
+    });
+    await waitFor(() => expect(navigateSweep).toHaveBeenCalledTimes(1));
+
+    act(() => getValue().cancelOptimization(optimizationId));
+    expect(calls.cancel).toBe(1);
+    expect(getValue().optimizations[0]?.status).toBe("cancelled");
+    // The sweep parks, uncapped, on the point the stopped step was trying.
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+    expect(navigateSweep).toHaveBeenLastCalledWith(
+      "experiment-sweep",
+      sweepPointOf(0.05),
+      undefined,
+    );
+
+    // The step in flight resolves; the worker acknowledges the stop.
+    releaseStep(null);
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(1));
+    expect(getValue().optimizations[0]?.status).toBe("cancelled");
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+    expect(fake.runs).toHaveLength(0);
+  });
+
+  it("parks the sweep, uncapped, on the point it was trying when In-browser optimization is switched off mid-study", async () => {
+    const { source } = createEvaluatingSource([0.05, 0.02], {
+      manifest: sweepInput,
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    let releaseStep: (cell: SweepVisitedCell | null) => void = () => {};
+    const navigateSweep = vi.fn(
+      (
+        _experimentId: string,
+        _selection: SweepSelection,
+        options?: { runCap?: number },
+      ) =>
+        options
+          ? new Promise<SweepVisitedCell | null>((resolve) => {
+              releaseStep = resolve;
+            })
+          : Promise.resolve(null),
+    );
+    const { getValue, setEnabled } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      navigateSweep,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(sweepInput, { sweep });
+    });
+    await waitFor(() => expect(navigateSweep).toHaveBeenCalledTimes(1));
+
+    act(() => setEnabled(false));
+    // The source is gone before the aborted step reports, so the study's own
+    // cancel finds no evaluator: the sweep still parks, uncapped, on the point
+    // the step was trying.
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+    expect(navigateSweep).toHaveBeenLastCalledWith(
+      "experiment-sweep",
+      sweepPointOf(0.05),
+      undefined,
+    );
+
+    releaseStep(null);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("cancelled"),
+    );
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
   });
 });
 

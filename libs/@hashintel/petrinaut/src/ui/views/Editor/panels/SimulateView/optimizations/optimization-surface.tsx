@@ -31,13 +31,14 @@ import {
   optimizationBooleanIdentifiers,
 } from "../../../../../../react/optimizations/surface-grid";
 import { formatAxisValue } from "../shared/format-axis-value";
+import { directionWord, objectiveMetric } from "../shared/study-labels";
+import { mergeSurfaceFields } from "../shared/surface-field";
 import { describeSurfaceSampling } from "../shared/surface-frame";
 import {
   SURFACE_CELL_RUNS,
-  surfacePositions,
+  surfaceColumnCount,
 } from "../shared/surface-sampling";
 import {
-  type OptimizationSurfaceView,
   resolveSurfaceBooleans,
   resolveSurfacePositions,
   surfaceSliceKey,
@@ -50,7 +51,6 @@ import {
 import {
   describeSurfaceState,
   inFlightSurfaceField,
-  mergeSurfaceFields,
   navigatedSurfaceSample,
   OptimizationSurfacePlot,
   surfaceCellKeyAt,
@@ -65,6 +65,7 @@ import type {
   ConnectedStudyState,
   OptimizationNavigation,
   OptimizationRecord,
+  OptimizationSurfaceView,
 } from "../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
 import type { ChartCardTone } from "../shared/chart-card";
@@ -116,15 +117,18 @@ const initialView = (
 
 export const OptimizationSurface = ({
   optimization,
+  actions,
+  tone,
 }: {
   optimization: OptimizationRecord;
+  /** The card header's right side, e.g. a help tooltip. */
+  actions?: ReactNode;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const { sampleDetachedObjective } = use(ExperimentsActionsContext);
   const { input, axes } = optimization;
-  const metricId = input.objective.metricId;
-  const objectiveMetric = input.model.definition.metrics?.find(
-    (metric) => metric.id === metricId,
-  );
+  const metric = objectiveMetric(input);
 
   const [view, setView] = useState(() => initialView(axes));
   const [chosenPositions, setChosenPositions] = useState<
@@ -242,14 +246,12 @@ export const OptimizationSurface = ({
     sampleDetachedObjective,
   ]);
 
-  if (axes.length < 2 || !objectiveMetric) {
+  if (axes.length < 2 || !metric) {
     return null;
   }
 
   const currentRefined = refined?.walkKey === walkKey ? refined : null;
   const stats = currentRefined?.stats;
-  const direction =
-    input.objective.direction === "maximize" ? "Maximize" : "Minimize";
 
   // A refined point is usually also a grid cell: its deeper value wins.
   const cellValues =
@@ -267,9 +269,7 @@ export const OptimizationSurface = ({
         }).markers
       : [];
   const totalCells =
-    xAxis && yAxis
-      ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
-      : 0;
+    xAxis && yAxis ? surfaceColumnCount(xAxis) * surfaceColumnCount(yAxis) : 0;
 
   return (
     <OptimizationSurfacePlot
@@ -284,6 +284,8 @@ export const OptimizationSurface = ({
       onPick={(picked) =>
         setChosenPositions((previous) => ({ ...previous, ...picked }))
       }
+      actions={actions}
+      tone={tone}
       caption={describeSurfaceSampling({
         sampledCount: cellValues.size,
         totalCells,
@@ -317,7 +319,7 @@ export const OptimizationSurface = ({
         </div>
       ))}
       <div className={readoutStyle}>
-        {direction} {objectiveMetric.name} at selection:{" "}
+        {directionWord(input.objective.direction)} {metric.name} at selection:{" "}
         {stats
           ? `${formatAxisValue(stats.mean)} mean · ${formatAxisValue(
               stats.median,
@@ -346,7 +348,9 @@ export const NavigatedOptimizationSurface = ({
 }) => {
   const { input, axes } = optimization;
   const { navigation, selection } = connected;
-  const [view, setView] = useState(() => initialView(axes));
+  // The axis picks live in the navigation, so they survive the swap between
+  // the drawer and the full view, and a close and reopen.
+  const view = navigation.surfaceAxes ?? initialView(axes);
 
   const positions = resolveSurfacePositions(
     axes,
@@ -393,7 +397,7 @@ export const NavigatedOptimizationSurface = ({
     <OptimizationSurfacePlot
       axes={axes}
       view={view}
-      onViewChange={setView}
+      onViewChange={(surfaceAxes) => onNavigationChange({ surfaceAxes })}
       positions={positions}
       values={values}
       markers={field.markers}
@@ -415,7 +419,6 @@ export const NavigatedOptimizationSurface = ({
         selection,
       })}
       actions={actions}
-      fixedHeight
       tone={tone}
     />
   );

@@ -7,8 +7,12 @@
  * still, a value with a short form shows that instead; whatever still does
  * not fit scrolls sideways under a fade at the edge. Once the body has
  * scrolled the header condenses: the strip folds away, its columns reappear
- * as chips on the title line, and the header grows back while the pointer
- * or focus is on it.
+ * as chips on the title line where the headline was, crossfading with it,
+ * and the header grows back while the pointer or focus is on it. The chips
+ * are a visual echo of the strip, inert and hidden from assistive
+ * technology; the folded strip stays the one copy a reader or the keyboard
+ * reaches, so a Tab onto one of its controls grows the header back around
+ * it, and a pointer on the chips does the same.
  *
  * Every column is exactly as wide as its widest value: the value cell lays
  * an invisible copy of that widest text under the live one, so a number
@@ -19,7 +23,9 @@ import { createContext, type ReactNode, use, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { type OverflowState, useOverflowEnd } from "./use-overflow-end";
+import { Fold } from "./fold";
+import { FrameAnimateContext } from "./frame-animate-context";
+import { useOverflows } from "./use-overflows";
 
 import type { FrameHeaderEngagement } from "./use-header-engaged";
 
@@ -27,14 +33,6 @@ import type { FrameHeaderEngagement } from "./use-header-engaged";
 export const FRAME_HEADER_HEIGHT = 74;
 /** The header's height in pixels once the body has scrolled: the title line and the padding. */
 export const FRAME_HEADER_CONDENSED_HEIGHT = 36;
-/**
- * The header content width, in pixels, under which the columns drop their
- * labels and read as chips. Mirrored by the container queries below, which
- * Panda extracts statically.
- */
-export const FRAME_HEADER_CHIPS_MAX_WIDTH = 859;
-/** The header content width, in pixels, under which a value with a short form shows it. */
-export const FRAME_HEADER_SHORT_MAX_WIDTH = 719;
 
 /** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
 export type FrameStatsDensity = "full" | "compact";
@@ -68,8 +66,8 @@ const titleRowStyle = css({
   flexShrink: "0",
 });
 
-// The title yields to the compact chips: it may shrink to a few characters,
-// the chips never shrink at all.
+// The title keeps its own width; whatever shares the line with it takes the
+// rest and yields inside that, so nothing there moves the title's ellipsis.
 const titleStyle = css({
   fontSize: "sm",
   fontWeight: "semibold",
@@ -82,20 +80,40 @@ const titleStyle = css({
   minWidth: "[48px]",
 });
 
-// The headline reads to the right of the title while the header is at rest;
-// condensed, the compact chips take that room and the headline steps aside.
+// The rest of the title line: one grid cell the headline and the compact
+// chips share, the headline showing while the header is at rest and the
+// chips once it has condensed, crossfading over the strip's fold.
+const titleLineEndStyle = css({
+  display: "grid",
+  alignItems: "center",
+  flex: "[1 1 0]",
+  minWidth: "[0]",
+  "& > *": { gridArea: "[1 / 1]" },
+});
+
 const headlineStyle = css({
   display: "flex",
   alignItems: "center",
-  marginLeft: "auto",
+  justifyContent: "flex-end",
   minWidth: "[0]",
   overflow: "hidden",
-  "[data-condensed=true] &": { display: "none" },
+  opacity: "[1]",
+  visibility: "visible",
+  "[data-animate=true] &": {
+    transition: "[opacity 120ms ease-out, visibility 0s]",
+  },
+  "[data-condensed=true] &": { opacity: "[0]", visibility: "hidden" },
+  "[data-animate=true][data-condensed=true] &": {
+    transition: "[opacity 120ms ease-out, visibility 0s 160ms]",
+  },
 });
 
-// One line of chips that scrolls sideways when the title line is too narrow
-// for all of them, fading at the edge while there is more to the right. Only
-// while it overflows is it a tab stop, so the keyboard can scroll it.
+// One line of chips that scrolls sideways when its line is too narrow for
+// all of them, fading at the edge while there is more to the right: a
+// scroll-driven animation from the fade to no mask, inactive while nothing
+// overflows. Without scroll-driven animations the chips clip with no fade.
+// Only while it overflows is the strip a tab stop, so the keyboard can
+// scroll it.
 const scrollingLineStyle = css({
   display: "flex",
   alignItems: "center",
@@ -105,9 +123,11 @@ const scrollingLineStyle = css({
   scrollbarWidth: "[none]",
   whiteSpace: "nowrap",
   "&::-webkit-scrollbar": { display: "none" },
-  "&[data-overflow-end=true]": {
-    maskImage:
-      "[linear-gradient(to right, black calc(100% - 40px), transparent)]",
+  "@supports (animation-timeline: scroll())": {
+    animationName: "[petrinautScrollEndFade]",
+    animationTimeline: "[scroll(self inline)]",
+    animationTimingFunction: "linear",
+    animationFillMode: "both",
   },
   _focusVisible: {
     outline: "[2px solid {colors.blue.s50}]",
@@ -115,57 +135,31 @@ const scrollingLineStyle = css({
   },
 });
 
-/** The attributes that let the keyboard reach a scrolling line once it overflows. */
-const scrollingLineProps = (overflow: OverflowState) => ({
-  "data-overflow-end": overflow === "more",
-  tabIndex: overflow === "none" ? undefined : 0,
-  "aria-label": "Header statistics",
-});
-
 const compactRowStyle = css({
   gap: "2",
   height: "[24px]",
-  marginLeft: "auto",
+  justifySelf: "end",
+  maxWidth: "full",
+  opacity: "[0]",
+  visibility: "hidden",
   "[data-animate=true] &": {
-    animationName: "[dialogBackdropIn]",
-    animationDuration: "[160ms]",
-    animationTimingFunction: "ease-out",
+    transition: "[opacity 120ms ease-out, visibility 0s 160ms]",
+  },
+  "[data-condensed=true] &": { opacity: "[1]", visibility: "visible" },
+  "[data-animate=true][data-condensed=true] &": {
+    transition: "[opacity 120ms ease-out, visibility 0s]",
   },
 });
 
-// The strip folds behind a one-row grid whose row goes from `1fr` to `0fr`,
-// so the strip's own height is what animates and the header's height
-// follows it.
-const statsFoldStyle = css({
-  display: "grid",
-  gridTemplateRows: "[1fr]",
-  minWidth: "[0]",
-  "&[data-animate=true]": {
-    transition: "[grid-template-rows 160ms ease-out, visibility 0s]",
-  },
-  "&[data-condensed=true]": {
-    gridTemplateRows: "[0fr]",
-    visibility: "hidden",
-  },
-  "&[data-animate=true][data-condensed=true]": {
-    transition: "[grid-template-rows 160ms ease-out, visibility 0s 160ms]",
-  },
-});
-
-const statsClipStyle = css({
-  minHeight: "[0]",
-  minWidth: "[0]",
-  overflow: "hidden",
-  opacity: "[1]",
-  "[data-animate=true] > &": { transition: "[opacity 120ms ease-out]" },
-  "[data-condensed=true] > &": { opacity: "[0]" },
-});
-
-// The columns on one line, a gap under the title line. Below the chips
-// width the hairlines and their padding go, so the chips need a gap.
+// The columns on one line, a gap under the title line, fading out as the
+// strip folds. Below the chips width the hairlines and their padding go, so
+// the chips need a gap.
 const statsRowStyle = css({
   alignItems: "stretch",
   paddingTop: "1.5",
+  opacity: "[1]",
+  "[data-animate=true] &": { transition: "[opacity 120ms ease-out]" },
+  "[data-condensed=true] &": { opacity: "[0]" },
   "@container frame-header (max-width: 859px)": {
     columnGap: "2",
   },
@@ -331,7 +325,6 @@ export const FrameStat = ({
   align = "end",
   trailing = false,
   children,
-  className,
 }: {
   label: string;
   /** The widest text the value can show; it sizes the column invisibly. */
@@ -343,12 +336,11 @@ export const FrameStat = ({
   /** Pinned to the strip's right edge. */
   trailing?: boolean;
   children: ReactNode;
-  className?: string;
 }) => {
   const density = use(FrameStatsDensityContext);
   return (
     <span
-      className={cx(statStyle, className)}
+      className={statStyle}
       data-frame-stat
       data-density={density}
       data-align={align}
@@ -414,16 +406,14 @@ export type FrameHeaderProps = {
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */
-  headline?: ReactNode;
-  /** The strip: `FrameStat` columns. Rendered again as compact chips while condensed. */
+  headline?: ReactNode | null;
+  /** The strip: `FrameStat` columns. Echoed as inert compact chips on the title line while condensed. */
   stats: ReactNode;
   /** The strip's last column, pinned right: the compute badge. */
-  badge?: ReactNode;
+  badge?: ReactNode | null;
   /** The bar along the bottom edge, 0 to 100. Always drawn. */
   progress: number;
   condensed: boolean;
-  /** Whether the height and opacity changes animate: off under reduced motion or the animations setting. */
-  animate: boolean;
   /** Room kept clear on the right for a close button the surrounding chrome draws. */
   closeGutter?: number;
   /** The pointer and focus handlers that hold the header open while the body is scrolled. */
@@ -436,27 +426,28 @@ const BadgeColumn = ({ badge }: { badge: ReactNode }) => (
   </FrameStat>
 );
 
-/** The chips beside the title while the header is condensed. */
+/**
+ * The chips beside the title while the header is condensed: the strip's
+ * columns again at compact density, inert and hidden from assistive
+ * technology, since the folded strip keeps the reader's and the keyboard's
+ * copy and any pointer on the chips grows the header back to it.
+ */
 const CompactStats = ({
   stats,
   badge,
-}: Pick<FrameHeaderProps, "stats" | "badge">) => {
-  const [element, setElement] = useState<HTMLDivElement | null>(null);
-  const overflow = useOverflowEnd(element);
-  return (
-    <FrameStatsDensityContext value="compact">
-      <div
-        ref={setElement}
-        className={cx(scrollingLineStyle, compactRowStyle)}
-        data-frame-compact-stats
-        {...scrollingLineProps(overflow)}
-      >
-        {stats}
-        {badge === undefined ? null : <BadgeColumn badge={badge} />}
-      </div>
-    </FrameStatsDensityContext>
-  );
-};
+}: Pick<FrameHeaderProps, "stats" | "badge">) => (
+  <FrameStatsDensityContext value="compact">
+    <div
+      className={cx(scrollingLineStyle, compactRowStyle)}
+      data-frame-compact-stats
+      inert
+      aria-hidden
+    >
+      {stats}
+      {badge == null ? null : <BadgeColumn badge={badge} />}
+    </div>
+  </FrameStatsDensityContext>
+);
 
 export const FrameHeader = ({
   title,
@@ -466,12 +457,12 @@ export const FrameHeader = ({
   badge,
   progress,
   condensed,
-  animate,
   closeGutter = 0,
   engagement,
 }: FrameHeaderProps) => {
+  const animate = use(FrameAnimateContext);
   const [stripElement, setStripElement] = useState<HTMLDivElement | null>(null);
-  const stripOverflow = useOverflowEnd(stripElement);
+  const stripOverflows = useOverflows(stripElement);
 
   return (
     <div
@@ -487,32 +478,33 @@ export const FrameHeader = ({
         <span className={titleStyle} data-frame-title>
           {title}
         </span>
-        {condensed ? <CompactStats stats={stats} badge={badge} /> : null}
-        {headline === undefined ? null : (
-          <div className={headlineStyle}>{headline}</div>
-        )}
-      </div>
-      <div
-        className={statsFoldStyle}
-        data-condensed={condensed}
-        data-animate={animate}
-      >
-        <div
-          className={statsClipStyle}
-          data-frame-stats
-          aria-hidden={condensed ? true : undefined}
-        >
-          <div
-            ref={setStripElement}
-            className={cx(scrollingLineStyle, statsRowStyle)}
-            data-frame-stats-line
-            {...scrollingLineProps(stripOverflow)}
-          >
-            {stats}
-            {badge === undefined ? null : <BadgeColumn badge={badge} />}
-          </div>
+        <div className={titleLineEndStyle}>
+          {headline == null ? null : (
+            <div
+              className={headlineStyle}
+              data-frame-headline
+              inert={condensed}
+              aria-hidden={condensed ? true : undefined}
+            >
+              {headline}
+            </div>
+          )}
+          <CompactStats stats={stats} badge={badge} />
         </div>
       </div>
+      {/* The strip stays reachable while folded: focus into it grows the header. */}
+      <Fold open={!condensed} keepAccessible data-frame-stats>
+        <div
+          ref={setStripElement}
+          className={cx(scrollingLineStyle, statsRowStyle)}
+          data-frame-stats-line
+          tabIndex={stripOverflows ? 0 : undefined}
+          aria-label="Header statistics"
+        >
+          {stats}
+          {badge == null ? null : <BadgeColumn badge={badge} />}
+        </div>
+      </Fold>
       <div className={progressTrackStyle} data-frame-progress>
         <div
           className={progressFillStyle}

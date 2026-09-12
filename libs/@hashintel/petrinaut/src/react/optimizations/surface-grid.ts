@@ -9,11 +9,37 @@ import type {
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
 } from "@hashintel/petrinaut-core";
+import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
 
-type OptimizeBinding = Extract<
+export type OptimizeBinding = Extract<
   PetrinautOptimizationParameterBinding,
   { kind: "optimize" }
 >;
+
+/** The scenario's parameter bindings split by kind, each half in binding order. */
+export type ParameterBindingPartition = {
+  /** The parameters held constant, with their values. */
+  fixed: Record<string, OptimizationScalar>;
+  /** The parameters the optimizer moves, with their domains. */
+  optimized: Record<string, OptimizeBinding>;
+};
+
+export function partitionParameterBindings(
+  input: Pick<PetrinautOptimizationInput, "scenario">,
+): ParameterBindingPartition {
+  const fixed: Record<string, OptimizationScalar> = {};
+  const optimized: Record<string, OptimizeBinding> = {};
+  for (const [identifier, binding] of Object.entries(
+    input.scenario.parameterBindings,
+  )) {
+    if (binding.kind === "fixed") {
+      fixed[identifier] = binding.value;
+    } else {
+      optimized[identifier] = binding;
+    }
+  }
+  return { fixed, optimized };
+}
 type NumericDomain = Extract<
   OptimizeBinding["domain"],
   { kind: "continuous" } | { kind: "integer" }
@@ -124,11 +150,8 @@ export function optimizationAxisMidpoint(
 export function optimizationBooleanIdentifiers(
   input: PetrinautOptimizationInput,
 ): string[] {
-  return Object.entries(input.scenario.parameterBindings)
-    .filter(
-      ([, binding]) =>
-        binding.kind === "optimize" && binding.domain.kind === "boolean",
-    )
+  return Object.entries(partitionParameterBindings(input).optimized)
+    .filter(([, binding]) => binding.domain.kind === "boolean")
     .map(([identifier]) => identifier);
 }
 
@@ -163,14 +186,9 @@ export function optimizationNavigationValues(
   booleanIdentifiers: readonly string[],
   point: NavigationPoint,
 ): Record<string, number | boolean> {
-  const values: Record<string, number | boolean> = {};
-  for (const [identifier, binding] of Object.entries(
-    input.scenario.parameterBindings,
-  )) {
-    if (binding.kind === "fixed") {
-      values[identifier] = binding.value;
-    }
-  }
+  const values: Record<string, number | boolean> = {
+    ...partitionParameterBindings(input).fixed,
+  };
   for (const axis of axes) {
     values[axis.identifier] = optimizationAxisValueAt(
       axis,

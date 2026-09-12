@@ -44,28 +44,28 @@ export const FrameColumns = ({
   after,
 }: {
   /** The surface card; absent, the secondary column takes the width. */
-  primary?: ReactNode;
+  primary?: ReactNode | null;
   /** The metric cards grid. */
-  secondary?: ReactNode;
+  secondary?: ReactNode | null;
   /** Full width beneath both columns: a steps table. */
-  after?: ReactNode;
+  after?: ReactNode | null;
 }) => (
   <div
     className={columnsStyle}
     data-frame-columns
-    data-primary={primary !== undefined}
+    data-primary={primary != null}
   >
-    {primary === undefined ? null : (
+    {primary == null ? null : (
       <div className={areaStyle} style={{ gridArea: "primary" }}>
         {primary}
       </div>
     )}
-    {secondary === undefined ? null : (
+    {secondary == null ? null : (
       <div className={areaStyle} style={{ gridArea: "secondary" }}>
         {secondary}
       </div>
     )}
-    {after === undefined ? null : (
+    {after == null ? null : (
       <div className={areaStyle} style={{ gridArea: "after" }}>
         {after}
       </div>

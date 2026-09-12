@@ -23,6 +23,17 @@ export const Drawer = Object.assign(
       <header>{children}</header>
     ),
     Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
-    Footer: ({ actions }: { actions: ReactNode }) => <footer>{actions}</footer>,
+    Footer: ({
+      actions,
+      secondaryActions,
+    }: {
+      actions: ReactNode;
+      secondaryActions?: ReactNode;
+    }) => (
+      <footer>
+        {secondaryActions}
+        {actions}
+      </footer>
+    ),
   },
 );

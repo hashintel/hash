@@ -11,6 +11,7 @@ import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import { objectiveMetricName } from "../../shared/study-labels";
 import {
   buildObjectiveHistory,
   toObjectiveHistoryData,
@@ -132,7 +133,7 @@ const chartOptions = ({
   ],
 });
 
-export const ObjectiveHistoryChart = ({
+const ObjectiveHistoryChart = ({
   optimization,
   plotHeight,
 }: {
@@ -141,7 +142,7 @@ export const ObjectiveHistoryChart = ({
   plotHeight: number;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
-  const size = useElementSize(chartRootRef, { debounce: 50 });
+  const size = useElementSize(chartRootRef);
   const plotRef = useRef<uPlot | null>(null);
   const points = buildObjectiveHistory(
     optimization.trials,
@@ -149,14 +150,18 @@ export const ObjectiveHistoryChart = ({
   );
   const data = toObjectiveHistoryData(points);
   const width = size?.width ?? 0;
+  const hasWidth = width > 0;
 
+  // The plot lives as long as the root has a width; a resize is pushed into
+  // it below rather than rebuilding it, so a drawer drag keeps the canvas,
+  // the axes and the cursor.
   useEffect(() => {
     const root = chartRootRef.current;
-    if (!root || width === 0) {
+    if (!root || !hasWidth) {
       return;
     }
     const plot = new UPlot(
-      chartOptions({ width, height: plotHeight }),
+      chartOptions({ width: root.clientWidth, height: plotHeight }),
       [[], [], []] as uPlot.AlignedData,
       root,
     );
@@ -165,13 +170,17 @@ export const ObjectiveHistoryChart = ({
       plotRef.current = null;
       plot.destroy();
     };
-  }, [plotHeight, width]);
+  }, [hasWidth, plotHeight]);
+
+  useEffect(() => {
+    plotRef.current?.setSize({ width, height: plotHeight });
+  }, [width, plotHeight]);
 
   // The data is applied in its own effect so a new step redraws the plot
   // without recreating it, and a freshly created plot picks it up too.
   useEffect(() => {
     plotRef.current?.setData(data);
-  }, [data, width]);
+  }, [data, hasWidth]);
 
   return (
     <div
@@ -193,31 +202,24 @@ export const ObjectiveHistoryCard = ({
   plotHeight,
   tone,
 }: {
-  optimization: Pick<OptimizationRecord, "trials" | "input" | "best">;
+  optimization: Pick<
+    OptimizationRecord,
+    "trials" | "input" | "best" | "completedTrials"
+  >;
   plotHeight: number;
   /** How the card reads: `paused` while the study is paused. */
   tone?: ChartCardTone;
-}) => {
-  const { input } = optimization;
-  const metric = input.model.definition.metrics?.find(
-    (candidate) => candidate.id === input.objective.metricId,
-  );
-  const metricName = metric?.name ?? input.objective.metricId;
-  const completed = optimization.trials.filter(
-    (trial) => trial.state === "complete",
-  ).length;
-  return (
-    <ChartCard
-      title="Objective by step"
-      subtitle={`${metricName} per step · best so far as a line · ${completed} completed`}
-      help="Each dot is one step's objective value; the line is the best value found up to that step. Pruned and failed steps have no dot."
-      bodyHeight={plotHeight}
-      tone={tone}
-    >
-      <ObjectiveHistoryChart
-        optimization={optimization}
-        plotHeight={plotHeight}
-      />
-    </ChartCard>
-  );
-};
+}) => (
+  <ChartCard
+    title="Objective by step"
+    subtitle={`${objectiveMetricName(optimization.input)} per step · best so far as a line · ${optimization.completedTrials} completed`}
+    help="Each dot is one step's objective value; the line is the best value found up to that step. Pruned and failed steps have no dot."
+    bodyHeight={plotHeight}
+    tone={tone}
+  >
+    <ObjectiveHistoryChart
+      optimization={optimization}
+      plotHeight={plotHeight}
+    />
+  </ChartCard>
+);

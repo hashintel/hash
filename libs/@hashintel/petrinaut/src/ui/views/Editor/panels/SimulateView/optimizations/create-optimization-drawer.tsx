@@ -30,6 +30,7 @@ import {
   isConnectedOptimization,
   PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
   PETRINAUT_OPTIMIZATION_MAX_SEED,
+  type PetrinautOptimizationDirection,
 } from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -191,8 +192,6 @@ const parameterListStyle = css({
 const errorsStyle = css({
   whiteSpace: "pre-wrap",
 });
-
-type Direction = "maximize" | "minimize";
 
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
@@ -435,7 +434,7 @@ function getConfigurationError({
   drafts: ParameterDrafts;
   objectiveMetricReady: boolean;
   missingObjectiveMessage: string;
-  direction: Direction | null;
+  direction: PetrinautOptimizationDirection | null;
   optimizationSteps: number | null;
   seedsPerTrial: number | null;
   parallelism: number | null;
@@ -550,7 +549,7 @@ export function buildPetrinautOptimizationInput({
   scenario: Scenario;
   drafts: ParameterDrafts;
   metric: Metric;
-  direction: Direction;
+  direction: PetrinautOptimizationDirection;
   optimizationSteps: number;
   seedsPerTrial: number;
   seed: number;
@@ -652,7 +651,7 @@ export function buildAdHocPetrinautOptimizationInput({
   scenario: Scenario;
   parameterBindings: Record<string, PetrinautOptimizationParameterBinding>;
   metric: Metric;
-  direction: Direction;
+  direction: PetrinautOptimizationDirection;
   optimizationSteps: number;
   seedsPerTrial: number;
   seed: number;
@@ -712,7 +711,8 @@ export const CreateOptimizationDrawer = ({
   const [customMetricId, setCustomMetricId] = useState(() =>
     crypto.randomUUID(),
   );
-  const [direction, setDirection] = useState<Direction | null>(null);
+  const [direction, setDirection] =
+    useState<PetrinautOptimizationDirection | null>(null);
   const [optimizationSteps, setOptimizationSteps] = useState<number | null>(
     100,
   );
@@ -1492,7 +1492,9 @@ export const CreateOptimizationDrawer = ({
                         size="sm"
                         value={direction ?? ""}
                         items={directionOptions}
-                        onChange={(value) => setDirection(value as Direction)}
+                        onChange={(value) =>
+                          setDirection(value as PetrinautOptimizationDirection)
+                        }
                       />
                     </div>
                   </Form.Field>

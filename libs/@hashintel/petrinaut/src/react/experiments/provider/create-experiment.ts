@@ -21,9 +21,14 @@ import {
   buildParameterAxis,
   fullSweepSelection,
 } from "../parameter-grid";
+import { sweepSelectionKey } from "../sweep-session";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
-import type { CreateExperimentInput, ExperimentRecord } from "../context";
+import type {
+  CreateExperimentInput,
+  ExperimentRecord,
+  ExperimentSweepState,
+} from "../context";
 import type { ExperimentParameterAxis } from "../parameter-grid";
 import type {
   BuildExperimentRequest,
@@ -328,6 +333,22 @@ export const compileExperimentScenario = async ({
   };
 };
 
+/** A sweep's state before anything computed: the whole space selected. */
+const idleSweepState = (
+  axes: readonly ExperimentParameterAxis[],
+): ExperimentSweepState => {
+  const selection = fullSweepSelection(axes);
+  return {
+    selection,
+    selectionKey: sweepSelectionKey(axes, selection),
+    runsCompleted: 0,
+    runsSampled: 0,
+    runTarget: null,
+    computing: false,
+    visited: [],
+  };
+};
+
 export const newExperimentRecord = ({
   id,
   input,
@@ -360,17 +381,7 @@ export const newExperimentRecord = ({
   metricFrames: [],
   sweepBatches: [],
   parameterAxes: axes,
-  sweep:
-    axes.length > 0
-      ? {
-          selection: fullSweepSelection(axes),
-          runsCompleted: 0,
-          runsSampled: 0,
-          runTarget: null,
-          computing: false,
-          visited: [],
-        }
-      : null,
+  sweep: axes.length > 0 ? idleSweepState(axes) : null,
 });
 
 /**

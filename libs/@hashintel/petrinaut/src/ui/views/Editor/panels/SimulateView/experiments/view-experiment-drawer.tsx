@@ -2,7 +2,7 @@
  * One experiment in a drawer over the Experiments list: the shared results
  * view over the experiment's model, in a ds Drawer.
  */
-import { ResultsView } from "../shared/results";
+import { ResultsView } from "../shared/results-view";
 import { useExperimentResultsModel } from "./experiment-results";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";

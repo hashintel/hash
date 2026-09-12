@@ -8,13 +8,13 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FrameBand,
   FrameCard,
   FrameColumns,
   FrameStat,
@@ -22,8 +22,9 @@ import {
 } from "./drawer-frame";
 import {
   frameHeader as header,
+  frameStats,
   scrollFrameBody as scrollBodyTo,
-} from "./drawer-frame/frame-test-helpers";
+} from "./drawer-frame.test-helpers";
 
 import type { ReactNode } from "react";
 
@@ -89,7 +90,9 @@ describe("DrawerFrame", () => {
       screen.getByText("SIR transmission sweep · Seasonal Flu · 100 runs"),
     ).toBeTruthy();
     expect(screen.getByText("Step 3 of 30")).toBeTruthy();
-    const runs = screen.getByText("Runs").nextElementSibling!;
+    // The strip holds the labelled columns; the compact echo repeats them.
+    const strip = within(frameStats());
+    const runs = strip.getByText("Runs").nextElementSibling!;
     expect(runs.querySelector("[data-frame-stat-value]")?.textContent).toBe(
       "100 complete",
     );
@@ -104,7 +107,7 @@ describe("DrawerFrame", () => {
       columns.map((column) => column.querySelector("span")?.textContent),
     ).toEqual(["Status", "Runs", "Compute"]);
     expect(columns.at(-1)?.getAttribute("data-trailing")).toBe("true");
-    expect(screen.getByText("CPU")).toBeTruthy();
+    expect(strip.getByText("CPU")).toBeTruthy();
     expect(
       document.querySelector<HTMLElement>("[data-frame-progress] > div")?.style
         .width,
@@ -117,7 +120,8 @@ describe("DrawerFrame", () => {
 
     scrollBodyTo(48);
     expect(header().dataset.condensed).toBe("true");
-    // The compact copy sits in the title line; the stats line is folded away.
+    // The compact copy sits in the title line, an inert echo of the strip,
+    // which is folded away; the headline steps aside for it.
     const compact = document.querySelector("[data-frame-compact-stats]")!;
     expect(compact.textContent).toContain("Running");
     expect(compact.textContent).toContain("CPU");
@@ -126,19 +130,68 @@ describe("DrawerFrame", () => {
         stat.getAttribute("title"),
       ),
     ).toEqual(["Status", "Runs", "Compute"]);
-    expect(
-      document.querySelector("[data-frame-stats]")?.getAttribute("aria-hidden"),
-    ).toBe("true");
+    expect(compact.hasAttribute("inert")).toBe(true);
+    expect(compact.getAttribute("aria-hidden")).toBe("true");
+    // The folded strip stays the one copy a reader or the keyboard reaches.
+    const strip = frameStats();
+    expect(strip.getAttribute("aria-hidden")).toBeNull();
+    expect(strip.hasAttribute("inert")).toBe(false);
+    const headline = document.querySelector("[data-frame-headline]")!;
+    expect(headline.getAttribute("aria-hidden")).toBe("true");
+    expect(headline.hasAttribute("inert")).toBe(true);
 
     fireEvent.pointerEnter(header());
     expect(header().dataset.condensed).toBe("false");
-    expect(document.querySelector("[data-frame-compact-stats]")).toBeNull();
+    // Both copies stay mounted so the flip can crossfade: the strip is
+    // still live, the compact echo stays inert and the headline reads.
+    expect(strip.getAttribute("aria-hidden")).toBeNull();
+    expect(strip.hasAttribute("inert")).toBe(false);
+    expect(compact.isConnected).toBe(true);
+    expect(compact.hasAttribute("inert")).toBe(true);
+    expect(compact.getAttribute("aria-hidden")).toBe("true");
+    expect(headline.hasAttribute("inert")).toBe(false);
 
     fireEvent.pointerLeave(header());
     expect(header().dataset.condensed).toBe("true");
 
     scrollBodyTo(0);
     expect(header().dataset.condensed).toBe("false");
+  });
+
+  it("stays expanded while the body overflows by less than the header gives back, and stays condensed once the clamp shrinks the overflow", () => {
+    renderFrame();
+
+    // 30px of overflow: condensing would hand the body 38px, the content
+    // would fit and the offset clamp to zero, so the header does not move.
+    scrollBodyTo(30, { overflow: 30 });
+    expect(header().dataset.condensed).toBe("false");
+
+    // 50px of overflow condenses; the clamp that follows reports 12px of
+    // overflow at a 12px offset, which keeps it condensed.
+    scrollBodyTo(50, { overflow: 50 });
+    expect(header().dataset.condensed).toBe("true");
+    scrollBodyTo(12, { overflow: 12 });
+    expect(header().dataset.condensed).toBe("true");
+
+    scrollBodyTo(0, { overflow: 12 });
+    expect(header().dataset.condensed).toBe("false");
+  });
+
+  it("grows back when the keyboard reaches a control in the folded strip, and condenses again when it leaves", () => {
+    render(frame({ stats: computingChip(true) }));
+    const chip = screen.getByRole("button", { name: "1 computing" });
+
+    scrollBodyTo(48);
+    expect(header().dataset.condensed).toBe("true");
+    // Folded, not inert: a Tab still lands on the chip.
+    expect(frameStats().hasAttribute("inert")).toBe(false);
+
+    act(() => chip.focus());
+    expect(header().dataset.condensed).toBe("false");
+    expect(document.activeElement).toBe(chip);
+
+    act(() => chip.blur());
+    expect(header().dataset.condensed).toBe("true");
   });
 
   it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {
@@ -198,7 +251,7 @@ describe("DrawerFrame", () => {
     )!;
 
     expect(line.hasAttribute("tabindex")).toBe(false);
-    expect(line.dataset.overflowEnd).toBe("false");
+    expect(line.getAttribute("aria-label")).toBe("Header statistics");
 
     // jsdom lays nothing out: give the line more content than width.
     Object.defineProperty(line, "scrollWidth", {
@@ -212,18 +265,6 @@ describe("DrawerFrame", () => {
     view.rerender(frame());
 
     expect(line.getAttribute("tabindex")).toBe("0");
-    expect(line.getAttribute("aria-label")).toBe("Header statistics");
-    expect(line.dataset.overflowEnd).toBe("true");
-
-    // Scrolled to the end it stays reachable but the fade goes.
-    Object.defineProperty(line, "scrollLeft", {
-      configurable: true,
-      value: 200,
-    });
-    fireEvent.scroll(line);
-
-    expect(line.getAttribute("tabindex")).toBe("0");
-    expect(line.dataset.overflowEnd).toBe("false");
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {
@@ -283,39 +324,6 @@ describe("DrawerFrame", () => {
         .getByRole("button", { name: "1 computing" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
-  });
-
-  it("folds a collapsible band's controls away without unmounting them", () => {
-    render(
-      <FrameBand title="Parameters" collapsible>
-        <input aria-label="population" defaultValue="42" />
-      </FrameBand>,
-    );
-
-    const toggle = screen.getByRole("button", { name: "Collapse Parameters" });
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(toggle);
-
-    const content = document.querySelector<HTMLElement>(
-      "[data-frame-band-content]",
-    )!;
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("true");
-    expect(content.getAttribute("aria-hidden")).toBe("true");
-    expect(content.hasAttribute("inert")).toBe(true);
-    expect(content.querySelector("input")?.value).toBe("42");
-    expect(
-      screen
-        .getByRole("button", { name: "Expand Parameters" })
-        .getAttribute("aria-expanded"),
-    ).toBe("false");
-
-    fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
-    expect(content.hasAttribute("inert")).toBe(false);
-    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
   });
 
   it("keeps a card's fixed part folded until its footer button opens it, mounted throughout", () => {

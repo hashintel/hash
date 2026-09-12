@@ -389,21 +389,23 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             : update.computing
               ? "running"
               : "idle",
+          // A failure belongs to the selection that failed: the next
+          // selection's publish clears it from the record.
+          ...(update.failed ? {} : { error: null }),
           metricFrames: update.metricFrames,
           latestMetricFramesById: latestFramesById(update.metricFrames),
           progress: update.progress,
           sweep: {
             selection: update.selection,
+            selectionKey: update.selectionKey,
             runsCompleted: update.runsCompleted,
             runsSampled: update.runsSampled,
             runTarget: update.runTarget,
             computing: update.computing,
             visited: update.visited,
           },
+          sweepBatches: update.batches,
         });
-      },
-      onBatches: (sweepBatches) => {
-        patchExperiment(experimentId, { sweepBatches });
       },
       onError: (message) => {
         patchExperiment(experimentId, {
@@ -635,7 +637,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   ) =>
     sweepSessionsRef.current
       .get(experimentId)
-      ?.navigateTo(selection, options) ?? Promise.resolve(null);
+      ?.navigateTo(selection, options) ??
+    Promise.reject(new Error("The sweep is no longer running"));
 
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createSweepTrialEvaluator,
-  SWEEP_TRIAL_RUNS,
   sweepPointFor,
 } from "./create-sweep-trial-evaluator";
 
@@ -31,7 +30,9 @@ const request = (
   ({
     runId: "run",
     trial: 3,
-    manifest: {} as PetrinautOptimizationTrialRequest["manifest"],
+    manifest: {
+      execution: { seedsPerTrial: 8 },
+    } as PetrinautOptimizationTrialRequest["manifest"],
     suggestedValues,
     scenarioParameterValues: {},
     seeds: [42],
@@ -53,7 +54,7 @@ describe("sweepPointFor", () => {
 });
 
 describe("createSweepTrialEvaluator", () => {
-  it("navigates the sweep to the trial's point with the trial cap and reads the metric there", async () => {
+  it("navigates the sweep to the trial's point with the manifest's runs per trial and reads the metric there", async () => {
     const navigateSweep = vi.fn().mockResolvedValue({
       position: { rate: 25, days: 5 },
       runsCompleted: 8,
@@ -72,8 +73,22 @@ describe("createSweepTrialEvaluator", () => {
     expect(navigateSweep).toHaveBeenCalledWith(
       "exp",
       { rate: { from: 25, to: 25 }, days: { from: 5, to: 5 } },
-      { runCap: SWEEP_TRIAL_RUNS },
+      { runCap: 8 },
     );
+  });
+
+  it("lets a failed navigation fail the trial rather than prune it", async () => {
+    const navigateSweep = vi.fn().mockRejectedValue(new Error("device lost"));
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    });
+
+    await expect(
+      evaluator.evaluateTrial(request({ rate: 0.5, days: 7 })),
+    ).rejects.toThrow("device lost");
   });
 
   it("prunes a trial the sweep moved past, one without the metric, and one after settling", async () => {
@@ -84,7 +99,8 @@ describe("createSweepTrialEvaluator", () => {
         position: { rate: 25, days: 5 },
         runsCompleted: 8,
         means: {},
-      });
+      })
+      .mockResolvedValue(null);
     const evaluator = createSweepTrialEvaluator({
       experimentId: "exp",
       axes: [RATE, DAYS],
@@ -193,5 +209,27 @@ describe("createSweepTrialEvaluator", () => {
       navigateSweep,
     }).settle(undefined);
     expect(navigateSweep).not.toHaveBeenCalled();
+  });
+
+  it("settles once, and swallows the navigation of a sweep that is gone", async () => {
+    const navigateSweep = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockRejectedValue(new Error("The sweep is no longer running"));
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    });
+    await evaluator.evaluateTrial(request({ rate: 0.5, days: 7 }));
+
+    evaluator.settle(null);
+    evaluator.settle(null);
+    // The rejected park surfaces nowhere: an unhandled rejection would fail here.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
   });
 });

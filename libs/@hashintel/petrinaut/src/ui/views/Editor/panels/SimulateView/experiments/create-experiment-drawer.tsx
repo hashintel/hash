@@ -1011,6 +1011,14 @@ export const CreateExperimentDrawer = ({
 
   // Shown under whichever scenario body is on screen: the classic rows, the
   // ad-hoc form, or a saved scenario shown through it.
+  // A sweep computes nothing at creation: it waits for a selection.
+  const submitLabel = sweepSummary
+    ? isSubmitting
+      ? "Creating"
+      : "Create sweep"
+    : isSubmitting
+      ? "Starting"
+      : "Run";
   const sweepSummaryLine = sweepSummary ? (
     <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
       {sweepSummary.text}
@@ -1425,7 +1433,7 @@ export const CreateExperimentDrawer = ({
               prefix={
                 isSubmitting ? (
                   <LoadingSpinner size="sm" variant="bars" />
-                ) : (
+                ) : sweepSummary ? undefined : (
                   <Icon name="play" size="sm" />
                 )
               }
@@ -1433,7 +1441,7 @@ export const CreateExperimentDrawer = ({
                 void handleSubmit();
               }}
             >
-              {isSubmitting ? "Starting" : "Run"}
+              {submitLabel}
             </Button>
           </>
         }

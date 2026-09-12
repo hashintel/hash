@@ -6,6 +6,7 @@ import type { BatchStatus } from "../experiments/shared/batch-registry";
 import type { OptimizationSurfaceAxis } from "./surface-grid";
 import type {
   MonteCarloUserDefinedMetricFrame,
+  PetrinautOptimizationDirection,
   PetrinautOptimizationEvent,
   PetrinautOptimizationImportances,
   PetrinautOptimizationInput,
@@ -64,7 +65,10 @@ export type OptimizationImportance = PetrinautOptimizationImportances;
 /** The most runs a study's navigated point is refined to. */
 export const POINT_REFINEMENT_MAX_RUNS = 100;
 
-/** Where a connected study's drawer points: one parameter point. */
+/** The two axes a study's surface is drawn over. */
+export type OptimizationSurfaceView = { xAxisId: string; yAxisId: string };
+
+/** Where a connected study's drawer points: one parameter point, and how the surface looks at it. */
 export type OptimizationNavigation = {
   /** Axis position (0..stepCount) per optimized numeric parameter identifier. */
   positions: Readonly<Record<string, number>>;
@@ -75,6 +79,8 @@ export type OptimizationNavigation = {
    * creation; cleared by a user move.
    */
   followTrials: boolean;
+  /** The axes the surface shows; unset until the user picks, then kept across presentations. */
+  surfaceAxes?: OptimizationSurfaceView;
 };
 
 /** The objective's live metric stream at the navigation, or at the followed trial. */
@@ -236,6 +242,26 @@ export function isOptimizationActive(
   );
 }
 
+/** Trials the study is done with, whatever their outcome. */
+export const finishedTrialCount = (
+  optimization: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials"
+  >,
+): number =>
+  optimization.completedTrials +
+  optimization.prunedTrials +
+  optimization.failedTrials;
+
+/** The 1-based number of the trial the study is on, never past the last one requested. */
+export const currentTrialNumber = (
+  optimization: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials" | "requestedTrials"
+  >,
+): number =>
+  Math.min(optimization.requestedTrials, finishedTrialCount(optimization) + 1);
+
 /**
  * Whether a paused connected study is still computing: its record reads
  * `paused` from the moment Pause is asked, while the steps in flight finish
@@ -259,7 +285,7 @@ export function isOptimizationDraining(
  * keeps the best itself from every trial it applies.
  */
 export const foldBestTrial = (
-  direction: PetrinautOptimizationInput["objective"]["direction"],
+  direction: PetrinautOptimizationDirection,
   best: OptimizationBest | null,
   event: PetrinautOptimizationTrialEvent,
 ): OptimizationBest | null => {

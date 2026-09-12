@@ -411,8 +411,10 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   /**
    * Everything the provider holds outside React ends with the source, and
    * with the provider: the connection to a connected source, the attach
-   * loops (aborting settles each record as cancelled) and the studies' own
-   * batches.
+   * loops (aborting settles each record as cancelled), the studies' own
+   * batches and the sweeps the studies drove. Each sweep evaluator parks its
+   * sweep here: the cancel the aborted loop settles lands after the map is
+   * cleared, so it would find no evaluator to park.
    */
   useEffect(
     () => () => {
@@ -427,6 +429,10 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         study.dispose();
       }
       studiesRef.current.clear();
+      for (const evaluator of sweepEvaluatorsRef.current.values()) {
+        evaluator.settle(null);
+      }
+      sweepEvaluatorsRef.current.clear();
     },
     [source],
   );
@@ -464,6 +470,16 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       );
     }
   }, [navigation, optimizations, selectedOptimizationId]);
+
+  /**
+   * Whether the study runs in this tab, through the channel: one with its own
+   * local machinery, or one evaluating through a sweep. Its run stays with
+   * the connection until released, and its attachment lives to apply the
+   * segment's terminal event.
+   */
+  const isConnectedStudy = (optimizationId: string): boolean =>
+    studiesRef.current.has(optimizationId) ||
+    sweepEvaluatorsRef.current.has(optimizationId);
 
   const settleStudy = (
     optimizationId: string,
@@ -1027,6 +1043,10 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
                   withConnected(current, () => update),
                 );
               },
+              // Leading-edge, so the first frames publish instantly; while a
+              // batch streams, ~10 record patches a second read as live on
+              // a chart and leave the rest of the UI the frame's budget.
+              publishThrottleMs: 100,
             })
           : null;
       if (study) {
@@ -1223,7 +1243,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     optimizationId,
   ) => {
     const runId = resolveRunId(optimizationId);
-    const connected = studiesRef.current.has(optimizationId);
+    const connected = isConnectedStudy(optimizationId);
     if (runId !== undefined) {
       removeStoredActiveRun(runId);
       // Stop the detached run server-side; aborting the local attachment
@@ -1265,7 +1285,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     );
     if (
       !connection ||
-      !studiesRef.current.has(optimizationId) ||
+      !isConnectedStudy(optimizationId) ||
       runId === undefined ||
       !existing ||
       !isOptimizationActive(existing)
@@ -1296,7 +1316,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       // A connected study keeps its sampler until it is released; a remote
       // run is stopped server-side.
       void (
-        connection && studiesRef.current.has(optimizationId)
+        connection && isConnectedStudy(optimizationId)
           ? connection.capability.releaseOptimizationRun(runId)
           : (resolveCapability()?.cancelOptimizationRun(runId) ??
             Promise.resolve())

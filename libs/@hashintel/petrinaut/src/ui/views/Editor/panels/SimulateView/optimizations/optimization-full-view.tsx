@@ -10,7 +10,7 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
-import { ResultsView } from "../shared/results";
+import { ResultsView } from "../shared/results-view";
 import { useStudyResultsModel } from "./study-results";
 
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";

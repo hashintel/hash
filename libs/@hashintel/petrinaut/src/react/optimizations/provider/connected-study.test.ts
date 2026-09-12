@@ -518,6 +518,27 @@ describe("createConnectedStudy", () => {
     expect(refinementRuns.runs).toHaveLength(runsBefore);
   });
 
+  it("keeps the followed selection's frames across a progress-only tick", () => {
+    const { startTrial, latest } = setup();
+    const trial = startTrial(0, 0.05);
+    trial.frames.set([distributionFrame(metricId, 1, [[0.2, 2]])]);
+    const frames = latest()?.selection?.metricFrames;
+    expect(frames).toHaveLength(1);
+
+    trial.progress.set({
+      activeRuns: 2,
+      advancedRuns: 3,
+      allFinished: false,
+      completedRuns: 1,
+      erroredRuns: 0,
+      frameNumber: 1,
+      runCount: 3,
+      time: 1,
+    });
+    expect(latest()?.selection?.runsCompleted).toBe(1);
+    expect(latest()?.selection?.metricFrames).toBe(frames);
+  });
+
   it("refineBest moves to the best step's point and climbs the ladder there; settling a failed study starts nothing", () => {
     const { study, latest, refinementRuns } = setup();
     study.trialReported(trialEvent(0, 0.05, 0.3));

@@ -5,11 +5,10 @@
  * which the estimate is only a hint. Pure, so the fade rule and the maths are
  * tested without the DOM.
  */
+import { partitionParameterBindings } from "../../../../../../../react/optimizations/surface-grid";
+
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
-import type {
-  PetrinautOptimizationInput,
-  PetrinautOptimizationTrialEvent,
-} from "@hashintel/petrinaut-core";
+import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
 /** A study requesting this many steps or more earns the higher floor. */
 const LONG_STUDY_TRIALS = 100;
@@ -26,7 +25,7 @@ export type ImportanceRow = {
 };
 
 export type ImportanceView = {
-  /** Sorted by importance, largest first, then by identifier. */
+  /** In binding order, so rows never move as estimates land. */
   rows: readonly ImportanceRow[];
   /** Whether PED-ANOVA can rank the study at all: it needs two or more optimized parameters. */
   rankable: boolean;
@@ -46,14 +45,6 @@ export type ImportanceView = {
 /** The completed-step count from which the estimate is worth trusting; matches the optimizer core. */
 export const importanceFloor = (requestedTrials: number): number =>
   requestedTrials >= LONG_STUDY_TRIALS ? LONG_STUDY_TRIALS : 50;
-
-/** Every parameter the study lets the optimizer move, numeric and boolean, in binding order. */
-export const optimizedParameterIdentifiers = (
-  input: Pick<PetrinautOptimizationInput, "scenario">,
-): string[] =>
-  Object.entries(input.scenario.parameterBindings)
-    .filter(([, binding]) => binding.kind === "optimize")
-    .map(([identifier]) => identifier);
 
 const asNumber = (value: number | boolean | undefined): number | null =>
   typeof value === "boolean" ? (value ? 1 : 0) : (value ?? null);
@@ -112,45 +103,25 @@ export const pearsonCorrelations = (
   return correlations;
 };
 
-const byImportanceThenIdentifier = (
-  left: ImportanceRow,
-  right: ImportanceRow,
-): number => {
-  if (left.importance !== right.importance) {
-    if (left.importance === null) {
-      return 1;
-    }
-    if (right.importance === null) {
-      return -1;
-    }
-    return right.importance - left.importance;
-  }
-  return left.identifier.localeCompare(right.identifier);
-};
-
 /** The card's rows and its fade verdict, derived from the record alone. */
 export const importanceRows = (
   optimization: Pick<
     OptimizationRecord,
-    "trials" | "importance" | "input" | "requestedTrials"
+    "trials" | "importance" | "input" | "requestedTrials" | "completedTrials"
   >,
 ): ImportanceView => {
-  const { trials, importance, input, requestedTrials } = optimization;
-  const identifiers = optimizedParameterIdentifiers(input);
+  const { trials, importance, input, requestedTrials, completedTrials } =
+    optimization;
+  const identifiers = Object.keys(partitionParameterBindings(input).optimized);
   const correlations = pearsonCorrelations(trials, identifiers);
-  const rows = identifiers
-    .map(
-      (identifier): ImportanceRow => ({
-        identifier,
-        importance: importance?.values[identifier] ?? null,
-        correlation: correlations[identifier] ?? null,
-      }),
-    )
-    .sort(byImportanceThenIdentifier);
-  const completedCount = trials.filter(
-    (trial) => trial.state === "complete",
-  ).length;
-  const effectiveCount = importance?.completedTrials ?? completedCount;
+  const rows = identifiers.map(
+    (identifier): ImportanceRow => ({
+      identifier,
+      importance: importance?.values[identifier] ?? null,
+      correlation: correlations[identifier] ?? null,
+    }),
+  );
+  const effectiveCount = importance?.completedTrials ?? completedTrials;
   const floor = importanceFloor(requestedTrials);
   // The same rule as the optimizer core: one parameter has nothing to rank against.
   const rankable = identifiers.length >= 2;

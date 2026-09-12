@@ -5,16 +5,16 @@
  * it; the view knows neither record. What differs between the two kinds is
  * data and a few extra panels, so the panels only one kind has are slots.
  */
-import type { ChartCardTone } from "../chart-card";
-import type { ComputeBackendSummary } from "../compute-backend-badge";
+import type { ChartCardTone } from "./chart-card";
+import type { ComputeBackendSummary } from "./compute-backend-badge";
 import type {
   ComputeBatch,
   FrameCardMore,
   FrameNote,
   FrameStatShort,
   FrameStatusTone,
-} from "../drawer-frame";
-import type { MetricTile } from "../metric-tiles";
+} from "./drawer-frame";
+import type { MetricTile } from "./metric-tiles";
 import type { ReactNode } from "react";
 
 /** The status pill: the word, its tone, and the longest word it can become. */
@@ -25,9 +25,13 @@ export type ResultsStatus = {
   widest: string;
 };
 
-/** One stat column's value: the text, with the tooltip that explains it when there is one. */
+/**
+ * One stat column's value: the text, with the tooltip that explains it when
+ * there is one. A leaf element may stand in for the text so a readout that
+ * ticks on its own (the wall clock) re-renders alone.
+ */
 export type ResultsStatValue = {
-  text: string;
+  text: ReactNode;
   tooltip?: string;
 };
 
@@ -110,6 +114,8 @@ export type ResultsModel = {
   metrics: ResultsMetrics | null;
   /** Full width beneath the columns: a study's steps table. */
   after: ReactNode | null;
-  /** The footer's actions. */
+  /** The footer's actions, pinned right. */
   footer: ReactNode;
+  /** The footer's left side: the controls that stay whatever the status; null leaves it empty. */
+  footerSecondary: ReactNode | null;
 };

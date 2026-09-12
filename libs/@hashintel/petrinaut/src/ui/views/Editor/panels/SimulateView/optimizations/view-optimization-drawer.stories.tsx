@@ -101,7 +101,7 @@ export const ConnectedWithImportance: Story = {
     docs: {
       description: {
         story:
-          "A complete 60-step study, past the 50-step floor, with the PED-ANOVA estimate the optimizer attached at the end: the Sensitivity analysis card ranks the three optimized parameters with a bar each, the line under the title says how many completed steps the estimate is fitted on, and the Correlation column gives each parameter's signed Pearson correlation with the objective, computed from the steps.",
+          "A complete 60-step study, past the 50-step floor, with the PED-ANOVA estimate the optimizer attached at the end: the Sensitivity analysis card lists the three optimized parameters in the scenario's order with a bar each for their share, the line under the title says how many completed steps the estimate is fitted on, and the Correlation column gives each parameter's signed Pearson correlation with the objective, computed from the steps.",
       },
     },
   },

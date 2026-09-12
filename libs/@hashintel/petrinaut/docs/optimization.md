@@ -109,6 +109,10 @@ no verdicts yet.
 
 ## Watching results
 
+The list names each study's objective in full, **Maximize Adjusted profit**,
+and shows its status as a chip: blue while it runs, green once complete, red on
+an error, and grey when it is paused, cancelled or stopped.
+
 Open an optimization row to follow it while it runs. The drawer updates as
 steps arrive, and closing it leaves the optimization running. Use **Cancel**
 to abort an active run on the optimization service. A study running in the
@@ -119,12 +123,13 @@ browser](#running-in-the-browser)). Completed, cancelled, stopped, and failed
 records can be removed from their result drawer; a paused record's **Remove**
 sits in the **More actions** menu at the left of its footer.
 
-The drawer's footer offers **Open full view**, which gives the whole
-Optimizations section to the study: the same header, controls, charts and
-steps, spread over the section's width so the controls and the surface sit on
-the left and the chart cards on the right. Its header starts with **Back to
-list**, which returns to the list, and its footer holds **Show in drawer**,
-which shows the same study in the drawer again. Both
+The drawer's footer offers **Open full view** at its left edge, which gives
+the whole Optimizations section to the study: the same header, controls,
+charts and steps, spread over the section's width so the controls and the
+surface sit on the left and the chart cards on the right. Its header starts
+with **Back to list**, which returns to the list, and its footer holds **Show
+in drawer**, at the left as well, which shows the same study in the drawer
+again. Both
 presentations are places in the app, so the browser's Back button undoes the
 switch. Once you are in the full presentation, opening another row from the
 list opens it full too.
@@ -133,7 +138,7 @@ Every study opens under a header that holds still while the body scrolls
 beneath it. Its title is one line: the study's name, the scenario and the
 objective, **Maximize profit · Rich stock · Maximize Adjusted profit**. At the
 right of the title a line says where the study is: **Step 17 of 30 · best
-step so far: step 12 (650.5)** while it runs, or **Stopped after 17 of 30
+step so far: step 12 (650.500)** while it runs, or **Stopped after 17 of 30
 steps** (or **Finished**, **Cancelled**, **Failed**) once it is over.
 While it runs, a chip beside the line says whether the study is still finding
 better steps: **Still improving** when the best moved within the last few
@@ -152,7 +157,8 @@ strip is always one line: in a narrow drawer the labels become tooltips and
 the columns read as chips, **Steps** shortens to its count, and whatever
 still does not fit scrolls sideways under a fade at the edge. Once the body
 has scrolled the header condenses to one line, the columns folded in as
-compact chips; move the pointer over it and it grows back. The gap under the
+compact chips; move the pointer over it, or Tab onto one of its controls,
+and it grows back. The gap under the
 header is reserved for a note (the error when a study failed, the resume note
 while it is paused), so nothing moves when one appears.
 
@@ -187,10 +193,15 @@ in the view claims to still be following a step.
 
 ### On the optimization service
 
-A study run on the optimization service adds a **Best parameters** card
-above the Objective by step card: the best step's value for every scenario
-parameter. **Cancel** ends the run on the server, and its status reads
-**Cancelled**.
+A study run on the optimization service has a **Best parameters** card where
+an in-browser study has its Parameters card, present from the first render:
+one row per optimized parameter, in the scenario's order, reading `—` until
+the first step reports, when the line under the card's title names the best
+step and its value. The steps table is there from the start too and fills as
+steps arrive. **Cancel** ends the run on the server, and its status reads
+**Cancelled**. While Petrinaut re-establishes a dropped stream, the status
+reads **Reconnecting** in the list and in the header alike (see [Connection
+drops and reloads](#connection-drops-and-reloads)).
 
 If a run fails, the drawer explains what happened — for example, a lost
 connection reports how many of the requested trials had completed and includes
@@ -263,9 +274,10 @@ in view on a laptop screen while the study streams:
   headline sits in the header's stats line as **Steps clear**. Infeasible draws are
   hollow grey rings on the surface and grey rows in the steps table, and the
   best step so far is never one of them.
-- The **Sensitivity analysis** card, last in the row, ranks the optimized
-  parameters by how much each one matters for reaching the best steps, with
-  a bar and a **Share** percentage per parameter. The estimate is Optuna's
+- The **Sensitivity analysis** card, last in the row, lists the optimized
+  parameters in the scenario's order with a bar for how much each one matters
+  for reaching the best steps and a **Share** percentage per parameter; the
+  rows keep their places as estimates land. The estimate is Optuna's
   PED-ANOVA: it takes the best tenth of the completed steps and measures how
   concentrated each parameter's values are there relative to its whole range,
   a relative importance that sums to 100% rather than a share of the
@@ -277,7 +289,7 @@ in view on a laptop screen while the study streams:
   how many completed steps it is fitted on. Below the floor, 50 completed
   steps for a study of under 100 steps and 100 otherwise, the card is muted,
   the bars fade and the line says **below the N-step floor, treat as a
-  hint**, N being the floor just named: a confident ranking over a handful of
+  hint**, N being the floor just named: a confident estimate over a handful of
   steps would mislead. A
   **Correlation** column beside the bars gives each parameter's signed
   correlation with the objective over the completed steps (`+0.34`, `−0.12`),
@@ -298,15 +310,17 @@ surface** under Simulation in the [settings
 dialog](visual-settings.md#optimization-surface-experimental) to see it.
 
 A study run on the optimization service with two or more optimized numeric
-parameters grows a **Surface** section between the best parameters and the
-step list, holding an **Objective surface** card: an Optuna-style contour of
-the objective over two parameters you pick with the **X** and **Y** pickers
-under the plot. The study's own trials appear as rings (the best trial highlighted), and
-the filled contour comes from points **computed locally on your machine** —
-the study's model snapshot runs on a background worker, a few runs per point,
-and the plot fills in coarse shape first.
+parameters gains an **Objective surface** card, placed as an in-browser
+study's is: beside the chart cards at the drawer's full width and in the full
+view, after them in a narrower drawer. It is an Optuna-style contour of the
+objective over two parameters you pick with the **X** and **Y** pickers under
+the plot; the info icon in the card's header explains the marks. The study's
+own trials appear as rings (the best trial highlighted), and the filled
+contour comes from points **computed locally on your machine** — the study's
+model snapshot runs on a background worker, a few runs per point, and the plot
+fills in coarse shape first.
 
-One slider per optimized parameter navigates the space; parameters not shown
+One slider per optimized parameter, under the plot, navigates the space; parameters not shown
 on the plot hold at their slider position, which starts at the best trial's
 value. Move a slider, or **click or drag on the plot**, and the selected point
 recomputes with escalating batches while the readout streams the objective's
@@ -370,7 +384,8 @@ experiment's drawer.
   the page still ends a paused study.
 - **Stop** ends the steps in flight and leaves them uncounted: they appear in
   neither the steps table nor the step counts. The study keeps its sampler:
-  the status reads **Stopped**, and the footer offers **Continue** with a
+  the status reads **Stopped**, grey in the list and in the header's pill,
+  and the footer offers **Continue** with a
   number of steps (the study's own step count by default). Continue runs that
   many more steps on the same study, with everything it learned so far, and
   the strip's **Steps** counts them into the total. A completed study can be
@@ -392,8 +407,9 @@ experiment's drawer.
 
 When the host uses an optimization service, an optimization runs on the
 server. If the connection drops while you watch one, Petrinaut reconnects
-automatically and resumes from the last result it received — the status shows
-**(reconnecting…)** while it retries, and every trial is counted once. Only if
+automatically and resumes from the last result it received — the status reads
+**Reconnecting**, in the list and in the drawer's header, while it retries, and
+every trial is counted once. Only if
 reconnecting keeps failing does the run report a connection error, which keeps
 the received trials and offers **Retry**.
 

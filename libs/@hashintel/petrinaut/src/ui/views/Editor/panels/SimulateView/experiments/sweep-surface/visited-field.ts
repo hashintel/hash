@@ -1,15 +1,13 @@
 /**
  * The sweep surface's field from what the sweep has computed: every visited
  * point projected onto the two shown axes as a filled dot with its value for
- * the shown metric, and the point being computed as a ring, its running
- * value entering the field as the runs complete. Pure; the card reads the
- * record and hands the pieces in.
+ * the shown metric, and the point being computed as a ring. Pure; the card
+ * reads the record and hands the pieces in.
  */
 import { selectionMidpoint } from "../../../../../../../react/experiments/parameter-grid";
-import { sweepCellObjective } from "../../../../../../../react/experiments/sweep-cell-objective";
+import { contourSurfaceKey } from "../../../../../../components/contour-surface";
 import {
   type SurfaceField,
-  surfaceFieldKey,
   surfaceGridCoordinate,
 } from "../../shared/surface-field";
 
@@ -19,7 +17,6 @@ import type {
   SweepSelection,
 } from "../../../../../../../react/experiments/parameter-grid";
 import type { ContourSurfaceMarker } from "../../../../../../components/contour-surface";
-import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
 /** Whether the selection is a single point on every axis. */
 export const isPointSelection = (
@@ -67,7 +64,7 @@ export const visitedSurfaceField = ({
       markers.push({ x, y, kind: "muted" });
       continue;
     }
-    values.set(surfaceFieldKey(x, y), value);
+    values.set(contourSurfaceKey(x, y), value);
     markers.push({
       x,
       y,
@@ -85,53 +82,48 @@ export const visitedSurfaceField = ({
 };
 
 /**
- * The point being computed, as a ring at the selection with the metric's
- * running value from the frames streaming for it, so the field fills in
- * before the point folds. Nothing while the selection is a range or nothing
- * computes.
+ * The point being computed, as a ring at the selection and nothing more: its
+ * value joins the field from `visited` once the batch folds, so the contour
+ * never chases a metric's time course. Nothing while the selection is a
+ * range or nothing computes.
  */
 export const computingSurfaceField = ({
   selection,
   axes,
   xAxis,
   yAxis,
-  metricId,
   computing,
-  metricFrames,
 }: {
   selection: SweepSelection;
   axes: readonly ExperimentParameterAxis[];
   xAxis: ExperimentParameterAxis;
   yAxis: ExperimentParameterAxis;
-  metricId: string;
   computing: boolean;
-  metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
 }): SurfaceField => {
   if (!computing || !isPointSelection(selection, axes)) {
     return { values: new Map(), markers: [] };
   }
   const x = surfaceGridCoordinate(xAxis, selectionMidpoint(selection, xAxis));
   const y = surfaceGridCoordinate(yAxis, selectionMidpoint(selection, yAxis));
-  const running = sweepCellObjective(metricFrames, metricId);
-  return {
-    values:
-      running === null
-        ? new Map()
-        : new Map([[surfaceFieldKey(x, y), running]]),
-    markers: [{ x, y, kind: "point" }],
-  };
+  return { values: new Map(), markers: [{ x, y, kind: "point" }] };
 };
 
-/** The caption's state line for the sweep surface. */
+/**
+ * The caption's state line for the sweep surface. What computes is worded
+ * as the navigator words it: a point, or a sampling across ranges.
+ */
 export const describeVisitedSurface = ({
   visitedCount,
   computing,
+  pointSelection,
   runsCompleted,
   runTarget,
   following,
 }: {
   visitedCount: number;
   computing: boolean;
+  /** Whether the selection is a single point on every axis. */
+  pointSelection: boolean;
   runsCompleted: number;
   runTarget: number | null;
   following: boolean;
@@ -140,14 +132,16 @@ export const describeVisitedSurface = ({
     visitedCount === 0
       ? "no points yet"
       : `${visitedCount} ${visitedCount === 1 ? "point" : "points"}`;
-  if (following) {
-    return `${points} · the optimizer is choosing the next point`;
-  }
+  const runs =
+    runTarget === null
+      ? `${runsCompleted} runs`
+      : `${runsCompleted} of ${runTarget} runs`;
   const refining = computing
-    ? runTarget === null
-      ? `computing the selected point: ${runsCompleted} runs`
-      : `computing the selected point: ${runsCompleted} of ${runTarget} runs`
+    ? `${pointSelection ? "computing the selected point" : "sampling across the selected ranges"}: ${runs}`
     : null;
+  if (following) {
+    return `${points} · ${refining ?? "the optimizer is choosing the next point"}`;
+  }
   return [
     points,
     ...(refining === null ? [] : [refining]),

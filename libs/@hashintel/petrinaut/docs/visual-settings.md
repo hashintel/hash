@@ -10,7 +10,7 @@ preferences and are not reverted by browser navigation.
 
 ### Animations
 
-Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues.
+Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues. The results drawers follow it too: the header's condensing, the cards' folds and bar fills, and the purple pulse of a sweep's **Parameters** card while the optimizer drives it all hold still when animations are off, or when your system asks for reduced motion.
 
 ### Keep panels mounted
 
@@ -64,7 +64,7 @@ Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in t
 
 ### Optimization surface (experimental)
 
-Off by default. Adds a **Surface** section to an optimization study with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
+Off by default. Adds an **Objective surface** card to a study run on the optimization service with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
 
 ### In-browser optimization (experimental)
 

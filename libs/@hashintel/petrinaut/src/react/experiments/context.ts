@@ -155,9 +155,8 @@ export type ExperimentRecord = {
   /** Live sweep state; null for a plain experiment. */
   sweep: ExperimentSweepState | null;
   /**
-   * Every batch the sweep session is computing right now — the selection's
-   * own ladder rungs plus the background surface and refine batches. Empty
-   * for a plain experiment and whenever nothing computes.
+   * The ladder rungs the sweep session is computing right now. Empty for a
+   * plain experiment and whenever nothing computes.
    */
   sweepBatches: readonly SweepBatchStatus[];
 };
@@ -166,6 +165,8 @@ export type ExperimentRecord = {
 export type ExperimentSweepState = {
   /** Inclusive position range per swept parameter identifier. */
   selection: SweepSelection;
+  /** The selection's key: one string per distinct selection, for consumers keying on it. */
+  selectionKey: string;
   /** Finished runs for the selection. */
   runsCompleted: number;
   /** Runs contributing to the shown frames, including the in-flight batch. */
@@ -202,7 +203,7 @@ export function isExperimentActive(experiment: ExperimentRecord): boolean {
  * report, rather than a runtime of 0.
  */
 export function getExperimentElapsedMs(
-  experiment: ExperimentRecord,
+  experiment: Pick<ExperimentRecord, "startedAt" | "finishedAt">,
   now: number,
 ): number | null {
   if (experiment.startedAt === null) {
@@ -226,8 +227,8 @@ export type ExperimentsContextValue = {
    * Moves a sweep's navigator and resolves once the selection has the runs
    * asked for (the cap, or the run count without one) with the finished
    * runs' per-metric values: the optimizer's way to evaluate a point.
-   * Resolves null when another move superseded it, a batch failed, or the
-   * sweep is gone.
+   * Resolves null when another move superseded it or the sweep was
+   * disposed; rejects when a batch of the point fails or the sweep is gone.
    */
   navigateSweep: (
     experimentId: string,
