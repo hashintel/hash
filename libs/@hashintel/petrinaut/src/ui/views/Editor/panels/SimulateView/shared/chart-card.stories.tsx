@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Chip } from "@hashintel/ds-components";
+import { Chip, Select } from "@hashintel/ds-components";
 
 import {
   DEFAULT_METRIC_VIEW_SETTINGS,
@@ -16,6 +16,11 @@ import {
   chartCardHeight,
   ChartCardMenu,
 } from "./chart-card";
+import {
+  SurfaceAxisControls,
+  SurfaceControlLabel,
+  SurfaceFrame,
+} from "./surface-frame";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -217,6 +222,74 @@ export const Muted: Story = {
           plotHeight={PLOT_HEIGHT}
         />
       </ChartCard>
+    </div>
+  ),
+};
+
+const surfaceAxes = [
+  { identifier: "transmission_rate", label: "Transmission rate" },
+  { identifier: "recovery_days", label: "Recovery days" },
+  { identifier: "initial_infected_ratio", label: "Initial infected ratio" },
+];
+
+const surfaceMetrics = [
+  { value: "infected_peak", text: "Infected peak" },
+  { value: "recovered_final", text: "Recovered at the end" },
+];
+
+const NarrowSurfaceCard = () => {
+  const [xAxisId, setXAxisId] = useState("transmission_rate");
+  const [yAxisId, setYAxisId] = useState("recovery_days");
+  const [metricId, setMetricId] = useState("infected_peak");
+  return (
+    <SurfaceFrame
+      title="Surface"
+      caption="9 of 25 points sampled at 4+ runs · drag or click to navigate"
+      bodyHeight={PLOT_HEIGHT}
+      footer={
+        <SurfaceAxisControls
+          axes={surfaceAxes}
+          xAxisId={xAxisId}
+          yAxisId={yAxisId}
+          onXAxisIdChange={setXAxisId}
+          onYAxisIdChange={setYAxisId}
+        >
+          <SurfaceControlLabel>Metric</SurfaceControlLabel>
+          <Select
+            size="xs"
+            aria-label="Surface metric"
+            items={surfaceMetrics}
+            value={metricId}
+            onChange={(value) => setMetricId(value ?? "")}
+          />
+        </SurfaceAxisControls>
+      }
+    >
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#888",
+        }}
+      >
+        surface
+      </div>
+    </SurfaceFrame>
+  );
+};
+
+/**
+ * A sweep surface's footer in a 360px card: the X, Y and Metric pickers share
+ * the fixed-height row by shrinking evenly and ellipsizing their labels, so
+ * the Metric picker stays reachable instead of being clipped at the card's
+ * edge.
+ */
+export const NarrowSurfaceFooter: Story = {
+  render: () => (
+    <div style={{ width: 360 }}>
+      <NarrowSurfaceCard />
     </div>
   ),
 };

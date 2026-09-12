@@ -21,7 +21,9 @@ const controlsStyle = css({
   gap: "2",
   minWidth: "[0]",
   // Compact inline controls; the ds Select otherwise stretches to the row.
-  "& [data-scope='select']": { width: "[170px]" },
+  // No content floor either: in a narrow card the selects shrink evenly and
+  // ellipsize their labels rather than the fixed-height footer clipping one.
+  "& [data-scope='select']": { width: "[170px]", minWidth: "[0]" },
   // The Select's root insists on min-content width, which overflows the
   // 170px box over the next label; a long option name fits by ellipsis.
   "& > div > div": { minWidth: "[0]" },
