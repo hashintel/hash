@@ -41,6 +41,7 @@ import {
   willShowWalkthroughDialog,
 } from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
+import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
@@ -193,6 +194,8 @@ export const EditorView = ({
   const {
     brunchDemoMode,
     enableNotebookView,
+    enableExperimentalIconPack,
+    showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
@@ -501,7 +504,10 @@ export const EditorView = ({
     isEmptySDCPN(petriNetDefinition);
 
   return (
-    <>
+    <ExperimentalIconProvider
+      enabled={enableExperimentalIconPack}
+      motion={showAnimations ? "auto" : "none"}
+    >
       <EditorCommands />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
@@ -609,6 +615,6 @@ export const EditorView = ({
       </VoiceSessionProvider>
 
       <SimulationCreationDrawer />
-    </>
+    </ExperimentalIconProvider>
   );
 };

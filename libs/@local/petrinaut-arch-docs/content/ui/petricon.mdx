@@ -1,0 +1,229 @@
+---
+title: Petricon
+description: The icon library's design references, motion rules, SVG implementation, and React API.
+attachTo: ui.petricon
+sidebar_order: 15
+---
+
+Petricon supplies Petrinaut's SVG icons and their motion. Applications pass the
+control's state to the icon; its existing parts move into the corresponding
+shape. The [website playground](layer:website.petricon) at `/petricon` exposes
+the collection, weight controls, state transitions, and alternative designs.
+
+## Design references
+
+The drawings are authored for Petrinaut. These references inform the system:
+
+| Reference                                                                                                                | Principle used in Petricon                                                       |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [Apple SF Symbols](https://developer.apple.com/sf-symbols/)                                                              | Named layers, configurable effects, and continuity between related states.       |
+| [Lucide](https://lucide.dev/)                                                                                            | A consistent SVG grid, adjustable strokes, and simple silhouettes.               |
+| [Material Symbols](https://developers.google.com/fonts/docs/material_symbols)                                            | Weight and fill as parameters rather than separate assets.                       |
+| [STIX](https://www.stixfonts.org/)                                                                                       | Familiar mathematical notation for operators, bounds, and scientific interfaces. |
+| [SF Symbols Draw](https://developer.apple.com/videos/play/wwdc2025/337/)                                                 | Ordered strokes, staggered drawing, and controlled drawing progress.             |
+| [Material motion](https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md) | Shared timing and easing, with emphasis matched to the action.                   |
+
+SF Symbols' variable rendering and Material Symbols' font axes are references,
+not Petricon APIs. Petricon uses SVG geometry and browser animation APIs.
+Its `weight` changes stroke width continuously; it does not load a variable font.
+
+## Drawing rules
+
+Every icon uses a `0 0 24 24` view box and inherits `currentColor`. A regular
+stroke is two units wide. Weight is clamped to 100–700 and maps to a stroke
+width of one to three units. `size` scales the SVG viewport. Rounded caps keep
+short strokes legible; geometry such as gear teeth can override the join.
+
+Keep a recognisable silhouette at 16 pixels. Animate a detail inside a steady
+frame when the frame explains the control. The Edit icon's resting parts share
+aligned cells in both selected and unselected states. Its square stays upright;
+the triangle and diamond change orientation within the same bounds.
+
+`variant="filled"` applies the icon's authored filled treatment. Open line
+symbols remain strokes. It is not an automatic interpolation between arbitrary
+outline and filled drawings.
+
+## Three kinds of motion
+
+| Kind             | Trigger                                           | Behaviour                                                              |
+| ---------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| Hint             | Hover or keyboard focus on the containing control | A small directional nudge, moving detail, or one short sequence.       |
+| State transition | A changed state prop                              | Existing geometry moves to a stable arrangement.                       |
+| Effect           | A changed `trigger`, or `active` for a loop       | An authored action, bounce, pulse, rotation, or supported draw effect. |
+
+`petriconHints` assigns a motion to every icon name. Type checking rejects a
+new icon that has no assignment. Navigation follows direction; syntax brackets
+separate; structured values respond in a short sequence; character eyes blink.
+The catalog contains no unnamed default hover treatment.
+
+Hints use small displacements and settle quickly. Generic hints transition in
+up to 160 milliseconds; detail sequences run for up to 480 milliseconds. The
+flask's liquid starts flat, waves once on hover, and returns flat while still
+hovered. Parameter knobs scrub in opposite directions and return to their
+initial values. Continuous motion is reserved for an explicitly active effect
+or a loading indicator.
+
+Automatic click feedback lasts up to 420 milliseconds and uses the same details
+as the hint. A containing control supplies the event; the icon never performs
+the control's action. An explicit effect suppresses automatic click playback
+so a React trigger cannot play the response twice. `interaction="none"` opts out.
+History has a balanced circular frame, a return arrow, and hands that rewind.
+The frame stays in place while its arrow and hands give a brief backward gesture.
+
+States preserve the control's meaning. The open sidebar divider moves left on
+hover to suggest closing. Its collapsed line moves right to suggest expanding.
+Settings turns by 30 degrees while its menu is open. Diagnostics reuse two
+strokes for check, exclamation mark, and cross; each stroke changes position,
+angle, and visible length without crossfading between separate icons.
+
+## Rendering and ownership
+
+![How Petricon combines state, geometry, and motion](@diagrams/petricon-rendering.svg)
+
+The public `petricon.ts` module exports `Petricon`, `PetriconProvider`, the typed
+catalog, and design studies. It delegates to the SVG renderer in
+`experimental-icons.tsx`. Existing `ExperimentalIcon` exports remain aliases
+for compatibility with earlier integrations.
+
+The geometry and motion helpers live in `ui/experimental-icons/`:
+
+- Geometry modules describe paths, groups, frames, and moving details.
+- `shared/petricon-hints.ts` declares the complete set of hover behaviours.
+- `interaction.tsx` applies those behaviours in buttons, links, menus,
+  checkboxes, segmented controls, and preview tiles.
+- `motion.tsx` owns timing, reduced-motion subscription, and Web Animations
+  API effect lifetimes. Re-triggering cancels the previous effect; unmounting
+  releases its animations.
+- `motion/action-motion.ts` defines semantic detail responses and handles
+  automatic click feedback through the same effect runner.
+- `modeling-geometry.tsx` authors the modeling alternatives and normalized
+  draw targets. `shared/cube-projection.ts` projects the subnet cube's vertices
+  and culls edges whose two adjacent faces both point away from the viewer.
+- `panda-preset.ts` supplies shared keyframes to the package and host builds.
+
+Most state changes use CSS transforms and transitions. Diagnostics animate
+stroke dash lengths so the same two paths can form all three symbols. The
+flask uses SVG `animate` elements with matching path commands to deform its
+liquid surface inside a unique clip path. Component-local IDs prevent masks
+and clips in repeated icons from interfering.
+
+The cube rotates in three dimensions and renders the result as ordinary SVG
+paths. A short animation frame loop updates only its projected edges, without
+re-rendering React on each frame. Hover turns it by 20 degrees; leaving returns
+it to the nearest resting orientation. Click makes a quarter-turn. The loop
+is cancelled on interruption, unmount, or a change to the motion preference.
+Hidden edges are removed from rendering, rather than faded through the cube.
+
+The diagnostics badge owns the number and layout around the icon. It retains
+the last positive count during exit, moves that count through a gradient mask,
+and animates the count window's width. The button and toolbar follow this
+width through normal layout. Screen readers receive the current count from
+the button label even while the previous visible count is leaving.
+
+## Use the React API
+
+```tsx
+import { Petricon, PetriconProvider } from "@hashintel/petrinaut/ui";
+import "@hashintel/petrinaut/styles.css";
+
+<PetriconProvider weight={400} motion="auto">
+  <button
+    aria-label="Settings"
+    aria-expanded={isOpen}
+    onClick={() => setOpen(!isOpen)}
+  >
+    <Petricon name="settings" open={isOpen} size={20} duration={240} />
+  </button>
+</PetriconProvider>;
+```
+
+The provider supplies default size, weight, color, duration, and motion policy.
+Set `enabled` to use `petriconPack` through the design system's `IconProvider`.
+Petrinaut's **Petricon (Experimental)** preference does this for the editor and
+keeps the existing stored feature-flag key.
+
+| Icon                                                    | State prop                               |
+| ------------------------------------------------------- | ---------------------------------------- |
+| `sidebar`                                               | `collapsed`                              |
+| `settings`, `menu`                                      | `open`                                   |
+| `playback`                                              | `playing`                                |
+| `microphone`                                            | `muted`                                  |
+| `diagnostics`                                           | `status`: `valid`, `warning`, or `error` |
+| `shapes`, `flask`, `layer`, `addPlace`, `addTransition` | `selected`                               |
+
+An explicit effect is separate from the state:
+
+```tsx
+<Petricon
+  name="agentOrbit"
+  effect="bounce"
+  trigger={runCount}
+  duration={420}
+/>;
+<Petricon name="addPlace" effect={["draw", "pulse"]} trigger={insertCount} />;
+```
+
+Use `getPetriconEffects(name)` to list supported effects. Draw effects have
+authored targets on add-place/add-transition, history/reset, parameters, the cube,
+and all modeling alternatives. SVG `pathLength="1"` gives each stroke a normalized
+length, so the effect can trace differently sized paths with the same timing.
+Choose `choreography="together"`, `"stagger"`, or `"sequential"`.
+
+```tsx
+<Petricon
+  name="subnetNetwork"
+  effect="draw"
+  trigger={replay}
+  choreography="sequential"
+/>;
+<Petricon name="differentialEquation" drawProgress={progress} />;
+<Petricon name="clockRotateLeft" effect="action" trigger={openedCount} />;
+```
+
+`drawProgress` controls the revealed proportion of every authored stroke. It is
+clamped to 0–1, with non-finite values resolved to 1, and overrides timed drawing.
+It represents a value, so it is preserved with reduced motion. Omit it to release
+the override. This uses SVG stroke dash lengths; it does not require a font or
+raster frames. `transition`
+accepts `smooth`, `spring`, and `none`. Morphing an arbitrary pair of icon names
+is not supported; the add-place/add-transition pair shares an authored frame.
+
+`petriconCatalog` exposes names, labels, categories, motion assignments, and study
+membership. `petriconStudies` groups multiple variations per concept with their
+intended uses. Math studies cover summation, integration, matrices, and
+probability. Code studies cover expressions, types, breakpoints, and tests.
+AI studies cover agents, context, reasoning, and embeddings. They are available
+by name without assigning them to new editor actions.
+
+Modeling studies offer three variations per concept:
+
+| Concept                | Alternatives                             | Motion                                                                      |
+| ---------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| Differential equations | Derivative, solution curve, slope field  | Open the fraction, evolve the curve, or bend the field around a trajectory. |
+| Parameters             | Sliders, calibration dial, bounds        | Scrub, turn the needle, or narrow the range; return to initial values.      |
+| Variables              | Script x, bounded expression, register   | Flex the value or shift it inside a fixed container.                        |
+| Token types            | Token family, collection stack, type tag | Gather tokens, separate layers, or respond inside a label.                  |
+| Subnets                | Cube, contained net, nested modules      | Rotate with hidden-edge removal, trace connections, or separate modules.    |
+
+The website's Modeling tab compares these alternatives with Action and Draw on
+playback. The inspector also exposes drawing order and a progress slider.
+
+## Accessibility and verification
+
+Icons are decorative by default. Give the button an accessible label. Use an
+icon's `aria-label` when the SVG itself carries independent meaning. Hover
+hints respond to keyboard focus on supported controls. Disabled controls
+suppress hints. `motion="none"`, Petrinaut's **Animations** setting, and the
+system reduced-motion preference preserve the final state while removing
+effects and transitions.
+
+When adding an icon, author its geometry, add its name to `petriconHints`, and
+classify it in the catalog. Add a moving-detail marker when the action belongs
+to one part. Reuse paths when implementing a state transition. Inspect the
+icon at small sizes and weights at both ends of the range, then check hover,
+keyboard focus, press, state changes, and motion disabled.
+
+The Storybook **Petrinaut / Petricon / Catalog** and website `/petricon` use the
+same renderer. Run the Petrinaut and website build, unit tests, type checks,
+and lint. Architecture changes also require the architecture checker; authored
+MDX and D2 changes require the docs-site build.

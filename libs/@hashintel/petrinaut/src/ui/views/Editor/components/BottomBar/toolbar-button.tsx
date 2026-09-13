@@ -1,7 +1,7 @@
 import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import type { ReactNode, Ref } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 
 const buttonStyle = cva({
   base: {
@@ -50,6 +50,7 @@ interface ToolbarButtonProps {
   onClick?: () => void;
   /** Button content (icons, text, etc.) */
   children: ReactNode;
+  style?: CSSProperties;
   /** Whether the button is in a selected state */
   isSelected?: boolean;
   /** Whether the button appears disabled (lower opacity, but still clickable) */
@@ -80,6 +81,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   tooltip,
   onClick,
   children,
+  style,
   isSelected = false,
   disabled = false,
   ariaLabel,
@@ -104,6 +106,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
         onClick={onClick}
         onKeyDown={handleKeyDown}
         className={buttonStyle({ isSelected, isDisabled: disabled })}
+        style={style}
         aria-label={ariaLabel}
         aria-expanded={ariaExpanded}
         aria-pressed={isSelected}

@@ -5,7 +5,9 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
+import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
@@ -39,6 +41,7 @@ export const ViewportControls: React.FC<{
 }> = ({ viewportActions }) => {
   const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
   const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
   const setIsSettingsOpen = (open: boolean) => {
     navigation.navigate(
@@ -127,7 +130,17 @@ export const ViewportControls: React.FC<{
             aria-label="Settings"
             tooltip="Settings"
             tooltipOptions={{ position: "left" }}
-            iconName="gear"
+            {...(enableExperimentalIconPack
+              ? {
+                  prefix: (
+                    <SettingsIcon
+                      size={12}
+                      open={isSettingsOpen}
+                      duration={240}
+                    />
+                  ),
+                }
+              : { iconName: "gear" })}
             className={chromeBackground}
             onClick={() => setIsSettingsOpen(true)}
           />

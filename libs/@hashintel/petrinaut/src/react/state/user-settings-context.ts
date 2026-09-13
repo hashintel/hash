@@ -34,6 +34,7 @@ export type UserSettings = {
   showAnimations: boolean;
   keepPanelsMounted: boolean;
   compactNodes: boolean;
+  enableExperimentalIconPack: boolean;
   arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -112,6 +113,7 @@ export type UserSettingsActions = {
   setShowAnimations: (value: boolean) => void;
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
+  setEnableExperimentalIconPack: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
@@ -147,6 +149,7 @@ export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
   compactNodes: false,
+  enableExperimentalIconPack: false,
   arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -181,6 +184,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
+  setEnableExperimentalIconPack: () => {},
   setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
