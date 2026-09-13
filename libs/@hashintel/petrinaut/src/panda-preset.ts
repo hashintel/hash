@@ -82,6 +82,20 @@ export const petrinautPandaPreset = {
               "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 9px var(--colors-purple-a50), 0 0 20px var(--colors-purple-a30)",
           },
         },
+        /**
+         * Breathing purple glow around a card whose controls an optimizer
+         * drives: an outer halo only, over the card's own ring.
+         */
+        petrinautOptimizingGlow: {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 0 1px var(--colors-purple-a30), 0 0 12px var(--colors-purple-a30)",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 0 1px var(--colors-purple-a50), 0 0 22px var(--colors-purple-a40)",
+          },
+        },
         petrinautExpand: {
           from: { height: "0", opacity: "0" },
           to: { height: "var(--height)", opacity: "1" },

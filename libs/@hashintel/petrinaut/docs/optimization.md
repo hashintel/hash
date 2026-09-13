@@ -325,7 +325,10 @@ A study that runs in the browser shows its own Surface without this setting;
 When the host provides the in-browser optimizer, the whole study runs in your
 tab: the optimizer runs in a background worker, and each optimization step runs
 as a batch of seeded simulations on the same compute backend as your
-experiments.
+experiments. A [parameter sweep](experiments.md#optimizing-a-sweep) can start
+one too, from the **Optimize** button on its Parameters card: that study
+evaluates each step through the sweep's own compute and shows up only in the
+experiment's drawer.
 
 - Turn it on under **Viewport controls > Settings > Simulation > In-browser
   optimization** (Experimental). The setting is off by default, and the

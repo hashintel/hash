@@ -315,6 +315,7 @@ export function makeOptimizationRecord(options: {
     id: "optimization-story-1",
     input,
     createdAt: Date.now() - 90_000,
+    origin: null,
     status,
     error: null,
     errorCategory: null,

@@ -28,12 +28,6 @@ export type ExperimentRunPlan = {
   /** Overridden net parameter variable names, sorted. */
   readonly ids: readonly string[];
   readonly values: Float64Array;
-  /**
-   * Pinned per-run seeds, `runCount` long, for batches whose runs must draw
-   * the same trajectories however they are chunked. Absent, each run's seed
-   * derives from the experiment's seed.
-   */
-  readonly seeds?: readonly number[];
 };
 
 export type ExperimentRequest = {

@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { frameLayoutSignature } from "../shared/drawer-frame";
@@ -17,7 +23,32 @@ import {
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import type { SweepOptimizer } from "./sweep-optimizer";
 import type { ReactNode } from "react";
+
+/** The optimizer the drawer's Parameters card reads; idle unless a test sets it. */
+const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
+  current: null,
+}));
+
+const idleOptimizer: SweepOptimizer = {
+  available: false,
+  study: null,
+  driving: false,
+  start: () => Promise.resolve(),
+  stop: () => {},
+  discard: () => {},
+};
+
+// The hook reads the host's optimizer through three contexts; the control's
+// own behaviour is what these tests exercise.
+vi.mock("./sweep-optimizer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./sweep-optimizer")>();
+  return {
+    ...actual,
+    useSweepOptimizer: () => optimizer.current ?? idleOptimizer,
+  };
+});
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
@@ -57,7 +88,19 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       </div>
     </>
   );
-  return { ...actual, Drawer, Menu, Tooltip };
+  // The Ark popover positions itself against a trigger jsdom cannot lay out;
+  // this one renders its panel in place.
+  const Popover = Object.assign(
+    ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    {
+      Container: ({ children }: { children: ReactNode }) => (
+        <div>{children}</div>
+      ),
+      Header: ({ title }: { title: ReactNode }) => <div>{title}</div>,
+      Footer: ({ actions }: { actions: ReactNode }) => <div>{actions}</div>,
+    },
+  );
+  return { ...actual, Drawer, Menu, Popover, Tooltip };
 });
 
 // The contour surface draws on a canvas jsdom cannot host; the card around
@@ -96,12 +139,17 @@ class ObserverStub {
 }
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  optimizer.current = null;
+});
+
+const drawerElement = (experiment: ExperimentRecord) => (
+  <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />
+);
 
 const renderDrawer = (experiment: ExperimentRecord) =>
-  render(
-    <ViewExperimentDrawer open onClose={() => {}} experiment={experiment} />,
-  );
+  render(drawerElement(experiment));
 
 const sweep = makeParameterSweepExperiment();
 
@@ -204,5 +252,98 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.getAllByTestId("metric-timeline").length).toBe(
       sweep.metricSpecs.length,
     );
+  });
+});
+
+describe("the Optimize control", () => {
+  /** A study driving the sweep, three steps landed and one pruned. */
+  const drivingStudy = {
+    id: "study",
+    status: "running",
+    requestedTrials: 30,
+    completedTrials: 3,
+    prunedTrials: 1,
+    failedTrials: 0,
+  } as NonNullable<SweepOptimizer["study"]>;
+
+  const openPrompt = () => {
+    fireEvent.click(screen.getByRole("button", { name: /Optimize$/u }));
+    return screen.getByRole("button", { name: /Start$/u });
+  };
+
+  it("starts a study with the chosen metric, direction and steps, then closes the prompt", async () => {
+    const start = vi.fn<SweepOptimizer["start"]>(() => Promise.resolve());
+    optimizer.current = { ...idleOptimizer, available: true, start };
+    renderDrawer(sweep);
+
+    fireEvent.click(openPrompt());
+
+    expect(start).toHaveBeenCalledWith({
+      metricId: "infected",
+      direction: "maximize",
+      steps: 30,
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
+    });
+  });
+
+  it("seeds the prompt from the experiment the drawer swapped to", () => {
+    const start = vi.fn<SweepOptimizer["start"]>(() => Promise.resolve());
+    optimizer.current = { ...idleOptimizer, available: true, start };
+    const view = renderDrawer(sweep);
+    openPrompt();
+
+    // The drawer swaps records in place; the open prompt, its metric and
+    // its steps belong to the previous experiment.
+    const recovered = {
+      ...sweep.metricSpecs[0]!,
+      id: "recovered",
+      label: "Recovered",
+    };
+    view.rerender(
+      drawerElement({ ...sweep, id: "other", metricSpecs: [recovered] }),
+    );
+
+    expect(screen.queryByRole("button", { name: /Start$/u })).toBeNull();
+    fireEvent.click(openPrompt());
+    expect(start).toHaveBeenCalledWith({
+      metricId: "recovered",
+      direction: "maximize",
+      steps: 30,
+    });
+  });
+
+  it("shows a refused start's reason in the prompt", async () => {
+    optimizer.current = {
+      ...idleOptimizer,
+      available: true,
+      start: () => Promise.reject(new Error("Pick a metric to optimize")),
+    };
+    renderDrawer(sweep);
+
+    fireEvent.click(openPrompt());
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Pick a metric to optimize",
+    );
+    expect(screen.getByRole("button", { name: /Start$/u })).toBeTruthy();
+  });
+
+  it("stops the driving study from the Parameters card", () => {
+    const stop = vi.fn();
+    optimizer.current = {
+      ...idleOptimizer,
+      available: true,
+      study: drivingStudy,
+      driving: true,
+      stop,
+    };
+    renderDrawer(sweep);
+
+    expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop optimizing" }));
+
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

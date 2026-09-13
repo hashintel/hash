@@ -149,7 +149,10 @@ export const OptimizationsView = () => {
         columns={optimizationColumns}
         emptyLabel="No optimizations yet"
         getRowId={(optimization) => optimization.id}
-        rows={optimizations}
+        // A study driving a sweep lives in that experiment's drawer.
+        rows={optimizations.filter(
+          (optimization) => optimization.origin === null,
+        )}
         selectedRowId={selectedOptimizationId}
         onRowSelect={(optimization) =>
           setSelectedOptimizationId(optimization.id)

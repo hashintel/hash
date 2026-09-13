@@ -58,20 +58,3 @@ export const quadTreeLevels = (nx: number, ny: number): SurfaceCell[][] => {
   }
   return byLevel.filter((level) => level.length > 0);
 };
-
-/**
- * Quad-tree levels cut into chunks of at most `chunkCells`. Chunks never span
- * levels, so each level paints as a unit.
- */
-export const quadTreeChunks = (
-  nx: number,
-  ny: number,
-  chunkCells: number,
-): SurfaceCell[][] =>
-  quadTreeLevels(nx, ny).flatMap((level) => {
-    const chunks: SurfaceCell[][] = [];
-    for (let start = 0; start < level.length; start += chunkCells) {
-      chunks.push(level.slice(start, start + chunkCells));
-    }
-    return chunks;
-  });

@@ -2,9 +2,9 @@
  * An experiment record mapped onto the shared results view-model: the
  * one-line title, the status and the stat columns (runs, errors, simulated
  * time, wall-clock time, the selection's sampling for a sweep), the
- * computing chip and the compute badge, the Parameters card and the surface
- * for a sweep, one metric card per configured metric, and Remove, Cancel and
- * Close in the footer.
+ * computing chip and the compute badge, the Parameters card with its
+ * optimizer control and the surface for a sweep, one metric card per
+ * configured metric, and Remove, Cancel and Close in the footer.
  */
 import { use, useEffect, useState } from "react";
 
@@ -25,8 +25,15 @@ import { formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
 import { formatDurationMs } from "./format-duration";
 import { SweepNavigator } from "./sweep-navigator";
+import { SweepOptimizeControl } from "./sweep-optimize-control";
+import {
+  studyStepProgress,
+  type SweepOptimizer,
+  useSweepOptimizer,
+} from "./sweep-optimizer";
 import { SweepSurface } from "./sweep-surface";
 
+import type { ChartCardTone } from "../shared/chart-card";
 import type {
   ResultsModel,
   ResultsStat,
@@ -54,7 +61,7 @@ const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
 const WIDEST_DURATION = "59m 59s";
 
 const PARAMETERS_HELP =
-  "Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept.";
+  "Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept and drawn on the Surface. Optimize lets an optimizer pick the points, one metric in view.";
 
 // Keeps its footprint when a run can no longer be cancelled, so Remove and
 // Close do not slide when a run finishes.
@@ -69,17 +76,12 @@ export const describeExperiment = (
 ): string =>
   `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs`;
 
-/**
- * "selection" is the navigator's own ladder, the priority work; "surface"
- * is a contour chunk; "refine" is a single cell brought up to depth.
- */
+/** A sweep's only batches are the rungs of the selection's ladder. */
 const BATCH_KIND_META: Record<
   SweepBatchStatus["kind"],
   Pick<ComputeBatch, "label" | "tone">
 > = {
   selection: { label: "Selection", tone: "priority" },
-  surface: { label: "Surface", tone: "background" },
-  refine: { label: "Refine", tone: "background" },
 };
 
 /** The sweep's batches as the computing list shows them. */
@@ -202,18 +204,22 @@ export type ExperimentResultsDependencies = {
     ExperimentsActionsValue,
     "cancelExperiment" | "removeExperiment" | "setSweepSelection"
   >;
+  /** The optimizer a sweep's Parameters card offers and follows. */
+  optimizer: SweepOptimizer;
   /** Leaves the record: after Remove, and from the Close button. */
   onClose: () => void;
 };
 
 export const experimentResultsModel = (
   experiment: ExperimentRecord,
-  { now, actions, onClose }: ExperimentResultsDependencies,
+  { now, actions, optimizer, onClose }: ExperimentResultsDependencies,
 ): ResultsModel => {
   const { sweep } = experiment;
   const canCancel =
     experiment.status === "initializing" || experiment.status === "running";
   const tiles = experimentMetricTiles(experiment);
+  const driving = optimizer.driving && optimizer.study !== null;
+  const tone: ChartCardTone = driving ? "optimizing" : "default";
 
   return {
     header: {
@@ -236,13 +242,22 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            trailing: null,
+            trailing: optimizer.available ? (
+              <SweepOptimizeControl
+                experiment={experiment}
+                optimizer={optimizer}
+              />
+            ) : null,
             content: (
               <SweepNavigator
                 axes={experiment.parameterAxes}
                 selection={sweep.selection}
                 status={{
                   computing: sweep.computing,
+                  following:
+                    driving && optimizer.study
+                      ? studyStepProgress(optimizer.study)
+                      : null,
                   runsCompleted: sweep.runsCompleted,
                   runsSampled: sweep.runsSampled,
                   runTarget: sweep.runTarget,
@@ -254,6 +269,7 @@ export const experimentResultsModel = (
               />
             ),
             more: null,
+            tone,
           },
         ]
       : [],
@@ -261,7 +277,12 @@ export const experimentResultsModel = (
       sweep && experiment.parameterAxes.length >= 2 ? (
         // Keyed so the axis and metric pickers never carry one experiment's
         // identifiers into another when the drawer swaps records in place.
-        <SweepSurface key={experiment.id} experiment={experiment} />
+        <SweepSurface
+          key={experiment.id}
+          experiment={experiment}
+          following={driving}
+          tone={tone}
+        />
       ) : null,
     metrics:
       tiles.length > 0
@@ -289,6 +310,7 @@ export const experimentResultsModel = (
           size="sm"
           prefix={<Icon name="trash" size="sm" />}
           onClick={() => {
+            optimizer.discard();
             actions.removeExperiment(experiment.id);
             onClose();
           }}
@@ -306,7 +328,12 @@ export const experimentResultsModel = (
             size="sm"
             prefix={<Icon name="stop" size="sm" />}
             disabled={!canCancel}
-            onClick={() => actions.cancelExperiment(experiment.id)}
+            // A study driving the sweep stops first, or it would prune
+            // every remaining step against a sweep that is gone.
+            onClick={() => {
+              optimizer.stop();
+              actions.cancelExperiment(experiment.id);
+            }}
           >
             Cancel
           </Button>
@@ -345,6 +372,12 @@ export const useExperimentResultsModel = (
   onClose: () => void,
 ): ResultsModel => {
   const actions = use(ExperimentsActionsContext);
+  const optimizer = useSweepOptimizer(experiment);
   const now = useNow(isExperimentActive(experiment));
-  return experimentResultsModel(experiment, { now, actions, onClose });
+  return experimentResultsModel(experiment, {
+    now,
+    actions,
+    optimizer,
+    onClose,
+  });
 };

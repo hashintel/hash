@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  quadTreeChunks,
-  quadTreeLevels,
-  surfacePositions,
-} from "./surface-sampling";
+import { quadTreeLevels, surfacePositions } from "./surface-sampling";
 
 describe("surfacePositions", () => {
   it("spreads at most eleven positions evenly over the axis", () => {
@@ -64,14 +60,5 @@ describe("quadTreeLevels", () => {
     // 11 positions per axis: rounded lattice levels, no single giant tail.
     const levels = quadTreeLevels(11, 11);
     expect(levels.map((level) => level.length)).toEqual([4, 5, 16, 56, 40]);
-  });
-});
-
-describe("quadTreeChunks", () => {
-  it("cuts levels at the chunk size without spanning levels", () => {
-    const chunks = quadTreeChunks(11, 11, 24);
-    expect(chunks.map((chunk) => chunk.length)).toEqual([
-      4, 5, 16, 24, 24, 8, 24, 16,
-    ]);
   });
 });

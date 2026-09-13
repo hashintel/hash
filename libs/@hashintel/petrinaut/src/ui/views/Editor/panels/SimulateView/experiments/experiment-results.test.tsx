@@ -1,4 +1,4 @@
-import { isValidElement } from "react";
+import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,6 +12,15 @@ import {
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 
+const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
+  available: false,
+  study: null,
+  driving: false,
+  start: () => Promise.resolve(),
+  stop: () => {},
+  discard: () => {},
+};
+
 const dependencies: ExperimentResultsDependencies = {
   now: Date.now(),
   actions: {
@@ -19,11 +28,40 @@ const dependencies: ExperimentResultsDependencies = {
     removeExperiment: vi.fn(),
     setSweepSelection: vi.fn(),
   },
+  optimizer: idleOptimizer,
   onClose: () => {},
 };
 
-const model = (experiment: ExperimentRecord) =>
-  experimentResultsModel(experiment, dependencies);
+const model = (
+  experiment: ExperimentRecord,
+  overrides: Partial<ExperimentResultsDependencies> = {},
+) => experimentResultsModel(experiment, { ...dependencies, ...overrides });
+
+type LabelledElement = ReactElement<{
+  children?: ReactNode;
+  onClick?: () => void;
+}>;
+
+/** The first element under `node` whose only child is the text `label`, e.g. a button. */
+const elementLabelled = (
+  node: ReactNode,
+  label: string,
+): LabelledElement | null => {
+  if (!isValidElement<{ children?: ReactNode; onClick?: () => void }>(node)) {
+    return null;
+  }
+  if (node.props.children === label) {
+    return node;
+  }
+  const children = node.props.children;
+  for (const child of Array.isArray(children) ? children : [children]) {
+    const found = elementLabelled(child, label);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+};
 
 const statTexts = (experiment: ExperimentRecord) =>
   Object.fromEntries(
@@ -101,6 +139,7 @@ describe("experimentResultsModel for a running sweep", () => {
       subtitle: `${sweep.parameterAxes.length} swept`,
       trailing: null,
       more: null,
+      tone: "default",
     });
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({
@@ -171,5 +210,56 @@ describe("experimentResultsModel for a plain experiment", () => {
 
   it("has no metrics grid without configured metrics", () => {
     expect(model(makeExperiment(1)).metrics).toBeNull();
+  });
+});
+
+describe("experimentResultsModel with the optimizer", () => {
+  const study = {
+    id: "study",
+    status: "running",
+    requestedTrials: 30,
+    completedTrials: 3,
+    prunedTrials: 1,
+    failedTrials: 0,
+  } as NonNullable<ExperimentResultsDependencies["optimizer"]["study"]>;
+
+  it("offers the Optimize control on the Parameters card when the optimizer is available", () => {
+    const result = model(sweep, {
+      optimizer: { ...idleOptimizer, available: true },
+    });
+    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
+    expect(result.bands[0]!.tone).toBe("default");
+  });
+
+  it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
+    const result = model(sweep, {
+      optimizer: { ...idleOptimizer, available: true, study, driving: true },
+    });
+    expect(result.bands[0]!.tone).toBe("optimizing");
+    expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
+    expect(
+      (result.surface as { props: { following: boolean; tone: string } }).props,
+    ).toMatchObject({ following: true, tone: "optimizing" });
+  });
+
+  it("stops the study before cancelling the sweep", () => {
+    const stop = vi.fn();
+    const cancelExperiment = vi.fn();
+    const result = model(sweep, {
+      actions: { ...dependencies.actions, cancelExperiment },
+      optimizer: {
+        ...idleOptimizer,
+        available: true,
+        study,
+        driving: true,
+        stop,
+      },
+    });
+    elementLabelled(result.footer, "Cancel")?.props.onClick?.();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(cancelExperiment).toHaveBeenCalledWith(sweep.id);
+    expect(stop.mock.invocationCallOrder[0]).toBeLessThan(
+      cancelExperiment.mock.invocationCallOrder[0]!,
+    );
   });
 });
