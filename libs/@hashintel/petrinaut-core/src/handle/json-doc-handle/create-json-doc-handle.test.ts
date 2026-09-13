@@ -216,6 +216,29 @@ describe("createJsonDocHandle", () => {
 });
 
 describe("createPetrinaut", () => {
+  it("observes its handle only while a resource has subscribers", () => {
+    const sourceHandle = createJsonDocHandle({ initial: empty() });
+    const unsubscribe = vi.fn();
+    const subscribe = vi.fn(() => unsubscribe);
+    const handle: PetrinautDocHandle = {
+      ...sourceHandle,
+      subscribe,
+    };
+
+    const instance = createPetrinaut({ document: handle });
+    expect(subscribe).not.toHaveBeenCalled();
+
+    const stopReadingDefinition = instance.definition.subscribe(() => {});
+    expect(subscribe).toHaveBeenCalledOnce();
+    stopReadingDefinition();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+
+    const stopReadingPatches = instance.patches.subscribe(() => {});
+    expect(subscribe).toHaveBeenCalledTimes(2);
+    stopReadingPatches();
+    expect(unsubscribe).toHaveBeenCalledTimes(2);
+  });
+
   it("exposes the current definition through a ReadableStore", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     const instance = createPetrinaut({ document: handle });
@@ -357,7 +380,7 @@ describe("createPetrinaut", () => {
     };
     const instance = createPetrinaut({ document: handle });
 
-    expect(upstreamSubscriptions).toBe(2);
+    expect(upstreamSubscriptions).toBe(0);
     expect(instance.definition.get()).toMatchObject({
       types: [],
       differentialEquations: [],

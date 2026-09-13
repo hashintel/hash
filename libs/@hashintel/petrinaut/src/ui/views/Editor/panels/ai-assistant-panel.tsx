@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -637,23 +638,12 @@ const ConversationAiAssistantPanel = ({
       }),
     );
 
-  const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
-    () => ({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    }),
+  // The wrapper is render-derived from the host transport. Delaying this to an
+  // effect leaves useChat on the previous host for one committed render.
+  const diagnosticsTransport = useMemo(
+    () => buildWrappedTransport(aiAssistant.transport),
+    [aiAssistant.transport],
   );
-
-  useEffect(() => {
-    if (diagnosticsTransportState.source === aiAssistant.transport) {
-      return;
-    }
-
-    setDiagnosticsTransportState({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    });
-  }, [aiAssistant.transport, diagnosticsTransportState.source]);
   /* eslint-enable react-hooks-js/refs */
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
@@ -1125,7 +1115,7 @@ const ConversationAiAssistantPanel = ({
       ? {}
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
-    transport: diagnosticsTransportState.transport,
+    transport: diagnosticsTransport,
     // Interactive tools retain AI SDK's native continuation; static tools
     // suppress it while addAutomaticToolOutput owns the explicit chain.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
