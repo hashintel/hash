@@ -198,7 +198,8 @@ try {
     bundleKey: fixture.bundleKey,
     principalKey,
   });
-  assert.equal(changed?.definition.places[0]?.id, "receiving");
+  assert(changed);
+  assert.equal(changed.definition.places[0]?.id, "receiving");
 
   await page.reload();
   await page
@@ -211,8 +212,9 @@ try {
     bundleKey: fixture.bundleKey,
     principalKey,
   });
-  assert.equal(reopened?.copyId, changed?.copyId);
-  assert.equal(reopened?.definition.places[0]?.id, "receiving");
+  assert(reopened);
+  assert.equal(reopened.copyId, changed.copyId);
+  assert.equal(reopened.definition.places[0]?.id, "receiving");
 
   await page.keyboard.press("Meta+k");
   await page
@@ -228,8 +230,9 @@ try {
     bundleKey: fixture.bundleKey,
     principalKey,
   });
-  assert.notEqual(clean?.copyId, changed?.copyId);
-  assert.equal(clean?.definition.places.length, 0);
+  assert(clean);
+  assert.notEqual(clean.copyId, changed.copyId);
+  assert.equal(clean.definition.places.length, 0);
 
   const siblingContext = await browser.newContext();
   try {
@@ -247,8 +250,9 @@ try {
       bundleKey: fixture.bundleKey,
       principalKey: siblingPrincipal,
     });
-    assert.notEqual(sibling?.copyId, clean?.copyId);
-    assert.equal(sibling?.definition.places.length, 0);
+    assert(sibling);
+    assert.notEqual(sibling.copyId, clean.copyId);
+    assert.equal(sibling.definition.places.length, 0);
   } finally {
     await siblingContext.close();
   }
@@ -257,9 +261,9 @@ try {
   assert.deepEqual(blocked, []);
   process.stdout.write(
     `WORKED_MODEL_COPY ${JSON.stringify({
-      changedCopyId: changed?.copyId,
-      cleanCopyId: clean?.copyId,
-      reopened: reopened?.copyId === changed?.copyId,
+      changedCopyId: changed.copyId,
+      cleanCopyId: clean.copyId,
+      reopened: reopened.copyId === changed.copyId,
     })}\n`,
   );
 } finally {

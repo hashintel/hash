@@ -484,6 +484,7 @@ export const runReopenedWhyWitness = async ({
       assert(createdPath);
       save(
         `${cohort}-inventory`,
+        // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable inventory entries while adding evaluation annotations.
         inventory(post).map((entry) => ({
           ...entry,
           cohort:
@@ -702,6 +703,7 @@ export const runReopenedWhyWitness = async ({
         save("hand-edit-canonical", handEdited);
         save(
           "hand-edit-inventory",
+          // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable inventory entries while adding evaluation annotations.
           inventory(handEdited).map((entry) => ({
             ...entry,
             cohort:

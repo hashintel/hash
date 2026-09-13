@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Reconciliation cases retain deterministic query and assertion order. */
+
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 

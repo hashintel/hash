@@ -10,7 +10,6 @@ import {
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const connectionString = process.env.BRUNCH_TEST_POSTGRES_URL;
-const postgresTest = connectionString === undefined ? test.skip : test;
 
 const emptyDefinition: SDCPN = {
   places: [],
@@ -39,7 +38,7 @@ const fixture = (
   revisionId: `${fixtureVersion}-revision`,
 });
 
-postgresTest(
+test.skipIf(connectionString === undefined)(
   "seeds and isolates worked-model copies in real Postgres",
   async () => {
     const pool = new Pool({ connectionString });

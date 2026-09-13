@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Cases run sequentially against their paired mock clients. */
+
 import {
   type createFlueClient,
   type FlueClient,

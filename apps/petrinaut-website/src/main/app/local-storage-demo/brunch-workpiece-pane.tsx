@@ -176,11 +176,13 @@ export const BrunchWorkpiecePane = ({
         typeof removed.utf16Length === "number" &&
         typeof inserted.start === "number" &&
         typeof inserted.end === "number" &&
-        typeof inserted.utf16Length === "number" && (
+        typeof inserted.utf16Length === "number" &&
+        (mutation.baseRevisionId === null ||
+          typeof mutation.baseRevisionId === "string") && (
           <p role="status" className={noticeStyle}>
             {mutation.baseRevisionId === null
               ? "Created from no prior revision"
-              : `Changed from revision ${String(mutation.baseRevisionId)}`}
+              : `Changed from revision ${mutation.baseRevisionId}`}
             {`: removed ${removed.utf16Length} UTF-16 units [${removed.start}, ${removed.end}); inserted ${inserted.utf16Length} [${inserted.start}, ${inserted.end}).`}
           </p>
         )}

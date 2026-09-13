@@ -661,6 +661,7 @@ const AvailableVoiceInterviewControl = ({
     if (inputMode === "text") {
       handledVoiceSelectionRef.current = false;
       if (!active) {
+        // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes this consent-state machine
         setShowDisclosure(false);
       }
       return;

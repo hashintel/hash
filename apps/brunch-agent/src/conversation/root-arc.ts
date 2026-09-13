@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Root-arc evidence is verified in canonical history order. */
+
 import {
   canonicalContent,
   parseJoinedRootArcInput,

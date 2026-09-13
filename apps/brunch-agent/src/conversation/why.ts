@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Explanations reconcile browser evidence in canonical history order. */
+
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 

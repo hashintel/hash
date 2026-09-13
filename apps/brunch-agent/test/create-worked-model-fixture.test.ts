@@ -109,5 +109,5 @@ test("refuses invalid identity and incomplete evidence", async () => {
       outputPath: join(directory, "fixture.json"),
       title: "Inventory",
     }),
-  ).rejects.toThrow();
+  ).rejects.toThrow(/ENOENT/u);
 });

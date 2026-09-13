@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Route cases retain deterministic request and assertion order. */
+
 import { Hono } from "hono";
 import { beforeEach, describe, expect, test } from "vitest";
 

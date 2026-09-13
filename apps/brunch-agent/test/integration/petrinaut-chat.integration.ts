@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- A response stream can only be read sequentially. */
+
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

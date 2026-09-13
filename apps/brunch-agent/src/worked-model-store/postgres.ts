@@ -21,7 +21,7 @@ const jsonField = (
   name: string,
 ): Record<string, unknown> => {
   const raw = row[name];
-  const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const value: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new Error(`Worked-model database row has invalid ${name}.`);
   return value as Record<string, unknown>;
@@ -113,8 +113,10 @@ export const createPostgresWorkedModelStore = (
   createId: () => string = randomUUID,
 ): WorkedModelStore => {
   let migration: Promise<void> | undefined;
-  const ensureTables = (): Promise<void> =>
-    (migration ??= createTables(runner.query));
+  const ensureTables = (): Promise<void> => {
+    migration ??= createTables(runner.query);
+    return migration;
+  };
 
   const instantiate = (
     fixture: WorkedModelFixture,

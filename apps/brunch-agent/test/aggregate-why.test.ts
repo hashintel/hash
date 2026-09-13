@@ -35,7 +35,7 @@ const withAttemptPostRevision = (
         continue;
       }
       if (!Array.isArray(parsed)) continue;
-      const result = parsed.find(
+      const result = (parsed as unknown[]).find(
         (entry) => isRecord(entry) && entry.toolCallId === toolCallId,
       );
       if (!isRecord(result) || !isRecord(result.metadata)) continue;
@@ -256,16 +256,18 @@ test("keeps explicit and derived leaf causes separate beneath the refused row", 
 });
 
 test("does not refuse an unchanged aggregate or primitive merely because sibling fields changed", async () => {
-  for (const field of ["scenarioParameters", "name"]) {
-    const answer = await explain({
-      kind: "scenario",
-      name: "TestInitial",
-      field,
-    });
-    expect(answer.disposition).toBe("partially-supported");
-    expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
-    expect(answer.governing?.revisionId).toBe("typed-revision-one");
-  }
+  await Promise.all(
+    ["scenarioParameters", "name"].map(async (field) => {
+      const answer = await explain({
+        kind: "scenario",
+        name: "TestInitial",
+        field,
+      });
+      expect(answer.disposition).toBe("partially-supported");
+      expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
+      expect(answer.governing?.revisionId).toBe("typed-revision-one");
+    }),
+  );
 });
 
 test("existing transition arc aggregates cannot inherit their empty creation basis", async () => {

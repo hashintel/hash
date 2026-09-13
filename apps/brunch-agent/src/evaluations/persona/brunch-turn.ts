@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Persona admissions and tool calls advance in canonical order. */
+
 /**
  * The `brunch_turn` tool: the persona harness's only path into Brunch.
  *

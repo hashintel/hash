@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Stream reads and backpressure are necessarily sequential. */
+
 /** Shared HTTP/static/Chrome setup for the root and persona browser witnesses. */
 import assert from "node:assert/strict";
 import { once } from "node:events";

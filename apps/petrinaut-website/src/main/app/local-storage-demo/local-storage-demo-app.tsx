@@ -470,6 +470,7 @@ export const LocalStorageDemoApp = ({
   useEffect(() => {
     if (!brunchSelected) {
       // Voice is a Brunch feature; the stock assistant never shows it.
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- assistant selection synchronizes this host-owned integration state
       setOpenAIVoiceConfig(null);
       return;
     }
@@ -497,6 +498,7 @@ export const LocalStorageDemoApp = ({
 
   useEffect(() => {
     if (currentDocument === null) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- repository selection synchronizes the selected document handle
       setActiveHandle(null);
       return;
     }
