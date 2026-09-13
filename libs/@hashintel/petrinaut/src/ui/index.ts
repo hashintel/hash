@@ -10,9 +10,12 @@
  */
 
 export { Petrinaut } from "./petrinaut";
-export type {
-  PetrinautAiMessage,
-  PetrinautAiMessageMetadata,
+export {
+  // The user-guide pages the built-in documentation read serves, so a host
+  // tool under its own name can answer with the same text.
+  petrinautDocsContent,
+  type PetrinautAiMessage,
+  type PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,

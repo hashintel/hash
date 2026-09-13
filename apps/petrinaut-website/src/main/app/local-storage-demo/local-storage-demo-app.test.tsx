@@ -33,16 +33,22 @@ import {
   crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
 
+import type { useWorkedModelCopy } from "./use-worked-model-copy";
 import type {
   AgentConversationObservationSnapshot,
   FlueClient,
 } from "@flue/sdk";
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
+import type {
+  PetrinautDocHandle,
+  PetrinautMutations,
+} from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
+
+type WorkedModelHook = ReturnType<typeof useWorkedModelCopy>;
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -55,29 +61,18 @@ const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
 const workedModelHook = vi.hoisted(() => ({
   current: {
-    copy: null as null | {
-      bundleKey: string;
-      copyId: string;
-      conversationId: string;
-      documentId: string;
-      incarnationId: string;
-      fixtureVersion: string;
-      principalKey: string;
-      title: string;
-      definition: {
-        places: unknown[];
-        transitions: unknown[];
-        types: unknown[];
-        parameters: unknown[];
-        differentialEquations: unknown[];
-      };
-      definitionSha256: string;
-      revisionId: string;
-    },
+    copy: null as WorkedModelHook["copy"],
     error: null as Error | null,
     loading: false,
-    createCleanCopy: vi.fn(async () => undefined),
-    persistDefinition: vi.fn(async () => undefined),
+    createCleanCopy: vi.fn<WorkedModelHook["createCleanCopy"]>(
+      async () => undefined,
+    ),
+    persistDefinition: vi.fn<WorkedModelHook["persistDefinition"]>(
+      async () => undefined,
+    ),
+    settleDocumentRevision: vi.fn<WorkedModelHook["settleDocumentRevision"]>(
+      async () => undefined,
+    ),
   },
 }));
 
@@ -359,6 +354,17 @@ describe("local storage demo Brunch voice integration", () => {
         ({ toolName }) => toolName === "brunch_ask",
       ),
     ).toBe(false);
+    // The Brunch-named reads are host wrappers in every Brunch mode; the
+    // batch mutation is mounted only where construction is selected.
+    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
+      [
+        "read_petrinaut_docs",
+        "read_petrinaut_net",
+        "read_petrinaut_diagnostics",
+        "layout_petrinaut_net",
+        "mutate_petrinaut_net",
+      ],
+    );
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -538,7 +544,10 @@ describe("local storage demo URL navigation", () => {
 
     mountedNavigation().onNavigate(
       (current) => ({ ...current, subnetId: "subnet-2" }),
-      { history: "push", intent: { cause: "user", action: "subnet" } },
+      {
+        history: "push",
+        intent: { cause: "user", action: "subnet" },
+      },
     );
 
     expect(onSearchChange).toHaveBeenCalledWith({ subnet: "subnet-2" }, "push");
@@ -865,8 +874,8 @@ describe("local storage demo prepared fixture", () => {
       "read_petrinaut_docs",
       "read_petrinaut_net",
       "read_petrinaut_diagnostics",
-      "mutate_petrinaut_net",
       "layout_petrinaut_net",
+      "mutate_petrinaut_net",
     ]);
   });
 });
@@ -882,6 +891,7 @@ describe("worked-model bundle selection", () => {
     stubStorage();
     workedModelHook.current.createCleanCopy.mockClear();
     workedModelHook.current.persistDefinition.mockClear();
+    workedModelHook.current.settleDocumentRevision.mockClear();
     workedModelHook.current.copy = {
       bundleKey: "inventory-purchasing",
       copyId: "copy-1",
@@ -956,13 +966,64 @@ describe("worked-model bundle selection", () => {
         });
       });
     });
-    expect(workedModelHook.current.persistDefinition).toHaveBeenCalledWith({
-      definition: expect.objectContaining({
-        places: [expect.objectContaining({ id: "bundle-place" })],
+    expect(workedModelHook.current.persistDefinition).toHaveBeenCalledOnce();
+    const persistedChange =
+      workedModelHook.current.persistDefinition.mock.calls[0]?.[0];
+    expect(persistedChange?.definition.places).toEqual([
+      expect.objectContaining({ id: "bundle-place" }),
+    ]);
+    expect(persistedChange?.previousRevisionId).toBe("bundle-revision");
+    expect(persistedChange?.revisionId).toBe(handle.revisionId.get());
+
+    // A Brunch tool that changes the copy waits for the host to settle the
+    // revision it produced before its result is returned.
+    const layoutTool = assistant?.automaticTools?.find(
+      ({ toolName }) => toolName === "layout_petrinaut_net",
+    );
+    expect(layoutTool).toBeDefined();
+    const revisionBeforeLayout = handle.revisionId.get();
+    const settled = Promise.withResolvers<void>();
+    workedModelHook.current.settleDocumentRevision.mockReturnValueOnce(
+      settled.promise,
+    );
+    let layoutOutput: unknown;
+    const layoutRun = Promise.resolve(
+      layoutTool!.execute({
+        input: { askUserFirst: false },
+        mutations: {} as PetrinautMutations,
+        commands: {
+          applyClipboardPaste: () => ({ newItemIds: [] }),
+          applyAutoLayout: async () => {
+            act(() => {
+              handle.change((draft) => {
+                draft.places[0]!.x = 100;
+              });
+            });
+            return { commitCount: 1 };
+          },
+        },
+        handle,
+        readDiagnosticsContext: async () => "",
+        toolCallId: "layout-1",
+        signal: new AbortController().signal,
       }),
-      previousRevisionId: "bundle-revision",
-      revisionId: handle.revisionId.get(),
+    ).then((output) => {
+      layoutOutput = output;
     });
+    await waitFor(() =>
+      expect(
+        workedModelHook.current.settleDocumentRevision,
+      ).toHaveBeenCalledWith(handle.revisionId.get()),
+    );
+    expect(handle.revisionId.get()).not.toBe(revisionBeforeLayout);
+    await act(async () => Promise.resolve());
+    expect(layoutOutput).toBeUndefined();
+    settled.resolve();
+    await layoutRun;
+    expect(layoutOutput).toEqual(
+      expect.objectContaining({ applied: true, commitCount: 1 }),
+    );
+
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     fireEvent.click(
       screen.getByRole("button", {
@@ -1068,7 +1129,9 @@ describe("assistant selection", () => {
     );
     expect(
       JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
-    ).toEqual({ "net-1": [stockMessage] });
+    ).toEqual({
+      "net-1": [stockMessage],
+    });
 
     switchAssistant(/Use Brunch \(default assistant\)/);
     await waitFor(() =>
@@ -1085,7 +1148,9 @@ describe("assistant selection", () => {
     );
     expect(
       JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
-    ).toEqual({ "net-1": [stockMessage] });
+    ).toEqual({
+      "net-1": [stockMessage],
+    });
 
     switchAssistant(/Use the stock Petrinaut assistant/);
     await waitFor(() =>

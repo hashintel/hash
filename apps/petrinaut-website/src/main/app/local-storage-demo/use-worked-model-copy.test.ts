@@ -157,6 +157,32 @@ test("serializes definition writes against each returned hash", async () => {
   expect(result.current.copy?.definitionSha256).toBe("c".repeat(64));
 });
 
+test("settles the persistence operation for an exact document revision", async () => {
+  const pendingUpdate = Promise.withResolvers<WorkedModelCopy>();
+  vi.mocked(updateWorkedModelDefinition).mockReturnValue(pendingUpdate.promise);
+  const { result } = renderHook(() => useWorkedModelCopy(input));
+  await waitFor(() => expect(result.current.copy).not.toBeNull());
+
+  let settled = false;
+  act(() => {
+    void result.current.persistDefinition({
+      definition: emptyDefinition,
+      previousRevisionId: "revision-1",
+      revisionId: "revision-2",
+    });
+    void result.current.settleDocumentRevision("revision-2").then(() => {
+      settled = true;
+    });
+  });
+  await act(async () => Promise.resolve());
+  expect(settled).toBe(false);
+
+  pendingUpdate.resolve(
+    copy("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
+  );
+  await waitFor(() => expect(settled).toBe(true));
+});
+
 test("creates a clean copy only after queued writes settle", async () => {
   vi.mocked(updateWorkedModelDefinition).mockResolvedValue(
     copy("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
@@ -178,6 +204,42 @@ test("creates a clean copy only after queued writes settle", async () => {
 
   expect(createCleanWorkedModelCopy).toHaveBeenCalledWith(requestInput);
   expect(result.current.copy?.copyId).toBe("copy-clean");
+});
+
+test("a delayed write cannot target or repopulate a newly selected copy", async () => {
+  const pendingUpdate = Promise.withResolvers<WorkedModelCopy>();
+  vi.mocked(resolveWorkedModelCopy)
+    .mockResolvedValueOnce(copy("a".repeat(64), emptyDefinition, "copy-1"))
+    .mockResolvedValueOnce(copy("b".repeat(64), emptyDefinition, "copy-2"));
+  vi.mocked(updateWorkedModelDefinition).mockReturnValue(pendingUpdate.promise);
+  const { result, rerender } = renderHook(
+    ({ bundleKey }: { bundleKey: string }) =>
+      useWorkedModelCopy({ ...input, bundleKey }),
+    { initialProps: { bundleKey: "inventory-purchasing" } },
+  );
+  await waitFor(() => expect(result.current.copy?.copyId).toBe("copy-1"));
+
+  let write: Promise<void> | undefined;
+  act(() => {
+    write = result.current.persistDefinition({
+      definition: emptyDefinition,
+      previousRevisionId: "revision-1",
+      revisionId: "revision-2",
+    });
+  });
+  await waitFor(() => expect(updateWorkedModelDefinition).toHaveBeenCalled());
+  rerender({ bundleKey: "another-bundle" });
+  await waitFor(() => expect(result.current.copy?.copyId).toBe("copy-2"));
+
+  pendingUpdate.resolve(
+    copy("c".repeat(64), emptyDefinition, "copy-1", "revision-2"),
+  );
+  await act(async () => write);
+
+  expect(updateWorkedModelDefinition).toHaveBeenCalledWith(
+    expect.objectContaining({ copyId: "copy-1" }),
+  );
+  expect(result.current.copy?.copyId).toBe("copy-2");
 });
 
 test("does not resolve a bundle while disabled", () => {

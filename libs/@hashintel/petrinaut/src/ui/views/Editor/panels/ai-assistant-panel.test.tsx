@@ -1396,60 +1396,6 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
-  test("executes a dynamic host alias as its canonical Petrinaut read", async () => {
-    const requestMessages: PetrinautAiMessage[][] = [];
-    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
-      ({ messages }) => {
-        requestMessages.push(structuredClone(messages));
-        if (requestMessages.length === 1) {
-          return Promise.resolve(
-            streamChunks([
-              { type: "start-step" },
-              {
-                type: "tool-input-available",
-                toolCallId: "aliased-net-read",
-                toolName: "read_petrinaut_net",
-                input: {},
-                dynamic: true,
-              },
-              { type: "finish-step" },
-              { type: "finish", finishReason: "tool-calls" },
-            ]),
-          );
-        }
-        return Promise.resolve(
-          streamChunks(textChunks("alias-complete", "Alias read received")),
-        );
-      },
-    );
-
-    renderTestPanel({
-      aiAssistant: {
-        transport: {
-          reconnectToStream: () => Promise.resolve(null),
-          sendMessages,
-        },
-        toolAliases: {
-          read_petrinaut_net: getLatestNetDefinitionToolName,
-        },
-      },
-      initialMessage: "Read through the host alias",
-      petriNetDefinition: nonEmptySDCPN,
-    });
-
-    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText("Alias read received")).not.toBeNull();
-    expect(
-      requestMessages[1]?.flatMap((message) => message.parts),
-    ).toContainEqual(
-      expect.objectContaining({
-        state: "output-available",
-        toolCallId: "aliased-net-read",
-        toolName: "read_petrinaut_net",
-      }),
-    );
-  });
-
   test("does not continue while a sibling automatic tool is pending", async () => {
     let releaseLayout: (() => void) | undefined;
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
@@ -5170,7 +5116,9 @@ describe("AiAssistantPanel host interactive tools", () => {
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
         mutations: instance.mutations,
+        commands: instance.commands,
         handle: instance.handle,
+        readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
         toolCallId: "automatic-call-1",
         signal: expect.any(AbortSignal) as AbortSignal,
       });
@@ -5186,6 +5134,82 @@ describe("AiAssistantPanel host interactive tools", () => {
     } finally {
       instance.dispose();
     }
+  });
+
+  test("arms pending diagnostics only for a host tool that changed the document", async () => {
+    const diagnosticsOutputs: string[] = [];
+    const turn = {
+      current: 0,
+      calls: [
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-1" },
+        { toolName: "hostAddPlace", toolCallId: "host-mutate-1" },
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-2" },
+      ],
+    };
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
+      const call = turn.calls[turn.current];
+      turn.current += 1;
+      return Promise.resolve(
+        streamChunks(
+          call === undefined
+            ? [...textChunks("host-done", "Host tools finished.")]
+            : [
+                { type: "start-step" },
+                {
+                  type: "tool-input-available",
+                  dynamic: true,
+                  toolCallId: call.toolCallId,
+                  toolName: call.toolName,
+                  input: {},
+                },
+              ],
+        ),
+      );
+    });
+    const passthrough = { parse: (raw: unknown) => raw };
+    renderTestPanel({
+      aiAssistant: {
+        automaticTools: [
+          {
+            toolName: "hostReadDiagnostics",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: async ({ readDiagnosticsContext }) => {
+              const context = await readDiagnosticsContext();
+              diagnosticsOutputs.push(context);
+              return { context };
+            },
+          },
+          {
+            toolName: "hostAddPlace",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: ({ mutations }) => {
+              mutations.addPlace({
+                id: "host-place",
+                name: "HostPlace",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              });
+              return { applied: true };
+            },
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      initialMessage: "Run the host tools",
+    });
+
+    // The test LSP context never refreshes, so the second read can only be
+    // "current" if nothing armed it, and can only be "pending" if the
+    // mutation between the reads did.
+    await screen.findByText("Host tools finished.", {}, { timeout: 5_000 });
+    expect(diagnosticsOutputs).toHaveLength(2);
+    expect(diagnosticsOutputs[0]).not.toMatch(/still pending/u);
+    expect(diagnosticsOutputs[1]).toMatch(/still pending/u);
   });
 
   test("aborts an in-flight automatic tool when the panel unmounts", async () => {

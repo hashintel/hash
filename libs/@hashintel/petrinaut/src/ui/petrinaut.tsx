@@ -13,7 +13,6 @@ import {
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
-  type PetrinautAiToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -75,8 +74,6 @@ export type PetrinautAiAssistant = {
   automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
-  /** Host-facing names mapped to canonical Petrinaut operations for execution. */
-  toolAliases?: Readonly<Record<string, PetrinautAiToolName>>;
   messages?: PetrinautAiMessage[];
   /**
    * Opt into following host history while locally idle. The predicate must

@@ -37,9 +37,6 @@ import {
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
-  getLatestNetDefinitionToolName,
-  getNetCompilationErrorsToolName,
-  readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -89,6 +86,10 @@ import {
   createBrunchPanelTransport,
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
+import {
+  brunchPetrinautDynamicToolNames,
+  createBrunchPetrinautTools,
+} from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
@@ -98,7 +99,6 @@ import {
   isConstructionSelected,
   localStorageDemoRouteIdentity,
 } from "./local-storage-demo-search";
-import { createMutatePetrinetAutomaticTool } from "./mutate-petrinet-tool";
 import {
   createJoinedBrowserMutationRecorder,
   observeBrowserDefinition,
@@ -171,19 +171,6 @@ const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
   layoutPetrinautNetToolName,
   legacyLayoutPetrinautNetToolName,
 ]);
-const batchedConstructionDynamicToolNames: ReadonlySet<string> = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautNetToolName,
-  readPetrinautDiagnosticsToolName,
-  mutatePetrinautNetToolName,
-  layoutPetrinautNetToolName,
-]);
-const brunchPetrinautToolAliases = {
-  [READ_PETRINAUT_DOCS_TOOL_NAME]: readPetrinautDocToolName,
-  [readPetrinautNetToolName]: getLatestNetDefinitionToolName,
-  [readPetrinautDiagnosticsToolName]: getNetCompilationErrorsToolName,
-  [layoutPetrinautNetToolName]: legacyLayoutPetrinautNetToolName,
-} as const;
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
   ...preparedCrewReservationStoredSDCPN,
@@ -499,6 +486,7 @@ export const LocalStorageDemoApp = ({
     enabled: workedModelSelected,
     principalKey: brunchPrincipal,
   });
+  const persistWorkedModelDefinition = workedModel.persistDefinition;
   const workedModelDocument = useMemo<SDCPNInLocalStorage | undefined>(
     () =>
       workedModel.copy === null
@@ -653,6 +641,7 @@ export const LocalStorageDemoApp = ({
   const currentNet = currentNetId
     ? (storedSDCPNsForDisplay[currentNetId] ?? null)
     : null;
+  const currentNetTitle = currentNet?.title ?? "";
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
@@ -704,7 +693,7 @@ export const LocalStorageDemoApp = ({
 
     return handle.subscribe((event) => {
       if (isWorkedModelDocument) {
-        void workedModel.persistDefinition({
+        void persistWorkedModelDefinition({
           definition: event.next,
           previousRevisionId: event.previousRevisionId,
           revisionId: event.revisionId,
@@ -732,7 +721,7 @@ export const LocalStorageDemoApp = ({
     setStoredSDCPNs,
     constructionDocumentId,
     workedModel.copy?.documentId,
-    workedModel.persistDefinition,
+    persistWorkedModelDefinition,
   ]);
 
   const existingNets: MinimalNetMetadata[] = Object.values(
@@ -849,7 +838,13 @@ export const LocalStorageDemoApp = ({
               activeHandle.fallbackNet.incarnationId,
             )
           : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-            ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
+            ? `${
+                rootCreationSelected
+                  ? "root-creation-candidate-v1"
+                  : constructionSelected
+                    ? "construction-candidate-v1"
+                    : "prepared-root-arc"
+              }:${activeHandle.fallbackNet.incarnationId}`
             : (fixtureConfiguration?.conversationId ??
               getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
@@ -968,9 +963,7 @@ export const LocalStorageDemoApp = ({
     mutationRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
     mutationRecorder?.validatedClientToolNames,
-    batchedConstructionSelected
-      ? batchedConstructionDynamicToolNames
-      : undefined,
+    brunchPetrinautDynamicToolNames,
   );
   useEffect(() => {
     if (flueHistory.error === undefined) return;
@@ -1023,11 +1016,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(batchedConstructionSelected
-            ? {
-                dynamicClientToolNames: batchedConstructionDynamicToolNames,
-              }
-            : {}),
+          dynamicClientToolNames: brunchPetrinautDynamicToolNames,
           ...(constructionClientTools === undefined
             ? {}
             : {
@@ -1090,26 +1079,36 @@ export const LocalStorageDemoApp = ({
         : undefined,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
+      // Brunch's own tool names wrap canonical Petrinaut operations here, in
+      // the host; Petrinaut keeps its names and executes only what it is told.
       automaticTools:
-        batchedConstructionSelected && rootArcBrowser
-          ? [
-              createMutatePetrinetAutomaticTool(rootArcBrowser.binding, {
-                retainAttempt: mutationRecorder?.retainAttempt,
-                onOperationFailure: (failure) =>
-                  reportBrunchFailure("mutate-petrinet", failure.error, {
-                    toolCallId: failure.toolCallId,
-                    operationId: failure.operationId,
-                    operationType: failure.operationType,
-                    status: failure.status,
-                  }),
-              }),
-            ]
-          : [],
+        flueClientPromise === null
+          ? []
+          : createBrunchPetrinautTools({
+              readTitle: () => currentNetTitle,
+              ...(batchedConstructionSelected && rootArcBrowser
+                ? {
+                    mutation: {
+                      binding: rootArcBrowser.binding,
+                      retainAttempt: mutationRecorder?.retainAttempt,
+                      onOperationFailure: (failure) =>
+                        reportBrunchFailure("mutate-petrinet", failure.error, {
+                          toolCallId: failure.toolCallId,
+                          operationId: failure.operationId,
+                          operationType: failure.operationType,
+                          status: failure.status,
+                        }),
+                    },
+                  }
+                : {}),
+              ...(workedModel.copy?.documentId === currentNetId
+                ? {
+                    settleDocumentRevision: workedModel.settleDocumentRevision,
+                  }
+                : {}),
+            }),
       interactiveTools: [],
       transport: petrinautAiChatTransport,
-      ...(flueClientPromise === null
-        ? {}
-        : { toolAliases: brunchPetrinautToolAliases }),
       ...(mutationRecorder === undefined
         ? {}
         : { executeMutation: mutationRecorder.executeMutation }),
@@ -1169,6 +1168,7 @@ export const LocalStorageDemoApp = ({
       conversationTracker,
       conversationId,
       currentNetId,
+      currentNetTitle,
       flueClientPromise,
       flueHistory.messages,
       flueHistory.snapshot,
@@ -1176,6 +1176,8 @@ export const LocalStorageDemoApp = ({
       reportBrunchFailure,
       mutationRecorder,
       setAiMessagesByNetId,
+      workedModel.copy?.documentId,
+      workedModel.settleDocumentRevision,
     ],
   );
 

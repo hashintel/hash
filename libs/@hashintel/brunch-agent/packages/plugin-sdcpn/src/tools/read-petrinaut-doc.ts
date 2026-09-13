@@ -2,19 +2,14 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
-import {
-  petrinautDocNames,
-  readPetrinautDocToolName,
-} from "@hashintel/petrinaut-core/ai";
+import { petrinautDocNames } from "@hashintel/petrinaut-core/ai";
 
-export const READ_PETRINAUT_DOCS_TOOL_NAME = "read_petrinaut_docs";
-/** @deprecated Use `READ_PETRINAUT_DOCS_TOOL_NAME`. */
-export const READ_PETRINAUT_DOC_TOOL_NAME = READ_PETRINAUT_DOCS_TOOL_NAME;
-export const LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME = readPetrinautDocToolName;
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "../construction-tool-names";
 
-export const isReadPetrinautDocsToolName = (name: string): boolean =>
-  name === READ_PETRINAUT_DOCS_TOOL_NAME ||
-  name === LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME;
+export {
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  isReadPetrinautDocsToolName,
+} from "../construction-tool-names";
 
 export const readPetrinautDocs = defineTool({
   name: READ_PETRINAUT_DOCS_TOOL_NAME,

@@ -58,13 +58,17 @@ export {
 export {
   applyAutoLayoutToolName,
   isLayoutPetrinautNetToolName,
+  isReadPetrinautDocsToolName,
   isReadPetrinautDiagnosticsToolName,
   isReadPetrinautNetToolName,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
   layoutPetrinautNetToolName,
   legacyLayoutPetrinautNetToolName,
   legacyReadPetrinautDiagnosticsToolName,
   legacyReadPetrinautNetToolName,
   observedConstructionBrowserToolNames,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
 } from "./construction-tool-names";
@@ -82,12 +86,6 @@ export {
   type MutatePetrinetOperation,
   type MutatePetrinetOutput,
 } from "./mutate-petrinet";
-export {
-  isReadPetrinautDocsToolName,
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  READ_PETRINAUT_DOC_TOOL_NAME,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-} from "./tools/read-petrinaut-doc";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,

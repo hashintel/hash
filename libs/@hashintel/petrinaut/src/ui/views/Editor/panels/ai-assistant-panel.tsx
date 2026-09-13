@@ -87,6 +87,7 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
+export { petrinautDocsContent };
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -881,16 +882,21 @@ const ConversationAiAssistantPanel = ({
       );
     }
 
-    const canonicalToolName =
-      aiAssistant.toolAliases?.[toolCall.toolName] ?? toolCall.toolName;
-
-    if (toolCall.dynamic && canonicalToolName === toolCall.toolName) {
+    if (toolCall.dynamic) {
       const automaticTool = aiAssistant.automaticTools?.find(
         ({ toolName }) => toolName === toolCall.toolName,
       );
       if (automaticTool) {
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
+        // Arm the pending diagnostics version only once the tool has changed
+        // the document: a host read must not leave diagnostics "pending" for
+        // a change that never happened.
+        const diagnosticsVersionBefore = diagnosticsVersionRef.current;
+        const revisionIdBefore = instance.handle.revisionId.get();
+        const armDiagnosticsIfChanged = () => {
+          if (instance.handle.revisionId.get() !== revisionIdBefore)
+            pendingMutationDiagnosticsVersionRef.current =
+              diagnosticsVersionBefore;
+        };
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
         let output: unknown;
@@ -900,16 +906,26 @@ const ConversationAiAssistantPanel = ({
             await automaticTool.execute({
               input: toolInput,
               mutations: instance.mutations,
+              commands: instance.commands,
               handle: instance.handle,
+              readDiagnosticsContext: async () =>
+                (await waitForDiagnosticsRefresh({
+                  pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
+                  diagnosticsVersionRef,
+                })) === "pending"
+                  ? pendingDiagnosticsContext
+                  : diagnosticsContextRef.current,
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
           );
         } catch (error) {
           automaticToolAbortsRef.current.delete(abortController);
+          armDiagnosticsIfChanged();
           throw error;
         }
         automaticToolAbortsRef.current.delete(abortController);
+        armDiagnosticsIfChanged();
         if (abortController.signal.aborted) {
           pendingAutomaticToolCallExecutionsRef.current.delete(
             `${executionConversationId}:${toolCall.toolCallId}`,
@@ -931,7 +947,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
 
-    if (canonicalToolName === getLatestNetDefinitionToolName) {
+    if (toolCall.toolName === getLatestNetDefinitionToolName) {
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
@@ -940,11 +956,11 @@ const ConversationAiAssistantPanel = ({
           definition: instance.definition.get(),
           extensions: instance.extensions,
         },
-      } as never);
+      });
       return;
     }
 
-    if (canonicalToolName === getNetCompilationErrorsToolName) {
+    if (toolCall.toolName === getNetCompilationErrorsToolName) {
       const outcome = await waitForDiagnosticsRefresh({
         pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
         diagnosticsVersionRef,
@@ -958,21 +974,21 @@ const ConversationAiAssistantPanel = ({
           outcome === "pending"
             ? pendingDiagnosticsContext
             : diagnosticsContextRef.current,
-      } as never);
+      });
       return;
     }
 
-    if (canonicalToolName === readPetrinautDocToolName) {
+    if (toolCall.toolName === readPetrinautDocToolName) {
       const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output: petrinautDocsContent[doc],
-      } as never);
+      });
       return;
     }
 
-    if (canonicalToolName === setNetTitleToolName) {
+    if (toolCall.toolName === setNetTitleToolName) {
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({
@@ -983,7 +999,7 @@ const ConversationAiAssistantPanel = ({
             blocked: setNetTitleReadOnlyReason.kind,
             reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
           } satisfies AiToolOutput,
-        } as never);
+        });
         return;
       }
 
@@ -1004,11 +1020,11 @@ const ConversationAiAssistantPanel = ({
               ? `Previous title: ${previousTitle}`
               : undefined,
         } satisfies AiToolOutput,
-      } as never);
+      });
       return;
     }
 
-    const toolName = canonicalToolName;
+    const toolName = toolCall.toolName;
     if (
       !isPetrinautAiMutationToolName(toolName) &&
       !isPetrinautAiCommandToolName(toolName)
@@ -1027,14 +1043,14 @@ const ConversationAiAssistantPanel = ({
 
       if (!allowedDespiteReadOnly) {
         await addAutomaticToolOutput({
-          tool: toolCall.toolName,
+          tool: toolName,
           toolCallId: toolCall.toolCallId,
           output: {
             applied: false,
             blocked: currentReadOnlyReason.kind,
             reason: formatReadOnlyReason(currentReadOnlyReason),
           } satisfies AiToolOutput,
-        } as never);
+        });
         return;
       }
     }
@@ -1062,10 +1078,10 @@ const ConversationAiAssistantPanel = ({
         instance,
       });
       await addAutomaticToolOutput({
-        tool: toolCall.toolName,
+        tool: toolName,
         toolCallId: toolCall.toolCallId,
         output,
-      } as never);
+      });
       return;
     }
 
@@ -1089,10 +1105,10 @@ const ConversationAiAssistantPanel = ({
     });
 
     await addAutomaticToolOutput({
-      tool: toolCall.toolName,
+      tool: toolName,
       toolCallId: toolCall.toolCallId,
       output,
-    } as never);
+    });
   };
 
   const {
@@ -1219,8 +1235,7 @@ const ConversationAiAssistantPanel = ({
       if (
         aiAssistant.automaticTools?.some(
           ({ toolName }) => toolName === toolCall.toolName,
-        ) ||
-        aiAssistant.toolAliases?.[toolCall.toolName] !== undefined
+        )
       )
         return undefined;
       return executeToolCall({ toolCall });
@@ -1390,26 +1405,21 @@ const ConversationAiAssistantPanel = ({
           part,
           aiAssistant.automaticTools,
         );
-        const isAliasedDynamic =
-          part.type === "dynamic-tool" &&
-          part.state === "input-available" &&
-          aiAssistant.toolAliases?.[part.toolName] !== undefined;
-        if (!isStatic && !isAutomaticDynamic && !isAliasedDynamic) continue;
+        if (!isStatic && !isAutomaticDynamic) continue;
 
-        const toolCall =
-          isAutomaticDynamic || isAliasedDynamic
-            ? {
-                dynamic: true as const,
-                input: part.input,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-              }
-            : ({
-                dynamic: false,
-                input: part.input,
-                toolCallId: part.toolCallId,
-                toolName: getStaticToolName(part),
-              } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
+        const toolCall = isAutomaticDynamic
+          ? {
+              dynamic: true as const,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+            }
+          : ({
+              dynamic: false,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: getStaticToolName(part),
+            } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
         if (
           aiAssistant.followMessages !== undefined &&
@@ -1497,7 +1507,6 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.automaticTools,
     aiAssistant.followMessages,
-    aiAssistant.toolAliases,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,

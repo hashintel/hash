@@ -14,6 +14,10 @@ import {
 } from "@hashintel/brunch-agent/workpiece";
 
 import {
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  isReadPetrinautDocsToolName,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
 } from "./construction-tool-names";
@@ -39,10 +43,6 @@ import {
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 import {
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  READ_PETRINAUT_DOC_TOOL_NAME,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  isReadPetrinautDocsToolName,
   readPetrinautDocs,
   readPetrinautDoc,
 } from "./tools/read-petrinaut-doc";
