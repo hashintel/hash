@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { sharedOverlays, sharedSimulateViews } from "./example-search";
 import {
   applyPreviewNavigationUpdate,
   navigationStateToSharedSearch,
@@ -42,24 +43,39 @@ describe("navigation state projection", () => {
     expect(state.mode).toBe("edit");
     expect(state.overlay).toBeNull();
     expect(state.simulateResource).toBeNull();
-    expect(state.simulatePresentation).toBe("drawer");
   });
 
-  it("round-trips the full presentation and omits the drawer baseline", () => {
-    const full = sharedSearchToNavigationState({
-      mode: "simulate",
-      view: "optimizations",
-      present: "full",
-    });
-    expect(full.simulatePresentation).toBe("full");
-    expect(navigationStateToSharedSearch(full).present).toBe("full");
+  it("round-trips every Simulate section and overlay the URL can name", () => {
+    for (const view of sharedSimulateViews) {
+      for (const overlay of sharedOverlays) {
+        const state = sharedSearchToNavigationState({
+          mode: "simulate",
+          view,
+          overlay,
+        });
+        expect(state.simulateView).toBe(view);
+        expect(state.overlay).toEqual({ type: overlay });
+        // The projection omits whatever sits at the baseline, so the property
+        // is that decoding it lands on the same location.
+        expect(
+          sharedSearchToNavigationState(navigationStateToSharedSearch(state)),
+        ).toEqual(state);
+      }
+    }
+  });
 
-    const drawer = sharedSearchToNavigationState({
+  it("omits the fields that sit at the baseline", () => {
+    const state = sharedSearchToNavigationState({
       mode: "simulate",
-      view: "optimizations",
+      view: "experiments",
     });
-    expect(drawer.simulatePresentation).toBe("drawer");
-    expect(navigationStateToSharedSearch(drawer).present).toBeUndefined();
+    expect(navigationStateToSharedSearch(state)).toEqual({
+      scenario: undefined,
+      subnet: undefined,
+      mode: "simulate",
+      view: undefined,
+      overlay: undefined,
+    });
   });
 });
 

@@ -93,12 +93,6 @@ export type UserSettings = {
    */
   enableParameterSweeps: boolean;
   /**
-   * Experimental: show the optimization drawer's Surface section, which
-   * recomputes the objective locally over two optimized parameters. Off, a
-   * study drawer runs no compute of its own.
-   */
-  enableOptimizationSurface: boolean;
-  /**
    * Experimental: connect a host-supplied in-browser optimizer, which runs
    * studies through the experiments backend and streams each step's metrics
    * as it is evaluated. Off, a connected optimizer counts as none at all and
@@ -141,7 +135,6 @@ export type UserSettingsActions = {
   setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setEnableParameterSweeps: (value: boolean) => void;
-  setEnableOptimizationSurface: (value: boolean) => void;
   setEnableInBrowserOptimization: (value: boolean) => void;
   setBrunchDemoMode: (value: boolean) => void;
   updateSubViewSection: (
@@ -178,7 +171,6 @@ export const defaultUserSettings: UserSettings = {
   webGpuEnabled: false,
   showCompilationOutput: false,
   enableParameterSweeps: false,
-  enableOptimizationSurface: false,
   enableInBrowserOptimization: false,
   brunchDemoMode: false,
   subViewPanels: {},
@@ -214,7 +206,6 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},
   setEnableParameterSweeps: () => {},
-  setEnableOptimizationSurface: () => {},
   setEnableInBrowserOptimization: () => {},
   setBrunchDemoMode: () => {},
   updateSubViewSection: () => {},

@@ -42,7 +42,6 @@ export type {
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
-  PetrinautSimulatePresentation,
   PetrinautSimulateResource,
 } from "../react/navigation";
 export type {

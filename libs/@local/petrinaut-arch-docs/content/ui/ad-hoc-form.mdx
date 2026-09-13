@@ -1,6 +1,6 @@
 ---
 title: The ad-hoc scenario form
-description: How an inline Initial State + Parameters definition becomes a generated scenario, an optimization manifest, and a live-type-checked spreadsheet.
+description: How an inline Initial State + Parameters definition becomes a generated scenario, a swept experiment, and a live-type-checked spreadsheet.
 sidebar_order: 10
 attachTo: ui.adhoc-form
 ---
@@ -14,8 +14,12 @@ without saving a [scenario](layer:core.simulation.authoring) — and compiles
 what they enter through a scenario **generated at run time and never
 persisted**. Three consumers mount the same component, differing only in
 what selecting a value means (`selection` prop): quick simulation and plain
-experiment creation pass `"none"` (no toggles), and the optimization drawer
-passes `"optimize"` (a value is selected for the optimizer, with bounds). A
+experiment creation pass `"none"` (no toggles), and experiment creation with
+parameter sweeps on passes `"sweep"` (a value is selected as a swept
+interval). The `"optimize"` mode (a value selected for the optimizer, with
+bounds and a scale) is kept in the union and the synthesis but has no
+consumer since optimization moved into the Experiments tab; a study now runs
+over a sweep. A
 third mode, `"expose"`, is the scenario creation form's: it offers no value
 toggles at all, and instead each top-level Variable row grows a "Scenario
 Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
@@ -388,8 +392,8 @@ initial-state body and wrapped override expressions.
           note: "react.experiments compiles it at experiment start",
         },
         {
-          label: "Create-optimization drawer",
-          note: "Optimized fields become manifest parameterBindings",
+          label: "Create-experiment drawer (sweeps)",
+          note: "Swept fields become the experiment's parameter axes",
         },
       ],
     },
@@ -432,13 +436,14 @@ parameter values.
 
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
-synthesis-only validation. The create-optimization drawer's constraint rows
-follow the same pattern with `temp/constraint/*` sessions: one per row, keyed
-by the draft id, carrying the study's scenario parameters so `scenario.*`
-resolves even when the study's scenario is ad-hoc and absent from the SDCPN. State is plain data — hold it wherever the consumer
-already keeps its draft (component state in the drawers, `SimulationContext`
+synthesis-only validation. The Create Experiment drawer's constraint rows
+(`create-experiment-drawer/constraints/`) follow the same pattern with
+`temp/constraint/*` sessions: one per row, keyed by the draft id, carrying
+the selected scenario's parameters so `scenario.*` resolves in every row.
+State is plain data — hold it wherever the consumer
+already keeps its draft (component state in the drawer, `SimulationContext`
 for quick simulation) and hand `output.scenario` to `compileScenario` when
-the consumer needs it: the drawers compile at experiment/optimization start,
+the consumer needs it: the drawer compiles at experiment start,
 while quick simulation synthesizes and compiles eagerly on every change, so
 its Simulation Settings error banner stays live.
 

@@ -3,13 +3,18 @@
  * one-line title, the status and the stat columns (errors and simulated time
  * for both kinds; runs and wall-clock time for a plain experiment, the
  * selection's sampling for a sweep), the computing chip and the compute
- * badge, the Parameters card with its optimizer control and, once a study
- * ran, the objective strip under its sliders, the surface for a sweep, one
- * metric card per configured metric, and Remove, Cancel and
- * Close in the footer. While a study drives a sweep the header reads from
- * the study: Optimizing, its step as the progress, its step on the batch.
+ * badge, the Parameters card with its optimizer control, its constraints
+ * folded behind its footer and, once a study ran, the objective strip under
+ * its sliders, the surface for a sweep, one metric card per configured
+ * metric, and Remove, Cancel and Close in the footer. While a study drives a
+ * sweep the header reads from the study: Optimizing, its step as the
+ * progress, its step on the batch. From the first study on, driving or
+ * settled, the drawer also shows the study: its progress line as the
+ * headline, its Steps and Steps clear columns, its Constraints and
+ * Sensitivity cards after the metric tiles and its steps table beneath the
+ * columns. The shape changes once, at the first Optimize, never on status.
  */
-import { use } from "react";
+import { Fragment, use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 
@@ -20,12 +25,29 @@ import {
   isExperimentActive,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
+import {
+  constraintAlpha,
+  formatRate,
+  type StudyConstraintRates,
+  studyConstraintRates,
+} from "../../../../../../react/optimizations/constraint-rates";
+import {
+  finishedTrialCount,
+  type OptimizationRecord,
+} from "../../../../../../react/optimizations/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
-import { describeStudyProgress } from "../shared/describe-study-progress";
-import { type ComputeBatch } from "../shared/drawer-frame";
+import {
+  describeStepProgress,
+  describeStudyProgress,
+} from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
+import { constraintsFold } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
+import { ParameterImportancePanel } from "./experiment-results/parameter-importance-panel";
+import { StudyConstraintsCard } from "./experiment-results/study-constraints-card";
+import { StudyHeader } from "./experiment-results/study-header";
+import { StudySteps } from "./experiment-results/study-steps";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
@@ -37,6 +59,7 @@ import {
 import { SweepSurface } from "./sweep-surface";
 
 import type { ChartCardTone } from "../shared/chart-card";
+import type { ComputeBatch } from "../shared/drawer-frame";
 import type {
   ResultsModel,
   ResultsStat,
@@ -190,6 +213,54 @@ const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
   ];
 };
 
+/** The study's constraint rates; null for a study without constraints. */
+const studyRates = (
+  study: Pick<OptimizationRecord, "input" | "trials"> | null,
+): StudyConstraintRates | null =>
+  study !== null && (study.input.constraints ?? []).length > 0
+    ? studyConstraintRates(study.trials, constraintAlpha(study.input))
+    : null;
+
+/**
+ * The study's stat columns after the experiment's: Steps and, when the
+ * study has constraints, Steps clear, each sized for the requested count.
+ * No best-step column: the headline and the objective strip carry it.
+ */
+export const studyStats = (
+  study: OptimizationRecord,
+  rates: StudyConstraintRates | null,
+): ResultsStat[] => {
+  const requested = study.requestedTrials;
+  return [
+    {
+      id: "steps",
+      label: "Steps",
+      widest: describeStepProgress({
+        ...study,
+        completedTrials: requested,
+        prunedTrials: 0,
+        failedTrials: 0,
+      }),
+      value: { text: describeStepProgress(study) },
+      // Narrow, the count alone: the runs per step go.
+      short: {
+        text: `${finishedTrialCount(study)} / ${requested}`,
+        widest: `${requested} / ${requested}`,
+      },
+    },
+    ...(rates === null
+      ? []
+      : [
+          {
+            id: "steps-clear",
+            label: "Steps clear",
+            widest: formatRate(requested, requested),
+            value: { text: formatRate(rates.stepsClear, rates.stepsSimulated) },
+          },
+        ]),
+  ];
+};
+
 /**
  * One tile per configured metric, fed the record's frames. Called from the
  * hook on the two record fields alone, so a publish that keeps the frames
@@ -247,14 +318,20 @@ export const experimentResultsModel = (
   // computes afresh — and a sweep never completes.
   const locked = following !== null || experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
+  // The study's displays appear with the first study and stay through every
+  // later one, whatever its status: the one shape change the drawer makes.
   const { study, studies } = optimizer;
+  const rates = studyRates(study);
 
   return {
     header: {
       title: describeExperiment(experiment),
-      headline: null,
+      headline: study === null ? null : <StudyHeader optimization={study} />,
       status: { ...STATUS_DISPLAY[displayStatus], widest: WIDEST_STATUS },
-      stats: experimentStats(experiment),
+      stats: [
+        ...experimentStats(experiment),
+        ...(study === null ? [] : studyStats(study, rates)),
+      ],
       activity: experimentComputeBatches(experiment.sweepBatches, following),
       compute: experiment,
       // A driven sweep's own bar would saw once per step; the study's steps
@@ -278,11 +355,14 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            // A cancelled sweep's session is gone, so a study could not
-            // navigate it: nothing is left to optimize.
+            // Keyed so the prompt's choices never carry one experiment's metric
+            // into another when the drawer swaps records in place. A cancelled
+            // sweep's session is gone, so a study could not navigate it:
+            // nothing is left to optimize.
             trailing:
               optimizer.available && experiment.status !== "cancelled" ? (
                 <SweepOptimizeControl
+                  key={experiment.id}
                   experiment={experiment}
                   optimizer={optimizer}
                 />
@@ -317,11 +397,17 @@ export const experimentResultsModel = (
             below:
               studies.length === 0 ? null : (
                 <SweepObjectiveStrip
+                  key={experiment.id}
                   studies={studies}
                   driving={following !== null}
                 />
               ),
-            more: null,
+            // The constraints the experiment carries, from creation on; a
+            // property of the experiment, not of any study.
+            more:
+              experiment.constraints.length > 0
+                ? constraintsFold(experiment)
+                : null,
             tone,
           },
         ]
@@ -352,10 +438,36 @@ export const experimentResultsModel = (
             contentEpoch: sweep?.selectionKey ?? "",
             plotHeight: METRIC_PLOT_HEIGHT,
             tone: "default",
-            cards: null,
+            // Keyed on the study, so a later study's cards start afresh;
+            // their rows are the experiment's constraints and axes, so the
+            // boxes are the same. The Sensitivity card decides its own tone
+            // from the study's step floor.
+            cards:
+              study === null ? null : (
+                <Fragment key={study.id}>
+                  {rates === null ? null : (
+                    <StudyConstraintsCard
+                      optimization={study}
+                      rates={rates}
+                      plotHeight={METRIC_PLOT_HEIGHT}
+                      tone={tone}
+                    />
+                  )}
+                  <ParameterImportancePanel
+                    optimization={study}
+                    plotHeight={METRIC_PLOT_HEIGHT}
+                  />
+                </Fragment>
+              ),
           }
         : null,
-    after: null,
+    after:
+      study === null ? null : (
+        <StudySteps
+          optimization={study}
+          bestTrial={study.best?.trial ?? null}
+        />
+      ),
     footer: (
       <>
         {canCancel ? (

@@ -2,8 +2,8 @@
  * The objective over a study's steps: every step's value as a dot, the best
  * so far as a step line over them, at a fixed height. A port of Optuna's
  * `plot_optimization_history`, drawn from points a caller builds with
- * `buildObjectiveHistory`, so one chart serves the study drawer's card and
- * the sweep's strip: the palette and sizes come in as a style, the x axis
+ * `buildObjectiveHistory`, so one chart serves the sweep's objective strip
+ * and any later card: the palette and sizes come in as a style, the x axis
  * can be pinned to a right edge the data has not reached yet, and dashed
  * dividers can mark where one study ended and the next began.
  */
@@ -35,7 +35,7 @@ export type ObjectiveHistoryStyle = {
   paddingTop: number;
 };
 
-/** The study drawer's look: grey dots, a blue best line. */
+/** The default look: grey dots, a blue best line. */
 export const defaultObjectiveHistoryStyle: ObjectiveHistoryStyle = {
   step: { fill: "#9ca3af", stroke: "#9ca3af", size: 6 },
   best: "#2563eb",

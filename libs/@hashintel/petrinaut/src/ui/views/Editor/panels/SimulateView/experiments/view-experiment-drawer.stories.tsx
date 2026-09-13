@@ -1,7 +1,10 @@
 /**
  * The sweep-experiment drawer against fake compute: drag a parameter slider
  * and the charts bridge the compute gap with the previous picture, dimmed,
- * until the new selection's first frames arrive.
+ * until the new selection's first frames arrive. With the in-browser
+ * optimizer available the drawer also shows the study started from the
+ * sweep: its headline, its Steps columns, its Constraints and Sensitivity
+ * cards and its steps table, in one shape from the first Optimize on.
  */
 import { use } from "react";
 
@@ -17,19 +20,25 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import {
-  fakeStudyInput,
-  fakeStudyTrials,
-  makeOptimizationRecord,
-  makeOptimizationsContextValue,
-} from "../optimizations/optimizations-story-fixtures";
 import { WithUserSettings } from "../simulate-view-story-harness";
 import {
   FakeExperimentsProvider,
+  makeConstrainedSweepExperiment,
   makeExperiment,
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
 } from "./experiments-story-fixtures";
+import {
+  fakeConstrainedStudyInput,
+  fakeLongStudyInput,
+  fakeLongStudyTrials,
+  fakeStudyInput,
+  fakeStudyTrials,
+  makeConstrainedTrials,
+  makeImportance,
+  makeOptimizationRecord,
+  makeOptimizationsContextValue,
+} from "./study-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
@@ -126,7 +135,7 @@ const storyOptimizer: PetrinautConnectedOptimization = {
   },
 };
 
-/** A study started from the sweep, its first `steps` fake trials landed and its best among them. */
+/** A study started from `sweep`: the first `steps` fake trials of `input` landed and the best among them. */
 const sweepStudy = (
   sweep: ExperimentRecord,
   {
@@ -134,23 +143,30 @@ const sweepStudy = (
     status,
     steps,
     startedAgoMs,
+    input = fakeStudyInput,
+    trials = fakeStudyTrials.trials,
+    importance = null,
   }: {
     id: string;
     status: OptimizationRecord["status"];
     steps: number;
     startedAgoMs: number;
+    input?: OptimizationRecord["input"];
+    trials?: OptimizationRecord["trials"];
+    importance?: OptimizationRecord["importance"];
   },
 ): OptimizationRecord => {
-  const trials = fakeStudyTrials.trials.slice(0, steps);
+  const landed = trials.slice(0, steps);
   return {
     ...makeOptimizationRecord({
-      input: fakeStudyInput,
+      input,
       status,
-      trials,
-      best: trials.reduce<OptimizationBest | null>(
+      trials: landed,
+      best: landed.reduce<OptimizationBest | null>(
         (best, event) => foldBestTrial("maximize", best, event),
         null,
       ),
+      importance,
     }),
     id,
     createdAt: Date.now() - startedAgoMs,
@@ -158,18 +174,50 @@ const sweepStudy = (
   };
 };
 
+/**
+ * The sweep drawer with the in-browser optimizer available and `studies`
+ * started from the sweep, newest first as the provider keeps them; the
+ * first is the one the drawer shows.
+ */
+const SweepWithStudies = ({
+  sweep,
+  studies,
+}: {
+  sweep: ExperimentRecord;
+  studies: readonly OptimizationRecord[];
+}) => (
+  <WithUserSettings overrides={{ enableInBrowserOptimization: true }}>
+    <PetrinautOptimizationContext value={storyOptimizer}>
+      <SDCPNContext value={sirSdcpnContextValue}>
+        <OptimizationsContext
+          value={makeOptimizationsContextValue(studies[0]!, {
+            optimizations: [...studies],
+          })}
+        >
+          <FakeExperimentsProvider
+            initialExperiments={[sweep]}
+            restreamOnSelectionChange
+          >
+            <DrawerFromContext />
+          </FakeExperimentsProvider>
+        </OptimizationsContext>
+      </SDCPNContext>
+    </PetrinautOptimizationContext>
+  </WithUserSettings>
+);
+
 /** The steps the latest study has landed in each state: 4 of 30 while it runs, 17 when Stop ended it. */
 const latestStudySteps = { running: 4, complete: 30, cancelled: 17 } as const;
 
 /**
- * The sweep drawer with the in-browser optimizer available: the Parameters
- * card offers Optimize, and with a study driving the sweep it turns purple,
- * the header reads Optimizing, its sliders follow the steps, the button
- * reads Stop and the objective strip under the sliders fills in step by
- * step, its axis reaching to the steps asked for. Settled, the strip keeps
- * the whole history and its axis ends at the last step run, complete or
- * stopped; `previous` adds an earlier, stopped study before it, so the
- * strip shows the two end to end with a divider where the second began.
+ * The Parameters card offers Optimize, and with a study driving the sweep
+ * it turns purple, the header reads Optimizing, its sliders follow the
+ * steps, the button reads Stop and the objective strip under the sliders
+ * fills in step by step, its axis reaching to the steps asked for. Settled,
+ * the strip keeps the whole history and its axis ends at the last step run,
+ * complete or stopped; `previous` adds an earlier, stopped study before it,
+ * so the strip shows the two end to end with a divider where the second
+ * began.
  */
 const OptimizableSweep = ({
   latest,
@@ -196,29 +244,7 @@ const OptimizableSweep = ({
         }),
       ]
     : [study];
-  return (
-    <WithUserSettings overrides={{ enableInBrowserOptimization: true }}>
-      <PetrinautOptimizationContext value={storyOptimizer}>
-        <SDCPNContext value={sirSdcpnContextValue}>
-          <OptimizationsContext
-            value={makeOptimizationsContextValue(study, {
-              // Newest first, as the provider keeps them.
-              optimizations: studies,
-              selectedOptimization: null,
-              selectedOptimizationId: null,
-            })}
-          >
-            <FakeExperimentsProvider
-              initialExperiments={[sweep]}
-              restreamOnSelectionChange
-            >
-              <DrawerFromContext />
-            </FakeExperimentsProvider>
-          </OptimizationsContext>
-        </SDCPNContext>
-      </PetrinautOptimizationContext>
-    </WithUserSettings>
-  );
+  return <SweepWithStudies sweep={sweep} studies={studies} />;
 };
 
 export const Optimizable: Story = {
@@ -239,4 +265,85 @@ export const StoppedOnce: Story = {
 export const OptimizedTwice: Story = {
   name: "Sweep, optimized twice",
   render: () => <OptimizableSweep latest="running" previous />,
+};
+
+/**
+ * The constrained sweep with a constrained study: the Steps clear column,
+ * the Constraints card after the metric tile with its verdict line and its
+ * bar, the Runs passed column in the steps table and the infeasible draws
+ * greyed there and in the strip.
+ */
+const ConstrainedSweep = ({
+  status,
+  steps,
+}: {
+  status: OptimizationRecord["status"];
+  steps: number;
+}) => {
+  const sweep = makeConstrainedSweepExperiment();
+  return (
+    <SweepWithStudies
+      sweep={sweep}
+      studies={[
+        sweepStudy(sweep, {
+          id: "sweep-study-constrained",
+          status,
+          steps,
+          startedAgoMs: 90_000,
+          input: fakeConstrainedStudyInput,
+          trials: makeConstrainedTrials(fakeConstrainedStudyInput, steps)
+            .trials,
+        }),
+      ]}
+    />
+  );
+};
+
+export const OptimizingWithConstraints: Story = {
+  name: "Sweep, optimizing with constraints",
+  render: () => <ConstrainedSweep status="running" steps={12} />,
+};
+
+export const StoppedWithConstraints: Story = {
+  name: "Sweep, optimization with constraints stopped",
+  render: () => <ConstrainedSweep status="cancelled" steps={17} />,
+};
+
+/**
+ * A finished study with its importance estimate landed: above the 50-step
+ * floor the Sensitivity card draws a full bar per parameter; below it, at
+ * the default 30 steps, the card is muted and the subtitle says to treat
+ * the estimate as a hint.
+ */
+const ImportanceSweep = ({ steps }: { steps: 30 | 60 }) => {
+  const sweep = makeParameterSweepExperiment();
+  const input = steps === 60 ? fakeLongStudyInput : fakeStudyInput;
+  const trials =
+    steps === 60 ? fakeLongStudyTrials.trials : fakeStudyTrials.trials;
+  return (
+    <SweepWithStudies
+      sweep={sweep}
+      studies={[
+        sweepStudy(sweep, {
+          id: "sweep-study-importance",
+          status: "complete",
+          steps,
+          startedAgoMs: 600_000,
+          input,
+          trials,
+          importance: makeImportance(input, trials),
+        }),
+      ]}
+    />
+  );
+};
+
+export const OptimizedWithImportance: Story = {
+  name: "Sweep, optimized with importance",
+  render: () => <ImportanceSweep steps={60} />,
+};
+
+export const OptimizedBelowImportanceFloor: Story = {
+  name: "Sweep, optimized below the importance floor",
+  render: () => <ImportanceSweep steps={30} />,
 };

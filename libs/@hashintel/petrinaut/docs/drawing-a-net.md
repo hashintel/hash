@@ -44,13 +44,13 @@ Spans the full editor width and has three sections.
 
 Petrinaut global modes are switched via the centre control in the top bar.
 
-| Mode         | Workspace                                                                                                                                                                                            |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations.            |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views, plus [Optimizations](optimization.md) when the host application provides an optimizer. |
-| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                            |
+| Mode         | Workspace                                                                                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
+| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                 |
 
-In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments and, when enabled by the host, run optimizations. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
+In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
 In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
 
@@ -178,8 +178,8 @@ ArrowDown moves from the search input into the results; arrows then walk the res
 
 On hosts with app navigation enabled, Browser **Back** and **Forward** move
 through the app locations you visited. This includes switching global
-modes or Simulate sections, opening an existing scenario, metric, experiment,
-or optimization, opening or closing their creation drawers, changing subnet,
+modes or Simulate sections, opening an existing scenario, metric or
+experiment, opening or closing their creation drawers, changing subnet,
 committing a selection, and opening or closing Viewport Settings. Creation
 drawers opened from Simulation Settings or the timeline are included too. A
 drag-selection gesture creates one location after you finish drawing the

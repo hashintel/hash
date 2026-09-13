@@ -2,13 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
+import {
+  sirOptimizationConstraints,
+  sirOptimizationMetric,
+  sirOptimizationScenario,
+} from "../../../../../../react/optimizations/sir-optimization-input.fixtures";
 import { makeExperiment } from "./experiments-story-fixtures";
 import {
   buildSweepOptimizationInput,
   sweepOptimizationMetric,
 } from "./sweep-optimizer";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type {
+  ExperimentMetricSpecInput,
+  ExperimentRecord,
+} from "../../../../../../react/experiments/context";
 import type { Metric, Scenario } from "@hashintel/petrinaut-core";
 
 const definition = sirModel.petriNetDefinition;
@@ -56,6 +64,61 @@ const build = (overrides: { steps?: number; runsPerStep?: number } = {}) =>
     direction: "maximize",
     steps: overrides.steps ?? 30,
     runsPerStep: overrides.runsPerStep ?? 8,
+  });
+
+/** The SIR scenario with a boolean parameter beside its integer and ratio. */
+const sirScenario: Scenario = {
+  ...sirOptimizationScenario,
+  scenarioParameters: [
+    ...sirOptimizationScenario.scenarioParameters,
+    { identifier: "vaccinated", type: "boolean", default: 1 },
+  ],
+};
+
+/** A sweep over the infected ratio, created with the population raised and vaccination off. */
+const sirExperiment: Parameters<
+  typeof buildSweepOptimizationInput
+>[0]["experiment"] = {
+  name: "Ratio sweep",
+  seed: 7,
+  dt: 0.5,
+  maxTime: 90,
+  parameterAxes: [
+    {
+      identifier: "infected_ratio",
+      min: 0.001,
+      max: 0.2,
+      stepCount: 50,
+      integer: false,
+    },
+  ],
+  scenarioParameterValues: {
+    population: 2000,
+    infected_ratio: 0.01,
+    vaccinated: 0,
+  },
+  constraints: [],
+  constraintPolicy: null,
+};
+
+const buildSir = (
+  overrides: Partial<
+    Pick<ExperimentRecord, "constraints" | "constraintPolicy">
+  >,
+) =>
+  buildSweepOptimizationInput({
+    title: sirModel.title,
+    definition,
+    scenario: sirScenario,
+    experiment: { ...sirExperiment, ...overrides },
+    metric: {
+      id: sirOptimizationMetric.id,
+      name: sirOptimizationMetric.name,
+      code: sirOptimizationMetric.code,
+    },
+    direction: "minimize",
+    steps: 12,
+    runsPerStep: 8,
   });
 
 describe("buildSweepOptimizationInput", () => {
@@ -116,6 +179,48 @@ describe("buildSweepOptimizationInput", () => {
 
   it("throws the schema's rejection when the steps exceed the trial cap", () => {
     expect(() => build({ steps: 1_001 })).toThrow(/trials/u);
+  });
+
+  it("fixes the non-swept parameters at the experiment's values, booleans as booleans, and sweeps the axis", () => {
+    const manifest = buildSir({});
+
+    expect(manifest.scenario.parameterBindings).toEqual({
+      population: { kind: "fixed", value: 2000 },
+      vaccinated: { kind: "fixed", value: false },
+      infected_ratio: {
+        kind: "optimize",
+        domain: {
+          kind: "continuous",
+          minimum: 0.001,
+          maximum: 0.2,
+          scale: "linear",
+        },
+      },
+    });
+    expect(manifest.execution).toEqual({
+      seed: 7,
+      dt: 0.5,
+      maxTime: 90,
+      seedsPerTrial: 8,
+    });
+    expect(manifest.study).toMatchObject({ trials: 12 });
+  });
+
+  it("carries the experiment's constraints and pass threshold onto the manifest", () => {
+    const manifest = buildSir({
+      constraints: sirOptimizationConstraints,
+      constraintPolicy: { alpha: 0.1 },
+    });
+
+    expect(manifest.constraints).toEqual(sirOptimizationConstraints);
+    expect(manifest.constraintPolicy).toEqual({ alpha: 0.1 });
+  });
+
+  it("declares no constraints and no policy for an unconstrained sweep", () => {
+    const manifest = buildSir({ constraintPolicy: { alpha: 0.1 } });
+
+    expect(manifest).not.toHaveProperty("constraints");
+    expect(manifest).not.toHaveProperty("constraintPolicy");
   });
 });
 

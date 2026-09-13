@@ -24,6 +24,8 @@ function shouldSampleRun(
       return status !== "complete" && status !== "error";
     case "completed":
       return status === "complete";
+    case "notErrored":
+      return status !== "error";
     case "all":
       return true;
   }

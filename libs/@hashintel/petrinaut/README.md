@@ -83,9 +83,9 @@ Run Petrinaut's component stories from the repository root:
 yarn workspace @hashintel/petrinaut dev
 ```
 
-The **Simulate / SimulateView / Run Supply Chain optimization** story opens
-the optimization UI with an internal fake optimizer, so it does not require
-the Python service or Docker.
+The **Simulate / SimulateView / Run Supply Chain optimization (synthetic
+optimizer)** story creates a parameter sweep and drives it with an internal
+fake optimizer, so it does not require the Python service or Docker.
 
 ## Host-owned interactive AI tools
 

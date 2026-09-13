@@ -5,34 +5,47 @@ import { createMonteCarloUserDefinedMetric } from "./user-defined";
 import type { SimulationFrameReader } from "../../api";
 import type {
   MonteCarloFrameMetricContext,
+  MonteCarloMetricRunStatus,
   MonteCarloUserDefinedMetricConfig,
 } from "./types";
 
-/** A frame context over `runs`: run index to the value the metric reads. */
+/**
+ * A frame context over `runs`: run index to the value the metric reads, every
+ * run in `status` except those `statuses` names.
+ */
 const frameContext = (
   frameNumber: number,
   runs: Readonly<Record<number, number>>,
-): MonteCarloFrameMetricContext => ({
-  frameNumber,
-  time: frameNumber,
-  runCount: Object.keys(runs).length,
-  activeRunCount: Object.keys(runs).length,
-  completedRunCount: 0,
-  erroredRunCount: 0,
-  placeIds: [],
-  placeNames: [],
-  forEachActiveRunPlaceCounts: () => {},
-  forEachRunFrame: (visitor) => {
-    for (const [runIndex, value] of Object.entries(runs)) {
-      visitor({
-        runIndex: Number(runIndex),
-        status: "running",
-        // The measure below reads the value straight off this stub.
-        frame: { value } as unknown as SimulationFrameReader,
-      });
-    }
-  },
-});
+  status: MonteCarloMetricRunStatus = "running",
+  statuses: Readonly<Record<number, MonteCarloMetricRunStatus>> = {},
+): MonteCarloFrameMetricContext => {
+  const runStatuses = Object.keys(runs).map(
+    (runIndex) => statuses[Number(runIndex)] ?? status,
+  );
+  const countOf = (counted: MonteCarloMetricRunStatus) =>
+    runStatuses.filter((runStatus) => runStatus === counted).length;
+  return {
+    frameNumber,
+    time: frameNumber,
+    runCount: runStatuses.length,
+    activeRunCount: countOf("running"),
+    completedRunCount: countOf("complete"),
+    erroredRunCount: countOf("error"),
+    placeIds: [],
+    placeNames: [],
+    forEachActiveRunPlaceCounts: () => {},
+    forEachRunFrame: (visitor) => {
+      for (const [runIndex, value] of Object.entries(runs)) {
+        visitor({
+          runIndex: Number(runIndex),
+          status: statuses[Number(runIndex)] ?? status,
+          // The measure below reads the value straight off this stub.
+          frame: { value } as unknown as SimulationFrameReader,
+        });
+      }
+    },
+  };
+};
 
 const metric = (config: Partial<MonteCarloUserDefinedMetricConfig> = {}) =>
   createMonteCarloUserDefinedMetric({
@@ -89,6 +102,54 @@ describe("createMonteCarloUserDefinedMetric getRunValues", () => {
         [5, 1],
         [7, 1],
       ],
+    });
+  });
+
+  it("bins each finished run's min on the last frame with sampleRuns all: [[0, failed], [1, passed]]", () => {
+    // A state constraint's indicator: 1 where the condition held, min over
+    // the run's frames, every run sampled so finished runs stay in the bins.
+    const indicator = metric({
+      aggregateTime: "min",
+      runOutput: { type: "distribution" },
+    });
+    indicator.observeFrame(frameContext(0, { 0: 1, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(frameContext(1, { 0: 0, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(
+      frameContext(2, { 0: 1, 1: 1, 2: 1, 3: 1 }, "complete"),
+    );
+
+    expect(indicator.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      bins: [
+        [0, 1],
+        [1, 3],
+      ],
+      runSampleCount: 4,
+    });
+  });
+
+  it("leaves an errored run out of the bins and the sample count with sampleRuns notErrored", () => {
+    // The run that errored keeps its last frame, so `all` would bin it as
+    // passed or failed; `notErrored` reports the share over the runs that
+    // finished.
+    const indicator = metric({
+      sampleRuns: "notErrored",
+      aggregateTime: "min",
+      runOutput: { type: "distribution" },
+    });
+    indicator.observeFrame(frameContext(0, { 0: 1, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(frameContext(1, { 0: 0, 1: 1, 2: 1, 3: 1 }));
+    indicator.observeFrame(
+      frameContext(2, { 0: 1, 1: 1, 2: 1, 3: 1 }, "complete", { 3: "error" }),
+    );
+
+    expect(indicator.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      bins: [
+        [0, 1],
+        [1, 2],
+      ],
+      runSampleCount: 3,
     });
   });
 

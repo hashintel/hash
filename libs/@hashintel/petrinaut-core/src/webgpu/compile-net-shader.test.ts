@@ -1184,6 +1184,17 @@ describe("run sampling", () => {
     );
   });
 
+  it("samples the runs that have not errored the way it samples all, since a halted run is never sampled", () => {
+    const result = compileFor(sir, {
+      metrics: [placeCount("infected", "place__infected", "notErrored")],
+    });
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.shader.wgsl).toContain(
+      "    if (in_range && status <= 2u) {\n      let v0: f32 = f32(counts[1u]);",
+    );
+  });
+
   it("guards each metric by its own mode and scans clean", () => {
     // The optimizer objective samples `all` runs beside a chart's default
     // `active` place count; each block carries its own guard.

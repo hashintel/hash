@@ -1,27 +1,30 @@
 /**
  * The harness behind the SimulateView stories that run real simulations: the
  * provider stack around a real example model, the settings a story pins, and
- * a study that starts itself once the stack is mounted.
+ * a sweep whose study starts itself once the stack is mounted.
  */
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautOptimizationDirection,
-  type PetrinautOptimizationInput,
-  type ScenarioParameter,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  type CreateExperimentInput,
+  type ExperimentComputeBackend,
+  type ExperimentRecord,
+  ExperimentsContext,
+} from "../../../../../react/experiments/context";
 import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { useLatest } from "../../../../../react/hooks/use-latest";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
 import { PetrinautNavigationProvider } from "../../../../../react/navigation";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
-import { OptimizationsContext } from "../../../../../react/optimizations/context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
 import {
   SDCPNContext,
@@ -35,15 +38,12 @@ import { UserSettingsProvider } from "../../../../../react/state/user-settings-p
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { buildPetrinautOptimizationInput } from "./optimizations/create-optimization-drawer";
 import {
-  createOptimizationParameterDraft,
-  type OptimizationParameterDraft,
-} from "./optimizations/optimization-parameter-row";
-import { randomOptimizationSeed } from "./optimizations/optimization-seed";
+  type SweepOptimizationChoice,
+  useSweepOptimizer,
+} from "./experiments/sweep-optimizer";
 import { SimulateView } from "./simulate-view";
 
-import type { ExperimentComputeBackend } from "../../../../../react/experiments/context";
 import type { SimulateViewMode } from "../../../../../react/state/editor-context";
 import type { PetrinautOptimizationSource } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
@@ -147,6 +147,7 @@ export const SimulateViewStoryStage = ({ children }: PropsWithChildren) => {
 };
 
 const defaultRunnableSettings: Partial<UserSettings> = {
+  enableParameterSweeps: true,
   enableInBrowserOptimization: true,
 };
 
@@ -214,21 +215,24 @@ export const RunnableSimulateViewStory = ({
   );
 };
 
-/** How one scenario parameter is optimized: a numeric range, or both booleans. */
-export type AutoStudyDomain = { minimum: number; maximum: number } | "boolean";
+/** The interval one scenario parameter is swept over. */
+export type AutoSweepRange = { min: number; max: number };
 
 /**
- * A study described by the names in the example's definition; unlisted
- * scenario parameters stay fixed at their defaults.
+ * A sweep and the study that drives it, described by the names in the
+ * example's definition; unlisted scenario parameters stay fixed at their
+ * defaults.
  */
-export type AutoStudyDescription = {
+export type AutoSweepStudyDescription = {
   scenarioName: string;
   name: string;
+  /** Optimizer steps: one sweep point each. */
   steps: number;
-  runsPerStep: number;
+  /** The sweep's run budget per point; a step computes the ladder's first rung of it. */
+  runCount: number;
   dt: number;
   maxTime: number;
-  optimize: Readonly<Record<string, AutoStudyDomain>>;
+  sweep: Readonly<Record<string, AutoSweepRange>>;
   objective: {
     metricName: string;
     direction: PetrinautOptimizationDirection;
@@ -252,40 +256,15 @@ const findByName = <T extends { name: string }>(
   return match;
 };
 
-const createParameterDraft = (
-  parameter: ScenarioParameter,
-  domain: AutoStudyDomain | undefined,
-): OptimizationParameterDraft => {
-  const fixed = createOptimizationParameterDraft(parameter);
-  if (domain === undefined) {
-    return fixed;
-  }
-  if (domain === "boolean") {
-    if (parameter.type !== "boolean") {
-      throw new Error(
-        `Parameter "${parameter.identifier}" is ${parameter.type}; give it a range`,
-      );
-    }
-    return { ...fixed, mode: "optimize" };
-  }
-  if (parameter.type === "boolean") {
-    throw new Error(
-      `Parameter "${parameter.identifier}" is boolean; optimize it with "boolean"`,
-    );
-  }
-  return {
-    ...fixed,
-    mode: "optimize",
-    minimum: domain.minimum,
-    maximum: domain.maximum,
-  };
-};
+/** The id the sweep's objective metric runs under. */
+const AUTO_SWEEP_OBJECTIVE_ID = "objective";
 
 /** Resolves a description against the example, as the create form would. */
-export const buildAutoStudyInput = (
-  { title, petriNetDefinition }: StoryExample,
-  study: AutoStudyDescription,
-): PetrinautOptimizationInput => {
+export const buildAutoSweepExperimentInput = (
+  { petriNetDefinition }: StoryExample,
+  study: AutoSweepStudyDescription,
+  computeBackend: ExperimentComputeBackend,
+): CreateExperimentInput => {
   const scenario = findByName(
     "scenario",
     petriNetDefinition.scenarios,
@@ -299,61 +278,103 @@ export const buildAutoStudyInput = (
   const identifiers = scenario.scenarioParameters.map(
     (parameter) => parameter.identifier,
   );
-  for (const identifier of Object.keys(study.optimize)) {
+  for (const identifier of Object.keys(study.sweep)) {
     if (!identifiers.includes(identifier)) {
       throw new Error(
         `Scenario "${scenario.name}" has no parameter "${identifier}"; it defines ${identifiers.join(", ")}`,
       );
     }
   }
-  const drafts = Object.fromEntries(
-    scenario.scenarioParameters.map((parameter) => [
-      parameter.identifier,
-      createParameterDraft(parameter, study.optimize[parameter.identifier]),
-    ]),
-  );
-
-  return buildPetrinautOptimizationInput({
+  return {
     name: study.name,
-    title,
-    definition: petriNetDefinition,
-    scenario,
-    drafts,
-    metric,
-    direction: study.objective.direction,
-    optimizationSteps: study.steps,
-    seedsPerTrial: study.runsPerStep,
-    seed: randomOptimizationSeed(),
+    scenarioId: scenario.id,
+    scenarioParameterValues: Object.fromEntries(
+      scenario.scenarioParameters.map((parameter) => {
+        const range = study.sweep[parameter.identifier];
+        return [
+          parameter.identifier,
+          range === undefined
+            ? { mode: "fixed", value: String(parameter.default) }
+            : { mode: "range", min: range.min, max: range.max },
+        ];
+      }),
+    ),
+    runCount: study.runCount,
+    seed: Math.floor(Math.random() * 1_000_000),
     dt: study.dt,
     maxTime: study.maxTime,
-  });
+    metricSpecs: [
+      {
+        kind: "expression",
+        id: AUTO_SWEEP_OBJECTIVE_ID,
+        label: metric.name,
+        code: metric.code,
+        sampleRuns: "all",
+        runOutput: { type: "distribution" },
+      },
+    ],
+    computeBackend,
+  };
+};
+
+/** Starts the study driving `experiment` once its sweep can be optimized. Renders nothing. */
+const AutoSweepOptimize = ({
+  experiment,
+  choice,
+}: {
+  experiment: ExperimentRecord;
+  choice: SweepOptimizationChoice;
+}) => {
+  const optimizer = useSweepOptimizer(experiment);
+  const startRef = useLatest(() => optimizer.start(choice));
+  const startedRef = useRef(false);
+  const { available } = optimizer;
+
+  useEffect(() => {
+    if (!available || startedRef.current) {
+      return;
+    }
+    startedRef.current = true;
+    void startRef.current();
+  }, [available, startRef]);
+
+  return null;
 };
 
 /**
- * Creates the described study once through the enclosing
- * OptimizationsProvider, which also selects it so its drawer opens. Renders
- * nothing.
+ * Creates the described sweep once through the enclosing ExperimentsProvider,
+ * selects it so its drawer opens, then starts the study driving it as the
+ * Parameters card's Optimize would. Renders nothing.
  */
-export const AutoStudy = ({
+export const AutoSweepStudy = ({
   study,
   computeBackend = "cpu",
 }: {
-  study: AutoStudyDescription;
+  study: AutoSweepStudyDescription;
   computeBackend?: ExperimentComputeBackend;
 }) => {
   const { petriNetDefinition, title } = use(SDCPNContext);
-  const { createOptimization } = use(OptimizationsContext);
-  const input = buildAutoStudyInput({ title, petriNetDefinition }, study);
-  const startRef = useLatest(() =>
-    createOptimization(input, { computeBackend }),
-  );
+  const { experiments, createExperiment, setSelectedExperimentId } =
+    use(ExperimentsContext);
+  const [experimentId, setExperimentId] = useState<string | null>(null);
+  const startRef = useLatest(async () => {
+    const id = await createExperiment(
+      buildAutoSweepExperimentInput(
+        { title, petriNetDefinition },
+        study,
+        computeBackend,
+      ),
+    );
+    setSelectedExperimentId(id);
+    setExperimentId(id);
+  });
   const startedRef = useRef(false);
 
   useEffect(() => {
     // The language client provider re-parents its children once the client
     // lands, which remounts everything below it in the same task. A start
     // deferred by a tick is cleared with the first tree and runs in the one
-    // that stays, so the study is created once and its selection survives.
+    // that stays, so the sweep is created once and its selection survives.
     const timer = window.setTimeout(() => {
       if (startedRef.current) {
         return;
@@ -364,5 +385,16 @@ export const AutoStudy = ({
     return () => window.clearTimeout(timer);
   }, [startRef]);
 
-  return null;
+  const experiment =
+    experiments.find((candidate) => candidate.id === experimentId) ?? null;
+  return experiment ? (
+    <AutoSweepOptimize
+      experiment={experiment}
+      choice={{
+        metricId: AUTO_SWEEP_OBJECTIVE_ID,
+        direction: study.objective.direction,
+        steps: study.steps,
+      }}
+    />
+  ) : null;
 };

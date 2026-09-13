@@ -30,9 +30,24 @@ describe("visitedSurfaceField", () => {
   it("places every visited point at its fractional grid coordinate, emphasizing the selected one", () => {
     const field = visitedSurfaceField({
       visited: [
-        { position: { x: 25, y: 5 }, runsCompleted: 8, means: { m: 3 } },
-        { position: { x: 50, y: 0 }, runsCompleted: 25, means: { m: 7 } },
-        { position: { x: 0, y: 10 }, runsCompleted: 8, means: {} },
+        {
+          position: { x: 25, y: 5 },
+          runsCompleted: 8,
+          means: { m: 3 },
+          sampleCounts: { m: 8 },
+        },
+        {
+          position: { x: 50, y: 0 },
+          runsCompleted: 25,
+          means: { m: 7 },
+          sampleCounts: { m: 25 },
+        },
+        {
+          position: { x: 0, y: 10 },
+          runsCompleted: 8,
+          means: {},
+          sampleCounts: {},
+        },
       ],
       xAxis: X,
       yAxis: Y,
@@ -54,7 +69,14 @@ describe("visitedSurfaceField", () => {
 
   it("skips a point missing a shown axis", () => {
     const field = visitedSurfaceField({
-      visited: [{ position: { x: 25 }, runsCompleted: 8, means: { m: 3 } }],
+      visited: [
+        {
+          position: { x: 25 },
+          runsCompleted: 8,
+          means: { m: 3 },
+          sampleCounts: { m: 8 },
+        },
+      ],
       xAxis: X,
       yAxis: Y,
       metricId: "m",

@@ -55,7 +55,6 @@ export type {
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
-  PetrinautSimulatePresentation,
   PetrinautSimulateResource,
 } from "./navigation";
 // The vocabularies two navigation fields are drawn from. A host encoding the
@@ -84,7 +83,6 @@ export {
 } from "./optimizations/context";
 export type {
   OptimizationBest,
-  OptimizationConnectionState,
   OptimizationRecord,
   OptimizationStatus,
   OptimizationsContextValue,
