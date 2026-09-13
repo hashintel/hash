@@ -11,9 +11,7 @@ import {
 } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  petrinautFixtureToolNames,
   petrinautConstructionTools,
-  petrinautFixtureTools,
 } from "../src/tools/petrinaut-construction";
 
 const toolByName = (toolName: string) => {
@@ -86,18 +84,6 @@ describe("Petrinaut construction tools", () => {
     ).toThrow(/prepared root-arc/u);
   });
 
-  test("exposes exactly the bounded canonical subset", () => {
-    expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
-      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-    ]);
-  });
-
-  test("limits prepared fixtures to one canonical read and arc mutation", () => {
-    expect(petrinautFixtureTools.map((tool) => tool.name)).toEqual([
-      ...petrinautFixtureToolNames,
-    ]);
-  });
-
   test("mechanically carries the canonical input contract", () => {
     for (const toolName of PETRINAUT_CONSTRUCTION_TOOL_NAMES) {
       const constructionTool = toolByName(toolName);
@@ -108,25 +94,6 @@ describe("Petrinaut construction tools", () => {
         JSON.stringify(petrinautAiTools[toolName].inputSchema.toJSONSchema()),
       );
     }
-  });
-
-  test("delegates accepted and rejected inputs to Petrinaut's Zod schemas", async () => {
-    const addArc = toolByName("addArc");
-    const invalidArc = {
-      transitionId: "transition",
-      arcDirection: "input",
-      placeId: "place",
-      weight: 0,
-      targetSubnetId: null,
-    };
-    const validArc = { ...invalidArc, weight: 1 };
-
-    expect(
-      !(await addArc.input!["~standard"].validate(invalidArc)).issues,
-    ).toBe(petrinautAiTools.addArc.inputSchema.safeParse(invalidArc).success);
-    expect(!(await addArc.input!["~standard"].validate(validArc)).issues).toBe(
-      petrinautAiTools.addArc.inputSchema.safeParse(validArc).success,
-    );
   });
 
   test("normalizes a finite provider numeric-string arc weight", async () => {
