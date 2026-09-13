@@ -239,6 +239,14 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
   typed process-agent binding. Route identity selects the source; repositories
   persist revisions; the binding owns conversation identity. Worked-model
   titles are inherited from the template and read-only.
+- Browser-local preferences and document records currently use the website's
+  narrow `usePersistedState` boundary so reads begin after commit and writes
+  stay outside React state updaters. Revisit an established external store when
+  persisted state becomes shared across repositories, needs cross-tab
+  subscription or migration, or the boundary grows beyond isolated values.
+  Compare an explicit application dependency such as Zustand with the retained
+  primitive at that gate; never depend on Zustand only because React Flow
+  supplies it transitively.
 - A worked-model fixture packages session, workpiece and net as one build
   artifact. Current live-copy instantiation inherits only its net under fresh
   document, incarnation and conversation identities; fixture session/workpiece
