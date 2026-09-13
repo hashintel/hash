@@ -169,7 +169,7 @@ hold:
 
 | Acceptance result | Required oracle |
 | --- | --- |
-| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right owned copy; copy edits never reach the template or sibling; a clean copy can be created from the seed; conversation, workpiece, net and current-revision explanation resume coherently. |
+| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right owned copy; copy edits never reach the template or sibling; a clean copy can be created from the seed; conversation, workpiece, net and current-revision explanation resume coherently. Until the seeded-session open item closes, the copy inherits the net only, and the resume proof covers conversation and workpiece produced within that copy. |
 | Inventory is connected and operationally coherent | Lu reviews procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions. Structural and compiled evidence cannot pass this gate. |
 | The tiered portfolio obligation is met | Repeatable run records demonstrate all three tiers defined in the Imperative, and a scan confirms that reusable guidance contains no Inventory-specific nouns or IDs. |
 | Ordinary requests succeed or refuse visibly | Representative live-browser construction and correction across the capability envelope succeeds through canonical operations or produces a clear unsupported-operation refusal. No case crashes, stalls, corrupts the net, silently omits requested meaning, leaves hidden partial state or claims success. |
@@ -301,10 +301,14 @@ hold:
 - **Seeded session instantiation:** Flue 2.0.3 has no supported public
   export/fork operation for an independently writable retained session.
   Projected `history()` cannot reconstruct canonical stream records or
-  persistent state. Decide whether to add one bounded runtime mechanism for
-  versioned build fixtures or explicitly reduce what a clean copy inherits;
-  never clone private Flue tables or present replayed model turns as the
-  accepted session.
+  persistent state. The fixture contract stays complete — session, workpiece
+  and net are packaged and seeded together so their connections survive —
+  but branching acceptance is reduced for now: an owned copy materializes the
+  fixture's net under a fresh conversation identity and does not yet inherit
+  the session or workpiece. Which identities a fork remaps, and whether
+  complete instantiation belongs in Flue, an adapter-level utility or an
+  application-owned archival format, remain open. Never clone private Flue
+  tables or present replayed model turns as the accepted session.
 - **Tool catalogue:** choose a generated catalogue from mount declarations or
   a checked curated authority map, including the migration/reset policy for
   retained histories.

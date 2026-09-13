@@ -41,16 +41,15 @@ const request = (
   path: string,
   principalKey?: string,
   init: RequestInit = {},
-): Request =>
-  new Request(`http://brunch.test${path}`, {
+): Request => {
+  const headers = new Headers(init.headers);
+  if (principalKey !== undefined)
+    headers.set(BRUNCH_PRINCIPAL_HEADER, principalKey);
+  return new Request(`http://brunch.test${path}`, {
     ...init,
-    headers: {
-      ...(principalKey === undefined
-        ? {}
-        : { [BRUNCH_PRINCIPAL_HEADER]: principalKey }),
-      ...init.headers,
-    },
+    headers,
   });
+};
 
 describe("worked-model routes", () => {
   let app: Hono;
@@ -178,10 +177,16 @@ describe("worked-model routes", () => {
     const path = "/api/worked-models/bundles/inventory-purchasing";
     const first = (await (
       await app.fetch(request(path, "principal-a"))
-    ).json()) as { copyId: string; conversationId: string };
+    ).json()) as {
+      copyId: string;
+      conversationId: string;
+    };
     const sibling = (await (
       await app.fetch(request(path, "principal-b"))
-    ).json()) as { copyId: string; conversationId: string };
+    ).json()) as {
+      copyId: string;
+      conversationId: string;
+    };
 
     expect(sibling.copyId).not.toBe(first.copyId);
     expect(sibling.conversationId).not.toBe(first.conversationId);
