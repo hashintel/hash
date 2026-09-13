@@ -177,7 +177,11 @@ try {
     const continueRead = Promise.withResolvers<void>();
     const markdown = `# Synthetic operation\n\nThere are ${index} waiting stages. Timing is unknown.`;
     faux.setResponses([
-      call("mutate_workpiece", { markdown }, `workpiece-${index}`),
+      call(
+        "mutate_workpiece",
+        { markdown, baseRevisionId: index === 1 ? null : "workpiece-1" },
+        `workpiece-${index}`,
+      ),
       call("read_petrinaut_net", {}, `read-${index}`),
       async (context: Context) => {
         const observation = browserResultFrom(
@@ -257,6 +261,20 @@ try {
       markdown,
     );
     const history = await client.history();
+    const workpiece = history.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === `workpiece-${index}`,
+      );
+    assert(workpiece?.type === "dynamic-tool");
+    assert.equal(workpiece.state, "output-available");
+    assert.partialDeepStrictEqual(workpiece.output, {
+      revisionId: `workpiece-${index}`,
+      ordinal: index,
+      mutation: { baseRevisionId: index === 1 ? null : "workpiece-1" },
+    });
     const results = clientToolHistoryFrom(history.messages).results;
     assert(results.some((entry) => entry.toolCallId === `read-${index}`));
     assert(results.some((entry) => entry.toolCallId === `batch-${index}`));
@@ -304,6 +322,35 @@ try {
     join(output, "snapshot.json"),
     JSON.stringify(await client.history(), null, 2),
   );
+  faux.setResponses([
+    call(
+      "mutate_workpiece",
+      {
+        markdown: "# Must not replace an existing revision",
+        baseRevisionId: null,
+      },
+      "stale-empty-base",
+    ),
+    text("The stale first-revision write was refused."),
+  ]);
+  await persona.execute("stale-base-turn", {
+    message:
+      "Exercise a stale first-revision write; preserve the current account.",
+  });
+  const stale = (await client.history()).messages
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        part.type === "dynamic-tool" && part.toolCallId === "stale-empty-base",
+    );
+  assert(stale?.type === "dynamic-tool");
+  assert.equal(stale.state, "output-error");
+  assert.match(stale.errorText, /baseRevisionId/);
+  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
+    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  );
+  await page.getByRole("tab", { name: "AI", exact: true }).click();
   const generating = Promise.withResolvers<void>();
   faux.setResponses([
     async (_context, options) => {
