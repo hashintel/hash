@@ -48,7 +48,7 @@ const toolbarContainerStyle = css({
   gap: "1",
 });
 
-// Spans the canvas so the bar centres on the canvas rather than on the space
+// Spans the editor so the bar centres on the viewport rather than on the space
 // between the panels, and lets clicks through everywhere the bar itself is not.
 const bottomBarLaneStyle = css({
   position: "absolute",

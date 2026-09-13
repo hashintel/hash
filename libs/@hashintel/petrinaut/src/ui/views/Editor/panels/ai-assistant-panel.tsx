@@ -50,7 +50,6 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
@@ -483,6 +482,7 @@ const applyPetrinautAiCommand = async ({
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  focusRequest?: number;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   offerStartPosture?: boolean;
@@ -492,6 +492,7 @@ interface AiAssistantPanelProps {
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  focusRequest = 0,
   initialInteractionMode,
   initialMessage,
   offerStartPosture = false,
@@ -537,12 +538,11 @@ const ConversationAiAssistantPanel = ({
   }, []);
 
   const {
-    hasSelection,
-    globalMode,
     isAiAssistantOpen,
+    isAiAssistantCollapsed: voiceDockCollapsed,
     navigateTo,
-    propertiesPanelWidth,
     selectItem,
+    setAiAssistantCollapsed: setVoiceDockCollapsed,
     setAiAssistantOpen,
   } = use(EditorContext);
 
@@ -576,7 +576,17 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
-  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
+  const initializedLayoutRef = useRef(false);
+  useLayoutEffect(() => {
+    // A new conversation starts expanded. Effect replay preserves its voice setup.
+    if (initializedLayoutRef.current) {
+      return;
+    }
+    initializedLayoutRef.current = true;
+    if (voiceDockCollapsed) {
+      setVoiceDockCollapsed(false);
+    }
+  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
     (
@@ -593,7 +603,7 @@ const ConversationAiAssistantPanel = ({
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [],
+    [setVoiceDockCollapsed],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;
@@ -2096,7 +2106,7 @@ const ConversationAiAssistantPanel = ({
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
-      composerFocusRequest={composerFocusRequest}
+      composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
       experimentStates={experimentStates}
@@ -2223,11 +2233,6 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      rightOffset={
-        globalMode === "edit" && hasSelection
-          ? propertiesPanelWidth + PANEL_MARGIN
-          : 0
-      }
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

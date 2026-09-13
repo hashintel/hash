@@ -532,6 +532,28 @@ export const WithAiAssistant: Story = {
   ),
 };
 
+export const WithVoiceSetup: Story = {
+  render: () => (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <PetrinautStoryProvider
+        aiAssistant={{
+          transport: createStorybookAiTransport(),
+          renderVoiceMode: ({ setInputMode }) => (
+            <div style={{ padding: 16 }}>
+              <p>Voice setup preview. No microphone or AI service is used.</p>
+              <button type="button" onClick={() => setInputMode("text")}>
+                Return to text
+              </button>
+            </div>
+          ),
+        }}
+        initialTitle="Voice setup preview"
+        initialDefinition={emptySDCPN}
+      />
+    </div>
+  ),
+};
+
 export const WithHostInteractiveAiTool: Story = {
   parameters: {
     docs: {

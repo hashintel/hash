@@ -848,6 +848,8 @@ export function FakeEditorProvider({
     setPropertiesPanelWidth: () => {},
     setAiAssistantWidth: () => {},
     setAiAssistantDockHeight: () => {},
+    setAiAssistantPlacement: () => {},
+    setAiAssistantCollapsed: () => {},
     setBottomPanelOpen: () => {},
     toggleBottomPanel: () => {},
     setBottomPanelHeight: () => {},

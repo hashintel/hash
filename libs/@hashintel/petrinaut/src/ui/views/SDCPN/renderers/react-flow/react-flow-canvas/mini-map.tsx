@@ -4,8 +4,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { PANEL_MARGIN } from "../../../../../constants/ui";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { useCanvasInsets } from "../../../../../hooks/use-canvas-insets";
 import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
@@ -105,24 +104,14 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
 /**
  * A wrapper around ReactFlow's MiniMap with custom styling.
  * Renders place nodes as circles and transition nodes as rectangles.
- * Positions at top-right, offset by properties panel width when visible.
+ * Positions at the top right, clear of panels over the canvas.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { hasSelection, propertiesPanelWidth, isPanelAnimating } =
-    use(EditorContext);
-  const presentation = usePetrinautPresentation();
-
-  // The editor mounts its resizable properties panel to the right of the
-  // canvas; the preview renders its own floating inspector instead, so the
-  // editor panel width must not displace the minimap there.
-  const isPropertiesPanelVisible =
-    hasSelection && presentation.profile !== "preview";
+  const { isPanelAnimating } = use(EditorContext);
+  const canvasInsets = useCanvasInsets();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;
-  const panelOffset = isPropertiesPanelVisible
-    ? propertiesPanelWidth + PANEL_MARGIN
-    : 0;
 
   return (
     <ReactFlowMiniMap
@@ -132,7 +121,7 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
       style={{
         margin: 0,
         top: minimapOffset,
-        right: minimapOffset + panelOffset,
+        right: minimapOffset + canvasInsets.right,
         bottom: "auto",
         left: "auto",
         width: 116,
