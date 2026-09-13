@@ -172,7 +172,7 @@ const noop = () => {};
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
   title = "Untitled",
-  setTitle = noop,
+  setTitle,
   readonly = false,
   hideNetManagementControls,
   existingNets = [],
@@ -187,6 +187,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
+  const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
     () => createPetrinaut({ document: handle, readonly }),
@@ -197,7 +198,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 
   const netManagement: NetManagement = {
     title,
-    setTitle,
+    setTitle: setTitle ?? noop,
     existingNets,
     createNewNet,
     loadPetriNet,
@@ -223,6 +224,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 aiAssistant={aiAssistant}
                 hideNetManagementControls={hideNetManagementControls}
                 slots={slots}
+                titleEditable={titleEditable}
                 viewportActions={viewportActions}
               />
             </Stack>

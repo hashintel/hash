@@ -1200,7 +1200,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("executes one automatic tool call recovered from host history", async () => {
+  test("executes a canonical built-in with an empty host tool catalogue", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
       ({ messages }) => {
@@ -1225,6 +1225,7 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const { rerenderPanel } = renderTestPanel({
       aiAssistant: {
+        automaticTools: [],
         conversationId: "conversation-with-pending-tool",
         messages: [],
         transport,
@@ -1247,6 +1248,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ];
 
     rerenderPanel({
+      automaticTools: [],
       conversationId: "conversation-with-pending-tool",
       messages: pendingMessages,
       transport,
@@ -1267,6 +1269,7 @@ describe("AiAssistantPanel composer submissions", () => {
     });
 
     rerenderPanel({
+      automaticTools: [],
       conversationId: "conversation-with-pending-tool",
       messages: pendingMessages,
       transport,

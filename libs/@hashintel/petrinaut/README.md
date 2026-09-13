@@ -27,6 +27,16 @@ For host applications that own their Petri net data, implement a
 guide lives in the architecture docs:
 [Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
 
+### `PetrinautProps`
+
+Pass `title` to show a document title in the top bar. The title is read-only
+unless the host also supplies `setTitle`; when supplied, Petrinaut calls it
+with edits from the title field.
+
+Use `hideNetManagementControls="except-title"` to hide the document-management
+menu items while keeping the title visible, or `"all"` to hide the title and
+those menu items.
+
 ### Presentation profiles
 
 `presentationProfile` chooses how much editing chrome the component draws:
