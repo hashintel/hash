@@ -43,6 +43,11 @@ export const chartCardHeight = ({
   bodyHeight +
   (footerHeight > 0 ? footerHeight + CHART_CARD_FOOTER_CHROME : 0);
 
+/** The body height that makes a card exactly `cardHeight` tall; the inverse of `chartCardHeight` without a footer. */
+export const chartCardBodyHeight = (cardHeight: number): number =>
+  cardHeight -
+  (CHART_CARD_BORDER + CHART_CARD_HEADER_HEIGHT + CHART_CARD_BODY_PADDING * 2);
+
 // The card clips its content, with a margin so the halo it draws while an
 // optimizer drives it shows. The halo is a pseudo-element carrying the peak
 // shadow whose opacity breathes: the compositor runs that, not the painter.
@@ -287,8 +292,19 @@ export const ChartCardMenu = ({ label, items }: ChartCardMenuProps) => (
  */
 export const CHART_CARD_MIN_WIDTH = 320;
 
+/** The grid's gap between cards, in pixels (the `4` spacing token). */
+export const CHART_CARD_GRID_GAP = 16;
+
+// Dense packing fills the cells a spanning card leaves in its row with the
+// cards after it instead of holes; with equal cards it places them in order.
+// The cards stay in source order; where the browser supports `reading-flow`,
+// Tab follows the packed order, so a card pulled up beside an earlier card
+// comes before the enlarged one, and elsewhere Tab follows source order.
 const gridStyle = css({
   display: "grid",
+  gridAutoFlow: "row dense",
+  // @ts-expect-error reading-flow is a valid CSS property Panda's types do not know
+  readingFlow: "grid-order",
   alignItems: "stretch",
   gap: "4",
 });
@@ -303,7 +319,7 @@ export type ChartCardGridProps = {
 
 /**
  * A fixed grid of cards. Nothing in the grid moves when a card's content
- * changes; only the card count changes the grid.
+ * changes; only the card count, or a card spanning cells, changes the grid.
  */
 export const ChartCardGrid = ({
   minColumnWidth,

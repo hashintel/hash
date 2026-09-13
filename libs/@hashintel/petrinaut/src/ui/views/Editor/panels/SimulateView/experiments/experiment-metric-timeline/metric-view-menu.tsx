@@ -1,117 +1,33 @@
 /**
- * A metric chart's view menu, in its card header: one "Runs" group choosing
- * how the runs collapse (distribution metrics only) and one "Time" group
- * choosing how the series reads along time. The current choice in each group
- * is marked; picking another replaces it.
+ * A metric chart's view menu, in its card header: an ellipsis button and,
+ * while open, a popover with one block per dimension the data can be
+ * collapsed along — "Runs" (distribution metrics only) and "Time". Each
+ * block switches between drawing everything and aggregating, and offers the
+ * list its side has; the popover stays open across choices so the chart
+ * behind it re-draws as they are made.
  */
-import { ChartCardMenu } from "../../shared/chart-card";
+import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import {
   DISTRIBUTION_VIEW_LABELS,
   RUN_AGGREGATION_LABELS,
   TIME_AGGREGATION_LABELS,
   TIME_TRACE_LABELS,
 } from "./describe-metric-view";
+import { AggregationDimension } from "./metric-view-menu/aggregation-dimension";
 
 import type { MetricFrame } from "./shared/metric-frames";
 import type { MetricViewSettings } from "./view-state";
-import type { Menu } from "@hashintel/ds-components";
-import type { ComponentProps } from "react";
 
-type MenuEntries = ComponentProps<typeof Menu>["items"];
-
-/** One choice: whether the settings already hold it, and the settings that would. */
-type ViewChoice = {
-  id: string;
-  text: string;
-  isSelected: (settings: MetricViewSettings) => boolean;
-  apply: (settings: MetricViewSettings) => MetricViewSettings;
-};
-
-const typedKeys = <Key extends string>(record: Record<Key, string>): Key[] =>
-  Object.keys(record) as Key[];
-
-const runsChoices: readonly ViewChoice[] = [
-  ...typedKeys(DISTRIBUTION_VIEW_LABELS).map(
-    (distributionView): ViewChoice => ({
-      id: `runs-view-${distributionView}`,
-      text: DISTRIBUTION_VIEW_LABELS[distributionView],
-      isSelected: (settings) =>
-        !settings.aggregateRuns &&
-        settings.distributionView === distributionView,
-      apply: (settings) => ({
-        ...settings,
-        aggregateRuns: false,
-        distributionView,
-      }),
-    }),
-  ),
-  ...typedKeys(RUN_AGGREGATION_LABELS).map(
-    (runAggregation): ViewChoice => ({
-      id: `runs-aggregate-${runAggregation}`,
-      text: RUN_AGGREGATION_LABELS[runAggregation],
-      isSelected: (settings) =>
-        settings.aggregateRuns && settings.runAggregation === runAggregation,
-      apply: (settings) => ({
-        ...settings,
-        aggregateRuns: true,
-        runAggregation,
-      }),
-    }),
-  ),
-];
-
-const timeChoices: readonly ViewChoice[] = [
-  ...typedKeys(TIME_TRACE_LABELS).map(
-    (timeTrace): ViewChoice => ({
-      id: `time-trace-${timeTrace}`,
-      text: TIME_TRACE_LABELS[timeTrace],
-      isSelected: (settings) =>
-        !settings.aggregateTime && settings.timeTrace === timeTrace,
-      apply: (settings) => ({ ...settings, aggregateTime: false, timeTrace }),
-    }),
-  ),
-  ...typedKeys(TIME_AGGREGATION_LABELS).map(
-    (timeAggregation): ViewChoice => ({
-      id: `time-aggregate-${timeAggregation}`,
-      text: `${TIME_AGGREGATION_LABELS[timeAggregation]} over time`,
-      isSelected: (settings) =>
-        settings.aggregateTime && settings.timeAggregation === timeAggregation,
-      apply: (settings) => ({
-        ...settings,
-        aggregateTime: true,
-        timeAggregation,
-      }),
-    }),
-  ),
-];
-
-/** The menu's entries for these settings; picking one calls `onChange` with the new settings. */
-const metricViewMenuItems = (
-  outputType: MetricFrame["outputType"],
-  value: MetricViewSettings,
-  onChange: (settings: MetricViewSettings) => void,
-): MenuEntries => {
-  const group = (
-    id: string,
-    label: string,
-    choices: readonly ViewChoice[],
-  ) => ({
-    id,
-    label,
-    items: choices.map((choice) => ({
-      id: choice.id,
-      text: choice.text,
-      selected: choice.isSelected(value),
-      onClick: () => onChange(choice.apply(value)),
-    })),
-  });
-  return [
-    ...(outputType === "distribution"
-      ? [group("runs", "Runs", runsChoices)]
-      : []),
-    group("time", "Time", timeChoices),
-  ];
-};
+const bodyStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2.5",
+  width: "[312px]",
+});
 
 export const MetricViewMenu = ({
   outputType,
@@ -121,9 +37,71 @@ export const MetricViewMenu = ({
   outputType: MetricFrame["outputType"];
   value: MetricViewSettings;
   onChange: (settings: MetricViewSettings) => void;
-}) => (
-  <ChartCardMenu
-    label="Chart options"
-    items={metricViewMenuItems(outputType, value, onChange)}
-  />
-);
+}) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="ellipsis"
+        variant="ghost"
+        size="xs"
+        aria-label="Chart options"
+        tooltip="Chart options"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((previous) => !previous)}
+      />
+      {open ? (
+        <Popover
+          triggerRef={triggerRef}
+          position="bottom-end"
+          onClose={() => setOpen(false)}
+        >
+          <Popover.Container>
+            <Popover.Body className={bodyStyle}>
+              {outputType === "distribution" ? (
+                <AggregationDimension
+                  label="Runs"
+                  traceLabel="Every run"
+                  aggregate={value.aggregateRuns}
+                  onAggregateChange={(aggregateRuns) =>
+                    onChange({ ...value, aggregateRuns })
+                  }
+                  traces={DISTRIBUTION_VIEW_LABELS}
+                  trace={value.distributionView}
+                  onTraceChange={(distributionView) =>
+                    onChange({ ...value, distributionView })
+                  }
+                  statistics={RUN_AGGREGATION_LABELS}
+                  statistic={value.runAggregation}
+                  onStatisticChange={(runAggregation) =>
+                    onChange({ ...value, runAggregation })
+                  }
+                />
+              ) : null}
+              <AggregationDimension
+                label="Time"
+                traceLabel="Every step"
+                aggregate={value.aggregateTime}
+                onAggregateChange={(aggregateTime) =>
+                  onChange({ ...value, aggregateTime })
+                }
+                traces={TIME_TRACE_LABELS}
+                trace={value.timeTrace}
+                onTraceChange={(timeTrace) => onChange({ ...value, timeTrace })}
+                statistics={TIME_AGGREGATION_LABELS}
+                statistic={value.timeAggregation}
+                onStatisticChange={(timeAggregation) =>
+                  onChange({ ...value, timeAggregation })
+                }
+              />
+            </Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};

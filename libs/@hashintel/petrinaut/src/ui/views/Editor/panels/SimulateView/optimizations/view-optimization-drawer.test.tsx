@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { cloneElement, use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -120,18 +121,8 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     );
   };
 
-  // The Ark popover positions itself against a trigger jsdom cannot lay out;
-  // this one renders its panel in place.
-  const Popover = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Container: ({ children }: { children: ReactNode }) => (
-        <div>{children}</div>
-      ),
-    },
-  );
-
-  return { ...actual, Drawer, Menu, Popover, Slider, Tooltip };
+  const stubs = await import("../shared/ds-control-stubs");
+  return { ...actual, ...stubs, Drawer, Menu, Slider, Tooltip };
 });
 
 vi.mock("./optimization-surface", () => ({
@@ -1142,12 +1133,47 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     expect(note.title).toBe(note.textContent);
   });
 
+  it("enlarges the objective card to the full row at twice the height and leaves the study's cards alone", () => {
+    const view = renderDrawer(states[0]!);
+    const before = frameLayoutSignature(view.container);
+    const objectiveTitle = "Objective at the step in flight";
+    const others = (cards: typeof before.cards) =>
+      cards.filter(([title]) => title !== objectiveTitle);
+
+    const enlarge = screen.getByRole("button", { name: "Enlarge" });
+    expect(enlarge.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(enlarge);
+
+    // Two 408px rows and the 16px gap between them, less the card's chrome.
+    const after = frameLayoutSignature(view.container);
+    expect(after.cards.find(([title]) => title === objectiveTitle)![1]).toBe(
+      "745px",
+    );
+    expect(
+      screen.getByRole("button", { name: "Shrink", pressed: true }),
+    ).toBeTruthy();
+    expect(others(after.cards)).toEqual(others(before.cards));
+    expect(after.gridRows).toEqual(before.gridRows);
+
+    fireEvent.click(screen.getByRole("button", { name: "Shrink" }));
+
+    expect(frameLayoutSignature(view.container)).toEqual(before);
+  });
+
   it("leaves the objective card's height alone when its aggregation changes", () => {
     const view = renderDrawer(states[0]!);
     const before = frameLayoutSignature(view.container);
 
     fireEvent.click(screen.getByRole("button", { name: "Chart options" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Median" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Runs mode" })).getByRole(
+        "button",
+        { name: "Aggregate" },
+      ),
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Runs" }), {
+      target: { value: "median" },
+    });
 
     expect(frameLayoutSignature(view.container)).toEqual(before);
   });
