@@ -52,7 +52,13 @@ export {
 } from "./components/Filter/sort-menu-util";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
-export { Icon, type IconName, iconNames } from "./components/Icon/icon";
+export {
+  Icon,
+  type IconName,
+  iconNames,
+  type IconPack,
+  IconProvider,
+} from "./components/Icon/icon";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,

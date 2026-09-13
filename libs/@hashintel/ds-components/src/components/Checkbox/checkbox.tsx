@@ -1,8 +1,10 @@
 import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
+import { use } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { IconPackContext } from "../Icon/icon";
 import { styles } from "./checkbox.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -45,6 +47,8 @@ export const Checkbox = ({
   htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes) => {
+  const icons = use(IconPackContext);
+  const IndicatorIcon = icons[indeterminate ? "dash" : "check"];
   const classes = styles({
     size,
     tone,
@@ -74,21 +78,25 @@ export const Checkbox = ({
           className={classes.indicator}
           asChild
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3px"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <title>{indeterminate ? "Partially checked" : "Checked"}</title>
-            {indeterminate ? (
-              <path d="M5 12h14" />
-            ) : (
-              <path d="M20 6 9 17l-5-5" />
-            )}
-          </svg>
+          {IndicatorIcon ? (
+            <IndicatorIcon aria-hidden="true" />
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3px"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <title>{indeterminate ? "Partially checked" : "Checked"}</title>
+              {indeterminate ? (
+                <path d="M5 12h14" />
+              ) : (
+                <path d="M20 6 9 17l-5-5" />
+              )}
+            </svg>
+          )}
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
       {label && (
