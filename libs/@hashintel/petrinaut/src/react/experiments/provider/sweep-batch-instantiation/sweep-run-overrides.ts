@@ -1,5 +1,5 @@
 /**
- * Translates a range batch's per-run scenario-parameter draws into a per-run
+ * Translates a sweep batch's swept scenario parameters into a per-run
  * net-parameter plan.
  *
  * A sweep draws values for *scenario* parameters, but a run's simulation
@@ -11,11 +11,23 @@
  * A scenario identifier that IS a net variable name passes through as a
  * direct override where no override expression computed that name, matching
  * how the engine merges run values by variable name.
+ *
+ * Every batch of one experiment carries the same net names — the ones any
+ * swept axis can reach, found once from the axes — whether its runs vary
+ * them or not, a point selection included. A backend that keys its compiled
+ * setup on which parameters ride in the per-run buffer then keeps one setup,
+ * and the calibration learned with it, across every selection of the sweep.
  */
 import { createCooperativeYielder } from "../../cooperative-yield";
+import { axisValueAt } from "../../parameter-grid";
 
+import type { ExperimentParameterAxis } from "../../parameter-grid";
 import type { SweepRunDraws } from "../../sweep-session";
 import type { ExperimentRunPlan } from "@hashintel/petrinaut-core/experiments";
+
+type CompileRunNumbers = (swept: Readonly<Record<string, number>>) => {
+  parameters: Readonly<Record<string, number | boolean>>;
+};
 
 export type TranslateRangeDrawsOptions = {
   /** The batch's per-run draws, keyed by scenario parameter identifier. */
@@ -27,11 +39,14 @@ export type TranslateRangeDrawsOptions = {
   /** Net parameter values the batch compiled at `midValues`, as numbers. */
   baseParameters: Readonly<Record<string, number | boolean>>;
   /** Compiles the scenario for one concrete swept assignment, as numbers. */
-  compileRunNumbers: (swept: Readonly<Record<string, number>>) => {
-    parameters: Readonly<Record<string, number | boolean>>;
-  };
+  compileRunNumbers: CompileRunNumbers;
   /** The net's parameter variable names, for direct-override passthrough. */
   netParameterVariableNames: ReadonlySet<string>;
+  /**
+   * Net names the plan carries whatever the runs draw —
+   * `sweptNetParameterIds` — so every batch lays out the same buffer.
+   */
+  ids: readonly string[];
 };
 
 /** Booleans ride the plan as 1/0; the engine parses them back by type. */
@@ -39,9 +54,77 @@ const planNumber = (value: number | boolean): number =>
   typeof value === "boolean" ? (value ? 1 : 0) : value;
 
 /**
- * Returns a run-major plan over the union of every net name any run
- * changes, or undefined when no run changes anything (the whole batch
- * behaves as the midpoint compilation).
+ * The net parameter names a sweep's axes can move, sorted: every name whose
+ * compiled value at an axis's end differs from the all-midpoint compile, and
+ * every axis that names a net parameter directly. Found once per experiment,
+ * this is the id set every batch's plan carries.
+ */
+export const sweptNetParameterIds = (options: {
+  axes: readonly ExperimentParameterAxis[];
+  compileRunNumbers: CompileRunNumbers;
+  netParameterVariableNames: ReadonlySet<string>;
+}): readonly string[] => {
+  const { axes, compileRunNumbers, netParameterVariableNames } = options;
+  const midpoints: Record<string, number> = {};
+  for (const axis of axes) {
+    midpoints[axis.identifier] = axisValueAt(axis, axis.stepCount / 2);
+  }
+  const base = compileRunNumbers(midpoints).parameters;
+  const ids = new Set<string>();
+  for (const axis of axes) {
+    if (
+      netParameterVariableNames.has(axis.identifier) &&
+      base[axis.identifier] !== undefined
+    ) {
+      ids.add(axis.identifier);
+    }
+    for (const position of [0, axis.stepCount]) {
+      const { parameters } = compileRunNumbers({
+        ...midpoints,
+        [axis.identifier]: axisValueAt(axis, position),
+      });
+      for (const [name, value] of Object.entries(parameters)) {
+        if (value !== base[name]) {
+          ids.add(name);
+        }
+      }
+    }
+  }
+  return [...ids].sort();
+};
+
+/**
+ * A point selection's plan: every run carries the point's compiled values
+ * for `ids`, so the batch lays out the same buffer as a range batch would.
+ * Undefined when there is nothing to carry.
+ */
+export const constantRunPlan = (
+  ids: readonly string[],
+  baseParameters: Readonly<Record<string, number | boolean>>,
+  runCount: number,
+): ExperimentRunPlan | undefined => {
+  const row: number[] = [];
+  for (const id of ids) {
+    const base = baseParameters[id];
+    if (base === undefined) {
+      return undefined;
+    }
+    row.push(planNumber(base));
+  }
+  if (row.length === 0) {
+    return undefined;
+  }
+  const values = new Float64Array(runCount * row.length);
+  for (let run = 0; run < runCount; run++) {
+    values.set(row, run * row.length);
+  }
+  return { ids, values };
+};
+
+/**
+ * Returns a run-major plan over `ids` plus every net name any run changes,
+ * or undefined when there is nothing to carry (the whole batch behaves as
+ * the midpoint compilation).
  *
  * Every run carries every id in the plan — a run whose draw compiles back
  * to a base value carries that base value explicitly. Backends lay per-run
@@ -66,7 +149,7 @@ export const translateRangeDraws = async (
     return undefined;
   }
 
-  // One column per net name some run changes, pre-filled with the base value
+  // One column per net name the plan carries, pre-filled with the base value
   // so runs that draw the base carry it without a separate fill pass.
   const columns = new Map<string, Float64Array>();
   const columnFor = (name: string, base: number): Float64Array => {
@@ -77,6 +160,12 @@ export const translateRangeDraws = async (
     }
     return column;
   };
+  for (const id of options.ids) {
+    const base = baseParameters[id];
+    if (base !== undefined) {
+      columnFor(id, planNumber(base));
+    }
+  }
 
   // The parameter record's key set is identical across compiles (the same
   // defaults template seeds every call), so the keys are read once.

@@ -12,8 +12,8 @@
  * once.
  *
  * A slab stops growing at its place's `derivedSlabCeiling`; an attempt that
- * still overflows there is handed back as it stands, and the caller sends the
- * experiment to the CPU.
+ * still overflows there is handed back as it stands, and the caller reports
+ * why.
  */
 import { derivedSlabCeiling, tokenWordCount } from "../eligibility";
 import {
@@ -42,8 +42,8 @@ export const GPU_PROBE_MEMORY_BYTES = 128 * 1024 * 1024;
  * its probe shows a heavy tail — outlier runs far past the typical maximum.
  * Below it, sizing for the outlier is cheap enough to just do; past it, the
  * right structure is a per-run token arena (shared place-tagged slots sized
- * by the simultaneous total), and until that exists the experiment runs on
- * the CPU, which sizes its buffers dynamically.
+ * by the simultaneous total), and until that exists the run is refused with
+ * a reason that points at the CPU, which sizes its buffers dynamically.
  */
 export const GPU_ARENA_SLAB_BYTES = 64 * 1024;
 
@@ -67,6 +67,8 @@ export type CalibrationPolicy = {
   maxWindowReplans: number;
   /** Whether attempts open with a preview tile. */
   preview: boolean;
+  /** Whether the attempts calibrate rather than run the experiment itself. */
+  probe: boolean;
 };
 
 /**
@@ -79,6 +81,7 @@ export const PROBE_POLICY: CalibrationPolicy = {
   maxSlabGrowths: 7,
   maxWindowReplans: 0,
   preview: false,
+  probe: true,
 };
 
 /**
@@ -90,6 +93,21 @@ export const RUN_POLICY: CalibrationPolicy = {
   maxSlabGrowths: 3,
   maxWindowReplans: 1,
   preview: true,
+  probe: false,
+};
+
+/**
+ * A full attempt on a calibration another batch measured grows once, by the
+ * probe's factor: a small overflow is a tail that one step covers, and a
+ * larger one means this batch's dynamics differ from the measured ones, so
+ * the caller probes afresh rather than doubling towards them.
+ */
+export const CACHED_RUN_POLICY: CalibrationPolicy = {
+  slabGrowth: 4,
+  maxSlabGrowths: 1,
+  maxWindowReplans: 1,
+  preview: true,
+  probe: false,
 };
 
 /** The shader in force and the derived slabs it was compiled at. */
@@ -108,6 +126,11 @@ export type ExecuteAttempt = (attempt: {
   runCount: number;
   windows: readonly MetricWindow[];
   preview: boolean;
+  /**
+   * A calibration attempt over a prefix of the runs: its frames stream like
+   * any other's, but its run counts are not the experiment's progress.
+   */
+  probe: boolean;
 }) => Promise<AttemptResult>;
 
 export type CalibratedRun =
@@ -202,6 +225,7 @@ export const runUntilCalibrated = async (options: {
       runCount: runsFor(session.shader),
       windows,
       preview: policy.preview,
+      probe: policy.probe,
     });
     if (!attempt.ok) {
       return attempt;
@@ -254,12 +278,15 @@ export const runUntilCalibrated = async (options: {
  * The slab each derived place gets for the full run, from the probe's per-run
  * maxima: the observed maximum plus margin, unless a heavy-tailed outlier
  * would need a slab past `GPU_ARENA_SLAB_BYTES` — that shape belongs on the
- * CPU.
+ * CPU. A slab never shrinks below its place's `slabFloor`: a re-probe after
+ * a full attempt overflowed at grown slabs observes only a prefix of the
+ * runs, and sizing below what already overflowed would overflow again.
  */
 export const slabsFromProbe = (
   session: CalibrationSession,
   probe: GpuExperimentResult,
   placeCounts: readonly number[],
+  slabFloor?: ReadonlyMap<string, number>,
 ):
   | { ok: true; capacities: Map<string, number> }
   | { ok: false; reason: string } => {
@@ -270,36 +297,43 @@ export const slabsFromProbe = (
   ] of session.shader.derivedCapacityPlaceIndices.entries()) {
     const place = session.backend.profile.places[placeIndex]!;
     const stats = probe.derivedPlaceMaxes[slot] ?? { max: 0, meanRunMax: 0 };
-    const capacity = Math.min(
-      Math.max(8, Math.ceil(stats.max * 1.5) + 4, placeCounts[placeIndex] ?? 0),
-      derivedSlabCeiling(place),
+    const observed = Math.max(
+      8,
+      Math.ceil(stats.max * 1.5) + 4,
+      placeCounts[placeIndex] ?? 0,
     );
-    const slabBytes = capacity * Math.max(1, tokenWordCount(place)) * 4;
+    const slabBytes = observed * Math.max(1, tokenWordCount(place)) * 4;
     if (
       stats.max > 4 * Math.max(1, stats.meanRunMax) &&
       slabBytes > GPU_ARENA_SLAB_BYTES
     ) {
       return {
         ok: false,
-        reason: `Probing \`${place.name}\` saw outlier runs reach ${stats.max} tokens against a typical per-run maximum of ${Math.round(stats.meanRunMax)}. Sizing every run for the outlier would take ${Math.round(slabBytes / 1024)} KB per run — that heavy-tailed shape needs a per-run token arena, so this experiment runs on the CPU.`,
+        reason: `Probing \`${place.name}\` saw outlier runs reach ${stats.max} tokens against a typical per-run maximum of ${Math.round(stats.meanRunMax)}. Sizing every run for the outlier would take ${Math.round(slabBytes / 1024)} KB per run — that heavy-tailed shape needs a per-run token arena. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
       };
     }
-    capacities.set(place.id, capacity);
+    capacities.set(
+      place.id,
+      Math.min(
+        Math.max(observed, slabFloor?.get(place.id) ?? 0),
+        derivedSlabCeiling(place),
+      ),
+    );
   }
   return { ok: true, capacities };
 };
 
 /**
- * Calibrates derived capacities before the handle exists, so the arena case
- * can refuse cleanly and the caller falls back to the CPU: probes a small
+ * Calibrates derived capacities as a run's first attempts: probes a small
  * prefix of the runs at generous slabs (growing on overflow), sizes each
  * place's slab from the observed maxima, and recompiles at those. The same
  * probe observes the metric ranges, seeding the histogram windows, and counts
- * the runs a non-finite metric sample halted, which the handle reports as the
+ * the runs a non-finite metric sample halted, which the caller reports as the
  * full run would. A halted probe is handed back before its slabs are sized:
  * the CPU would fail on the same sample, so neither an overflow nor the arena
  * case the same probe shows pre-empts the halt, and nothing is recompiled for
- * a run the handle will not start.
+ * a run the caller will not start. The arena case refuses with a reason the
+ * caller reports.
  */
 export const probeDerivedCapacities = async (options: {
   session: CalibrationSession;
@@ -312,6 +346,8 @@ export const probeDerivedCapacities = async (options: {
    * attempts and before the recompile at the probed slabs.
    */
   stopped?: () => boolean;
+  /** Slabs the probed ones may not shrink below — see `slabsFromProbe`. */
+  slabFloor?: ReadonlyMap<string, number>;
 }): Promise<
   | {
       ok: true;
@@ -323,7 +359,7 @@ export const probeDerivedCapacities = async (options: {
     }
   | { ok: false; reason: string }
 > => {
-  const { session, runCount, placeCounts, execute } = options;
+  const { session, runCount, placeCounts, execute, slabFloor } = options;
   const stopped = options.stopped ?? (() => false);
   const probeWindows = planInitialWindows(
     options.windowInputs,
@@ -367,10 +403,10 @@ export const probeDerivedCapacities = async (options: {
     const largest = Math.max(0, ...session.capacities.values());
     return {
       ok: false,
-      reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place; running on the CPU, which sizes its buffers dynamically.`,
+      reason: `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place. Switch this experiment to the CPU backend, which sizes its buffers dynamically.`,
     };
   }
-  const slabs = slabsFromProbe(session, probe.result, placeCounts);
+  const slabs = slabsFromProbe(session, probe.result, placeCounts, slabFloor);
   if (!slabs.ok) {
     return slabs;
   }
@@ -402,6 +438,7 @@ export const probeWindows = async (options: {
     runCount,
     windows,
     preview: false,
+    probe: true,
   });
   if (!attempt.ok) {
     return attempt;

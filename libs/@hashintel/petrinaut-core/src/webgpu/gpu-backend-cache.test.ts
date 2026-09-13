@@ -245,8 +245,16 @@ describe("gpuBackendSetupKey", () => {
   };
 
   it("ignores the values of per-run-buffered parameters", () => {
+    // A point batch at one rate and a range batch at another both carry the
+    // rate in the buffer, so every selection of a sweep shares one setup.
     const other = { ...base, parameterValues: { rate: "3.9", size: "10" } };
     expect(gpuBackendSetupKey(base)).toBe(gpuBackendSetupKey(other));
+    expect(gpuBackendSetupKey(base)).toBe(
+      gpuBackendSetupKey({
+        ...base,
+        parameterValues: { rate: "0.25", size: "10" },
+      }),
+    );
   });
 
   it("keys on baked values, marking, net identity, and metric set", () => {
