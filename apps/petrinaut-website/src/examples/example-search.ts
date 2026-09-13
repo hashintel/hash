@@ -31,10 +31,18 @@ export const sharedSimulateViews = [
 ] as const;
 
 export const sharedOverlays = [
+  "user-settings",
   "viewport-settings",
   "create-scenario",
   "create-metric",
   "create-experiment",
+] as const;
+
+export const sharedSettingsSections = [
+  "general",
+  "viewport",
+  "simulation",
+  "labs",
 ] as const;
 
 export type SharedMode = (typeof sharedModes)[number];
@@ -58,6 +66,7 @@ export type SharedExampleSearch = {
   mode?: SharedMode;
   view?: SharedSimulateView;
   overlay?: SharedOverlay;
+  settings?: (typeof sharedSettingsSections)[number];
 };
 
 /** The keys this contract owns. Anything else in a URL is foreign. */
@@ -69,6 +78,7 @@ const sharedSearchKeys = [
   "mode",
   "view",
   "overlay",
+  "settings",
 ] as const satisfies readonly (keyof SharedExampleSearch)[];
 
 // `.catch(undefined)` is the contract's whole validation story: anything a URL
@@ -117,6 +127,14 @@ export const validateSharedExampleSearch = (
   mode: optionalMode.parse(input.mode),
   view: optionalSimulateView.parse(input.view),
   overlay: optionalOverlay.parse(input.overlay),
+  settings:
+    input.overlay === "user-settings"
+      ? z
+          .enum(sharedSettingsSections)
+          .optional()
+          .catch(undefined)
+          .parse(input.settings)
+      : undefined,
   ...selectionToSearch(selectionFromInput(input)),
 });
 

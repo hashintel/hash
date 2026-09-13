@@ -27,6 +27,8 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
+import { formatShortcutKeys } from "../../../react/commands/format-shortcut";
+import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
@@ -57,6 +59,7 @@ import {
   shouldShowBrunchCreateNew,
 } from "./editor-view/create-new-net-menu";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -154,6 +157,7 @@ export const EditorView = ({
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
+  const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
   // otherwise offer an item that silently does nothing.
   const isReadOnly = useIsReadOnly();
@@ -498,6 +502,16 @@ export const EditorView = ({
         ]
       : []),
     {
+      id: "user-settings",
+      text: "User settings",
+      suffix: formatShortcutKeys("mod+,").join(" "),
+      onClick: () =>
+        navigation.navigate(
+          { overlay: { type: "user-settings", section: "general" } },
+          { cause: "user", action: "overlay" },
+        ),
+    },
+    {
       id: "docs",
       text: "Docs",
       onClick: () => {
@@ -525,6 +539,7 @@ export const EditorView = ({
       <EditorCommands
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
+      <UserSettings />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}

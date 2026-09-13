@@ -6,7 +6,7 @@ It is a diagnostic view about the compiler, not about your model — for errors 
 
 ## Turning it on
 
-Under **Settings → Simulation**, switch on **Compilation output**. A **Compilation** tab appears in the bottom panel. It is off by default.
+Under **User settings → Labs**, switch on **Compilation output**. A **Compilation** tab appears in the bottom panel. It is off by default.
 
 ## What it shows
 

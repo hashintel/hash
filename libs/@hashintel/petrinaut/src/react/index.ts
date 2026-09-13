@@ -56,6 +56,7 @@ export type {
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
+  PetrinautSettingsSection,
 } from "./navigation";
 // The vocabularies two navigation fields are drawn from. A host encoding the
 // location into a router needs to spell them, and to fail its own build when

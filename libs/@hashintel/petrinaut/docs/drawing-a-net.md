@@ -92,7 +92,7 @@ You can also focus the outgoing handle with **Tab**, press **Enter** or **Space*
 
 ## Component ports
 
-Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **Settings → Net Components** first.
+Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
 
 Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
 
@@ -222,6 +222,7 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+Shift+Z        | Redo                                   |
 | Cmd+F              | Search                                 |
 | Cmd+Shift+K        | Toggle the AI assistant                |
+| Cmd+,              | Open user settings                     |
 | Delete / Backspace | Delete selection                       |
 
 On Windows/Linux, use Ctrl instead of Cmd.

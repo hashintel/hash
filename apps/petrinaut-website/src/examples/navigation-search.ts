@@ -71,7 +71,9 @@ const overlayToSearch = (
 
 const overlayFromSearch = (
   overlay: SharedOverlay,
-): PetrinautNavigationOverlay => ({ type: overlay });
+  section: SharedExampleSearch["settings"],
+): PetrinautNavigationOverlay =>
+  overlay === "user-settings" ? { type: overlay, section } : { type: overlay };
 
 export const sharedSearchToNavigationState = (
   search: SharedExampleSearch,
@@ -86,7 +88,7 @@ export const sharedSearchToNavigationState = (
   overlay:
     search.overlay === undefined
       ? baseline.overlay
-      : overlayFromSearch(search.overlay),
+      : overlayFromSearch(search.overlay, search.settings),
 });
 
 export const navigationStateToSharedSearch = (
@@ -106,6 +108,10 @@ export const navigationStateToSharedSearch = (
       view === simulateViewToSearch(baseline.simulateView) ? undefined : view,
     overlay:
       overlay === overlayToSearch(baseline.overlay) ? undefined : overlay,
+    settings:
+      state.overlay?.type === "user-settings"
+        ? state.overlay.section
+        : undefined,
     ...selectionToSearch(state.selection),
   };
 };
@@ -139,6 +145,7 @@ export const applyPreviewNavigationUpdate = (
   mode: search.mode,
   view: search.view,
   overlay: search.overlay,
+  settings: search.settings,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),
