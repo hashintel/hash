@@ -80,6 +80,8 @@ export type ResultsBand = {
   /** The header's right side: a state line, a switch. */
   trailing: ReactNode | null;
   content: ReactNode;
+  /** Under the controls, spanning the body: a sweep's objective by step. Null gives the card nothing there. */
+  below: ReactNode | null;
   more: FrameCardMore | null;
   /** The card's look: `optimizing` while an optimizer drives its controls. */
   tone: ChartCardTone;
