@@ -4,20 +4,23 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, open, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
+import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
-import { selectChatModel, STEP_A_MODEL_ID } from "../../chat-model.ts";
+import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
+import { initializeRequestLedger } from "../../provider-accounting/request-ledger.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import { submitPersonaBrowserTurn } from "./browser-turn.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
@@ -25,6 +28,7 @@ import {
   refreshProofManifest,
   writeProofArtifacts,
 } from "./proof-artifacts.ts";
+import { checkPersonaConfiguration } from "./request-accounting.ts";
 
 export { openPersonaConversation } from "./launch/browser.ts";
 
@@ -95,9 +99,12 @@ const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const environment = () => {
   // Same loader and shell precedence as the normal development app.
+  if (process.env.DEBUG)
+    throw new Error(
+      "Unset DEBUG before persona launch; environment values must not be logged",
+    );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
-  delete loaded.BRUNCH_STEP_A_ACCOUNTING;
-  loaded.BRUNCH_CHAT_MODEL ||= STEP_A_MODEL_ID;
+  loaded.BRUNCH_CHAT_MODEL = STEP_A_MODEL_ID;
   return loaded;
 };
 export const paneIdFrom = (stdout: string) => {
@@ -122,7 +129,10 @@ const runPersona = async (run: string) => {
   const config = JSON.parse(await readFile(join(run, "run.json"), "utf8")) as {
     model: string;
     socketPath: string;
+    accounting?: ReturnType<typeof initializeRequestLedger>;
   };
+  if (!config.accounting || config.model !== STEP_A_MODEL_ID)
+    throw new Error("Persona run is missing its shared Sonnet allocation");
   const child = spawn(
     "pi",
     personaArguments(run, config.model, config.socketPath),
@@ -131,6 +141,7 @@ const runPersona = async (run: string) => {
       stdio: "inherit",
       env: {
         ...environment(),
+        BRUNCH_STEP_A_ACCOUNTING: JSON.stringify(config.accounting),
         PI_CODING_AGENT_DIR: join(run, "pi"),
         PI_SUBAGENT_NAME: basename(run),
         PI_OFFLINE: "1",
@@ -237,15 +248,25 @@ export const responds = async (
 /** One local operator command; run directories contain data, never launch scripts. */
 export const launchPersona = async (
   caseDirectory: string,
+  budgetUsd: number,
   objective?: string,
   route = "/",
   initialNetPath?: string,
 ) => {
   if (process.env.HERDR_ENV !== "1")
     throw new Error("Run brunch:persona from a Herdr terminal");
+  if (!process.stdin.isTTY)
+    throw new Error(
+      "Use an interactive terminal for the recording-ready prompt",
+    );
   const { pack, opening } = await readPersonaCase(caseDirectory);
   const env = environment();
-  const model = selectChatModel(env);
+  const model = STEP_A_MODEL_ID;
+  const nativeModel = anthropicProvider()
+    .getModels()
+    .find((entry) => entry.id === model);
+  if (!nativeModel)
+    throw new Error("Sonnet is absent from the native provider catalogue");
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -266,6 +287,16 @@ export const launchPersona = async (
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
   const run = await mkdtemp(join(runs, "run-"));
+  const accounting = initializeRequestLedger(
+    join(run, "usage-ledger.json"),
+    basename(run),
+    budgetUsd,
+    nativeModel,
+  );
+  env.BRUNCH_STEP_A_ACCOUNTING = JSON.stringify(accounting);
+  env.BRUNCH_DEV_DB_PATH = join(run, "conversation.db");
+  env.BRUNCH_DB_KIND = "sqlite";
+  delete env.BRUNCH_CHAT_DB_PATH;
   const browserProfile = await mkdtemp(
     join(tmpdir(), "brunch-persona-browser-"),
   );
@@ -273,9 +304,17 @@ export const launchPersona = async (
   await save(join(run, "pi/settings.json"), {
     retry: { enabled: false, provider: { maxRetries: 0 } },
   });
+  const key = checkPersonaConfiguration({
+    ...env,
+    PI_CODING_AGENT_DIR: join(run, "pi"),
+    PI_OFFLINE: "1",
+  });
   const record = {
     caseDirectory,
     model,
+    budgetUsd,
+    accounting,
+    databasePath: env.BRUNCH_DEV_DB_PATH,
     browserProfile,
     panelOrigin,
     route,
@@ -307,6 +346,22 @@ export const launchPersona = async (
   process.on("SIGINT", interrupt);
   process.on("SIGTERM", interrupt);
   try {
+    const preflight = await execute(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        join(appRoot, "src/dev-configuration-preflight.ts"),
+      ],
+      { cwd: repoRoot, env, signal: stop.signal },
+    );
+    await writeFile(
+      join(run, "configuration-preflight.json"),
+      preflight.stdout,
+      { mode: 0o600 },
+    );
+    report(
+      "Sonnet configuration verified; credential validity untested. Pi verifies its native selection again on startup.",
+    );
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
       { url: panelOrigin, script: "dev:brunch:panel" },
@@ -314,26 +369,24 @@ export const launchPersona = async (
     const available = await Promise.all(
       services.map((service) => responds(service.url, stop.signal)),
     );
-    if (available.includes(false)) {
-      report("Building local app dependencies…");
-      await execute(
-        "turbo",
-        [
-          "run",
-          "build",
-          "--filter",
-          "@apps/brunch-agent^...",
-          "--filter",
-          "@apps/petrinaut-website^...",
-        ],
-        { cwd: repoRoot, env, signal: stop.signal },
+    if (available.includes(true))
+      throw new Error(
+        "Persona needs its own metered services. Leave existing services running and choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
       );
-    }
-    for (const [index, service] of services.entries()) {
-      if (available[index]) {
-        report(`Reusing ${service.url}`);
-        continue;
-      }
+    report("Building local app dependencies…");
+    await execute(
+      "turbo",
+      [
+        "run",
+        "build",
+        "--filter",
+        "@apps/brunch-agent^...",
+        "--filter",
+        "@apps/petrinaut-website^...",
+      ],
+      { cwd: repoRoot, env, signal: stop.signal },
+    );
+    for (const service of services) {
       const log = await open(
         join(run, `${service.script.replaceAll(":", "-")}.log`),
         "a",
@@ -361,19 +414,10 @@ export const launchPersona = async (
         await delay(100, undefined, { signal: stop.signal });
       }
     }
-    const key = env.ANTHROPIC_API_KEY?.trim();
-    if (
-      !key ||
-      /dummy|placeholder|test-synthetic|your[-_ ]?(api[-_ ]?)?key|changeme|replace[-_ ]?me/i.test(
-        key,
-      )
-    )
-      throw new Error(
-        "ANTHROPIC_API_KEY is missing or a placeholder in the app development environment",
-      );
     browser = await chromium.launchPersistentContext(browserProfile, {
       executablePath: chromeExecutable,
       headless: false,
+      viewport: null,
       args: [
         "--remote-debugging-address=127.0.0.1",
         "--remote-debugging-port=0",
@@ -407,14 +451,42 @@ export const launchPersona = async (
       );
     }
     report("Opening a fresh browser conversation…");
-    const opened = await openPersonaConversation(page, panelOrigin, opening, {
-      route,
-      sessionPath: join(run, "session.json"),
-      signal: stop.signal,
-    });
+    const personaPage = page;
+    const opened = await openPersonaConversation(
+      personaPage,
+      panelOrigin,
+      opening,
+      {
+        route,
+        sessionPath: join(run, "session.json"),
+        signal: stop.signal,
+        beforeOpening: async () => {
+          const title = `Brunch persona · ${basename(run)} · ready to record`;
+          await personaPage.evaluate((value) => {
+            document.title = value;
+          }, title);
+          await personaPage.bringToFront();
+          report(
+            `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nCombined catalogue budget: USD ${budgetUsd}\nNo message has been sent. Start your screen recording, then press Enter here.`,
+          );
+          const terminal = createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+          try {
+            await terminal.question(
+              "Recording ready — Enter to begin (Ctrl-C cancels): ",
+              { signal: stop.signal },
+            );
+            stop.signal.throwIfAborted();
+          } finally {
+            terminal.close();
+          }
+        },
+      },
+    );
     documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
-    const personaPage = page;
     bridge = await openPersonaBrowserBridge(async (message, signal) => {
       const result = await submitPersonaBrowserTurn(personaPage, message, {
         session: opened.session,
@@ -473,7 +545,7 @@ export const launchPersona = async (
       [
         `export ANTHROPIC_API_KEY=${shellQuote(key)}`,
         `export BRUNCH_CHAT_MODEL=${shellQuote(model)}`,
-        "unset BRUNCH_STEP_A_ACCOUNTING",
+        `export BRUNCH_STEP_A_ACCOUNTING=${shellQuote(JSON.stringify(accounting))}`,
       ].join("\n") + "\n",
       { mode: 0o600 },
     );
@@ -542,6 +614,7 @@ if (
   const { values } = parseArgs({
     options: {
       case: { type: "string" },
+      "budget-usd": { type: "string" },
       objective: { type: "string" },
       "initial-net": { type: "string" },
       route: { type: "string" },
@@ -551,7 +624,7 @@ if (
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nStarts/reuses the local app, optionally preloads one reference net, opens a fresh Chrome conversation and a Pi persona in Herdr. Requires Chrome, Pi and the app's normal Anthropic configuration. No accounting gates or turn deadline. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> --budget-usd <allocation> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nStarts owned metered services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6 and share the supplied budget (at most USD 100). Requires Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
     );
   } else {
     const selected = values.case;
@@ -565,6 +638,7 @@ if (
       : directory
         ? launchPersona(
             directory,
+            Number(values["budget-usd"]),
             values.objective,
             values.route ?? (values["initial-net"] ? "/" : undefined),
             values["initial-net"]

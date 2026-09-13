@@ -13,6 +13,7 @@ export const openPersonaConversation = async (
     route?: string;
     sessionPath?: string;
     signal?: AbortSignal;
+    beforeOpening?: () => Promise<void>;
   } = {},
 ) => {
   await page.goto(new URL(options.route ?? "/", origin).href);
@@ -22,6 +23,8 @@ export const openPersonaConversation = async (
   await page
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
+  await options.beforeOpening?.();
+  options.signal?.throwIfAborted();
   return submitPersonaBrowserTurn(page, opening, {
     signal: options.signal,
     onAdmission: async (session) => {

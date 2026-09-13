@@ -2,7 +2,7 @@
 /* eslint-disable no-await-in-loop -- One synthetic provider queue, exercised serially. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -20,7 +20,12 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
+import {
+  registerPersonaAccounting,
+  type PersonaAccountingContext,
+} from "../src/evaluations/persona/request-accounting.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { initializeRequestLedger } from "../src/provider-accounting/request-ledger.ts";
 
 const childMode = process.argv[2];
 const directory =
@@ -84,12 +89,14 @@ const reset = (input = fixture()) => {
     "# TEST INPUT/OUTPUT attempts\n",
   );
 };
-if (!childMode) reset(fixture(false));
 const native: Provider = anthropicProvider();
 const model = native
   .getModels()
   .find((entry) => entry.id === "claude-sonnet-4-6");
 assert(model);
+if (!childMode) reset(fixture(false));
+if (childMode === "--shared")
+  initializeRequestLedger(ledgerPath, "TEST-run", 7.921, model);
 let starts = 0;
 let syntheticFetches = 0;
 const fetchCount = () => syntheticFetches;
@@ -138,7 +145,11 @@ globalThis.fetch = async (input, init) => {
     max_tokens: number;
     model: string;
   };
-  if (childMode !== "--disabled") assert.equal(payload.max_tokens, 16);
+  if (childMode !== "--disabled") {
+    if (scenario === "shared")
+      assert(payload.max_tokens > 16 && payload.max_tokens <= model.maxTokens);
+    else assert.equal(payload.max_tokens, 16);
+  }
   assert.equal(payload.model, model.id);
   return new Response(
     new ReadableStream({
@@ -303,12 +314,96 @@ const submit = async () => {
 };
 const observations: unknown[] = [];
 try {
-  if (childMode) {
+  if (childMode && childMode !== "--shared") {
     const before = readFileSync(ledgerPath, "utf8");
     const outcome = await submit();
     assert.equal(starts, childMode === "--disabled" ? 1 : 0);
     assert.equal(outcome.failure, childMode !== "--disabled");
     assert.equal(readFileSync(ledgerPath, "utf8"), before);
+  } else if (childMode === "--shared") {
+    // The launcher's fresh allocation, the built ChatAgent and Pi's native
+    // registration all share one authority. Only the SDK fetch is synthetic.
+    scenario = "shared";
+    const piDirectory = join(directory, "pi");
+    mkdirSync(piDirectory);
+    writeFileSync(
+      join(piDirectory, "settings.json"),
+      JSON.stringify({
+        retry: { enabled: false, provider: { maxRetries: 0 } },
+      }),
+    );
+    process.env.PI_CODING_AGENT_DIR = piDirectory;
+    process.env.PI_OFFLINE = "1";
+    process.env.ANTHROPIC_API_KEY = "TEST-accounting-key";
+    let piProvider: Provider | undefined;
+    let piStart:
+      | ((event: unknown, context: PersonaAccountingContext) => Promise<void>)
+      | undefined;
+    registerPersonaAccounting({
+      registerProvider(registered) {
+        piProvider = registered;
+      },
+      on(_event, handler) {
+        piStart = handler;
+      },
+    });
+    assert(piProvider && piStart);
+    await piStart(undefined, {
+      model,
+      sessionManager: { getSessionId: () => "TEST-live-pi-identity" },
+      modelRegistry: {
+        getProviderAuth: async () => ({
+          source: "ANTHROPIC_API_KEY",
+          auth: { apiKey: "TEST-accounting-key" },
+        }),
+      },
+    });
+    assert.equal(
+      (
+        await piProvider
+          .streamSimple(
+            model,
+            {
+              messages: [
+                {
+                  role: "user",
+                  content: "TEST synthetic persona",
+                  timestamp: 0,
+                },
+              ],
+            },
+            { apiKey: "TEST-accounting-key" },
+          )
+          .result()
+      ).stopReason,
+      "stop",
+    );
+    assert.equal((await submit()).failure, false);
+    const shared = readLedger();
+    assert.equal(shared.calls.length, 2);
+    assert(shared.calls.every((call) => call.status === "complete"));
+    assert.partialDeepStrictEqual(shared.calls[0]?.identity, {
+      kind: "pi",
+      sessionId: "TEST-live-pi-identity",
+    });
+    assert(shared.calls[1]?.identity.submissionId);
+    assert(Math.abs(shared.totals.spentUsd - 0.0011595) < 1e-12);
+    const dispatchedBeforeRefusal = syntheticFetches;
+    assert.equal((await submit()).failure, true);
+    assert.equal(syntheticFetches, dispatchedBeforeRefusal);
+    observations.push({
+      case: "shared-brunch-pi-allocation",
+      ledger: shared,
+      nextRequestRefused: true,
+    });
+    assert.equal(forbiddenFetches, 0);
+    writeFileSync(
+      join(directory, "request-accounting.json"),
+      JSON.stringify(observations, null, 2),
+    );
+    process.stdout.write(
+      `PROVIDER_ACCOUNTING ${JSON.stringify({ passed: true, directory, syntheticFetches, scope: "shared Brunch/Pi allocation; synthetic transport" })}\n`,
+    );
   } else {
     for (const refusal of [
       "unreserved",

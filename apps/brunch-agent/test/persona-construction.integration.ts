@@ -68,12 +68,37 @@ try {
     call("read_petrinaut_net", {}, "opening-read"),
     text("Tell me about the operation."),
   ]);
-  const opened = await openPersonaConversation(
+  const ready = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const opening = openPersonaConversation(
     page,
     origin,
     "Let us build an operation from scratch.",
-    { route: "/" },
+    {
+      route: "/",
+      beforeOpening: async () => {
+        ready.resolve();
+        await release.promise;
+      },
+    },
   );
+  await Promise.race([ready.promise, opening]);
+  assert.equal(
+    fixture.deliveries.length,
+    0,
+    "Recording pause precedes all model calls",
+  );
+  await expect(
+    page.getByRole("textbox", { name: "Message AI assistant", exact: true }),
+  ).toBeVisible();
+  await delay(100);
+  assert.equal(
+    fixture.deliveries.length,
+    0,
+    "No admission while waiting for recording",
+  );
+  release.resolve();
+  const opened = await opening;
   const client = createFlueClient({
     url: opened.session.url,
     headers: agentOwnershipHeaders(opened.session),

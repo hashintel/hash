@@ -46,10 +46,12 @@ const settingsSchema = v.object({
  * This is also rechecked before native invocation/dispatch. Pi's own startup must use
  * this fresh directory so native auth cannot refresh a stored OAuth credential first.
  */
-export const checkPersonaConfiguration = () => {
+export const checkPersonaConfiguration = (
+  environment: NodeJS.ProcessEnv = process.env,
+) => {
   try {
-    const directory = process.env.PI_CODING_AGENT_DIR;
-    if (!directory || !isAbsolute(directory) || process.env.PI_OFFLINE !== "1")
+    const directory = environment.PI_CODING_AGENT_DIR;
+    if (!directory || !isAbsolute(directory) || environment.PI_OFFLINE !== "1")
       return fail();
     // Pi itself writes models-store.json during offline startup. It is not a
     // user override; the operator must start with a fresh directory, not copy it.
@@ -76,9 +78,9 @@ export const checkPersonaConfiguration = () => {
       "ALL_PROXY",
       "DEBUG",
     ]) {
-      if (process.env[name]) return fail();
+      if (environment[name]) return fail();
     }
-    const key = process.env.ANTHROPIC_API_KEY;
+    const key = environment.ANTHROPIC_API_KEY;
     if (
       !key?.trim() ||
       /dummy|placeholder|test-synthetic|your[-_ ]?(api[-_ ]?)?key|changeme|replace[-_ ]?me/i.test(
