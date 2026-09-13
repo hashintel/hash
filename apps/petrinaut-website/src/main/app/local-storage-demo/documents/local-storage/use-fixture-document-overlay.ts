@@ -42,6 +42,7 @@ const fixtureDocumentIds = new Set([
 
 const preparedCrewReservationStoredDocument: SDCPNInLocalStorage = {
   id: crewReservationDocumentId,
+  uuid: "dbb1b22c-f595-4c1a-b348-89eec09b79c3",
   title: "Prepared final inspection and dispatch",
   sdcpn: preparedCrewReservationNet,
   lastUpdated: new Date(0).toISOString(),
@@ -80,6 +81,7 @@ const createRootArcTracerDocument = (
     : structuredClone(preparedCrewReservationNet);
   const handle = createJsonDocHandle({
     id: documentId,
+    uuid: crypto.randomUUID(),
     initial: sdcpn,
     capabilities: fixtureCapabilities,
   });

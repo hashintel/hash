@@ -7,6 +7,7 @@ import {
 
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
 import {
+  isConstructionSelected,
   isCrewReservationFixtureSelected,
   localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
@@ -51,7 +52,11 @@ function IndexRoute() {
 export const Route = createFileRoute("/")({
   beforeLoad: ({ search }) => {
     readLocalStorageNets(window.localStorage);
-    if (isCrewReservationFixtureSelected(search)) return;
+    if (
+      isCrewReservationFixtureSelected(search) ||
+      isConstructionSelected(search)
+    )
+      return;
     const net = getInitialLocalStorageNet(window.localStorage);
     throw redirect({
       to: "/local/$uuid",

@@ -15,10 +15,14 @@ import { routeTree } from "../routeTree.gen";
 
 import type { ReactNode } from "react";
 
+vi.mock("@hashintel/petrinaut/ui", () => ({ Petrinaut: () => null }));
 vi.mock("../main/app/local-storage-demo/local-storage-demo-app", () => ({
   LocalStorageDemoApp: ({ initialNetId }: { initialNetId?: string }) => (
     <div data-testid="document">{initialNetId}</div>
   ),
+}));
+vi.mock("../main/app/brunch-demo/brunch-demo-app", () => ({
+  BrunchDemoApp: () => null,
 }));
 vi.mock("../main/app/optimization-demo/browser-optimization-provider", () => ({
   BrowserOptimizationProvider: ({ children }: { children: ReactNode }) =>
@@ -107,3 +111,19 @@ test("the home page creates a persistent document and redirects to its UUID", as
   expect(screen.getByTestId("document").textContent).toBe(uuid);
   expect(localStorage.getItem("petrinaut-sdcpn")).toContain(uuid);
 });
+
+test.each([
+  "brunch-fixture=crew-reservation-v1",
+  "brunch-fixture=crew-reservation-v1&brunchTracer=root-arc",
+  "brunchTracer=construction",
+  "brunchTracer=root-creation",
+])(
+  "keeps the explicit demo route %s without creating a local document",
+  async (query) => {
+    const router = await open(`/?${query}`);
+    await screen.findByTestId("document");
+    expect(router.state.location.pathname).toBe("/");
+    expect(router.state.location.searchStr).toBe(`?${query}`);
+    expect(localStorage.getItem("petrinaut-sdcpn")).toBeNull();
+  },
+);

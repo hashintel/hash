@@ -42,9 +42,11 @@ import {
 } from "./local-storage-demo-search";
 import {
   crewReservationConversationId,
+  crewReservationDocumentId,
   crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
 
+import type { SDCPNInLocalStorage } from "./use-local-storage-sdcpns";
 import type {
   DocumentRecord,
   DocumentRepository,
@@ -1331,6 +1333,14 @@ describe("local storage demo prepared fixture", () => {
     const legacy = editorProps.current?.aiAssistant as PetrinautAiAssistant;
     expect(legacy.conversationId).toBe(crewReservationConversationId);
     expect(legacy.executeMutation).toBeUndefined();
+    const documents = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, SDCPNInLocalStorage>;
+    const tracer = documents[`${crewReservationDocumentId}:root-arc`];
+    const prepared = documents[crewReservationDocumentId];
+    expect(tracer?.uuid).toEqual(expect.any(String));
+    expect(prepared?.uuid).toEqual(expect.any(String));
+    expect(tracer?.uuid).not.toBe(prepared?.uuid);
   });
 
   test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
