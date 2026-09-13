@@ -25,7 +25,7 @@ const columnsStyle = css({
   gridTemplateAreas: '"secondary" "primary" "after"',
   "@container drawer-frame-body (min-width: 960px)": {
     "&[data-primary=true]": {
-      gridTemplateColumns: "minmax(0, 3fr) minmax(652px, 5fr)",
+      gridTemplateColumns: "minmax(0, 3fr) minmax(656px, 5fr)",
       gridTemplateAreas: '"primary secondary" "after after"',
     },
   },

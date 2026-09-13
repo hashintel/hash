@@ -1,8 +1,10 @@
 /**
- * The boxes the frame promises to hold still, read from the DOM: the header
- * and note row heights, every card's title and body height, every grid's row
- * height and the steps table's height. Two renders of one drawer in two
- * states must give the same signature; tests and probes compare them.
+ * The boxes the frame promises to hold still, read from the DOM: the header's
+ * condensed state (its height follows the strip's rows, so the state is what
+ * the DOM pins), the note row's height, every card's title and body height,
+ * every grid's row height and the steps table's height. Two renders of one
+ * drawer in two states must give the same signature; tests and probes
+ * compare them.
  */
 export type FrameLayoutSignature = {
   header: string;
@@ -18,7 +20,9 @@ const styleHeight = (element: Element | null): string =>
 export const frameLayoutSignature = (
   root: ParentNode,
 ): FrameLayoutSignature => ({
-  header: styleHeight(root.querySelector("[data-frame-header]")),
+  header:
+    root.querySelector("[data-frame-header]")?.getAttribute("data-condensed") ??
+    "",
   note: styleHeight(root.querySelector("[data-frame-note]")),
   cards: [...root.querySelectorAll("[data-chart-card]")].map((card) => [
     card.querySelector("span")?.textContent ?? "",

@@ -1,6 +1,6 @@
 ---
 title: The Optimizations tab
-description: "The list of studies, the create drawer, and one study body shown in a drawer or as the whole section: the header line, one summary strip for both variants, the Parameters band, the objective by step, the Surface and the objective's chart for a connected study, and the steps table."
+description: "The list of studies, the create drawer, and one study shown in a drawer or as the whole section through the shared results view: the frame header with its stat columns, the Parameters card, the surface, the objective's timeline and the chart cards, and the steps table."
 sidebar_order: 40
 attachTo: ui.views.editor.optimizations
 ---
@@ -24,71 +24,100 @@ either **Cancelled** (remote) or **Stopped** (connected), because a stopped
 connected study keeps its sampler and can be continued. `paused` is the
 simulation layer's word: a connected study drained on request, its steps in
 flight landed, its sampler kept; the record reads `paused` from the click and
-becomes resumable when the segment's `paused` event lands. The strip appends
-"(reconnecting…)" while a remote stream reconnects.
+becomes resumable when the segment's `paused` event lands. The status pill
+reads **Reconnecting** while a remote stream reconnects (`describeStudyStatus`).
 
-## The study body: drawer and full view
+## One study: drawer and full view
 
-`study-view.tsx` is the one body both surfaces render. `StudyBody` branches
-once, on `record.connected`: a `ConnectedStudyState` renders
-`ConnectedStudyBody`, `null` renders `RemoteStudyBody`; `layout` (`drawer` or
-`full`) only changes the grid the chart cards sit in and the steps' minimum
-height. `view-optimization-drawer.tsx` puts the body in a `Drawer` whose title is one
-line (the name, then `describeStudy`) with `StudyActions` in the footer; `optimization-full-view.tsx` gives it the whole
-section under a top bar with **Back to list** (clears the simulate resource),
-the study's name and `describeStudy`, and the same `StudyActions`.
+Both surfaces render the [shared results view](layer:ui.views.editor.results)
+(`SimulateView/shared/results.tsx`): `ResultsView` draws a `ResultsModel`
+inside the [frame](layer:ui.views.editor.drawer-frame) and reads no record of
+its own. The experiment drawer renders the same view from
+`experimentResultsModel`; what differs between an experiment and a study is
+data and a few slots, not layout. `study-results.tsx` is the study's adapter:
+the pure `studyResultsModel(record, dependencies)` maps an
+`OptimizationRecord` onto the model, and `useStudyResultsModel` supplies the
+dependencies from the optimizations provider (`setOptimizationNavigation`),
+the editor (`setSimulatePresentation`) and the user settings
+(`enableOptimizationSurface`). `view-optimization-drawer.tsx` renders the view
+with `drawer` (a ds `Drawer`, `presentation: "drawer"`);
+`optimization-full-view.tsx` renders it filling the section with **Back to
+list** as `leading` (clears the simulate resource, `presentation: "full"`).
 `optimizations-view.tsx` picks the surface from
 `EditorContext.simulatePresentation` (the navigation state's
 `simulatePresentation`, `drawer` or `full`, which the website's URL carries as
 `present`): `full` with a selected record renders the full view in place of
 the list and the drawer.
 
-`StudyBody` is two bands: `StudySummaryBand`
-(`study-view/study-summary-strip.tsx`), which holds still, and one scrolling
-region beneath it; neither the drawer body nor the full view scrolls on its
-own, so the band never moves the body's scroll offset. The band has no title:
-it is the header continued, not a section. Its first row is `StudyHeader`
-(`study-view/study-header.tsx`):
+The model's header: the one-line title `studyTitle` (the name, then
+`describeStudy`: the scenario, then `Maximize` or `Minimize` and the metric);
+the `headline` slot holding `StudyHeader` (`study-results/study-header.tsx`),
 `describeStudyProgress` (`Step 17 of 30 · best step so far: step 12 (650.5)`
 while running; `Paused at 12 of 30 steps · 1 step finishing · …` with a grey
 **Paused** chip while paused; `Finished`, `Stopped`, `Cancelled` or `Failed
-after …` once settled) and, while running, a verdict chip from `assessConvergence`
-(`study-view/convergence.ts`): best-so-far stagnation over the last
-`convergenceWindow(requestedTrials)` completed steps, `too-early`, `improving`
-or `converging`. `studyPhase` (`study-view/study-phase.ts`) is `live` while
-`isOptimizationActive` and `settled` otherwise; a settled body shows results
-and never a live title.
+after …` once settled) and, while running, a verdict chip from
+`assessConvergence` (`study-results/convergence.ts`): best-so-far stagnation
+over the last `convergenceWindow(requestedTrials)` completed steps,
+`too-early`, `improving` or `converging`; the status pill (`studyStatus`, the
+word from `describeStudyStatus`, sized for `Reconnecting`); the stat columns
+(`studyStats`): **Steps** as `describeStepProgress` (`4 / 30`, then `· 3 runs
+each` and `· 2 at once` when those are above 1), **Steps clear** for a study
+with constraints, and **Best step so far** with the best step's parameters as
+its tooltip (`formatParameters`); the `activity` list for a connected study
+(`activityBatches`, `describeBatch`: `Step 4`, or `Refining population=1850,
+infected_ratio=0.36`), which the view draws as the `N computing` chip;
+`compute` for a connected study only (the `ComputeBackendBadge`); the progress
+bar as `stepsProgressPercent`; and the note row from `studyNote`: the error,
+else the resume note while paused. `studyPhase` (`study-results/study-phase.ts`)
+is `live` while `isOptimizationActive` and `settled` otherwise; a settled
+study shows results and never a live title.
 
-The band continues with the strip: the status with its dot, **Steps** as
-`describeStepProgress` (`4 / 30`, then `· 3 runs each` and `· 2 at once` when
-those are above 1), and **Best step so far** with the best step's parameters
-in a tooltip (`formatParameters`). Beneath it `ComputeActivity` shows the
-steps bar (`stepsBar`) and, for a connected study, the followed step's runs as
-a thinner bar (`followedStepBar`, `Step 4 · 2 / 3 runs`) and the `N computing`
-chip that expands into one row per batch (`describeBatch`: `Step 4`, or
-`Refining population=1850, infected_ratio=0.36`). Only a connected study gets
-the `ComputeBackendBadge` at the right of the header row and the
-`Ran on the CPU: …` fallback note; the record's error text follows for both.
+The model's body, for a connected study: one band, **Parameters**
+(collapsible, with `OptimizationNavigatorStatus` as its trailing line and
+`OptimizationNavigator` as its content, both from
+`study-results/optimization-navigator.tsx`); the surface slot holding
+`NavigatedOptimizationSurface` when the study has two or more numeric axes;
+the metrics grid with one tile, the objective at the point, titled
+`objectiveAtPointTitle` (**Objective at the step in flight** while a live
+study is followed, **Objective at the selected point** otherwise), named after
+the objective metric in its subtitle and fed `connected.selection` (empty when
+the selection carries an error; the navigator's status line carries the
+reason), followed by the study's cards in the same grid: `ObjectiveHistoryCard`,
+`ConstraintSummaryCard` when the study declares constraints, and
+`ParameterImportancePanel`, every card `OBJECTIVE_PLOT_HEIGHT` tall; and the
+`after` slot holding `StudySteps` (`study-results/study-steps.tsx`), the steps
+table in a fixed 320 px box with the best step starred. A paused study is the
+running layout with `tone: "paused"` on the grid and its cards.
 
-`ObjectiveHistoryCard` (`study-view/objective-history-chart.tsx`) is the
-objective by step: `buildObjectiveHistory` (`study-view/objective-history-data.ts`)
+For a remote study the model has no activity, no compute badge, a **Best
+parameters** band (`study-results/best-parameters.tsx`) when `best` is known,
+the experimental **Surface** in a band when the **Optimization surface**
+setting is on and the study has two or more numeric axes
+(`OptimizationSurface`, which walks a grid through `sampleDetachedObjective`;
+[the sweep surface](doc:experiments/sweep-surface) covers it), no timeline
+tile, the objective by step alone in the grid, and the steps once trials
+exist, none starred. Only a study evaluated here receives importances, so a
+remote study has no Sensitivity analysis card rather than an empty one.
+
+`ObjectiveHistoryCard` (`study-results/objective-history-chart.tsx`) is the
+objective by step: `buildObjectiveHistory` (`study-results/objective-history-data.ts`)
 orders the trials by step and threads the best so far through the completed
 ones, `toObjectiveHistoryData` lays them out as uPlot aligned data
-(`[steps, objectives, bestSoFar, infeasibleObjectives]`), and the chart draws
-the objectives as dots and the best as a stepped line. `trialFeasibility`
-reads a point's feasibility off the trial event's `constraints`: `unknown`
-without results, `infeasible` for a draw pruned by a parameter constraint;
-an `infeasible` point moves to the fourth series and draws in
-`infeasibleColor`, and never becomes the best so far.
+(`[steps, objectives, bestSoFar]`), and the chart draws the objectives as
+dots and the best as a stepped line. `trialFeasibility` reads a point's
+feasibility off the trial event's `constraints`: `unknown` without results,
+`infeasible` for a draw pruned by a parameter constraint. A pruned step has
+no objective, so it draws nothing, and an `infeasible` step never becomes the
+best so far.
 
 A study with constraints reports them through
 `react/optimizations/constraint-rates.ts`, derived per render from
 `record.trials`: `stepVerdict` (clear, limited, infeasible), `bindingStepRate`
 (the step's lowest pass rate) and `studyConstraintRates` (steps clear over
 steps simulated, per constraint too). `ConstraintSummaryCard`
-(`study-view/constraint-summary.tsx`) is the fourth chart card of a connected
-body, `StudySummaryBand` gains a **Steps clear** stat, and `StepsTable` a
-**Runs passed** column with an `infeasible` state tone. The channel
+(`study-results/constraint-summary.tsx`) follows the objective by step in a
+connected study's grid, `studyStats` gains a **Steps clear** column, and
+`StepsTable` a **Runs passed** column with an `infeasible` state tone. The channel
 (`react/optimizations/channel/create-optimization-channel/trial-constraints.ts`)
 prunes an infeasible draw before any simulation and runs state constraints as
 `auxiliaryMetrics` on the detached objective request, 0/1 indicators
@@ -102,46 +131,26 @@ needs numpy alone) and `pyodide_entry.py` attaches them to the summary and, at
 browser capability copies the block onto the `trial` and `complete` log events
 as `importances`. `OptimizationsProvider` keeps the latest on
 `record.importance`. `ParameterImportancePanel`
-(`study-view/parameter-importance-panel.tsx`), the **Sensitivity analysis**
+(`study-results/parameter-importance-panel.tsx`), the **Sensitivity analysis**
 card, renders it from the pure
 `importance-view.ts`: rows sorted by share, a signed Pearson correlation per
 parameter computed from `record.trials`, and the fade rule (`tone="muted"`,
 bars at a quarter opacity that no longer set the scale) below
 `importanceFloor(requestedTrials)`. A remote study has no panel.
 
-The remote body continues with a collapsible **Best parameters** grid, the
-objective by step, the experimental **Surface** section when the
-**Optimization surface** setting is on and the study has two or more numeric
-axes (`OptimizationSurface`, which walks a grid through
-`sampleDetachedObjective`; [the sweep surface](doc:experiments/sweep-surface)
-covers it), and a **Steps** section once trials exist.
+The Parameters card (`FrameCard`, the chart card's chrome
+(`SimulateView/shared/chart-card.tsx`: `ChartCard`, `ChartCardMenu`,
+`ChartCardGrid`, `chartCardHeight`) with the parameters held fixed folded
+behind its footer button) carries the state line,
+`describeSelection` (`Following step 4`,
+`12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
+with the **Follow steps** switch while the study runs; the navigator is a
+slider per numeric axis and a toggle per boolean parameter. The controls are
+disabled while a running study is followed; every change goes to
+`setOptimizationNavigation` as a patch.
 
-The connected body is laid out so the strip, the controls and the plots stay
-in view while the study streams:
-
-- `NavigatorBand` (`study-view/navigator-band.tsx`): the
-  **Parameters** title with its help tooltip, `OptimizationNavigatorStatus`,
-  the state line from `describeSelection` (`Following step 4`,
-  `12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
-  with the **Follow steps** switch while the study runs, and
-  `OptimizationNavigator`, a slider per numeric axis and a toggle per boolean parameter in a grid of
-  400 px columns. The controls are disabled while a running study is
-  followed; every change goes to `setOptimizationNavigation` as a patch.
-- A grid of chart cards: `NavigatedOptimizationSurface` when the study has
-  two or more numeric axes, `OptimizationMetrics`, one distribution timeline
-  of the objective fed `connected.selection` (the followed step, or the
-  refined point), which shows the empty shell when the selection carries an
-  error, and `ObjectiveHistoryCard`. The timeline's title is
-  `objectiveAtPointTitle`: **Objective at the step in flight** while a live
-  study is followed, **Objective at the selected point** otherwise. The
-  drawer's grid wraps to two rows and gives a lone last card the whole row;
-  the full view's grid holds three in one row. `ConstraintSummaryCard` follows
-  when the study declares constraints, and `ParameterImportancePanel` is
-  always last.
-- `StepsTable` filling the remaining height, the best step starred and tinted
-  (`bestTrial`); the remote body passes `bestTrial={null}`.
-
-`StudyActions` offers the switch to the other presentation (**Open full view**
+`StudyActions` (`study-results/study-actions.tsx`), the model's footer, offers
+the switch to the other presentation (**Open full view**
 in the drawer, **Show in drawer** in the full view, through
 `setSimulatePresentation`), **Pause** (primary) and **Stop** for an active
 connected study or **Cancel** for a remote one, **Remove** and **Run at the
@@ -154,8 +163,8 @@ in the drawer **Close**. A paused study gets `PausedStudyActions` instead:
 enabled once `connected.resumable`), **Run at the best configuration**, and a
 `ChartCardMenu` ellipsis labelled **More actions** holding **Remove**, so
 Remove never sits beside the primary actions; no Restart. The paused body is
-the running body with `tone="paused"` on every chart card and a resume note
-in the summary band. Settling on a pause, a stop or a failure never starts the
+the running body with `tone="paused"` on every chart card and the resume note
+in the frame's note row. Settling on a pause, a stop or a failure never starts the
 point refinement; only a completed study refines where it parks.
 
 ## The steps table
@@ -165,7 +174,7 @@ trial number plus one), the parameters (`formatParameters`), the objective
 (`formatNumber`, `—` for a pruned or failed step) and a state mark: a green
 check, an orange filter or a red cross, labelled Complete, Pruned or Failed.
 It shows the latest `DISPLAYED_STEPS` (200) with a hint naming the total; the
-strip keeps the counts. A step a Stop cut short has no row: the study tells it
+header's stat columns keep the counts. A step a Stop cut short has no row: the study tells it
 failed without an event.
 
 ## The connected surface

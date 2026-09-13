@@ -4,23 +4,17 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  frameLayoutSignature,
-} from "../shared/drawer-frame";
+import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
   scrollFrameBody,
 } from "../shared/drawer-frame/frame-test-helpers";
+import { describeExperiment } from "./experiment-results";
 import {
   makeExperiment,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
-import {
-  describeExperiment,
-  ViewExperimentDrawer,
-} from "./view-experiment-drawer";
+import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { ReactNode } from "react";
@@ -128,9 +122,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     expect(
-      screen.getByText(
-        /^SIR transmission sweep · Seasonal Flu · 100 runs · dt 1$/u,
-      ),
+      screen.getByText(/^SIR transmission sweep · Seasonal Flu · 100 runs$/u),
     ).toBeTruthy();
     expect(screen.getByText("Running")).toBeTruthy();
     expect(
@@ -151,46 +143,10 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBeTruthy();
   });
 
-  it("opens the next experiment's Parameters unfolded when the drawer swaps records in place", () => {
-    const view = renderDrawer(sweep);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Collapse Parameters" }),
-    );
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("true");
-
-    view.rerender(
-      <ViewExperimentDrawer
-        open
-        onClose={() => {}}
-        experiment={{ ...sweep, id: "experiment-5" }}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: "Collapse Parameters" }),
-    ).toBeTruthy();
-    expect(
-      document
-        .querySelector("[data-frame-band]")
-        ?.getAttribute("data-collapsed"),
-    ).toBe("false");
-    expect(screen.queryByText("Summary")).toBeNull();
-    expect(document.querySelector("[data-frame-progress]")).toBeTruthy();
-    expect(screen.getByText("Parameters")).toBeTruthy();
-    expect(screen.getByTestId("sweep-surface")).toBeTruthy();
-  });
-
   it("condenses the header once the body scrolls, with nothing else involved", () => {
     renderDrawer(sweep);
 
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
     expect(frameHeader().dataset.condensed).toBe("true");
   });
 
@@ -204,7 +160,7 @@ describe("ViewExperimentDrawer in the frame", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(signatures[0]!.header).toBe("false");
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.cards.length).toBeGreaterThan(1);
     for (const signature of signatures.slice(1)) {
