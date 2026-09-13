@@ -797,42 +797,6 @@ export const CreateOptimizationDrawer = ({
     );
   };
 
-  // The objective is an expression metric whichever way it is authored, which
-  // the GPU backend cannot compute, so the switch stays disabled with that
-  // reason; the net analysis still runs so the reason names the first
-  // blocker. The gate reads the metric's kind, not its code, so the custom
-  // objective counts before any code is typed.
-  const objectiveMetricForGpu =
-    metricSource === "saved"
-      ? selectedSavedMetric
-      : { id: customMetricId, name: CUSTOM_OBJECTIVE_METRIC_NAME, code: "" };
-  const objectiveMetricSpecs: ExperimentMetricSpecInput[] | null =
-    objectiveMetricForGpu
-      ? [
-          {
-            kind: "expression",
-            id: objectiveMetricForGpu.id,
-            label: objectiveMetricForGpu.name,
-            code: objectiveMetricForGpu.code,
-            sampleRuns: "all",
-            runOutput: { type: "distribution" },
-          },
-        ]
-      : null;
-  const webGpuAvailable = isWebGpuAvailable();
-  const gpu = useGpuAvailability({
-    enabled: open && backendSelectable && webGpuEnabled && webGpuAvailable,
-    sdcpn: petriNetDefinition,
-    extensions,
-    metricSpecs: objectiveMetricSpecs,
-  });
-  // Derived rather than stored, so a net edited into ineligibility after the
-  // switch was flipped neither shows as on nor submits a GPU study.
-  const gpuSelected = gpuRequested && gpu.available;
-  const computeBackend: ExperimentComputeBackend = gpuSelected
-    ? "webgpu"
-    : "cpu";
-
   const resetConfigurationState = (scenario?: Scenario) => {
     setName("Optimization");
     setDrafts(scenario ? createParameterDrafts(scenario) : {});
@@ -863,6 +827,7 @@ export const CreateOptimizationDrawer = ({
   const submitOptimization = async (
     metric: Metric,
     resetMetricForm: () => void,
+    backend: ExperimentComputeBackend,
     metricAlreadyValidated = false,
   ) => {
     const validationError =
@@ -1025,7 +990,10 @@ export const CreateOptimizationDrawer = ({
             constraints: manifestConstraints,
             constraintPolicy,
           });
-      await createOptimization(input, { computeBackend, parallelism });
+      await createOptimization(input, {
+        computeBackend: backend,
+        parallelism,
+      });
       resetState();
       resetMetricForm();
     } catch (submitError) {
@@ -1048,7 +1016,14 @@ export const CreateOptimizationDrawer = ({
         setError(parsedMetric.error.issues[0]?.message ?? "Invalid metric");
         return;
       }
-      await submitOptimization(parsedMetric.data, context.reset, true);
+      // Run passes the backend through `handleSubmit(meta)`: it is derived
+      // below from this form's own code, so the callback cannot close over it.
+      await submitOptimization(
+        parsedMetric.data,
+        context.reset,
+        context.meta.computeBackend ?? "cpu",
+        true,
+      );
     },
     {
       validateOnSubmit: async (value) => {
@@ -1074,6 +1049,67 @@ export const CreateOptimizationDrawer = ({
     customMetricForm.store,
     (state) => state.values,
   );
+
+  // The objective is an expression metric whichever way it is authored; the
+  // compilation report decides per objective whether it translates to the
+  // shader. A custom objective without code has no artifact and stays on the
+  // CPU until it compiles.
+  const objectiveMetricForGpu =
+    metricSource === "saved"
+      ? selectedSavedMetric
+      : buildMetricFromFormState(customMetricValues, customMetricId);
+  // Each state constraint runs as a 0/1 indicator metric aggregated with
+  // `min` over a run's frames (`stateConstraintMetrics`), which the GPU gate
+  // refuses before it reads anything else about the metric. The gate sees a
+  // place count carrying that aggregation under the row's name — the
+  // indicator itself exists only once the constraint's HIR is lowered at
+  // submission — so the switch is refused with the run-time gate's sentence,
+  // under the row's name. Empty rows are skipped at submission and here.
+  const firstPlaceId = petriNetDefinition.places[0]?.id;
+  const stateConstraintGateSpecs: ExperimentMetricSpecInput[] =
+    firstPlaceId === undefined
+      ? []
+      : stateConstraintDrafts.flatMap((draft, index) =>
+          draft.code.trim() === ""
+            ? []
+            : [
+                {
+                  kind: "placeTokenCountMean" as const,
+                  id: draft.id,
+                  label: describeConstraint("state", index),
+                  placeId: firstPlaceId,
+                  aggregateTime: "min" as const,
+                },
+              ],
+        );
+  const gateMetricSpecs: ExperimentMetricSpecInput[] | null =
+    objectiveMetricForGpu
+      ? [
+          {
+            kind: "expression",
+            id: objectiveMetricForGpu.id,
+            label: objectiveMetricForGpu.name,
+            code: objectiveMetricForGpu.code,
+            sampleRuns: "all",
+            runOutput: { type: "distribution" },
+          },
+          ...stateConstraintGateSpecs,
+        ]
+      : null;
+  const webGpuAvailable = isWebGpuAvailable();
+  const gpu = useGpuAvailability({
+    enabled: open && backendSelectable && webGpuEnabled && webGpuAvailable,
+    sdcpn: petriNetDefinition,
+    extensions,
+    metricSpecs: gateMetricSpecs,
+  });
+  // Derived rather than stored, so a net edited into ineligibility after the
+  // switch was flipped neither shows as on nor submits a GPU study.
+  const gpuSelected = gpuRequested && gpu.available;
+  const computeBackend: ExperimentComputeBackend = gpuSelected
+    ? "webgpu"
+    : "cpu";
+
   const customMetricErrors = useStore(
     customMetricForm.store,
     (state) => state.errors,
@@ -1180,10 +1216,12 @@ export const CreateOptimizationDrawer = ({
 
   const handleSubmit = () => {
     if (metricSource === "custom") {
-      void customMetricForm.handleSubmit();
+      void customMetricForm.handleSubmit({ computeBackend });
     } else if (selectedSavedMetric) {
-      void submitOptimization(selectedSavedMetric, () =>
-        customMetricForm.reset(),
+      void submitOptimization(
+        selectedSavedMetric,
+        () => customMetricForm.reset(),
+        computeBackend,
       );
     }
   };

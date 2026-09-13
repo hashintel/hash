@@ -235,6 +235,7 @@ describe("createGpuBackendCache", () => {
 describe("gpuBackendSetupKey", () => {
   const base = {
     sdcpn: { id: "net" },
+    artifactFingerprint: "fingerprint-a",
     parameterValues: { rate: "1.5", size: "10" },
     runParameterIds: ["rate"],
     metricIds: ["m"],
@@ -263,6 +264,13 @@ describe("gpuBackendSetupKey", () => {
     );
     expect(gpuBackendSetupKey(base)).not.toBe(
       gpuBackendSetupKey({ ...base, metricIds: ["m", "n"] }),
+    );
+  });
+
+  it("keys on the artifact fingerprint", () => {
+    expect(gpuBackendSetupKey(base)).toBe(gpuBackendSetupKey({ ...base }));
+    expect(gpuBackendSetupKey(base)).not.toBe(
+      gpuBackendSetupKey({ ...base, artifactFingerprint: "fingerprint-b" }),
     );
   });
 });

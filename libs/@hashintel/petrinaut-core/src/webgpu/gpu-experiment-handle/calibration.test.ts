@@ -5,11 +5,13 @@ import {
   probeDerivedCapacities,
   probeRunCount,
   PROBE_POLICY,
+  probeWindows,
   rememberCalibration,
   RUN_POLICY,
   runUntilCalibrated,
   slabsFromProbe,
 } from "./calibration";
+import { metricFailure } from "./metric-failure";
 
 import type { GpuCalibration } from "../backend";
 import type { CompiledNetShader } from "../compile-net-shader";
@@ -90,6 +92,7 @@ const outcome = (
   derivedPlaceMaxes: [],
   dispatchMs: 0,
   metricRanges: [{ min: 3, max: 9, below: 0, above: 0 }],
+  metricErrors: [],
   ...overrides,
 });
 
@@ -116,7 +119,7 @@ describe("runUntilCalibrated", () => {
     const run = await runUntilCalibrated({
       session: current,
       runsFor: () => 1000,
-      windows: [{ lo: 0, stride: 1 }],
+      windows: [{ lo: 0, stride: 1, integer: true }],
       execute,
       policy: RUN_POLICY,
       stopped: () => false,
@@ -200,7 +203,7 @@ describe("runUntilCalibrated", () => {
     const run = await runUntilCalibrated({
       session: current,
       runsFor: () => 1000,
-      windows: [{ lo: 0, stride: 2 }],
+      windows: [{ lo: 0, stride: 2, integer: true }],
       execute,
       policy: RUN_POLICY,
       stopped: () => false,
@@ -209,8 +212,46 @@ describe("runUntilCalibrated", () => {
     // 64 counts observed, margin max(2, ceil(64 / 64)) = 2 → [98, 165] over
     // 64 bins is a stride of 2.
     expect(attempts).toHaveLength(2);
-    expect(attempts[1]?.windows).toEqual([{ lo: 98, stride: 2 }]);
-    expect(run.ok && run.windows).toEqual([{ lo: 98, stride: 2 }]);
+    expect(attempts[1]?.windows).toEqual([
+      { lo: 98, stride: 2, integer: true },
+    ]);
+    expect(run.ok && run.windows).toEqual([
+      { lo: 98, stride: 2, integer: true },
+    ]);
+  });
+
+  it("hands back an attempt a non-finite sample halted without growing or replanning", async () => {
+    // The same seeds halt the same run whatever the slab or the window, so
+    // another attempt could only repeat the failure.
+    const current = session({ p: 10 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          overflowRuns: 2,
+          metricErrors: [1],
+          metricRanges: [{ min: 100, max: 163, below: 0, above: 5 }],
+        }),
+      },
+      { ok: true, result: outcome() },
+    ]);
+
+    const run = await runUntilCalibrated({
+      session: current,
+      runsFor: () => 100,
+      windows: [{ lo: 0, stride: 2, integer: true }],
+      execute,
+      policy: RUN_POLICY,
+      stopped: () => false,
+    });
+
+    expect(run).toMatchObject({
+      ok: true,
+      result: { overflowRuns: 2, metricErrors: [1] },
+      windows: [{ lo: 0, stride: 2, integer: true }],
+    });
+    expect(attempts).toHaveLength(1);
+    expect(current.capacities.get("p")).toBe(10);
   });
 
   it("stops at a cancelled or abandoned attempt without retrying", async () => {
@@ -320,7 +361,7 @@ describe("probeDerivedCapacities", () => {
     const probed = await probeDerivedCapacities({
       session: current,
       runCount: 10_000,
-      windowInputs: [{ initialCount: 30, countCeiling: null }],
+      windowInputs: [{ integer: true, ceiling: null }],
       placeCounts: [3],
       execute,
     });
@@ -331,7 +372,112 @@ describe("probeDerivedCapacities", () => {
     expect(current.capacities).toEqual(new Map([["p", 19]]));
     expect(current.shader.stateWordsPerRun).toBe(4 + 19 * 2);
     // 21 counts observed, margin ceil(21 × 0.25) = 6 → [14, 46] over 64 bins.
-    expect(probed).toEqual({ ok: true, windows: [{ lo: 14, stride: 1 }] });
+    expect(probed).toEqual({
+      ok: true,
+      windows: [{ lo: 14, stride: 1, integer: true }],
+      metricErrors: [],
+      probeRuns: 128,
+    });
+  });
+
+  it("hands the probe's halted-metric counts back over the runs it executed, without sizing or recompiling", async () => {
+    const current = session({ p: 64 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
+          metricErrors: [2],
+        }),
+      },
+    ]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    expect(probed).toMatchObject({
+      ok: true,
+      metricErrors: [2],
+      probeRuns: attempts[0]!.runCount,
+    });
+    // The handle reports the halt without running, so the probed slabs are
+    // never sized or compiled at.
+    expect(current.capacities).toEqual(new Map([["p", 64]]));
+    expect(current.shader.stateWordsPerRun).toBe(4 + 64 * 2);
+  });
+
+  it("hands the halted-metric counts back when the probe also overflowed, instead of refusing for the CPU", async () => {
+    const current = session({ p: 64 });
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          overflowRuns: 3,
+          metricErrors: [2],
+          derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }],
+        }),
+      },
+      { ok: true, result: outcome({ overflowRuns: 3 }) },
+    ]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    // The CPU would fail on the same sample, so the halt is what the handle
+    // reports, named after the metric.
+    expect(attempts).toHaveLength(1);
+    expect(probed).toMatchObject({
+      ok: true,
+      metricErrors: [2],
+      probeRuns: attempts[0]!.runCount,
+    });
+    expect(
+      probed.ok &&
+        metricFailure({
+          metricIds: current.shader.metricIds,
+          metricSpecs: [{ id: "m0", label: "Infected" }],
+          metricErrors: probed.metricErrors,
+          runCount: probed.probeRuns,
+        }),
+    ).toBe(
+      `Metric "Infected" returned a non-finite value in 2 of ${attempts[0]!.runCount} runs, expected a finite number.`,
+    );
+  });
+
+  it("hands the halted-metric counts back ahead of an arena refusal", async () => {
+    const current = session({ p: 64 });
+    const heavyTail = outcome({
+      derivedPlaceMaxes: [{ max: 20_000, meanRunMax: 10 }],
+      metricErrors: [1],
+    });
+    expect(slabsFromProbe(current, heavyTail, [3])).toMatchObject({
+      ok: false,
+      reason: /outlier runs/,
+    });
+    const { execute } = scripted([{ ok: true, result: heavyTail }]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ integer: true, ceiling: null }],
+      placeCounts: [3],
+      execute,
+    });
+
+    // The CPU would fail on the same sample, so the halt is what the handle
+    // reports — not the arena case that would send the experiment there.
+    expect(probed).toMatchObject({ ok: true, metricErrors: [1] });
+    expect(current.capacities).toEqual(new Map([["p", 64]]));
   });
 
   it("hands back an abandoned probe without recompiling", async () => {
@@ -346,7 +492,7 @@ describe("probeDerivedCapacities", () => {
     const probed = await probeDerivedCapacities({
       session: current,
       runCount: 10_000,
-      windowInputs: [{ initialCount: 30, countCeiling: null }],
+      windowInputs: [{ integer: true, ceiling: null }],
       placeCounts: [3],
       execute,
       stopped: () => true,
@@ -357,31 +503,67 @@ describe("probeDerivedCapacities", () => {
   });
 });
 
+describe("probeWindows", () => {
+  it("runs the prefix it is given and replans the blind windows from what it saw", async () => {
+    const current = session({});
+    const { execute, attempts } = scripted([
+      {
+        ok: true,
+        result: outcome({
+          metricRanges: [{ min: 20, max: 40, below: 0, above: 60 }],
+        }),
+      },
+    ]);
+
+    const probed = await probeWindows({
+      session: current,
+      windows: [{ lo: 0, stride: 1, integer: true }],
+      execute,
+      runCount: 5,
+    });
+
+    // The caller sizes the prefix (`probeRunCount`), so an experiment of five
+    // runs probes five, never a preview tile's worth it does not have.
+    expect(attempts).toEqual([
+      expect.objectContaining({ runCount: 5, preview: false }),
+    ]);
+    // 21 counts observed, margin ceil(21 × 0.25) = 6 → [14, 46] over 64 bins.
+    expect(probed).toMatchObject({
+      ok: true,
+      windows: [{ lo: 14, stride: 1, integer: true }],
+    });
+  });
+});
+
 describe("rememberCalibration", () => {
   const key = "marking|m0";
 
   it("lets the latest writer win when no slab shrinks", () => {
     const calibrations = new Map<string, GpuCalibration>();
     rememberCalibration(calibrations, key, session({ p: 10 }), [
-      { lo: 0, stride: 1 },
+      { lo: 0, stride: 1, integer: true },
     ]);
     rememberCalibration(calibrations, key, session({ p: 10 }), [
-      { lo: 5, stride: 2 },
+      { lo: 5, stride: 2, integer: true },
     ]);
 
-    expect(calibrations.get(key)?.windows).toEqual([{ lo: 5, stride: 2 }]);
+    expect(calibrations.get(key)?.windows).toEqual([
+      { lo: 5, stride: 2, integer: true },
+    ]);
   });
 
   it("keeps an entry whose slabs are larger than the late writer's", () => {
     const calibrations = new Map<string, GpuCalibration>();
     rememberCalibration(calibrations, key, session({ p: 40 }), [
-      { lo: 0, stride: 1 },
+      { lo: 0, stride: 1, integer: true },
     ]);
     rememberCalibration(calibrations, key, session({ p: 10 }), [
-      { lo: 5, stride: 2 },
+      { lo: 5, stride: 2, integer: true },
     ]);
 
     expect(calibrations.get(key)?.capacities.get("p")).toBe(40);
-    expect(calibrations.get(key)?.windows).toEqual([{ lo: 0, stride: 1 }]);
+    expect(calibrations.get(key)?.windows).toEqual([
+      { lo: 0, stride: 1, integer: true },
+    ]);
   });
 });

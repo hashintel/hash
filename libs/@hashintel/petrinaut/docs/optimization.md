@@ -41,12 +41,13 @@ behind the scenes.
    steadier signal on a stochastic model, at the cost of more simulations per
    step. With the in-browser optimizer and **WebGPU** on in the
    [settings dialog](visual-settings.md#webgpu-experimental), a **Backend**
-   switch appears next to these fields. For an optimization it stays greyed
-   out, with the reason on hover: the objective is an expression metric, which
-   the GPU backend cannot compute (see
-   [Compute backend](experiments.md#compute-backend-experimental)), so the
-   steps run on the CPU. The in-browser optimizer also offers **Parallel
-   steps** (1 to 4, default `1`): how many steps it evaluates at once. The
+   switch appears next to these fields. For an optimization it is available
+   when the objective compiles to the GPU (see
+   [Compute backend](experiments.md#compute-backend-experimental)); otherwise
+   it is greyed out with the reason on hover. A state constraint greys it out
+   too, because constraints are checked over time, which the GPU does not do
+   yet. The in-browser optimizer also offers **Parallel steps** (1 to 4,
+   default `1`): how many steps it evaluates at once. The
    **Seed** field starts at a fresh random value each time the form opens; it
    seeds both the optimizer's proposals and the simulations' random draws, so
    keep a seed to reproduce a study and change it to explore a different set
@@ -217,9 +218,8 @@ in view on a laptop screen while the study streams:
 
 - The header's strip also shows the parallel steps when above one, an
   **Activity** column with the **N computing** chip, and a **Compute** column
-  saying where the steps run. The badge reads **CPU**, because the GPU backend
-  cannot compute an expression objective (see step 4 of
-  [Creating an optimization](#creating-an-optimization)); hover it for the
+  saying where the steps run. The badge reads **GPU** or **CPU** for where
+  the steps ran; when the GPU was asked for and declined, hover it for the
   reason. The chip counts the batches running right now (the steps in flight
   and the picked point's refinement), **0 computing** when nothing does, and
   opens a compact list with one row per batch and its own progress.

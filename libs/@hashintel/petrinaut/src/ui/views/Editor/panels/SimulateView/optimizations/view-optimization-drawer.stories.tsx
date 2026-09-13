@@ -136,7 +136,7 @@ export const ConnectedAfterGpuFallback: Story = {
   render: () => (
     <FakeConnectedStudy
       running={false}
-      fallbackReason='metric "Profit" is an expression metric, which the GPU backend cannot compute'
+      fallbackReason='Metric "Profit" cannot be translated to WGSL: `.concat` joins the tokens of two places, which the shader reads one place at a time.'
     />
   ),
 };

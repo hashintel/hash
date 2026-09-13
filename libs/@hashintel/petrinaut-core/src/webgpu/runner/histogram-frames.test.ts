@@ -23,8 +23,8 @@ describe("decodeHistogramFrames", () => {
       metricIds: ["a", "b"],
       histogramBins: 4,
       windows: [
-        { lo: 0, stride: 1 },
-        { lo: 10, stride: 1 },
+        { lo: 0, stride: 1, integer: true },
+        { lo: 10, stride: 1, integer: true },
       ],
     });
 
@@ -66,6 +66,27 @@ describe("decodeHistogramFrames", () => {
     ]);
   });
 
+  it("decodes frame 0 from row 0, the initial marking sampled on the device", () => {
+    const frames = decodeHistogramFrames({
+      data: Uint32Array.from([0, 0, 6, 0]),
+      firstFrame: 0,
+      frameCount: 1,
+      metricIds: ["a"],
+      histogramBins: 4,
+      windows: [{ lo: 0, stride: 1, integer: true }],
+    });
+
+    expect(frames).toEqual([
+      {
+        frameNumber: 0,
+        metricId: "a",
+        bins: [[2, 6]],
+        binExtent: { below: 0.5, above: 0.5 },
+        sampleCount: 6,
+      },
+    ]);
+  });
+
   it("labels a wide bin by its middle count and reports its reach either side", () => {
     // Stride 4 over lo 8: bin 0 holds counts 8..11 and is labelled 9, reaching
     // 1.5 below (down to 7.5) and 2.5 above (up to 11.5).
@@ -75,11 +96,32 @@ describe("decodeHistogramFrames", () => {
       frameCount: 1,
       metricIds: ["a"],
       histogramBins: 4,
-      windows: [{ lo: 8, stride: 4 }],
+      windows: [{ lo: 8, stride: 4, integer: true }],
     });
 
     expect(frame?.bins).toEqual([[9, 5]]);
     expect(frame?.binExtent).toEqual({ below: 1.5, above: 2.5 });
+  });
+
+  it("labels a real window's bins by their centres, reaching half a stride either side", () => {
+    // Real samples have no integer to label a bin by, so the centre stands
+    // for the bin and the extent is symmetric.
+    const stride = Math.fround(1.25 / 4);
+    const [frame] = decodeHistogramFrames({
+      data: Uint32Array.from([0, 3, 0, 2]),
+      firstFrame: 0,
+      frameCount: 1,
+      metricIds: ["a"],
+      histogramBins: 4,
+      windows: [{ lo: 0, stride, integer: false }],
+    });
+
+    expect(frame?.bins).toEqual([
+      [1.5 * stride, 3],
+      [3.5 * stride, 2],
+    ]);
+    expect(frame?.binExtent).toEqual({ below: stride / 2, above: stride / 2 });
+    expect(frame?.sampleCount).toBe(5);
   });
 
   it("defaults a missing window to the zero-anchored exact layout", () => {

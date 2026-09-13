@@ -19,6 +19,8 @@ import {
   getConstraintDocumentUri,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import { dronePatrol } from "@hashintel/petrinaut-core/examples";
+import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
@@ -331,11 +333,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+/**
+ * A language client that compiles for real, so the GPU analysis sees the same
+ * HIR the app would: a stub returning empty artifacts would read every
+ * objective as uncompiled, which the analysis reports as unavailable for the
+ * wrong reason.
+ */
 function makeSuccessfulLanguageClient(): LanguageClientContextValue {
-  type HirArtifacts = Awaited<
-    ReturnType<LanguageClientContextValue["requestHirArtifacts"]>
-  >["artifacts"];
-
   return {
     diagnosticsByUri: new Map(),
     totalDiagnosticsCount: 0,
@@ -378,20 +382,8 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
       }),
     ),
     requestFormatExpression: vi.fn(() => Promise.resolve(null)),
-    requestHirArtifacts: vi.fn((sdcpn: SDCPN) =>
-      Promise.resolve({
-        artifacts: {
-          version: 4 as const,
-          fingerprint: "0000000000000000",
-          dynamics: {},
-          lambdas: {},
-          kernels: {},
-          metrics: Object.fromEntries(
-            (sdcpn.metrics ?? []).map((metric) => [metric.id, {}]),
-          ) as HirArtifacts["metrics"],
-        },
-        failures: [],
-      }),
+    requestHirArtifacts: vi.fn((sdcpn: SDCPN, extensions, options) =>
+      Promise.resolve(compileHirArtifacts(sdcpn, extensions, options)),
     ),
     initializeScenarioSession: vi.fn(),
     updateScenarioSession: vi.fn(),
@@ -1292,13 +1284,57 @@ describe("CreateOptimizationDrawer", () => {
   });
 });
 
+/**
+ * Drone Patrol with two model metrics: one the shader translates and one over
+ * `.concat`, which it refuses. Its two typed places share the Drone colour.
+ */
+const dronePatrolSdcpnContextValue: SDCPNContextValue = {
+  ...sirSdcpnContextValue,
+  petriNetId: "drone-patrol-test-net",
+  title: dronePatrol.title,
+  petriNetDefinition: {
+    ...dronePatrol.petriNetDefinition,
+    metrics: [
+      {
+        id: "metric__fleet_size",
+        name: "Fleet size",
+        code: "return state.places.Hangar.tokens.concat(state.places.Airborne.tokens).length;",
+      },
+      {
+        id: "metric__airborne_count",
+        name: "Airborne drones",
+        code: "return state.places.Airborne.count;",
+      },
+    ],
+  },
+};
+
 describe("CreateOptimizationDrawer backend choice", () => {
-  const openWithWebGpu = (props: TestProviderProps) => {
+  const openWithWebGpu = ({
+    scenarioId = "scenario__seasonal_flu",
+    ...props
+  }: TestProviderProps & { scenarioId?: string }) => {
     // `isWebGpuAvailable()` only reads `navigator.gpu`, so a bare object is
     // enough — and spreading the real Navigator would drop its prototype.
     vi.stubGlobal("navigator", { gpu: {} });
-    openConfiguration(props);
+    render(<TestProviders {...props} />);
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a scenario" }),
+      { target: { value: scenarioId } },
+    );
+    expect(screen.getByText("Parameters")).toBeTruthy();
   };
+
+  /** `pending` until the analysis lands, then `available` or `unavailable`. */
+  const backendState = (): string | null =>
+    document
+      .querySelector("[data-backend-state]")
+      ?.getAttribute("data-backend-state") ?? null;
+
+  const backendSwitch = (): HTMLInputElement =>
+    document.querySelector<HTMLInputElement>(
+      "[data-backend-state] input[type='checkbox']",
+    )!;
 
   it("offers no backend cell while WebGPU is off in settings", () => {
     openWithWebGpu({ connectedSource: true, webGpuEnabled: false });
@@ -1313,14 +1349,23 @@ describe("CreateOptimizationDrawer backend choice", () => {
     expect(document.querySelector("[data-backend-state]")).toBeNull();
   });
 
-  it("offers the cell for a connected optimizer and rules the GPU out for the expression objective", async () => {
+  it("offers the GPU for a translatable expression objective and submits it when switched on", async () => {
+    const createOptimization = vi.fn(
+      async (
+        _input: PetrinautOptimizationInput,
+        _options?: CreateOptimizationOptions,
+      ) => "optimization-gpu",
+    );
     openWithWebGpu({
       connectedSource: true,
       webGpuEnabled: true,
       languageClient: makeSuccessfulLanguageClient(),
+      createOptimization,
     });
 
     expect(screen.getByText("Backend")).toBeTruthy();
+    // SIR's "Infected Fraction" reads three counts, a sum and a conditional
+    // division: every construct the shader translates.
     const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
     fireEvent.change(
       screen.getByRole("combobox", { name: "Select a metric" }),
@@ -1330,17 +1375,130 @@ describe("CreateOptimizationDrawer backend choice", () => {
     );
 
     await waitFor(() => {
-      expect(
-        document
-          .querySelector("[data-backend-state]")
-          ?.getAttribute("data-backend-state"),
-      ).toBe("unavailable");
+      expect(backendState()).toBe("available");
     });
-    expect(
-      document.querySelector<HTMLInputElement>(
-        "[data-backend-state] input[type='checkbox']",
-      )!.disabled,
-    ).toBe(true);
+    expect(backendSwitch().disabled).toBe(false);
+
+    fireEvent.click(backendSwitch());
+    await waitFor(() => {
+      expect(backendSwitch().checked).toBe(true);
+    });
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createOptimization.mock.calls[0]![1]).toEqual({
+      computeBackend: "webgpu",
+      parallelism: 1,
+    });
+  });
+
+  it("rules the GPU out for a `.concat` objective while offering it for a translatable one on the same net", async () => {
+    // Drone Patrol has two typed places sharing a colour, so `.concat` over
+    // their tokens typechecks on the CPU; the shader reads one place at a time
+    // and refuses it. The count metric on the same net proves the refusal is
+    // the metric's, not the net's.
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient: makeSuccessfulLanguageClient(),
+      sdcpnContextValue: dronePatrolSdcpnContextValue,
+      scenarioId: "scenario__standard_patrol",
+    });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}metric__airborne_count` },
+      },
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}metric__fleet_size` },
+      },
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("unavailable");
+    });
+    expect(backendSwitch().disabled).toBe(true);
+  });
+
+  it("keeps the GPU unavailable for a custom objective until it has code", async () => {
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient: makeSuccessfulLanguageClient(),
+    });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      { target: { value: CUSTOM_METRIC_VALUE } },
+    );
+
+    // An empty body compiles to no artifact, so there is nothing to translate.
+    await waitFor(() => {
+      expect(backendState()).toBe("unavailable");
+    });
+    expect(backendSwitch().disabled).toBe(true);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Metric code" }), {
+      target: { value: "return state.places.Infected.count;" },
+    });
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+  });
+
+  it("rules the GPU out while a state constraint is drafted, since its indicator aggregates over time", async () => {
+    // The run carries one `min`-aggregated indicator metric per state
+    // constraint, which the GPU gate refuses; the switch must say so before
+    // the study is created rather than the study falling back at run time.
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient: makeSuccessfulLanguageClient(),
+    });
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    // An empty row is skipped at submission, so it does not gate the switch.
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
+    const row = screen.getByRole("group", { name: "State constraint 1" });
+    fireEvent.change(within(row).getByRole("textbox"), {
+      target: { value: "state.places.Infected.count < 100" },
+    });
+    await waitFor(() => {
+      expect(backendState()).toBe("unavailable");
+    });
+    expect(backendSwitch().disabled).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 1" }),
+    );
+    await waitFor(() => {
+      expect(backendState()).toBe("available");
+    });
   });
 
   it("passes the backend as a creation option", async () => {
@@ -1372,8 +1530,8 @@ describe("CreateOptimizationDrawer backend choice", () => {
     fireEvent.click(screen.getByRole("button", { name: /Run/ }));
 
     await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
-    // The switch never left the CPU side: the objective is an expression
-    // metric, which the GPU backend cannot compute.
+    // The switch defaults to the CPU side, so an untouched switch submits the
+    // CPU even for an objective the GPU could run.
     expect(createOptimization.mock.calls[0]![1]).toEqual({
       computeBackend: "cpu",
       parallelism: 1,
