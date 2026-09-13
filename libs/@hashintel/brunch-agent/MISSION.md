@@ -8,11 +8,12 @@ This file owns the contract and current progress dispositions. The PR holds deta
 
 - **Established base:** mutation/compiler/layout/provenance infrastructure and the Pi persona launcher exist; see [mechanism coverage](#throughline-proof-floor). The Inventory opening and persona now request construction from scratch; operational source facts and the separate hand-built reference are unchanged.
 - **Acceptance open:** one retained run must connect ordinary-language elicitation to an agent-built net, explanation, correction and original-session reopen, followed by Lu's review. Distribution and portfolio breadth are [next-mission work](docs/mission-drafts/worked-example-distribution-and-breadth.md), not blockers on this run.
-- **Next observation — builder:** verify the empty starting state on the persona/product route, then learn whether Brunch can construct Inventory from elicited meaning. Lu must supply the bounded model/run allocation under [execution safety](evaluations/README.md#execution-safety) before paid inference. Discriminator: native records show model-originated construction and its correspondence to the saved account, or the first concrete failure that prevents it.
+- **Next observation — builder:** prove deterministic persona utterances through the real browser submission/execution path using synthetic provider responses. The current SDK-driven persona leg has no browser executor. The proof must show correlated completion through client-tool continuations, visible net/workpiece growth, tab independence, cancellation and no history replay. This is mechanism evidence, not the accepted Inventory run. Lu must supply the bounded model/run allocation under [execution safety](evaluations/README.md#execution-safety) before paid inference.
 
 ### Owner decisions
 
 - **2026-09-13 — Lu:** close this branch on a recorded persona-driven worked example starting from scratch. Defer fixture distribution and portfolio breadth to the next mission; the later reusable demo depends on first producing this example. This cut changes scope, not acceptance of the unrun example or authorization of a paid allocation.
+- **2026-09-13 — Lu:** build the first browser-executed persona proof after oracle feasibility review. The persona supplies ordinary utterances behind the scenes; the real UI streams replies and executes Brunch's tool calls, without human operation or screenshot-based AI control. AI/Workpiece tab switching must not interrupt it. The intended live run spans roughly 15–25 turns or more as needed, not a fixed turn-count acceptance rule.
 
 ## Imperative
 
