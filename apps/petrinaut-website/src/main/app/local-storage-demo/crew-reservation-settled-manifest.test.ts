@@ -8,6 +8,7 @@ import {
 
 import {
   hasCrewReservationTargetArc,
+  parseCrewReservationSettledManifest,
   settleCrewReservationManifest,
 } from "./crew-reservation-settled-manifest";
 import {
@@ -127,6 +128,38 @@ describe("crew-reservation settled manifest", () => {
         },
       },
     });
+  });
+
+  test("validates every persisted manifest identity before trusting it", async () => {
+    const result = await settleCrewReservationManifest({
+      definition: preparedCrewReservationNet,
+      history: settledHistory(),
+      settledAt: "2026-09-03T12:00:00.000Z",
+    });
+    if (result.status !== "settled")
+      throw new Error("Expected the prepared fixture to settle.");
+    expect(parseCrewReservationSettledManifest(result.manifest)).toEqual(
+      result.manifest,
+    );
+
+    const mismatches: unknown[] = [
+      { ...result.manifest, fixtureId: "another-fixture" },
+      {
+        ...result.manifest,
+        document: { ...result.manifest.document, id: "another-document" },
+      },
+      {
+        ...result.manifest,
+        conversation: {
+          ...result.manifest.conversation,
+          logicalId: "another-conversation",
+        },
+      },
+      { ...result.manifest, version: 2 },
+      { ...result.manifest, manifestId: "0".repeat(64) },
+    ];
+    for (const mismatch of mismatches)
+      expect(parseCrewReservationSettledManifest(mismatch)).toBeNull();
   });
 
   test("advances only after a completed model revision and document change", async () => {

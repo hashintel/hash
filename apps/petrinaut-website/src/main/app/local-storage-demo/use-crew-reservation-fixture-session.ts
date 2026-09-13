@@ -6,6 +6,7 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { brunchClientToolNames } from "./brunch-client-tools";
+import { useFixtureDocumentSessionState } from "./documents/local-storage/fixture-document-session-state";
 import {
   crewReservationConversationId,
   crewReservationFixtureClientToolNames,
@@ -15,7 +16,7 @@ import { useCrewReservationSettlement } from "./use-crew-reservation-settled-man
 import { usePrepareCrewReservationConversation } from "./use-prepare-crew-reservation-conversation";
 
 import type { CrewReservationHistory } from "./crew-reservation-history";
-import type { CrewReservationSettledManifest } from "./crew-reservation-settled-manifest";
+import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -51,18 +52,8 @@ export const useCrewReservationFixtureSession = (input: {
   readonly enabled: boolean;
   readonly history: CrewReservationHistory | undefined;
   readonly historyError: string | undefined;
-  readonly persistCoherentSnapshot: (sha256: string, definition: SDCPN) => void;
   readonly refreshHistory: () => void;
-  readonly setSettledManifest: (
-    value:
-      | CrewReservationSettledManifest
-      | null
-      | ((
-          previous: CrewReservationSettledManifest | null,
-        ) => CrewReservationSettledManifest | null),
-  ) => void;
-  readonly settledManifest: CrewReservationSettledManifest | null;
-  readonly snapshotMissing: boolean;
+  readonly repository: DocumentRepository;
 }) => {
   const {
     clientPromise,
@@ -70,12 +61,11 @@ export const useCrewReservationFixtureSession = (input: {
     enabled,
     history,
     historyError,
-    persistCoherentSnapshot,
     refreshHistory,
-    setSettledManifest,
-    settledManifest,
-    snapshotMissing,
+    repository,
   } = input;
+  const fixtureState = useFixtureDocumentSessionState(repository);
+  const settledManifest = fixtureState?.settledManifest ?? null;
   const preparation = usePrepareCrewReservationConversation(
     clientPromise,
     enabled,
@@ -96,14 +86,15 @@ export const useCrewReservationFixtureSession = (input: {
     enabled,
     history: enabled ? history : undefined,
     historyError: enabled ? historyError : undefined,
-    persistCoherentSnapshot,
+    persistCoherentSnapshot:
+      fixtureState?.persistCoherentSnapshot ?? (() => undefined),
     preparationError:
       preparationStatus.state === "failed"
         ? preparationStatus.error
         : undefined,
-    setSettledManifest,
+    setSettledManifest: fixtureState?.setSettledManifest ?? (() => undefined),
     settledManifest,
-    snapshotMissing,
+    snapshotMissing: fixtureState?.snapshotMissing ?? false,
   });
 
   const currentWorkpiece = useMemo(() => {
@@ -115,6 +106,13 @@ export const useCrewReservationFixtureSession = (input: {
   }, [history, settledManifest]);
 
   return {
+    bundle:
+      settledManifest === null
+        ? null
+        : {
+            revision: settledManifest.revision,
+            targetArc: settledManifest.document.targetArc,
+          },
     currentWorkpiece,
     preparationStatus,
     settlementStatus,

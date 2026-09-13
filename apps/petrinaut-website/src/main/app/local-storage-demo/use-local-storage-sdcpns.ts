@@ -1,4 +1,4 @@
-import { useLocalStorage } from "@mantine/hooks";
+import { useCallback, useState } from "react";
 
 import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
@@ -80,9 +80,35 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
     return {};
   }
 
-  return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-    ? (parsed as LocalStorageSDCPNsStore)
-    : {};
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return {};
+  }
+  const documents = parsed as LocalStorageSDCPNsStore;
+  const needsNormalization = Object.values(documents).some(
+    (document) =>
+      document.incarnationId === undefined || document.revisionId === undefined,
+  );
+  const withIdentities = Object.fromEntries(
+    Object.entries(documents).map(([documentId, document]) => {
+      if (
+        document.incarnationId !== undefined &&
+        document.revisionId !== undefined
+      ) {
+        return [documentId, document];
+      }
+      return [
+        documentId,
+        {
+          ...document,
+          incarnationId: document.incarnationId ?? crypto.randomUUID(),
+          revisionId: document.revisionId ?? crypto.randomUUID(),
+        },
+      ];
+    }),
+  );
+  if (needsNormalization)
+    storage.setItem(rootLocalStorageKey, JSON.stringify(withIdentities));
+  return withIdentities;
 };
 
 /**
@@ -110,13 +136,39 @@ export const startEmptyNetInStorage = (
   return net;
 };
 
-export const useLocalStorageSDCPNs = () => {
-  const [storedSDCPNs, setStoredSDCPNs] =
-    useLocalStorage<LocalStorageSDCPNsStore>({
-      key: rootLocalStorageKey,
-      defaultValue: {},
-      getInitialValueInEffect: false,
-    });
+export const useLocalStorageSDCPNs = (input?: {
+  readonly enabled: boolean;
+}) => {
+  const enabled = input?.enabled ?? true;
+  const [state, setState] = useState(() => ({
+    documents: enabled ? readStore(localStorage) : {},
+    enabled,
+  }));
+  const storedSDCPNs =
+    state.enabled === enabled
+      ? state.documents
+      : enabled
+        ? readStore(localStorage)
+        : {};
+  if (state.enabled !== enabled) setState({ documents: storedSDCPNs, enabled });
+  const setStoredSDCPNs = useCallback(
+    (
+      update:
+        | LocalStorageSDCPNsStore
+        | ((previous: LocalStorageSDCPNsStore) => LocalStorageSDCPNsStore),
+    ) => {
+      setState((previous) => {
+        const current =
+          enabled && previous.enabled
+            ? previous.documents
+            : readStore(localStorage);
+        const next = typeof update === "function" ? update(current) : update;
+        localStorage.setItem(rootLocalStorageKey, JSON.stringify(next));
+        return { documents: next, enabled };
+      });
+    },
+    [enabled],
+  );
 
   return { storedSDCPNs, setStoredSDCPNs };
 };

@@ -15,6 +15,7 @@ import { Hono } from "hono";
 
 import {
   mutatePetrinetToolName,
+  readPetrinautNetToolName,
   type MutatePetrinetOperation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
@@ -151,11 +152,11 @@ try {
         { locateTexts: ["One receiving place."] },
         "locate-1",
       ),
-    () => tool("getLatestNetDefinition", {}, "read-1"),
+    () => tool(readPetrinautNetToolName, {}, "read-1"),
     (context: Context) => {
       const observation = browserResultFrom(
         textsFrom(context),
-        "getLatestNetDefinition",
+        readPetrinautNetToolName,
         "Missing copy observation",
       ).metadata?.observation;
       assert(observation);

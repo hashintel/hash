@@ -10,7 +10,14 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  describe,
+  expect,
+  test,
+  vi,
+  type MockInstance,
+} from "vitest";
 
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
@@ -33,7 +40,11 @@ import {
   crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
 
-import type { useWorkedModelCopy } from "./use-worked-model-copy";
+import type {
+  DocumentRecord,
+  DocumentRepository,
+  DocumentRepositoryStatus,
+} from "./documents/document-repository";
 import type {
   AgentConversationObservationSnapshot,
   FlueClient,
@@ -48,7 +59,11 @@ import type {
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
 
-type WorkedModelHook = ReturnType<typeof useWorkedModelCopy>;
+interface RemoteDocumentState {
+  readonly document: DocumentRecord | null;
+  readonly conversationId: string | null;
+  readonly status: DocumentRepositoryStatus;
+}
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -56,24 +71,36 @@ const defaultTransportOptions = vi.hoisted(() => ({
 const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
+const brunchPanelTransportTracker = vi.hoisted(() => ({
+  current: null as BrunchPanelConversationTracker | null,
+}));
+const brunchPanelTransportSessions = vi.hoisted(() => ({
+  current: [] as {
+    readonly client: unknown;
+    readonly tracker: BrunchPanelConversationTracker;
+  }[],
+}));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
-const workedModelHook = vi.hoisted(() => ({
+const remoteDocumentState = vi.hoisted(() => ({
   current: {
-    copy: null as WorkedModelHook["copy"],
-    error: null as Error | null,
-    loading: false,
-    createCleanCopy: vi.fn<WorkedModelHook["createCleanCopy"]>(
-      async () => undefined,
-    ),
-    persistDefinition: vi.fn<WorkedModelHook["persistDefinition"]>(
-      async () => undefined,
-    ),
-    settleDocumentRevision: vi.fn<WorkedModelHook["settleDocumentRevision"]>(
-      async () => undefined,
-    ),
-  },
+    document: null,
+    conversationId: null,
+    status: { state: "loading" },
+  } as RemoteDocumentState,
+}));
+const remoteRepositoryOperations = vi.hoisted(() => ({
+  createCleanCopy: vi.fn<
+    NonNullable<DocumentRepository["actions"]["createCleanCopy"]>
+  >(async (): Promise<void> => undefined),
+  open: vi.fn<DocumentRepository["open"]>(),
+  persistRevision: vi.fn<DocumentRepository["persistRevision"]>(
+    async (): Promise<void> => undefined,
+  ),
+  settleRevision: vi.fn<DocumentRepository["settleRevision"]>(
+    async (): Promise<void> => undefined,
+  ),
 }));
 
 vi.mock("@flue/sdk", () => ({
@@ -108,8 +135,46 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
-vi.mock("./use-worked-model-copy", () => ({
-  useWorkedModelCopy: () => workedModelHook.current,
+vi.mock("./documents/remote/use-remote-document-repository", () => ({
+  useRemoteDocumentRepository: (input: {
+    readonly isBrunchConfigured: boolean;
+  }) => {
+    const {
+      conversationId,
+      document,
+      status: configuredStatus,
+    } = remoteDocumentState.current;
+    const status: DocumentRepositoryStatus = input.isBrunchConfigured
+      ? configuredStatus
+      : {
+          state: "unavailable",
+          error: new Error(
+            "This worked-model document requires a configured Brunch endpoint.",
+          ),
+        };
+    return {
+      repository: {
+        records: document === null ? [] : [document],
+        current: document,
+        status,
+        open: remoteRepositoryOperations.open,
+        actions:
+          status.state === "ready"
+            ? { createCleanCopy: remoteRepositoryOperations.createCleanCopy }
+            : {},
+        persistRevision: remoteRepositoryOperations.persistRevision,
+        settleRevision: remoteRepositoryOperations.settleRevision,
+      },
+      ...(document === null || conversationId === null
+        ? {}
+        : {
+            processAgentSeed: {
+              documentId: document.documentId,
+              conversationId,
+            },
+          }),
+    };
+  },
 }));
 
 vi.mock("./brunch-panel-transport", async (importOriginal) => {
@@ -123,6 +188,8 @@ vi.mock("./brunch-panel-transport", async (importOriginal) => {
       options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
     ) => {
       brunchPanelTransportOptions.current = options;
+      brunchPanelTransportTracker.current = tracker;
+      brunchPanelTransportSessions.current.push({ client, tracker });
       return actual.createBrunchPanelTransport(client, tracker, options);
     },
   };
@@ -183,6 +250,45 @@ const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
       },
     }),
   );
+};
+
+const remoteDocument: DocumentRecord = {
+  documentId: "bundle-document",
+  incarnationId: "bundle-incarnation",
+  revisionId: "bundle-revision",
+  title: "Inventory purchasing",
+  definition: {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+  origin: {
+    kind: "template",
+    bundleKey: "inventory-purchasing",
+    fixtureVersion: "inventory-purchasing-v1",
+  },
+};
+
+const selectRemoteDocument = () => {
+  remoteDocumentState.current = {
+    document: remoteDocument,
+    conversationId: "bundle-conversation",
+    status: { state: "ready" },
+  };
+};
+
+const expectNoFallbackStorageReads = (
+  getItem: MockInstance<Storage["getItem"]>,
+) => {
+  for (const key of [
+    "petrinaut-sdcpn",
+    assistantSelectionStorageKey,
+    "petrinaut-ai-messages",
+  ]) {
+    expect(getItem.mock.calls.some(([readKey]) => readKey === key)).toBe(false);
+  }
 };
 
 describe("local storage demo Brunch voice integration", () => {
@@ -700,6 +806,93 @@ describe("local document revision persistence", () => {
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
   });
+
+  test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
+    stubStorage();
+    brunchPanelTransportSessions.current = [];
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    const firstDocument = {
+      ...remoteDocument,
+      documentId: "first-document",
+      incarnationId: "first-incarnation",
+      revisionId: "first-revision",
+      title: "First document",
+    };
+    remoteDocumentState.current = {
+      document: firstDocument,
+      conversationId: "shared-conversation",
+      status: { state: "ready" },
+    };
+    const view = render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(brunchPanelTransportSessions.current.length).toBeGreaterThan(0),
+    );
+    const uniqueSessions = () => [
+      ...new Map(
+        brunchPanelTransportSessions.current.map((session) => [
+          session.client,
+          session,
+        ]),
+      ).values(),
+    ];
+    const [firstSession] = uniqueSessions();
+    expect(firstSession).toBeDefined();
+
+    remoteDocumentState.current = {
+      document: {
+        ...firstDocument,
+        revisionId: "second-revision",
+        definition: structuredClone(firstDocument.definition),
+      },
+      conversationId: "shared-conversation",
+      status: { state: "ready" },
+    };
+    view.rerender(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await act(async () => Promise.resolve());
+    expect(uniqueSessions()).toEqual([firstSession]);
+
+    remoteDocumentState.current = {
+      document: {
+        ...firstDocument,
+        documentId: "second-document",
+        incarnationId: "second-incarnation",
+        revisionId: "third-revision",
+        title: "Second document",
+      },
+      conversationId: "shared-conversation",
+      status: { state: "ready" },
+    };
+    view.rerender(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(uniqueSessions()).toHaveLength(2);
+    });
+    const [, secondSession] = uniqueSessions();
+    expect(secondSession?.client).not.toBe(firstSession?.client);
+    expect(secondSession?.tracker).not.toBe(firstSession?.tracker);
+  });
 });
 
 describe("local storage demo prepared fixture", () => {
@@ -884,33 +1077,18 @@ describe("worked-model bundle selection", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
-    workedModelHook.current.copy = null;
+    remoteDocumentState.current = {
+      document: null,
+      conversationId: null,
+      status: { state: "loading" },
+    };
+    brunchPreviewConfig.isBrunchConfigured = true;
   });
 
   test("opens the server-owned document and conversation selected by bundle", async () => {
     stubStorage();
-    workedModelHook.current.createCleanCopy.mockClear();
-    workedModelHook.current.persistDefinition.mockClear();
-    workedModelHook.current.settleDocumentRevision.mockClear();
-    workedModelHook.current.copy = {
-      bundleKey: "inventory-purchasing",
-      copyId: "copy-1",
-      conversationId: "bundle-conversation",
-      documentId: "bundle-document",
-      incarnationId: "bundle-incarnation",
-      fixtureVersion: "inventory-purchasing-v1",
-      principalKey: "test-principal",
-      title: "Inventory purchasing",
-      definition: {
-        places: [],
-        transitions: [],
-        types: [],
-        parameters: [],
-        differentialEquations: [],
-      },
-      definitionSha256: "a".repeat(64),
-      revisionId: "bundle-revision",
-    };
+    vi.clearAllMocks();
+    selectRemoteDocument();
     flueClientMock.current = {
       history: async () => ({
         conversation: {
@@ -966,9 +1144,9 @@ describe("worked-model bundle selection", () => {
         });
       });
     });
-    expect(workedModelHook.current.persistDefinition).toHaveBeenCalledOnce();
+    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledOnce();
     const persistedChange =
-      workedModelHook.current.persistDefinition.mock.calls[0]?.[0];
+      remoteRepositoryOperations.persistRevision.mock.calls[0]?.[0];
     expect(persistedChange?.definition.places).toEqual([
       expect.objectContaining({ id: "bundle-place" }),
     ]);
@@ -983,7 +1161,7 @@ describe("worked-model bundle selection", () => {
     expect(layoutTool).toBeDefined();
     const revisionBeforeLayout = handle.revisionId.get();
     const settled = Promise.withResolvers<void>();
-    workedModelHook.current.settleDocumentRevision.mockReturnValueOnce(
+    remoteRepositoryOperations.settleRevision.mockReturnValueOnce(
       settled.promise,
     );
     let layoutOutput: unknown;
@@ -1011,9 +1189,10 @@ describe("worked-model bundle selection", () => {
       layoutOutput = output;
     });
     await waitFor(() =>
-      expect(
-        workedModelHook.current.settleDocumentRevision,
-      ).toHaveBeenCalledWith(handle.revisionId.get()),
+      expect(remoteRepositoryOperations.settleRevision).toHaveBeenCalledWith({
+        documentId: "bundle-document",
+        revisionId: handle.revisionId.get(),
+      }),
     );
     expect(handle.revisionId.get()).not.toBe(revisionBeforeLayout);
     await act(async () => Promise.resolve());
@@ -1030,7 +1209,239 @@ describe("worked-model bundle selection", () => {
         name: /Create a clean copy of this worked model/u,
       }),
     );
-    expect(workedModelHook.current.createCleanCopy).toHaveBeenCalledOnce();
+    expect(remoteRepositoryOperations.createCleanCopy).toHaveBeenCalledOnce();
+  });
+
+  test("selects the remote document despite a stored stock preference", async () => {
+    seedStoredNet();
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    selectRemoteDocument();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "This document uses the Brunch process assistant",
+      ),
+    ).toBeDefined();
+    expect(editorProps.current?.title).toBe("Inventory purchasing");
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(
+      screen.queryByRole("button", {
+        name: /stock Petrinaut assistant|Use Brunch/,
+      }),
+    ).toBeNull();
+  });
+
+  test("fails closed without an endpoint and does not read local documents", () => {
+    seedStoredNet();
+    const getItem = vi.spyOn(localStorage, "getItem");
+    getItem.mockClear();
+    brunchPreviewConfig.isBrunchConfigured = false;
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Worked-model document unavailable",
+      }),
+    ).toBeDefined();
+    expectNoFallbackStorageReads(getItem);
+    expect(editorProps.current).toBeNull();
+  });
+
+  test("shows route loading without reading fallback storage", () => {
+    seedStoredNet();
+    const getItem = vi.spyOn(localStorage, "getItem");
+    getItem.mockClear();
+    remoteDocumentState.current = {
+      document: null,
+      conversationId: null,
+      status: { state: "loading" },
+    };
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    expect(screen.getByText("Loading document…")).toBeDefined();
+    expectNoFallbackStorageReads(getItem);
+    expect(editorProps.current).toBeNull();
+  });
+
+  test.each([
+    {
+      name: "generic resolve failure",
+      message: "Worked-model resolution failed.",
+    },
+    {
+      name: "ownership failure",
+      message: "Worked-model request failed (403): copy-not-owned",
+    },
+  ])(
+    "shows unavailable for $name without reading fallback storage",
+    ({ message }) => {
+      seedStoredNet();
+      const getItem = vi.spyOn(localStorage, "getItem");
+      getItem.mockClear();
+      remoteDocumentState.current = {
+        document: null,
+        conversationId: null,
+        status: { state: "unavailable", error: new Error(message) },
+      };
+
+      render(
+        <LocalStorageDemoApp
+          onSearchChange={() => {}}
+          search={{ bundle: "inventory-purchasing" }}
+        />,
+      );
+
+      expect(
+        screen.getByRole("heading", {
+          name: "Worked-model document unavailable",
+        }),
+      ).toBeDefined();
+      expect(screen.getByText(message)).toBeDefined();
+      expectNoFallbackStorageReads(getItem);
+      expect(editorProps.current).toBeNull();
+    },
+  );
+
+  test("restores the stored assistant when returning to an ordinary route", async () => {
+    seedStoredNet();
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    selectRemoteDocument();
+    const view = render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await screen.findByText("This document uses the Brunch process assistant");
+
+    remoteDocumentState.current = {
+      document: null,
+      conversationId: null,
+      status: { state: "loading" },
+    };
+    view.rerender(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+
+    await waitFor(() =>
+      expect(
+        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+          ?.automaticTools,
+      ).toEqual([]),
+    );
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+  });
+
+  test("does not send late remote events or new local events to the remote repository after leaving the bundle route", async () => {
+    stubStorage();
+    remoteRepositoryOperations.persistRevision.mockClear();
+    selectRemoteDocument();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    const onSearchChange = vi.fn();
+    const view = render(
+      <LocalStorageDemoApp
+        onSearchChange={onSearchChange}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const remoteHandle = editorProps.current?.handle as PetrinautDocHandle;
+
+    act(() => {
+      editorProps.current?.createNewNet?.({
+        petriNetDefinition: {
+          places: [],
+          transitions: [],
+          types: [],
+          parameters: [],
+          differentialEquations: [],
+        },
+        title: "Created locally",
+      });
+    });
+    expect(onSearchChange).toHaveBeenCalledWith({}, "push");
+    view.rerender(
+      <LocalStorageDemoApp onSearchChange={onSearchChange} search={{}} />,
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Created locally"),
+    );
+    const localHandle = editorProps.current?.handle as PetrinautDocHandle;
+    remoteRepositoryOperations.persistRevision.mockClear();
+
+    act(() => {
+      remoteHandle.change((draft) => {
+        draft.places.push({
+          id: "late-remote-place",
+          name: "Late remote place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+      localHandle.change((draft) => {
+        draft.places.push({
+          id: "local-place",
+          name: "Local place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+
+    expect(remoteRepositoryOperations.persistRevision).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<string, { sdcpn?: { places?: { id: string }[] } }>;
+      expect(
+        Object.values(stored).some((document) =>
+          document.sdcpn?.places?.some(({ id }) => id === "local-place"),
+        ),
+      ).toBe(true);
+    });
   });
 });
 
@@ -1063,6 +1474,28 @@ describe("assistant selection", () => {
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
+  });
+
+  test("ordinary stock uses its local transport and never mounts Flue history", () => {
+    seedStoredNet("stock-incarnation", "stock-revision");
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    const observe = vi.fn();
+    const history = vi.fn();
+    flueClientMock.current = { history, observe };
+    flueClientOptions.current = null;
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    const stock = currentAssistant();
+    expect((defaultTransportOptions.current as { api: string }).api).toBe(
+      "/api/chat",
+    );
+    // An empty host catalogue leaves Petrinaut's canonical built-ins active;
+    // their execution is pinned in ai-assistant-panel.test.tsx.
+    expect(stock.automaticTools).toEqual([]);
+    expect(flueClientOptions.current).toBeNull();
+    expect(history).not.toHaveBeenCalled();
+    expect(observe).not.toHaveBeenCalled();
   });
 
   test("Brunch is the default when configured; the stock assistant is the selectable alternate and mounts nothing of Brunch", async () => {

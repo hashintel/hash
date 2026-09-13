@@ -1,4 +1,4 @@
-import { useLocalStorage } from "@mantine/hooks";
+import { useCallback, useState } from "react";
 
 /**
  * Which assistant the demo's AI panel talks to.
@@ -38,13 +38,34 @@ export const isBrunchSelected = (
   selection: AssistantSelection,
 ): boolean => isBrunchConfigured && selection === "brunch";
 
-export const useAssistantSelection = () => {
-  const [selection, setSelection] = useLocalStorage<AssistantSelection>({
-    key: assistantSelectionStorageKey,
-    defaultValue: defaultAssistantSelection,
-    getInitialValueInEffect: false,
-    serialize: (value) => value,
-    deserialize: parseAssistantSelection,
-  });
+export const useAssistantSelection = (input?: {
+  readonly enabled: boolean;
+}) => {
+  const enabled = input?.enabled ?? true;
+  const [state, setState] = useState(() => ({
+    enabled,
+    selection: enabled
+      ? parseAssistantSelection(
+          localStorage.getItem(assistantSelectionStorageKey),
+        )
+      : defaultAssistantSelection,
+  }));
+  const selection =
+    state.enabled === enabled
+      ? state.selection
+      : enabled
+        ? parseAssistantSelection(
+            localStorage.getItem(assistantSelectionStorageKey),
+          )
+        : defaultAssistantSelection;
+  if (state.enabled !== enabled) setState({ enabled, selection });
+  const setSelection = useCallback(
+    (next: AssistantSelection) => {
+      if (!enabled) return;
+      setState({ enabled: true, selection: next });
+      localStorage.setItem(assistantSelectionStorageKey, next);
+    },
+    [enabled],
+  );
   return { selection, setSelection };
 };

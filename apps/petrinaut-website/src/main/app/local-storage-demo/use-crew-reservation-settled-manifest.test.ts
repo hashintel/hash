@@ -60,6 +60,23 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+test("ignores a persisted manifest whose runtime identity is invalid", () => {
+  window.localStorage.setItem(
+    crewReservationSettledManifestStorageKey,
+    JSON.stringify({
+      version: 1,
+      fixtureId: "another-fixture",
+      manifestId: "0".repeat(64),
+    }),
+  );
+
+  const { result } = renderHook(() =>
+    useCrewReservationSettledManifestStorage(),
+  );
+
+  expect(result.current.settledManifest).toBeNull();
+});
+
 test("keeps the prior runtime bundle selected while a document write is partial", async () => {
   const persistCoherentSnapshot = vi.fn();
   const { result, rerender } = renderHook(

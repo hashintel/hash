@@ -1,8 +1,8 @@
-import { useLocalStorage } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   crewReservationSettledManifestStorageKey,
+  parseCrewReservationSettledManifest,
   settleCrewReservationManifest,
   type CrewReservationSettledManifest,
   type CrewReservationSettlementResult,
@@ -28,13 +28,61 @@ export type CrewReservationSettlementStatus =
       readonly state: "refused";
     };
 
-export const useCrewReservationSettledManifestStorage = () => {
-  const [settledManifest, setSettledManifest] =
-    useLocalStorage<CrewReservationSettledManifest | null>({
-      key: crewReservationSettledManifestStorageKey,
-      defaultValue: null,
-      getInitialValueInEffect: false,
-    });
+type SetCrewReservationSettledManifest = (
+  value:
+    | CrewReservationSettledManifest
+    | null
+    | ((
+        previous: CrewReservationSettledManifest | null,
+      ) => CrewReservationSettledManifest | null),
+) => void;
+
+const readSettledManifest = (): CrewReservationSettledManifest | null => {
+  const stored = localStorage.getItem(crewReservationSettledManifestStorageKey);
+  if (stored === null) return null;
+  try {
+    return parseCrewReservationSettledManifest(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
+export const useCrewReservationSettledManifestStorage = (input?: {
+  readonly enabled: boolean;
+}) => {
+  const enabled = input?.enabled ?? true;
+  const [state, setState] = useState(() => ({
+    enabled,
+    settledManifest: enabled ? readSettledManifest() : null,
+  }));
+  const settledManifest =
+    state.enabled === enabled
+      ? state.settledManifest
+      : enabled
+        ? readSettledManifest()
+        : null;
+  if (state.enabled !== enabled) setState({ enabled, settledManifest });
+  const setSettledManifest = useCallback<SetCrewReservationSettledManifest>(
+    (value) => {
+      if (!enabled) return;
+      setState((previous) => {
+        const current = previous.enabled
+          ? previous.settledManifest
+          : readSettledManifest();
+        const next = typeof value === "function" ? value(current) : value;
+        if (next === null) {
+          localStorage.removeItem(crewReservationSettledManifestStorageKey);
+        } else {
+          localStorage.setItem(
+            crewReservationSettledManifestStorageKey,
+            JSON.stringify(next),
+          );
+        }
+        return { enabled: true, settledManifest: next };
+      });
+    },
+    [enabled],
+  );
   return { settledManifest, setSettledManifest };
 };
 
@@ -45,14 +93,7 @@ export const useCrewReservationSettlement = (input: {
   readonly historyError: string | undefined;
   readonly persistCoherentSnapshot: (sha256: string, definition: SDCPN) => void;
   readonly preparationError: string | undefined;
-  readonly setSettledManifest: (
-    value:
-      | CrewReservationSettledManifest
-      | null
-      | ((
-          previous: CrewReservationSettledManifest | null,
-        ) => CrewReservationSettledManifest | null),
-  ) => void;
+  readonly setSettledManifest: SetCrewReservationSettledManifest;
   readonly settledManifest: CrewReservationSettledManifest | null;
   readonly snapshotMissing: boolean;
 }) => {

@@ -32,14 +32,14 @@ export const useWorkedModelCopy = (input: {
   const copyRef = useRef<WorkedModelCopy | null>(null);
   const selectionGenerationRef = useRef(0);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const writeBasesRef = useRef(new Map<string, WorkedModelCopy>());
+  const writeBasesByDocumentIdRef = useRef(new Map<string, WorkedModelCopy>());
   const writesByRevisionRef = useRef(
     new Map<DocumentRevisionId, Promise<void>>(),
   );
 
   const acceptCopy = useCallback((copy: WorkedModelCopy) => {
     copyRef.current = copy;
-    writeBasesRef.current.set(copy.copyId, copy);
+    writeBasesByDocumentIdRef.current.set(copy.documentId, copy);
     setState({ copy, error: null, loading: false });
   }, []);
 
@@ -96,7 +96,8 @@ export const useWorkedModelCopy = (input: {
         return Promise.reject(new Error("Worked-model copy is not available."));
       const selectionGeneration = selectionGenerationRef.current;
       const write = writeQueueRef.current.then(async () => {
-        const writeBase = writeBasesRef.current.get(copy.copyId) ?? copy;
+        const writeBase =
+          writeBasesByDocumentIdRef.current.get(copy.documentId) ?? copy;
         if (writeBase.revisionId !== change.previousRevisionId)
           throw new Error(
             "Worked-model document revision does not follow its queued predecessor.",
@@ -111,10 +112,10 @@ export const useWorkedModelCopy = (input: {
           definition: change.definition,
           revisionId: change.revisionId,
         });
-        writeBasesRef.current.set(copy.copyId, updated);
+        writeBasesByDocumentIdRef.current.set(copy.documentId, updated);
         if (
           selectionGenerationRef.current === selectionGeneration &&
-          copyRef.current?.copyId === copy.copyId
+          copyRef.current?.documentId === copy.documentId
         )
           acceptCopy(updated);
       });
