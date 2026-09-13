@@ -29,7 +29,7 @@ import {
   HEALTH_ROUTE,
   WORKED_MODELS_ROUTE,
 } from "./http/routes.ts";
-import { createWorkedModelRouter } from "./http/worked-models.ts";
+import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
@@ -116,7 +116,10 @@ app.use(
     parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
   ),
 );
-app.route(WORKED_MODELS_ROUTE, createWorkedModelRouter(workedModelStore));
+app.route(
+  WORKED_MODELS_ROUTE,
+  createWorkedModelNetProjectionRouter(workedModelStore),
+);
 
 app.get(HEALTH_ROUTE, healthHandler);
 

@@ -289,13 +289,13 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
  */
 const DemoCommands = ({
   createNewNet,
-  createCleanWorkedModelCopy,
+  createCleanNetProjection,
   brunchSelected,
   canSelectAssistant,
   selectAssistant,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
-  createCleanWorkedModelCopy?: () => Promise<void>;
+  createCleanNetProjection?: () => Promise<void>;
   brunchSelected: boolean;
   canSelectAssistant: boolean;
   selectAssistant: (selection: "brunch" | "stock") => void;
@@ -318,10 +318,10 @@ const DemoCommands = ({
       category: "Demo",
       keywords: ["bundle", "copy", "reset", "template"],
       run: () => {
-        void createCleanWorkedModelCopy?.();
+        void createCleanNetProjection?.();
       },
     },
-    { when: createCleanWorkedModelCopy !== undefined },
+    { when: createCleanNetProjection !== undefined },
   );
   useCommand(
     {
@@ -1007,8 +1007,8 @@ export const LocalStorageDemoApp = ({
           </WalkthroughProvider>
           <DemoCommands
             createNewNet={createNewNet}
-            createCleanWorkedModelCopy={
-              source.repository.actions.createCleanCopy
+            createCleanNetProjection={
+              source.repository.actions.createCleanNetProjection
             }
             brunchSelected={brunchSelected}
             canSelectAssistant={!remoteRouteSelected}

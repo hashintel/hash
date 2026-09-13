@@ -41,7 +41,7 @@ const sequentialIds = () => {
   return () => `id-${next++}`;
 };
 
-describe("worked-model store", () => {
+describe("worked-model net-projection store", () => {
   test("validates build-discovered fixture identity, source and content", () => {
     expect(parseWorkedModelFixture(fixture())).toMatchObject(fixture());
     expect(() =>
@@ -79,38 +79,42 @@ describe("worked-model store", () => {
     ).rejects.toThrow(/version change/u);
   });
 
-  test("resumes one active copy for a principal and isolates another principal", async () => {
+  test("resumes one active net projection for a principal and isolates another principal", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await store.seed([fixture()]);
 
-    const first = await store.resolveCopy({
+    const first = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    const resumed = await store.resolveCopy({
+    const resumed = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    const sibling = await store.resolveCopy({
+    const sibling = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-b",
     });
 
     expect(resumed).toEqual(first);
+    // This green oracle proves only the current net projection. Fixture
+    // session/workpiece preservation remains in the bundle contract suite.
+    expect(first).not.toHaveProperty("session");
+    expect(first).not.toHaveProperty("workpiece");
     expect(sibling?.copyId).not.toBe(first?.copyId);
     expect(sibling?.conversationId).not.toBe(first?.conversationId);
     expect(sibling?.documentId).not.toBe(first?.documentId);
     expect(sibling?.incarnationId).not.toBe(first?.incarnationId);
   });
 
-  test("creates a clean active copy from the current seed without changing its sibling", async () => {
+  test("creates a clean active net projection from the current seed without changing its sibling", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await store.seed([fixture()]);
-    const first = await store.resolveCopy({
+    const first = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    if (first === undefined) throw new Error("Missing first copy");
+    if (first === undefined) throw new Error("Missing first net projection");
     const changedDefinition: SDCPN = {
       ...emptyDefinition,
       places: [
@@ -125,7 +129,7 @@ describe("worked-model store", () => {
         },
       ],
     };
-    const changed = await store.updateCopyDefinition({
+    const changed = await store.updateNetProjectionDefinition({
       copyId: first.copyId,
       principalKey: "principal-a",
       expectedSha256: first.definitionSha256,
@@ -133,11 +137,11 @@ describe("worked-model store", () => {
       definition: changedDefinition,
       revisionId: "changed-revision",
     });
-    const clean = await store.createCleanCopy({
+    const clean = await store.createCleanNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    const resumed = await store.resolveCopy({
+    const resumed = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
@@ -153,19 +157,19 @@ describe("worked-model store", () => {
     expect(changed?.definition).toEqual(changedDefinition);
   });
 
-  test("keeps existing copies on their fixture version when a new seed lands", async () => {
+  test("keeps existing net projections on their fixture version when a new seed lands", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await store.seed([fixture()]);
-    const existing = await store.resolveCopy({
+    const existing = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
     await store.seed([fixture("inventory-purchasing-v2")]);
-    const resumed = await store.resolveCopy({
+    const resumed = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    const clean = await store.createCleanCopy({
+    const clean = await store.createCleanNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
@@ -175,67 +179,67 @@ describe("worked-model store", () => {
     expect(clean?.fixtureVersion).toBe("inventory-purchasing-v2");
   });
 
-  test("rejects stale or foreign updates without changing the active copy", async () => {
+  test("rejects stale or foreign updates without changing the active net projection", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await store.seed([fixture()]);
-    const copy = await store.resolveCopy({
+    const netProjection = await store.resolveNetProjection({
       bundleKey: "inventory-purchasing",
       principalKey: "principal-a",
     });
-    if (copy === undefined) throw new Error("Missing copy");
+    if (netProjection === undefined) throw new Error("Missing net projection");
 
     await expect(
-      store.updateCopyDefinition({
-        copyId: copy.copyId,
+      store.updateNetProjectionDefinition({
+        copyId: netProjection.copyId,
         principalKey: "principal-a",
-        expectedSha256: copy.definitionSha256,
-        expectedRevisionId: copy.revisionId,
+        expectedSha256: netProjection.definitionSha256,
+        expectedRevisionId: netProjection.revisionId,
         definition: emptyDefinition,
-        revisionId: copy.revisionId,
+        revisionId: netProjection.revisionId,
       }),
     ).rejects.toThrow(/did not advance/u);
     await expect(
-      store.updateCopyDefinition({
-        copyId: copy.copyId,
+      store.updateNetProjectionDefinition({
+        copyId: netProjection.copyId,
         principalKey: "principal-a",
         expectedSha256: "0".repeat(64),
-        expectedRevisionId: copy.revisionId,
+        expectedRevisionId: netProjection.revisionId,
         definition: emptyDefinition,
         revisionId: "rejected-hash-revision",
       }),
     ).rejects.toThrow(/changed before/u);
     await expect(
-      store.updateCopyDefinition({
-        copyId: copy.copyId,
+      store.updateNetProjectionDefinition({
+        copyId: netProjection.copyId,
         principalKey: "principal-a",
-        expectedSha256: copy.definitionSha256,
+        expectedSha256: netProjection.definitionSha256,
         expectedRevisionId: "stale-revision",
         definition: emptyDefinition,
         revisionId: "rejected-chain-revision",
       }),
     ).rejects.toThrow(/changed before/u);
     await expect(
-      store.updateCopyDefinition({
-        copyId: copy.copyId,
+      store.updateNetProjectionDefinition({
+        copyId: netProjection.copyId,
         principalKey: "principal-b",
-        expectedSha256: copy.definitionSha256,
-        expectedRevisionId: copy.revisionId,
+        expectedSha256: netProjection.definitionSha256,
+        expectedRevisionId: netProjection.revisionId,
         definition: emptyDefinition,
         revisionId: "foreign-revision",
       }),
     ).resolves.toBeUndefined();
     await expect(
-      store.resolveCopy({
+      store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-a",
       }),
-    ).resolves.toEqual(copy);
+    ).resolves.toEqual(netProjection);
   });
 
-  test("returns no copy for an unknown bundle", async () => {
+  test("returns no net projection for an unknown bundle", async () => {
     const store = createInMemoryWorkedModelStore(sequentialIds());
     await expect(
-      store.resolveCopy({
+      store.resolveNetProjection({
         bundleKey: "unknown",
         principalKey: "principal-a",
       }),

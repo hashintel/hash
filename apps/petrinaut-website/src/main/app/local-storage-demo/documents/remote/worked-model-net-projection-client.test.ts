@@ -3,14 +3,14 @@ import { describe, expect, test, vi } from "vitest";
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import {
-  createCleanWorkedModelCopy,
-  parseWorkedModelCopy,
-  resolveWorkedModelCopy,
-  updateWorkedModelDefinition,
+  createCleanNetProjection,
+  parseWorkedModelNetProjection,
+  resolveNetProjection,
+  updateNetProjectionDefinition,
   workedModelApiUrl,
-} from "./worked-model-client";
+} from "./worked-model-net-projection-client";
 
-const copy = {
+const netProjectionFixture = {
   bundleKey: "inventory-purchasing",
   copyId: "copy-1",
   conversationId: "conversation-1",
@@ -36,7 +36,7 @@ const response = (value: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
-describe("worked-model client", () => {
+describe("worked-model net-projection client", () => {
   test("derives the API origin from relative and remote chat endpoints", () => {
     expect(
       workedModelApiUrl("/agents/chat", "https://petrinaut.example").href,
@@ -49,10 +49,12 @@ describe("worked-model client", () => {
     ).toBe("https://brunch.example/api/worked-models");
   });
 
-  test("resolves a principal-owned bundle copy", async () => {
-    const fetcher = vi.fn<typeof fetch>(async () => response(copy));
+  test("resolves a principal-owned net projection", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      response(netProjectionFixture),
+    );
     await expect(
-      resolveWorkedModelCopy(
+      resolveNetProjection(
         {
           chatEndpoint: "https://brunch.example/agents/chat",
           currentOrigin: "https://petrinaut.example",
@@ -61,7 +63,7 @@ describe("worked-model client", () => {
         },
         fetcher,
       ),
-    ).resolves.toMatchObject(copy);
+    ).resolves.toMatchObject(netProjectionFixture);
     expect(fetcher).toHaveBeenCalledWith(
       new URL(
         "https://brunch.example/api/worked-models/bundles/inventory-purchasing",
@@ -75,9 +77,11 @@ describe("worked-model client", () => {
     );
   });
 
-  test("creates clean copies and updates definitions through distinct methods", async () => {
-    const fetcher = vi.fn<typeof fetch>(async () => response(copy));
-    await createCleanWorkedModelCopy(
+  test("creates clean net projections and updates definitions through distinct methods", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      response(netProjectionFixture),
+    );
+    await createCleanNetProjection(
       {
         chatEndpoint: "/agents/chat",
         currentOrigin: "https://petrinaut.example",
@@ -86,7 +90,7 @@ describe("worked-model client", () => {
       },
       fetcher,
     );
-    await updateWorkedModelDefinition(
+    await updateNetProjectionDefinition(
       {
         chatEndpoint: "/agents/chat",
         currentOrigin: "https://petrinaut.example",
@@ -94,7 +98,7 @@ describe("worked-model client", () => {
         copyId: "copy-1",
         expectedSha256: "a".repeat(64),
         expectedRevisionId: "revision-1",
-        definition: copy.definition,
+        definition: netProjectionFixture.definition,
         revisionId: "revision-2",
       },
       fetcher,
@@ -106,21 +110,24 @@ describe("worked-model client", () => {
       JSON.stringify({
         expectedSha256: "a".repeat(64),
         expectedRevisionId: "revision-1",
-        definition: copy.definition,
+        definition: netProjectionFixture.definition,
         revisionId: "revision-2",
       }),
     );
   });
 
   test("refuses malformed success responses and preserves HTTP failures", async () => {
-    expect(() => parseWorkedModelCopy({ ...copy, copyId: "" })).toThrow(
-      /copyId/u,
-    );
+    expect(() =>
+      parseWorkedModelNetProjection({
+        ...netProjectionFixture,
+        copyId: "",
+      }),
+    ).toThrow(/copyId/u);
     const fetcher = vi.fn<typeof fetch>(async () =>
       response({ error: "bundle-not-found" }, 404),
     );
     await expect(
-      resolveWorkedModelCopy(
+      resolveNetProjection(
         {
           chatEndpoint: "/agents/chat",
           currentOrigin: "https://petrinaut.example",

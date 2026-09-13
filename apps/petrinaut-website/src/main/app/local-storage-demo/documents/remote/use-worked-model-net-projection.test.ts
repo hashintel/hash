@@ -4,21 +4,23 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { useWorkedModelCopy } from "./use-worked-model-copy";
+import { useWorkedModelNetProjection } from "./use-worked-model-net-projection";
 import {
-  createCleanWorkedModelCopy,
-  resolveWorkedModelCopy,
-  updateWorkedModelDefinition,
-  type WorkedModelCopy,
-} from "./worked-model-client";
+  createCleanNetProjection,
+  resolveNetProjection,
+  updateNetProjectionDefinition,
+  type WorkedModelNetProjection,
+} from "./worked-model-net-projection-client";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-vi.mock("./worked-model-client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./worked-model-client")>()),
-  createCleanWorkedModelCopy: vi.fn(),
-  resolveWorkedModelCopy: vi.fn(),
-  updateWorkedModelDefinition: vi.fn(),
+vi.mock("./worked-model-net-projection-client", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("./worked-model-net-projection-client")
+  >()),
+  createCleanNetProjection: vi.fn(),
+  resolveNetProjection: vi.fn(),
+  updateNetProjectionDefinition: vi.fn(),
 }));
 
 const emptyDefinition: SDCPN = {
@@ -29,13 +31,13 @@ const emptyDefinition: SDCPN = {
   differentialEquations: [],
 };
 
-const copy = (
+const netProjection = (
   definitionSha256: string,
   definition = emptyDefinition,
   copyId = "copy-1",
   revisionId = "revision-1",
   documentId = `${copyId}-document`,
-): WorkedModelCopy => ({
+): WorkedModelNetProjection => ({
   bundleKey: "inventory-purchasing",
   copyId,
   conversationId: `${copyId}-conversation`,
@@ -64,7 +66,9 @@ const requestInput = {
 };
 
 beforeEach(() => {
-  vi.mocked(resolveWorkedModelCopy).mockResolvedValue(copy("a".repeat(64)));
+  vi.mocked(resolveNetProjection).mockResolvedValue(
+    netProjection("a".repeat(64)),
+  );
 });
 
 afterEach(() => {
@@ -72,13 +76,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-test("resolves the selected bundle copy", async () => {
-  const { result } = renderHook(() => useWorkedModelCopy(input));
+test("resolves the selected net projection", async () => {
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
   expect(result.current.loading).toBe(true);
   await waitFor(() =>
-    expect(result.current.copy?.documentId).toBe("copy-1-document"),
+    expect(result.current.netProjection?.documentId).toBe("copy-1-document"),
   );
-  expect(resolveWorkedModelCopy).toHaveBeenCalledWith(requestInput);
+  expect(resolveNetProjection).toHaveBeenCalledWith(requestInput);
   expect(result.current.error).toBeNull();
 });
 
@@ -112,15 +116,15 @@ test("serializes definition writes against each returned hash", async () => {
       },
     ],
   };
-  vi.mocked(updateWorkedModelDefinition)
+  vi.mocked(updateNetProjectionDefinition)
     .mockResolvedValueOnce(
-      copy("b".repeat(64), firstDefinition, "copy-1", "revision-2"),
+      netProjection("b".repeat(64), firstDefinition, "copy-1", "revision-2"),
     )
     .mockResolvedValueOnce(
-      copy("c".repeat(64), secondDefinition, "copy-1", "revision-3"),
+      netProjection("c".repeat(64), secondDefinition, "copy-1", "revision-3"),
     );
-  const { result } = renderHook(() => useWorkedModelCopy(input));
-  await waitFor(() => expect(result.current.copy).not.toBeNull());
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   await act(async () => {
     await Promise.all([
@@ -137,7 +141,7 @@ test("serializes definition writes against each returned hash", async () => {
     ]);
   });
 
-  expect(updateWorkedModelDefinition).toHaveBeenNthCalledWith(1, {
+  expect(updateNetProjectionDefinition).toHaveBeenNthCalledWith(1, {
     chatEndpoint: input.chatEndpoint,
     currentOrigin: input.currentOrigin,
     principalKey: input.principalKey,
@@ -147,7 +151,7 @@ test("serializes definition writes against each returned hash", async () => {
     definition: firstDefinition,
     revisionId: "revision-2",
   });
-  expect(updateWorkedModelDefinition).toHaveBeenNthCalledWith(2, {
+  expect(updateNetProjectionDefinition).toHaveBeenNthCalledWith(2, {
     chatEndpoint: input.chatEndpoint,
     currentOrigin: input.currentOrigin,
     principalKey: input.principalKey,
@@ -157,13 +161,13 @@ test("serializes definition writes against each returned hash", async () => {
     definition: secondDefinition,
     revisionId: "revision-3",
   });
-  expect(result.current.copy?.definitionSha256).toBe("c".repeat(64));
+  expect(result.current.netProjection?.definitionSha256).toBe("c".repeat(64));
 });
 
 test("keys queued write bases by canonical document identity", async () => {
-  vi.mocked(updateWorkedModelDefinition)
+  vi.mocked(updateNetProjectionDefinition)
     .mockResolvedValueOnce(
-      copy(
+      netProjection(
         "b".repeat(64),
         emptyDefinition,
         "copy-2",
@@ -172,7 +176,7 @@ test("keys queued write bases by canonical document identity", async () => {
       ),
     )
     .mockResolvedValueOnce(
-      copy(
+      netProjection(
         "c".repeat(64),
         emptyDefinition,
         "copy-2",
@@ -180,11 +184,17 @@ test("keys queued write bases by canonical document identity", async () => {
         "document-1",
       ),
     );
-  vi.mocked(resolveWorkedModelCopy).mockResolvedValueOnce(
-    copy("a".repeat(64), emptyDefinition, "copy-1", "revision-1", "document-1"),
+  vi.mocked(resolveNetProjection).mockResolvedValueOnce(
+    netProjection(
+      "a".repeat(64),
+      emptyDefinition,
+      "copy-1",
+      "revision-1",
+      "document-1",
+    ),
   );
-  const { result } = renderHook(() => useWorkedModelCopy(input));
-  await waitFor(() => expect(result.current.copy).not.toBeNull());
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   await act(async () => {
     await result.current.persistDefinition({
@@ -199,7 +209,7 @@ test("keys queued write bases by canonical document identity", async () => {
     });
   });
 
-  expect(updateWorkedModelDefinition).toHaveBeenNthCalledWith(
+  expect(updateNetProjectionDefinition).toHaveBeenNthCalledWith(
     2,
     expect.objectContaining({
       copyId: "copy-2",
@@ -209,10 +219,12 @@ test("keys queued write bases by canonical document identity", async () => {
 });
 
 test("settles the persistence operation for an exact document revision", async () => {
-  const pendingUpdate = Promise.withResolvers<WorkedModelCopy>();
-  vi.mocked(updateWorkedModelDefinition).mockReturnValue(pendingUpdate.promise);
-  const { result } = renderHook(() => useWorkedModelCopy(input));
-  await waitFor(() => expect(result.current.copy).not.toBeNull());
+  const pendingUpdate = Promise.withResolvers<WorkedModelNetProjection>();
+  vi.mocked(updateNetProjectionDefinition).mockReturnValue(
+    pendingUpdate.promise,
+  );
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   let settled = false;
   act(() => {
@@ -229,20 +241,20 @@ test("settles the persistence operation for an exact document revision", async (
   expect(settled).toBe(false);
 
   pendingUpdate.resolve(
-    copy("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
+    netProjection("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
   );
   await waitFor(() => expect(settled).toBe(true));
 });
 
-test("creates a clean copy only after queued writes settle", async () => {
-  vi.mocked(updateWorkedModelDefinition).mockResolvedValue(
-    copy("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
+test("creates a clean net projection only after queued writes settle", async () => {
+  vi.mocked(updateNetProjectionDefinition).mockResolvedValue(
+    netProjection("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
   );
-  vi.mocked(createCleanWorkedModelCopy).mockResolvedValue(
-    copy("a".repeat(64), emptyDefinition, "copy-clean"),
+  vi.mocked(createCleanNetProjection).mockResolvedValue(
+    netProjection("a".repeat(64), emptyDefinition, "copy-clean"),
   );
-  const { result } = renderHook(() => useWorkedModelCopy(input));
-  await waitFor(() => expect(result.current.copy).not.toBeNull());
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   await act(async () => {
     await result.current.persistDefinition({
@@ -250,26 +262,32 @@ test("creates a clean copy only after queued writes settle", async () => {
       previousRevisionId: "revision-1",
       revisionId: "revision-2",
     });
-    await result.current.createCleanCopy();
+    await result.current.createCleanNetProjection();
   });
 
-  expect(createCleanWorkedModelCopy).toHaveBeenCalledWith(requestInput);
-  expect(result.current.copy?.documentId).toBe("copy-clean-document");
+  expect(createCleanNetProjection).toHaveBeenCalledWith(requestInput);
+  expect(result.current.netProjection?.documentId).toBe("copy-clean-document");
 });
 
 test("a delayed write cannot target or repopulate a newly selected copy", async () => {
-  const pendingUpdate = Promise.withResolvers<WorkedModelCopy>();
-  vi.mocked(resolveWorkedModelCopy)
-    .mockResolvedValueOnce(copy("a".repeat(64), emptyDefinition, "copy-1"))
-    .mockResolvedValueOnce(copy("b".repeat(64), emptyDefinition, "copy-2"));
-  vi.mocked(updateWorkedModelDefinition).mockReturnValue(pendingUpdate.promise);
+  const pendingUpdate = Promise.withResolvers<WorkedModelNetProjection>();
+  vi.mocked(resolveNetProjection)
+    .mockResolvedValueOnce(
+      netProjection("a".repeat(64), emptyDefinition, "copy-1"),
+    )
+    .mockResolvedValueOnce(
+      netProjection("b".repeat(64), emptyDefinition, "copy-2"),
+    );
+  vi.mocked(updateNetProjectionDefinition).mockReturnValue(
+    pendingUpdate.promise,
+  );
   const { result, rerender } = renderHook(
     ({ bundleKey }: { bundleKey: string }) =>
-      useWorkedModelCopy({ ...input, bundleKey }),
+      useWorkedModelNetProjection({ ...input, bundleKey }),
     { initialProps: { bundleKey: "inventory-purchasing" } },
   );
   await waitFor(() =>
-    expect(result.current.copy?.documentId).toBe("copy-1-document"),
+    expect(result.current.netProjection?.documentId).toBe("copy-1-document"),
   );
 
   let write: Promise<void> | undefined;
@@ -280,31 +298,31 @@ test("a delayed write cannot target or repopulate a newly selected copy", async 
       revisionId: "revision-2",
     });
   });
-  await waitFor(() => expect(updateWorkedModelDefinition).toHaveBeenCalled());
+  await waitFor(() => expect(updateNetProjectionDefinition).toHaveBeenCalled());
   rerender({ bundleKey: "another-bundle" });
   await waitFor(() =>
-    expect(result.current.copy?.documentId).toBe("copy-2-document"),
+    expect(result.current.netProjection?.documentId).toBe("copy-2-document"),
   );
 
   pendingUpdate.resolve(
-    copy("c".repeat(64), emptyDefinition, "copy-1", "revision-2"),
+    netProjection("c".repeat(64), emptyDefinition, "copy-1", "revision-2"),
   );
   await act(async () => write);
 
-  expect(updateWorkedModelDefinition).toHaveBeenCalledWith(
+  expect(updateNetProjectionDefinition).toHaveBeenCalledWith(
     expect.objectContaining({ copyId: "copy-1" }),
   );
-  expect(result.current.copy?.documentId).toBe("copy-2-document");
+  expect(result.current.netProjection?.documentId).toBe("copy-2-document");
 });
 
 test("does not resolve a bundle while disabled", () => {
   const { result } = renderHook(() =>
-    useWorkedModelCopy({ ...input, enabled: false }),
+    useWorkedModelNetProjection({ ...input, enabled: false }),
   );
   expect(result.current).toMatchObject({
-    copy: null,
+    netProjection: null,
     error: null,
     loading: false,
   });
-  expect(resolveWorkedModelCopy).not.toHaveBeenCalled();
+  expect(resolveNetProjection).not.toHaveBeenCalled();
 });

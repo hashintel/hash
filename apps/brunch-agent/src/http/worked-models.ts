@@ -18,14 +18,16 @@ const definitionFrom = (value: unknown): SDCPN | undefined => {
     return undefined;
   const parsed = parseSDCPNFile({
     ...value,
-    title: "Worked-model copy",
+    title: "Worked-model net projection",
   });
   if (!parsed.ok) return undefined;
   const { title: _title, ...definition } = parsed.sdcpn;
   return definition;
 };
 
-export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
+export const createWorkedModelNetProjectionRouter = (
+  store: WorkedModelStore,
+): Hono => {
   const router = new Hono();
 
   router.get("/bundles/:bundleKey", async (context) => {
@@ -37,12 +39,16 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
     const bundleKey = context.req.param("bundleKey");
     if (!bundleKeyPattern.test(bundleKey))
       return context.json({ error: "invalid-bundle-key" }, 400);
-    const copy = await store.resolveCopy({ bundleKey, principalKey });
-    return copy === undefined
+    const netProjection = await store.resolveNetProjection({
+      bundleKey,
+      principalKey,
+    });
+    return netProjection === undefined
       ? context.json({ error: "bundle-not-found" }, 404)
-      : context.json(copy);
+      : context.json(netProjection);
   });
 
+  // Compatibility path: "copies" currently creates only a fresh net projection.
   router.post("/bundles/:bundleKey/copies", async (context) => {
     const principalKey = principalFrom(
       context.req.header(BRUNCH_PRINCIPAL_HEADER),
@@ -52,12 +58,16 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
     const bundleKey = context.req.param("bundleKey");
     if (!bundleKeyPattern.test(bundleKey))
       return context.json({ error: "invalid-bundle-key" }, 400);
-    const copy = await store.createCleanCopy({ bundleKey, principalKey });
-    return copy === undefined
+    const netProjection = await store.createCleanNetProjection({
+      bundleKey,
+      principalKey,
+    });
+    return netProjection === undefined
       ? context.json({ error: "bundle-not-found" }, 404)
-      : context.json(copy, 201);
+      : context.json(netProjection, 201);
   });
 
+  // Compatibility path: "copies" currently updates only projection net state.
   router.put("/copies/:copyId/definition", async (context) => {
     const principalKey = principalFrom(
       context.req.header(BRUNCH_PRINCIPAL_HEADER),
@@ -95,7 +105,7 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
     )
       return context.json({ error: "invalid-definition-update" }, 400);
     try {
-      const copy = await store.updateCopyDefinition({
+      const netProjection = await store.updateNetProjectionDefinition({
         copyId: context.req.param("copyId"),
         principalKey,
         expectedSha256,
@@ -103,13 +113,14 @@ export const createWorkedModelRouter = (store: WorkedModelStore): Hono => {
         definition,
         revisionId,
       });
-      return copy === undefined
+      return netProjection === undefined
         ? context.json({ error: "copy-not-found" }, 404)
-        : context.json(copy);
+        : context.json(netProjection);
     } catch (error) {
       if (
         error instanceof Error &&
-        error.message === "Worked-model copy changed before this update."
+        error.message ===
+          "Worked-model net projection changed before this update."
       )
         return context.json({ error: "stale-copy" }, 409);
       throw error;

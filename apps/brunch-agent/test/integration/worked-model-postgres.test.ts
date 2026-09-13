@@ -39,7 +39,7 @@ const fixture = (
 });
 
 test.skipIf(connectionString === undefined)(
-  "seeds and isolates worked-model copies in real Postgres",
+  "seeds and isolates worked-model net projections in real Postgres",
   async () => {
     const pool = new Pool({ connectionString });
     const runner = createPostgresRunnerFromPool(pool);
@@ -54,20 +54,20 @@ test.skipIf(connectionString === undefined)(
 
       await store.seed([fixture()]);
       await store.seed([fixture()]);
-      const first = await store.resolveCopy({
+      const first = await store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-a",
       });
-      const resumed = await store.resolveCopy({
+      const resumed = await store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-a",
       });
-      const sibling = await store.resolveCopy({
+      const sibling = await store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-b",
       });
       if (first === undefined || sibling === undefined)
-        throw new Error("Expected seeded copies");
+        throw new Error("Expected seeded net projections");
 
       const changedDefinition: SDCPN = {
         ...emptyDefinition,
@@ -83,7 +83,7 @@ test.skipIf(connectionString === undefined)(
           },
         ],
       };
-      const changed = await store.updateCopyDefinition({
+      const changed = await store.updateNetProjectionDefinition({
         copyId: first.copyId,
         principalKey: "principal-a",
         expectedSha256: first.definitionSha256,
@@ -91,16 +91,16 @@ test.skipIf(connectionString === undefined)(
         definition: changedDefinition,
         revisionId: "changed-revision",
       });
-      const clean = await store.createCleanCopy({
+      const clean = await store.createCleanNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-a",
       });
       await store.seed([fixture("inventory-purchasing-v2")]);
-      const newer = await store.resolveCopy({
+      const newer = await store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-c",
       });
-      const siblingAfter = await store.resolveCopy({
+      const siblingAfter = await store.resolveNetProjection({
         bundleKey: "inventory-purchasing",
         principalKey: "principal-b",
       });

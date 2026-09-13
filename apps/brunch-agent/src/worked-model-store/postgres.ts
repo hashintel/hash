@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type {
-  WorkedModelCopy,
+  WorkedModelNetProjection,
   WorkedModelFixture,
   WorkedModelStore,
 } from "../worked-model-store.ts";
@@ -27,7 +27,9 @@ const jsonField = (
   return value as Record<string, unknown>;
 };
 
-const copyFromRow = (row: Record<string, unknown>): WorkedModelCopy => ({
+const netProjectionFromRow = (
+  row: Record<string, unknown>,
+): WorkedModelNetProjection => ({
   bundleKey: stringField(row, "bundleKey"),
   copyId: stringField(row, "copyId"),
   conversationId: stringField(row, "conversationId"),
@@ -36,12 +38,15 @@ const copyFromRow = (row: Record<string, unknown>): WorkedModelCopy => ({
   fixtureVersion: stringField(row, "fixtureVersion"),
   principalKey: stringField(row, "principalKey"),
   title: stringField(row, "title"),
-  definition: jsonField(row, "definition") as WorkedModelCopy["definition"],
+  definition: jsonField(
+    row,
+    "definition",
+  ) as WorkedModelNetProjection["definition"],
   definitionSha256: stringField(row, "definitionSha256"),
   revisionId: stringField(row, "revisionId"),
 });
 
-const copySelection = `
+const netProjectionSelection = `
   SELECT
     bundle_key AS "bundleKey",
     copy_id AS "copyId",
@@ -54,6 +59,7 @@ const copySelection = `
     definition AS "definition",
     definition_sha256 AS "definitionSha256",
     revision_id AS "revisionId"
+  -- Compatibility table name: rows currently store incomplete net projections.
   FROM brunch_worked_model_copies
 `;
 
@@ -66,6 +72,7 @@ const createTables = async (query: Query): Promise<void> => {
       fixture JSONB NOT NULL
     )
   `);
+  // Compatibility table name: this currently persists incomplete net projections.
   await query(`
     CREATE TABLE IF NOT EXISTS brunch_worked_model_copies (
       copy_id TEXT PRIMARY KEY,
@@ -109,7 +116,9 @@ const fixtureFromRow = (row: Record<string, unknown>): WorkedModelFixture =>
 export const createPostgresWorkedModelStore = (
   runner: PostgresRunner,
   fixtureSha256: (fixture: WorkedModelFixture) => string,
-  definitionSha256: (definition: WorkedModelCopy["definition"]) => string,
+  definitionSha256: (
+    definition: WorkedModelNetProjection["definition"],
+  ) => string,
   createId: () => string = randomUUID,
 ): WorkedModelStore => {
   let migration: Promise<void> | undefined;
@@ -121,7 +130,7 @@ export const createPostgresWorkedModelStore = (
   const instantiate = (
     fixture: WorkedModelFixture,
     principalKey: string,
-  ): WorkedModelCopy => {
+  ): WorkedModelNetProjection => {
     const definition = structuredClone(fixture.definition);
     return {
       bundleKey: fixture.bundleKey,
@@ -138,12 +147,12 @@ export const createPostgresWorkedModelStore = (
     };
   };
 
-  const insertCopy = async (
+  const insertNetProjection = async (
     query: Query,
-    copy: WorkedModelCopy,
+    netProjection: WorkedModelNetProjection,
     fixture: WorkedModelFixture,
     onConflict = "",
-  ): Promise<WorkedModelCopy | undefined> => {
+  ): Promise<WorkedModelNetProjection | undefined> => {
     const rows = await query(
       `
         INSERT INTO brunch_worked_model_copies (
@@ -177,22 +186,22 @@ export const createPostgresWorkedModelStore = (
           revision_id AS "revisionId"
       `,
       [
-        copy.copyId,
-        copy.bundleKey,
-        copy.fixtureVersion,
-        copy.principalKey,
-        copy.conversationId,
-        copy.documentId,
-        copy.incarnationId,
-        copy.title,
+        netProjection.copyId,
+        netProjection.bundleKey,
+        netProjection.fixtureVersion,
+        netProjection.principalKey,
+        netProjection.conversationId,
+        netProjection.documentId,
+        netProjection.incarnationId,
+        netProjection.title,
         JSON.stringify(fixture),
-        JSON.stringify(copy.definition),
-        copy.definitionSha256,
-        copy.revisionId,
+        JSON.stringify(netProjection.definition),
+        netProjection.definitionSha256,
+        netProjection.revisionId,
       ],
     );
     const row = rows[0];
-    return row === undefined ? undefined : copyFromRow(row);
+    return row === undefined ? undefined : netProjectionFromRow(row);
   };
 
   const currentFixture = async (
@@ -268,21 +277,21 @@ export const createPostgresWorkedModelStore = (
         }
       });
     },
-    resolveCopy: async ({ bundleKey, principalKey }) => {
+    resolveNetProjection: async ({ bundleKey, principalKey }) => {
       await ensureTables();
       return runner.transaction(async ({ query }) => {
         const existingRows = await query(
-          `${copySelection}
+          `${netProjectionSelection}
            WHERE principal_key = $1 AND bundle_key = $2 AND active
            LIMIT 1
            FOR UPDATE`,
           [principalKey, bundleKey],
         );
         const existing = existingRows[0];
-        if (existing !== undefined) return copyFromRow(existing);
+        if (existing !== undefined) return netProjectionFromRow(existing);
         const fixture = await currentFixture(query, bundleKey);
         if (fixture === undefined) return undefined;
-        const inserted = await insertCopy(
+        const inserted = await insertNetProjection(
           query,
           instantiate(fixture, principalKey),
           fixture,
@@ -290,16 +299,16 @@ export const createPostgresWorkedModelStore = (
         );
         if (inserted !== undefined) return inserted;
         const racedRows = await query(
-          `${copySelection}
+          `${netProjectionSelection}
            WHERE principal_key = $1 AND bundle_key = $2 AND active
            LIMIT 1`,
           [principalKey, bundleKey],
         );
         const raced = racedRows[0];
-        return raced === undefined ? undefined : copyFromRow(raced);
+        return raced === undefined ? undefined : netProjectionFromRow(raced);
       });
     },
-    createCleanCopy: async ({ bundleKey, principalKey }) => {
+    createCleanNetProjection: async ({ bundleKey, principalKey }) => {
       await ensureTables();
       return runner.transaction(async ({ query }) => {
         const fixture = await currentFixture(query, bundleKey);
@@ -312,10 +321,14 @@ export const createPostgresWorkedModelStore = (
           `,
           [principalKey, bundleKey],
         );
-        return insertCopy(query, instantiate(fixture, principalKey), fixture);
+        return insertNetProjection(
+          query,
+          instantiate(fixture, principalKey),
+          fixture,
+        );
       });
     },
-    updateCopyDefinition: async ({
+    updateNetProjectionDefinition: async ({
       copyId,
       principalKey,
       expectedSha256,
@@ -324,23 +337,27 @@ export const createPostgresWorkedModelStore = (
       revisionId,
     }) => {
       if (revisionId === expectedRevisionId)
-        throw new Error("Worked-model copy revision did not advance.");
+        throw new Error(
+          "Worked-model net projection revision did not advance.",
+        );
       await ensureTables();
       return runner.transaction(async ({ query }) => {
         const currentRows = await query(
-          `${copySelection}
+          `${netProjectionSelection}
            WHERE copy_id = $1 AND principal_key = $2
            FOR UPDATE`,
           [copyId, principalKey],
         );
         const currentRow = currentRows[0];
         if (currentRow === undefined) return undefined;
-        const current = copyFromRow(currentRow);
+        const current = netProjectionFromRow(currentRow);
         if (
           current.definitionSha256 !== expectedSha256 ||
           current.revisionId !== expectedRevisionId
         )
-          throw new Error("Worked-model copy changed before this update.");
+          throw new Error(
+            "Worked-model net projection changed before this update.",
+          );
         const updatedRows = await query(
           `
             UPDATE brunch_worked_model_copies
@@ -368,7 +385,9 @@ export const createPostgresWorkedModelStore = (
           ],
         );
         const updated = updatedRows[0];
-        return updated === undefined ? undefined : copyFromRow(updated);
+        return updated === undefined
+          ? undefined
+          : netProjectionFromRow(updated);
       });
     },
   };

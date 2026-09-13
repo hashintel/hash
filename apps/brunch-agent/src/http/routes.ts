@@ -2,7 +2,7 @@
 
 export const CHAT_AGENT_ROUTE = "chat";
 
-/** Principal-owned copies instantiated from build-seeded worked-model fixtures. */
+/** Principal-owned net projections instantiated from build-seeded worked-model fixtures. */
 export const WORKED_MODELS_ROUTE = "/api/worked-models";
 
 /** Cheap process-liveness probe; dependency readiness is established before listen. */

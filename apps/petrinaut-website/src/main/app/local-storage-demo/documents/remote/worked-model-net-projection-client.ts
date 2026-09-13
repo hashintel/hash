@@ -5,7 +5,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-export interface WorkedModelCopy {
+export interface WorkedModelNetProjection {
   readonly bundleKey: string;
   readonly copyId: string;
   readonly conversationId: string;
@@ -28,28 +28,42 @@ const nonBlankString = (value: unknown, field: string): string => {
 const definitionFrom = (value: unknown): SDCPN => {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new Error("Worked-model response has no definition.");
-  const parsed = parseSDCPNFile({ ...value, title: "Worked-model copy" });
+  const parsed = parseSDCPNFile({
+    ...value,
+    title: "Worked-model net projection",
+  });
   if (!parsed.ok) throw new Error(parsed.error);
   const { title: _title, ...definition } = parsed.sdcpn;
   return definition;
 };
 
-export const parseWorkedModelCopy = (value: unknown): WorkedModelCopy => {
+export const parseWorkedModelNetProjection = (
+  value: unknown,
+): WorkedModelNetProjection => {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new Error("Worked-model response is not an object.");
-  const copy = value as Record<string, unknown>;
+  const netProjection = value as Record<string, unknown>;
   return {
-    bundleKey: nonBlankString(copy.bundleKey, "bundleKey"),
-    copyId: nonBlankString(copy.copyId, "copyId"),
-    conversationId: nonBlankString(copy.conversationId, "conversationId"),
-    documentId: nonBlankString(copy.documentId, "documentId"),
-    incarnationId: nonBlankString(copy.incarnationId, "incarnationId"),
-    fixtureVersion: nonBlankString(copy.fixtureVersion, "fixtureVersion"),
-    principalKey: nonBlankString(copy.principalKey, "principalKey"),
-    title: nonBlankString(copy.title, "title"),
-    definition: definitionFrom(copy.definition),
-    definitionSha256: nonBlankString(copy.definitionSha256, "definitionSha256"),
-    revisionId: nonBlankString(copy.revisionId, "revisionId"),
+    bundleKey: nonBlankString(netProjection.bundleKey, "bundleKey"),
+    copyId: nonBlankString(netProjection.copyId, "copyId"),
+    conversationId: nonBlankString(
+      netProjection.conversationId,
+      "conversationId",
+    ),
+    documentId: nonBlankString(netProjection.documentId, "documentId"),
+    incarnationId: nonBlankString(netProjection.incarnationId, "incarnationId"),
+    fixtureVersion: nonBlankString(
+      netProjection.fixtureVersion,
+      "fixtureVersion",
+    ),
+    principalKey: nonBlankString(netProjection.principalKey, "principalKey"),
+    title: nonBlankString(netProjection.title, "title"),
+    definition: definitionFrom(netProjection.definition),
+    definitionSha256: nonBlankString(
+      netProjection.definitionSha256,
+      "definitionSha256",
+    ),
+    revisionId: nonBlankString(netProjection.revisionId, "revisionId"),
   };
 };
 
@@ -64,7 +78,7 @@ export const workedModelApiUrl = (
   return url;
 };
 
-const copyRequest = async (
+const netProjectionRequest = async (
   input: {
     readonly chatEndpoint: string;
     readonly currentOrigin: string;
@@ -74,7 +88,7 @@ const copyRequest = async (
     readonly body?: unknown;
   },
   fetcher: typeof fetch,
-): Promise<WorkedModelCopy> => {
+): Promise<WorkedModelNetProjection> => {
   const url = workedModelApiUrl(input.chatEndpoint, input.currentOrigin);
   url.pathname = `${url.pathname}${input.path}`;
   const response = await fetcher(url, {
@@ -93,10 +107,10 @@ const copyRequest = async (
       `Worked-model request failed (${response.status})${detail ? `: ${detail}` : ""}`,
     );
   }
-  return parseWorkedModelCopy(await response.json());
+  return parseWorkedModelNetProjection(await response.json());
 };
 
-export const resolveWorkedModelCopy = (
+export const resolveNetProjection = (
   input: {
     readonly chatEndpoint: string;
     readonly currentOrigin: string;
@@ -104,8 +118,8 @@ export const resolveWorkedModelCopy = (
     readonly bundleKey: string;
   },
   fetcher: typeof fetch = globalThis.fetch,
-): Promise<WorkedModelCopy> =>
-  copyRequest(
+): Promise<WorkedModelNetProjection> =>
+  netProjectionRequest(
     {
       ...input,
       path: `/bundles/${encodeURIComponent(input.bundleKey)}`,
@@ -113,7 +127,7 @@ export const resolveWorkedModelCopy = (
     fetcher,
   );
 
-export const createCleanWorkedModelCopy = (
+export const createCleanNetProjection = (
   input: {
     readonly chatEndpoint: string;
     readonly currentOrigin: string;
@@ -121,8 +135,8 @@ export const createCleanWorkedModelCopy = (
     readonly bundleKey: string;
   },
   fetcher: typeof fetch = globalThis.fetch,
-): Promise<WorkedModelCopy> =>
-  copyRequest(
+): Promise<WorkedModelNetProjection> =>
+  netProjectionRequest(
     {
       ...input,
       path: `/bundles/${encodeURIComponent(input.bundleKey)}/copies`,
@@ -131,7 +145,7 @@ export const createCleanWorkedModelCopy = (
     fetcher,
   );
 
-export const updateWorkedModelDefinition = (
+export const updateNetProjectionDefinition = (
   input: {
     readonly chatEndpoint: string;
     readonly currentOrigin: string;
@@ -143,8 +157,8 @@ export const updateWorkedModelDefinition = (
     readonly revisionId: DocumentRevisionId;
   },
   fetcher: typeof fetch = globalThis.fetch,
-): Promise<WorkedModelCopy> =>
-  copyRequest(
+): Promise<WorkedModelNetProjection> =>
+  netProjectionRequest(
     {
       ...input,
       path: `/copies/${encodeURIComponent(input.copyId)}/definition`,

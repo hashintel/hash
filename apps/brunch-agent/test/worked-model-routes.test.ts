@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
-import { createWorkedModelRouter } from "../src/http/worked-models.ts";
+import { createWorkedModelNetProjectionRouter } from "../src/http/worked-models.ts";
 import {
   createInMemoryWorkedModelStore,
   type WorkedModelFixture,
@@ -53,7 +53,7 @@ const request = (
   });
 };
 
-describe("worked-model routes", () => {
+describe("worked-model net-projection routes", () => {
   let app: Hono;
   let store: WorkedModelStore;
 
@@ -62,10 +62,13 @@ describe("worked-model routes", () => {
     store = createInMemoryWorkedModelStore(() => `id-${nextId++}`);
     await store.seed([fixture]);
     app = new Hono();
-    app.route("/api/worked-models", createWorkedModelRouter(store));
+    app.route(
+      "/api/worked-models",
+      createWorkedModelNetProjectionRouter(store),
+    );
   });
 
-  test("requires a principal before resolving or creating copies", async () => {
+  test("requires a principal before resolving or creating net projections", async () => {
     for (const [path, method] of [
       ["/api/worked-models/bundles/inventory-purchasing", "GET"],
       ["/api/worked-models/bundles/inventory-purchasing/copies", "POST"],
@@ -77,7 +80,7 @@ describe("worked-model routes", () => {
     }
   });
 
-  test("resolves the same active copy and creates a clean replacement", async () => {
+  test("resolves the same active net projection and creates a clean replacement", async () => {
     const path = "/api/worked-models/bundles/inventory-purchasing";
     const firstResponse = await app.fetch(request(path, "principal-a"));
     const resumedResponse = await app.fetch(request(path, "principal-a"));
@@ -85,12 +88,17 @@ describe("worked-model routes", () => {
       request(`${path}/copies`, "principal-a", { method: "POST" }),
     );
     const afterCleanResponse = await app.fetch(request(path, "principal-a"));
-    const first = (await firstResponse.json()) as { copyId: string };
+    const first = (await firstResponse.json()) as Record<string, unknown> & {
+      copyId: string;
+    };
     const resumed = (await resumedResponse.json()) as { copyId: string };
     const clean = (await cleanResponse.json()) as { copyId: string };
     const afterClean = (await afterCleanResponse.json()) as { copyId: string };
 
     expect(firstResponse.status).toBe(200);
+    // The compatibility route currently returns only the net projection.
+    expect(first).not.toHaveProperty("session");
+    expect(first).not.toHaveProperty("workpiece");
     expect(resumed.copyId).toBe(first.copyId);
     expect(cleanResponse.status).toBe(201);
     expect(clean.copyId).not.toBe(first.copyId);
@@ -101,7 +109,7 @@ describe("worked-model routes", () => {
     const resolved = await app.fetch(
       request("/api/worked-models/bundles/inventory-purchasing", "principal-a"),
     );
-    const copy = (await resolved.json()) as {
+    const netProjection = (await resolved.json()) as {
       copyId: string;
       definitionSha256: string;
       revisionId: string;
@@ -120,16 +128,16 @@ describe("worked-model routes", () => {
         },
       ],
     };
-    const updatePath = `/api/worked-models/copies/${copy.copyId}/definition`;
+    const updatePath = `/api/worked-models/copies/${netProjection.copyId}/definition`;
     const unchangedRevision = await app.fetch(
       request(updatePath, "principal-a", {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          expectedSha256: copy.definitionSha256,
-          expectedRevisionId: copy.revisionId,
+          expectedSha256: netProjection.definitionSha256,
+          expectedRevisionId: netProjection.revisionId,
           definition: changedDefinition,
-          revisionId: copy.revisionId,
+          revisionId: netProjection.revisionId,
         }),
       }),
     );
@@ -138,8 +146,8 @@ describe("worked-model routes", () => {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          expectedSha256: copy.definitionSha256,
-          expectedRevisionId: copy.revisionId,
+          expectedSha256: netProjection.definitionSha256,
+          expectedRevisionId: netProjection.revisionId,
           definition: changedDefinition,
           revisionId: "changed-revision",
         }),
@@ -155,8 +163,8 @@ describe("worked-model routes", () => {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          expectedSha256: copy.definitionSha256,
-          expectedRevisionId: copy.revisionId,
+          expectedSha256: netProjection.definitionSha256,
+          expectedRevisionId: netProjection.revisionId,
           definition: emptyDefinition,
           revisionId: "stale-revision",
         }),
@@ -169,13 +177,13 @@ describe("worked-model routes", () => {
     });
     expect(update.status).toBe(200);
     expect(updated.definition).toMatchObject(changedDefinition);
-    expect(updated.definitionSha256).not.toBe(copy.definitionSha256);
+    expect(updated.definitionSha256).not.toBe(netProjection.definitionSha256);
     expect(updated.revisionId).toBe("changed-revision");
     expect(stale.status).toBe(409);
     expect(await stale.json()).toEqual({ error: "stale-copy" });
   });
 
-  test("keeps copies isolated by principal", async () => {
+  test("keeps net projections isolated by principal", async () => {
     const path = "/api/worked-models/bundles/inventory-purchasing";
     const first = (await (
       await app.fetch(request(path, "principal-a"))

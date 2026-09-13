@@ -1,4 +1,11 @@
-/** Build-seeded bundle -> owned browser copy -> mutation -> reopen -> clean copy. */
+/**
+ * Injected in-memory fixture -> owned browser net projection -> mutation ->
+ * reopen -> clean net projection.
+ *
+ * This proves only net mutation, reopen, clean-net and principal isolation
+ * mechanics. It does not prove build discovery, Postgres, retained fixture
+ * session/workpiece hydration or provenance remapping.
+ */
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,7 +28,7 @@ import {
 
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { createWorkedModelRouter } from "../src/http/worked-models.ts";
+import { createWorkedModelNetProjectionRouter } from "../src/http/worked-models.ts";
 import {
   createInMemoryWorkedModelStore,
   type WorkedModelFixture,
@@ -32,7 +39,7 @@ import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 import type { BuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 
-const output = mkdtempSync(join(tmpdir(), "worked-model-copy-"));
+const output = mkdtempSync(join(tmpdir(), "worked-model-net-projection-"));
 const website = resolve(
   process.env.M7_WEBSITE_DIST ?? "../petrinaut-website/dist",
 );
@@ -48,12 +55,14 @@ const faux = fauxProvider({
 installFauxProvider(nativeSchemaProvider(faux.provider, [], []));
 
 let nextId = 0;
-const store = createInMemoryWorkedModelStore(() => `copy-tracer-${nextId++}`);
+const store = createInMemoryWorkedModelStore(
+  () => `net-projection-tracer-${nextId++}`,
+);
 const fixture: WorkedModelFixture = {
   bundleKey: "inventory-purchasing",
-  fixtureVersion: "copy-tracer-v1",
+  fixtureVersion: "net-projection-tracer-v1",
   sourceManifestSha256: "f".repeat(64),
-  title: "Inventory purchasing copy tracer",
+  title: "Inventory purchasing net-projection tracer",
   session: {
     v: 1,
     conversationId: "fixture-source",
@@ -61,7 +70,7 @@ const fixture: WorkedModelFixture = {
     messages: [],
     settlements: [],
   },
-  workpiece: "# Copy tracer\n\nOne receiving place.",
+  workpiece: "# Net-projection tracer\n\nOne receiving place.",
   definition: {
     places: [],
     transitions: [],
@@ -69,13 +78,16 @@ const fixture: WorkedModelFixture = {
     parameters: [],
     differentialEquations: [],
   },
-  revisionId: "copy-tracer-fixture-revision",
+  revisionId: "net-projection-tracer-fixture-revision",
 };
 await store.seed([fixture]);
 
 const built = await loadBuiltBrunchApplication();
 const workedModelApp = new Hono();
-workedModelApp.route("/api/worked-models", createWorkedModelRouter(store));
+workedModelApp.route(
+  "/api/worked-models",
+  createWorkedModelNetProjectionRouter(store),
+);
 const app: BuiltBrunchApplication = {
   fetch: (request) =>
     new URL(request.url).pathname.startsWith("/api/worked-models/")
@@ -98,7 +110,7 @@ const textsFrom = (context: Context) =>
           part.type === "text" ? [part.text] : [],
         ),
   );
-const markdown = "# Copy tracer\n\nOne receiving place.";
+const markdown = "# Net-projection tracer\n\nOne receiving place.";
 const operation: MutatePetrinetOperation = {
   operationId: "add-receiving",
   basisId: "receiving-basis",
@@ -138,7 +150,7 @@ const locateBasis = (context: Context) => {
     revisionId: located.currentWorkpiece.revisionId,
     sha256: located.currentWorkpiece.sha256,
     locators: [locator],
-    rationale: "Synthetic copy tracer basis.",
+    rationale: "Synthetic net-projection tracer basis.",
     scope: "operation" as const,
   };
 };
@@ -157,7 +169,7 @@ try {
       const observation = browserResultFrom(
         textsFrom(context),
         readPetrinautNetToolName,
-        "Missing copy observation",
+        "Missing net-projection observation",
       ).metadata?.observation;
       assert(observation);
       return tool(
@@ -173,7 +185,9 @@ try {
         "mutate-1",
       );
     },
-    fauxAssistantMessage([fauxText("Worked-model copy mutation completed.")]),
+    fauxAssistantMessage([
+      fauxText("Worked-model net projection mutation completed."),
+    ]),
   ]);
   await page.goto(`${origin}/?bundle=inventory-purchasing`);
   await page.getByRole("button", { name: "Skip tour" }).click();
@@ -187,14 +201,16 @@ try {
   await composer.fill("Record and add the receiving place.");
   await composer.press("Enter");
   await page
-    .getByText("Worked-model copy mutation completed.", { exact: true })
+    .getByText("Worked-model net projection mutation completed.", {
+      exact: true,
+    })
     .waitFor({ timeout: 60_000 });
 
   const principalKey = await page.evaluate(
     () => localStorage.getItem("brunch-principal-v1") ?? "",
   );
   assert(principalKey);
-  const changed = await store.resolveCopy({
+  const changed = await store.resolveNetProjection({
     bundleKey: fixture.bundleKey,
     principalKey,
   });
@@ -206,9 +222,11 @@ try {
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
   await page
-    .getByText("Worked-model copy mutation completed.", { exact: true })
+    .getByText("Worked-model net projection mutation completed.", {
+      exact: true,
+    })
     .waitFor({ timeout: 30_000 });
-  const reopened = await store.resolveCopy({
+  const reopened = await store.resolveNetProjection({
     bundleKey: fixture.bundleKey,
     principalKey,
   });
@@ -219,14 +237,14 @@ try {
   await page.keyboard.press("Meta+k");
   await page
     .getByRole("button", {
-      name: /Create a clean copy of this worked model/u,
+      name: /Create a fresh net projection from this template/u,
     })
     .click();
   await page.waitForFunction(() => {
     const raw = localStorage.getItem("brunch-principal-v1");
     return raw !== null;
   });
-  const clean = await store.resolveCopy({
+  const clean = await store.resolveNetProjection({
     bundleKey: fixture.bundleKey,
     principalKey,
   });
@@ -246,7 +264,7 @@ try {
     );
     assert(siblingPrincipal);
     assert.notEqual(siblingPrincipal, principalKey);
-    const sibling = await store.resolveCopy({
+    const sibling = await store.resolveNetProjection({
       bundleKey: fixture.bundleKey,
       principalKey: siblingPrincipal,
     });
@@ -260,7 +278,14 @@ try {
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
   process.stdout.write(
-    `WORKED_MODEL_COPY ${JSON.stringify({
+    `WORKED_MODEL_NET_PROJECTION ${JSON.stringify({
+      fixtureSource: "in-memory-injected",
+      provenMechanics: [
+        "net-mutation",
+        "reopen",
+        "clean-net",
+        "principal-isolation",
+      ],
       changedCopyId: changed.copyId,
       cleanCopyId: clean.copyId,
       reopened: reopened.copyId === changed.copyId,

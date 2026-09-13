@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useRemoteDocumentRepository } from "./use-remote-document-repository";
 
 const workedModel = vi.hoisted(() => ({
-  copy: {
+  netProjection: {
     bundleKey: "inventory-purchasing",
     copyId: "private-copy-id",
     conversationId: "conversation-1",
@@ -28,13 +28,13 @@ const workedModel = vi.hoisted(() => ({
   },
   error: null,
   loading: false,
-  createCleanCopy: vi.fn(async () => undefined),
+  createCleanNetProjection: vi.fn(async () => undefined),
   persistDefinition: vi.fn(async () => undefined),
   settleDocumentRevision: vi.fn(async () => undefined),
 }));
 
-vi.mock("./use-worked-model-copy", () => ({
-  useWorkedModelCopy: () => workedModel,
+vi.mock("./use-worked-model-net-projection", () => ({
+  useWorkedModelNetProjection: () => workedModel,
 }));
 
 const input = {
@@ -68,7 +68,7 @@ describe("useRemoteDocumentRepository", () => {
       conversationId: "conversation-1",
     });
     expect(result.current.repository.actions).toEqual({
-      createCleanCopy: workedModel.createCleanCopy,
+      createCleanNetProjection: workedModel.createCleanNetProjection,
     });
   });
 
@@ -79,7 +79,7 @@ describe("useRemoteDocumentRepository", () => {
       result.current.repository.persistRevision({
         documentId: "local-document",
         incarnationId: "local-incarnation",
-        definition: workedModel.copy.definition,
+        definition: workedModel.netProjection.definition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
       }),
@@ -100,6 +100,8 @@ describe("useRemoteDocumentRepository", () => {
     expect(result.current.repository.status).toMatchObject({
       state: "unavailable",
     });
-    expect(result.current.repository.actions.createCleanCopy).toBeUndefined();
+    expect(
+      result.current.repository.actions.createCleanNetProjection,
+    ).toBeUndefined();
   });
 });

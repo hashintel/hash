@@ -1,73 +1,82 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  createCleanWorkedModelCopy,
-  resolveWorkedModelCopy,
-  updateWorkedModelDefinition,
-  type WorkedModelCopy,
-} from "./worked-model-client";
+  createCleanNetProjection as requestCleanNetProjection,
+  resolveNetProjection,
+  updateNetProjectionDefinition,
+  type WorkedModelNetProjection,
+} from "./worked-model-net-projection-client";
 
 import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
-interface WorkedModelCopyState {
-  readonly copy: WorkedModelCopy | null;
+interface WorkedModelNetProjectionState {
+  readonly netProjection: WorkedModelNetProjection | null;
   readonly error: Error | null;
   readonly loading: boolean;
 }
 
-const initialState: WorkedModelCopyState = {
-  copy: null,
+const initialState: WorkedModelNetProjectionState = {
+  netProjection: null,
   error: null,
   loading: false,
 };
 
-export const useWorkedModelCopy = (input: {
+export const useWorkedModelNetProjection = (input: {
   readonly bundleKey: string | undefined;
   readonly chatEndpoint: string;
   readonly currentOrigin: string;
   readonly enabled: boolean;
   readonly principalKey: string;
 }) => {
-  const [state, setState] = useState<WorkedModelCopyState>(initialState);
-  const copyRef = useRef<WorkedModelCopy | null>(null);
+  const [state, setState] =
+    useState<WorkedModelNetProjectionState>(initialState);
+  const netProjectionRef = useRef<WorkedModelNetProjection | null>(null);
   const selectionGenerationRef = useRef(0);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const writeBasesByDocumentIdRef = useRef(new Map<string, WorkedModelCopy>());
+  const writeBasesByDocumentIdRef = useRef(
+    new Map<string, WorkedModelNetProjection>(),
+  );
   const writesByRevisionRef = useRef(
     new Map<DocumentRevisionId, Promise<void>>(),
   );
 
-  const acceptCopy = useCallback((copy: WorkedModelCopy) => {
-    copyRef.current = copy;
-    writeBasesByDocumentIdRef.current.set(copy.documentId, copy);
-    setState({ copy, error: null, loading: false });
-  }, []);
+  const acceptNetProjection = useCallback(
+    (netProjection: WorkedModelNetProjection) => {
+      netProjectionRef.current = netProjection;
+      writeBasesByDocumentIdRef.current.set(
+        netProjection.documentId,
+        netProjection,
+      );
+      setState({ netProjection, error: null, loading: false });
+    },
+    [],
+  );
 
   useEffect(() => {
     const selectionGeneration = selectionGenerationRef.current + 1;
     selectionGenerationRef.current = selectionGeneration;
-    copyRef.current = null;
+    netProjectionRef.current = null;
     writeQueueRef.current = Promise.resolve();
     if (!input.enabled || input.bundleKey === undefined) {
       setState(initialState);
       return;
     }
     let current = true;
-    setState({ copy: null, error: null, loading: true });
-    void resolveWorkedModelCopy({
+    setState({ netProjection: null, error: null, loading: true });
+    void resolveNetProjection({
       chatEndpoint: input.chatEndpoint,
       currentOrigin: input.currentOrigin,
       principalKey: input.principalKey,
       bundleKey: input.bundleKey,
     }).then(
-      (copy) => {
+      (netProjection) => {
         if (current && selectionGenerationRef.current === selectionGeneration)
-          acceptCopy(copy);
+          acceptNetProjection(netProjection);
       },
       (error: unknown) => {
         if (current && selectionGenerationRef.current === selectionGeneration)
           setState({
-            copy: null,
+            netProjection: null,
             error: error instanceof Error ? error : new Error(String(error)),
             loading: false,
           });
@@ -77,7 +86,7 @@ export const useWorkedModelCopy = (input: {
       current = false;
     };
   }, [
-    acceptCopy,
+    acceptNetProjection,
     input.bundleKey,
     input.chatEndpoint,
     input.currentOrigin,
@@ -91,33 +100,39 @@ export const useWorkedModelCopy = (input: {
       readonly previousRevisionId: DocumentRevisionId;
       readonly revisionId: DocumentRevisionId;
     }): Promise<void> => {
-      const copy = copyRef.current;
-      if (copy === null)
-        return Promise.reject(new Error("Worked-model copy is not available."));
+      const netProjection = netProjectionRef.current;
+      if (netProjection === null)
+        return Promise.reject(
+          new Error("Worked-model net projection is not available."),
+        );
       const selectionGeneration = selectionGenerationRef.current;
       const write = writeQueueRef.current.then(async () => {
         const writeBase =
-          writeBasesByDocumentIdRef.current.get(copy.documentId) ?? copy;
+          writeBasesByDocumentIdRef.current.get(netProjection.documentId) ??
+          netProjection;
         if (writeBase.revisionId !== change.previousRevisionId)
           throw new Error(
             "Worked-model document revision does not follow its queued predecessor.",
           );
-        const updated = await updateWorkedModelDefinition({
+        const updated = await updateNetProjectionDefinition({
           chatEndpoint: input.chatEndpoint,
           currentOrigin: input.currentOrigin,
           principalKey: input.principalKey,
-          copyId: copy.copyId,
+          copyId: netProjection.copyId,
           expectedSha256: writeBase.definitionSha256,
           expectedRevisionId: change.previousRevisionId,
           definition: change.definition,
           revisionId: change.revisionId,
         });
-        writeBasesByDocumentIdRef.current.set(copy.documentId, updated);
+        writeBasesByDocumentIdRef.current.set(
+          netProjection.documentId,
+          updated,
+        );
         if (
           selectionGenerationRef.current === selectionGeneration &&
-          copyRef.current?.documentId === copy.documentId
+          netProjectionRef.current?.documentId === netProjection.documentId
         )
-          acceptCopy(updated);
+          acceptNetProjection(updated);
       });
       writesByRevisionRef.current.set(change.revisionId, write);
       if (writesByRevisionRef.current.size > 64) {
@@ -136,14 +151,19 @@ export const useWorkedModelCopy = (input: {
       writeQueueRef.current = write.catch(() => undefined);
       return write;
     },
-    [acceptCopy, input.chatEndpoint, input.currentOrigin, input.principalKey],
+    [
+      acceptNetProjection,
+      input.chatEndpoint,
+      input.currentOrigin,
+      input.principalKey,
+    ],
   );
 
   const settleDocumentRevision = useCallback(
     async (revisionId: DocumentRevisionId): Promise<void> => {
       const write = writesByRevisionRef.current.get(revisionId);
       if (write === undefined) {
-        if (copyRef.current?.revisionId === revisionId) return;
+        if (netProjectionRef.current?.revisionId === revisionId) return;
         throw new Error(
           `Worked-model revision ${revisionId} has no persistence operation.`,
         );
@@ -158,22 +178,24 @@ export const useWorkedModelCopy = (input: {
     [],
   );
 
-  const createCleanCopy = useCallback(async (): Promise<void> => {
+  const createCleanNetProjection = useCallback(async (): Promise<void> => {
     if (!input.enabled || input.bundleKey === undefined)
-      throw new Error("Worked-model bundle is not selected.");
+      throw new Error("Worked-model template is not selected.");
     const selectionGeneration = selectionGenerationRef.current;
     await writeQueueRef.current;
-    const cleanCopy = await createCleanWorkedModelCopy({
+    const cleanNetProjection = await requestCleanNetProjection({
       chatEndpoint: input.chatEndpoint,
       currentOrigin: input.currentOrigin,
       principalKey: input.principalKey,
       bundleKey: input.bundleKey,
     });
     if (selectionGenerationRef.current !== selectionGeneration)
-      throw new Error("Worked-model selection changed while creating a copy.");
-    acceptCopy(cleanCopy);
+      throw new Error(
+        "Worked-model selection changed while creating a net projection.",
+      );
+    acceptNetProjection(cleanNetProjection);
   }, [
-    acceptCopy,
+    acceptNetProjection,
     input.bundleKey,
     input.chatEndpoint,
     input.currentOrigin,
@@ -183,7 +205,7 @@ export const useWorkedModelCopy = (input: {
 
   return {
     ...state,
-    createCleanCopy,
+    createCleanNetProjection,
     persistDefinition,
     settleDocumentRevision,
   };

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { useWorkedModelCopy } from "./use-worked-model-copy";
+import { useWorkedModelNetProjection } from "./use-worked-model-net-projection";
 
 import type {
   DocumentRecord,
@@ -20,7 +20,7 @@ export const useRemoteDocumentRepository = (input: {
   readonly isBrunchConfigured: boolean;
   readonly principalKey: string;
 }): DocumentSource => {
-  const workedModel = useWorkedModelCopy({
+  const workedModel = useWorkedModelNetProjection({
     bundleKey: input.bundleKey,
     chatEndpoint: input.chatEndpoint,
     currentOrigin: input.currentOrigin,
@@ -30,27 +30,27 @@ export const useRemoteDocumentRepository = (input: {
 
   const current = useMemo<DocumentRecord | null>(
     () =>
-      workedModel.copy === null
+      workedModel.netProjection === null
         ? null
         : {
-            documentId: workedModel.copy.documentId,
-            incarnationId: workedModel.copy.incarnationId,
-            revisionId: workedModel.copy.revisionId,
-            title: workedModel.copy.title,
-            definition: workedModel.copy.definition,
+            documentId: workedModel.netProjection.documentId,
+            incarnationId: workedModel.netProjection.incarnationId,
+            revisionId: workedModel.netProjection.revisionId,
+            title: workedModel.netProjection.title,
+            definition: workedModel.netProjection.definition,
             origin: {
               kind: "template",
-              bundleKey: workedModel.copy.bundleKey,
-              fixtureVersion: workedModel.copy.fixtureVersion,
+              bundleKey: workedModel.netProjection.bundleKey,
+              fixtureVersion: workedModel.netProjection.fixtureVersion,
             },
           },
-    [workedModel.copy],
+    [workedModel.netProjection],
   );
 
   const requireCurrent = useCallback(
     (documentId: string): DocumentRecord => {
       if (current === null)
-        throw new Error("Worked-model copy is not available.");
+        throw new Error("Worked-model net projection is not available.");
       if (current.documentId !== documentId)
         throw new Error(
           `Worked-model repository does not own document ${documentId}.`,
@@ -100,7 +100,7 @@ export const useRemoteDocumentRepository = (input: {
       },
       actions:
         input.enabled && input.isBrunchConfigured
-          ? { createCleanCopy: workedModel.createCleanCopy }
+          ? { createCleanNetProjection: workedModel.createCleanNetProjection }
           : {},
       persistRevision,
       settleRevision,
@@ -112,7 +112,7 @@ export const useRemoteDocumentRepository = (input: {
     persistRevision,
     requireCurrent,
     settleRevision,
-    workedModel.createCleanCopy,
+    workedModel.createCleanNetProjection,
     workedModel.error,
     workedModel.loading,
   ]);
@@ -125,10 +125,10 @@ export const useRemoteDocumentRepository = (input: {
         : {
             processAgentSeed: {
               documentId: current.documentId,
-              conversationId: workedModel.copy!.conversationId,
+              conversationId: workedModel.netProjection!.conversationId,
             },
           }),
     }),
-    [current, repository, workedModel.copy],
+    [current, repository, workedModel.netProjection],
   );
 };

@@ -92,8 +92,8 @@ const remoteDocumentState = vi.hoisted(() => ({
   } as RemoteDocumentState,
 }));
 const remoteRepositoryOperations = vi.hoisted(() => ({
-  createCleanCopy: vi.fn<
-    NonNullable<DocumentRepository["actions"]["createCleanCopy"]>
+  createCleanNetProjection: vi.fn<
+    NonNullable<DocumentRepository["actions"]["createCleanNetProjection"]>
   >(async (): Promise<void> => undefined),
   open: vi.fn<DocumentRepository["open"]>(),
   persistRevision: vi.fn<DocumentRepository["persistRevision"]>(
@@ -161,7 +161,10 @@ vi.mock("./documents/remote/use-remote-document-repository", () => ({
         open: remoteRepositoryOperations.open,
         actions:
           status.state === "ready"
-            ? { createCleanCopy: remoteRepositoryOperations.createCleanCopy }
+            ? {
+                createCleanNetProjection:
+                  remoteRepositoryOperations.createCleanNetProjection,
+              }
             : {},
         persistRevision: remoteRepositoryOperations.persistRevision,
         settleRevision: remoteRepositoryOperations.settleRevision,
@@ -1076,7 +1079,7 @@ describe("local storage demo prepared fixture", () => {
   });
 });
 
-describe("worked-model bundle selection", () => {
+describe("worked-model net-projection selection", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
@@ -1156,8 +1159,8 @@ describe("worked-model bundle selection", () => {
     expect(persistedChange?.previousRevisionId).toBe("bundle-revision");
     expect(persistedChange?.revisionId).toBe(handle.revisionId.get());
 
-    // A Brunch tool that changes the copy waits for the host to settle the
-    // revision it produced before its result is returned.
+    // A Brunch tool that changes the net projection waits for the host to
+    // settle the revision it produced before its result is returned.
     const layoutTool = assistant?.automaticTools?.find(
       ({ toolName }) => toolName === "layout_petrinaut_net",
     );
@@ -1212,7 +1215,9 @@ describe("worked-model bundle selection", () => {
         name: /Create a clean copy of this worked model/u,
       }),
     );
-    expect(remoteRepositoryOperations.createCleanCopy).toHaveBeenCalledOnce();
+    expect(
+      remoteRepositoryOperations.createCleanNetProjection,
+    ).toHaveBeenCalledOnce();
   });
 
   test("selects the remote document despite a stored stock preference", async () => {

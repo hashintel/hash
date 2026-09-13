@@ -26,7 +26,7 @@ export interface WorkedModelFixture {
   readonly revisionId: DocumentRevisionId;
 }
 
-export interface WorkedModelCopy {
+export interface WorkedModelNetProjection {
   readonly bundleKey: string;
   readonly copyId: string;
   readonly conversationId: string;
@@ -42,22 +42,22 @@ export interface WorkedModelCopy {
 
 export interface WorkedModelStore {
   readonly seed: (fixtures: readonly WorkedModelFixture[]) => Promise<void>;
-  readonly resolveCopy: (input: {
+  readonly resolveNetProjection: (input: {
     readonly bundleKey: string;
     readonly principalKey: string;
-  }) => Promise<WorkedModelCopy | undefined>;
-  readonly createCleanCopy: (input: {
+  }) => Promise<WorkedModelNetProjection | undefined>;
+  readonly createCleanNetProjection: (input: {
     readonly bundleKey: string;
     readonly principalKey: string;
-  }) => Promise<WorkedModelCopy | undefined>;
-  readonly updateCopyDefinition: (input: {
+  }) => Promise<WorkedModelNetProjection | undefined>;
+  readonly updateNetProjectionDefinition: (input: {
     readonly copyId: string;
     readonly principalKey: string;
     readonly expectedSha256: string;
     readonly expectedRevisionId: DocumentRevisionId;
     readonly definition: SDCPN;
     readonly revisionId: DocumentRevisionId;
-  }) => Promise<WorkedModelCopy | undefined>;
+  }) => Promise<WorkedModelNetProjection | undefined>;
 }
 
 export const definitionSha256 = (definition: SDCPN): string =>
@@ -127,8 +127,9 @@ export const parseWorkedModelFixture = (value: unknown): WorkedModelFixture => {
 const fixtureSha256 = (fixture: WorkedModelFixture): string =>
   createHash("sha256").update(JSON.stringify(fixture)).digest("hex");
 
-const cloneCopy = (copy: WorkedModelCopy): WorkedModelCopy =>
-  structuredClone(copy);
+const cloneNetProjection = (
+  netProjection: WorkedModelNetProjection,
+): WorkedModelNetProjection => structuredClone(netProjection);
 
 export const createInMemoryWorkedModelStore = (
   createId: () => string = randomUUID,
@@ -137,8 +138,8 @@ export const createInMemoryWorkedModelStore = (
     string,
     { fixture: WorkedModelFixture; sha256: string }
   >();
-  const copies = new Map<string, WorkedModelCopy>();
-  const activeCopyIds = new Map<string, string>();
+  const netProjections = new Map<string, WorkedModelNetProjection>();
+  const activeNetProjectionIds = new Map<string, string>();
 
   const activeKey = (principalKey: string, bundleKey: string): string =>
     `${principalKey}\u0000${bundleKey}`;
@@ -146,7 +147,7 @@ export const createInMemoryWorkedModelStore = (
   const instantiate = (
     principalKey: string,
     fixture: WorkedModelFixture,
-  ): WorkedModelCopy => {
+  ): WorkedModelNetProjection => {
     const copyId = createId();
     const definition = structuredClone(fixture.definition);
     return {
@@ -167,13 +168,16 @@ export const createInMemoryWorkedModelStore = (
   const createFromSeed = (
     principalKey: string,
     bundleKey: string,
-  ): WorkedModelCopy | undefined => {
+  ): WorkedModelNetProjection | undefined => {
     const seeded = fixtures.get(bundleKey);
     if (seeded === undefined) return undefined;
-    const copy = instantiate(principalKey, seeded.fixture);
-    copies.set(copy.copyId, copy);
-    activeCopyIds.set(activeKey(principalKey, bundleKey), copy.copyId);
-    return cloneCopy(copy);
+    const netProjection = instantiate(principalKey, seeded.fixture);
+    netProjections.set(netProjection.copyId, netProjection);
+    activeNetProjectionIds.set(
+      activeKey(principalKey, bundleKey),
+      netProjection.copyId,
+    );
+    return cloneNetProjection(netProjection);
   };
 
   return {
@@ -199,19 +203,21 @@ export const createInMemoryWorkedModelStore = (
           });
       }
     },
-    resolveCopy: async ({ principalKey, bundleKey }) => {
-      const activeCopyId = activeCopyIds.get(
+    resolveNetProjection: async ({ principalKey, bundleKey }) => {
+      const activeNetProjectionId = activeNetProjectionIds.get(
         activeKey(principalKey, bundleKey),
       );
-      const activeCopy =
-        activeCopyId === undefined ? undefined : copies.get(activeCopyId);
-      return activeCopy === undefined
+      const activeNetProjection =
+        activeNetProjectionId === undefined
+          ? undefined
+          : netProjections.get(activeNetProjectionId);
+      return activeNetProjection === undefined
         ? createFromSeed(principalKey, bundleKey)
-        : cloneCopy(activeCopy);
+        : cloneNetProjection(activeNetProjection);
     },
-    createCleanCopy: async ({ principalKey, bundleKey }) =>
+    createCleanNetProjection: async ({ principalKey, bundleKey }) =>
       createFromSeed(principalKey, bundleKey),
-    updateCopyDefinition: async ({
+    updateNetProjectionDefinition: async ({
       copyId,
       principalKey,
       expectedSha256,
@@ -219,24 +225,28 @@ export const createInMemoryWorkedModelStore = (
       definition,
       revisionId,
     }) => {
-      const current = copies.get(copyId);
+      const current = netProjections.get(copyId);
       if (current === undefined || current.principalKey !== principalKey)
         return undefined;
       if (revisionId === expectedRevisionId)
-        throw new Error("Worked-model copy revision did not advance.");
+        throw new Error(
+          "Worked-model net projection revision did not advance.",
+        );
       if (
         current.definitionSha256 !== expectedSha256 ||
         current.revisionId !== expectedRevisionId
       )
-        throw new Error("Worked-model copy changed before this update.");
-      const updated: WorkedModelCopy = {
+        throw new Error(
+          "Worked-model net projection changed before this update.",
+        );
+      const updated: WorkedModelNetProjection = {
         ...current,
         definition: structuredClone(definition),
         definitionSha256: definitionSha256(definition),
         revisionId,
       };
-      copies.set(copyId, updated);
-      return cloneCopy(updated);
+      netProjections.set(copyId, updated);
+      return cloneNetProjection(updated);
     },
   };
 };

@@ -36,7 +36,7 @@ export interface DocumentRepository {
       readonly documentId: string;
       readonly title: string;
     }) => void;
-    readonly createCleanCopy?: () => Promise<void>;
+    readonly createCleanNetProjection?: () => Promise<void>;
   };
   persistRevision(change: {
     readonly documentId: string;

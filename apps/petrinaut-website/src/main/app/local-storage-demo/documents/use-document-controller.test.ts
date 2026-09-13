@@ -24,7 +24,7 @@ const record: DocumentRecord = {
 };
 const create = vi.hoisted(() => vi.fn(() => record));
 const open = vi.hoisted(() => vi.fn());
-const createCleanCopy = vi.hoisted(() => vi.fn(async () => undefined));
+const createCleanNetProjection = vi.hoisted(() => vi.fn(async () => undefined));
 const useLocal = vi.hoisted(() => vi.fn());
 const useRemote = vi.hoisted(() => vi.fn());
 const useOverlay = vi.hoisted(() => vi.fn());
@@ -62,7 +62,7 @@ beforeEach(() => {
     repository: localRepository,
   });
   useRemote.mockReturnValue({
-    repository: repository({ createCleanCopy }),
+    repository: repository({ createCleanNetProjection }),
     processAgentSeed: {
       documentId: "remote-document",
       conversationId: "remote-conversation",
@@ -98,7 +98,7 @@ test("calls both adapters unconditionally and leaves the inactive adapter idle",
     expect.objectContaining({ enabled: true }),
   );
   expect(create).not.toHaveBeenCalled();
-  expect(createCleanCopy).not.toHaveBeenCalled();
+  expect(createCleanNetProjection).not.toHaveBeenCalled();
 });
 
 test("creates through the local repository before navigating and opening", () => {
