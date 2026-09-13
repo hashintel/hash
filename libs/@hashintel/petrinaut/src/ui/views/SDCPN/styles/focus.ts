@@ -39,7 +39,7 @@ export const nodeFocusStyle = cva({
     outline: "[4px solid transparent]",
     outlineOffset: "[3px]",
     boxShadow:
-      "[var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
+      "[var(--node-outline-ring, 0 0 #0000), var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
     /**
      * Only the ring and the glow fade. Muting recolours the border and label
      * of most of the net at once, so those two switch rather than animate.

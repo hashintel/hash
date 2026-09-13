@@ -49,7 +49,8 @@ export const useTransitionFiringAnimation = (
       [
         {
           background: "rgba(255, 224, 132, 0.7)",
-          boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
+          boxShadow:
+            "var(--node-outline-ring, 0 0 #0000), 0 0 6px 1px rgba(255, 132, 0, 0.59)",
           offset: 0,
         },
       ],

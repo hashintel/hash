@@ -22,7 +22,8 @@ const miniMapClassName = css({
 });
 
 const SHAPE_SIZE = 90;
-const TRANSITION_WIDTH_RATIO = 1.5;
+/** Component instances are the one wide shape on the canvas. */
+const COMPONENT_INSTANCE_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 /** Thick and solid: at map scale a ring has to carry the whole signal. */
@@ -30,7 +31,7 @@ const FOCUS_STROKE_WIDTH = 22;
 
 /**
  * Custom node renderer for the MiniMap.
- * Renders place nodes as circles and transition nodes as rectangles, carrying
+ * Renders place nodes as circles and transition nodes as squared rectangles, carrying
  * the canvas's focus roles: a shape at the focused item is boxed in the
  * role's colour and the rest of the net drops far back, so a glance at the
  * map answers "where is this neighbourhood" on a net larger than the screen.
@@ -90,7 +91,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       <rect
         x={x - SHAPE_SIZE}
         y={y - SHAPE_SIZE / 2}
-        width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+        width={SHAPE_SIZE * COMPONENT_INSTANCE_WIDTH_RATIO}
         height={SHAPE_SIZE}
         rx={12}
         className={shapeClass}
@@ -101,9 +102,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   return (
     <rect
-      x={x - SHAPE_SIZE}
-      y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
-      width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+      x={x}
+      y={y}
+      width={SHAPE_SIZE}
       height={SHAPE_SIZE}
       className={shapeClass}
       style={shapeStyle}
@@ -113,7 +114,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
 /**
  * A wrapper around ReactFlow's MiniMap with custom styling.
- * Renders place nodes as circles and transition nodes as rectangles.
+ * Renders place nodes as circles and transition nodes as squared rectangles.
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {

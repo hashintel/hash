@@ -3,9 +3,15 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { splitPascalCase } from "../../../../../lib/split-pascal-case";
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
 import { nodeFocusStyle } from "../../../styles/focus";
+import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
@@ -17,62 +23,38 @@ const containerStyle = css({
   height: "full",
 });
 
-const placeCircleStyle = css({
-  paddingY: "4",
-  paddingX: "2",
+const placeBoxStyle = css({
+  // A circle, since the node is square.
   borderRadius: "[50%]",
-  width: "full",
-  height: "full",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "3",
-  minWidth: "0",
-  border: "2px solid color-mix(in oklab, black, white 35%)",
+  // Wider than the transition's, to keep the name clear of the curve.
+  padding: "[8px 20px]",
   fontSize: "[15px]",
-  boxSizing: "border-box",
-  position: "relative",
-  textAlign: "center",
-  lineHeight: "[1.3]",
-  cursor: "default",
+});
+
+const placeRowStyle = css({
+  height: "[18px]",
+});
+
+const placeLabelStyle = css({
+  lineClamp: "3",
 });
 
 const dynamicsIconStyle = css({
-  position: "absolute",
-  top: "[25px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  gap: "4",
-  justifyContent: "center",
   color: "blue.s110",
   fontSize: "lg",
 });
 
-const labelContainerStyle = css({
-  textAlign: "center",
-  padding: "[12px 0]",
-  lineHeight: "[1.1]",
-  maxWidth: "[100%]",
-  overflowWrap: "break-word",
-  lineClamp: "3",
-});
-
 const tokenCountBadgeStyle = css({
-  position: "absolute",
-  top: "[70%]",
-  fontSize: "base",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  height: "[18px]",
+  minWidth: "[22px]",
+  borderRadius: "[9px]",
+  padding: "[0 6px]",
+  fontSize: "sm",
   color: "neutral.s00",
   backgroundColor: "[black]",
-  minWidth: "[26px]",
-  height: "[26px]",
-  borderRadius: "[13px]",
-  padding: "[0 6px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -97,11 +79,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     !data.dragging &&
     (data.hovered || data.visualizerPinned);
 
-  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
-  const label = splitPascalCase(data.label).join("\u200B");
+  // Wrap points let a long name break inside the box instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
-  // React Flow marks a node selected as a drag-selection is drawn, before the
-  // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
   return (
@@ -114,21 +94,29 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={handleStyling}
       />
       <div
-        className={`${placeCircleStyle} ${nodeFocusStyle({ focus })}`}
-        style={{
-          borderColor: placeBorderColor(data.typeColor),
-          backgroundColor: placeFillColor(data.typeColor),
-        }}
+        className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${classicNodeBoxStyle} ${placeBoxStyle}`}
+        style={
+          {
+            "--node-outline-color": placeBorderColor(data.typeColor),
+            backgroundColor: placeFillColor(data.typeColor),
+          } as React.CSSProperties
+        }
       >
-        {data.dynamicsEnabled && (
-          <div className={dynamicsIconStyle}>
-            <Icon name="function" size="sm" />
-          </div>
-        )}
-        <div className={labelContainerStyle}>{label}</div>
-        {tokenCount !== null && (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        )}
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+          {data.dynamicsEnabled ? (
+            <div className={dynamicsIconStyle}>
+              <Icon name="function" size="sm" />
+            </div>
+          ) : null}
+        </div>
+        <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
+          {label}
+        </div>
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+          {tokenCount === null ? null : (
+            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          )}
+        </div>
       </div>
       <Handle
         type="source"

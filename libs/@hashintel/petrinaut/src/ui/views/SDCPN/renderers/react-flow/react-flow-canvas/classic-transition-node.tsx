@@ -4,9 +4,19 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
 import { nodeFocusStyle } from "../../../styles/focus";
+import {
+  nodeSurfaceStyle,
+  transitionSurfaceStyle,
+} from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
@@ -19,55 +29,28 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "2",
-  borderRadius: "xl",
-  width: "full",
-  height: "full",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  background: "neutral.s10",
-  border: "2px solid",
-  borderColor: "neutral.s80",
-  fontSize: "[15px]",
-  boxSizing: "border-box",
-  position: "relative",
-  cursor: "default",
-  _hover: {
-    borderColor: "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
-  },
+  // Tighter than the circle's, so four lines of a name and the two rows
+  // around them fit the square with room to spare.
+  padding: "[2px 10px]",
+  // The flat box leaves less room for a name than a circle does, so its
+  // three lines are set smaller.
+  fontSize: "[13px]",
+});
+
+const transitionRowStyle = css({
+  height: "[12px]",
+});
+
+const transitionLabelStyle = css({
+  lineClamp: "4",
 });
 
 const stochasticIconStyle = css({
-  position: "absolute",
-  top: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   color: "blue.s60",
   fontSize: "lg",
 });
 
-const labelStyle = css({
-  textAlign: "center",
-  maxWidth: "[100%]",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
-  lineClamp: "2",
-  lineHeight: "[1.25]",
-});
-
 const firingIndicatorStyle = css({
-  position: "absolute",
-  bottom: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   fontSize: "xl",
   color: "yellow.s60",
   opacity: "[0]",
@@ -82,7 +65,8 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   positionAbsoluteY,
   selected,
 }: NodeProps<TransitionNodeType>) => {
-  const { label } = data;
+  // Wrap points let a long name break inside the square instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -98,8 +82,6 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     y: positionAbsoluteY,
   });
 
-  // React Flow marks a node selected as a drag-selection is drawn, before the
-  // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
   return (
@@ -112,16 +94,22 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       />
       <div
         ref={boxRef}
-        className={`${transitionBoxStyle} ${nodeFocusStyle({ focus })}`}
+        className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
-        {data.lambdaType === "stochastic" && (
-          <div className={stochasticIconStyle}>
-            <Icon name="lambda" size="sm" />
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
+          {data.lambdaType === "stochastic" ? (
+            <div className={stochasticIconStyle}>
+              <Icon name="lambda" size="sm" />
+            </div>
+          ) : null}
+        </div>
+        <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
+          {label}
+        </div>
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
+          <div ref={boltRef} className={firingIndicatorStyle}>
+            <Icon name="lightning" size="sm" />
           </div>
-        )}
-        <div className={labelStyle}>{label}</div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" size="sm" />
         </div>
       </div>
       <Handle
