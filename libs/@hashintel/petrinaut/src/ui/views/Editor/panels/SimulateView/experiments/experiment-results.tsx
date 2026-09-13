@@ -3,20 +3,21 @@
  * one-line title, the status and the stat columns (errors and simulated time
  * for both kinds; runs and wall-clock time for a plain experiment, the
  * selection's sampling for a sweep), the computing chip and the compute
- * badge, the Parameters card with its optimizer control, its constraints
- * folded behind its footer and, once a study ran, the objective strip under
- * its sliders, the surface for a sweep, one metric card per configured
- * metric, and Remove, Cancel and Close in the footer. While a study drives a
- * sweep the header reads from the study: Optimizing, its step as the
- * progress, its step on the batch. From the first study on, driving or
- * settled, the drawer also shows the study: its progress line as the
- * headline, its Steps and Steps clear columns, its Constraints and
- * Sensitivity cards after the metric tiles and its steps table beneath the
- * columns. The shape changes once, at the first Optimize, never on status.
+ * badge, the Parameters card with Stop while a study drives it, its
+ * constraints folded behind its footer and, for an experiment created with
+ * Optimize, the objective strip under its sliders, the surface for a sweep,
+ * one metric card per configured metric, and Remove, Cancel and Close in
+ * the footer. While the study drives the sweep the header reads from it:
+ * Optimizing, its step as the progress, its step on the batch. Driving or
+ * settled, the drawer shows the study: its progress line as the headline,
+ * its Steps and Steps clear columns, its Constraints and Sensitivity cards
+ * after the metric tiles and its steps table beneath the columns. The shape
+ * is fixed by the experiment's kind at creation, never by status.
  */
 import { Fragment, use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsActionsContext,
@@ -50,7 +51,6 @@ import { StudyHeader } from "./experiment-results/study-header";
 import { StudySteps } from "./experiment-results/study-steps";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
-import { SweepOptimizeControl } from "./sweep-optimize-control";
 import {
   type SweepOptimizer,
   type SweepStepProgress,
@@ -91,7 +91,20 @@ const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
 const WIDEST_DURATION = "59m 59s";
 
 const PARAMETERS_HELP =
-  "Only the selected combination computes. Move a control and compute follows it; results for visited points are kept and drawn on the Surface. Optimize lets an optimizer pick the points, one metric in view.";
+  "Only the selected combination computes. Move a control and compute follows it; results for visited points are kept and drawn on the Surface. While a study drives the sweep the controls follow its steps.";
+
+// The ds Button has no purple tone; the optimizer's Stop wears the
+// optimizing purple over the subtle variant.
+const stopButtonStyle = css({
+  color: "purple.s110",
+  backgroundColor: "purple.s10",
+  borderColor: "purple.s60",
+  flexShrink: "0",
+  "&:not([aria-disabled=true]):hover": {
+    backgroundColor: "purple.s20",
+    borderColor: "purple.s80",
+  },
+});
 
 /** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
 const describeExperiment = (
@@ -294,7 +307,7 @@ export type ExperimentResultsDependencies = {
     ExperimentsActionsValue,
     "cancelExperiment" | "removeExperiment" | "setSweepSelection"
   >;
-  /** The optimizer a sweep's Parameters card offers and follows. */
+  /** The study the sweep was created with, which its Parameters card follows. */
   optimizer: SweepOptimizer;
   /** Leaves the record: after Remove, and from the Close button. */
   onClose: () => void;
@@ -318,9 +331,9 @@ export const experimentResultsModel = (
   // computes afresh — and a sweep never completes.
   const locked = following !== null || experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
-  // The study's displays appear with the first study and stay through every
-  // later one, whatever its status: the one shape change the drawer makes.
-  const { study, studies } = optimizer;
+  // The study's displays are there from the drawer's first frame for an
+  // experiment created with Optimize, whatever the study's status.
+  const { study } = optimizer;
   const rates = studyRates(study);
 
   return {
@@ -355,18 +368,21 @@ export const experimentResultsModel = (
             title: "Parameters",
             subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            // Keyed so the prompt's choices never carry one experiment's metric
-            // into another when the drawer swaps records in place. A cancelled
-            // sweep's session is gone, so a study could not navigate it:
-            // nothing is left to optimize.
-            trailing:
-              optimizer.available && experiment.status !== "cancelled" ? (
-                <SweepOptimizeControl
-                  key={experiment.id}
-                  experiment={experiment}
-                  optimizer={optimizer}
-                />
-              ) : null,
+            // Stop comes and goes inside the card header's fixed height.
+            trailing: following ? (
+              <Button
+                className={stopButtonStyle}
+                variant="subtle"
+                tone="neutral"
+                size="xs"
+                iconName="stop"
+                tooltip="Stop optimizing; the sweep keeps its point"
+                data-sweep-optimizing
+                onClick={optimizer.stop}
+              >
+                Stop
+              </Button>
+            ) : null,
             content: (
               <SweepNavigator
                 axes={experiment.parameterAxes}
@@ -392,13 +408,13 @@ export const experimentResultsModel = (
                 }
               />
             ),
-            // Every study started from the sweep, under the sliders, from the
-            // first Optimize on; before it the card is exactly as without.
+            // The study under the sliders; a sweep created without one keeps
+            // the card exactly as without.
             below:
-              studies.length === 0 ? null : (
+              study === null ? null : (
                 <SweepObjectiveStrip
                   key={experiment.id}
-                  studies={studies}
+                  study={study}
                   driving={following !== null}
                 />
               ),
@@ -438,10 +454,9 @@ export const experimentResultsModel = (
             contentEpoch: sweep?.selectionKey ?? "",
             plotHeight: METRIC_PLOT_HEIGHT,
             tone: "default",
-            // Keyed on the study, so a later study's cards start afresh;
-            // their rows are the experiment's constraints and axes, so the
-            // boxes are the same. The Sensitivity card decides its own tone
-            // from the study's step floor.
+            // Keyed on the study, so the cards start afresh when the drawer
+            // swaps records in place. The Sensitivity card decides its own
+            // tone from the study's step floor.
             cards:
               study === null ? null : (
                 <Fragment key={study.id}>

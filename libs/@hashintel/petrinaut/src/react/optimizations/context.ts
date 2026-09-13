@@ -39,7 +39,7 @@ export type OptimizationRecord = {
   id: string;
   input: PetrinautOptimizationInput;
   createdAt: number;
-  /** The experiment the study drives from its Parameters card. */
+  /** The experiment the study was created with and drives. */
   origin: OptimizationOrigin;
   status: OptimizationStatus;
   error: string | null;

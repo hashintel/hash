@@ -150,7 +150,7 @@ const optimizedSatellitesState: AdHocScenarioState = {
   variables: [
     {
       ...satellitesState.variables[0]!,
-      optimize: { min: "200", max: "2000", scale: "log" },
+      optimize: { min: "200", max: "2000", scale: "linear" },
     },
     satellitesState.variables[1]!,
   ],
@@ -300,13 +300,30 @@ export const SatellitesForPlainRuns: Story = {
   ),
 };
 
-/** Optimization: select which values the optimizer searches over. */
-export const SatellitesOptimization: Story = {
+/**
+ * Experiment creation with the in-browser optimizer connected: every numeric
+ * value carries the Optimize toggle, and a flipped one opens Min and Max only.
+ */
+export const SatellitesOptimizeSelections: Story = {
   render: () => (
     <Demo
       context={satellitesContext}
       initial={optimizedSatellitesState}
       selection="optimize"
+    />
+  ),
+};
+
+/**
+ * The same form where no in-browser optimizer can drive the sweep: the toggle
+ * reads Sweep over the same Min and Max cells.
+ */
+export const SatellitesSweepSelections: Story = {
+  render: () => (
+    <Demo
+      context={satellitesContext}
+      initial={optimizedSatellitesState}
+      selection="sweep"
     />
   ),
 };

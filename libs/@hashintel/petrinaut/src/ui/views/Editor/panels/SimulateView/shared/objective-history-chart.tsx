@@ -3,9 +3,8 @@
  * so far as a step line over them, at a fixed height. A port of Optuna's
  * `plot_optimization_history`, drawn from points a caller builds with
  * `buildObjectiveHistory`, so one chart serves the sweep's objective strip
- * and any later card: the palette and sizes come in as a style, the x axis
- * can be pinned to a right edge the data has not reached yet, and dashed
- * dividers can mark where one study ended and the next began.
+ * and any later card: the palette and sizes come in as a style, and the x
+ * axis can be pinned to a right edge the data has not reached yet.
  */
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
@@ -28,7 +27,6 @@ export type ObjectiveHistoryStyle = {
   axisText: { x: string; y: string };
   grid: string;
   ticks: { x: string; y: string };
-  divider: string;
   /** The x axis's and the y axis's reserved size in pixels. */
   axisSize: { x: number; y: number };
   /** Air above the topmost dot, in pixels. */
@@ -42,7 +40,6 @@ export const defaultObjectiveHistoryStyle: ObjectiveHistoryStyle = {
   axisText: { x: "#475569", y: "#999" },
   grid: "#f3f4f6",
   ticks: { x: "#cbd5e1", y: "#e5e7eb" },
-  divider: "#e5e7eb",
   axisSize: { x: 26, y: 54 },
   paddingTop: 8,
 };
@@ -76,42 +73,16 @@ const tickFormat = new Intl.NumberFormat("en-US", {
   maximumSignificantDigits: 4,
 });
 
-/** Paints a dashed vertical line half a step before each divider step, over the plot area. */
-const drawDividers = (
-  plot: uPlot,
-  dividers: readonly number[],
-  color: string,
-): void => {
-  if (dividers.length === 0) {
-    return;
-  }
-  const { ctx, bbox } = plot;
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  for (const step of dividers) {
-    const x = plot.valToPos(step - 0.5, "x", true);
-    ctx.beginPath();
-    ctx.moveTo(x, bbox.top);
-    ctx.lineTo(x, bbox.top + bbox.height);
-    ctx.stroke();
-  }
-  ctx.restore();
-};
-
 const chartOptions = ({
   width,
   height,
   style,
   xMax,
-  dividers,
 }: {
   width: number;
   height: number;
   style: ObjectiveHistoryStyle;
   xMax: number | undefined;
-  dividers: readonly number[];
 }): uPlot.Options => ({
   width,
   height,
@@ -190,19 +161,13 @@ const chartOptions = ({
       points: { show: false },
     },
   ],
-  hooks: {
-    draw: [(plot) => drawDividers(plot, dividers, style.divider)],
-  },
 });
-
-const noDividers: readonly number[] = [];
 
 export const ObjectiveHistoryChart = ({
   points,
   plotHeight,
   style = defaultObjectiveHistoryStyle,
   xMax,
-  dividers = noDividers,
   emptyLabel = "Waiting for the first step",
 }: {
   points: readonly ObjectiveHistoryPoint[];
@@ -211,20 +176,15 @@ export const ObjectiveHistoryChart = ({
   style?: ObjectiveHistoryStyle;
   /** Pins the x axis's right edge; without it the axis follows the last step. */
   xMax?: number;
-  /** Steps a dashed vertical line is drawn before: where a new study began. */
-  dividers?: readonly number[];
   /** What the plot says while there is no point to draw. */
   emptyLabel?: string;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef);
   const plotRef = useRef<uPlot | null>(null);
-  const data = toObjectiveHistoryData(points, dividers);
+  const data = toObjectiveHistoryData(points);
   const width = size?.width ?? 0;
   const hasWidth = width > 0;
-  // The dividers reach the plot through its options; a change of them (a
-  // further study) rebuilds it once, never per step.
-  const dividersKey = dividers.join(",");
 
   // The plot lives as long as the root has a width; a resize is pushed into
   // it below rather than rebuilding it, so a drawer drag keeps the canvas,
@@ -240,7 +200,6 @@ export const ObjectiveHistoryChart = ({
         height: plotHeight,
         style,
         xMax,
-        dividers: dividersKey === "" ? [] : dividersKey.split(",").map(Number),
       }),
       [[], [], []] as uPlot.AlignedData,
       root,
@@ -250,7 +209,7 @@ export const ObjectiveHistoryChart = ({
       plotRef.current = null;
       plot.destroy();
     };
-  }, [hasWidth, plotHeight, style, xMax, dividersKey]);
+  }, [hasWidth, plotHeight, style, xMax]);
 
   useEffect(() => {
     plotRef.current?.setSize({ width, height: plotHeight });

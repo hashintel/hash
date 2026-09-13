@@ -23,16 +23,24 @@ import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   defaultUserSettings,
   UserSettingsContext,
 } from "../../../../../../react/state/user-settings-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
-import { sirSdcpnContextValue } from "./experiments-story-fixtures";
+import {
+  makeExperiment,
+  sirSdcpnContextValue,
+} from "./experiments-story-fixtures";
 
-import type { CreateExperimentInput } from "../../../../../../react/experiments/context";
+import type {
+  CreateExperimentInput,
+  ExperimentRecord,
+} from "../../../../../../react/experiments/context";
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
+import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
 import type {
@@ -93,20 +101,33 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   );
 
   // The real Select is an Ark menu jsdom cannot drive; a native select with
-  // the same items lets a test change the scenario.
+  // the same items lets a test change the scenario, the metric kind or the
+  // objective's metric. The segmented control comes from the shared stubs.
   const Select = ({
+    "aria-label": ariaLabel,
+    disabled,
     items,
     onChange,
+    placeholder,
     value,
   }: {
+    "aria-label"?: string;
+    disabled?: boolean;
     items: readonly (
       | { value: string; text: string }
       | { items: readonly { value: string; text: string }[] }
     )[];
     onChange: (value: string) => void;
-    value: string;
+    placeholder?: string;
+    value: string | null | undefined;
   }) => (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
+    <select
+      aria-label={ariaLabel}
+      disabled={disabled}
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {value == null ? <option value="">{placeholder ?? ""}</option> : null}
       {items
         .flatMap((item) => ("items" in item ? item.items : [item]))
         .map((item) => (
@@ -116,8 +137,9 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
         ))}
     </select>
   );
+  const { SegmentedControl } = await import("../shared/ds-control-stubs");
 
-  return { ...actual, Drawer, Select };
+  return { ...actual, Drawer, Select, SegmentedControl };
 });
 
 /**
@@ -165,18 +187,73 @@ function makeLanguageClient(): LanguageClientContextValue {
   };
 }
 
+/** What the real provider resolves: the record it created, selected by nobody yet. */
+const createdExperiment = (id: string): Promise<ExperimentRecord> =>
+  Promise.resolve(makeExperiment(0, { id }));
+
+/** The SIR net with one scenario exposing a numeric parameter, so the form
+ * renders a parameter row. */
+const sweptScenario: Scenario = {
+  id: "scenario-swept",
+  name: "Swept",
+  scenarioParameters: [
+    { identifier: "transmission_rate", type: "real", default: 0.3 },
+  ],
+  parameterOverrides: {},
+  initialState: { type: "per_place", content: {} },
+};
+
+/**
+ * What the real provider resolves for a sweep of the swept scenario: the
+ * record keeps the scenario it compiled, its axis and the input's metrics,
+ * which is all a study needs to start from it.
+ */
+const createdSweep = (
+  input: CreateExperimentInput,
+  id: string,
+): Promise<ExperimentRecord> =>
+  Promise.resolve(
+    makeExperiment(0, {
+      id,
+      name: input.name,
+      scenarioId: sweptScenario.id,
+      scenario: sweptScenario,
+      seed: input.seed,
+      dt: input.dt,
+      maxTime: input.maxTime,
+      metricSpecs: input.metricSpecs,
+      parameterAxes: [
+        {
+          identifier: "transmission_rate",
+          min: 0.15,
+          max: 0.45,
+          stepCount: 50,
+          integer: false,
+        },
+      ],
+    }),
+  );
+
 const TestProviders = ({
   webGpuEnabled,
   enableParameterSweeps = false,
   sdcpnContextValue = sirSdcpnContextValue,
-  createExperiment = () => Promise.resolve("experiment-test"),
+  createExperiment = () => createdExperiment("experiment-test"),
+  removeExperiment = () => {},
+  setSelectedExperimentId = () => {},
+  createOptimization = () => Promise.resolve("study-test"),
   languageClient,
   optimizationSource = null,
 }: {
   webGpuEnabled: boolean;
   enableParameterSweeps?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
-  createExperiment?: (input: CreateExperimentInput) => Promise<string>;
+  createExperiment?: (
+    input: CreateExperimentInput,
+  ) => Promise<ExperimentRecord>;
+  removeExperiment?: (experimentId: string) => void;
+  setSelectedExperimentId?: (experimentId: string | null) => void;
+  createOptimization?: OptimizationsContextValue["createOptimization"];
   languageClient?: LanguageClientContextValue;
   /** The host's optimizer; the In-browser optimization setting follows it on. */
   optimizationSource?: PetrinautOptimizationSource | null;
@@ -220,22 +297,31 @@ const TestProviders = ({
       <LanguageClientContext value={languageClient ?? makeLanguageClient()}>
         <ExperimentsActionsContext
           value={{
-            setSelectedExperimentId: () => {},
+            setSelectedExperimentId,
             createExperiment,
             cancelExperiment: () => {},
-            removeExperiment: () => {},
+            removeExperiment,
             setSweepSelection: () => {},
             navigateSweep: () => Promise.resolve(null),
           }}
         >
-          <SDCPNContext value={sdcpnContextValue}>
-            <UserSettingsContext value={settings}>
-              <PetrinautOptimizationContext value={optimizationSource}>
-                <div ref={portalContainerRef} />
-                <CreateExperimentDrawer open onClose={() => {}} />
-              </PetrinautOptimizationContext>
-            </UserSettingsContext>
-          </SDCPNContext>
+          <OptimizationsContext
+            value={{
+              optimizations: [],
+              createOptimization,
+              cancelOptimization: () => {},
+              removeOptimization: () => {},
+            }}
+          >
+            <SDCPNContext value={sdcpnContextValue}>
+              <UserSettingsContext value={settings}>
+                <PetrinautOptimizationContext value={optimizationSource}>
+                  <div ref={portalContainerRef} />
+                  <CreateExperimentDrawer open onClose={() => {}} />
+                </PetrinautOptimizationContext>
+              </UserSettingsContext>
+            </SDCPNContext>
+          </OptimizationsContext>
         </ExperimentsActionsContext>
       </LanguageClientContext>
     </PortalContainerContext>
@@ -264,23 +350,46 @@ const colouredContextValue: SDCPNContextValue = {
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
 };
 
-/** The SIR net with one scenario exposing a numeric parameter, so the form
- * renders a parameter row. */
-const sweptScenario: Scenario = {
-  id: "scenario-swept",
-  name: "Swept",
-  scenarioParameters: [
-    { identifier: "transmission_rate", type: "real", default: 0.3 },
-  ],
-  parameterOverrides: {},
-  initialState: { type: "per_place", content: {} },
-};
 const sweptContextValue: SDCPNContextValue = {
   ...sirSdcpnContextValue,
   petriNetDefinition: {
     ...sirSdcpnContextValue.petriNetDefinition,
     scenarios: [sweptScenario],
   },
+};
+
+/** The swept scenario with a second numeric parameter, so two toggles can flip. */
+const twoParametersContextValue: SDCPNContextValue = {
+  ...sweptContextValue,
+  petriNetDefinition: {
+    ...sweptContextValue.petriNetDefinition,
+    scenarios: [
+      {
+        ...sweptScenario,
+        scenarioParameters: [
+          ...sweptScenario.scenarioParameters,
+          { identifier: "recovery_days", type: "integer", default: 7 },
+        ],
+      },
+    ],
+  },
+};
+
+/** A connected source that never runs: the drawer only asks what kind it is. */
+const connectedSource: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => {
+    throw new Error("The test's optimizer is never connected");
+  },
+};
+
+/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
+const remoteSource: PetrinautOptimization = {
+  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
+  async *attachOptimizationRun() {
+    yield { type: "started", requestedTrials: 1, seq: 1 };
+  },
+  cancelOptimizationRun: () => Promise.resolve(),
 };
 
 /** The SIR net with one saved scenario exposing nothing, so the run form has no rows. */
@@ -435,7 +544,7 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
   });
 
-  it("offers a Sweep toggle per numeric parameter when the setting is on", async () => {
+  it("offers a Sweep toggle per numeric parameter when the setting is on and no optimizer is wired", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -447,6 +556,66 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     expect(
       await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     ).toBeInstanceOf(HTMLElement);
+    expect(
+      screen.queryByRole("button", { name: "Optimize transmission_rate" }),
+    ).toBeNull();
+  });
+
+  it("reads Sweep on the toggle for a remote-only optimizer, which cannot drive a sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
+    ).toBeInstanceOf(HTMLElement);
+  });
+
+  it("reads Optimize on the toggle when the in-browser optimizer can drive the sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+    ).toBeInstanceOf(HTMLElement);
+    expect(
+      screen.queryByRole("button", { name: "Sweep transmission_rate" }),
+    ).toBeNull();
+  });
+
+  it("keeps the word when a second toggle flips", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={twoParametersContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    // The word follows the settings and the source, never the toggle count:
+    // the first toggle relabels nothing.
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Optimize recovery_days" }),
+    );
+    expect(screen.getAllByRole("button", { name: /^Optimize / })).toHaveLength(
+      2,
+    );
+    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
   });
 
   it("tells a saved scenario without parameters apart from an empty form", async () => {
@@ -503,7 +672,38 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     ).toBeTruthy();
   });
 
-  it("offers no Sweep toggle on the ad-hoc form while sweeps are off", async () => {
+  it("reads Sweep on the ad-hoc form's toggle for a remote-only optimizer", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
+      HTMLElement,
+    );
+  });
+
+  it("reads Optimize on the ad-hoc form's toggle when the in-browser optimizer can drive the sweep", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Optimize Rate")).toBeInstanceOf(
+      HTMLElement,
+    );
+    expect(screen.queryByLabelText("Sweep Rate")).toBeNull();
+  });
+
+  it("offers no interval toggle on the ad-hoc form while sweeps are off", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -513,11 +713,12 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
 
     await screen.findByText("Rate");
     expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Optimize / })).toBeNull();
   });
 
   it("hands the form's draft to the experiment with sweeps off, never as a sweep", async () => {
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-adhoc"),
+      createdExperiment("experiment-adhoc"),
     );
     render(
       <TestProviders
@@ -542,23 +743,6 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     expect(input.adHocSweeps).toBe(false);
   });
 });
-
-/** A connected source that never runs: the drawer only asks what kind it is. */
-const connectedSource: PetrinautConnectedOptimization = {
-  kind: "connected",
-  connect: () => {
-    throw new Error("The test's optimizer is never connected");
-  },
-};
-
-/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
-const remoteSource: PetrinautOptimization = {
-  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
-  async *attachOptimizationRun() {
-    yield { type: "started", requestedTrials: 1, seq: 1 };
-  },
-  cancelOptimizationRun: () => Promise.resolve(),
-};
 
 /** The language client with constraint lowering that succeeds, keeping the source's name. */
 const makeLoweringLanguageClient = (): LanguageClientContextValue => ({
@@ -619,13 +803,36 @@ const firstConstraintSession = (
   return params;
 };
 
-/** Flips a scenario parameter's Sweep pill in the run form. */
-const flipSweep = (identifier: string) => {
-  fireEvent.click(screen.getByRole("button", { name: `Sweep ${identifier}` }));
+/** Flips a scenario parameter's interval pill in the run form, under the word the drawer reads. */
+const flipInterval = (identifier: string, word: "Optimize" | "Sweep") => {
+  fireEvent.click(
+    screen.getByRole("button", { name: `${word} ${identifier}` }),
+  );
 };
 
+/**
+ * Matches a footer button by its word alone: the ds Button pads a prefixed
+ * label with a zero-width space, and the pills carry a name after theirs.
+ */
+const footerWord =
+  (word: string) =>
+  (name: string): boolean =>
+    name.replaceAll("\u200B", "").trim() === word;
+
+const footerButton = (word: string) =>
+  screen.getByRole("button", { name: footerWord(word) }) as HTMLButtonElement;
+
+const findFooterButton = (word: string) =>
+  screen.findByRole("button", { name: footerWord(word) });
+
+/** The footer's submit button under any of its three words. */
 const submitButton = () =>
-  screen.getByRole("button", { name: /Create sweep|Run/ }) as HTMLButtonElement;
+  screen.getByRole("button", {
+    name: (name) =>
+      ["Optimize", "Create sweep", "Run"].some((word) =>
+        footerWord(word)(name),
+      ),
+  }) as HTMLButtonElement;
 
 /** A constrained sweep's drawer: sweeps on, connected optimizer, the swept scenario's toggle flipped. */
 const openConstrainedSweep = async (
@@ -641,7 +848,7 @@ const openConstrainedSweep = async (
       {...props}
     />,
   );
-  flipSweep("transmission_rate");
+  flipInterval("transmission_rate", "Optimize");
   expect(await screen.findByText("Constraints")).toBeTruthy();
   return rendered;
 };
@@ -660,7 +867,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
-  it("offers no Constraints section until a Sweep toggle flips", async () => {
+  it("offers no Constraints section until an Optimize toggle flips", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -671,17 +878,17 @@ describe("CreateExperimentDrawer constraints", () => {
     );
     expect(screen.queryByText("Constraints")).toBeNull();
 
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Optimize");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.getByText(
         "No constraints — the optimizer may try any point of the sweep.",
       ),
     ).toBeTruthy();
-    expect(screen.getByText("Create sweep")).toBeTruthy();
+    expect(footerButton("Optimize")).toBeTruthy();
 
     // Flipping it back hides the section with the sweep.
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Optimize");
     await waitFor(() => {
       expect(screen.queryByText("Constraints")).toBeNull();
     });
@@ -696,12 +903,12 @@ describe("CreateExperimentDrawer constraints", () => {
         optimizationSource={remoteSource}
       />,
     );
-    flipSweep("transmission_rate");
+    flipInterval("transmission_rate", "Sweep");
     expect(await screen.findByText("Create sweep")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
-  it("offers no Constraints section for an ad-hoc sweep, which no study can drive", async () => {
+  it("offers no Constraints section for an ad-hoc sweep, whose generated names are not authorable", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -710,9 +917,9 @@ describe("CreateExperimentDrawer constraints", () => {
         optimizationSource={connectedSource}
       />,
     );
-    // The ad-hoc form's Sweep toggle is a button of its own.
-    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
-    expect(await screen.findByText("Create sweep")).toBeTruthy();
+    // The ad-hoc form's Optimize toggle is a button of its own.
+    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+    expect(await findFooterButton("Optimize")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
@@ -789,7 +996,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
   });
 
-  it("shows a row's error in its reserved line and blocks Create sweep naming the row", async () => {
+  it("shows a row's error in its reserved line and blocks Optimize naming the row", async () => {
     const languageClient = makeLoweringLanguageClient();
     const { rerender } = await openConstrainedSweep({ languageClient });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -886,8 +1093,8 @@ describe("CreateExperimentDrawer constraints", () => {
 
   it("lowers the rows under their labels and hands them to the experiment without a policy at the default threshold", async () => {
     const languageClient = makeLoweringLanguageClient();
-    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-constrained"),
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-constrained"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -906,7 +1113,7 @@ describe("CreateExperimentDrawer constraints", () => {
       { target: { value: "return state.places.Infected.count <= 900;" } },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    fireEvent.click(footerButton("Optimize"));
     await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
 
     expect(
@@ -950,8 +1157,8 @@ describe("CreateExperimentDrawer constraints", () => {
   });
 
   it("writes a changed pass threshold to the experiment as alpha", async () => {
-    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-threshold"),
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-threshold"),
     );
     await openConstrainedSweep({ createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -966,7 +1173,7 @@ describe("CreateExperimentDrawer constraints", () => {
       target: { value: "90" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    fireEvent.click(footerButton("Optimize"));
     await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
     expect(createExperiment.mock.calls[0]![0].constraintPolicy).toEqual({
       alpha: 0.1,
@@ -975,8 +1182,8 @@ describe("CreateExperimentDrawer constraints", () => {
 
   it("ignores blank rows at submission", async () => {
     const languageClient = makeLoweringLanguageClient();
-    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("experiment-blank"),
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-blank"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -987,7 +1194,7 @@ describe("CreateExperimentDrawer constraints", () => {
       screen.getByRole("button", { name: "Add state constraint" }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    fireEvent.click(footerButton("Optimize"));
     await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
     expect(languageClient.requestConstraint).not.toHaveBeenCalled();
     expect(createExperiment.mock.calls[0]![0].constraints).toEqual([]);
@@ -1012,7 +1219,7 @@ describe("CreateExperimentDrawer constraints", () => {
       ),
     };
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
-      Promise.resolve("never"),
+      createdExperiment("never"),
     );
     await openConstrainedSweep({ languageClient, createExperiment });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -1024,7 +1231,7 @@ describe("CreateExperimentDrawer constraints", () => {
       { target: { value: "scenario.transmission_rate" } },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Create sweep/ }));
+    fireEvent.click(footerButton("Optimize"));
     expect(
       await screen.findByText(
         "Parameter constraint 1: Type 'number' is not assignable to type 'boolean'.",
@@ -1048,7 +1255,7 @@ describe("CreateExperimentDrawer constraints", () => {
     });
     // The other scenario's sweep has to be turned on again, as its inputs reset.
     expect(screen.queryByText("Constraints")).toBeNull();
-    flipSweep("recovery_days");
+    flipInterval("recovery_days", "Optimize");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.queryByRole("group", { name: "Parameter constraint 1" }),
@@ -1089,5 +1296,327 @@ describe("CreateExperimentDrawer constraints", () => {
     await waitFor(() => {
       expect(backendState()).toBe("available");
     });
+  });
+});
+
+/** The objective section's metric select. */
+const objectiveMetricSelect = () =>
+  screen.getByLabelText("Metric to optimize") as HTMLSelectElement;
+
+const stepsInput = () =>
+  screen.getByLabelText("Optimization steps") as HTMLInputElement;
+
+/** The default step count's helper line, present exactly while the section is. */
+const objectiveHelper = () =>
+  screen.queryByText(
+    "30 steps · 8 runs each — the best point then refines to your run budget",
+  );
+
+describe("CreateExperimentDrawer objective", () => {
+  it("offers no Objective section for a plain experiment", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    await screen.findByText("transmission_rate");
+    expect(screen.queryByText("Objective")).toBeNull();
+    expect(footerButton("Run")).toBeTruthy();
+  });
+
+  it("offers no Objective section under the Sweep word, with or without a remote optimizer", async () => {
+    const { unmount } = render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+      />,
+    );
+    flipInterval("transmission_rate", "Sweep");
+    expect(await findFooterButton("Create sweep")).toBeTruthy();
+    expect(screen.queryByText("Objective")).toBeNull();
+    unmount();
+
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={remoteSource}
+      />,
+    );
+    flipInterval("transmission_rate", "Sweep");
+    expect(await findFooterButton("Create sweep")).toBeTruthy();
+    expect(screen.queryByText("Objective")).toBeNull();
+  });
+
+  it("adds the Objective and Constraints sections together at the first Optimize on a saved scenario", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    await screen.findByRole("button", { name: "Optimize transmission_rate" });
+    expect(screen.queryByText("Objective")).toBeNull();
+    expect(footerButton("Run")).toBeTruthy();
+
+    flipInterval("transmission_rate", "Optimize");
+    expect(await screen.findByText("Objective")).toBeTruthy();
+    expect(screen.getByText("Constraints")).toBeTruthy();
+    expect(
+      screen.getByText(
+        /transmission_rate optimized over its interval — the study picks the points/,
+      ),
+    ).toBeTruthy();
+    expect(stepsInput().value).toBe("30");
+    expect(
+      screen
+        .getByRole("button", { name: "Maximize" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(footerButton("Optimize")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: footerWord("Create sweep") }),
+    ).toBeNull();
+
+    // Without a metric draft the section asks for one, and so does the footer.
+    expect(objectiveMetricSelect().disabled).toBe(true);
+    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
+      "Add a metric below",
+    );
+    expect(screen.getByText("Add a metric to optimize")).toBeTruthy();
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it("offers the Objective section for No scenario, and no Constraints", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+
+    expect(await screen.findByText("Objective")).toBeTruthy();
+    expect(screen.queryByText("Constraints")).toBeNull();
+    expect(screen.getByText(/Rate optimized over its interval/)).toBeTruthy();
+    expect(footerButton("Optimize")).toBeTruthy();
+  });
+
+  it("keeps the Objective section and the Optimize word while an ad-hoc bound is being edited", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+        optimizationSource={connectedSource}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+    expect(await screen.findByText("Objective")).toBeTruthy();
+
+    // Blanking Max leaves the definition unable to synthesize: the form
+    // reports it at the slot and the summary line repeats it, the section
+    // and the word stay, the footer waits.
+    fireEvent.click(screen.getByRole("button", { name: "Rate" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Max of Rate" }));
+    const slab = document.querySelector("[data-adhoc-slab]");
+    if (!(slab instanceof HTMLElement)) {
+      throw new Error("expected the bounds slab to be open");
+    }
+    fireEvent.change(within(slab).getByRole("textbox"), {
+      target: { value: "" },
+    });
+
+    expect(screen.getByText("Objective")).toBeTruthy();
+    expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
+    expect(submitButton().disabled).toBe(true);
+    expect(
+      screen.getAllByText(/^The maximum of "param__rate"/).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("defaults the metric to the first draft and follows its removal", async () => {
+    await openConstrainedSweep();
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    const labels = screen.getAllByLabelText("Metric label");
+    fireEvent.change(labels[1]!, { target: { value: "Peak" } });
+
+    expect(objectiveMetricSelect().disabled).toBe(false);
+    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
+      "Susceptible tokens",
+    );
+    expect(objectiveHelper()).toBeTruthy();
+    expect(submitButton().disabled).toBe(false);
+
+    const peak = [...objectiveMetricSelect().options].find(
+      (option) => option.text === "Peak",
+    )!;
+    fireEvent.change(objectiveMetricSelect(), {
+      target: { value: peak.value },
+    });
+    expect(objectiveMetricSelect().value).toBe(peak.value);
+
+    // The chosen draft goes; the choice falls back to the first, with no stale id.
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Remove metric" })[1]!,
+    );
+    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
+      "Susceptible tokens",
+    );
+    expect(objectiveMetricSelect().value).not.toBe(peak.value);
+  });
+
+  it("reads Optimize in the footer and disables it with the step message at 1,001 steps and the budget message at 1,000", async () => {
+    await openConstrainedSweep();
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
+    expect(submitButton().disabled).toBe(false);
+
+    // The message lands on the section's reserved line and in the footer.
+    fireEvent.change(stepsInput(), { target: { value: "1001" } });
+    expect(screen.getAllByText("Ask for 1 to 1,000 steps")).toHaveLength(2);
+    expect(submitButton().disabled).toBe(true);
+
+    // The drawer's defaults: 180 / 0.1 = 1,800 simulation steps a run.
+    fireEvent.change(stepsInput(), { target: { value: "1000" } });
+    expect(
+      screen.getAllByText(
+        "1,000 steps × 8 runs × 1,800 simulation steps is over the optimizer's 5,000,000 budget",
+      ),
+    ).toHaveLength(2);
+    expect(submitButton().disabled).toBe(true);
+
+    fireEvent.change(stepsInput(), { target: { value: "12" } });
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it("creates the experiment, starts its study from the record, then selects it", async () => {
+    const order: string[] = [];
+    const createExperiment = vi.fn((input: CreateExperimentInput) => {
+      order.push("createExperiment");
+      return createdSweep(input, "experiment-objective");
+    });
+    const createOptimization = vi.fn<
+      OptimizationsContextValue["createOptimization"]
+    >(() => {
+      order.push("createOptimization");
+      return Promise.resolve("study-objective");
+    });
+    const setSelectedExperimentId = vi.fn(() => {
+      order.push("setSelectedExperimentId");
+    });
+    await openConstrainedSweep({
+      createExperiment,
+      createOptimization,
+      setSelectedExperimentId,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Minimize" }));
+    fireEvent.change(stepsInput(), { target: { value: "12" } });
+
+    fireEvent.click(footerButton("Optimize"));
+    await waitFor(() =>
+      expect(setSelectedExperimentId).toHaveBeenCalledWith(
+        "experiment-objective",
+      ),
+    );
+
+    expect(order).toEqual([
+      "createExperiment",
+      "createOptimization",
+      "setSelectedExperimentId",
+    ]);
+    const metricId = createExperiment.mock.calls[0]![0].metricSpecs[0]!.id;
+    const [manifest, options] = createOptimization.mock.calls[0]!;
+    expect(options).toEqual({
+      sweep: {
+        experimentId: "experiment-objective",
+        axes: [
+          {
+            identifier: "transmission_rate",
+            min: 0.15,
+            max: 0.45,
+            stepCount: 50,
+            integer: false,
+          },
+        ],
+        metricId,
+      },
+    });
+    expect(manifest).toMatchObject({
+      objective: { metricId, direction: "minimize" },
+      execution: { dt: 0.1, maxTime: 180, seedsPerTrial: 8 },
+      study: { trials: 12 },
+    });
+  });
+
+  it("keeps the drawer open with the reason, every field intact, and removes the experiment when the study cannot start", async () => {
+    const createExperiment = vi.fn((input: CreateExperimentInput) =>
+      createdSweep(input, "experiment-orphan"),
+    );
+    const removeExperiment = vi.fn();
+    const setSelectedExperimentId = vi.fn();
+    await openConstrainedSweep({
+      createExperiment,
+      removeExperiment,
+      setSelectedExperimentId,
+      createOptimization: () =>
+        Promise.reject(
+          new Error("A sweep can only be optimized in the browser"),
+        ),
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.change(screen.getByDisplayValue("Experiment"), {
+      target: { value: "Peak search" },
+    });
+    fireEvent.change(stepsInput(), { target: { value: "12" } });
+
+    fireEvent.click(footerButton("Optimize"));
+    expect(
+      await screen.findByText("A sweep can only be optimized in the browser"),
+    ).toBeTruthy();
+
+    expect(createExperiment).toHaveBeenCalledOnce();
+    expect(removeExperiment).toHaveBeenCalledWith("experiment-orphan");
+    expect(setSelectedExperimentId).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("Peak search")).toBeTruthy();
+    expect(stepsInput().value).toBe("12");
+    expect(screen.getByText("Objective")).toBeTruthy();
+    expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it("starts nothing twice on a second click while submitting", async () => {
+    let resolveCreation: (experiment: ExperimentRecord) => void = () => {};
+    const createExperiment = vi.fn(
+      (input: CreateExperimentInput) =>
+        new Promise<ExperimentRecord>((resolve) => {
+          resolveCreation = (experiment) => {
+            void createdSweep(input, experiment.id).then(resolve);
+          };
+        }),
+    );
+    const createOptimization = vi.fn(() => Promise.resolve("study-once"));
+    await openConstrainedSweep({ createExperiment, createOptimization });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+
+    fireEvent.click(footerButton("Optimize"));
+    const starting = (await findFooterButton("Starting")) as HTMLButtonElement;
+    expect(starting.disabled).toBe(true);
+    fireEvent.click(starting);
+    expect(createExperiment).toHaveBeenCalledOnce();
+
+    resolveCreation(makeExperiment(0, { id: "experiment-once" }));
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createExperiment).toHaveBeenCalledOnce();
   });
 });

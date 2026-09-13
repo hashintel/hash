@@ -24,23 +24,32 @@ export const Popover = Object.assign(
   },
 );
 
-/** A required single select: `onChange` receives the picked value. */
+/**
+ * A single select: `onChange` receives the picked value. A null value shows
+ * the placeholder as an empty option, the way the trigger would read it.
+ */
 export const Select = ({
   "aria-label": ariaLabel,
+  disabled,
   items,
   onChange,
+  placeholder,
   value,
 }: {
   "aria-label"?: string;
+  disabled?: boolean;
   items: readonly { value: string; text: string }[];
   onChange: (value: string) => void;
-  value: string;
+  placeholder?: string;
+  value: string | null | undefined;
 }) => (
   <select
     aria-label={ariaLabel}
-    value={value}
+    disabled={disabled}
+    value={value ?? ""}
     onChange={(event) => onChange(event.target.value)}
   >
+    {value == null ? <option value="">{placeholder ?? ""}</option> : null}
     {items.map((item) => (
       <option key={item.value} value={item.value}>
         {item.text}
@@ -51,11 +60,13 @@ export const Select = ({
 
 export const SegmentedControl = ({
   "aria-label": ariaLabel,
+  disabled,
   items,
   onChange,
   value,
 }: {
   "aria-label"?: string;
+  disabled?: boolean;
   items: readonly { value: string; label?: ReactNode }[];
   onChange: (value: string) => void;
   value: string;
@@ -66,6 +77,7 @@ export const SegmentedControl = ({
         key={item.value}
         type="button"
         aria-pressed={item.value === value}
+        disabled={disabled}
         onClick={() => onChange(item.value)}
       >
         {item.label}
