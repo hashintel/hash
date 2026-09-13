@@ -9,6 +9,7 @@ import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  type PetrinautOptimizationDirection,
   type PetrinautOptimizationInput,
   type ScenarioParameter,
   type SDCPN,
@@ -230,7 +231,7 @@ export type AutoStudyDescription = {
   optimize: Readonly<Record<string, AutoStudyDomain>>;
   objective: {
     metricName: string;
-    direction: PetrinautOptimizationInput["objective"]["direction"];
+    direction: PetrinautOptimizationDirection;
   };
 };
 

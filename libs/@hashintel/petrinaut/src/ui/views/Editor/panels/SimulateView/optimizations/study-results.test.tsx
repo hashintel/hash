@@ -1,21 +1,23 @@
 import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 
+import { partitionParameterBindings } from "../../../../../../react/optimizations/surface-grid";
+import { formatNumber } from "../shared/format-value";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
+  fakeShortStudyInput,
+  fakeShortStudyNavigation,
+  fakeShortStudyTrials,
   makeConnectedStudyState,
-  makeOptimizationInput,
   makeOptimizationRecord,
   makeSelectionStream,
-  makeTrials,
   navigationAtTrial,
   optimizedBindingSets,
 } from "./optimizations-story-fixtures";
 import {
   describeParameterCounts,
   describeStepProgress,
-  fixedParameters,
   OBJECTIVE_PLOT_HEIGHT,
   type StudyResultsDependencies,
   studyResultsModel,
@@ -23,9 +25,9 @@ import {
 
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 
-const input = makeOptimizationInput(optimizedBindingSets.base);
-const { trials, best } = makeTrials(input, 5);
-const navigation = navigationAtTrial(input, trials[2]!, true);
+const input = fakeShortStudyInput;
+const { trials, best } = fakeShortStudyTrials;
+const navigation = fakeShortStudyNavigation;
 
 const dependencies: StudyResultsDependencies = {
   presentation: "drawer",
@@ -119,7 +121,7 @@ describe("studyResultsModel for a running connected study", () => {
     });
     expect(statTexts(running)).toEqual({
       Steps: "3 / 30",
-      "Best step so far": trials[2]!.best!.objective.toPrecision(6),
+      "Best step so far": formatNumber(trials[2]!.best!.objective),
     });
     expect(
       result.header.stats.find((stat) => stat.id === "steps")?.short,
@@ -138,8 +140,9 @@ describe("studyResultsModel for a running connected study", () => {
 
   it("lays the Parameters card, the surface, the point's timeline, the study cards and the steps out", () => {
     expect(result.bands.map((band) => band.title)).toEqual(["Parameters"]);
-    const fixed = fixedParameters(input);
-    const fixedCount = Object.keys(fixed).length;
+    const fixedCount = Object.keys(
+      partitionParameterBindings(input).fixed,
+    ).length;
     const optimizedCount = Object.keys(optimizedBindingSets.base).length;
     expect(fixedCount).toBeGreaterThan(1);
     expect(result.bands[0]).toMatchObject({
@@ -169,6 +172,7 @@ describe("studyResultsModel for a running connected study", () => {
     expect(isValidElement(result.metrics!.cards)).toBe(true);
     expect(isValidElement(result.after)).toBe(true);
     expect(isValidElement(result.footer)).toBe(true);
+    expect(isValidElement(result.footerSecondary)).toBe(true);
   });
 });
 
@@ -227,14 +231,14 @@ describe("studyResultsModel for a remote study", () => {
     expect(result.header.status.label).toBe("Complete");
     expect(statTexts(remote)).toEqual({
       Steps: "5 / 30",
-      "Best step so far": best!.objective.toPrecision(6),
+      "Best step so far": formatNumber(best!.objective),
     });
     expect(result.header.activity).toBeNull();
     expect(result.header.compute).toBeNull();
     expect(result.header.headline).not.toBeNull();
     expect(result.bands.map((band) => band.title)).toEqual(["Best parameters"]);
     expect(result.bands[0]).toMatchObject({
-      subtitle: `Step ${best!.trial + 1} · ${best!.objective.toPrecision(6)}`,
+      subtitle: `Step ${best!.trial + 1} · ${formatNumber(best!.objective)}`,
       trailing: null,
       more: null,
     });
@@ -244,7 +248,7 @@ describe("studyResultsModel for a remote study", () => {
     expect(isValidElement(result.after)).toBe(true);
   });
 
-  it("shows the self-navigating surface in a band behind the setting", () => {
+  it("shows the self-navigating surface as the surface card behind the setting", () => {
     expect(
       isValidElement(
         model(remote, { enableOptimizationSurface: true }).surface,
@@ -252,10 +256,13 @@ describe("studyResultsModel for a remote study", () => {
     ).toBe(true);
   });
 
-  it("leaves the steps out before any trial, and Cancelled reads as such", () => {
+  it("reserves the best parameters card and the steps before any trial, and Cancelled reads as such", () => {
     const empty = makeOptimizationRecord({ input, status: "cancelled" });
-    expect(model(empty).after).toBeNull();
-    expect(model(empty).bands).toEqual([]);
+    expect(isValidElement(model(empty).after)).toBe(true);
+    expect(model(empty).bands.map((band) => band.title)).toEqual([
+      "Best parameters",
+    ]);
+    expect(model(empty).bands[0]?.subtitle).toBe("Step — · —");
     expect(model(empty).header.status.label).toBe("Cancelled");
     expect(
       model(empty).header.stats.find((stat) => stat.id === "best")?.value,
@@ -298,7 +305,7 @@ describe("describeParameterCounts", () => {
   });
 
   it("keeps the fixed bindings' values in the scenario's order", () => {
-    const fixed = fixedParameters(input);
+    const { fixed } = partitionParameterBindings(input);
     const bindings = input.scenario.parameterBindings;
     expect(Object.keys(fixed)).toEqual(
       Object.keys(bindings).filter((key) => bindings[key]!.kind === "fixed"),

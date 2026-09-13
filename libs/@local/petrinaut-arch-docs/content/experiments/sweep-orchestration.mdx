@@ -43,9 +43,10 @@ A study started from the sweep's Parameters card runs no batches of its own.
 Its trials go through `navigateSweep(experimentId, point, { runCap })`: the
 session adopts the point as its selection with a run cap, restarts its ladder
 there, and resolves the call once the point has folded that many runs (or is
-cached that deep already) with the point's per-metric values — or null when
-another navigation superseded it, a batch failed, or the sweep is gone. The
-cap keeps the ladder from pipelining a rung the next trial would abort; a
+cached that deep already) with the point's per-metric values. It resolves
+null when another navigation superseded it or the sweep was disposed, and
+rejects with the batch's reason when a batch of the point fails or the sweep
+is gone; the evaluator lets that rejection fail the study. The cap keeps the ladder from pipelining a rung the next trial would abort; a
 plain `setSweepSelection` lifts it, so a point the user returns to refines to
 the run budget. The optimizations provider owns the evaluator that calls
 this ([react.optimizations.sweep-evaluator](layer:react.optimizations.sweep-evaluator));
@@ -54,19 +55,22 @@ until something selects (`startComputing: false`).
 
 ## The batch path
 
-Every batch the session starts, one ladder rung each, registers in the
-session's batch registry with its handle. Progress ticks refresh a
-snapshot at most every 100 ms and the provider mirrors it into
+Every publish of the session lists the rungs computing right now in its
+`batches` — oldest first, each with its id, its run count and its completed
+runs read from the rung's handle — and the provider stores that list as
 `record.sweepBatches`, which the activity list and the top-bar popover read.
-Both show the same progress rule: for a sweep, the selected combination's
+A session that stopped computing publishes an empty list. Both show the same progress rule: for a sweep, the selected combination's
 sampled runs over the run budget; otherwise simulated time over the
 experiment's max time.
 
 ## Where the pieces live
 
-- The session's private pieces (selection keys and range draws, the batch
-  registry, the throttle) sit next to `sweep-session.ts` in
-  [react.experiments.sweep](layer:react.experiments.sweep).
+- The session's private pieces (selection keys and range draws) sit next to
+  `sweep-session.ts` in
+  [react.experiments.sweep](layer:react.experiments.sweep); the throttle is a
+  `react/experiments/shared` helper, as is the batch registry the
+  optimizations provider's `connected-study.ts` uses for a study's own
+  activity.
 - The provider's batch instantiator, the detached objective sampler used by
   the optimization surface, experiment creation and record patching sit under
   `provider/`.

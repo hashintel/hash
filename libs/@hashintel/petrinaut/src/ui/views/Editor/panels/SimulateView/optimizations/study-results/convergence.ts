@@ -4,8 +4,10 @@
  * `BestValueStagnationEvaluator` computes the same signal in the vendored
  * runtime; this is the TypeScript stand-in until the Python side reports it.
  */
-import type { ObjectiveDirection } from "./objective-history-data";
-import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
+import type {
+  PetrinautOptimizationDirection,
+  PetrinautOptimizationTrialEvent,
+} from "@hashintel/petrinaut-core";
 
 export type ConvergenceVerdict =
   | { kind: "too-early"; completedSteps: number; window: number }
@@ -18,7 +20,7 @@ export const convergenceWindow = (requestedTrials: number): number =>
 
 export const assessConvergence = (
   trials: readonly PetrinautOptimizationTrialEvent[],
-  direction: ObjectiveDirection,
+  direction: PetrinautOptimizationDirection,
   requestedTrials: number,
 ): ConvergenceVerdict => {
   const window = convergenceWindow(requestedTrials);

@@ -4,55 +4,71 @@
  */
 import { use } from "react";
 
-import { Button, Chip, Icon, LoadingSpinner } from "@hashintel/ds-components";
+import {
+  Button,
+  Chip,
+  type ChipColor,
+  Icon,
+  LoadingSpinner,
+} from "@hashintel/ds-components";
 
 import {
+  finishedTrialCount,
+  isOptimizationActive,
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { formatNumber } from "../shared/format-value";
+import {
+  directionWord,
+  objectiveMetricName,
+  scenarioName,
+} from "../shared/study-labels";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { OptimizationFullView } from "./optimization-full-view";
-import { describeOptimizationStatus } from "./optimization-status";
+import {
+  OPTIMIZATION_STATUS_DISPLAY,
+  optimizationDisplayStatus,
+} from "./optimization-status";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
+
+import type { FrameStatusTone } from "../shared/drawer-frame";
+
+const CHIP_COLOR: Record<FrameStatusTone, ChipColor> = {
+  active: "blue",
+  done: "green",
+  error: "red",
+  neutral: "grey",
+};
 
 const OptimizationStatusBadge = ({
   optimization,
 }: {
   optimization: OptimizationRecord;
 }) => {
-  const isActive =
-    optimization.status === "initializing" || optimization.status === "running";
-  const paused = optimization.status === "paused";
+  const status = optimizationDisplayStatus(optimization);
+  const { label, tone } = OPTIMIZATION_STATUS_DISPLAY[status];
 
   return (
     <Chip
       variant="soft"
-      color={
-        isActive
-          ? "blue"
-          : paused
-            ? "grey"
-            : optimization.status === "complete"
-              ? "green"
-              : "red"
-      }
+      color={CHIP_COLOR[tone]}
       prefix={
-        isActive
+        isOptimizationActive(optimization)
           ? {
               variant: "naked",
               children: <LoadingSpinner size="xs" variant="bars" />,
             }
-          : paused
+          : status === "paused"
             ? { variant: "naked", iconName: "pause" }
-            : optimization.status === "error"
+            : status === "error"
               ? { variant: "naked", iconName: "error" }
               : undefined
       }
     >
-      {describeOptimizationStatus(optimization)}
+      {label}
     </Chip>
   );
 };
@@ -69,25 +85,14 @@ const optimizationColumns = [
     id: "scenario",
     header: "Scenario",
     width: 180,
-    render: (optimization) => {
-      const scenario = optimization.input.model.definition.scenarios?.find(
-        (candidate) => candidate.id === optimization.input.scenario.id,
-      );
-      return scenario?.name ?? optimization.input.scenario.id;
-    },
+    render: (optimization) => scenarioName(optimization.input),
   },
   {
     id: "objective",
     header: "Objective",
     width: 200,
-    render: (optimization) => {
-      const metric = optimization.input.model.definition.metrics?.find(
-        (candidate) => candidate.id === optimization.input.objective.metricId,
-      );
-      const direction =
-        optimization.input.objective.direction === "maximize" ? "Max" : "Min";
-      return `${direction} ${metric?.name ?? optimization.input.objective.metricId}`;
-    },
+    render: (optimization) =>
+      `${directionWord(optimization.input.objective.direction)} ${objectiveMetricName(optimization.input)}`,
   },
   {
     id: "trials",
@@ -95,7 +100,7 @@ const optimizationColumns = [
     width: 120,
     tone: "subtle",
     render: (optimization) =>
-      `${optimization.completedTrials + optimization.prunedTrials + optimization.failedTrials}/${optimization.requestedTrials}`,
+      `${finishedTrialCount(optimization)}/${optimization.requestedTrials}`,
   },
   {
     id: "best",

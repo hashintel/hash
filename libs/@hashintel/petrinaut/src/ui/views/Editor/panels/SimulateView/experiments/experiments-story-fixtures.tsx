@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   createReadableStore,
@@ -18,6 +18,7 @@ import {
   isTerminalExperimentStatus,
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import {
   EditorContext,
   initialEditorState,
@@ -261,6 +262,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         transmission_rate: { from: 25, to: 25 },
         recovery_days: { from: 6, to: 6 },
       },
+      selectionKey: "transmission_rate=25|recovery_days=6",
       runsCompleted: 25,
       runsSampled: 61,
       runTarget: 100,
@@ -679,13 +681,27 @@ export function FakeExperimentsProvider({
                 sweep: {
                   ...experiment.sweep,
                   selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
                   runsCompleted: 0,
                   runsSampled: 0,
                   runTarget: 8,
                   computing: true,
                 },
               }
-            : { ...experiment, sweep: { ...experiment.sweep, selection } }
+            : {
+                ...experiment,
+                sweep: {
+                  ...experiment.sweep,
+                  selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
+                },
+              }
           : experiment,
       ),
     );
@@ -832,55 +848,52 @@ export function FakeEditorProvider({
     useState<PetrinautSimulatePresentation>("drawer");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const value = useMemo<EditorContextValue>(
-    () => ({
-      ...initialEditorState,
-      globalMode: "simulate",
-      simulateViewMode,
-      navigateTo: () => {},
-      setGlobalMode: () => {},
-      setEditionMode: () => {},
-      setAddComponentMode: () => {},
-      setCursorMode: () => {},
-      setLeftSidebarOpen: () => {},
-      setLeftSidebarWidth: () => {},
-      setPropertiesPanelWidth: () => {},
-      setAiAssistantWidth: () => {},
-      setBottomPanelOpen: () => {},
-      toggleBottomPanel: () => {},
-      setBottomPanelHeight: () => {},
-      setActiveBottomPanelTab: () => {},
-      isSelected: () => false,
-      setSelection: () => {},
-      beginSelectionGesture: () => {},
-      endSelectionGesture: () => {},
-      selectItem: () => {},
-      toggleItem: () => {},
-      clearSelection: () => {},
-      setHoveredItem: () => {},
-      clearHoveredItem: () => {},
-      toggleVisualizerPin: () => {},
-      openPlaceVisualizer: () => {},
-      setDraggingStateByNodeId: () => {},
-      updateDraggingStateByNodeId: () => {},
-      simulateDrawer,
-      setSimulateDrawer,
-      simulatePresentation,
-      setSimulatePresentation,
-      setAiAssistantOpen: () => {},
-      toggleAiAssistant: () => {},
-      resetDraggingState: () => {},
-      collapseAllPanels: () => {},
-      setTimelineChartType: () => {},
-      setTimelineView: () => {},
-      setHiddenTimelineSeriesIds: () => {},
-      setSimulateViewMode,
-      setSearchOpen: () => {},
-      triggerPanelAnimation: () => {},
-      searchInputRef,
-    }),
-    [simulateDrawer, simulatePresentation, simulateViewMode],
-  );
+  const value: EditorContextValue = {
+    ...initialEditorState,
+    globalMode: "simulate",
+    simulateViewMode,
+    navigateTo: () => {},
+    setGlobalMode: () => {},
+    setEditionMode: () => {},
+    setAddComponentMode: () => {},
+    setCursorMode: () => {},
+    setLeftSidebarOpen: () => {},
+    setLeftSidebarWidth: () => {},
+    setPropertiesPanelWidth: () => {},
+    setAiAssistantWidth: () => {},
+    setBottomPanelOpen: () => {},
+    toggleBottomPanel: () => {},
+    setBottomPanelHeight: () => {},
+    setActiveBottomPanelTab: () => {},
+    isSelected: () => false,
+    setSelection: () => {},
+    beginSelectionGesture: () => {},
+    endSelectionGesture: () => {},
+    selectItem: () => {},
+    toggleItem: () => {},
+    clearSelection: () => {},
+    setHoveredItem: () => {},
+    clearHoveredItem: () => {},
+    toggleVisualizerPin: () => {},
+    openPlaceVisualizer: () => {},
+    setDraggingStateByNodeId: () => {},
+    updateDraggingStateByNodeId: () => {},
+    simulateDrawer,
+    setSimulateDrawer,
+    simulatePresentation,
+    setSimulatePresentation,
+    setAiAssistantOpen: () => {},
+    toggleAiAssistant: () => {},
+    resetDraggingState: () => {},
+    collapseAllPanels: () => {},
+    setTimelineChartType: () => {},
+    setTimelineView: () => {},
+    setHiddenTimelineSeriesIds: () => {},
+    setSimulateViewMode,
+    setSearchOpen: () => {},
+    triggerPanelAnimation: () => {},
+    searchInputRef,
+  };
 
   return <EditorContext value={value}>{children}</EditorContext>;
 }

@@ -6,6 +6,7 @@ import { resolveTrialScenarioBindings } from "@hashintel/petrinaut-core/optimiza
 
 import { errorMessage } from "../../experiments/shared/error-message";
 import { constraintNameIn } from "../constraint-rates";
+import { prunedTrialOutcome } from "../shared/pruned-trial-outcome";
 import {
   hasParameterConstraints,
   type ParameterConstraintOutcome,
@@ -13,10 +14,7 @@ import {
   stateConstraintMetrics,
   stateConstraintResults,
 } from "./create-optimization-channel/trial-constraints";
-import {
-  prunedTrialOutcome,
-  trialOutcome,
-} from "./create-optimization-channel/trial-outcome";
+import { trialOutcome } from "./create-optimization-channel/trial-outcome";
 
 import type {
   DetachedObjectiveAuxiliaryMetric,

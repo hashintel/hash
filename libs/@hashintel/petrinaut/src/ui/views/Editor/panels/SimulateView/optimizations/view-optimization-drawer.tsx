@@ -3,7 +3,7 @@
  * over the study's model, in a ds Drawer. The full view shows the same view
  * over the section; "Open full view" in the footer switches.
  */
-import { ResultsView } from "../shared/results";
+import { ResultsView } from "../shared/results-view";
 import { useStudyResultsModel } from "./study-results";
 
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";

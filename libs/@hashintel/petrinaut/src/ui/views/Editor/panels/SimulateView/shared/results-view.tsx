@@ -10,16 +10,17 @@
  */
 import { Tooltip } from "@hashintel/ds-components";
 
-import { ComputeBackendBadge } from "../compute-backend-badge";
+import { ComputeBackendBadge } from "./compute-backend-badge";
 import {
   ComputeBatchesChip,
   DrawerFrame,
+  type DrawerFrameProps,
   FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
-} from "../drawer-frame";
-import { MetricTiles } from "../metric-tiles";
+} from "./drawer-frame";
+import { MetricTiles } from "./metric-tiles";
 
 import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";
 import type { ReactNode } from "react";
@@ -66,27 +67,29 @@ export const ResultsView = ({
 }: {
   model: ResultsModel;
   /** Given, the view renders inside a ds `Drawer`; otherwise it fills its section. */
-  drawer?: { onClose: () => void; swapKey: string };
+  drawer?: DrawerFrameProps["drawer"];
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
 }) => {
-  const { header, bands, surface, metrics, after, footer } = model;
+  const { header, bands, surface, metrics, after, footer, footerSecondary } =
+    model;
 
   return (
     <DrawerFrame
       drawer={drawer}
       leading={leading}
       title={header.title}
-      headline={header.headline ?? undefined}
+      headline={header.headline}
       stats={<ResultsStats header={header} />}
       badge={
-        header.compute === null ? undefined : (
+        header.compute === null ? null : (
           <ComputeBackendBadge backend={header.compute} />
         )
       }
       progress={header.progress}
       note={header.note}
       footer={footer}
+      footerSecondary={footerSecondary}
     >
       {bands.map((band) => (
         <FrameCard
@@ -94,7 +97,7 @@ export const ResultsView = ({
           title={band.title}
           subtitle={band.subtitle}
           help={band.help}
-          trailing={band.trailing ?? undefined}
+          trailing={band.trailing}
           more={band.more}
           tone={band.tone}
         >
@@ -102,9 +105,9 @@ export const ResultsView = ({
         </FrameCard>
       ))}
       <FrameColumns
-        primary={surface ?? undefined}
+        primary={surface}
         secondary={
-          metrics === null ? undefined : (
+          metrics === null ? null : (
             <MetricTiles
               key={metrics.key}
               tiles={metrics.tiles}
@@ -117,7 +120,7 @@ export const ResultsView = ({
             </MetricTiles>
           )
         }
-        after={after ?? undefined}
+        after={after}
       />
     </DrawerFrame>
   );

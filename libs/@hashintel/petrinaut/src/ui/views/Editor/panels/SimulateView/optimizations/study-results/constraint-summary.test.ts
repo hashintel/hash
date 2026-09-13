@@ -1,92 +1,79 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  fakeConstrainedStudyInput,
-  fakeConstrainedStudyTrials,
-} from "../optimizations-story-fixtures";
+import { fakeConstrainedStudyInput } from "../optimizations-story-fixtures";
 import { describeStep } from "./constraint-summary";
 
-import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
-
-const optimization = { input: fakeConstrainedStudyInput };
+import type {
+  PetrinautOptimizationTrialConstraints,
+  PetrinautOptimizationTrialEvent,
+} from "@hashintel/petrinaut-core";
 
 const trial = (
-  overrides: Partial<PetrinautOptimizationTrialEvent>,
+  constraints: PetrinautOptimizationTrialConstraints | undefined,
+  state: PetrinautOptimizationTrialEvent["state"] = "complete",
 ): PetrinautOptimizationTrialEvent => ({
-  ...fakeConstrainedStudyTrials.trials[0]!,
+  type: "trial",
   trial: 2,
-  state: "complete",
-  ...overrides,
+  parameters: {},
+  objective: state === "complete" ? 1 : null,
+  state,
+  best: null,
+  ...(constraints ? { constraints } : {}),
 });
 
 describe("describeStep", () => {
-  it("gives a parameter-only complete step its verdict alone, with nothing to add", () => {
+  it("has no detail when the head says it all: a clear step with no run rates, an unconstrained step", () => {
     expect(
       describeStep(
-        optimization,
-        trial({
-          constraints: {
-            parameters: [{ constraintId: "rate-cap", margin: 1 }],
-            state: [],
-          },
-        }),
+        fakeConstrainedStudyInput,
+        trial({ parameters: [], state: [] }),
         0.05,
       ),
-    ).toEqual({ verdict: "Step 3: clear", detail: "" });
+    ).toEqual({ verdict: "clear", head: "Step 3: clear", detail: null });
+    expect(
+      describeStep(fakeConstrainedStudyInput, trial(undefined), 0.05),
+    ).toEqual({
+      verdict: "unconstrained",
+      head: "Step 3: unconstrained",
+      detail: null,
+    });
   });
 
-  it("appends the state a step that did not complete ended in", () => {
+  it("names the binding constraint with its runs passed, and the state of a step that did not complete", () => {
     expect(
       describeStep(
-        optimization,
+        fakeConstrainedStudyInput,
         trial({
-          state: "failed",
-          objective: null,
-          constraints: { parameters: [], state: [] },
-        }),
-        0.05,
-      ),
-    ).toEqual({ verdict: "Step 3: clear", detail: " · failed" });
-  });
-
-  it("names the binding constraint with its pass rate", () => {
-    expect(
-      describeStep(
-        optimization,
-        trial({
-          constraints: {
-            parameters: [],
-            state: [
-              { constraintId: "stock-cap", runsPassed: 51, runsTotal: 60 },
-            ],
-          },
+          parameters: [],
+          state: [{ constraintId: "stock-cap", runsPassed: 51, runsTotal: 60 }],
         }),
         0.05,
       ),
     ).toEqual({
-      verdict: "Step 3: limited",
-      detail: " · 51 / 60 runs passed · 85% · Finished goods under 500",
+      verdict: "limited",
+      head: "Step 3: limited",
+      detail: "51 / 60 runs passed · 85% · Finished goods under 500",
     });
+    expect(
+      describeStep(
+        fakeConstrainedStudyInput,
+        trial({ parameters: [], state: [] }, "pruned"),
+        0.05,
+      ).detail,
+    ).toBe("pruned");
   });
 
   it("names the constraint an infeasible draw broke", () => {
     expect(
       describeStep(
-        optimization,
-        trial({
-          state: "pruned",
-          objective: null,
-          constraints: {
-            parameters: [{ constraintId: "rate-cap", margin: -4 }],
-            state: [],
-            infeasible: "rate-cap",
-          },
-        }),
+        fakeConstrainedStudyInput,
+        trial({ parameters: [], state: [], infeasible: "stock-cap" }, "pruned"),
         0.05,
       ),
     ).toEqual({
-      verdict: "Step 3: infeasible",
-      detail: " · Production rate under 320",
+      verdict: "infeasible",
+      head: "Step 3: infeasible",
+      detail: "Finished goods under 500",
     });
   });
 });

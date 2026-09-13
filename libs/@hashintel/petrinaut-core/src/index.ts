@@ -135,6 +135,7 @@ export type {
   PetrinautOptimizationEvent,
   PetrinautOptimizationExecution,
   PetrinautOptimizationInput,
+  PetrinautOptimizationDirection,
   PetrinautOptimizationManifest,
   PetrinautOptimizationObjective,
   PetrinautOptimizationParameterBinding,

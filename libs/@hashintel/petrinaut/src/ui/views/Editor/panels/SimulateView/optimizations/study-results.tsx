@@ -7,7 +7,8 @@
  * objective at the point, the objective by step, Constraints when the study
  * declares any, Sensitivity analysis), the steps table, and the actions.
  * A study run elsewhere shows its best parameters, the objective by step,
- * the experimental surface and its steps.
+ * the experimental surface and its steps; its cards are there from the first
+ * render, dashes until the first step reports, so nothing moves mid-stream.
  */
 import { use } from "react";
 
@@ -16,16 +17,22 @@ import { HelpTooltip } from "@hashintel/ds-components";
 import {
   constraintAlpha,
   formatRate,
+  type StudyConstraintRates,
   studyConstraintRates,
 } from "../../../../../../react/optimizations/constraint-rates";
 import {
   type ConnectedStudyState,
+  finishedTrialCount,
   followedTrial,
+  isOptimizationActive,
   type OptimizationNavigation,
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { optimizationBooleanIdentifiers } from "../../../../../../react/optimizations/surface-grid";
+import {
+  optimizationBooleanIdentifiers,
+  partitionParameterBindings,
+} from "../../../../../../react/optimizations/surface-grid";
 import {
   EditorContext,
   type PetrinautSimulatePresentation,
@@ -35,17 +42,22 @@ import {
   CHART_CARD_FOOTER_CHROME,
   type ChartCardTone,
 } from "../shared/chart-card";
-import {
-  FrameBand,
-  type FrameNote,
-  type FrameStatusTone,
-} from "../shared/drawer-frame";
 import { formatNumber, formatParameters } from "../shared/format-value";
+import {
+  directionWord,
+  objectiveMetric,
+  objectiveMetricName,
+  scenarioName,
+} from "../shared/study-labels";
 import {
   SURFACE_FOOTER_HEIGHT,
   SURFACE_PLOT_HEIGHT,
 } from "../shared/surface-frame";
-import { describeOptimizationStatus } from "./optimization-status";
+import {
+  OPTIMIZATION_STATUS_DISPLAY,
+  optimizationDisplayStatus,
+  WIDEST_OPTIMIZATION_STATUS,
+} from "./optimization-status";
 import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
@@ -59,26 +71,24 @@ import {
 import { ParameterImportancePanel } from "./study-results/parameter-importance-panel";
 import { ParameterValues } from "./study-results/parameter-values";
 import {
-  activityBatches,
-  finishedStepCount,
-  stepsProgressPercent,
-} from "./study-results/shared/study-progress";
-import { StudyActions } from "./study-results/study-actions";
+  PresentationToggle,
+  StudyActions,
+} from "./study-results/study-actions";
 import { StudyHeader } from "./study-results/study-header";
-import { type StudyPhase, studyPhase } from "./study-results/study-phase";
+import {
+  activityBatches,
+  stepsProgressPercent,
+} from "./study-results/study-progress";
 import { StudySteps } from "./study-results/study-steps";
 
+import type { FrameNote } from "../shared/drawer-frame";
 import type {
   ResultsBand,
   ResultsMetrics,
   ResultsModel,
   ResultsStat,
   ResultsStatus,
-} from "../shared/results";
-import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
-
-export { studyPhase, type StudyPhase } from "./study-results/study-phase";
-export { describeStudyProgress } from "./study-results/study-header";
+} from "../shared/results-model";
 
 /**
  * The objective plot's height: sized so the card ends level with the surface
@@ -87,18 +97,6 @@ export { describeStudyProgress } from "./study-results/study-header";
  */
 export const OBJECTIVE_PLOT_HEIGHT =
   SURFACE_PLOT_HEIGHT + SURFACE_FOOTER_HEIGHT + CHART_CARD_FOOTER_CHROME;
-
-const STATUS_TONE: Record<OptimizationRecord["status"], FrameStatusTone> = {
-  initializing: "active",
-  running: "active",
-  paused: "neutral",
-  complete: "done",
-  error: "error",
-  cancelled: "neutral",
-};
-
-/** The longest status word, so the pill never reflows as it changes. */
-const WIDEST_STATUS = "Reconnecting";
 
 /** The widest objective `formatNumber` prints: a sign, six significant digits and an exponent. */
 const WIDEST_OBJECTIVE = "-0.00000e+00";
@@ -113,21 +111,13 @@ const REMOTE_SURFACE_HELP =
   "The objective over two optimized parameters, computed locally on this machine; the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere.";
 
 /** The scenario and the objective, the title's second and third parts. */
-export const describeStudy = (optimization: OptimizationRecord): string => {
+const describeStudy = (optimization: OptimizationRecord): string => {
   const { input } = optimization;
-  const scenario = input.model.definition.scenarios?.find(
-    (candidate) => candidate.id === input.scenario.id,
-  );
-  const metric = input.model.definition.metrics?.find(
-    (candidate) => candidate.id === input.objective.metricId,
-  );
-  const direction =
-    input.objective.direction === "maximize" ? "Maximize" : "Minimize";
-  return `${scenario?.name ?? input.scenario.id} · ${direction} ${metric?.name ?? input.objective.metricId}`;
+  return `${scenarioName(input)} · ${directionWord(input.objective.direction)} ${objectiveMetricName(input)}`;
 };
 
 /** The frame's one-line title: `Supply chain · Base scenario · Maximize Profit`. */
-export const studyTitle = (optimization: OptimizationRecord): string =>
+const studyTitle = (optimization: OptimizationRecord): string =>
   `${optimization.input.name} · ${describeStudy(optimization)}`;
 
 /** "4 / 30 · 3 runs each · 2 at once", with the parts that are 1 left out. */
@@ -145,40 +135,33 @@ export const describeStepProgress = (
   const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
   const parallelism = optimization.connected?.parallelism ?? 1;
   return [
-    `${finishedStepCount(optimization)} / ${optimization.requestedTrials}`,
+    `${finishedTrialCount(optimization)} / ${optimization.requestedTrials}`,
     ...(runsPerStep > 1 ? [`${runsPerStep} runs each`] : []),
     ...(parallelism > 1 ? [`${parallelism} at once`] : []),
   ].join(" · ");
 };
 
-/** The status word; a run whose event stream is being re-established says so instead. */
-export const describeStudyStatus = (
-  optimization: Pick<
-    OptimizationRecord,
-    "status" | "connected" | "connectionState"
-  >,
-): string =>
-  optimization.connectionState === "reconnecting"
-    ? "Reconnecting"
-    : describeOptimizationStatus(optimization);
-
-export const studyStatus = (
-  optimization: OptimizationRecord,
-): ResultsStatus => ({
-  label: describeStudyStatus(optimization),
-  tone: STATUS_TONE[optimization.status],
-  widest: WIDEST_STATUS,
+const studyStatus = (optimization: OptimizationRecord): ResultsStatus => ({
+  ...OPTIMIZATION_STATUS_DISPLAY[optimizationDisplayStatus(optimization)],
+  widest: WIDEST_OPTIMIZATION_STATUS,
 });
 
-/** The stat columns after the status pill, each sized for its widest value. */
-export const studyStats = (optimization: OptimizationRecord): ResultsStat[] => {
-  const constrained = (optimization.input.constraints ?? []).length > 0;
-  const rates = constrained
+/** The study's constraint rates; null for a study without constraints. */
+const constraintRates = (
+  optimization: Pick<OptimizationRecord, "input" | "trials">,
+): StudyConstraintRates | null =>
+  (optimization.input.constraints ?? []).length > 0
     ? studyConstraintRates(
         optimization.trials,
         constraintAlpha(optimization.input),
       )
     : null;
+
+/** The stat columns after the status pill, each sized for its widest value. */
+const studyStats = (
+  optimization: OptimizationRecord,
+  rates: StudyConstraintRates | null,
+): ResultsStat[] => {
   return [
     {
       id: "steps",
@@ -192,7 +175,7 @@ export const studyStats = (optimization: OptimizationRecord): ResultsStat[] => {
       value: { text: describeStepProgress(optimization) },
       // Narrow, the count alone: the runs per step and the parallelism go.
       short: {
-        text: `${finishedStepCount(optimization)} / ${optimization.requestedTrials}`,
+        text: `${finishedTrialCount(optimization)} / ${optimization.requestedTrials}`,
         widest: `${optimization.requestedTrials} / ${optimization.requestedTrials}`,
       },
     },
@@ -224,24 +207,20 @@ export const studyStats = (optimization: OptimizationRecord): ResultsStat[] => {
 };
 
 /**
- * What the objective's timeline describes: the step in flight while a live
- * study is followed, otherwise the point the navigation holds. A settled
- * study never follows, so its title never reads as live.
+ * What the objective's timeline describes: the step in flight while an
+ * active study is followed, otherwise the point the navigation holds. A
+ * settled study never follows, so its title never reads as live.
  */
-export const objectiveAtPointTitle = (
-  phase: StudyPhase,
+const objectiveAtPointTitle = (
+  active: boolean,
   selection: ConnectedStudyState["selection"],
 ): string =>
-  phase === "live" &&
-  selection !== null &&
-  followedTrial(selection.key) !== null
+  active && selection !== null && followedTrial(selection.key) !== null
     ? "Objective at the step in flight"
     : "Objective at the selected point";
 
 /** The frame's note row: the error when the study failed, else the resume note while paused. */
-export const studyNote = (
-  optimization: OptimizationRecord,
-): FrameNote | null => {
+const studyNote = (optimization: OptimizationRecord): FrameNote | null => {
   if (optimization.error) {
     return { content: optimization.error, tone: "error" };
   }
@@ -278,11 +257,10 @@ export type StudyResultsDependencies = {
 const studyMetrics = (
   optimization: OptimizationRecord,
   tone: ChartCardTone,
+  rates: StudyConstraintRates | null,
 ): ResultsMetrics => {
   const { input, connected } = optimization;
-  const metric = input.model.definition.metrics?.find(
-    (candidate) => candidate.id === input.objective.metricId,
-  );
+  const metric = objectiveMetric(input);
   const selection = connected?.selection ?? null;
   return {
     key: optimization.id,
@@ -291,7 +269,10 @@ const studyMetrics = (
         ? [
             {
               id: "objective",
-              title: objectiveAtPointTitle(studyPhase(optimization), selection),
+              title: objectiveAtPointTitle(
+                isOptimizationActive(optimization),
+                selection,
+              ),
               metricName: metric.name,
               frames:
                 selection === null || selection.error !== null
@@ -312,10 +293,11 @@ const studyMetrics = (
           plotHeight={OBJECTIVE_PLOT_HEIGHT}
           tone={tone}
         />
-        {connected && (input.constraints ?? []).length > 0 ? (
+        {connected && rates !== null ? (
           <ConstraintSummaryCard
             optimization={optimization}
             selection={selection}
+            rates={rates}
             plotHeight={OBJECTIVE_PLOT_HEIGHT}
             tone={tone}
           />
@@ -331,17 +313,6 @@ const studyMetrics = (
     ),
   };
 };
-
-/** The parameters the manifest holds fixed, in the scenario's order. */
-export const fixedParameters = (
-  input: OptimizationRecord["input"],
-): Record<string, OptimizationScalar> =>
-  Object.fromEntries(
-    Object.entries(input.scenario.parameterBindings).flatMap(
-      ([identifier, binding]) =>
-        binding.kind === "fixed" ? [[identifier, binding.value]] : [],
-    ),
-  );
 
 /** The card's subtitle: `2 optimized · 3 fixed`, the fixed part left out when there are none. */
 export const describeParameterCounts = (
@@ -363,11 +334,9 @@ const parametersBand = (
   running: boolean,
   onNavigationChange: StudyResultsDependencies["onNavigationChange"],
 ): ResultsBand => {
-  const fixed = fixedParameters(optimization.input);
+  const { fixed, optimized } = partitionParameterBindings(optimization.input);
   const fixedCount = Object.keys(fixed).length;
-  const optimizedCount =
-    Object.keys(optimization.input.scenario.parameterBindings).length -
-    fixedCount;
+  const optimizedCount = Object.keys(optimized).length;
   return {
     id: `parameters-${optimization.id}`,
     title: "Parameters",
@@ -432,10 +401,43 @@ const studySurface = (
     );
   }
   return enableOptimizationSurface ? (
-    <FrameBand title="Surface" help={REMOTE_SURFACE_HELP}>
-      <OptimizationSurface key={optimization.id} optimization={optimization} />
-    </FrameBand>
+    <OptimizationSurface
+      key={optimization.id}
+      optimization={optimization}
+      actions={<HelpTooltip content={REMOTE_SURFACE_HELP} align="center" />}
+      tone={tone}
+    />
   ) : null;
+};
+
+/**
+ * The Best parameters card of a remote study: one row per optimized
+ * parameter from the first render, `—` until the first step reports, so the
+ * card is exactly as tall before a best as after.
+ */
+const bestParametersBand = (optimization: OptimizationRecord): ResultsBand => {
+  const { best } = optimization;
+  const { optimized } = partitionParameterBindings(optimization.input);
+  return {
+    id: "best-parameters",
+    title: "Best parameters",
+    subtitle: best
+      ? `Step ${best.trial + 1} · ${formatNumber(best.objective)}`
+      : "Step — · —",
+    trailing: null,
+    content: (
+      <ParameterValues
+        values={Object.fromEntries(
+          Object.keys(optimized).map((identifier) => [
+            identifier,
+            best?.parameters[identifier] ?? null,
+          ]),
+        )}
+      />
+    ),
+    more: null,
+    tone: "default",
+  };
 };
 
 export const studyResultsModel = (
@@ -443,7 +445,8 @@ export const studyResultsModel = (
   dependencies: StudyResultsDependencies,
 ): ResultsModel => {
   const { connected } = optimization;
-  const phase = studyPhase(optimization);
+  const active = isOptimizationActive(optimization);
+  const rates = constraintRates(optimization);
   // The paused study keeps the running layout: the same cards, frozen.
   const tone: ChartCardTone =
     optimization.status === "paused" ? "paused" : "default";
@@ -453,7 +456,7 @@ export const studyResultsModel = (
       title: studyTitle(optimization),
       headline: <StudyHeader optimization={optimization} />,
       status: studyStatus(optimization),
-      stats: studyStats(optimization),
+      stats: studyStats(optimization, rates),
       activity: connected ? activityBatches(connected) : null,
       compute: connected
         ? {
@@ -465,45 +468,35 @@ export const studyResultsModel = (
       progress: stepsProgressPercent(optimization),
       note: studyNote(optimization),
     },
-    bands: connected
-      ? [
-          parametersBand(
+    bands: [
+      connected
+        ? parametersBand(
             optimization,
             connected,
-            phase === "live",
+            active,
             dependencies.onNavigationChange,
-          ),
-        ]
-      : optimization.best
-        ? [
-            {
-              id: "best-parameters",
-              title: "Best parameters",
-              subtitle: `Step ${optimization.best.trial + 1} · ${formatNumber(optimization.best.objective)}`,
-              trailing: null,
-              content: (
-                <ParameterValues values={optimization.best.parameters} />
-              ),
-              more: null,
-              tone: "default",
-            },
-          ]
-        : [],
+          )
+        : bestParametersBand(optimization),
+    ],
     surface: studySurface(optimization, tone, dependencies),
-    metrics: studyMetrics(optimization, tone),
-    after:
-      connected || optimization.trials.length > 0 ? (
-        <StudySteps
-          optimization={optimization}
-          bestTrial={connected ? (optimization.best?.trial ?? null) : null}
-        />
-      ) : null,
+    metrics: studyMetrics(optimization, tone, rates),
+    after: (
+      <StudySteps
+        optimization={optimization}
+        bestTrial={optimization.best?.trial ?? null}
+      />
+    ),
     footer: (
       <StudyActions
         optimization={optimization}
         presentation={dependencies.presentation}
-        onPresentationChange={dependencies.onPresentationChange}
         onClose={dependencies.onClose}
+      />
+    ),
+    footerSecondary: (
+      <PresentationToggle
+        presentation={dependencies.presentation}
+        onPresentationChange={dependencies.onPresentationChange}
       />
     ),
   };

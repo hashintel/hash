@@ -1,15 +1,14 @@
 /**
- * The card both surface views share: the plot in the body, the state line
- * (or the drag readout) in the subtitle, and the X/Y axis selects in the
- * footer, with whatever else the view controls on a second footer row. The
- * footer is a grid of label and select pairs: the selects share the row's
- * width, so the footer fits the card's narrowest column without overflowing,
- * and a view with further controls reserves its second row at all times.
+ * What both surface cards share: the plot and footer heights that keep them
+ * level with their neighbours, the X/Y axis selects for the footer, with
+ * whatever else a view controls on a second footer row, and the caption
+ * helpers. The footer is a grid of label and select pairs: the selects share
+ * the row's width, so the footer fits the card's narrowest column without
+ * overflowing, and a view with further controls reserves its second row at
+ * all times.
  */
-import { Select } from "@hashintel/ds-components";
+import { Chip, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { ChartCard, type ChartCardTone } from "./chart-card";
 
 import type { ReactNode } from "react";
 
@@ -41,43 +40,6 @@ const controlLabelStyle = css({
   flexShrink: 0,
 });
 
-export const SurfaceFrame = ({
-  title,
-  caption,
-  actions,
-  bodyHeight,
-  footer,
-  footerHeight = SURFACE_FOOTER_HEIGHT,
-  tone,
-  children,
-}: {
-  title: string;
-  /** The state line, or the drag readout, under the title. */
-  caption: string;
-  /** The header's right side, e.g. a help tooltip. */
-  actions?: ReactNode;
-  /** Fixed when the card shares a row; omitted when its content sizes it. */
-  bodyHeight?: number;
-  /** The axis selects and whatever else the view controls. */
-  footer: ReactNode;
-  /** The footer's content height; two rows when the view adds controls to the axis selects. */
-  footerHeight?: number;
-  tone?: ChartCardTone;
-  children: ReactNode;
-}) => (
-  <ChartCard
-    title={title}
-    subtitle={caption}
-    actions={actions}
-    bodyHeight={bodyHeight}
-    footer={footer}
-    footerHeight={footerHeight}
-    tone={tone}
-  >
-    {children}
-  </ChartCard>
-);
-
 export const SurfaceControlLabel = ({ children }: { children: ReactNode }) => (
   <span className={controlLabelStyle}>{children}</span>
 );
@@ -89,6 +51,7 @@ export const SurfaceAxisControls = ({
   yAxisId,
   onXAxisIdChange,
   onYAxisIdChange,
+  disabled = false,
   children,
 }: {
   /** `label` is the name shown for a generated identifier. */
@@ -97,6 +60,8 @@ export const SurfaceAxisControls = ({
   yAxisId: string;
   onXAxisIdChange: (axisId: string) => void;
   onYAxisIdChange: (axisId: string) => void;
+  /** Both selects lock: the view is read-only for now. */
+  disabled?: boolean;
   children?: ReactNode;
 }) => {
   const options = axes.map((axis) => ({
@@ -112,6 +77,7 @@ export const SurfaceAxisControls = ({
         items={options.filter((option) => option.value !== yAxisId)}
         value={xAxisId}
         onChange={(value) => onXAxisIdChange(value ?? "")}
+        disabled={disabled}
       />
       <SurfaceControlLabel>Y</SurfaceControlLabel>
       <Select
@@ -120,11 +86,48 @@ export const SurfaceAxisControls = ({
         items={options.filter((option) => option.value !== xAxisId)}
         value={yAxisId}
         onChange={(value) => onYAxisIdChange(value ?? "")}
+        disabled={disabled}
       />
       {children}
     </div>
   );
 };
+
+const readOnlyMarkStyle = css({
+  gridColumn: "[3 / -1]",
+  justifySelf: "end",
+});
+
+/**
+ * The footer's read-only mark, in the free cells of a control row: a lock
+ * and the word, purple while an optimizer drives the view, grey when the
+ * view is over. Takes no room the controls would otherwise have, so locking
+ * shifts nothing.
+ */
+export const SurfaceReadOnlyMark = ({
+  reason,
+}: {
+  reason: "following" | "disabled";
+}) => (
+  <span
+    className={readOnlyMarkStyle}
+    title={
+      reason === "following"
+        ? "The optimizer drives the selection; the pickers unlock when it stops."
+        : "The sweep is over; nothing computes for a new pick."
+    }
+    data-surface-read-only={reason}
+  >
+    <Chip
+      size="xs"
+      color={reason === "following" ? "purple" : "grey"}
+      variant="soft"
+      prefix={{ iconName: "lockClosed" }}
+    >
+      Read-only
+    </Chip>
+  </span>
+);
 
 /** The state line of a view that samples its grid locally. */
 export const describeSurfaceSampling = ({

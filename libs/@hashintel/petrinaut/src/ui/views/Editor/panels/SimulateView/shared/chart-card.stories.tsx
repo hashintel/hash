@@ -20,7 +20,6 @@ import {
   SURFACE_FOOTER_TWO_ROW_HEIGHT,
   SurfaceAxisControls,
   SurfaceControlLabel,
-  SurfaceFrame,
 } from "./surface-frame";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
@@ -243,9 +242,9 @@ const NarrowSurfaceCard = () => {
   const [yAxisId, setYAxisId] = useState("recovery_days");
   const [metricId, setMetricId] = useState("infected_peak");
   return (
-    <SurfaceFrame
+    <ChartCard
       title="Surface"
-      caption="9 of 25 points sampled at 4+ runs · drag or click to navigate"
+      subtitle="9 of 25 points sampled at 4+ runs · drag or click to navigate"
       bodyHeight={PLOT_HEIGHT}
       footerHeight={SURFACE_FOOTER_TWO_ROW_HEIGHT}
       footer={
@@ -278,7 +277,7 @@ const NarrowSurfaceCard = () => {
       >
         surface
       </div>
-    </SurfaceFrame>
+    </ChartCard>
   );
 };
 

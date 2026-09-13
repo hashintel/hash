@@ -16,7 +16,10 @@ import type {
 } from "../../experiments/context";
 import type { SweepCellSnapshot } from "../../experiments/sweep-session";
 import type { OptimizationSelectionStream } from "../context";
-import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
+import type {
+  MonteCarloUserDefinedMetricFrame,
+  PetrinautOptimizationDirection,
+} from "@hashintel/petrinaut-core";
 
 export { shouldStopRefining } from "./point-refinement/objective-estimate";
 
@@ -30,7 +33,7 @@ export type PointRefinementStudy = Pick<
   | "dt"
   | "maxTime"
   | "computeBackend"
-> & { seed: number; direction: "maximize" | "minimize" };
+> & { seed: number; direction: PetrinautOptimizationDirection };
 
 export type PointRefinementTarget = {
   key: string;

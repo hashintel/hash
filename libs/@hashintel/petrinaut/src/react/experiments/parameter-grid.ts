@@ -92,7 +92,9 @@ export const selectionMidpoint = (
  * while the user stays on a selection. Extended ×5/×2 beyond the last step
  * for very large run budgets.
  */
-export const EXPERIMENT_RUN_LADDER: readonly number[] = [8, 25, 100, 500, 1000];
+export const EXPERIMENT_RUN_LADDER = [
+  8, 25, 100, 500, 1000,
+] as const satisfies readonly number[];
 
 /**
  * The next cumulative run target for a combination that currently has

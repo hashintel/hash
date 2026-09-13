@@ -1,7 +1,8 @@
 /**
  * Parameter values, read only: one row per parameter with its name on the
  * left and its value on the right, as many columns as fit. The parameters a
- * study holds fixed, and a remote study's best parameters.
+ * study holds fixed, and a remote study's best parameters, which read `—`
+ * until a step reports so the rows are there from the start.
  */
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -45,7 +46,7 @@ const valueStyle = css({
 export const ParameterValues = ({
   values,
 }: {
-  values: Readonly<Record<string, OptimizationScalar>>;
+  values: Readonly<Record<string, OptimizationScalar | null>>;
 }) => (
   <div className={gridStyle} data-parameter-values>
     {Object.entries(values).map(([identifier, value]) => (
@@ -53,7 +54,9 @@ export const ParameterValues = ({
         <span className={nameStyle} title={identifier}>
           {identifier}
         </span>
-        <span className={valueStyle}>{formatScalar(value)}</span>
+        <span className={valueStyle}>
+          {value === null ? "—" : formatScalar(value)}
+        </span>
       </div>
     ))}
   </div>

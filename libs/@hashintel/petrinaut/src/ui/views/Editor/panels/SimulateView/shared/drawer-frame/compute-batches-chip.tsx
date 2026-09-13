@@ -8,10 +8,13 @@
  * as wide as a three-digit count, so the strip never moves around it. The
  * list closes with the last batch, so the next one does not reopen it.
  */
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import { Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
+import { formatCount } from "../format-value";
+import { FrameAnimateContext } from "./frame-animate-context";
 
 /** One computing batch, for the list. */
 export type ComputeBatch = {
@@ -117,11 +120,12 @@ const trackStyle = css({
   overflow: "hidden",
 });
 
+// The list is portalled, so the frame's animate switch is stamped on it.
 const fillStyle = css({
   height: "full",
   borderRadius: "full",
   backgroundColor: "neutral.s90",
-  transition: "[width 160ms ease-out]",
+  "[data-animate=true] &": { transition: "[width 160ms ease-out]" },
   "&[data-tone=priority]": { backgroundColor: "blue.s100" },
 });
 
@@ -153,8 +157,7 @@ const BatchRow = ({ batch }: { batch: ComputeBatch }) => {
         />
       </div>
       <span className={countStyle}>
-        {batch.completedRuns.toLocaleString("en-US")} /{" "}
-        {batch.runCount.toLocaleString("en-US")} runs
+        {formatCount(batch.completedRuns)} / {formatCount(batch.runCount)} runs
       </span>
     </div>
   );
@@ -165,6 +168,7 @@ export const ComputeBatchesChip = ({
 }: {
   batches: readonly ComputeBatch[];
 }) => {
+  const animate = use(FrameAnimateContext);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const idle = batches.length === 0;
@@ -199,7 +203,11 @@ export const ComputeBatchesChip = ({
           onClose={() => setOpen(false)}
         >
           <Popover.Container>
-            <div className={listStyle} data-compute-batches-list>
+            <div
+              className={listStyle}
+              data-compute-batches-list
+              data-animate={animate}
+            >
               {batches.map((batch) => (
                 <BatchRow key={batch.id} batch={batch} />
               ))}

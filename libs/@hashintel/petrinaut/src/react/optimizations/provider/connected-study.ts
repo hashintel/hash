@@ -3,6 +3,7 @@
  * @role Per-record local state of a study run in the tab: navigation and following, the refinement ladder at the navigated point, the activity list
  */
 import { createBatchRegistry } from "../../experiments/shared/batch-registry";
+import { createThrottle } from "../../experiments/shared/throttle";
 import { sweepCellObjective } from "../../experiments/sweep-cell-objective";
 import { foldBestTrial } from "../context";
 import {
@@ -134,6 +135,7 @@ export const createConnectedStudy = ({
   computeBackend,
   runDetachedObjective,
   onUpdate,
+  publishThrottleMs = 0,
 }: {
   optimizationId: string;
   input: PetrinautOptimizationInput;
@@ -141,6 +143,13 @@ export const createConnectedStudy = ({
   computeBackend: ExperimentComputeBackend;
   runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
   onUpdate: (update: ConnectedStudyUpdate) => void;
+  /**
+   * Coalesces the publishes a streaming batch drives: after a leading
+   * publish, further frame and progress ticks inside this window fold into
+   * one trailing publish. 0 (the default) publishes on every tick. Moves,
+   * trial starts and settles publish at once.
+   */
+  publishThrottleMs?: number;
 }): ConnectedStudy => {
   const booleanIdentifiers = optimizationBooleanIdentifiers(input);
   const optimizedIdentifiers = [
@@ -205,6 +214,8 @@ export const createConnectedStudy = ({
       onUpdate({ navigation, selection, activity, inFlight: inFlight() });
     }
   };
+  /** The publish a batch's stream drives; a trailing run reads current state. */
+  const livePublish = createThrottle(publish, publishThrottleMs);
 
   const registry = createBatchRegistry<
     OptimizationBatch["kind"],
@@ -246,6 +257,7 @@ export const createConnectedStudy = ({
       }),
     ),
     followTrials,
+    surfaceAxes: navigation.surfaceAxes,
   });
 
   const keyOf = (target: OptimizationNavigation): string =>
@@ -290,7 +302,7 @@ export const createConnectedStudy = ({
     bestObjective: () => best?.objective ?? null,
     onUpdate: (next) => {
       selection = next;
-      publish();
+      livePublish.call();
     },
   });
 
@@ -321,19 +333,25 @@ export const createConnectedStudy = ({
     stopFollowing();
     navigation = navigationAt(values, true);
     const key = `trial:${trial}`;
+    // Filtered once per frames event, so a progress tick keeps the frames'
+    // identity and the objective tile leaves its plot alone.
+    let metricFrames = objectiveFrames(run.frames.get());
     const mirror = () => {
       selection = {
         key,
-        metricFrames: objectiveFrames(run.frames.get()),
+        metricFrames,
         runsCompleted: run.progress.get()?.completedRuns ?? 0,
         runTarget: null,
         computing: true,
         error: null,
         note: null,
       };
-      publish();
+      livePublish.call();
     };
-    const offFrames = run.frames.subscribe(mirror);
+    const offFrames = run.frames.subscribe((frames) => {
+      metricFrames = objectiveFrames(frames);
+      mirror();
+    });
     const offProgress = run.progress.subscribe(mirror);
     followed = {
       trial,
@@ -389,7 +407,13 @@ export const createConnectedStudy = ({
         booleans: { ...navigation.booleans, ...patch.booleans },
         followTrials:
           patch.followTrials ?? (moved ? false : navigation.followTrials),
+        surfaceAxes: patch.surfaceAxes ?? navigation.surfaceAxes,
       };
+      // Only the surface's axes changed: the point and its stream stay as they are.
+      if (!moved && patch.followTrials === undefined) {
+        publish();
+        return;
+      }
       if (terminal !== null || !navigation.followTrials) {
         stopFollowing();
         refineHere();
@@ -414,7 +438,7 @@ export const createConnectedStudy = ({
       // The followed trial's own mirror publishes its frames.
       const offFrames = run.frames.subscribe(() => {
         if (followed?.trial !== trial) {
-          publish();
+          livePublish.call();
         }
       });
       const entry: EvaluatingTrial = {
@@ -542,6 +566,7 @@ export const createConnectedStudy = ({
     },
     dispose: () => {
       disposed = true;
+      livePublish.cancel();
       stopFollowing();
       for (const entry of evaluating.values()) {
         entry.release();

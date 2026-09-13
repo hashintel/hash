@@ -1495,6 +1495,154 @@ describe("ExperimentsProvider", () => {
       renderResult.unmount();
     }
   });
+
+  it("cancelling a sweep mid-batch leaves its selection idle", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: {
+        ...EMPTY_SDCPN,
+        scenarios: [
+          {
+            id: "scenario",
+            name: "Scenario",
+            scenarioParameters: [
+              { type: "real", identifier: "beta", default: 0.5 },
+            ],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          },
+        ],
+      },
+    });
+
+    let experimentId = "";
+    await act(async () => {
+      experimentId = await getValue().createExperiment({
+        name: "Sweep",
+        scenarioId: "scenario",
+        scenarioParameterValues: { beta: { mode: "range", min: 0, max: 1 } },
+        runCount: 8,
+        seed: 42,
+        dt: 1,
+        maxTime: 10,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      });
+    });
+    // Nothing computes until a point is selected.
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "idle",
+      sweep: { computing: false, selectionKey: "beta=0..50" },
+    });
+
+    await act(async () => {
+      getValue().setSweepSelection(experimentId, {
+        beta: { from: 10, to: 10 },
+      });
+      await flushWorkerSetup();
+      worker.emit({ type: "ready" });
+    });
+    await waitFor(() =>
+      expect(worker.sent.map((message) => message.type)).toContain("start"),
+    );
+    await act(async () => {
+      worker.emit({ type: "metricFrames", frames: [makeMetricFrame()] });
+      worker.emit({ type: "progress", progress: makeProgress() });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "running",
+      sweep: { computing: true, runTarget: 8, selectionKey: "beta=10" },
+    });
+    expect(getValue().selectedExperiment?.sweepBatches).toMatchObject([
+      { kind: "selection", runCount: 8 },
+    ]);
+
+    await act(async () => {
+      getValue().cancelExperiment(experimentId);
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "cancelled",
+      progress: null,
+      sweepBatches: [],
+      sweep: { computing: false, runTarget: null },
+    });
+    renderResult.unmount();
+  });
+
+  it("clears a failed selection's error once the next selection computes", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: {
+        ...EMPTY_SDCPN,
+        scenarios: [
+          {
+            id: "scenario",
+            name: "Scenario",
+            scenarioParameters: [
+              { type: "real", identifier: "beta", default: 0.5 },
+            ],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          },
+        ],
+      },
+    });
+
+    let experimentId = "";
+    await act(async () => {
+      experimentId = await getValue().createExperiment({
+        name: "Sweep",
+        scenarioId: "scenario",
+        scenarioParameterValues: { beta: { mode: "range", min: 0, max: 1 } },
+        runCount: 8,
+        seed: 42,
+        dt: 1,
+        maxTime: 10,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      });
+    });
+
+    const selectAndStart = async (position: number) => {
+      const startsBefore = worker.sent.filter(
+        (message) => message.type === "start",
+      ).length;
+      await act(async () => {
+        getValue().setSweepSelection(experimentId, {
+          beta: { from: position, to: position },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+      });
+      await waitFor(() =>
+        expect(
+          worker.sent.filter((message) => message.type === "start"),
+        ).toHaveLength(startsBefore + 1),
+      );
+    };
+
+    await selectAndStart(10);
+    await act(async () => {
+      worker.emit({ type: "error", message: "device lost", itemId: null });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "error",
+      error: "device lost",
+      sweep: { computing: false, selectionKey: "beta=10" },
+    });
+
+    // The failure belonged to that selection: the next one computes and the
+    // record forgets the message.
+    await selectAndStart(20);
+    await act(async () => {
+      worker.emit({ type: "metricFrames", frames: [makeMetricFrame()] });
+      worker.emit({ type: "progress", progress: makeProgress() });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "running",
+      error: null,
+      sweep: { computing: true, selectionKey: "beta=20" },
+    });
+    renderResult.unmount();
+  });
 });
 
 describe("compileExperimentScenario with an ad-hoc definition", () => {

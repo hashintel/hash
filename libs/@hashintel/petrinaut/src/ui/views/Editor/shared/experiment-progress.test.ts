@@ -47,6 +47,7 @@ describe("experimentProgressPercent", () => {
   it("tracks the selection's sampled runs for a sweep, capped at 100", () => {
     const sweep = {
       selection: {},
+      selectionKey: "",
       runsCompleted: 25,
       runsSampled: 61,
       runTarget: 100,

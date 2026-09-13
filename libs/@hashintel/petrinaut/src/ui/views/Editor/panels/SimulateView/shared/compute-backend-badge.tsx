@@ -32,9 +32,7 @@ const badgeStyle = css({
   },
 });
 
-export const describeComputeBackend = (
-  backend: ComputeBackendSummary,
-): string => {
+const describeComputeBackend = (backend: ComputeBackendSummary): string => {
   if (backend.computeBackend === "webgpu") {
     return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
   }

@@ -5,22 +5,13 @@
  */
 import {
   type ConnectedStudyState,
+  finishedTrialCount,
   type OptimizationBatchStatus,
   type OptimizationRecord,
-} from "../../../../../../../../react/optimizations/context";
-import { formatParameters } from "../../../shared/format-value";
+} from "../../../../../../../react/optimizations/context";
+import { formatParameters } from "../../shared/format-value";
 
-import type { ComputeBatch } from "../../../shared/drawer-frame";
-
-export const finishedStepCount = (
-  optimization: Pick<
-    OptimizationRecord,
-    "completedTrials" | "prunedTrials" | "failedTrials"
-  >,
-): number =>
-  optimization.completedTrials +
-  optimization.prunedTrials +
-  optimization.failedTrials;
+import type { ComputeBatch } from "../../shared/drawer-frame";
 
 /** The header bar: steps finished over steps requested, 0 to 100. */
 export const stepsProgressPercent = (
@@ -32,12 +23,12 @@ export const stepsProgressPercent = (
   optimization.requestedTrials > 0
     ? Math.min(
         100,
-        (finishedStepCount(optimization) / optimization.requestedTrials) * 100,
+        (finishedTrialCount(optimization) / optimization.requestedTrials) * 100,
       )
     : 0;
 
 /** A batch as the computing list names it: "Step 4", or "Refining population=1850, infected_ratio=0.36". */
-export const describeBatch = (batch: OptimizationBatchStatus): string =>
+const describeBatch = (batch: OptimizationBatchStatus): string =>
   batch.kind === "trial"
     ? `Step ${batch.trial + 1}`
     : `Refining ${formatParameters(batch.values)}`;
