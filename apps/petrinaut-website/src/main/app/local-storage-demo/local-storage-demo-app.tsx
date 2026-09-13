@@ -382,11 +382,15 @@ export const LocalStorageDemoApp = ({
   // Brunch is the default assistant; the stock assistant is the host-selected
   // alternate. Every Brunch-specific branch below keys off this, never off the
   // bare configuration, so selecting stock leaves no Brunch dependency behind.
-  const { selection: assistantSelection, setSelection: selectAssistant } =
-    useAssistantSelection({ enabled: !remoteRouteSelected });
+  const {
+    ready: assistantSelectionReady,
+    selection: assistantSelection,
+    setSelection: selectAssistant,
+  } = useAssistantSelection({ enabled: !remoteRouteSelected });
   const brunchSelected = remoteRouteSelected
     ? brunchPreviewConfig.isBrunchConfigured
-    : isBrunchSelected(
+    : assistantSelectionReady &&
+      isBrunchSelected(
         brunchPreviewConfig.isBrunchConfigured,
         assistantSelection,
       );
@@ -469,9 +473,6 @@ export const LocalStorageDemoApp = ({
 
   useEffect(() => {
     if (!brunchSelected) {
-      // Voice is a Brunch feature; the stock assistant never shows it.
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- assistant selection synchronizes this host-owned integration state
-      setOpenAIVoiceConfig(null);
       return;
     }
 
@@ -641,16 +642,25 @@ export const LocalStorageDemoApp = ({
   ]);
   // The handle mutates behind a stable identity. Subscribe to its real snapshot;
   // a render-time read alone can be memoized by React Compiler across hand edits.
-  const observedLiveHash = useSyncExternalStore(
-    (changed) =>
+  const subscribeToObservedLiveHash = useCallback(
+    (changed: () => void) =>
       rootArcBrowser && activeHandle
         ? activeHandle.handle.subscribe(changed)
         : () => {},
+    [activeHandle, rootArcBrowser],
+  );
+  const getObservedLiveHash = useCallback(
     () =>
       rootArcBrowser && activeHandle?.handle.doc()
         ? observeBrowserDefinition(activeHandle.handle).sha256
         : undefined,
-    () => undefined,
+    [activeHandle, rootArcBrowser],
+  );
+  const getServerObservedLiveHash = useCallback(() => undefined, []);
+  const observedLiveHash = useSyncExternalStore(
+    subscribeToObservedLiveHash,
+    getObservedLiveHash,
+    getServerObservedLiveHash,
   );
   const mutationRecorder = useMemo(
     () =>
@@ -700,11 +710,16 @@ export const LocalStorageDemoApp = ({
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
-        openAIVoiceConfig,
+        brunchSelected ? openAIVoiceConfig : null,
         conversationTracker,
         flueHistory.settlements,
       ),
-    [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
+    [
+      brunchSelected,
+      conversationTracker,
+      flueHistory.settlements,
+      openAIVoiceConfig,
+    ],
   );
   const crewReservationSession = useCrewReservationFixtureSession({
     clientPromise: flueClientPromise,

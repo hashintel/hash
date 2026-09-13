@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
+import { usePersistedState } from "./use-persisted-state";
 
 /**
  * Which assistant the demo's AI panel talks to.
@@ -27,6 +28,14 @@ export const parseAssistantSelection = (
  */
 export const stockChatEndpoint = "/api/chat";
 
+const readAssistantSelection = (): AssistantSelection =>
+  parseAssistantSelection(
+    readBrowserStorage(localStorage, assistantSelectionStorageKey),
+  );
+
+const writeAssistantSelection = (selection: AssistantSelection): void =>
+  writeBrowserStorage(localStorage, assistantSelectionStorageKey, selection);
+
 /**
  * Whether Brunch is the assistant in use: configured and selected. Everything
  * Brunch-specific in the host keys off this, so with the stock assistant
@@ -42,30 +51,11 @@ export const useAssistantSelection = (input?: {
   readonly enabled: boolean;
 }) => {
   const enabled = input?.enabled ?? true;
-  const [state, setState] = useState(() => ({
+  const [selection, setSelection, ready] = usePersistedState({
     enabled,
-    selection: enabled
-      ? parseAssistantSelection(
-          localStorage.getItem(assistantSelectionStorageKey),
-        )
-      : defaultAssistantSelection,
-  }));
-  const selection =
-    state.enabled === enabled
-      ? state.selection
-      : enabled
-        ? parseAssistantSelection(
-            localStorage.getItem(assistantSelectionStorageKey),
-          )
-        : defaultAssistantSelection;
-  if (state.enabled !== enabled) setState({ enabled, selection });
-  const setSelection = useCallback(
-    (next: AssistantSelection) => {
-      if (!enabled) return;
-      setState({ enabled: true, selection: next });
-      localStorage.setItem(assistantSelectionStorageKey, next);
-    },
-    [enabled],
-  );
-  return { selection, setSelection };
+    fallback: defaultAssistantSelection,
+    read: readAssistantSelection,
+    write: writeAssistantSelection,
+  });
+  return { ready, selection, setSelection };
 };

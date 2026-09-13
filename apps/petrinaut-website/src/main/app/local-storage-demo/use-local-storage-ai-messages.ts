@@ -1,53 +1,77 @@
-import { useCallback, useState } from "react";
+import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
+import { usePersistedState } from "./use-persisted-state";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const rootLocalStorageKey = "petrinaut-ai-messages";
 
 type AiMessagesByNetId = Record<string, PetrinautAiMessage[]>;
+const noAiMessages: AiMessagesByNetId = {};
 
 const readMessages = (): AiMessagesByNetId => {
-  const stored = localStorage.getItem(rootLocalStorageKey);
+  const stored = readBrowserStorage(localStorage, rootLocalStorageKey);
   if (stored === null) return {};
   try {
     const parsed: unknown = JSON.parse(stored);
-    return typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed)
-      ? (parsed as AiMessagesByNetId)
-      : {};
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return {};
+    }
+    const entries = Object.entries(parsed);
+    if (
+      !entries.every(
+        ([netId, messages]) =>
+          netId.length > 0 &&
+          Array.isArray(messages) &&
+          messages.every(
+            (message: unknown) =>
+              typeof message === "object" &&
+              message !== null &&
+              "id" in message &&
+              typeof message.id === "string" &&
+              "role" in message &&
+              (message.role === "user" ||
+                message.role === "assistant" ||
+                message.role === "system") &&
+              "parts" in message &&
+              Array.isArray(message.parts) &&
+              message.parts.every(
+                (part: unknown) =>
+                  typeof part === "object" &&
+                  part !== null &&
+                  "type" in part &&
+                  typeof part.type === "string",
+              ),
+          ),
+      )
+    ) {
+      return {};
+    }
+    return Object.fromEntries(entries) as AiMessagesByNetId;
   } catch {
     return {};
   }
 };
 
+const writeMessages = (messages: AiMessagesByNetId): void =>
+  writeBrowserStorage(
+    localStorage,
+    rootLocalStorageKey,
+    JSON.stringify(messages),
+  );
+
 export const useLocalStorageAiMessages = (input?: {
   readonly enabled: boolean;
 }) => {
   const enabled = input?.enabled ?? true;
-  const [state, setState] = useState(() => ({
+  const [aiMessagesByNetId, setAiMessagesByNetId] = usePersistedState({
     enabled,
-    messages: enabled ? readMessages() : {},
-  }));
-  const aiMessagesByNetId =
-    state.enabled === enabled ? state.messages : enabled ? readMessages() : {};
-  if (state.enabled !== enabled)
-    setState({ enabled, messages: aiMessagesByNetId });
-  const setAiMessagesByNetId = useCallback(
-    (
-      update:
-        | AiMessagesByNetId
-        | ((previous: AiMessagesByNetId) => AiMessagesByNetId),
-    ) => {
-      if (!enabled) return;
-      setState((previous) => {
-        const current = previous.enabled ? previous.messages : readMessages();
-        const next = typeof update === "function" ? update(current) : update;
-        localStorage.setItem(rootLocalStorageKey, JSON.stringify(next));
-        return { enabled: true, messages: next };
-      });
-    },
-    [enabled],
-  );
+    fallback: noAiMessages,
+    read: readMessages,
+    write: writeMessages,
+  });
   return { aiMessagesByNetId, setAiMessagesByNetId };
 };

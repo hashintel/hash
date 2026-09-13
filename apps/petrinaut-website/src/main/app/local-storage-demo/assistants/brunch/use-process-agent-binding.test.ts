@@ -1,8 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { renderHook } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { cleanup, render, renderHook, waitFor } from "@testing-library/react";
+import { createElement, StrictMode, Suspense } from "react";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   resolveProcessAgentBinding,
@@ -10,6 +11,11 @@ import {
 } from "./use-process-agent-binding";
 
 import type { DocumentRecord } from "../../documents/document-repository";
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const document = (
   documentId: string,
@@ -115,5 +121,78 @@ describe("resolveProcessAgentBinding", () => {
     });
 
     expect(result.current).toBe(initialBinding);
+  });
+
+  test("creates one durable fallback per document after commit in StrictMode", async () => {
+    const values = new Map<string, string>();
+    const setItem = vi.fn((key: string, value: string) =>
+      values.set(key, value),
+    );
+    vi.stubGlobal("localStorage", {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      removeItem: (key: string) => values.delete(key),
+      setItem,
+    } satisfies Storage);
+
+    const never = new Promise<void>(() => {});
+    const Abandoned = () => {
+      useProcessAgentBinding({
+        document: document("abandoned-document"),
+        seed: undefined,
+        fixture: undefined,
+      });
+      throw never;
+    };
+    render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(Suspense, { fallback: null }, createElement(Abandoned)),
+      ),
+    );
+    expect(setItem).not.toHaveBeenCalled();
+    cleanup();
+
+    const { result, rerender } = renderHook(
+      ({ currentDocument }: { currentDocument: DocumentRecord }) =>
+        useProcessAgentBinding({
+          document: currentDocument,
+          seed: undefined,
+          fixture: undefined,
+        }),
+      {
+        initialProps: { currentDocument: document("document-a") },
+        wrapper: ({ children }) => createElement(StrictMode, null, children),
+      },
+    );
+    await waitFor(() => expect(result.current).not.toBeNull());
+    const documentABinding = result.current;
+    expect(setItem).toHaveBeenCalledOnce();
+
+    rerender({
+      currentDocument: document("document-a", "replacement-revision"),
+    });
+    expect(result.current).toBe(documentABinding);
+    expect(setItem).toHaveBeenCalledOnce();
+
+    rerender({ currentDocument: document("document-b") });
+    await waitFor(() => expect(result.current?.documentId).toBe("document-b"));
+    expect(result.current?.conversationId).not.toBe(
+      documentABinding?.conversationId,
+    );
+    expect(setItem).toHaveBeenCalledTimes(2);
+
+    rerender({ currentDocument: document("document-a") });
+    await waitFor(() =>
+      expect(result.current?.conversationId).toBe(
+        documentABinding?.conversationId,
+      ),
+    );
+    expect(setItem).toHaveBeenCalledTimes(2);
   });
 });

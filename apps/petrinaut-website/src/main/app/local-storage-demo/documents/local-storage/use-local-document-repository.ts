@@ -57,14 +57,18 @@ export const useLocalDocumentRepository = (input: {
   readonly onOpen: () => void;
 }): LocalDocumentRepositoryAdapter => {
   const { enabled, onOpen } = input;
-  const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs({ enabled });
+  const {
+    ready: storageReady,
+    storedSDCPNs,
+    setStoredSDCPNs,
+  } = useLocalStorageSDCPNs({ enabled });
   const [defaultDocument] = useState(createDefaultDocument);
   const documents = useMemo(
     () =>
-      Object.keys(storedSDCPNs).length === 0
+      storageReady && Object.keys(storedSDCPNs).length === 0
         ? { [defaultDocument.id]: defaultDocument }
         : storedSDCPNs,
-    [defaultDocument, storedSDCPNs],
+    [defaultDocument, storageReady, storedSDCPNs],
   );
   const persistedRevisionsRef = useRef(new Map<string, DocumentRevisionId>());
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
@@ -235,13 +239,22 @@ export const useLocalDocumentRepository = (input: {
     () => ({
       records,
       current,
-      status: { state: "ready" },
+      status: storageReady ? { state: "ready" } : { state: "loading" },
       open,
       actions: { create, rename },
       persistRevision,
       settleRevision,
     }),
-    [create, current, open, persistRevision, records, rename, settleRevision],
+    [
+      create,
+      current,
+      open,
+      persistRevision,
+      records,
+      rename,
+      settleRevision,
+      storageReady,
+    ],
   );
 
   return { repository, storedDocuments: storedSDCPNs, updateStoredDocuments };

@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
+import { usePersistedState } from "./use-persisted-state";
 
 import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
@@ -24,6 +25,40 @@ export type SDCPNInLocalStorage = {
 };
 
 type LocalStorageSDCPNsStore = Record<string, SDCPNInLocalStorage>;
+const noStoredSDCPNs: LocalStorageSDCPNsStore = {};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isStoredSDCPN = (value: unknown): value is SDCPN =>
+  isRecord(value) &&
+  Array.isArray(value.places) &&
+  Array.isArray(value.transitions) &&
+  Array.isArray(value.types) &&
+  Array.isArray(value.parameters) &&
+  Array.isArray(value.differentialEquations);
+
+type StoredDocumentIngress = {
+  readonly coherentSnapshots?: unknown;
+  readonly id: string;
+  readonly incarnationId?: unknown;
+  readonly lastUpdated: string;
+  readonly revisionId?: unknown;
+  readonly rootArcRequestedBaseHash?: unknown;
+  readonly sdcpn: SDCPN;
+  readonly title: string;
+};
+
+const isStoredDocumentIngress = (
+  value: unknown,
+  documentId: string,
+): value is StoredDocumentIngress =>
+  isRecord(value) &&
+  value.id === documentId &&
+  typeof value.id === "string" &&
+  typeof value.title === "string" &&
+  typeof value.lastUpdated === "string" &&
+  isStoredSDCPN(value.sdcpn);
 
 export const emptySDCPN: SDCPN = {
   places: [],
@@ -65,7 +100,7 @@ export const createLocalStorageNetRecord = (params: {
 };
 
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
-  const raw = storage.getItem(rootLocalStorageKey);
+  const raw = readBrowserStorage(storage, rootLocalStorageKey);
 
   if (raw === null) {
     return {};
@@ -83,7 +118,41 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return {};
   }
-  const documents = parsed as LocalStorageSDCPNsStore;
+  const documents: LocalStorageSDCPNsStore = {};
+  for (const [documentId, value] of Object.entries(parsed)) {
+    if (!isStoredDocumentIngress(value, documentId)) {
+      continue;
+    }
+    const incarnationId =
+      typeof value.incarnationId === "string" ? value.incarnationId : undefined;
+    const revisionId =
+      typeof value.revisionId === "string" ? value.revisionId : undefined;
+    const rootArcRequestedBaseHash =
+      typeof value.rootArcRequestedBaseHash === "string"
+        ? value.rootArcRequestedBaseHash
+        : undefined;
+    let coherentSnapshots: Record<string, SDCPN> | undefined;
+    if (isRecord(value.coherentSnapshots)) {
+      coherentSnapshots = {};
+      for (const [hash, snapshot] of Object.entries(value.coherentSnapshots)) {
+        if (isStoredSDCPN(snapshot)) {
+          coherentSnapshots[hash] = snapshot;
+        }
+      }
+    }
+    documents[documentId] = {
+      id: value.id,
+      title: value.title,
+      lastUpdated: value.lastUpdated,
+      sdcpn: value.sdcpn,
+      ...(incarnationId === undefined ? {} : { incarnationId }),
+      ...(revisionId === undefined ? {} : { revisionId }),
+      ...(rootArcRequestedBaseHash === undefined
+        ? {}
+        : { rootArcRequestedBaseHash }),
+      ...(coherentSnapshots === undefined ? {} : { coherentSnapshots }),
+    };
+  }
   const needsNormalization = Object.values(documents).some(
     (document) =>
       document.incarnationId === undefined || document.revisionId === undefined,
@@ -106,10 +175,24 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
       ];
     }),
   );
-  if (needsNormalization)
-    storage.setItem(rootLocalStorageKey, JSON.stringify(withIdentities));
+  if (needsNormalization) {
+    writeBrowserStorage(
+      storage,
+      rootLocalStorageKey,
+      JSON.stringify(withIdentities),
+    );
+  }
   return withIdentities;
 };
+
+const readStoredSDCPNs = (): LocalStorageSDCPNsStore => readStore(localStorage);
+
+const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
+  writeBrowserStorage(
+    localStorage,
+    rootLocalStorageKey,
+    JSON.stringify(documents),
+  );
 
 /**
  * Adds an empty net to `storage` and returns it, dropping the empty nets earlier
@@ -128,7 +211,8 @@ export const startEmptyNetInStorage = (
     ([, stored]) => !isEmptySDCPN(stored.sdcpn),
   );
 
-  storage.setItem(
+  writeBrowserStorage(
+    storage,
     rootLocalStorageKey,
     JSON.stringify({ ...Object.fromEntries(kept), [net.id]: net }),
   );
@@ -140,35 +224,13 @@ export const useLocalStorageSDCPNs = (input?: {
   readonly enabled: boolean;
 }) => {
   const enabled = input?.enabled ?? true;
-  const [state, setState] = useState(() => ({
-    documents: enabled ? readStore(localStorage) : {},
+  const [storedSDCPNs, setStoredSDCPNs, ready] = usePersistedState({
     enabled,
-  }));
-  const storedSDCPNs =
-    state.enabled === enabled
-      ? state.documents
-      : enabled
-        ? readStore(localStorage)
-        : {};
-  if (state.enabled !== enabled) setState({ documents: storedSDCPNs, enabled });
-  const setStoredSDCPNs = useCallback(
-    (
-      update:
-        | LocalStorageSDCPNsStore
-        | ((previous: LocalStorageSDCPNsStore) => LocalStorageSDCPNsStore),
-    ) => {
-      setState((previous) => {
-        const current =
-          enabled && previous.enabled
-            ? previous.documents
-            : readStore(localStorage);
-        const next = typeof update === "function" ? update(current) : update;
-        localStorage.setItem(rootLocalStorageKey, JSON.stringify(next));
-        return { documents: next, enabled };
-      });
-    },
-    [enabled],
-  );
+    fallback: noStoredSDCPNs,
+    read: readStoredSDCPNs,
+    write: writeStoredSDCPNs,
+    writeWhenDisabled: true,
+  });
 
-  return { storedSDCPNs, setStoredSDCPNs };
+  return { ready, storedSDCPNs, setStoredSDCPNs };
 };

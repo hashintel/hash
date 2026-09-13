@@ -83,6 +83,7 @@ const brunchPanelTransportSessions = vi.hoisted(() => ({
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
+const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
 const remoteDocumentState = vi.hoisted(() => ({
   current: {
     document: null,
@@ -204,6 +205,7 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   Petrinaut: (props: Record<string, unknown>) => {
     editorProps.current = props;
     renderedPetrinaut.aiAssistant = props.aiAssistant;
+    renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
     return null;
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
@@ -617,6 +619,7 @@ describe("local storage demo URL navigation", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
+    renderedAssistants.length = 0;
   });
 
   const mountedNavigation = (): PetrinautNavigationController => {
@@ -1539,6 +1542,31 @@ describe("assistant selection", () => {
       screen.queryByRole("button", { name: /Toggle Brunch demo mode/ }),
     ).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
+  });
+
+  test("removes Voice on the first stock-assistant render", async () => {
+    seedStoredNet("voice-gating-incarnation");
+    flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+      ),
+    );
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeDefined(),
+    );
+    renderedAssistants.length = 0;
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+
+    expect(renderedAssistants.length).toBeGreaterThan(0);
+    expect(
+      renderedAssistants.every(
+        (assistant) => assistant.renderVoiceMode === undefined,
+      ),
+    ).toBe(true);
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {

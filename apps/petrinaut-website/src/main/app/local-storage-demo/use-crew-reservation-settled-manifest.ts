@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
+import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage,
+} from "./browser-storage";
 import {
   crewReservationSettledManifestStorageKey,
   parseCrewReservationSettledManifest,
@@ -7,6 +12,7 @@ import {
   type CrewReservationSettledManifest,
   type CrewReservationSettlementResult,
 } from "./crew-reservation-settled-manifest";
+import { usePersistedState } from "./use-persisted-state";
 
 import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -38,7 +44,10 @@ type SetCrewReservationSettledManifest = (
 ) => void;
 
 const readSettledManifest = (): CrewReservationSettledManifest | null => {
-  const stored = localStorage.getItem(crewReservationSettledManifestStorageKey);
+  const stored = readBrowserStorage(
+    localStorage,
+    crewReservationSettledManifestStorageKey,
+  );
   if (stored === null) return null;
   try {
     return parseCrewReservationSettledManifest(JSON.parse(stored));
@@ -47,42 +56,33 @@ const readSettledManifest = (): CrewReservationSettledManifest | null => {
   }
 };
 
+const writeSettledManifest = (
+  settledManifest: CrewReservationSettledManifest | null,
+): void => {
+  if (settledManifest === null) {
+    removeBrowserStorage(
+      localStorage,
+      crewReservationSettledManifestStorageKey,
+    );
+    return;
+  }
+  writeBrowserStorage(
+    localStorage,
+    crewReservationSettledManifestStorageKey,
+    JSON.stringify(settledManifest),
+  );
+};
+
 export const useCrewReservationSettledManifestStorage = (input?: {
   readonly enabled: boolean;
 }) => {
   const enabled = input?.enabled ?? true;
-  const [state, setState] = useState(() => ({
+  const [settledManifest, setSettledManifest] = usePersistedState({
     enabled,
-    settledManifest: enabled ? readSettledManifest() : null,
-  }));
-  const settledManifest =
-    state.enabled === enabled
-      ? state.settledManifest
-      : enabled
-        ? readSettledManifest()
-        : null;
-  if (state.enabled !== enabled) setState({ enabled, settledManifest });
-  const setSettledManifest = useCallback<SetCrewReservationSettledManifest>(
-    (value) => {
-      if (!enabled) return;
-      setState((previous) => {
-        const current = previous.enabled
-          ? previous.settledManifest
-          : readSettledManifest();
-        const next = typeof value === "function" ? value(current) : value;
-        if (next === null) {
-          localStorage.removeItem(crewReservationSettledManifestStorageKey);
-        } else {
-          localStorage.setItem(
-            crewReservationSettledManifestStorageKey,
-            JSON.stringify(next),
-          );
-        }
-        return { enabled: true, settledManifest: next };
-      });
-    },
-    [enabled],
-  );
+    fallback: null as CrewReservationSettledManifest | null,
+    read: readSettledManifest,
+    write: writeSettledManifest,
+  });
   return { settledManifest, setSettledManifest };
 };
 

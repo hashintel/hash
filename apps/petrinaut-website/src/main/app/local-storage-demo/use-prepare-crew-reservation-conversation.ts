@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { prepareCrewReservationConversation } from "./prepare-crew-reservation-conversation";
 
@@ -37,31 +37,33 @@ export const usePrepareCrewReservationConversation = (
   readonly clientPromise: Promise<FlueClient> | null;
   readonly status: CrewReservationPreparationStatus;
 } => {
-  const preparedClientPromise = useMemo(() => {
-    if (!enabled || clientPromise === null) return clientPromise;
-    const prepared = clientPromise.then(async (client) => {
-      await prepareCrewReservationConversation(client, browser);
-      return client;
-    });
-    // The effect awaits the same promise; this keeps a rejected preparation
-    // from becoming an unhandled rejection if render tears down first.
-    void prepared.catch(() => {});
-    return prepared;
-  }, [browser, clientPromise, enabled]);
   const [observed, setObserved] = useState<{
+    readonly sourceClientPromise: Promise<FlueClient>;
     readonly clientPromise: Promise<FlueClient>;
     readonly status: CrewReservationPreparationStatus;
   }>();
 
   useEffect(() => {
-    if (!enabled || preparedClientPromise === null) return;
+    if (!enabled || clientPromise === null) return;
 
     let cancelled = false;
+    const preparedClientPromise = clientPromise.then(async (client) => {
+      await prepareCrewReservationConversation(client, browser);
+      return client;
+    });
+    void preparedClientPromise.catch(() => {});
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- the committed effect owns creation and publication of this server work
+    setObserved({
+      sourceClientPromise: clientPromise,
+      clientPromise: preparedClientPromise,
+      status: { state: "preparing" },
+    });
     const prepare = async (): Promise<void> => {
       try {
         await preparedClientPromise;
         if (!cancelled) {
           setObserved({
+            sourceClientPromise: clientPromise,
             clientPromise: preparedClientPromise,
             status: { state: "ready" },
           });
@@ -69,6 +71,7 @@ export const usePrepareCrewReservationConversation = (
       } catch (error) {
         if (cancelled) return;
         setObserved({
+          sourceClientPromise: clientPromise,
           clientPromise: preparedClientPromise,
           status: {
             state: "failed",
@@ -84,12 +87,20 @@ export const usePrepareCrewReservationConversation = (
     return () => {
       cancelled = true;
     };
-  }, [enabled, preparedClientPromise]);
+  }, [browser, clientPromise, enabled]);
 
   const status: CrewReservationPreparationStatus = !enabled
     ? { state: "idle" }
-    : observed?.clientPromise === preparedClientPromise
+    : observed?.sourceClientPromise === clientPromise
       ? observed.status
       : { state: "preparing" };
-  return { clientPromise: preparedClientPromise, status };
+  return {
+    clientPromise:
+      enabled && observed?.sourceClientPromise === clientPromise
+        ? observed.clientPromise
+        : enabled
+          ? null
+          : clientPromise,
+    status,
+  };
 };
