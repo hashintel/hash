@@ -47,10 +47,7 @@ pub(crate) struct Download<'path, B> {
     synchronized: Option<GenerationId>,
 }
 
-impl<'path, B> Download<'path, B>
-where
-    B: GenerationDownloadBackend,
-{
+impl<'path, B> Download<'path, B> {
     /// Configures acquisition from the parent of the remote `generations/` namespace.
     pub(crate) const fn new(
         backend: B,
@@ -65,6 +62,31 @@ where
         }
     }
 
+    /// Retains the source and root paths independently of their original owners.
+    ///
+    /// Clones borrowed paths and preserves the backend and synchronization state.
+    pub(crate) fn into_owned(self) -> Download<'static, B> {
+        Download {
+            source: Cow::Owned(self.source.into_owned()),
+            root: Cow::Owned(self.root.into_owned()),
+            backend: self.backend,
+            synchronized: self.synchronized,
+        }
+    }
+
+    /// Transfers the downloader and polling options into an unstarted task.
+    pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<'path, B> {
+        DownloadTask {
+            download: self,
+            options,
+        }
+    }
+}
+
+impl<B> Download<'_, B>
+where
+    B: GenerationDownloadBackend,
+{
     /// Reads the remote selection, returning [`None`] when its pointer is absent.
     ///
     /// # Errors
@@ -286,14 +308,6 @@ where
             }
         }
     }
-
-    /// Transfers the downloader and polling options into an unstarted task.
-    pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<'path, B> {
-        DownloadTask {
-            download: self,
-            options,
-        }
-    }
 }
 
 /// Periodic generation synchronization that finishes active work before shutdown.
@@ -302,7 +316,7 @@ pub(crate) struct DownloadTask<'path, B> {
     options: DownloadOptions,
 }
 
-impl<'path, B> DownloadTask<'path, B> {
+impl<B> DownloadTask<'_, B> {
     /// Polls the source until shutdown and finishes any active synchronization.
     ///
     /// # Panics
@@ -316,13 +330,12 @@ impl<'path, B> DownloadTask<'path, B> {
         Box::pin(self.download.run(self.options, shutdown)).await;
     }
 
+    /// Retains the polling task independently of its borrowed paths.
+    ///
+    /// The backend keeps its existing ownership and lifetime.
     pub(crate) fn into_owned(self) -> DownloadTask<'static, B> {
         DownloadTask {
-            download: Download {
-                source: Cow::Owned(self.download.source.into_owned()),
-                root: Cow::Owned(self.download.root.into_owned()),
-                ..self.download
-            },
+            download: self.download.into_owned(),
             options: self.options,
         }
     }

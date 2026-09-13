@@ -7,9 +7,7 @@ use std::fs;
 
 use aws_sdk_s3::Client;
 
-#[cfg(test)]
-pub(crate) use super::scratch::tests::{entry_count, root as scratch_root, scratch};
-use super::{
+use super::super::{
     GenerationId, GenerationRoot, ScratchDirectory,
     download::{Download, DownloadError},
     fixture::{publish_noncanonical, repository, root},
