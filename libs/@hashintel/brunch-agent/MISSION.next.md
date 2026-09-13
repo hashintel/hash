@@ -174,6 +174,10 @@ The deciding PM questions are when Brunch may offer preview, what assent authori
 
 The initial product should select an assistant at session start. Mid-conversation switching is not a history-splicing operation and requires an explicit continuity contract before admission.
 
+Switching inside a remote worked-model document is deferred. Re-enter only
+after accepting a continuity contract that determines whether stock history on
+remote documents is local-only, remote, or absent.
+
 Resolve:
 
 - where the stock-alternate feature flag is controlled;

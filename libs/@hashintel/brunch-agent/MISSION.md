@@ -140,8 +140,10 @@ owned working copy; inspect its connected model and workpiece; ask why two
 consequential elements exist; correct one operational fact in ordinary
 language; observe a compiler-clean bounded change and coherent layout; close
 and reopen the same copy; confirm the template and a sibling are unchanged;
-and create a clean copy. Switch assistant modes and confirm that each exposes
-only its own tools and history.
+and create a clean copy. Confirm that the worked-model document states “This
+document uses the Brunch process assistant” and offers no assistant switch.
+Open an ordinary local document with the stock assistant and confirm that its
+stock transport, tool manifest and history remain unchanged.
 
 ### Throughline proof floor
 
@@ -176,7 +178,7 @@ hold:
 | Code-bearing construction is clean or visibly unresolved | The live copy reaches level 2 for the exact produced definition, or visibly reports errors/pending. No timeout is treated as success. |
 | Consequential content has an honest basis disposition | Sampled ordinary why questions traverse the recorded mechanical path and return a current-revision basis or an explicit absent/ambiguous disposition. |
 | The flagship is genuinely persona-driven | A local Pi-harness recording shows ordinary-language interview around the established reference net, recurring workpiece revisions, model-originated tool calls, compiler repair where needed, layout, explanation, correction and same-copy reopen. Browser-only or faux-provider scripts remain product/mechanism tests, not persona evidence. |
-| Mode isolation survives the product route | A flag-off comparison preserves the stock transport, tool manifest and history behavior; switching modes in the flagship session preserves separate histories. |
+| Mode isolation survives the product route | On an ordinary local document, a flag-off comparison preserves the stock transport, tool manifest and history behavior. A worked-model document offers no assistant switch and states “This document uses the Brunch process assistant.” |
 | Compaction dependence is disclosed | If the flagship crosses compaction, reopen, current-workpiece recovery and explanation are proven afterward. If it does not, dependence on uncompacted history is stated at closure and remains required before Mission 9 or any hosted long-lived provenance claim. |
 | Tool authority and topology are coherent | The topology and import/mount tests agree with a generated or checked catalogue that fails on duplicate names, ownerless tools, schema copies and unrecorded mount modes. |
 
