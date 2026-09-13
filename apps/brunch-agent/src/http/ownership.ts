@@ -7,13 +7,23 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import { ownsFlueInstance } from "../conversation/identity.ts";
-import { reportDocumentRevision } from "../conversation/reported-document-revision.ts";
+import {
+  discardReportedDocumentRevision,
+  reportDocumentRevision,
+  reportedRevisionSubmissionId,
+} from "../conversation/reported-document-revision.ts";
 import { diagnostics } from "../runtime-diagnostics.ts";
 
 import type { MiddlewareHandler } from "hono";
 
-export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
+export const agentOwnershipGuard = (
+  mountPrefix: string,
+  agentName: string,
+): MiddlewareHandler => {
   return async (context, next) => {
+    let stagedDocumentRevision:
+      | { submissionId: string; revisionId: string }
+      | undefined;
     const principalKey = context.req.header(BRUNCH_PRINCIPAL_HEADER)?.trim();
     const conversationId = context.req
       .header(BRUNCH_CONVERSATION_HEADER)
@@ -97,10 +107,55 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
         typeof message === "object" &&
         message !== null &&
         "kind" in message &&
-        message.kind === "user"
-      )
-        reportDocumentRevision(instanceId, documentRevisionId);
+        message.kind === "user" &&
+        typeof body === "object" &&
+        body !== null &&
+        "idempotencyKey" in body &&
+        typeof body.idempotencyKey === "string"
+      ) {
+        const submissionId = reportedRevisionSubmissionId(
+          agentName,
+          instanceId,
+          body.idempotencyKey,
+        );
+        if (reportDocumentRevision(submissionId, documentRevisionId))
+          stagedDocumentRevision = {
+            submissionId,
+            revisionId: documentRevisionId,
+          };
+      }
     }
-    return next();
+    try {
+      await next();
+    } catch (error) {
+      if (stagedDocumentRevision !== undefined)
+        discardReportedDocumentRevision(
+          stagedDocumentRevision.submissionId,
+          stagedDocumentRevision.revisionId,
+        );
+      throw error;
+    }
+    if (stagedDocumentRevision === undefined) return;
+    if (context.res.status !== 202) {
+      discardReportedDocumentRevision(
+        stagedDocumentRevision.submissionId,
+        stagedDocumentRevision.revisionId,
+      );
+      return;
+    }
+    const admission: unknown = await context.res
+      .clone()
+      .json()
+      .catch(() => undefined);
+    if (
+      typeof admission === "object" &&
+      admission !== null &&
+      "deduplicated" in admission &&
+      admission.deduplicated === true
+    )
+      discardReportedDocumentRevision(
+        stagedDocumentRevision.submissionId,
+        stagedDocumentRevision.revisionId,
+      );
   };
 };

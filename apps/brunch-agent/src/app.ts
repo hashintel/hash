@@ -18,6 +18,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
@@ -49,14 +50,16 @@ instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
   interceptor(operation, context, next) {
-    if (operation.type === "agent" && context.agentName !== undefined) {
-      return admissionScope.run(
-        context.agentName === ChatAgent.agentName,
-        next,
-      );
-    }
-    if (operation.type === "task") return admissionScope.run(false, next);
-    return next();
+    return withReportedDocumentRevisionScope(context.submissionId, () => {
+      if (operation.type === "agent" && context.agentName !== undefined) {
+        return admissionScope.run(
+          context.agentName === ChatAgent.agentName,
+          next,
+        );
+      }
+      if (operation.type === "task") return admissionScope.run(false, next);
+      return next();
+    });
   },
   dispose() {},
 });
@@ -102,7 +105,10 @@ app.use(
     parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
   ),
 );
-app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
+app.use(
+  `${chatAgentMount}/*`,
+  agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
+);
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
   `${WORKED_MODELS_ROUTE}/*`,

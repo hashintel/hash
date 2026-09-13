@@ -15,14 +15,62 @@ import {
   BRUNCH_CONVERSATION_HEADER,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
-import { takeReportedDocumentRevision } from "../src/conversation/reported-document-revision.ts";
+import {
+  reportedRevisionSubmissionId,
+  takeReportedDocumentRevision,
+  withReportedDocumentRevisionScope,
+} from "../src/conversation/reported-document-revision.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
 const mount = `/agents/${CHAT_AGENT_ROUTE}`;
+const agentName = "test-agent";
 const app = new Hono();
-app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`));
-app.all(`${mount}/*`, (context) => context.text("admitted"));
+app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agentName));
+app.all(`${mount}/*`, async (context) => {
+  if (context.req.method !== "POST") return context.text("admitted");
+  const body: unknown = await context.req.json();
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "throw" in body &&
+    body.throw === true
+  )
+    throw new Error("Admission failed.");
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "reject" in body &&
+    body.reject === true
+  )
+    return context.json({ error: "rejected" }, 409);
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("idempotencyKey" in body) ||
+    typeof body.idempotencyKey !== "string"
+  )
+    return context.json({ error: "missing-idempotency-key" }, 400);
+  if (
+    "consumeDuringAdmission" in body &&
+    body.consumeDuringAdmission === true
+  ) {
+    const requestInstanceId = context.req.path.split("/").at(-1);
+    if (!requestInstanceId)
+      return context.json({ error: "missing-instance-id" }, 400);
+    const submissionId = reportedRevisionSubmissionId(
+      agentName,
+      requestInstanceId,
+      body.idempotencyKey,
+    );
+    const revisionId = await withReportedDocumentRevisionScope(
+      submissionId,
+      async () => takeReportedDocumentRevision(),
+    );
+    return context.json({ submissionId, revisionId }, 202);
+  }
+  return context.json({ submissionId: body.idempotencyKey }, 202);
+});
 
 const identity = {
   principalKey: "principal-a",
@@ -30,6 +78,8 @@ const identity = {
 };
 const instanceId = flueConversationIdFrom(identity);
 const conversationUrl = `http://brunch.test${mount}/${instanceId}`;
+const submissionIdFor = (idempotencyKey: string) =>
+  reportedRevisionSubmissionId(agentName, instanceId, idempotencyKey);
 
 test("the mounted agent route rejects a request with no ownership headers", async () => {
   const response = await app.fetch(new Request(conversationUrl));
@@ -109,11 +159,137 @@ test("retains the authorized browser revision reported with an admission", async
         [BRUNCH_DOCUMENT_REVISION_HEADER]: "browser-revision-2",
         "content-type": "application/json",
       },
-      body: JSON.stringify({ kind: "user", body: "test" }),
+      body: JSON.stringify({
+        kind: "user",
+        body: "test",
+        idempotencyKey: "submission-revision-2",
+      }),
     }),
   );
 
-  expect(response.status).toBe(200);
-  expect(takeReportedDocumentRevision(instanceId)).toBe("browser-revision-2");
-  expect(takeReportedDocumentRevision(instanceId)).toBeUndefined();
+  expect(response.status).toBe(202);
+  await withReportedDocumentRevisionScope(
+    submissionIdFor("submission-revision-2"),
+    async () => {
+      expect(takeReportedDocumentRevision()).toBe("browser-revision-2");
+      expect(takeReportedDocumentRevision()).toBeUndefined();
+    },
+  );
+});
+
+test("correlates concurrent browser revisions by admitted submission", async () => {
+  const request = (submissionId: string, revisionId: string) =>
+    app.fetch(
+      new Request(conversationUrl, {
+        method: "POST",
+        headers: {
+          ...agentOwnershipHeaders(identity),
+          [BRUNCH_DOCUMENT_REVISION_HEADER]: revisionId,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "user",
+          body: `test ${submissionId}`,
+          idempotencyKey: submissionId,
+        }),
+      }),
+    );
+
+  const [first, second] = await Promise.all([
+    request("submission-first", "browser-revision-first"),
+    request("submission-second", "browser-revision-second"),
+  ]);
+  expect(first.status).toBe(202);
+  expect(second.status).toBe(202);
+
+  await withReportedDocumentRevisionScope(
+    submissionIdFor("submission-second"),
+    async () => {
+      expect(takeReportedDocumentRevision()).toBe("browser-revision-second");
+    },
+  );
+  await withReportedDocumentRevisionScope(
+    submissionIdFor("submission-first"),
+    async () => {
+      expect(takeReportedDocumentRevision()).toBe("browser-revision-first");
+    },
+  );
+});
+
+test("makes the correlated revision available while admission is running", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        [BRUNCH_DOCUMENT_REVISION_HEADER]: "browser-revision-during-admission",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        kind: "user",
+        body: "test",
+        idempotencyKey: "submission-during-admission",
+        consumeDuringAdmission: true,
+      }),
+    }),
+  );
+
+  expect(response.status).toBe(202);
+  expect(await response.json()).toMatchObject({
+    revisionId: "browser-revision-during-admission",
+  });
+});
+
+test("does not retain a browser revision when downstream admission rejects", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        [BRUNCH_DOCUMENT_REVISION_HEADER]: "rejected-browser-revision",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        kind: "user",
+        body: "test",
+        idempotencyKey: "submission-rejected",
+        reject: true,
+      }),
+    }),
+  );
+
+  expect(response.status).toBe(409);
+  await withReportedDocumentRevisionScope(
+    submissionIdFor("submission-rejected"),
+    async () => {
+      expect(takeReportedDocumentRevision()).toBeUndefined();
+    },
+  );
+});
+
+test("does not retain a browser revision when downstream admission throws", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        [BRUNCH_DOCUMENT_REVISION_HEADER]: "thrown-browser-revision",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        kind: "user",
+        body: "test",
+        idempotencyKey: "submission-thrown",
+        throw: true,
+      }),
+    }),
+  );
+
+  expect(response.status).toBe(500);
+  await withReportedDocumentRevisionScope(
+    submissionIdFor("submission-thrown"),
+    async () => {
+      expect(takeReportedDocumentRevision()).toBeUndefined();
+    },
+  );
 });

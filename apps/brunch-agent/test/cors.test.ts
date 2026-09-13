@@ -113,7 +113,7 @@ const buildCorsTestApp = (
 ) => {
   const app = new Hono();
   app.use("/agents/*", createAgentCors(allowedOrigins));
-  app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`));
+  app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
   app.all(`${mount}/*`, (context) => context.text("admitted"));
   app.get(HEALTH_ROUTE, (context) => context.text("healthy"));
   app.get("/", (context) => context.text("root"));

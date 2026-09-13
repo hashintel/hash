@@ -177,7 +177,7 @@ export function ChatAgent({ id }: AgentProps) {
       const freshness = await deriveNetFreshness(
         await history(),
         browserContext,
-        takeReportedDocumentRevision(id),
+        takeReportedDocumentRevision(),
       );
       if (freshness.kind !== "current")
         append({
