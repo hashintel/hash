@@ -88,9 +88,10 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 ├─ src/conversation/  ✓  server identity verification, client-tool results, current-net
 │                        freshness, candidate history projection, current-revision explanation,
 │                        and operator transcript; browser AI SDK projection lives in `transport-aisdk`
-├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and principal-copy contract;
+├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and incomplete principal net-projection contract;
 │                              Postgres implementation stays beside it in its private subtree
-├─ src/http/worked-models.ts ✓ principal-owned bundle resolution, clean-copy and definition-update API
+├─ src/http/worked-models.ts ✓ legacy-path GET/POST/PUT API for resolving, refreshing and updating
+│                              principal-owned net projections
 ├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
 │                        no elicitation policy
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
@@ -109,8 +110,8 @@ apps/petrinaut-website/src/main/app/local-storage-demo
 │  └─ use-fixture-document-overlay.ts  ✓ local-only prepared-fixture decorator
 ├─ documents/remote/
 │  ├─ use-remote-document-repository.ts ✓ worked-model source and read-only title boundary
-│  ├─ use-worked-model-copy.ts          ✓ queued identity-explicit remote revision persistence
-│  └─ worked-model-client.ts            ✓ principal-scoped GET/POST/PUT projection
+│  ├─ use-worked-model-net-projection.ts ✓ queued identity-explicit remote revision persistence
+│  └─ worked-model-net-projection-client.ts ✓ principal-scoped GET/POST/PUT net projection
 ├─ documents/use-document-controller.ts ✓ the only host seam that crosses document sources
 └─ assistants/brunch/use-process-agent-binding.ts ✓ document/incarnation/conversation binding;
                                                      consumes the typed seed without choosing storage
@@ -120,9 +121,18 @@ Route identity selects the local or remote source; assistant preference does
 not. A repository owns document persistence, while the controller creates a
 local document before crossing from a remote route. The process-agent binding
 owns conversation identity. Remote worked-model titles are inherited and
-read-only because that repository exposes no rename action. The fixture
-catalogue still packages session, workpiece and net, but the current remote
-copy instantiates only the net under fresh identities.
+read-only because that repository exposes no rename action. This
+repository/controller/binding authority split remains valid.
+
+A worked-model copy must preserve one independently writable, complete
+connected bundle: retained conversation/session, workpiece history and current
+revision, Petrinaut document and revision history, net, mutation provenance and
+the links among them. The landed GET/POST/PUT and remote repository path is an
+explicitly incomplete net projection: the fixture catalogue packages session,
+workpiece and net, but the path currently projects only the net under fresh
+document, incarnation and empty-conversation identities. Workpiece or history
+created inside that projection proves post-open behavior only, not fixture
+bundle copying, identity remapping or provenance preservation.
 
 ## Ordinary browser-bound Brunch tools
 

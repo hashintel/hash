@@ -313,10 +313,10 @@ const DemoCommands = ({
   // stock assistant is the only one and the choice would be a fiction.
   useCommand(
     {
-      id: "demo.worked-model.clean-copy",
-      label: "Create a clean copy of this worked model",
+      id: "demo.worked-model.fresh-net-projection",
+      label: "Create a fresh net projection from this template",
       category: "Demo",
-      keywords: ["bundle", "copy", "reset", "template"],
+      keywords: ["fresh", "net", "projection", "template"],
       run: () => {
         void createCleanNetProjection?.();
       },

@@ -1212,7 +1212,7 @@ describe("worked-model net-projection selection", () => {
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Create a clean copy of this worked model/u,
+        name: /Create a fresh net projection from this template/u,
       }),
     );
     expect(
