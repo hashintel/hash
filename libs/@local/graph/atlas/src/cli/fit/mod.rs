@@ -133,7 +133,11 @@ pub struct FitArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 
-    /// Synchronize the local cache with the remote storage.
+    /// Source prefix for a live fit's prior generation. No download runs by default.
+    ///
+    /// Use the parent of the `generations/` namespace. Acquisition verifies the selected
+    /// generation before replacing local current. An absent remote pointer preserves local
+    /// current. The `--fresh` flag still prevents the fit from reusing the acquired prior.
     #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
     download: Option<FilePath>,
 
@@ -187,7 +191,7 @@ impl fmt::Display for FitVerdict {
     }
 }
 
-/// A prepared fit with local inputs, a generation root and an optional upload destination.
+/// A prepared fit with local inputs and optional generation transfer.
 ///
 /// [`Self::with_progress`] replaces the initial silent observer with `P`.
 #[derive(Debug)]
@@ -237,13 +241,15 @@ where
 {
     /// Fits one generation over the live store and returns its verdict.
     ///
-    /// The store snapshot uses the temporal axes captured when fitting begins. The command writes
-    /// the admission report before uploading results. An activated generation also updates remote
+    /// A configured download completes before fitting opens the prior generation. The store
+    /// snapshot uses the temporal axes captured when fitting begins. The command writes the
+    /// admission report before uploading results. An activated generation also updates remote
     /// current.
     ///
     /// # Errors
     ///
-    /// Returns [`FitError`] on preparation, fitting, report-write or remote-publication failure.
+    /// Returns [`FitError`] on preparation, prior acquisition, fitting, report-write or
+    /// remote-publication failure.
     ///
     /// # Panics
     ///
@@ -407,7 +413,8 @@ impl FitCommand<NoProgress> {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError`] if resolving or downloading an input fails.
+    /// Returns [`StorageError`] if resolving or downloading an input fails, or if a
+    /// generation-transfer path needs an unconfigured backend.
     pub async fn new(
         root: super::RootArgs,
         args: FitArgs,

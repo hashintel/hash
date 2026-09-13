@@ -1,26 +1,24 @@
 //! Scratch fixtures for tests across the crate, and the input-completion cases.
 
-#[cfg(test)]
 use core::{
     assert_matches,
     future::Future as _,
     pin::pin,
     task::{Context, Poll, Waker},
 };
-#[cfg(test)]
-use std::io;
-use std::{env, fs};
+use std::{env, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
-#[cfg(test)]
 use tokio::{io::AsyncWriteExt as _, runtime::Builder, sync::oneshot};
 use uuid::Uuid;
 
-use super::ScratchDirectory;
-#[cfg(test)]
-use super::ScratchFile;
+use super::{ScratchDirectory, ScratchFile};
 
 /// Creates a fixture scratch directory under the system temporary directory.
+///
+/// # Panics
+///
+/// Panics if the temporary path is not UTF-8 or creating the directory fails.
 #[expect(
     clippy::create_dir,
     reason = "the fixture must refuse an existing directory rather than reuse it"
@@ -39,6 +37,10 @@ pub(crate) fn root(directory: &ScratchDirectory) -> &Utf8Path {
 }
 
 /// Counts the entries directly inside `path`.
+///
+/// # Panics
+///
+/// Panics if opening `path` as a directory fails.
 pub(crate) fn entry_count(path: &Utf8Path) -> usize {
     fs::read_dir(path)
         .expect("should read the fixture directory")

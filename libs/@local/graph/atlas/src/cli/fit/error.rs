@@ -18,7 +18,7 @@ enum FitErrorKind {
     Io(io::Error),
     /// Uploading the results failed.
     Upload(UploadError),
-    /// Downloading the results failed.
+    /// Acquiring the prior generation failed.
     Download(DownloadError),
     /// Serializing the admission report failed.
     Serialize(serde_json::Error),
@@ -26,8 +26,8 @@ enum FitErrorKind {
 
 /// A failure to prepare, fit or publish a generation.
 ///
-/// Embedder and run failures retain their underlying display and source. Report and upload failures
-/// use a step-specific message.
+/// Embedder and run failures retain their underlying display and source. Acquisition, report and
+/// upload failures use a step-specific message.
 #[derive(Debug)]
 pub struct FitError(Box<FitErrorKind>);
 

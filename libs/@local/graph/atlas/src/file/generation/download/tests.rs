@@ -321,15 +321,14 @@ fn assert_published(
 }
 
 /// A download recovered from a spawned synchronization, with that call's result.
-type SynchronizeOutcome<'download> = (
-    Download<'download, Arc<Fixture>>,
+type SynchronizeOutcome = (
+    Download<'static, Arc<Fixture>>,
     Result<Option<GenerationId>, DownloadError>,
 );
 
 /// Runs one synchronization on a task, returning the download with its result.
-fn spawn_synchronize<'download>(
-    mut download: Download<'download, Arc<Fixture>>,
-) -> JoinHandle<SynchronizeOutcome<'download>> {
+fn spawn_synchronize(download: Download<'_, Arc<Fixture>>) -> JoinHandle<SynchronizeOutcome> {
+    let mut download = download.into_owned();
     tokio::spawn(async move {
         let result = download.synchronize().await;
         (download, result)
@@ -361,7 +360,7 @@ async fn synchronize_fresh_source() {
     let handle = spawn_synchronize(Download::new(
         Arc::clone(&fixture),
         &target,
-        &fixture.source(),
+        fixture.source(),
     ));
     control
         .entered
