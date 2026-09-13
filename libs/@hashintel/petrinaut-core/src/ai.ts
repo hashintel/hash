@@ -113,9 +113,9 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   simulation:
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
-    "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
+    "Named simulation configurations authored through the scenario form: Variables exposed as scenario parameters, parameter overrides, per-place initial state blocks, running and switching scenarios, the expression language, scenarios stored per place or as code by files, the AI or earlier versions.",
   "ad-hoc-scenarios":
-    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its surfaces (quick simulation, experiments, scenario creation), and Sweep selections with generated adhoc_* parameter names.",
+    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, scenario creation and editing with Scenario Parameter toggles), Sweep selections with generated adhoc_* parameter names, saved scenarios shown in run mode.",
   experiments:
     "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), optimizing a sweep from its Parameters card (in-browser optimizer, steps, Stop), lifecycle/statuses, cancel/remove, header columns (Steps, Steps clear), metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
   "actual-mode":

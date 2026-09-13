@@ -1,22 +1,31 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
 
 import { defaultUserSettings } from "../../../../react/state/user-settings-context";
+import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
-/**
- * The dialog body itself is rendered through Ark UI's portal, which
- * testing-library cannot reach from this render tree, so these cover the two
- * things that actually decide behaviour: whether WebGPU is offered by default,
- * and the runtime gate the control's `disabled` state is derived from.
- */
+afterEach(cleanup);
+
 describe("experimental simulation settings", () => {
   it("keep parameter sweeps and in-browser optimization off by default", () => {
     expect(defaultUserSettings.enableParameterSweeps).toBe(false);
     expect(defaultUserSettings.enableInBrowserOptimization).toBe(false);
+  });
+
+  it("offer no Ad-hoc scenarios row: the scenario form is the only scenario form", async () => {
+    // The dialog body portals to document.body, which `screen` covers.
+    render(<ViewportSettingsDialog open onOpenChange={() => {}} />);
+
+    await screen.findByText(/Parameter sweeps/);
+    expect(screen.queryByText(/Ad-hoc scenarios/)).toBeNull();
+    expect(
+      screen.queryByText(/Define initial state and parameters inline/),
+    ).toBeNull();
   });
 });
 
@@ -29,6 +38,7 @@ describe("WebGPU setting", () => {
   });
 
   it("detects WebGPU support from the host, not a build flag", () => {
+    // The runtime gate the control's `disabled` state is derived from.
     vi.stubGlobal("navigator", { gpu: {} });
     try {
       expect(isWebGpuAvailable()).toBe(true);

@@ -152,9 +152,6 @@ function makeLanguageClient(): LanguageClientContextValue {
     requestHirArtifacts: vi.fn((sdcpn: SDCPN, extensions, options) =>
       Promise.resolve(compileHirArtifacts(sdcpn, extensions, options)),
     ),
-    initializeScenarioSession: vi.fn(),
-    updateScenarioSession: vi.fn(),
-    killScenarioSession: vi.fn(),
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
@@ -171,7 +168,6 @@ function makeLanguageClient(): LanguageClientContextValue {
 const TestProviders = ({
   webGpuEnabled,
   enableParameterSweeps = false,
-  enableAdHocScenarios = false,
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => Promise.resolve("experiment-test"),
   languageClient,
@@ -179,7 +175,6 @@ const TestProviders = ({
 }: {
   webGpuEnabled: boolean;
   enableParameterSweeps?: boolean;
-  enableAdHocScenarios?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
   createExperiment?: (input: CreateExperimentInput) => Promise<string>;
   languageClient?: LanguageClientContextValue;
@@ -191,7 +186,6 @@ const TestProviders = ({
     ...defaultUserSettings,
     webGpuEnabled,
     enableParameterSweeps,
-    enableAdHocScenarios,
     enableInBrowserOptimization: optimizationSource !== null,
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
@@ -211,7 +205,6 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
     setEnableNotebookView: () => {},
-    setEnableAdHocScenarios: () => {},
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
@@ -287,6 +280,23 @@ const sweptContextValue: SDCPNContextValue = {
   petriNetDefinition: {
     ...sirSdcpnContextValue.petriNetDefinition,
     scenarios: [sweptScenario],
+  },
+};
+
+/** The SIR net with one saved scenario exposing nothing, so the run form has no rows. */
+const unparameterizedContextValue: SDCPNContextValue = {
+  ...sirSdcpnContextValue,
+  petriNetDefinition: {
+    ...sirSdcpnContextValue.petriNetDefinition,
+    scenarios: [
+      {
+        id: "scenario-fixed",
+        name: "Fixed",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      },
+    ],
   },
 };
 
@@ -420,9 +430,9 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
       />,
     );
 
-    // The parameter rows render; only the toggle is missing.
+    // The run form's parameter row renders; only the Sweep pill is missing.
     await screen.findByText("transmission_rate");
-    expect(screen.queryByLabelText(/^Sweep /)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
   });
 
   it("offers a Sweep toggle per numeric parameter when the setting is on", async () => {
@@ -435,8 +445,22 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     );
 
     expect(
-      await screen.findByLabelText("Sweep transmission_rate"),
+      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     ).toBeInstanceOf(HTMLElement);
+  });
+
+  it("tells a saved scenario without parameters apart from an empty form", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        sdcpnContextValue={unparameterizedContextValue}
+      />,
+    );
+
+    expect(
+      await screen.findByText("This scenario exposes no parameters"),
+    ).toBeTruthy();
+    expect(screen.queryByText("Initial state")).toBeNull();
   });
 });
 
@@ -459,11 +483,10 @@ const adHocContextValue: SDCPNContextValue = {
 };
 
 describe("CreateExperimentDrawer ad-hoc sweeps", () => {
-  it("offers a Sweep toggle on the ad-hoc form's values when both settings are on", async () => {
+  it("offers a Sweep toggle on the ad-hoc form's values when parameter sweeps are on", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
-        enableAdHocScenarios
         enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
       />,
@@ -472,8 +495,8 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     const toggle = await screen.findByLabelText("Sweep Rate");
     expect(toggle).toBeInstanceOf(HTMLElement);
 
-    // Turning a value's sweep on names it in the summary line, like a
-    // classic parameter's range does.
+    // Turning a value's sweep on names it in the summary line, like a saved
+    // scenario's swept parameter does.
     fireEvent.click(toggle);
     expect(
       await screen.findByText(/Rate swept over its interval/),
@@ -484,13 +507,39 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     render(
       <TestProviders
         webGpuEnabled={false}
-        enableAdHocScenarios
         sdcpnContextValue={adHocContextValue}
       />,
     );
 
     await screen.findByText("Rate");
-    expect(screen.queryByLabelText(/^Sweep /)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
+  });
+
+  it("hands the form's draft to the experiment with sweeps off, never as a sweep", async () => {
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      Promise.resolve("experiment-adhoc"),
+    );
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        sdcpnContextValue={adHocContextValue}
+        createExperiment={createExperiment}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Add a variable (Top-level variables)",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    const input = createExperiment.mock.calls[0]![0];
+    expect(input.scenarioId).toBeNull();
+    expect(input.adHocScenario?.variables).toHaveLength(1);
+    expect(input.adHocSweeps).toBe(false);
   });
 });
 
@@ -570,16 +619,9 @@ const firstConstraintSession = (
   return params;
 };
 
-/**
- * Flips a parameter's Sweep toggle: the ds Toggle's label carries the name,
- * and the hidden checkbox inside it is what a click has to reach.
- */
+/** Flips a scenario parameter's Sweep pill in the run form. */
 const flipSweep = (identifier: string) => {
-  fireEvent.click(
-    screen
-      .getByLabelText(`Sweep ${identifier}`)
-      .querySelector<HTMLInputElement>("input[type='checkbox']")!,
-  );
+  fireEvent.click(screen.getByRole("button", { name: `Sweep ${identifier}` }));
 };
 
 const submitButton = () =>
@@ -663,7 +705,6 @@ describe("CreateExperimentDrawer constraints", () => {
     render(
       <TestProviders
         webGpuEnabled={false}
-        enableAdHocScenarios
         enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={connectedSource}
