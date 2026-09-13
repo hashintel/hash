@@ -22,26 +22,28 @@ use uuid::Uuid;
 use crate::integrity::{ParseHexError, Sha256Digest};
 
 mod document;
-pub(crate) mod download;
+mod download;
 mod error;
 #[cfg(any(test, feature = "test-utils"))]
 mod fixture;
 mod open;
 mod remote;
-pub(crate) mod scratch;
+mod scratch;
 mod staging;
-#[cfg(feature = "test-utils")]
+#[cfg(any(test, feature = "test-utils"))]
 pub(crate) mod test_utils;
 #[cfg(test)]
 mod tests;
-pub(crate) mod upload;
+mod upload;
 
 pub(crate) use self::{
     document::GenerationDocument,
+    download::{Download, DownloadError, DownloadOptions, DownloadTask},
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
     staging::{PublishedGeneration, StagedGeneration},
+    upload::{Promotion, PromotionOptions, Upload, UploadError},
 };
 
 /// The metadata document's file name within a generation directory.

@@ -13,10 +13,7 @@ use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
     file::{
-        generation::{
-            GenerationRoot,
-            upload::{Promotion, PromotionOptions, Upload},
-        },
+        generation::{Download, GenerationRoot, Promotion, PromotionOptions, Upload},
         storage::{Storage, error::StorageError, path::FilePath},
     },
     progress::{NoProgress, Progress},
@@ -136,6 +133,10 @@ pub struct FitArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 
+    /// Synchronize the local cache with the remote storage.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
+    download: Option<FilePath>,
+
     /// Remove the old previous active generation after remote promotion, enabled by default.
     ///
     /// Set `--prune-active-generations=false` to retain it. Repository history is always retained.
@@ -197,6 +198,7 @@ pub struct FitCommand<P> {
     options: Options<P>,
     storage: Storage,
     upload: Option<FilePath>,
+    download: Option<FilePath>,
     promotion: PromotionOptions,
 }
 
@@ -223,6 +225,7 @@ impl<P> FitCommand<P> {
             },
             storage: self.storage,
             upload: self.upload,
+            download: self.download,
             promotion: self.promotion,
         }
     }
@@ -279,6 +282,11 @@ where
         // the provider retains its observer across requests.
         let embedder =
             embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
+
+        if let Some(download) = self.download {
+            let mut download = Download::new(&self.storage, &self.root, &download);
+            download.synchronize().await?;
+        }
 
         let upload = match self.upload.as_ref() {
             Some(path) => {
@@ -440,6 +448,13 @@ impl FitCommand<NoProgress> {
             None
         };
 
+        if let Some(upload) = &args.upload {
+            upload.validate_backend(&storage)?;
+        }
+        if let Some(download) = &args.download {
+            download.validate_backend(&storage)?;
+        }
+
         Ok(Self {
             root: root.root,
             device: root.device,
@@ -459,6 +474,7 @@ impl FitCommand<NoProgress> {
             },
             storage,
             upload: args.upload,
+            download: args.download,
             promotion: PromotionOptions {
                 prune_active_generations: args.prune_active_generations,
             },

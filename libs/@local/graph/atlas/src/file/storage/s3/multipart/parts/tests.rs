@@ -3,7 +3,7 @@ use std::fs;
 
 use super::Parts;
 use crate::file::{
-    generation::scratch::tests::{root, scratch},
+    generation::test_utils::{scratch, scratch_root},
     storage::error::StorageError,
 };
 
@@ -41,7 +41,7 @@ fn parts_boundary() {
 #[tokio::test]
 async fn read_file_intervals() {
     let directory = scratch();
-    let source = root(&directory).join("parts.bin");
+    let source = scratch_root(&directory).join("parts.bin");
     let first_length =
         usize::try_from(Parts::MIN_PART_BYTES).expect("should fit a minimum part in memory");
     let mut bytes = vec![b'a'; first_length];

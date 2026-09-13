@@ -7,6 +7,8 @@ use std::fs;
 
 use aws_sdk_s3::Client;
 
+#[cfg(test)]
+pub(crate) use super::scratch::tests::{entry_count, root as scratch_root, scratch};
 use super::{
     GenerationId, GenerationRoot, ScratchDirectory,
     download::{Download, DownloadError},
@@ -389,8 +391,9 @@ pub async fn download_replacement() {
             let (_local_scratch, local) = root();
 
             let storage = storage(&scratch, bucket.client.clone());
+            let bucket_path = bucket.path(PREFIX);
 
-            let mut download = Download::new(&storage, local.clone(), bucket.path(PREFIX));
+            let mut download = Download::new(&storage, &local, &bucket_path);
             for seed in [7, 8] {
                 let id = publication(&source, seed);
 
@@ -434,7 +437,9 @@ pub async fn download_missing_current() {
                 .expect("should select the local publication");
 
             let storage = storage(&scratch, bucket.client.clone());
-            let mut download = Download::new(&storage, local.clone(), bucket.path(PREFIX));
+            let bucket_path = bucket.path(PREFIX);
+
+            let mut download = Download::new(&storage, &local, &bucket_path);
             assert_eq!(
                 download
                     .synchronize()
@@ -478,8 +483,9 @@ pub async fn download_corrupt_artifact() {
         bucket.write(&key, "corrupt").await;
 
         let storage = storage(&scratch, bucket.client.clone());
+        let bucket_path = bucket.path(PREFIX);
 
-        let mut download = Download::new(&storage, local.clone(), bucket.path(PREFIX));
+        let mut download = Download::new(&storage, &local, &bucket_path);
         assert_matches!(download.synchronize().await, Err(DownloadError::Checksum { expected, actual, .. })
             if expected == file.hash && actual == Sha256Digest::of(b"corrupt"));
 
