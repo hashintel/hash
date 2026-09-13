@@ -30,12 +30,7 @@ The first composed product is `process-sdcpn`: operational processes represented
 
 Brunch is intended to become Petrinaut's default operational-process assistant. Petrinaut's stock assistant remains an alternate selected by a host feature flag. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
-The current Petrinaut website implements assistant selection as a host-local
-browser preference on ordinary documents. A `?bundle=` worked-model route
-selects its remote document source independently, fixes the Brunch process
-assistant, hides switching and restores the untouched local preference after
-returning to an ordinary route. Deployment-level policy and switching on remote
-documents remain future work.
+The current Petrinaut website implements assistant selection as a host-local browser preference on ordinary documents. A `?bundle=` worked-model route selects its remote document source independently, fixes the Brunch process assistant, hides switching and restores the untouched local preference after returning to an ordinary route. Deployment-level policy and switching on remote documents remain future work.
 
 The accepted naming target is:
 
@@ -75,9 +70,7 @@ A flagship proves one accepted product path. It does not prove every operational
 - Live [Mission 7c](MISSION.md) owns the Inventory purchasing flagship, code-bearing operation admission, TypeScript compiler feedback and repair, ELK layout, reliable mechanical why routing, tool topology and Postgres-backed worked-model copies. A worked-model copy is an independently writable complete connected bundle: retained session, workpiece history/current revision, net/document revision history and their provenance links, with identities stable or coherently remapped. The landed principal-owned net-only object is a **worked-model net projection**, not a worked-model copy.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
-The live mission now carries the accepted flagship, portfolio, capability,
-compiler-feedback, persona, assistant-mode and assumption-preview boundaries.
-This future spine does not duplicate or reinterpret those execution obligations.
+The live mission now carries the accepted flagship, portfolio, capability, compiler-feedback, persona, assistant-mode and assumption-preview boundaries. This future spine does not duplicate or reinterpret those execution obligations.
 
 ### Mission 8 successor
 
@@ -128,9 +121,7 @@ This register records product consequences, not every engineering idea. A scope 
 ### Decisions to report or confirm now
 
 - **Assistant scope — owner direction; PM communication required.** Brunch targets operational processes represented as SDCPNs, including organizational, software and cyber-physical operations. It is not a universal Petri-net copilot.
-- **Assistant deployment policy — future owner decision.** Host-local selection
-  is implemented for ordinary website documents. Decide where deployments
-  control availability and whether a user-visible picker remains appropriate.
+- **Assistant deployment policy — future owner decision.** Host-local selection is implemented for ordinary website documents. Decide where deployments control availability and whether a user-visible picker remains appropriate.
 - **Simulation scenarios and metrics — likely out of Mission 7c; PM confirmation required.** TypeScript feedback does not imply simulation-product support.
 - **Structured questions — likely out of Mission 7c; PM confirmation required.** Free-text conversation remains the product route; choice widgets and questionnaires require a separately cut vertical capability.
 - **Assumption-based preview — open product fork.** Decide whether Brunch may offer a provisional model when evidence is incomplete. Recommended default: evidence-first, explicit user assent, visible assumptions, and later confirm/replace/reject behavior.
@@ -174,14 +165,9 @@ The deciding PM questions are when Brunch may offer preview, what assent authori
 
 ### Host choice and continuity
 
-Ordinary website documents select an assistant through the implemented
-host-local preference. Mid-conversation switching is not a history-splicing
-operation and requires an explicit continuity contract before broader
-admission.
+Ordinary website documents select an assistant through the implemented host-local preference. Mid-conversation switching is not a history-splicing operation and requires an explicit continuity contract before broader admission.
 
-Switching inside a remote worked-model document is deferred. Re-enter only
-after accepting a stock-history continuity contract that determines whether
-stock history on remote documents is local-only, remote, or absent.
+Switching inside a remote worked-model document is deferred. Re-enter only after accepting a stock-history continuity contract that determines whether stock history on remote documents is local-only, remote, or absent.
 
 Resolve:
 
@@ -234,27 +220,9 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
 - Generated, sanitized, migrated and layout effects do not automatically inherit operational testimony.
 - One model-facing agent owns the conversation. Bindings, transports and hosts adapt that agent without creating a second history or protocol.
 - Core owns universal elicitation; plugins own domain-typology/formalism guidance; the app owns composition; the Petrinaut website owns browser execution and assistant selection.
-- The website's `documents/` seam separates storage-neutral repository
-  contracts, local and remote sources, source-crossing controller actions and
-  typed process-agent binding. Route identity selects the source; repositories
-  persist revisions; the binding owns conversation identity. This seam is
-  useful infrastructure, but it does not move session/workpiece hydration
-  outside the worked-model requirement. Worked-model titles are inherited from
-  the template and read-only.
-- Browser-local preferences and document records currently use the website's
-  narrow `usePersistedState` boundary so reads begin after commit and writes
-  stay outside React state updaters. Revisit an established external store when
-  persisted state becomes shared across repositories, needs cross-tab
-  subscription or migration, or the boundary grows beyond isolated values.
-  Compare an explicit application dependency such as Zustand with the retained
-  primitive at that gate; never depend on Zustand only because React Flow
-  supplies it transitively.
-- A worked-model fixture packages session, workpiece and net as one build
-  artifact. A worked-model copy preserves this complete connected bundle under
-  stable or coherently remapped identities. Current live instantiation is only
-  a principal-owned worked-model net projection: it inherits the net under
-  fresh document, incarnation and conversation identities and remains an
-  incomplete implementation gap.
+- The website's `documents/` seam separates storage-neutral repository contracts, local and remote sources, source-crossing controller actions and typed process-agent binding. Route identity selects the source; repositories persist revisions; the binding owns conversation identity. This seam is useful infrastructure, but it does not move session/workpiece hydration outside the worked-model requirement. Worked-model titles are inherited from the template and read-only.
+- Browser-local preferences and document records currently use the website's narrow `usePersistedState` boundary so reads begin after commit and writes stay outside React state updaters. Revisit an established external store when persisted state becomes shared across repositories, needs cross-tab subscription or migration, or the boundary grows beyond isolated values. Compare an explicit application dependency such as Zustand with the retained primitive at that gate; never depend on Zustand only because React Flow supplies it transitively.
+- A worked-model fixture packages session, workpiece and net as one build artifact. A worked-model copy preserves this complete connected bundle under stable or coherently remapped identities. Current live instantiation is only a principal-owned worked-model net projection: it inherits the net under fresh document, incarnation and conversation identities and remains an incomplete implementation gap.
 - HASH Graph, Temporal, Redis, HASH API, S3, Kratos and Petrinaut Optimizer are not Brunch runtime dependencies without a named consumer.
 
 Retain the thin architecture unless observed product strain earns more. Do not introduce a comprehensive process ontology, graph database, universal subject/predicate/value schema, deterministic conversation reducer, full regeneration engine, typed completion algebra, second event log or general multi-agent system as speculative infrastructure.
