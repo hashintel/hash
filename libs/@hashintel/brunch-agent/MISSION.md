@@ -31,18 +31,21 @@ Use the team's established, compiler-clean Inventory reference SDCPN and local
 Pi-harness persona-based development to produce a versioned Inventory fixture
 bundle containing one retained Brunch session, its workpiece and that reviewed
 net. Package the complete accepted fixture with the deployed app and seed it
-into Postgres when the database is created or upgraded. Current live-copy
-instantiation deliberately consumes only the fixture net: it creates fresh
-document, incarnation and conversation identities and does not hydrate the
-retained fixture session or workpiece.
+into Postgres when the database is created or upgraded.
 
 Make a product manager able to open that stable Inventory purchasing template
-through `?bundle=inventory-purchasing` as an independently owned working copy;
-inspect its legible SDCPN; build the copy's own conversation and workpiece; ask
-why consequential content produced in that copy exists; correct it in ordinary
-language; see compiler-clean model changes and coherent layout; and close and
-reopen the same copy. Editing one copy must not alter the seeded template or a
-sibling, and the product must create a clean net copy from the seed on request.
+through `?bundle=inventory-purchasing` as an independently writable copy of the
+complete connected bundle, with the retained conversation, workpiece, net and
+their references intact; inspect its legible SDCPN; ask why consequential
+content exists; correct it in ordinary language; see compiler-clean model
+changes and coherent layout; and close and reopen the same copy. Editing one
+copy must not alter the seeded template or a sibling, and the product must
+create a clean complete-bundle copy from the seed on request.
+
+The current implementation resolves only a principal-owned net projection and
+mints an empty conversation. That partial path is useful infrastructure, but it
+does not satisfy worked-model copy, clean-copy, reopen, provenance-resume or
+Mission 7c acceptance.
 
 Inventory is the fully recorded flagship and semantic acceptance exemplar, but
 the construction architecture must not depend on Inventory-specific nouns or
@@ -69,9 +72,10 @@ local persona-based development produces an accepted session + workpiece + net
 → app build packages the versioned fixture bundle
 → database creation or upgrade seeds the standard template idempotently
 → ?bundle=inventory-purchasing selects the fail-closed remote document source
-→ principal-scoped resolution creates or resumes an owned net copy
-→ website opens that net under fresh document, incarnation and conversation
-  identities; no fixture session or workpiece is hydrated
+→ principal-scoped resolution creates or resumes an independently writable
+  copy of the complete connected session + workpiece + net bundle
+→ copied identities are stable or coherently remapped while conversation,
+  workpiece, mutation/provenance and document-revision links remain intact
 → the remote route fixes the Brunch process assistant and exposes a read-only
   title while identity-explicit revisions persist through the remote repository
 → persona speaks in ordinary language; workpiece revisions settle
@@ -144,14 +148,14 @@ answers where visible content came from, with Inventory purchasing as the
 recorded flagship.
 
 **Product-manager script:** open `?bundle=inventory-purchasing` and receive an
-owned working copy of the fixture net under a fresh conversation; establish the
-copy's workpiece; ask why two consequential elements produced in that copy
+independently writable copy of the fixture's retained conversation, workpiece
+and net with their references intact; ask why two consequential elements
 exist; correct one operational fact in ordinary language; observe a
 compiler-clean bounded change and coherent layout; close and reopen the same
-copy; confirm the template and a sibling are unchanged; and create a clean net
-copy. Confirm that the worked-model document states “This document uses the
-Brunch process assistant”, presents the template title as read-only and offers
-no assistant switch.
+connected copy; confirm the template and a sibling are unchanged; and create a
+clean complete-bundle copy. Confirm that the worked-model document states
+“This document uses the Brunch process assistant”, presents the template title
+as read-only and offers no assistant switch.
 Open an ordinary local document with the stock assistant and confirm that its
 stock transport, tool manifest and history remain unchanged.
 
@@ -168,7 +172,8 @@ can count as acceptance:
 | Layout is a recorded document mutation | `layout_petrinaut_net` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. |
 | Workpiece query uses recorded current-revision evidence | An ordinary question about visible Petrinaut elements obtains a fresh observation, resolves element IDs to existing mutation-attempt revision IDs, maps those to current workpiece passages and relevant session turns, and reports missing or ambiguous provenance without inventing a link. |
 | Assistant modes are isolated | On ordinary local documents, host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. Worked-model routes fix Brunch and do not offer the switch. |
-| Worked-model lifecycle is source- and identity-explicit | `apps/brunch-agent/test/{worked-model-store,worked-model-routes}.test.ts`, `apps/brunch-agent/test/integration/worked-model-copy.test.ts`, and `apps/petrinaut-website/src/main/app/local-storage-demo/{documents/**/*.test.ts,local-storage-demo-app.test.tsx}` prove principal-scoped GET/POST/PUT, clean net copies, fail-closed remote selection, revision persistence, typed process binding, fixed Brunch mode and read-only remote title. These tests do not prove fixture-session or fixture-workpiece hydration. |
+| The partial worked-model net projection is source- and identity-explicit | `apps/brunch-agent/test/{worked-model-store,worked-model-routes}.test.ts`, `apps/brunch-agent/test/integration/worked-model-copy.test.ts`, and `apps/petrinaut-website/src/main/app/local-storage-demo/{documents/**/*.test.ts,local-storage-demo-app.test.tsx}` are the existing green store, route, repository and controller oracles. They prove principal-scoped GET/POST/PUT, fresh net projections, fail-closed remote selection, revision persistence after open, typed process binding, fixed Brunch mode and read-only remote title. They do not prove a worked-model copy because they do not preserve the fixture session, workpiece or their links. |
+| Complete connected-bundle acceptance remains executable debt | A dedicated `apps/brunch-agent/test/worked-model-bundle-copy.contract.test.ts` expected-failure or explicitly skipped suite must pin fixture-derived session/workpiece availability before a new turn, coherently remapped provenance links, same-copy reopen, clean session/workpiece/net copying and the build-discovered Postgres product path. These pins remain visibly unmet until their blocking capability exists; green net-projection tests cannot satisfy this result. |
 
 Host-executor tests are not live-browser construction evidence. The portfolio
 and persona gates below must exercise representative admitted operations and
@@ -182,7 +187,7 @@ hold:
 
 | Acceptance result | Required oracle |
 | --- | --- |
-| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right owned copy; copy edits never reach the template or sibling; a clean copy can be created from the seed; conversation, workpiece, net and current-revision explanation resume coherently. Until the seeded-session open item closes, the copy inherits the net only, and the resume proof covers conversation and workpiece produced within that copy. |
+| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right independently writable complete-bundle copy; copied or coherently remapped references connect its retained conversation, workpiece history, current revision/passages, mutation provenance, net and document revision history; copy edits never reach the template or sibling; same-copy reopen preserves that connected bundle; and a clean copy resets session, workpiece and net together. The complete-bundle pins above must pass; the current net projection cannot satisfy this gate. |
 | Inventory is connected and operationally coherent | Lu reviews procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions. Structural and compiled evidence cannot pass this gate. |
 | The tiered portfolio obligation is met | Repeatable run records demonstrate all three tiers defined in the Imperative, and a scan confirms that reusable guidance contains no Inventory-specific nouns or IDs. |
 | Ordinary requests succeed or refuse visibly | Representative live-browser construction and correction across the capability envelope succeeds through canonical operations or produces a clear unsupported-operation refusal. No case crashes, stalls, corrupts the net, silently omits requested meaning, leaves hidden partial state or claims success. |
@@ -227,11 +232,12 @@ hold:
 - The Inventory template and owned copies live in the Brunch app's Postgres
   store through the existing adapter and migrations. Versioned fixture bundles
   produced locally are build inputs whose exact session, workpiece and net are
-  seeded idempotently; they are not a runtime promotion path. An owned copy
-  currently inherits only the fixture net and opens under fresh document,
-  incarnation and conversation identities; its session and workpiece begin in
-  that copy. SQLite remains for lightweight tests and disposable local work.
-  Do not create a second persistence system.
+  seeded idempotently; they are not a runtime promotion path. Every owned copy
+  must preserve that complete connected bundle under stable or coherently
+  remapped identities. The current net-only projection is an incomplete
+  implementation finding, not accepted copy semantics. SQLite remains for
+  lightweight tests and disposable local work. Do not create a second
+  persistence system.
 - A `?bundle=` key identifies a template; it does not authenticate a user by
   obscurity. Any bearer-capability proposal requires explicit review of
   entropy, logging, sharing, revocation and authorization.
@@ -310,17 +316,17 @@ hold:
   is proven; autonomous activation reliability is not. Decide whether this
   model-compliance mechanism remains mounted, moves behind a deterministic
   response contract, or is removed.
-- **Seeded session instantiation:** Flue 2.0.3 has no supported public
-  export/fork operation for an independently writable retained session.
-  Projected `history()` cannot reconstruct canonical stream records or
-  persistent state. The fixture contract stays complete — session, workpiece
-  and net are packaged and seeded together so their connections survive —
-  but branching acceptance is reduced for now: an owned copy materializes the
-  fixture's net under a fresh conversation identity and does not yet inherit
-  the session or workpiece. Which identities a fork remaps, and whether
-  complete instantiation belongs in Flue, an adapter-level utility or an
-  application-owned archival format, remain open. Never clone private Flue
-  tables or present replayed model turns as the accepted session.
+- **Seeded session/workpiece fork:** Complete connected-bundle copying is
+  blocked on a supported way to fork or export/import the retained Flue session
+  and workpiece while coherently remapping identities and preserving links to
+  mutation provenance and Petrinaut revisions. Flue 2.0.3 exposes no supported
+  public operation for this, and projected `history()` cannot reconstruct
+  canonical stream records or persistent state. Determine whether the
+  capability belongs in Flue, an adapter-level utility or an application-owned
+  archival format, and which identities it remaps. Never clone private Flue
+  tables or present transcript replay as retained history. Until this closes,
+  the current net projection remains an explicitly incomplete implementation
+  and complete-bundle acceptance stays open.
 - **Diagnostics protocol:** select mutation-returned diagnostics, an explicit
   current read, or a hybrid pending/result protocol while preserving version
   correlation.

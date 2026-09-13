@@ -72,7 +72,7 @@ A flagship proves one accepted product path. It does not prove every operational
 - Mission 7 tracks [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) and partially advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without closing the broader provenance objective.
 - [Mission 7a](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md) established workpiece, construction-record and explanation groundwork and landed on `main`.
 - [Mission 7b](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) established the ordinary selected structural batch, correction, recorded basis/effects, reopen and experimental create-new seam. Its engineering [PR #9649](https://github.com/hashintel/hash/pull/9649) remains a separate external closeout.
-- Live [Mission 7c](MISSION.md) owns the Inventory purchasing flagship, code-bearing operation admission, TypeScript compiler feedback and repair, ELK layout, reliable mechanical why routing, tool topology and Postgres-backed bundle copies.
+- Live [Mission 7c](MISSION.md) owns the Inventory purchasing flagship, code-bearing operation admission, TypeScript compiler feedback and repair, ELK layout, reliable mechanical why routing, tool topology and Postgres-backed worked-model copies. A worked-model copy is an independently writable complete connected bundle: retained session, workpiece history/current revision, net/document revision history and their provenance links, with identities stable or coherently remapped. The landed principal-owned net-only object is a **worked-model net projection**, not a worked-model copy.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
 The live mission now carries the accepted flagship, portfolio, capability,
@@ -237,8 +237,10 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
 - The website's `documents/` seam separates storage-neutral repository
   contracts, local and remote sources, source-crossing controller actions and
   typed process-agent binding. Route identity selects the source; repositories
-  persist revisions; the binding owns conversation identity. Worked-model
-  titles are inherited from the template and read-only.
+  persist revisions; the binding owns conversation identity. This seam is
+  useful infrastructure, but it does not move session/workpiece hydration
+  outside the worked-model requirement. Worked-model titles are inherited from
+  the template and read-only.
 - Browser-local preferences and document records currently use the website's
   narrow `usePersistedState` boundary so reads begin after commit and writes
   stay outside React state updaters. Revisit an established external store when
@@ -248,9 +250,11 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
   primitive at that gate; never depend on Zustand only because React Flow
   supplies it transitively.
 - A worked-model fixture packages session, workpiece and net as one build
-  artifact. Current live-copy instantiation inherits only its net under fresh
-  document, incarnation and conversation identities; fixture session/workpiece
-  hydration remains outside the landed seam.
+  artifact. A worked-model copy preserves this complete connected bundle under
+  stable or coherently remapped identities. Current live instantiation is only
+  a principal-owned worked-model net projection: it inherits the net under
+  fresh document, incarnation and conversation identities and remains an
+  incomplete implementation gap.
 - HASH Graph, Temporal, Redis, HASH API, S3, Kratos and Petrinaut Optimizer are not Brunch runtime dependencies without a named consumer.
 
 Retain the thin architecture unless observed product strain earns more. Do not introduce a comprehensive process ontology, graph database, universal subject/predicate/value schema, deterministic conversation reducer, full regeneration engine, typed completion algebra, second event log or general multi-agent system as speculative infrastructure.

@@ -66,11 +66,17 @@ routes.
 A versioned build artifact packaging one reviewed retained session, current
 workpiece and net together for idempotent catalogue seeding.
 
-**Worked-model live copy**:
-A principal-owned remote document instantiated from a fixture. The current
-implementation copies only the fixture net and mints fresh document,
-incarnation and conversation identities; it does not hydrate the fixture
-session or workpiece.
+**Worked-model copy**:
+An independently writable, principal-owned copy of a fixture's complete
+connected bundle: retained session, workpiece history and current revision,
+Petrinaut document and revision history, net, mutation provenance and the links
+among them. Its identities remain stable or are coherently remapped.
+
+**Worked-model net projection**:
+The current principal-owned, net-only remote object. It copies the fixture net
+and mints fresh document, incarnation and conversation identities without
+hydrating the fixture session, workpiece or their links. It is useful
+infrastructure but does not satisfy worked-model copy semantics.
 
 ### Model-facing primitives
 

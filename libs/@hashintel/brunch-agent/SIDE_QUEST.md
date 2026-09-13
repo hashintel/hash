@@ -10,7 +10,16 @@ Mission 7c is actively extending the canonical Petrinaut construction path, wher
 
 This quest subtracts that low-value layer without weakening the mission's load-bearing regression protection. It changes no mounted behavior, persistence format, transport contract, mutation semantics, skill teaching, evaluation instrument, fixture content, or product claim. The only production-surface change it may make is removal of a private-package export proven unused across the repository and belonging solely to unmounted orchestration; any such removal must precede its test deletion in the same reviewable slice.
 
-The synchronized mission now names source- and identity-explicit worked-model lifecycle tests in `apps/brunch-agent` and `apps/petrinaut-website` as mission proof, and names the checked ordinary Brunch tool catalogue plus native provider carriage as the mounted tool-topology oracle. Those tests and app-owned catalogue files are outside this package-test remediation. They must not be deleted, weakened, or reinterpreted as duplicate inventory checks; if a proposed package change reaches them, the affected app gates become mandatory and the stop lines below apply.
+The synchronized mission now names source- and identity-explicit worked-model
+net-projection lifecycle tests in `apps/brunch-agent` and
+`apps/petrinaut-website` as proof of the partial implementation, while
+complete connected-bundle acceptance remains unmet. It also names the checked
+ordinary Brunch tool catalogue plus native provider carriage as the mounted
+tool-topology oracle. Those tests and app-owned catalogue files are outside
+this package-test remediation. They must not be deleted, weakened, or
+reinterpreted as duplicate inventory checks; if a proposed package change
+reaches them, the affected app gates become mandatory and the stop lines below
+apply.
 
 ## Imperative
 
@@ -126,7 +135,7 @@ Do not refactor production solely to make this test deeper. If the existing two 
 | Canonical schema ownership remains protected | One named parameterized test per root-node, root-state, root-arc, and declared-basis family fails on an undeclared schema copy or dropped canonical field, while concrete normalization/refusal/default cases remain green. |
 | Binding exports are checked through their declared package boundary | The compile-only consumer imports allowed exports and rejects `useElicitation`; `turbo run lint:tsc build --filter @hashintel/brunch-agent-binding-flue` passes. |
 | Suspended coverage follows consumers | A repository-wide import graph is summarized in the PR close report. Every retained `_suspended` test points to a mounted consumer or retained private-package contract; every deleted behavior has no remaining export or repository import. All Brunch package builds and typechecks pass. |
-| Load-bearing behavioral coverage remains | Existing focused suites for capture store, local persistence, anchoring, session log, workpiece evidence/update, Flue history, transport, transcript/UI projection, mutation records, mutation application, native validation, reconciliation, and compiler-clean Inventory slice remain green. The app-owned worked-model lifecycle and checked mounted-tool-catalogue tests remain untouched; run them if import impact or a production-surface edit reaches their graph. |
+| Load-bearing behavioral coverage remains | Existing focused suites for capture store, local persistence, anchoring, session log, workpiece evidence/update, Flue history, transport, transcript/UI projection, mutation records, mutation application, native validation, reconciliation, and compiler-clean Inventory slice remain green. The app-owned partial net-projection lifecycle and checked mounted-tool-catalogue tests remain untouched; those lifecycle tests do not satisfy the still-unmet complete connected-bundle acceptance. Run them if import impact or a production-surface edit reaches their graph. |
 | The retained oracles can detect representative regressions | Before finalizing, make and revert three controlled local mutations: widen `toolName` to admit an undeclared operation and observe `lint:tsc` fail; remove one packaged skill resource/reference and observe its structural test fail; drop one canonical field or Brunch envelope member in a representative construction schema and observe its family contract test fail. Record commands and failure summaries in the PR close report, then restore the tree and rerun green gates. |
 | The operation did not become a count-driven purge | The close report gives before/after files, tests and lines as observations, then lists every changed test by Retain/Move/Consolidate/Delete rationale. No acceptance leaf requires an arbitrary percentage reduction or faster runtime. |
 
@@ -150,7 +159,13 @@ Also run `git diff --check` and inspect the exact diff. Existing unrelated workt
 ## Constraints
 
 - Preserve tests that protect persisted capture data, atomic refusal, migration, ownership isolation, replay/version identity, evidence anchoring, stale/concurrent workpiece updates, transport admission/idempotency/cancellation, transcript/UI projection, diagnostic privacy, canonical mutation effects, cascading changes, and compiler-clean definitions.
-- Preserve the synchronized mission's app-owned proof for fail-closed document-source selection, principal-scoped worked-model copies, identity-explicit revision persistence, fixed Brunch mode, read-only remote titles, fresh copy conversation identity, and the checked mounted tool catalogue. These are outside the audited package-test tranche, not candidates for subtraction.
+- Preserve the synchronized mission's app-owned proof for fail-closed
+  document-source selection, principal-scoped worked-model net projections,
+  identity-explicit revision persistence, fixed Brunch mode, read-only remote
+  titles, fresh net-projection conversation identity and the checked mounted
+  tool catalogue. This proof is scoped to the partial net projection and does
+  not discharge complete connected-bundle acceptance. These are outside the
+  audited package-test tranche, not candidates for subtraction.
 - A typecheck can own assignability and rejected-call claims; it cannot replace runtime parsing, generated schema, strictness, metadata, defaulting, normalization, or package build checks.
 - A prompt substring is not an agent-behavior oracle. Keep exact text only when a parser, transport, persisted record, or other machine consumer requires that exact text. Evaluations may establish behavior, but this quest neither rewrites frozen instruments nor authorizes a provider run.
 - Preserve one deterministic structural guard against concrete scenario nouns or IDs entering reusable plugin guidance.
