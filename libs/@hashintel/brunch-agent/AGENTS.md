@@ -33,9 +33,11 @@ When work starts on a branch, state these six things in [`MISSION.md`](MISSION.m
 - **Fog-line** — uncertainty that current evidence cannot yet decide between consequential alternatives, and must not be designed past. Clarifying intent is not clearing terrain. Capture unresolved flags here: why they matter, what they constrain, and what would re-enter them. Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
-The six sections are the live mission contract. Keep a short **Status** header (live / accepted) above the contract and a closing **Deferred** section pointing into the future planning record.
+The six sections are the live mission contract. Above them, **Status** states live/accepted, the established base, the current blocker, and the next authorized observation or decision with its owner and discriminator. Below them, **Deferred** points to the future planning record. The full Throughline describes the acceptance path; Status selects the next move.
 
-Preserve known precision whenever it changes builder behavior, scope, proof, risk, or handoff. Nest cold-start reads, boundary crossings, risks and assumptions, oracle-bound acceptance leaves, guarded invariants, layered verification, cross-cutting obligations, expected touched paths, and readiness-ratchet sections under the six semantic addresses when earned. Compact trees and flow diagrams are welcome when they make topology or sequencing more legible; omit unearned symmetric filler.
+Keep each proof obligation's current disposition beside it, with an evidence pointer and any remaining limitation. Distinguish coverage present, reported verification and accepted proof; expected failures are unmet obligations. Refresh Status and dispositions when evidence or owner direction changes the next move. Replace prior state rather than appending chronology; detailed results belong in the PR and native records.
+
+Preserve precision that changes behavior, scope, proof, risk or handoff. Put exact cold-start inputs and boundary pointers under Throughline; place other detail under its owning contract section. Omit unearned template sections and repeated rationale.
 
 Every final proof leaf in a live mission or side quest must name a credible oracle: an exact test or command, fixture, artifact inspection, human witness, or adjudication that can distinguish the claimed result from mere presence. A provisional mission draft may instead mark `ORACLE GAP` and state what must resolve it, but that gap must close before the draft is cut with that leaf as a claim.
 
@@ -43,25 +45,15 @@ Every final proof leaf in a live mission or side quest must name a credible orac
 
 **Decompose the territory broadly; authorize execution narrowly. A responsibility map is not a completion schedule.**
 
-- **Mission** holds the imperative, accepted meaning and final acceptance bar across many tasks. Acceptance obligations remain visible; they are not automatically prerequisites to the first informative use.
-- **Current throughline** names the next real product observation that can change a consequential decision. Use the existing system to obtain it before building more capability.
-- **Delegated work** discharges concrete dependencies of that observation. Each task names its consumer or observed failure, bounded change/probe, discriminator and return condition—not independent subsystem completion. Parallelize independent dependencies of that same observation, not empty cells in a responsibility matrix.
+- **Mission** holds the imperative and acceptance bar across many tasks. Acceptance obligations are not automatically prerequisites to the first informative use.
+- **Current throughline** is the next decision-changing product observation, selected in Status. Attempt it with the existing system before building capability.
+- **Delegated work** discharges its concrete dependencies. Name the consumer or observed failure, bounded change/probe, discriminator and return condition. Parallelize independent dependencies of that observation, not subsystem completion.
 
-Before dispatch, answer: **What next observation becomes possible through this task, and why can't the current system produce it?** Integration returns to that question; it is a decision point, not a successor-task launch trigger.
+Before dispatch and again at integration, answer: **What next observation becomes possible through this task, and why can't the current system produce it?** Re-decide from the result rather than automatically launching a successor task.
 
-```text
-survey the real territory, not only its maps
-→ attempt the next informative use through the actual product
-→ inspect what worked, failed or remained unknown
-→ repair a blocking or false/unsafe boundary, or advance with explicit limits
-→ re-decide the route from that evidence
-```
+Use the real product boundary for terrain claims. Close an obligation now if it blocks the next observation or makes the visible claim false or unsafe; otherwise carry its limitation, consumer, re-entry trigger and discriminator. That consumer may be later in the same mission.
 
-Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence and failure. Close an obligation now when it blocks the next observation or makes the current visible claim false or unsafe. Otherwise carry its limitation, named consumer, re-entry trigger and discriminator. That consumer may be later in the same mission; it need not become another mission.
-
-Stratum closure is a deliberate breadth decision for an identified current consumer, not an obligatory stage after every tracer. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
-
-This is an expeditionary posture, not a defensive one. Survey only until the next consequential and reversible move is warranted. Once downside is bounded or explicitly accepted, advance; uncertainty is terrain to reduce through action, not a reason to hold position. Stage only the base the next operation needs, not the safest or most complete base imaginable.
+Broader contract closure requires an identified consumer; a provisional path is not a hardened base. Once downside is bounded or explicitly accepted, advance with the base the next operation needs.
 
 ### One live mission and bounded planning surfaces
 
@@ -73,49 +65,34 @@ Only three additional planning or control surfaces are permitted:
 2. Linked provisional drafts under [`docs/mission-drafts/`](docs/mission-drafts/), which preserve detailed cold-start context for named future clusters under the [draft authority and lifecycle rules](docs/mission-drafts/README.md).
 3. `SIDE_QUEST.md`, when present, as the one temporary user-authorized experiment or remediation inside the live mission.
 
-`MISSION.next.md` and its linked provisional drafts form the combined future planning record. They are not execution authority, do not create concurrent missions, and must not be implemented before conversion into `MISSION.md`. Give every planning item one authoritative planning home; the compact spine may carry a concise summary and link, but must not duplicate the detailed contract. Keep each hypothesis, observation, accepted decision, rejected alternative and reason, re-entry condition, question, named mechanism, constraint, fog item, stop condition, scenario class, and evidence source at the fidelity needed for a cold-start builder. Do not rely on a transcript as the surviving record.
+`MISSION.next.md` and its linked drafts form the future planning record, not execution authority. Give each item one home with its binding meaning, rationale, evidence and re-entry condition intact. The spine links to detail; it does not restate live scope or progress. A transcript alone is not a surviving planning home.
 
 A side quest is legitimate only when live-mission evidence exposes a bounded set of concrete residual failures whose investigation helps close that mission or informs named future clusters. It must state its relationship to the live mission, imperative, throughlines, oracle-bound proof, constraints, stop conditions, and budget for each paid activity. It must not supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live mission, or coexist with another active side quest. Record its outcome in affected future-planning homes, then remove the active file before archiving the mission. A documentation-only remediation records its oracle-bound close audit in the canonical future-planning record rather than inventing an evidence document.
 
 ### Conversion and lifecycle
 
-Promotion is re-evaluation and conversion, never a rename or wholesale promotion. The ordered conversion and archival procedure lives in [`docs/mission-drafts/README.md`](docs/mission-drafts/README.md#lifecycle).
-
-The always-loaded invariants are: keep exactly one live mission; return every item omitted from a cut to the combined future planning record at full fidelity; remove the consumed draft so it cannot remain duplicate quasi-authority; and compare every affected planning file before and after with no unexplained loss or duplication. A current mission's **Deferred** items belong in that record and must not be silently dropped or superseded.
+Before cutting, recutting or archiving a mission, follow [`docs/mission-drafts/README.md#lifecycle`](docs/mission-drafts/README.md#lifecycle). It owns conversion, preservation of omitted and Deferred items, duplicate removal and the before/after audit.
 
 ### Decision integrity across handoffs
 
-These rules exist because Mission 4 lost its design between the owner conversation and production: each handoff summarized the previous summary, an evaluator narrowed an accepted wording, and prompts were then rewritten to satisfy the evaluator. The record is [`docs/evidence/design/mission-4-handoff-failure-analysis-2026-09-02.md`](docs/evidence/design/mission-4-handoff-failure-analysis-2026-09-02.md).
+1. **Promote decisions before delegation.** Amend `MISSION.md` when accepted owner direction changes implementation or proof. Keep one dated **Owner decisions** list pointing to the resulting contract, not a second copy of it. Pending choices remain explicit.
+2. **Recut before implementation.** Obtain owner acceptance and commit a material authority change separately, before dependent product or evaluation work. Keep recut, implementation, instrument freeze and close distinct.
+3. **Preserve handoff authority.** For semantic, architectural, interaction-policy, proof or frozen-instrument translations, name the protected source, production destinations, permitted deltas and unresolved choices. Stop on unlisted semantic deltas. Bounded owner-approved mechanical corrections may be batched.
+4. **Keep oracles subordinate.** A checker may falsify a claim, not redefine policy, architecture or interaction semantics. Stricter interpretations require an owner decision; do not rewrite prompts to mirror a checker.
+5. **Bound experimental verdicts.** State which decisions evidence may update and which remain owner-held. Mechanism failure does not select a replacement architecture.
+6. **Preserve binding rationale before disposal.** Move a surviving decision's only explanation from a workbench or draft into `MISSION.md` or an ADR; discard superseded material rather than copying it forward.
+7. **Keep current state, not chronology.** Replace consumed authorizations with the consuming commit and any continuing restriction. Keep detailed results in the PR/native records under [evidence retention](docs/evidence/README.md).
+8. **Close by external acceptance.** For owner-reserved closure, witness acceptance, handoff selection or paid ceilings, prepare the packet and stop until the owner performs the gate.
 
-1. **Current-decision promotion.** When the owner accepts a decision that changes the live mission's implementation or proof, amend `MISSION.md` before any further delegation. `MISSION.next.md`, drafts, evidence, ledgers, and transcripts never substitute for current authority.
-2. **Authority amendment before implementation.** The owner reviews and accepts a material recut; that authority change is committed on its own before dependent product or evaluation work begins. Never combine recut, implementation, instrument freeze, or close in one transformation or one commit.
-3. **Authority-preserving handoff.** A handoff that translates accepted semantic content, architecture, interaction policy, proof interpretation, or a frozen instrument names the protected source, each production destination, the permitted semantic deltas, and the unresolved choices. An unlisted semantic delta is a stop condition, not a judgment call. Mechanical corrections inside an owner-approved envelope with stated bounds and stop conditions may be batched without a per-change gate.
-4. **Oracle non-authority.** An oracle may falsify an implementation or a claim; it may not redefine policy, architecture, or interaction semantics. An operationalization stricter than the accepted wording is an owner decision, and prompts are never rewritten to mirror a checker.
-5. **Scoped experimental verdicts.** Every experiment adjudication states which decisions its evidence may update and which remain owner-held. Failure of one implementation mechanism does not select another architecture.
-6. **Rationale before disposal.** Before a workbench or draft holding the only explanation of a surviving decision is deleted, move that still-binding reason into `MISSION.md` or an ADR. Otherwise intentionally discard the workbench. Do not copy stale workbenches forward or pin complete run directories in the repository.
-7. **`MISSION.md` is present tense throughout.** Status carries only the current state and pointers; the six sections carry the resulting contract. A dated "reached X boundary" or run-narrative block is chronology: record what is now admitted or true in the relevant section, name the commit, and delete the narrative. Still-binding owner decisions live in one dated **Owner decisions** list; a consumed one-shot authorization collapses to one line naming the consuming commit and any continuing restriction. An observation whose only record is a local, ignored store is labelled **local-only / not portable** with the native record named as its oracle — it is verified, not an `ORACLE GAP`, and export is not a precondition for believing it. Commits, tests, native run records and the PR close report are the implementation record; campaign chronology lives in none of the repository's documents.
-8. **Close by external acceptance.** Where closure, witness acceptance, handoff selection, or a paid ceiling is owner-reserved, an agent prepares the packet and stops. It records acceptance only after the owner has performed that gate.
-
-A delegated task returns its result in the PR or chat. It does not create a file under `docs/`, and it does not add a review or handoff generation to a run directory beyond the [one current handoff](#run-directories). Do not add packets under `docs/evidence/implementations/`. Per-implementation proof is the code, test, commit, and PR.
+Consult the [Mission 4 handoff analysis](docs/evidence/design/mission-4-handoff-failure-analysis-2026-09-02.md) when the rationale for these protections matters. Delegated results return in chat or the PR, not new documentation packets.
 
 ## Correctives
 
-- Before adding structure, name the production pressure that requires it.
 - **Safeguards must earn their friction.** Before adding, preserving, or adapting product behaviour around a limit, gate, or refusal, run the least guarded/unguarded contrast the real boundary permits and identify the observed failure, external constraint, or owner requirement it protects. Inherited code, a safety label, and passing enforcement tests prove enforcement—not necessity or reasonable scope. When a safeguard blocks real use, test whether the platform now carries the obligation, then remove or narrow the safeguard; retain it only at the smallest boundary that prevents the evidenced failure.
-- Work the first unproven boundary; do not build toward the imagined end.
-- Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
-- A ticket is a projection; the mission is the authority. If the ticket stops serving the
-  imperative, stop and surface the divergence instead of finishing the ticket.
-- When evidence changes the route, stop; do not finish the planned neighbourhood.
-- When things accumulate, subtract before you extend.
-- No imperative and proof means it is not a mission yet — do not start it.
-- Censor noise; keep consequential doubt visible.
-- Checking is proportional to consequence and reversibility: use the narrowest falsifying check, the actual product boundary for an integration claim, and the affected package checks before integrating code. Reuse earned regression tests; a documentation or lane handoff does not itself require another full browser/crash campaign. Within that budget, a commitment is warranted when its premises are observed or explicitly accepted as risk. Evidence retention follows the [retention contract](docs/evidence/README.md).
-- Low confidence must change the next move — build the smallest real path that reveals more,
-  inspect, choose the reversible option, or flag it — or go unsaid.
-- At close, update the PR description: what each proof item established, the observed answer to
-  each fog-line question, and the flags that carry into the next mission. Archive the closed
-  `MISSION.md` as above; the PR description remains the GitHub-facing close report.
+- **Reorient on evidence.** If a ticket or planned task stops serving the imperative, surface the divergence rather than finish it. Start only with an imperative and proof; subtract accumulated mechanism before extending it.
+- **Verify proportionally.** Use the narrowest falsifying check, the actual product boundary for integration claims and affected package checks before integrating code. Reuse earned regression tests; documentation and handoff work alone do not require a new browser/crash campaign. Commit when premises are observed or explicitly accepted as risk.
+- **Act on uncertainty.** Inspect, attempt the smallest revealing path, choose a reversible option or flag consequential doubt; otherwise omit low-confidence commentary.
+- **Close legibly.** Update the PR with each proof result, answers to fog questions and carried flags, then archive under the lifecycle rules. The PR remains the GitHub-facing close report.
 
 ## Development and evaluation execution
 
@@ -135,12 +112,7 @@ Add or retain a unit test only when it is the narrowest credible oracle for a ru
 
 ### Run directories
 
-Ignored run output (for example `apps/brunch-agent/.data-wipe-me/persona-runs/<run>/`) follows the same anti-accretion rule as tracked documentation; moving the packet habit off Git does not retire it.
-
-- A run directory retains **native records**: canonical history, workpiece records, snapshots, stop state, observations the product or launcher wrote, and logs. These are the oracle for what the run did.
-- It holds **one current handoff** (`handoff.md`, or the run's `gate-packet.md`), overwritten in place. No `review-*`, `final`, `wrap` or `linked` generations, and no second copy of a handoff.
-- Write an **observation summary** only when a concrete decision depends on it; that decision then goes to the `MISSION.md` Owner decisions list, and the summary is not kept as a sibling packet. A subagent otherwise returns its result in chat or the PR.
-- Superseded generations are deleted by the operator when the run is wrapped; they are not archived beside the retained records.
+Before retaining run output, preparing a handoff or wrapping a run, read [run-directory retention](docs/evidence/README.md#run-directories). It owns native records, the single current handoff and local-only evidence treatment.
 
 ## Retained facts
 

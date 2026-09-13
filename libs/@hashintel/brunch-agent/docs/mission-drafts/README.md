@@ -12,10 +12,12 @@ Every draft must begin with the non-authority warning shown in the template. A d
 
 1. Before promotion, re-read the draft's evidence and dependencies, inspect the real deployed boundary, and confirm the accepted scenario portfolio and contract stratum.
 2. Convert the selected draft into the six-section live mission contract in `MISSION.md`; do not blindly rename or copy it.
-3. Give the live mission final `Status`, `Imperative`, `Throughline`, oracle-bound `Proof`, `Constraints`, `Fog-line`, `Stop or reorient`, and `Deferred` sections.
-4. Return every item not admitted to the cut to `MISSION.next.md` or another draft at full fidelity.
+3. Give the live mission final `Status`, `Imperative`, `Throughline`, oracle-bound `Proof`, `Constraints`, `Fog-line`, `Stop or reorient`, and `Deferred` sections. Initialize current state and proof dispositions under the [mission tracking rules](../../AGENTS.md#mission-contract); inherited coverage is not inherited acceptance.
+4. Return every item not admitted to the cut, including existing Deferred items, to `MISSION.next.md` or another draft at full fidelity.
 5. Remove the consumed draft so no duplicate quasi-authority remains, then compare every affected planning file before and after for one surviving home per item.
 6. When the eventual live mission is accepted, archive it under [`docs/mission-archive/`](../mission-archive/) according to the existing [archive rules](../mission-archive/README.md).
+
+For a live recut, apply the same preservation and comparison rules without creating a second live mission. Obtain owner acceptance and commit the authority change separately before dependent implementation or evaluation. A narrower cut reassigns omitted obligations; it does not mark them complete.
 
 ## Draft template
 

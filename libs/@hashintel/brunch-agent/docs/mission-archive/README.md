@@ -1,6 +1,6 @@
 # Closed missions
 
-Closed `MISSION.md` files, moved here on close or explicit owner-directed branch transition. Each file's status states what was accepted, falsified, or left unadjudicated. These are historical contracts and evidence records, not execution authority. The next-concerns draft and cut rule live in the context-root [`AGENTS.md`](../../AGENTS.md).
+Closed `MISSION.md` files, moved here on close or explicit owner-directed branch transition. Each file's status states what was accepted, falsified, or left unadjudicated. These are historical contracts and evidence records, not execution authority. Future work lives in [`MISSION.next.md`](../../MISSION.next.md) and its linked drafts; follow the [conversion lifecycle](../mission-drafts/README.md#lifecycle) when cutting or recutting a mission.
 
 - [`1-bare-petrinaut-flue-chat.md`](1-bare-petrinaut-flue-chat.md) — Mission 1, accepted 2026-08-27.
 - [`2-mechanical-capture-sweep.md`](2-mechanical-capture-sweep.md) — Mission 2, accepted 2026-08-27.

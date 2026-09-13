@@ -1,6 +1,6 @@
 # Brunch future mission spine
 
-> Forward plan and decision register only; not execution authority. [`MISSION.md`](MISSION.md) is the sole live mission contract. Detailed successor scope lives in linked drafts and becomes executable only after an owner-authorized cut replaces the root mission on its own branch. Historical contracts and evidence live in archives. The pre-subtraction planning spine remains inspectable at commit `5ab31705e43609da2ae4f1ce05b0cd6791c54094`.
+> Future sequence and decision register only; not execution authority. [`MISSION.md`](MISSION.md) owns live scope and progress. Successor drafts become executable only after an owner-authorized cut; archives and git history retain prior contracts.
 
 ## How to use this spine
 
@@ -13,11 +13,11 @@ Read this file to answer four questions:
 
 Keep one authoritative home for each kind of information:
 
-- [`MISSION.md`](MISSION.md) — current imperative, throughline, proof, constraints, fog, stop lines and accepted deferrals.
+- [`MISSION.md`](MISSION.md) — current contract, progress dispositions, next action and accepted deferrals.
 - This spine — future sequence, cross-mission facts, scope strains, open product decisions and re-entry gates.
 - [`docs/mission-drafts/`](docs/mission-drafts/) — detailed provisional successor contracts.
 - [`docs/mission-archive/`](docs/mission-archive/) — accepted or closed mission contracts.
-- `docs/evidence/` — observations, decisions, campaigns and implementation records.
+- [`docs/evidence/`](docs/evidence/README.md) — retained conclusions and reusable evidence under its retention rules; implementation results stay in code, tests, native records and the PR.
 - `CONTEXT.md` — stable project vocabulary.
 
 State durable historical decisions here as present-tense facts only when they constrain future work. Use an archive or git history for the narrative of how they were reached.
@@ -30,7 +30,7 @@ The first composed product is `process-sdcpn`: operational processes represented
 
 Brunch is intended to become Petrinaut's default operational-process assistant. Petrinaut's stock assistant remains an alternate selected by a host feature flag. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
-The current Petrinaut website implements assistant selection as a host-local browser preference on ordinary documents. A `?bundle=` worked-model route selects its remote document source independently, fixes the Brunch process assistant, hides switching and restores the untouched local preference after returning to an ordinary route. Deployment-level policy and switching on remote documents remain future work.
+For live route and assistant-selection behavior, see [mission ownership constraints](MISSION.md#ownership). Future deployment policy and remote switching are the [host-choice fork](#host-choice-and-continuity).
 
 The accepted naming target is:
 
@@ -67,10 +67,8 @@ A flagship proves one accepted product path. It does not prove every operational
 - Mission 7 tracks [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) and partially advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without closing the broader provenance objective.
 - [Mission 7a](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md) established workpiece, construction-record and explanation groundwork and landed on `main`.
 - [Mission 7b](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) established the ordinary selected structural batch, correction, recorded basis/effects, reopen and experimental create-new seam. Its engineering [PR #9649](https://github.com/hashintel/hash/pull/9649) remains a separate external closeout.
-- Live [Mission 7c](MISSION.md) owns the Inventory purchasing flagship, code-bearing operation admission, TypeScript compiler feedback and repair, ELK layout, reliable mechanical why routing, tool topology and Postgres-backed worked-model copies. A worked-model copy is an independently writable complete connected bundle: retained session, workpiece history/current revision, net/document revision history and their provenance links, with identities stable or coherently remapped. The landed principal-owned net-only object is a **worked-model net projection**, not a worked-model copy.
+- Live [Mission 7c](MISSION.md) owns the Inventory worked example; consult its [Status](MISSION.md#status), [proof dispositions](MISSION.md#proof) and [scope constraints](MISSION.md#scope-boundary-and-external-owners), including any pending recut.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
-
-The live mission now carries the accepted flagship, portfolio, capability, compiler-feedback, persona, assistant-mode and assumption-preview boundaries. This future spine does not duplicate or reinterpret those execution obligations.
 
 ### Mission 8 successor
 
@@ -120,27 +118,24 @@ This register records product consequences, not every engineering idea. A scope 
 
 ### Decisions to report or confirm now
 
-- **Assistant scope — owner direction; PM communication required.** Brunch targets operational processes represented as SDCPNs, including organizational, software and cyber-physical operations. It is not a universal Petri-net copilot.
-- **Assistant deployment policy — future owner decision.** Host-local selection is implemented for ordinary website documents. Decide where deployments control availability and whether a user-visible picker remains appropriate.
-- **Simulation scenarios and metrics — likely out of Mission 7c; PM confirmation required.** TypeScript feedback does not imply simulation-product support.
-- **Structured questions — likely out of Mission 7c; PM confirmation required.** Free-text conversation remains the product route; choice widgets and questionnaires require a separately cut vertical capability.
-- **Assumption-based preview — open product fork.** Decide whether Brunch may offer a provisional model when evidence is incomplete. Recommended default: evidence-first, explicit user assent, visible assumptions, and later confirm/replace/reject behavior.
-- **Second worked-model bundle — stretch.** Inventory is the completion gate. Add another polished bundle only if capacity permits or PM makes portfolio breadth part of acceptance.
-- **Behavioral evidence — explicit non-claim for Mission 7c.** Compiler-clean code can still implement the wrong process. Simulation-backed checking belongs to later evaluation unless PM raises the evidence tier.
+- **Assistant scope — PM communication required:** communicate the accepted [product boundary](MISSION.md#product-boundary).
+- **Assistant deployment policy — future owner decision:** resolve the [host-choice fork](#host-choice-and-continuity).
+- **Live exclusions and portfolio:** [MISSION.md](MISSION.md#scope-boundary-and-external-owners) settles simulation/metrics, structured questions and second-bundle scope. These are not pending confirmations here; changing them requires a live recut.
+- **Assumption-based preview — open PM decision:** the candidate policy and unanswered questions have one home in the [live Fog-line](MISSION.md#fog-line).
+- **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); the live mission's [claim discipline](MISSION.md#claim-discipline) determines its evidence tier.
 
 ### Capability and lifecycle strains
 
-- **Mutation/editing envelope — resolve in Mission 7c.** Build a capability matrix from the named operational-process portfolio. Admit and test the canonical add/update/remove classes that ordinary construction and correction require. Unsupported requests must refuse visibly; one scripted success cannot define support.
-- **Named-case portability — resolve in Mission 7c.** Inventory is the only full flagship recording. Reusable guidance and execution must also remain usable across the operational-process packs under [`evaluations/cases/`](evaluations/cases/): Vestera Scheduling, Data Centre Thermal Operations, Industrial Gas VMI, Pharma Cold Chain, Semiconductor Fab Operations and Truck Fleet Maintenance. Exercise the same path at the level needed to reveal each distinct capability class; these packs do not automatically become polished bundles.
+- **Live capability and portfolio obligations:** read [Mission 7c's Imperative](MISSION.md#imperative) and [Proof](MISSION.md#proof), not a second checklist here.
 - **Repeat/change/retirement/concurrency — Mission 9.** Mission 7c should leave stable IDs, fresh-base discipline, ordinary correction and current-state why as a usable handoff.
 - **General reviewer revision — Mission 10.** Mission 7c's ordinary correction does not establish reviewer authority, qualification, conflict handling or general patch locality.
 - **Optimization handoff — Mission 11.** Do not infer an optimization product from code-bearing dynamics.
 
 ### Conditional technical strains
 
-- **Compaction survival.** Long conversations may compact old turns that provenance and `brunch_why` still need. If the realistic flagship crosses compaction, Mission 7c must prove reopen, current-workpiece recovery and why after compaction. Otherwise disclose uncompacted-history dependence and prove the product path before Mission 9 or a long-lived hosted claim.
-- **Passage identity across revisions.** Mission 7c must cite the correct current revision and refuse missing or ambiguous provenance. Rename/move/paraphrase/split/merge/delete/reintroduce continuity belongs to Mission 9/10.
-- **Arbitrary import/clone.** Mission 7c owns its selected Postgres template-to-owned-copy path, not a general importer, attachment rebinder or complete effect-history migration. Re-enter only for a named portability consumer.
+- **Compaction survival:** consume the live mission's [compaction disposition](MISSION.md#readiness-gate) before Mission 9 or a long-lived hosted provenance claim. If proof remains open, exercise recovery and explanation across compaction first.
+- **Passage identity across revisions:** rename/move/paraphrase/split/merge/delete/reintroduce continuity belongs to Mission 9/10; consume the live mission's current-revision evidence without inferring continuity.
+- **Arbitrary import/clone:** re-enter general import, attachment rebinding or complete effect-history migration only for a named portability consumer; the live copy boundary is defined in [MISSION.md](MISSION.md#persistence-and-identity).
 - **Provider migration — unallocated; Lu owns assignment.** Re-enter when a provider change is proposed or the current provider cannot reliably carry the named portfolio. Compare canonical tool-schema carriage, tool selection, argument acceptance, compiler-repair behavior, latency and cost on representative cases. Provider success does not establish semantic or behavioral correctness.
 
 ### External-owner strains
@@ -150,18 +145,6 @@ This register records product consequences, not every engineering idea. A scope 
 - **Guidance policy remediation — FE-1652.** HASH-policy alignment proceeds independently and does not become Mission 7 acceptance.
 
 ## Open product forks
-
-### Assumption-based preview
-
-Candidate interaction:
-
-1. Brunch reaches a consequential evidence gap.
-2. It offers to build a provisional preview using clearly labelled assumptions.
-3. The user explicitly assents.
-4. The workpiece, model explanation and provenance distinguish assumptions from testimony.
-5. Later evidence confirms, replaces or rejects each assumption.
-
-The deciding PM questions are when Brunch may offer preview, what assent authorizes, which assumptions are acceptable, how provisional content appears in the UI and what review turns it into accepted meaning.
 
 ### Host choice and continuity
 
@@ -220,9 +203,8 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
 - Generated, sanitized, migrated and layout effects do not automatically inherit operational testimony.
 - One model-facing agent owns the conversation. Bindings, transports and hosts adapt that agent without creating a second history or protocol.
 - Core owns universal elicitation; plugins own domain-typology/formalism guidance; the app owns composition; the Petrinaut website owns browser execution and assistant selection.
-- The website's `documents/` seam separates storage-neutral repository contracts, local and remote sources, source-crossing controller actions and typed process-agent binding. Route identity selects the source; repositories persist revisions; the binding owns conversation identity. This seam is useful infrastructure, but it does not move session/workpiece hydration outside the worked-model requirement. Worked-model titles are inherited from the template and read-only.
+- Document-lifecycle roles and worked-model terms live in [`CONTEXT.md`](CONTEXT.md#document-lifecycle); current copy semantics and limitations live in [MISSION.md](MISSION.md#persistence-and-identity).
 - Browser-local preferences and document records currently use the website's narrow `usePersistedState` boundary so reads begin after commit and writes stay outside React state updaters. Revisit an established external store when persisted state becomes shared across repositories, needs cross-tab subscription or migration, or the boundary grows beyond isolated values. Compare an explicit application dependency such as Zustand with the retained primitive at that gate; never depend on Zustand only because React Flow supplies it transitively.
-- A worked-model fixture packages session, workpiece and net as one build artifact. A worked-model copy preserves this complete connected bundle under stable or coherently remapped identities. Current live instantiation is only a principal-owned worked-model net projection: it inherits the net under fresh document, incarnation and conversation identities and remains an incomplete implementation gap.
 - HASH Graph, Temporal, Redis, HASH API, S3, Kratos and Petrinaut Optimizer are not Brunch runtime dependencies without a named consumer.
 
 Retain the thin architecture unless observed product strain earns more. Do not introduce a comprehensive process ontology, graph database, universal subject/predicate/value schema, deterministic conversation reducer, full regeneration engine, typed completion algebra, second event log or general multi-agent system as speculative infrastructure.
