@@ -1,14 +1,15 @@
 /**
- * The body of a study, shared by the drawer and the full view: a fixed
- * summary band (the header line, the strip, the progress bar) above one
- * scrolling region holding the navigator band, the surface, the objective at
- * the selected point, the objective by step and the steps table. The two
- * surfaces arrange the same pieces; `layout` says how.
+ * One study in the shared frame, for the drawer and the full view alike: the
+ * one-line title with the progress line beside it, the stats and the compute
+ * badge, the steps bar; the Parameters band across the body; then, arranged
+ * by the frame's width, the surface, the chart cards (the objective at the
+ * point, the objective by step, Constraints when the study declares any,
+ * Sensitivity analysis) and the steps table; and the actions in the footer.
  */
-import { use } from "react";
+import { use, type ReactNode } from "react";
 
 import { Button, HelpTooltip, Icon } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   type ConnectedStudyState,
@@ -18,9 +19,22 @@ import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { Section, SectionList } from "../../../../../components/section";
-import { ChartCardMenu, type ChartCardTone } from "../shared/chart-card";
+import {
+  CHART_CARD_MIN_WIDTH,
+  ChartCardGrid,
+  chartCardHeight,
+  ChartCardMenu,
+  type ChartCardTone,
+} from "../shared/chart-card";
+import { ComputeBackendBadge } from "../shared/compute-backend-badge";
+import {
+  DrawerFrame,
+  FrameBand,
+  FrameColumns,
+  type FrameNote,
+} from "../shared/drawer-frame";
 import { formatScalar } from "../shared/format-value";
 import {
   NavigatedOptimizationSurface,
@@ -38,43 +52,31 @@ import {
   OptimizationMetrics,
 } from "./study-view/optimization-metrics";
 import { ParameterImportancePanel } from "./study-view/parameter-importance-panel";
+import { stepsProgressPercent } from "./study-view/shared/study-progress";
 import { StepsTable } from "./study-view/steps-table";
+import { StudyHeader } from "./study-view/study-header";
 import { type StudyPhase, studyPhase } from "./study-view/study-phase";
-import { StudySummaryBand } from "./study-view/study-summary-strip";
+import { StudyStats } from "./study-view/study-stats";
 
 import type { PetrinautSimulatePresentation } from "../../../../../../react/state/editor-context";
 
 export { studyPhase, type StudyPhase } from "./study-view/study-phase";
 export { describeStudyProgress } from "./study-view/study-header";
 
-/** How a study body is arranged: stacked for the drawer, or spread over the section's width. */
-export type StudyLayout = "drawer" | "full";
+/** Every chart card of a study is this tall; the surface card, with its footer, comes to the same. */
+const STUDY_CARD_HEIGHT = chartCardHeight({
+  bodyHeight: OBJECTIVE_PLOT_HEIGHT,
+});
+/** The steps table's fixed height in pixels; the steps scroll inside it. */
+const STEPS_TABLE_HEIGHT = 320;
 
-// The band holds still; only the region beneath it scrolls, so condensing
-// or growing the band never moves the body's scroll offset.
-const bodyStyle = css({
+const stepsStyle = css({
   display: "flex",
   flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  overflow: "hidden",
-});
-
-const scrollRegionStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  overflowY: "auto",
-  scrollbarWidth: "[thin]",
-});
-
-const fixedSectionStyle = css({
-  flexShrink: "0",
+  gap: "1",
 });
 
 const stepsScrollStyle = css({
-  flex: "[1]",
   overflowY: "auto",
   scrollbarWidth: "[thin]",
   borderWidth: "[1px]",
@@ -89,54 +91,6 @@ const stepsScrollStyle = css({
     top: "[0]",
     zIndex: "[1]",
   },
-});
-
-const remoteStepsHeightStyle = css({
-  minHeight: "[160px]",
-});
-
-// A connected study's steps get whatever height the panes above leave. The
-// table's own header names the columns, so no section title precedes it.
-const connectedStepsStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  flex: "[1]",
-  minHeight: "[0]",
-  paddingTop: "3",
-  paddingBottom: "3",
-});
-
-const connectedStepsHeightStyle = css({
-  minHeight: "[160px]",
-});
-
-const fullStepsHeightStyle = css({
-  minHeight: "[240px]",
-});
-
-// The chart cards side by side, all the same height; a lone card on the
-// last row of the drawer takes the whole row rather than half of it.
-const panesStyle = css({
-  display: "grid",
-  alignItems: "stretch",
-  gap: "5",
-  paddingTop: "2.5",
-  paddingBottom: "2",
-});
-
-const drawerPanesStyle = css({
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))",
-  "& > :last-child:nth-child(odd)": { gridColumn: "[1 / -1]" },
-});
-
-const fullPanesStyle = css({
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-});
-
-const historyBlockStyle = css({
-  paddingTop: "2.5",
-  paddingBottom: "3",
 });
 
 const bestParametersStyle = css({
@@ -182,8 +136,11 @@ const bestParameterValueStyle = css({
 const SURFACE_HELP =
   "The objective over two optimized parameters, drawn from the study's own steps: each step is a dot, the best emphasized, pruned steps hollow, and the field is interpolated between them. The ringed dot is the step being evaluated, filling in as it runs; once the study is over, or Follow steps is off, click or drag the plot to refine a point.";
 
-/** The header's second line: the scenario and the objective. */
-export const describeStudy = (optimization: OptimizationRecord): string => {
+const REMOTE_SURFACE_HELP =
+  "The objective over two optimized parameters, computed locally on this machine; the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere.";
+
+/** The scenario and the objective, the title's second and third parts. */
+const describeStudy = (optimization: OptimizationRecord): string => {
   const { input } = optimization;
   const scenario = input.model.definition.scenarios?.find(
     (candidate) => candidate.id === input.scenario.id,
@@ -196,12 +153,16 @@ export const describeStudy = (optimization: OptimizationRecord): string => {
   return `${scenario?.name ?? input.scenario.id} · ${direction} ${metric?.name ?? input.objective.metricId}`;
 };
 
+/** The frame's one-line title: `Supply chain · Base scenario · Maximize Profit`. */
+const studyTitle = (optimization: OptimizationRecord): string =>
+  `${optimization.input.name} · ${describeStudy(optimization)}`;
+
 /**
  * What the objective's timeline describes: the step in flight while a live
  * study is followed, otherwise the point the navigation holds. A settled
  * study never follows, so its title never reads as live.
  */
-export const objectiveAtPointTitle = (
+const objectiveAtPointTitle = (
   phase: StudyPhase,
   selection: ConnectedStudyState["selection"],
 ): string =>
@@ -211,18 +172,28 @@ export const objectiveAtPointTitle = (
     ? "Objective at the step in flight"
     : "Objective at the selected point";
 
-const BestParametersSection = ({
+/** The frame's note row: the error when the study failed, else the resume note while paused. */
+const studyNote = (optimization: OptimizationRecord): FrameNote | null => {
+  if (optimization.error) {
+    return { content: optimization.error, tone: "error" };
+  }
+  if (optimization.status === "paused" && optimization.connected) {
+    return {
+      content:
+        "Resuming continues the study's history; it does not reproduce the draws an uninterrupted run would have made.",
+      tone: "muted",
+    };
+  }
+  return null;
+};
+
+const BestParametersBand = ({
   optimization,
 }: {
   optimization: OptimizationRecord;
 }) =>
   optimization.best ? (
-    <Section
-      title="Best parameters"
-      collapsible
-      defaultOpen
-      className={fixedSectionStyle}
-    >
+    <FrameBand title="Best parameters">
       <div className={bestParametersStyle}>
         {Object.entries(optimization.best.parameters).map(
           ([identifier, value]) => (
@@ -235,78 +206,83 @@ const BestParametersSection = ({
           ),
         )}
       </div>
-    </Section>
+    </FrameBand>
   ) : null;
 
-/** A study run elsewhere: the summary, the results, the objective by step and the experimental surface. */
-const RemoteStudyBody = ({
+const StudySteps = ({
   optimization,
-  layout,
+  bestTrial,
 }: {
   optimization: OptimizationRecord;
-  layout: StudyLayout;
+  bestTrial: number | null;
+}) => (
+  <div className={stepsStyle} data-study-steps>
+    <StepsTable
+      optimization={optimization}
+      bestTrial={bestTrial}
+      className={stepsScrollStyle}
+      height={STEPS_TABLE_HEIGHT}
+    />
+  </div>
+);
+
+/** A study run elsewhere: the best parameters, the objective by step, the experimental surface and the steps. */
+const RemoteStudyBody = ({
+  optimization,
+}: {
+  optimization: OptimizationRecord;
 }) => {
   const { enableOptimizationSurface } = use(UserSettingsContext);
   const surfaceEligible =
     enableOptimizationSurface && optimization.axes.length >= 2;
 
   return (
-    <div className={bodyStyle}>
-      <StudySummaryBand optimization={optimization} />
-      <SectionList>
-        <div className={scrollRegionStyle}>
-          <BestParametersSection optimization={optimization} />
-          <div className={cx(fixedSectionStyle, historyBlockStyle)}>
-            <ObjectiveHistoryCard
-              optimization={optimization}
-              plotHeight={layout === "full" ? OBJECTIVE_PLOT_HEIGHT : 200}
-            />
-          </div>
-          {surfaceEligible ? (
-            <Section
-              title="Surface"
-              tooltip="The objective over two optimized parameters, computed locally on this machine — the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere."
-              collapsible
-              defaultOpen
-              className={fixedSectionStyle}
-            >
+    <>
+      <BestParametersBand optimization={optimization} />
+      <FrameColumns
+        primary={
+          surfaceEligible ? (
+            <FrameBand title="Surface" help={REMOTE_SURFACE_HELP}>
               <OptimizationSurface
                 key={optimization.id}
                 optimization={optimization}
               />
-            </Section>
-          ) : null}
-          {optimization.trials.length > 0 ? (
-            <Section title="Steps" fillHeight>
-              <StepsTable
-                optimization={optimization}
-                bestTrial={null}
-                className={cx(stepsScrollStyle, remoteStepsHeightStyle)}
-              />
-            </Section>
-          ) : null}
-        </div>
-      </SectionList>
-    </div>
+            </FrameBand>
+          ) : undefined
+        }
+        secondary={
+          <ChartCardGrid
+            minColumnWidth={CHART_CARD_MIN_WIDTH}
+            rowHeight={STUDY_CARD_HEIGHT}
+          >
+            <ObjectiveHistoryCard
+              optimization={optimization}
+              plotHeight={OBJECTIVE_PLOT_HEIGHT}
+            />
+          </ChartCardGrid>
+        }
+        after={
+          optimization.trials.length > 0 ? (
+            <StudySteps optimization={optimization} bestTrial={null} />
+          ) : undefined
+        }
+      />
+    </>
   );
 };
 
 /**
- * A study evaluated in this browser: the header and the summary, the
- * parameter controls with their state line, the chart cards (the surface, the
- * objective at the point, the objective by step, Constraints when the study
- * declares any, and Sensitivity analysis), and the steps filling what is
- * left. The navigation drives the surface and the objective's timeline,
- * following each step while the study runs.
+ * A study evaluated in this browser: the parameter controls with their state
+ * line across the body, then the surface on one side, the chart cards on the
+ * other, the steps beneath. The navigation drives the surface and the
+ * objective's timeline, following each step while the study runs.
  */
 const ConnectedStudyBody = ({
   optimization,
   connected,
-  layout,
 }: {
   optimization: OptimizationRecord;
   connected: ConnectedStudyState;
-  layout: StudyLayout;
 }) => {
   const { setOptimizationNavigation } = use(OptimizationsContext);
   const onNavigationChange = (patch: Partial<OptimizationNavigation>) =>
@@ -317,22 +293,19 @@ const ConnectedStudyBody = ({
     optimization.status === "paused" ? "paused" : "default";
 
   return (
-    <div className={bodyStyle}>
-      <StudySummaryBand optimization={optimization} />
-      <div className={scrollRegionStyle}>
-        <NavigatorBand
-          optimization={optimization}
-          connected={connected}
-          running={phase === "live"}
-          onNavigationChange={onNavigationChange}
-        />
-        <div
-          className={cx(
-            panesStyle,
-            layout === "full" ? fullPanesStyle : drawerPanesStyle,
-          )}
-        >
-          {optimization.axes.length >= 2 ? (
+    <>
+      {/* Keyed so a fold never carries from one study into another when the
+          drawer swaps records in place. */}
+      <NavigatorBand
+        key={optimization.id}
+        optimization={optimization}
+        connected={connected}
+        running={phase === "live"}
+        onNavigationChange={onNavigationChange}
+      />
+      <FrameColumns
+        primary={
+          optimization.axes.length >= 2 ? (
             <NavigatedOptimizationSurface
               key={`surface-${optimization.id}`}
               optimization={optimization}
@@ -341,74 +314,64 @@ const ConnectedStudyBody = ({
               actions={<HelpTooltip content={SURFACE_HELP} align="center" />}
               tone={tone}
             />
-          ) : null}
-          {/* Keyed so faded previous pictures never leak from one study into
-            another when the surface swaps records. */}
-          <OptimizationMetrics
-            key={`metrics-${optimization.id}`}
-            optimization={optimization}
-            selection={connected.selection}
-            title={objectiveAtPointTitle(phase, connected.selection)}
-            tone={tone}
-          />
-          <ObjectiveHistoryCard
-            optimization={optimization}
-            plotHeight={OBJECTIVE_PLOT_HEIGHT}
-            tone={tone}
-          />
-          {(optimization.input.constraints ?? []).length > 0 ? (
-            <ConstraintSummaryCard
+          ) : undefined
+        }
+        secondary={
+          <ChartCardGrid
+            minColumnWidth={CHART_CARD_MIN_WIDTH}
+            rowHeight={STUDY_CARD_HEIGHT}
+          >
+            {/* Keyed so faded previous pictures never leak from one study into
+                another when the surface swaps records. */}
+            <OptimizationMetrics
+              key={`metrics-${optimization.id}`}
               optimization={optimization}
               selection={connected.selection}
+              title={objectiveAtPointTitle(phase, connected.selection)}
+              tone={tone}
+            />
+            <ObjectiveHistoryCard
+              optimization={optimization}
               plotHeight={OBJECTIVE_PLOT_HEIGHT}
               tone={tone}
             />
-          ) : null}
-          {/* Only a study evaluated here receives importances; a remote study
-            has no panel rather than an empty one. */}
-          <ParameterImportancePanel
-            optimization={optimization}
-            plotHeight={OBJECTIVE_PLOT_HEIGHT}
-            tone={tone === "paused" ? tone : undefined}
-          />
-        </div>
-        <div className={connectedStepsStyle}>
-          <StepsTable
+            {(optimization.input.constraints ?? []).length > 0 ? (
+              <ConstraintSummaryCard
+                optimization={optimization}
+                selection={connected.selection}
+                plotHeight={OBJECTIVE_PLOT_HEIGHT}
+                tone={tone}
+              />
+            ) : null}
+            {/* Only a study evaluated here receives importances; a remote study
+                has no panel rather than an empty one. */}
+            <ParameterImportancePanel
+              optimization={optimization}
+              plotHeight={OBJECTIVE_PLOT_HEIGHT}
+              tone={tone === "paused" ? tone : undefined}
+            />
+          </ChartCardGrid>
+        }
+        after={
+          <StudySteps
             optimization={optimization}
             bestTrial={optimization.best?.trial ?? null}
-            className={cx(
-              stepsScrollStyle,
-              layout === "full"
-                ? fullStepsHeightStyle
-                : connectedStepsHeightStyle,
-            )}
           />
-        </div>
-      </div>
-    </div>
+        }
+      />
+    </>
   );
 };
 
-/**
- * The whole body of a study in either surface: the fixed summary band, then
- * the scrolling region. The surface around it must not scroll on its own.
- */
-export const StudyBody = ({
-  optimization,
-  layout,
-}: {
-  optimization: OptimizationRecord;
-  /** `drawer` stacks for the overlay; `full` spreads the chart cards over the section's width. */
-  layout: StudyLayout;
-}) =>
+/** The body of a study in either surface, arranged by the frame's width. */
+const StudyBody = ({ optimization }: { optimization: OptimizationRecord }) =>
   optimization.connected ? (
     <ConnectedStudyBody
       optimization={optimization}
       connected={optimization.connected}
-      layout={layout}
     />
   ) : (
-    <RemoteStudyBody optimization={optimization} layout={layout} />
+    <RemoteStudyBody optimization={optimization} />
   );
 
 /** The button that moves the navigation to the best step and computes there. */
@@ -486,7 +449,7 @@ const PausedStudyActions = ({
  * is called when the surface should leave the record: after Remove, and from
  * the drawer's Close button.
  */
-export const StudyActions = ({
+const StudyActions = ({
   optimization,
   presentation,
   onPresentationChange,
@@ -609,5 +572,61 @@ export const StudyActions = ({
         </Button>
       ) : null}
     </>
+  );
+};
+
+/**
+ * The whole study in the shared frame. `drawer` puts it in a ds Drawer over
+ * the list; without it the frame fills the section, with `leading` (Back to
+ * list) before the title. `onClose` leaves the record: after Remove, and
+ * from the drawer's Close button.
+ */
+export const StudyFrame = ({
+  optimization,
+  presentation,
+  drawer,
+  leading,
+  onClose,
+}: {
+  optimization: OptimizationRecord;
+  presentation: PetrinautSimulatePresentation;
+  drawer?: { onClose: () => void; swapKey: string };
+  leading?: ReactNode;
+  onClose: () => void;
+}) => {
+  const { setSimulatePresentation } = use(EditorContext);
+  const { connected } = optimization;
+
+  return (
+    <DrawerFrame
+      drawer={drawer}
+      leading={leading}
+      title={studyTitle(optimization)}
+      headline={<StudyHeader optimization={optimization} />}
+      stats={<StudyStats optimization={optimization} />}
+      badge={
+        connected ? (
+          <ComputeBackendBadge
+            backend={{
+              computeBackend: optimization.computeBackend,
+              computeBackendFallbackReason:
+                connected.computeBackendFallbackReason,
+            }}
+          />
+        ) : undefined
+      }
+      progress={stepsProgressPercent(optimization)}
+      note={studyNote(optimization)}
+      footer={
+        <StudyActions
+          optimization={optimization}
+          presentation={presentation}
+          onPresentationChange={setSimulatePresentation}
+          onClose={onClose}
+        />
+      }
+    >
+      <StudyBody optimization={optimization} />
+    </DrawerFrame>
   );
 };

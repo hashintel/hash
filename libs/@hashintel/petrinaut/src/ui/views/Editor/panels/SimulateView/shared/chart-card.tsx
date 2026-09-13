@@ -244,6 +244,12 @@ export const ChartCardMenu = ({ label, items }: ChartCardMenuProps) => (
   />
 );
 
+/**
+ * The narrowest a chart card gets in a grid, in pixels: two fit side by side
+ * in the frame's secondary column from its minimum width up.
+ */
+export const CHART_CARD_MIN_WIDTH = 320;
+
 const gridStyle = css({
   display: "grid",
   alignItems: "stretch",

@@ -25,6 +25,7 @@ import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
   describeSurfaceSampling,
+  SURFACE_FOOTER_TWO_ROW_HEIGHT,
   SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
   surfaceCaption,
@@ -215,6 +216,8 @@ export const SweepSurface = ({
         }),
       })}
       bodyHeight={SURFACE_PLOT_HEIGHT}
+      // The axis selects on one row, the metric select on the next.
+      footerHeight={SURFACE_FOOTER_TWO_ROW_HEIGHT}
       footer={
         <SurfaceAxisControls
           axes={axes}

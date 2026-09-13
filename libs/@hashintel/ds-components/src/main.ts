@@ -74,7 +74,11 @@ export {
   Select,
   type SelectItem,
 } from "./components/Select/select";
-export { Slider, type SliderProps } from "./components/Slider/slider";
+export {
+  Slider,
+  type SliderProps,
+  type SliderVariant,
+} from "./components/Slider/slider";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";

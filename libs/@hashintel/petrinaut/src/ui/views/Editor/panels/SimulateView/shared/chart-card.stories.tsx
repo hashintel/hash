@@ -17,6 +17,7 @@ import {
   ChartCardMenu,
 } from "./chart-card";
 import {
+  SURFACE_FOOTER_TWO_ROW_HEIGHT,
   SurfaceAxisControls,
   SurfaceControlLabel,
   SurfaceFrame,
@@ -246,6 +247,7 @@ const NarrowSurfaceCard = () => {
       title="Surface"
       caption="9 of 25 points sampled at 4+ runs · drag or click to navigate"
       bodyHeight={PLOT_HEIGHT}
+      footerHeight={SURFACE_FOOTER_TWO_ROW_HEIGHT}
       footer={
         <SurfaceAxisControls
           axes={surfaceAxes}
@@ -281,10 +283,9 @@ const NarrowSurfaceCard = () => {
 };
 
 /**
- * A sweep surface's footer in a 360px card: the X, Y and Metric pickers share
- * the fixed-height row by shrinking evenly and ellipsizing their labels, so
- * the Metric picker stays reachable instead of being clipped at the card's
- * edge.
+ * A sweep surface's footer in a 360px card: the X and Y pickers share the
+ * first row and the Metric picker takes the reserved second row, each select
+ * ellipsizing its label rather than overflowing the card's edge.
  */
 export const NarrowSurfaceFooter: Story = {
   render: () => (

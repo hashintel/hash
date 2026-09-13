@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { cloneElement, use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +18,15 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import {
+  FRAME_HEADER_CONDENSED_HEIGHT,
+  FRAME_HEADER_HEIGHT,
+  frameLayoutSignature,
+} from "../shared/drawer-frame";
+import {
+  frameHeader,
+  scrollFrameBody,
+} from "../shared/drawer-frame/frame-test-helpers";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
@@ -34,27 +49,7 @@ import type { ReactNode } from "react";
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const Drawer = Object.assign(
-    ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    {
-      Header: ({
-        title,
-        description,
-      }: {
-        title: ReactNode;
-        description?: ReactNode;
-      }) => (
-        <header>
-          {title}
-          <p>{description}</p>
-        </header>
-      ),
-      Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
-      Footer: ({ actions }: { actions: ReactNode }) => (
-        <footer>{actions}</footer>
-      ),
-    },
-  );
+  const { Drawer } = await import("../shared/ds-drawer-stub");
   const Slider = ({
     value,
     disabled,
@@ -71,7 +66,22 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       onChange={(event) => onChange?.(Number(event.target.value))}
     />
   );
-  const Tooltip = ({ children }: { children: ReactNode }) => <>{children}</>;
+  // The Ark tooltip opens on hover; this one keeps its content in a tooltip
+  // element in the document body, out of the trigger's text, so the badge's
+  // reason can be read.
+  const { createPortal } = await import("react-dom");
+  const Tooltip = ({
+    children,
+    content,
+  }: {
+    children: ReactNode;
+    content: ReactNode;
+  }) => (
+    <>
+      {children}
+      {createPortal(<span role="tooltip">{content}</span>, document.body)}
+    </>
+  );
   // The Ark menu positions itself with a ResizeObserver jsdom lacks; this one
   // lists the items as buttons once the trigger is clicked.
   type FlatItem = {
@@ -111,7 +121,18 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     );
   };
 
-  return { ...actual, Drawer, Menu, Slider, Tooltip };
+  // The Ark popover positions itself against a trigger jsdom cannot lay out;
+  // this one renders its panel in place.
+  const Popover = Object.assign(
+    ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    {
+      Container: ({ children }: { children: ReactNode }) => (
+        <div>{children}</div>
+      ),
+    },
+  );
+
+  return { ...actual, Drawer, Menu, Popover, Slider, Tooltip };
 });
 
 vi.mock("./optimization-surface", () => ({
@@ -228,7 +249,10 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.getByText("Complete")).toBeTruthy();
     expect(screen.getByText("5 / 30")).toBeTruthy();
     expect(
-      screen.getByText("Best step so far").nextElementSibling?.textContent,
+      screen
+        .getByText("Best step so far")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
     ).toBe(formatObjective(best!.objective));
     expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
@@ -239,7 +263,17 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.queryByTitle("Best step")).toBeNull();
   });
 
-  it("names the scenario and the objective under the title", () => {
+  it("names the dialog after the study's one-line title", () => {
+    renderDrawer(remote);
+
+    expect(
+      screen.getByRole("dialog", {
+        name: /^Maximize profit · .+ · Maximize .+$/u,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("names the scenario and the objective in the one-line title", () => {
     renderDrawer(remote);
 
     const metric = input.model.definition.metrics![0]!;
@@ -353,7 +387,10 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(screen.getByText("Running")).toBeTruthy();
     expect(screen.getByText("3 / 30")).toBeTruthy();
     expect(
-      screen.getByText("Best step so far").nextElementSibling?.textContent,
+      screen
+        .getByText("Best step so far")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
     ).toBe(formatObjective(trials[2]!.best!.objective));
     // The table lists the newest step first; the header row is row 1.
     const bestTrial = trials[2]!.best!.trial;
@@ -471,11 +508,10 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(screen.queryByText("GPU")).toBeNull();
+    // The header may draw the badge more than once; every copy carries the reason.
     expect(
-      screen.getByText(
-        "Ran on the CPU: the GPU cannot compute expression metrics",
-      ),
-    ).toBeTruthy();
+      screen.getAllByRole("tooltip", { name: /could not run this net/ }).length,
+    ).toBeGreaterThan(0);
   });
 
   it("badges a study that ran on the GPU", () => {
@@ -519,7 +555,66 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(extendOptimization).toHaveBeenCalledWith(stopped.id, 4);
   });
 
-  it("shows the followed step's runs under the steps bar and lists the batches computing", () => {
+  it("condenses the header once the body scrolls, also after the focused computing chip went idle", () => {
+    const view = renderDrawer(connected);
+
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
+    scrollFrameBody(0);
+
+    // Focus lands on the chip while a batch computes, then the batch ends and
+    // the chip is disabled under the focus without a blur.
+    const computing = {
+      ...connected,
+      connected: {
+        ...following,
+        activity: [
+          {
+            id: 3,
+            kind: "trial" as const,
+            trial: 2,
+            runCount: 1,
+            completedRuns: 0,
+          },
+        ],
+      },
+    };
+    view.rerender(
+      <OptimizationsContext
+        value={makeOptimizationsContextValue(computing, {})}
+      >
+        <SurfaceSetting enabled={false}>
+          <ViewOptimizationDrawer
+            open
+            onClose={() => {}}
+            optimization={computing}
+          />
+        </SurfaceSetting>
+      </OptimizationsContext>,
+    );
+    act(() => screen.getByRole("button", { name: /1 computing/ }).focus());
+    view.rerender(
+      <OptimizationsContext
+        value={makeOptimizationsContextValue(connected, {})}
+      >
+        <SurfaceSetting enabled={false}>
+          <ViewOptimizationDrawer
+            open
+            onClose={() => {}}
+            optimization={connected}
+          />
+        </SurfaceSetting>
+      </OptimizationsContext>,
+    );
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
+  });
+
+  it("lists the batches computing from the computing chip", () => {
     renderDrawer({
       ...connected,
       connected: {
@@ -538,7 +633,6 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     });
 
     expect(screen.getByText("3 / 30")).toBeTruthy();
-    expect(screen.getByText("Step 3 · 1 / 1 runs")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /2 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();
     expect(screen.getByText("0 / 1 runs")).toBeTruthy();
@@ -927,5 +1021,106 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
     expect(card.textContent).not.toContain("floor");
     expect(card.querySelectorAll("[data-importance-row]")).toHaveLength(1);
     expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
+});
+
+describe("ViewOptimizationDrawer holds every box still across states", () => {
+  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const base = {
+    input,
+    trials: trials.slice(0, 3),
+    best: trials[2]!.best,
+  };
+  const states: OptimizationRecord[] = [
+    makeOptimizationRecord({
+      ...base,
+      status: "running",
+      connected: makeConnectedStudyState(input, {
+        navigation,
+        selection: makeSelectionStream({
+          input,
+          navigation,
+          followedTrial: 2,
+          runsCompleted: 1,
+          computing: true,
+          frameCount: 4,
+        }),
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "paused",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        selection: null,
+        resumable: true,
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "cancelled",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        resumable: true,
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "complete",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        resumable: true,
+      }),
+    }),
+  ];
+
+  it("gives the header, the note row, every card and the steps table one height in running, paused, stopped and complete", () => {
+    const signatures = states.map((state) => {
+      const view = renderDrawer(state);
+      const signature = frameLayoutSignature(view.container);
+      view.unmount();
+      return signature;
+    });
+
+    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(signatures[0]!.note).toBe("20px");
+    expect(signatures[0]!.steps).toBe("320px");
+    expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
+      "Objective at the step in flight",
+      "Objective by step",
+      "Sensitivity analysis",
+    ]);
+    for (const signature of signatures.slice(1)) {
+      // A settled study titles the objective card for the point it shows;
+      // the boxes are the same.
+      expect({
+        ...signature,
+        cards: signature.cards.map(([, height]) => height),
+      }).toEqual({
+        ...signatures[0],
+        cards: signatures[0]!.cards.map(([, height]) => height),
+      });
+    }
+  });
+
+  it("puts the resume note in the reserved row while paused", () => {
+    renderDrawer(states[1]!);
+
+    const note = document.querySelector<HTMLElement>("[data-frame-note]")!;
+    expect(note.style.height).toBe("20px");
+    expect(note.textContent).toMatch(
+      /^Resuming continues the study's history/u,
+    );
+    expect(note.title).toBe(note.textContent);
+  });
+
+  it("leaves the objective card's height alone when its aggregation changes", () => {
+    const view = renderDrawer(states[0]!);
+    const before = frameLayoutSignature(view.container);
+
+    fireEvent.click(screen.getByRole("button", { name: "Chart options" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Median" }));
+
+    expect(frameLayoutSignature(view.container)).toEqual(before);
   });
 });

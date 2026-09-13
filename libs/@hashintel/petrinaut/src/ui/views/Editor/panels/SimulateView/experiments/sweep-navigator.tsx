@@ -4,8 +4,8 @@
  * parameter's quantized interval — the whole interval by default,
  * collapsible to a single point — and committing a move reports the new
  * selection so the owner can redirect compute to it. In the experiment
- * drawer this strip lives in the section's sticky band and stays visible
- * while the charts scroll.
+ * drawer this strip is the Parameters band across the body, under the
+ * header.
  *
  * Purely presentational: selection and sampling progress come in as props,
  * and the only output is `onSelectionChange`. Slider moves commit live —
@@ -83,16 +83,25 @@ const sliderStyle = css({
   flex: "1",
 });
 
+// One line whatever the band's width, so a change of wording never moves
+// what follows the band.
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
   // Aligns under the sliders: the 140px name column plus the row gap.
   paddingLeft: "[148px]",
+  minWidth: "[0]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
-  minHeight: "[16px]",
+  whiteSpace: "nowrap",
+  height: "[16px]",
+  "& > span:last-child": {
+    minWidth: "[0]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
 });
 
 const spinnerSlotStyle = css({
@@ -148,6 +157,7 @@ const AxisControl = ({
         // thumbs trap the drag on the upper one, which cannot move left.
         <Slider
           className={sliderStyle}
+          variant="plain"
           min={0}
           max={axis.stepCount}
           step={1}

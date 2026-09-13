@@ -26,7 +26,10 @@ type StepState = Step["state"];
 const INFEASIBLE_MARK_COLOR = "#cccccc";
 
 const stepHintStyle = css({
+  display: "block",
+  height: "[16px]",
   fontSize: "xs",
+  lineHeight: "[16px]",
   color: "neutral.s80",
 });
 
@@ -196,23 +199,26 @@ export const StepsTable = ({
   optimization,
   bestTrial,
   className,
+  height,
 }: {
   optimization: OptimizationRecord;
   /** The step to star; null marks none. */
   bestTrial: number | null;
   className: string;
+  /** The table box's fixed height in pixels; the steps scroll inside it. */
+  height: number;
 }) => {
   const displayedSteps = optimization.trials.slice(-DISPLAYED_STEPS).reverse();
 
   return (
     <>
-      {optimization.trials.length > DISPLAYED_STEPS ? (
-        <span className={stepHintStyle}>
-          Showing the latest {DISPLAYED_STEPS} of {optimization.trials.length}{" "}
-          received steps.
-        </span>
-      ) : null}
-      <div className={className}>
+      {/* The hint's row is reserved, so the 201st step moves nothing. */}
+      <span className={stepHintStyle} data-steps-hint>
+        {optimization.trials.length > DISPLAYED_STEPS
+          ? `Showing the latest ${DISPLAYED_STEPS} of ${optimization.trials.length} received steps.`
+          : ""}
+      </span>
+      <div className={className} style={{ height }} data-steps-table>
         <Table
           columns={stepColumns(optimization.input, bestTrial)}
           emptyLabel="No steps completed yet"

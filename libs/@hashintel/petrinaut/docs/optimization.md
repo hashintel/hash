@@ -120,30 +120,47 @@ records can be removed from their result drawer; a paused record's **Remove**
 sits in the **More actions** menu at the left of its footer.
 
 The drawer's footer offers **Open full view**, which gives the whole
-Optimizations section to the study: the same summary, controls, charts and
-steps, spread over the section's width so the three chart cards sit side by
-side. Its top bar holds **Back to list**, which returns to the list, and
-**Show in drawer**, which shows the same study in the drawer again. Both
+Optimizations section to the study: the same header, controls, charts and
+steps, spread over the section's width so the controls and the surface sit on
+the left and the chart cards on the right. Its header starts with **Back to
+list**, which returns to the list, and its footer holds **Show in drawer**,
+which shows the same study in the drawer again. Both
 presentations are places in the app, so the browser's Back button undoes the
 switch. Once you are in the full presentation, opening another row from the
 list opens it full too.
 
-Every study opens with a summary band that holds still while the rest
-scrolls beneath it. Its first line says where the study is: **Step 17 of 30 ·
-best step so far: step 12 (650.5)** while it runs, or **Stopped after 17 of
-30 steps** (or **Finished**, **Cancelled**, **Failed**) once it is over.
+Every study opens under a header that holds still while the body scrolls
+beneath it. Its title is one line: the study's name, the scenario and the
+objective, **Maximize profit · Rich stock · Maximize Adjusted profit**. At the
+right of the title a line says where the study is: **Step 17 of 30 · best
+step so far: step 12 (650.5)** while it runs, or **Stopped after 17 of 30
+steps** (or **Finished**, **Cancelled**, **Failed**) once it is over.
 While it runs, a chip beside the line says whether the study is still finding
 better steps: **Still improving** when the best moved within the last few
 completed steps (a tenth of the requested steps, five at least),
 **Converging** when that many steps passed without a better one, and **Too
 early to say** before one such window has completed.
 
-Beneath the line, the band shows the status, the steps finished over the
-steps requested (with the runs per step when above one), and **Best step so
-far**, the best value seen so far (hover it for the best step's parameters),
-with a progress bar for the steps beneath. The value is named for what it
-is: the best of the steps tried, not a confirmed result at that
-configuration.
+Beneath the title, the header's strip of labelled columns shows the status,
+the steps finished over the steps requested (with the runs per step when above
+one), and **Best step so far**, the best value seen so far (hover it for the
+best step's parameters). A progress bar for the steps runs along the header's
+bottom edge. The value is named for what it is: the best of the steps tried,
+not a confirmed result at that configuration. Every column is as wide as its
+widest value, so nothing in the header moves as the numbers change. Once the
+body has scrolled the header condenses to one line, the columns folded in as
+compact chips; move the pointer over it and it grows back. The line under the
+header is reserved for a note (the error when a study failed, the resume note
+while it is paused), so nothing moves when one appears.
+
+The body arranges its parts by its width. The **Parameters** band spans the
+body under the header; the chevron before its title folds the controls away
+and back without losing their positions. Beneath it, in the drawer at its full
+width and in the full view, the **Objective surface** sits on the left and the
+other chart cards on the right, as many 320 px cards per row as fit (two at
+the extra-large drawer's width); in a narrower drawer the chart cards come
+first, then the surface. The steps table follows at a fixed height and
+scrolls on its own. Every card keeps its height whatever it shows.
 
 The **Objective by step** card draws every step's objective value as a dot
 over the step number, with the best so far as a line stepping up (or down,
@@ -153,7 +170,7 @@ The line under the title counts the completed steps.
 The steps table sits at the bottom, newest steps first, each with its
 parameters, objective value and a state mark (complete, pruned or failed). It
 scrolls on its own, and a long study shows its newest 200 steps while the
-strip keeps the totals and the best. A study with
+header keeps the totals and the best. A study with
 [constraints](#constraints) run in the browser adds a **Runs passed** column
 (`52 / 60 · 87%`, the constraint with the fewest passing runs when there are
 several) and greys the rows of infeasible steps,
@@ -166,8 +183,8 @@ in the view claims to still be following a step.
 
 ### On the optimization service
 
-A study run on the optimization service adds a **Best parameters** section
-between the strip and the steps: the best step's value for every scenario
+A study run on the optimization service adds a **Best parameters** band
+beside the Objective by step card: the best step's value for every scenario
 parameter. **Cancel** ends the run on the server, and its status reads
 **Cancelled**.
 
@@ -180,17 +197,17 @@ kept, and a **Retry** action starts a fresh run with the same settings.
 
 A study that runs in the browser (see [Running in the
 browser](#running-in-the-browser)) shows more, because the machine computing
-it is yours, and lays it out so the strip, the controls and the plots stay in
-view on a laptop screen while the study streams:
+it is yours, and lays it out so the header, the controls and the plots stay
+in view on a laptop screen while the study streams:
 
-- The summary band also shows the parallel steps when above one, and, at the
-  right of its first line, a badge saying where the steps run. It reads
-  **CPU**, because the GPU backend cannot
-  compute an expression objective (see step 4 of
-  [Creating an optimization](#creating-an-optimization)). Under the steps bar,
-  a thinner bar tracks the runs of the step in flight, and an **N computing**
-  chip appears while anything computes (the steps in flight and the picked
-  point's refinement), expanding into one row per batch with its own progress.
+- The header's strip also shows the parallel steps when above one, an
+  **Activity** column with the **N computing** chip, and a **Compute** column
+  saying where the steps run. The badge reads **CPU**, because the GPU backend
+  cannot compute an expression objective (see step 4 of
+  [Creating an optimization](#creating-an-optimization)); hover it for the
+  reason. The chip counts the batches running right now (the steps in flight
+  and the picked point's refinement), **0 computing** when nothing does, and
+  opens a compact list with one row per batch and its own progress.
 - A **Parameters** band with one slider per optimized numeric parameter and a
   switch per optimized boolean parameter, two to a row when they fit. Its
   heading carries the state line and the **Follow steps** switch. While the
@@ -229,9 +246,7 @@ view on a laptop screen while the study streams:
   offers the same views as an experiment's [metric
   charts](experiments.md#metric-charts).
 - The **Objective by step** card follows these two, so the surface, the point
-  in flight and the study's history are read together. In the drawer, the
-  three cards wrap to two rows when the drawer is not wide enough for all
-  three; the full view shows them in one row.
+  in flight and the study's history are read together.
 - A study with [constraints](#constraints) adds a **Constraints** card as the
   fourth. Its headline is the steps **clear** across the study over the steps
   that simulated, `14 / 20 · 70%`, with the infeasible draws counted in the
@@ -239,7 +254,7 @@ view on a laptop screen while the study streams:
   the latest step's verdict (clear, limited or infeasible) with the runs that
   passed its tightest constraint, and one bar per state constraint shows the
   share of steps it passed, with a dashed mark at the threshold. The same
-  headline sits in the summary band as **Steps clear**. Infeasible draws are
+  headline sits in the header's stats line as **Steps clear**. Infeasible draws are
   hollow grey rings on the surface and grey rows in the steps table, and the
   best step so far is never one of them.
 - The **Sensitivity analysis** card, last in the row, ranks the optimized
@@ -267,9 +282,8 @@ view on a laptop screen while the study streams:
   muted, and only the correlation column carries information. The card only
   appears for a study run in the browser; a study on the service has no
   sensitivity analysis yet.
-- The steps table fills whatever height is left, the best step starred and
-  tinted. It shows a row or two on a laptop screen and a page of them on a
-  taller one; the strip's step count and best value stay in view either way.
+- The steps table follows in a fixed-height box that scrolls on its own, the
+  best step starred and tinted.
 
 ## The surface view
 

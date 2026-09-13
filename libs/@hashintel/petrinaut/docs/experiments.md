@@ -63,7 +63,7 @@ Parameter sweeps are experimental and off by default. Turn on **Parameter sweeps
 
 Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so a selection has a stable identity and revisiting one restores its results. With [ad-hoc scenarios](ad-hoc-scenarios.md) enabled, the same toggle sits on every numeric value of the ad-hoc form -- a token count, a cell, a variable, a parameter override -- and each selection sweeps as a generated parameter named after the value, shown in the navigator under the value's path.
 
-A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:
+A sweep computes **what you have selected**. The results drawer grows a **Parameters** band across the top of its body, with one slider per swept parameter; the chevron before its title folds the sliders away and back without losing their positions. Each slider selects a range on its interval, and starts spanning the whole of it:
 
 - **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
 - **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
@@ -74,9 +74,9 @@ Every selection uses the same seed sequence (common random numbers), and a run's
 
 #### The surface view
 
-A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a card holding a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The **X**, **Y** and **Metric** pickers sit in the row under the plot, and the line under the card's title reads the sampling progress (or, mid-drag, the values under the pointer). The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then refines with more runs. An orange ring marks where the navigator currently sits. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
+A sweep with two or more swept parameters grows a **Surface** card under the **Parameters** band: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The **X** and **Y** pickers sit in the row under the plot and the **Metric** picker in the row beneath them, and the line under the card's title reads the sampling progress (or, mid-drag, the values under the pointer). The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then refines with more runs. An orange ring marks where the navigator currently sits. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
 
-The summary, the parameter strip, and the surface hold still at the top of the drawer; the metric charts scroll on their own below them, so the graphs stay in view while you browse the charts.
+The drawer arranges its parts by its width. The **Parameters** band spans the body under the header. Beneath it, at the drawer's full width and in the full-size presentation, the **Surface** sits on the left and the metric cards on the right, two to a row, so two swept parameters and up to four metrics fit without scrolling; in a narrower drawer the metric cards come first, then **Surface**, so the charts you watch are at the top either way. A sweep with one swept parameter has no surface, and its cards take the whole width. Every card keeps a fixed height, and only the body scrolls, under the header.
 
 ### Compute backend (experimental)
 
@@ -101,24 +101,28 @@ Run count has no ceiling of its own: runs beyond what your GPU can hold at once 
 
 Two things to know before comparing results:
 
-- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
+- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's header records which backend ran it, so results stay attributable after the fact.
 - Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
 - The GPU steps every run to the configured max time, while the CPU stops a run as soon as it can no longer fire anything. So a net that finishes early reports a **higher frame count and simulated time** on the GPU for the same results. Nothing is wrong with either; they just stop counting at different points.
 
-### Reading the summary
+### Reading the header
 
-Open an experiment's drawer and its **Summary** section reports:
+Open an experiment's drawer and its header names the experiment in one line: the name, the scenario (or **Default scenario**), the run count and the time step, for example **SIR transmission sweep · Seasonal Flu · 100 runs · dt 1**. Beneath it, a strip of labelled columns divided by hairlines:
 
-| Field        | Meaning                                                                                                                 |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**   | One of the five statuses above.                                                                                         |
-| **Scenario** | The scenario the experiment runs, or `Default`.                                                                         |
-| **Runs**     | How many runs are in flight, and how many have finished.                                                                |
-| **Errors**   | How many individual runs errored — shown only when at least one has. An experiment can complete with some runs errored. |
-| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                             |
-| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took.    |
+| Column        | Meaning                                                                                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | One of the five statuses above, as a pill with a coloured dot.                                                                                                          |
+| **Runs**      | How many runs are in flight, and how many have finished.                                                                                                                |
+| **Errors**    | How many individual runs errored. An experiment can complete with some runs errored.                                                                                    |
+| **Time**      | Simulated time reached, against the configured maximum. This is model time, not clock time.                                                                             |
+| **Elapsed**   | Clock time the experiment has been simulating; it stops with the experiment and holds the total it took.                                                                |
+| **Selection** | For a sweep: the selected combination's runs sampled over the run budget.                                                                                               |
+| **Activity**  | The **N computing** chip: how many batches run right now, **0 computing** when nothing does. Click it while something runs to list them.                                |
+| **Compute**   | Whether the run uses the **CPU** or the **GPU**. Hover it for detail; on a CPU-backed experiment that asked for the GPU, it names the requirement the net did not meet. |
 
-A badge beside the **Summary** heading shows whether the run used the **CPU** or the **GPU**, and stays visible when the section is collapsed. Hover it for detail — on a CPU-backed experiment that asked for the GPU, the badge explains which requirement the net did not meet.
+A progress bar runs along the header's bottom edge: the selected combination's runs for a sweep, simulated time otherwise. If the experiment failed, the error reads in the line under the header.
+
+Once the drawer's body has scrolled, the header condenses to one line, with the columns folded in as compact chips beside the title, the compute badge and the computing chip still among them; move the pointer over it and it grows back. Nothing in the header moves when a status changes, a count goes to zero or a number grows a digit: every column is as wide as its widest value, and every card in the body keeps its height.
 
 **Elapsed** and **Duration** measure simulating only. Compiling the net's user code and starting the workers (or acquiring the GPU device and compiling the shader) happens before the clock starts, so the number is comparable between the two backends. An experiment that fails before it starts simulating shows `—` rather than a duration.
 
@@ -153,7 +157,7 @@ A confirmation prompt blocks browser/tab close while any experiment is initializ
 
 ### Notifications
 
-The Summary's progress bar tracks the selected combination (runs sampled over the run budget). While anything computes, a **"N computing"** chip appears beside it — a sweep runs several simulations in parallel (the selection's own batches, surface chunks, cell refinements) — and clicking the chip expands a compact list with each batch's kind and progress. Selection batches are the priority work and sort first.
+The **N computing** chip in the header's **Activity** column counts the batches running right now — a sweep runs several simulations in parallel (the selection's own batches, surface chunks, cell refinements) — and clicking it opens a compact list with each batch's kind and progress; it reads **0 computing** while nothing runs. Selection batches are the priority work and sort first.
 
 A small toast appears when an experiment **completes** or **errors**, even if its drawer isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
 
