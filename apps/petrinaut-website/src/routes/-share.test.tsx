@@ -36,6 +36,13 @@ import type { BrotliWasmType } from "brotli-wasm";
 import type { ReactNode } from "react";
 
 vi.mock("../sharing/snapshot-client", () => ({ openSnapshot: vi.fn() }));
+vi.mock("../petricon-page", () => ({ PetriconPage: () => null }));
+vi.mock("../main/app/ai-experiments-demo/ai-experiments-demo", () => ({
+  AiExperimentsDemo: () => null,
+}));
+vi.mock("../main/app/brunch-demo/brunch-demo-app", () => ({
+  BrunchDemoApp: () => null,
+}));
 vi.mock("../main/app/local-storage-demo/local-storage-demo-app", () => ({
   LocalStorageDemoApp: ({ initialNetId }: { initialNetId?: string }) => (
     <div data-testid="local-document">{initialNetId}</div>
