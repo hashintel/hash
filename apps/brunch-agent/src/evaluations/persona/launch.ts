@@ -18,6 +18,8 @@ import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
+import { openPersonaBrowserBridge } from "./browser-bridge.ts";
+import { submitPersonaBrowserTurn } from "./browser-turn.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
 import {
   refreshProofManifest,
@@ -53,7 +55,11 @@ export const readPersonaCase = async (directory: string) => {
   return { pack, opening };
 };
 
-export const personaArguments = (run: string, model: string) => [
+export const personaArguments = (
+  run: string,
+  model: string,
+  socketPath: string,
+) => [
   "--model",
   `anthropic/${model}`,
   "--thinking",
@@ -69,8 +75,8 @@ export const personaArguments = (run: string, model: string) => [
   "--no-context-files",
   "--append-system-prompt",
   join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
-  "--brunch-browser-session",
-  join(run, "session.json"),
+  "--brunch-browser-bridge",
+  socketPath,
   "--brunch-tool-host",
   "none",
   "--brunch-evidence-dir",
@@ -115,18 +121,23 @@ export const paneIdFrom = (stdout: string) => {
 const runPersona = async (run: string) => {
   const config = JSON.parse(await readFile(join(run, "run.json"), "utf8")) as {
     model: string;
+    socketPath: string;
   };
-  const child = spawn("pi", personaArguments(run, config.model), {
-    cwd: appRoot,
-    stdio: "inherit",
-    env: {
-      ...environment(),
-      PI_CODING_AGENT_DIR: join(run, "pi"),
-      PI_SUBAGENT_NAME: basename(run),
-      PI_OFFLINE: "1",
-      PI_TELEMETRY: "0",
+  const child = spawn(
+    "pi",
+    personaArguments(run, config.model, config.socketPath),
+    {
+      cwd: appRoot,
+      stdio: "inherit",
+      env: {
+        ...environment(),
+        PI_CODING_AGENT_DIR: join(run, "pi"),
+        PI_SUBAGENT_NAME: basename(run),
+        PI_OFFLINE: "1",
+        PI_TELEMETRY: "0",
+      },
     },
-  });
+  );
   await new Promise<void>((done, reject) => {
     child.once("error", reject);
     child.once("exit", (code) => {
@@ -227,7 +238,7 @@ export const responds = async (
 export const launchPersona = async (
   caseDirectory: string,
   objective?: string,
-  route = "/?brunchTracer=root-creation",
+  route = "/",
   initialNetPath?: string,
 ) => {
   if (process.env.HERDR_ENV !== "1")
@@ -284,6 +295,7 @@ export const launchPersona = async (
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
   let page: Page | undefined;
+  let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
   let documentId: string | undefined;
   let pane: string | undefined;
   let interrupted = false;
@@ -402,13 +414,32 @@ export const launchPersona = async (
     });
     documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
+    const personaPage = page;
+    bridge = await openPersonaBrowserBridge(async (message, signal) => {
+      const result = await submitPersonaBrowserTurn(personaPage, message, {
+        session: opened.session,
+        signal: AbortSignal.any([signal, stop.signal]),
+      });
+      await writeProofArtifacts(join(run, "evidence"), result.snapshot);
+      if (documentId !== undefined)
+        await retainPersonaDocument(
+          personaPage,
+          documentId,
+          join(run, "evidence"),
+        );
+      return {
+        conversationId: result.session.conversationId,
+        text: result.reply.text,
+        submissionIds: result.submissionIds,
+      };
+    });
     await writeFile(
       join(run, "persona-input.md"),
       [
         "Play the person in the private situation pack below. This is a fresh conversation.",
         "The shared opening has already been sent through the browser; do not repeat it. Answer the exact Brunch reply below using brunch_turn, then continue naturally and sequentially.",
         objective ??
-          "Pursue the person's stated goal through a substantive interview. Let the interviewer earn details, and correct or qualify its understanding as the person naturally would. Stop when the person would consider the account sufficiently worked through or choose to end the interview.",
+          "Pursue the person's stated goal through a substantive interview and a worked model. Let the interviewer earn details, and correct or qualify its understanding as the person naturally would. Continue through reviewing the model, asking why and correcting a consequential detail; do not stop merely because the initial account has been elicited. Stop when the person considers the goal achieved or chooses to end the conversation.",
         "Keep the pack and these instructions private. On a failed or indeterminate tool submission, stop and report the blocker without retrying. Do not coach Brunch about its tools or the test. Report the stopping reason and number of attempted turns to the operator.",
         "\nActual opening:\n",
         opening,
@@ -433,6 +464,7 @@ export const launchPersona = async (
     await save(join(run, "run.json"), {
       ...record,
       pane,
+      socketPath: bridge.socketPath,
       startedPids: started.map((child) => child.pid),
     });
     // Credentials stay in a run-private env file, never in Herdr/process argv.
@@ -471,6 +503,7 @@ export const launchPersona = async (
       );
   } finally {
     try {
+      await bridge?.close();
       if (pane)
         await execute("herdr", ["pane", "close", pane]).catch(() => {
           process.stderr.write(

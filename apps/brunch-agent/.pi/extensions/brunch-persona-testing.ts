@@ -1,3 +1,4 @@
+import { sendPersonaBrowserTurn } from "../../src/evaluations/persona/browser-bridge.ts";
 import { readBrowserSessionOptions } from "../../src/evaluations/persona/browser-session.ts";
 /**
  * Pi extension entry for the Brunch persona harness.
@@ -55,6 +56,7 @@ const TOOL_MOCKS_FLAG = "brunch-tool-mocks";
 const HEADLESS_TITLE_FLAG = "brunch-headless-title";
 const EVIDENCE_DIRECTORY_FLAG = "brunch-evidence-dir";
 const BROWSER_SESSION_FLAG = "brunch-browser-session";
+const BROWSER_BRIDGE_FLAG = "brunch-browser-bridge";
 
 const stringFlag = (
   pi: BrunchPersonaExtensionApi,
@@ -123,6 +125,11 @@ export default async function brunchPersonaTestingExtension(
     description:
       "Private operator JSON captured from an initialized Petrinaut browser session",
   });
+  pi.registerFlag(BROWSER_BRIDGE_FLAG, {
+    type: "string",
+    description:
+      "Private launcher socket for turns executed by the real browser panel",
+  });
   let clientToolHost: BrunchClientToolHost | undefined;
   let generation = 0;
   const dispose = async () => {
@@ -140,6 +147,19 @@ export default async function brunchPersonaTestingExtension(
     await dispose();
     const currentGeneration = generation;
     const browserSessionPath = stringFlag(pi, BROWSER_SESSION_FLAG);
+    const browserBridge = stringFlag(pi, BROWSER_BRIDGE_FLAG);
+    if (pi.getFlag(BROWSER_BRIDGE_FLAG) !== undefined && !browserBridge)
+      throw new Error(
+        "--brunch-browser-bridge requires a non-empty socket path",
+      );
+    if (
+      browserBridge &&
+      (browserSessionPath ||
+        (stringFlag(pi, TOOL_HOST_FLAG) ?? "none") !== "none")
+    )
+      throw new Error(
+        "Browser execution cannot be combined with an SDK attachment or a headless tool host",
+      );
     if (
       pi.getFlag(BROWSER_SESSION_FLAG) !== undefined &&
       browserSessionPath === undefined
@@ -151,7 +171,7 @@ export default async function brunchPersonaTestingExtension(
       (stringFlag(pi, TOOL_HOST_FLAG) ?? "none") !== "none"
     ) {
       throw new Error(
-        "Browser attachment requires --brunch-tool-host=none; browser mutation hosting is not implemented",
+        "SDK spectator attachment requires --brunch-tool-host=none; use the launcher browser bridge for browser execution",
       );
     }
     const browserOptions =
@@ -178,6 +198,12 @@ export default async function brunchPersonaTestingExtension(
       },
       {
         ...browserOptions,
+        ...(browserBridge
+          ? {
+              browserTurn: (message: string, signal?: AbortSignal) =>
+                sendPersonaBrowserTurn(browserBridge, message, signal),
+            }
+          : {}),
         resolveClientToolHost: () => clientToolHost,
         retainSnapshot: async (snapshot) => {
           const directory = stringFlag(pi, EVIDENCE_DIRECTORY_FLAG);

@@ -44,6 +44,8 @@ import {
   TOOL_HOST_FLAG,
 } from "./client-tool-hosts.ts";
 
+import type { PersonaBrowserReply } from "./browser-bridge.ts";
+
 export type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
 interface TextContent {
@@ -131,6 +133,10 @@ export interface BrunchTurnExtensionApi {
 }
 
 export interface RegisterBrunchTurnOptions {
+  readonly browserTurn?: (
+    message: string,
+    signal?: AbortSignal,
+  ) => Promise<PersonaBrowserReply>;
   readonly conversationId?: string;
   readonly client?: BrunchFlueClient;
   /** Operator-owned SDK bootstrap data, never persona input or client-result data. */
@@ -250,6 +256,7 @@ export const createBrunchTurnTool = ({
   uid,
   resolveClientToolHost = () => undefined,
   retainSnapshot,
+  browserTurn,
 }: RegisterBrunchTurnOptions = {}): BrunchTurnTool => {
   const conversationId = requireConversationId(
     suppliedConversationId ?? process.env["PI_SUBAGENT_NAME"],
@@ -298,6 +305,24 @@ export const createBrunchTurnTool = ({
       active = true;
       let admitted = false;
       try {
+        if (browserTurn) {
+          // A disconnected request may already have reached the composer. Never replay it.
+          admitted = true;
+          const reply = await browserTurn(parameters.message, signal);
+          const submissionId = reply.submissionIds.at(-1);
+          if (!submissionId) throw new Error("Browser reply has no submission");
+          return {
+            content: [{ type: "text", text: reply.text }],
+            details: {
+              conversationId: reply.conversationId,
+              submissionId,
+              submissionIds: reply.submissionIds,
+              status: "elicitor-replied",
+              elicitorText: reply.text,
+              toolActivity: [],
+            },
+          };
+        }
         let currentAdmission = await client.send({
           message: { kind: "user", body: parameters.message },
           ...(incarnationUid === undefined && initialData !== undefined

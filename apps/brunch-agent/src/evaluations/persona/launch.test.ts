@@ -70,7 +70,11 @@ test.each([true, false])(
 );
 
 test("launches a fresh restricted persona using input files, not prior session or private content arguments", () => {
-  const args = personaArguments("/tmp/TEST-persona", "claude-sonnet-4-6");
+  const args = personaArguments(
+    "/tmp/TEST-persona",
+    "claude-sonnet-4-6",
+    "/tmp/TEST-socket",
+  );
   expect(args).toContain("anthropic/claude-sonnet-4-6");
   expect(args).toContain("brunch_turn");
   expect(args).toContain("--no-context-files");
@@ -80,7 +84,9 @@ test("launches a fresh restricted persona using input files, not prior session o
   expect(args).toContain("--no-prompt-templates");
   expect(args).toContain("--approve");
   expect(args).not.toContain("--no-approve");
-  expect(args).toContain("/tmp/TEST-persona/session.json");
+  expect(args).toContain("--brunch-browser-bridge");
+  expect(args).toContain("/tmp/TEST-socket");
+  expect(args).not.toContain("--brunch-browser-session");
   expect(args.at(-1)).toBe("@/tmp/TEST-persona/persona-input.md");
   expect(args).not.toContain("--session");
   expect(args).not.toContain("--continue");

@@ -180,6 +180,7 @@ try {
     page,
     origin,
     "Hello, I would like to describe our process.",
+    { route: "/?brunchTracer=root-creation" },
   );
   await expect(
     page.getByText("TEST ready for your account.", { exact: true }),
