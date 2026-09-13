@@ -36,6 +36,38 @@ away from an untouched net.
 
 With `VITE_BRUNCH_CHAT_ENDPOINT` configured, Brunch is the AI panel's default assistant and Petrinaut's stock assistant is the alternate. The command palette (⌘K) offers **Use the stock Petrinaut assistant** and, once switched, **Use Brunch (default assistant)**. The choice is this website's own browser-local preference (`petrinaut-website:assistant`), not a Petrinaut setting. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.
 
+## Worked-model documents
+
+`/?bundle=<key>` opens a catalogue-controlled worked model from the configured
+Brunch service. Resolution is principal-scoped: GET resumes or creates the
+principal's active copy, **Create a clean copy of this worked model** issues
+POST and selects a fresh copy of the fixture net, and identity-explicit net
+revisions persist with PUT. A clean copy starts a fresh conversation and does
+not inherit the fixture's retained session or workpiece.
+
+The route shows **Loading document…** while resolving. Missing configuration,
+an unknown bundle, ownership failure and other resolution errors show
+**Worked-model document unavailable**. The route fails closed: it never opens
+or reads a local document as fallback.
+
+Worked-model routes always use the Brunch process assistant, regardless of the
+stored preference for ordinary documents. They state **This document uses the
+Brunch process assistant**, hide the assistant switch and preserve the
+preference unchanged for the next ordinary route. The template supplies a
+read-only title: users and the assistant may edit the net, but neither the title
+input nor `setNetTitle` permits a title change.
+
+New, Import and example creation are source transitions. When invoked from a
+worked-model route, they create a local document and navigate to the ordinary
+route; they do not write the imported or example content into the remote copy.
+
+The host implements this boundary through a `DocumentController` over
+storage-neutral repositories: the ordinary local repository, its local-only
+fixture decorator and the remote worked-model repository. The controller alone
+crosses sources. A typed process-agent seed carries the remote document and
+conversation identity into the Brunch binding; remote adapter-private storage
+identities and fixture metadata do not cross that host boundary.
+
 ## Prepared root-arc tracer
 
 With Brunch configured, the prepared-fixture selector offers **Open the prepared root-arc mechanical tracer** at `/?brunch-fixture=crew-reservation-v1&brunchTracer=root-arc`. It opens a separate prepared document and a conversation bound to that document's persisted incarnation and original base. The **legacy crew-reservation fixture** retains its existing conversation, manifest, and fenced-workpiece reads; selecting the tracer does not migrate or overwrite that fixture.

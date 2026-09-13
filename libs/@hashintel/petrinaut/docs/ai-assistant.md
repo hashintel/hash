@@ -143,7 +143,7 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
 - **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
-- **`setNetTitle`** -- renames the net.
+- **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
@@ -156,6 +156,19 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 
 An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
+
+### Document titles
+
+Title editing is a host capability. When the embedding application supplies
+`setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the
+supplied title is read-only. The host also controls the assistant's tool
+manifest: `setNetTitle` is useful only alongside `setTitle` and should be
+omitted for a read-only title.
+
+For example, the Petrinaut website's worked-model route displays its template
+title as read-only and its Brunch tool manifest exposes no title mutation while
+still allowing permitted net edits. Ordinary local documents on that website
+supply title editing.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 

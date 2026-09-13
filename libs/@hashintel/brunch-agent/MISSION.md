@@ -30,16 +30,19 @@ remain independent.
 Use the team's established, compiler-clean Inventory reference SDCPN and local
 Pi-harness persona-based development to produce a versioned Inventory fixture
 bundle containing one retained Brunch session, its workpiece and that reviewed
-net. Package the accepted fixture with the deployed app and seed it into
-Postgres when the database is created or upgraded.
+net. Package the complete accepted fixture with the deployed app and seed it
+into Postgres when the database is created or upgraded. Current live-copy
+instantiation deliberately consumes only the fixture net: it creates fresh
+document, incarnation and conversation identities and does not hydrate the
+retained fixture session or workpiece.
 
 Make a product manager able to open that stable Inventory purchasing template
 through `?bundle=inventory-purchasing` as an independently owned working copy;
-inspect its retained conversation, workpiece and legible SDCPN; ask why
-consequential content exists; correct it in ordinary language; see
-compiler-clean model changes and coherent layout; and close and reopen the
-same copy. Editing one copy must not alter the seeded template or a sibling,
-and the product must create a clean copy from the seed on request.
+inspect its legible SDCPN; build the copy's own conversation and workpiece; ask
+why consequential content produced in that copy exists; correct it in ordinary
+language; see compiler-clean model changes and coherent layout; and close and
+reopen the same copy. Editing one copy must not alter the seeded template or a
+sibling, and the product must create a clean net copy from the seed on request.
 
 Inventory is the fully recorded flagship and semantic acceptance exemplar, but
 the construction architecture must not depend on Inventory-specific nouns or
@@ -65,8 +68,12 @@ work is claimed.
 local persona-based development produces an accepted session + workpiece + net
 → app build packages the versioned fixture bundle
 → database creation or upgrade seeds the standard template idempotently
-→ ?bundle=inventory-purchasing resolves template, principal and owned copy
-→ website opens the copy with its conversation, workpiece and SDCPN
+→ ?bundle=inventory-purchasing selects the fail-closed remote document source
+→ principal-scoped resolution creates or resumes an owned net copy
+→ website opens that net under fresh document, incarnation and conversation
+  identities; no fixture session or workpiece is hydrated
+→ the remote route fixes the Brunch process assistant and exposes a read-only
+  title while identity-explicit revisions persist through the remote repository
 → persona speaks in ordinary language; workpiece revisions settle
 → Brunch recognizes explanation, construction or correction intent
 → read_petrinaut_net supplies a fresh, verified base
@@ -104,10 +111,11 @@ modes.
 - [`../../../apps/brunch-agent/src/database-config.ts`](../../../apps/brunch-agent/src/database-config.ts)
   — existing SQLite/Postgres adapter on which the catalogue and copy path
   must build.
+- [`../../../apps/petrinaut-website/src/main/app/local-storage-demo/documents/`](../../../apps/petrinaut-website/src/main/app/local-storage-demo/documents/)
+  and [`../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistants/brunch/use-process-agent-binding.ts`](../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistants/brunch/use-process-agent-binding.ts)
+  — storage-neutral lifecycle, source crossing and typed conversation identity.
 - [`docs/reference/architecture/topology.md`](docs/reference/architecture/topology.md)
-  — tool topology; reconcile it with the landed carrier, freshness and
-  workpiece-query paths
-  paths before acceptance.
+  — current tool and document-lifecycle topology.
 
 ## Proof
 
@@ -136,12 +144,14 @@ answers where visible content came from, with Inventory purchasing as the
 recorded flagship.
 
 **Product-manager script:** open `?bundle=inventory-purchasing` and receive an
-owned working copy; inspect its connected model and workpiece; ask why two
-consequential elements exist; correct one operational fact in ordinary
-language; observe a compiler-clean bounded change and coherent layout; close
-and reopen the same copy; confirm the template and a sibling are unchanged;
-and create a clean copy. Confirm that the worked-model document states “This
-document uses the Brunch process assistant” and offers no assistant switch.
+owned working copy of the fixture net under a fresh conversation; establish the
+copy's workpiece; ask why two consequential elements produced in that copy
+exist; correct one operational fact in ordinary language; observe a
+compiler-clean bounded change and coherent layout; close and reopen the same
+copy; confirm the template and a sibling are unchanged; and create a clean net
+copy. Confirm that the worked-model document states “This document uses the
+Brunch process assistant”, presents the template title as read-only and offers
+no assistant switch.
 Open an ordinary local document with the stock assistant and confirm that its
 stock transport, tool manifest and history remain unchanged.
 
@@ -157,7 +167,8 @@ can count as acceptance:
 | Compiler feedback is version-correlated | A structurally applied dirty batch reports errors or pending, never stale success; repair begins from a fresh observation and reaches diagnostics for the repaired definition. Dependency changes invalidate all affected code. |
 | Layout is a recorded document mutation | `layout_petrinaut_net` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. |
 | Workpiece query uses recorded current-revision evidence | An ordinary question about visible Petrinaut elements obtains a fresh observation, resolves element IDs to existing mutation-attempt revision IDs, maps those to current workpiece passages and relevant session turns, and reports missing or ambiguous provenance without inventing a link. |
-| Assistant modes are isolated | Host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. |
+| Assistant modes are isolated | On ordinary local documents, host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. Worked-model routes fix Brunch and do not offer the switch. |
+| Worked-model lifecycle is source- and identity-explicit | `apps/brunch-agent/test/{worked-model-store,worked-model-routes}.test.ts`, `apps/brunch-agent/test/integration/worked-model-copy.test.ts`, and `apps/petrinaut-website/src/main/app/local-storage-demo/{documents/**/*.test.ts,local-storage-demo-app.test.tsx}` prove principal-scoped GET/POST/PUT, clean net copies, fail-closed remote selection, revision persistence, typed process binding, fixed Brunch mode and read-only remote title. These tests do not prove fixture-session or fixture-workpiece hydration. |
 
 Host-executor tests are not live-browser construction evidence. The portfolio
 and persona gates below must exercise representative admitted operations and
@@ -216,9 +227,11 @@ hold:
 - The Inventory template and owned copies live in the Brunch app's Postgres
   store through the existing adapter and migrations. Versioned fixture bundles
   produced locally are build inputs whose exact session, workpiece and net are
-  seeded idempotently; they are not a runtime promotion path. SQLite remains
-  for lightweight tests and disposable local work. Do not create a second
-  persistence system.
+  seeded idempotently; they are not a runtime promotion path. An owned copy
+  currently inherits only the fixture net and opens under fresh document,
+  incarnation and conversation identities; its session and workpiece begin in
+  that copy. SQLite remains for lightweight tests and disposable local work.
+  Do not create a second persistence system.
 - A `?bundle=` key identifies a template; it does not authenticate a user by
   obscurity. Any bearer-capability proposal requires explicit review of
   entropy, logging, sharing, revocation and authorization.
@@ -239,6 +252,10 @@ hold:
   diagnostics and the Postgres catalogue/copy path.
 - The Petrinaut website owns browser execution, diagnostics/layout host
   integration, assistant selection and URL routing, including `?bundle=`.
+  Route identity selects the document source independently of the host-local
+  assistant preference. A bundle route fails closed, fixes Brunch, hides the
+  switch and restores the untouched preference on return to an ordinary route.
+  Its repository persists identity-explicit revisions; its title is read-only.
 - Workpiece operations use action names rather than ownership prefixes:
   `read_workpiece` reads the current workpiece and source/locator material;
   `mutate_workpiece` submits a complete next revision and records its verified
@@ -288,13 +305,6 @@ hold:
   history is the product contract, not a predetermined module. The candidate
   projection is retained only if parity tests show that it removes duplicate
   interpretation without creating a store, identity scheme or authority.
-- **Petrinaut tool family:** settled as separate Brunch-facing
-  `read_petrinaut_net`, `read_petrinaut_docs`,
-  `read_petrinaut_diagnostics`, `layout_petrinaut_net` and
-  `mutate_petrinaut_net` operations. Petrinaut Core retains its canonical
-  operation names behind these host aliases. A possible package rename to
-  `@hashintel/brunch-plugin-process-petrinaut` follows that topology decision;
-  do not rename the package first.
 - **Question marker reliability:** `brunch_mark_question` supports Voice
   question replay when the model calls it with exact matching prose. Plumbing
   is proven; autonomous activation reliability is not. Decide whether this
@@ -311,9 +321,6 @@ hold:
   complete instantiation belongs in Flue, an adapter-level utility or an
   application-owned archival format, remain open. Never clone private Flue
   tables or present replayed model turns as the accepted session.
-- **Tool catalogue:** choose a generated catalogue from mount declarations or
-  a checked curated authority map, including the migration/reset policy for
-  retained histories.
 - **Diagnostics protocol:** select mutation-returned diagnostics, an explicit
   current read, or a hybrid pending/result protocol while preserving version
   correlation.

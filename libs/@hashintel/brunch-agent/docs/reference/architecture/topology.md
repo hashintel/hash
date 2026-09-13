@@ -100,7 +100,29 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 │                        `@flue/react` remains appropriate for this debug UI (spine later concerns).
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
+
+apps/petrinaut-website/src/main/app/local-storage-demo
+├─ documents/document-repository.ts ✓ storage-neutral document/source/controller contracts and
+│                                      the typed process-agent seed
+├─ documents/local-storage/
+│  ├─ use-local-document-repository.ts ✓ ordinary browser-local persistence
+│  └─ use-fixture-document-overlay.ts  ✓ local-only prepared-fixture decorator
+├─ documents/remote/
+│  ├─ use-remote-document-repository.ts ✓ worked-model source and read-only title boundary
+│  ├─ use-worked-model-copy.ts          ✓ queued identity-explicit remote revision persistence
+│  └─ worked-model-client.ts            ✓ principal-scoped GET/POST/PUT projection
+├─ documents/use-document-controller.ts ✓ the only host seam that crosses document sources
+└─ assistants/brunch/use-process-agent-binding.ts ✓ document/incarnation/conversation binding;
+                                                     consumes the typed seed without choosing storage
 ```
+
+Route identity selects the local or remote source; assistant preference does
+not. A repository owns document persistence, while the controller creates a
+local document before crossing from a remote route. The process-agent binding
+owns conversation identity. Remote worked-model titles are inherited and
+read-only because that repository exposes no rename action. The fixture
+catalogue still packages session, workpiece and net, but the current remote
+copy instantiates only the net under fresh identities.
 
 ## Ordinary browser-bound Brunch tools
 

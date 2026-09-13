@@ -30,6 +30,13 @@ The first composed product is `process-sdcpn`: operational processes represented
 
 Brunch is intended to become Petrinaut's default operational-process assistant. Petrinaut's stock assistant remains an alternate selected by a host feature flag. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
+The current Petrinaut website implements assistant selection as a host-local
+browser preference on ordinary documents. A `?bundle=` worked-model route
+selects its remote document source independently, fixes the Brunch process
+assistant, hides switching and restores the untouched local preference after
+returning to an ordinary route. Deployment-level policy and switching on remote
+documents remain future work.
+
 The accepted naming target is:
 
 - Brunch agent identity and mount: `process-sdcpn` / `/agents/process-sdcpn/:id`.
@@ -68,16 +75,9 @@ A flagship proves one accepted product path. It does not prove every operational
 - Live [Mission 7c](MISSION.md) owns the Inventory purchasing flagship, code-bearing operation admission, TypeScript compiler feedback and repair, ELK layout, reliable mechanical why routing, tool topology and Postgres-backed bundle copies.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
-Owner direction from 2026-09-11 requires the next reconciliation of live Mission 7c to make these points explicit:
-
-- Inventory is the fully recorded flagship, while the same product path must remain usable across the named operational-process persona portfolio.
-- A narrow golden path is insufficient. Every ordinary request inside the declared capability envelope must either succeed through canonical Petrinaut operations or refuse clearly without corruption, hidden omission or false success.
-- Petrinaut TypeScript feedback for code-bearing functions and dependency changes is in scope; simulation-backed behavioral correctness is not.
-- A realistic persona interview and native product construction recording are required.
-- Brunch is the default process assistant and stock Petrinaut AI is the feature-flagged alternate with its existing frontend tools preserved.
-- The assumption-based preview fork must be decided explicitly rather than disappearing through omission.
-
-This direction is planning context until incorporated into `MISSION.md`; do not represent the live mission as reconciled before that review.
+The live mission now carries the accepted flagship, portfolio, capability,
+compiler-feedback, persona, assistant-mode and assumption-preview boundaries.
+This future spine does not duplicate or reinterpret those execution obligations.
 
 ### Mission 8 successor
 
@@ -128,7 +128,9 @@ This register records product consequences, not every engineering idea. A scope 
 ### Decisions to report or confirm now
 
 - **Assistant scope — owner direction; PM communication required.** Brunch targets operational processes represented as SDCPNs, including organizational, software and cyber-physical operations. It is not a universal Petri-net copilot.
-- **Assistant selection — owner direction; product implementation required.** Brunch is the default. Stock Petrinaut AI remains a feature-flagged alternate with its existing tool surface and separate history.
+- **Assistant deployment policy — future owner decision.** Host-local selection
+  is implemented for ordinary website documents. Decide where deployments
+  control availability and whether a user-visible picker remains appropriate.
 - **Simulation scenarios and metrics — likely out of Mission 7c; PM confirmation required.** TypeScript feedback does not imply simulation-product support.
 - **Structured questions — likely out of Mission 7c; PM confirmation required.** Free-text conversation remains the product route; choice widgets and questionnaires require a separately cut vertical capability.
 - **Assumption-based preview — open product fork.** Decide whether Brunch may offer a provisional model when evidence is incomplete. Recommended default: evidence-first, explicit user assent, visible assumptions, and later confirm/replace/reject behavior.
@@ -172,16 +174,19 @@ The deciding PM questions are when Brunch may offer preview, what assent authori
 
 ### Host choice and continuity
 
-The initial product should select an assistant at session start. Mid-conversation switching is not a history-splicing operation and requires an explicit continuity contract before admission.
+Ordinary website documents select an assistant through the implemented
+host-local preference. Mid-conversation switching is not a history-splicing
+operation and requires an explicit continuity contract before broader
+admission.
 
 Switching inside a remote worked-model document is deferred. Re-enter only
-after accepting a continuity contract that determines whether stock history on
-remote documents is local-only, remote, or absent.
+after accepting a stock-history continuity contract that determines whether
+stock history on remote documents is local-only, remote, or absent.
 
 Resolve:
 
-- where the stock-alternate feature flag is controlled;
-- whether users see a picker or a deployment-level choice;
+- where deployment policy controls the stock alternate;
+- whether deployments preserve the current picker or choose one assistant;
 - how an existing net chooses or resumes the correct assistant history;
 - what happens when a feature flag changes after a conversation exists.
 
@@ -229,6 +234,15 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
 - Generated, sanitized, migrated and layout effects do not automatically inherit operational testimony.
 - One model-facing agent owns the conversation. Bindings, transports and hosts adapt that agent without creating a second history or protocol.
 - Core owns universal elicitation; plugins own domain-typology/formalism guidance; the app owns composition; the Petrinaut website owns browser execution and assistant selection.
+- The website's `documents/` seam separates storage-neutral repository
+  contracts, local and remote sources, source-crossing controller actions and
+  typed process-agent binding. Route identity selects the source; repositories
+  persist revisions; the binding owns conversation identity. Worked-model
+  titles are inherited from the template and read-only.
+- A worked-model fixture packages session, workpiece and net as one build
+  artifact. Current live-copy instantiation inherits only its net under fresh
+  document, incarnation and conversation identities; fixture session/workpiece
+  hydration remains outside the landed seam.
 - HASH Graph, Temporal, Redis, HASH API, S3, Kratos and Petrinaut Optimizer are not Brunch runtime dependencies without a named consumer.
 
 Retain the thin architecture unless observed product strain earns more. Do not introduce a comprehensive process ontology, graph database, universal subject/predicate/value schema, deterministic conversation reducer, full regeneration engine, typed completion algebra, second event log or general multi-agent system as speculative infrastructure.

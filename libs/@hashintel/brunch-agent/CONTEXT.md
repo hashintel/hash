@@ -33,6 +33,45 @@ _Avoid_: harness (for Flue), platform, host
 Whatever affords user interaction: rendering, input, and reply capture. A chat panel qualifies.
 _Avoid_: frontend, client, host
 
+### Document lifecycle
+
+**Document repository**:
+A storage-neutral contract for listing, opening and persisting documents and
+their identity-explicit revisions. One repository owns one active source; it
+does not choose the assistant.
+
+**Document source**:
+The route-selected repository plus any typed seed needed to bind that source's
+document to Brunch. Local storage and the remote worked-model service are
+distinct sources; the prepared-fixture overlay decorates only the local source.
+
+**Document controller**:
+The host coordinator that knows the local and selected repositories and owns
+the explicit crossing between them. New, Import and example creation always
+create a local document before navigating to the ordinary route.
+
+**Brunch process-agent binding**:
+The website's association of one document and incarnation with one Brunch
+conversation. Its typed **conversation seed** is the only channel by which a
+remote source supplies conversation identity. `process-sdcpn` is the current
+internal implementation identity; the product name is Brunch.
+
+**Assistant selection**:
+An ordinary website document's host-local browser preference between Brunch
+and the stock Petrinaut assistant. It is independent of document storage.
+Worked-model routes fix Brunch and preserve the preference for later ordinary
+routes.
+
+**Worked-model fixture**:
+A versioned build artifact packaging one reviewed retained session, current
+workpiece and net together for idempotent catalogue seeding.
+
+**Worked-model live copy**:
+A principal-owned remote document instantiated from a fixture. The current
+implementation copies only the fixture net and mints fresh document,
+incarnation and conversation identities; it does not hydrate the fixture
+session or workpiece.
+
 ### Model-facing primitives
 
 **Prompt**:
