@@ -14,6 +14,8 @@ import {
 } from "../conversation/reported-document-revision.ts";
 import { diagnostics } from "../runtime-diagnostics.ts";
 
+import type { AgentSendResult } from "@flue/sdk";
+import type { DocumentRevisionId } from "@hashintel/petrinaut-core";
 import type { MiddlewareHandler } from "hono";
 
 export const agentOwnershipGuard = (
@@ -22,7 +24,10 @@ export const agentOwnershipGuard = (
 ): MiddlewareHandler => {
   return async (context, next) => {
     let stagedDocumentRevision:
-      | { submissionId: string; revisionId: string }
+      | {
+          submissionId: AgentSendResult["submissionId"];
+          revisionId: DocumentRevisionId;
+        }
       | undefined;
     const principalKey = context.req.header(BRUNCH_PRINCIPAL_HEADER)?.trim();
     const conversationId = context.req
@@ -147,15 +152,18 @@ export const agentOwnershipGuard = (
       .clone()
       .json()
       .catch(() => undefined);
-    if (
-      typeof admission === "object" &&
-      admission !== null &&
-      "deduplicated" in admission &&
-      admission.deduplicated === true
-    )
+    if (isDeduplicatedAdmission(admission))
       discardReportedDocumentRevision(
         stagedDocumentRevision.submissionId,
         stagedDocumentRevision.revisionId,
       );
   };
 };
+
+const isDeduplicatedAdmission = (
+  value: unknown,
+): value is Required<Pick<AgentSendResult, "deduplicated">> =>
+  typeof value === "object" &&
+  value !== null &&
+  "deduplicated" in value &&
+  value.deduplicated === true;

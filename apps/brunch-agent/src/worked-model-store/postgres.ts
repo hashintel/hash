@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  parseWorkedModelDefinition,
+  parseWorkedModelNetProjection,
+  type WorkedModelNetProjection,
+} from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
+
+import { isRetainedFixtureSession } from "./retained-fixture-session.ts";
+
 import type {
-  WorkedModelNetProjection,
   WorkedModelFixture,
   WorkedModelStore,
 } from "../worked-model-store.ts";
@@ -29,22 +36,11 @@ const jsonField = (
 
 const netProjectionFromRow = (
   row: Record<string, unknown>,
-): WorkedModelNetProjection => ({
-  bundleKey: stringField(row, "bundleKey"),
-  copyId: stringField(row, "copyId"),
-  conversationId: stringField(row, "conversationId"),
-  documentId: stringField(row, "documentId"),
-  incarnationId: stringField(row, "incarnationId"),
-  fixtureVersion: stringField(row, "fixtureVersion"),
-  principalKey: stringField(row, "principalKey"),
-  title: stringField(row, "title"),
-  definition: jsonField(
-    row,
-    "definition",
-  ) as WorkedModelNetProjection["definition"],
-  definitionSha256: stringField(row, "definitionSha256"),
-  revisionId: stringField(row, "revisionId"),
-});
+): WorkedModelNetProjection =>
+  parseWorkedModelNetProjection({
+    ...row,
+    definition: jsonField(row, "definition"),
+  });
 
 const netProjectionSelection = `
   SELECT
@@ -110,8 +106,24 @@ const createTables = async (query: Query): Promise<void> => {
   `);
 };
 
-const fixtureFromRow = (row: Record<string, unknown>): WorkedModelFixture =>
-  jsonField(row, "fixture") as unknown as WorkedModelFixture;
+const fixtureFromRow = (row: Record<string, unknown>): WorkedModelFixture => {
+  const fixture = jsonField(row, "fixture");
+  const session = fixture.session;
+  if (!isRetainedFixtureSession(session))
+    throw new Error(
+      "Worked-model database row has an invalid fixture session.",
+    );
+  return {
+    bundleKey: stringField(fixture, "bundleKey"),
+    fixtureVersion: stringField(fixture, "fixtureVersion"),
+    sourceManifestSha256: stringField(fixture, "sourceManifestSha256"),
+    title: stringField(fixture, "title"),
+    session,
+    workpiece: stringField(fixture, "workpiece"),
+    definition: parseWorkedModelDefinition(fixture.definition),
+    revisionId: stringField(fixture, "revisionId"),
+  };
+};
 
 export const createPostgresWorkedModelStore = (
   runner: PostgresRunner,

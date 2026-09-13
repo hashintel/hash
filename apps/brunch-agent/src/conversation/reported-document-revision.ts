@@ -1,6 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 
+import type { AgentSendResult } from "@flue/sdk";
+import type { DocumentRevisionId } from "@hashintel/petrinaut-core";
+
+type SubmissionId = AgentSendResult["submissionId"];
+
 /**
  * Petrinaut revision reported for one admitted browser submission.
  *
@@ -11,22 +16,23 @@ const registryKey = Symbol.for(
   "@apps/brunch-agent/reported-document-revisions-by-submission",
 );
 
-type ReportedDocumentRevisionRegistry = Map<string, string>;
+type ReportedDocumentRevisionRegistry = Map<SubmissionId, DocumentRevisionId>;
 
 const globalWithReportedDocumentRevisions = globalThis as typeof globalThis & {
   [registryKey]?: ReportedDocumentRevisionRegistry;
 };
 
 const revisionsBySubmissionId =
-  globalWithReportedDocumentRevisions[registryKey] ?? new Map<string, string>();
+  globalWithReportedDocumentRevisions[registryKey] ??
+  new Map<SubmissionId, DocumentRevisionId>();
 
 globalWithReportedDocumentRevisions[registryKey] = revisionsBySubmissionId;
 
-const submissionScope = new AsyncLocalStorage<string>();
+const submissionScope = new AsyncLocalStorage<SubmissionId>();
 
 export const reportDocumentRevision = (
-  submissionId: string,
-  revisionId: string,
+  submissionId: SubmissionId,
+  revisionId: DocumentRevisionId,
 ): boolean => {
   if (revisionsBySubmissionId.has(submissionId)) return false;
   revisionsBySubmissionId.set(submissionId, revisionId);
@@ -34,8 +40,8 @@ export const reportDocumentRevision = (
 };
 
 export const discardReportedDocumentRevision = (
-  submissionId: string,
-  revisionId: string,
+  submissionId: SubmissionId,
+  revisionId: DocumentRevisionId,
 ): void => {
   if (revisionsBySubmissionId.get(submissionId) === revisionId)
     revisionsBySubmissionId.delete(submissionId);
@@ -46,18 +52,20 @@ export const reportedRevisionSubmissionId = (
   agentName: string,
   instanceId: string,
   idempotencyKey: string,
-): string => {
+): SubmissionId => {
   const preimage = `flue-submission-key\n${agentName}\n${instanceId}\n${idempotencyKey}`;
   return `sub_ik_${createHash("sha256").update(preimage).digest("hex").slice(0, 32)}`;
 };
 
 export const withReportedDocumentRevisionScope = <Value>(
-  submissionId: string | undefined,
+  submissionId: SubmissionId | undefined,
   run: () => Promise<Value>,
 ): Promise<Value> =>
   submissionId === undefined ? run() : submissionScope.run(submissionId, run);
 
-export const takeReportedDocumentRevision = (): string | undefined => {
+export const takeReportedDocumentRevision = ():
+  | DocumentRevisionId
+  | undefined => {
   const submissionId = submissionScope.getStore();
   if (submissionId === undefined) return undefined;
   const revisionId = revisionsBySubmissionId.get(submissionId);

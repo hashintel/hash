@@ -63,6 +63,8 @@ packages/plugin-claims             STUB contribution bundle (normative-source in
 
 packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
 ├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
+├─ worked-model-net-projection.ts ✓ `./worked-model` wire parse/type for principal-owned
+│                        net projections; not mounted into the Flue contribution
 ├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append
 ├─ skills/sdcpn-modelling/ ✓ `SKILL.md` + `references/{profile,pn-construction,checks}.md`
 │                        + `templates/workpiece.md`; activates core `elicitation` for human knowledge
@@ -88,7 +90,8 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 ├─ src/conversation/  ✓  server identity verification, client-tool results, current-net
 │                        freshness, candidate history projection, current-revision explanation,
 │                        and operator transcript; browser AI SDK projection lives in `transport-aisdk`
-├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and incomplete principal net-projection contract;
+├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and persistence of principal
+│                              net projections; plugin `./worked-model` owns the wire parse/type.
 │                              Postgres implementation stays beside it in its private subtree
 ├─ src/http/worked-models.ts ✓ legacy-path GET/POST/PUT API for resolving, refreshing and updating
 │                              principal-owned net projections

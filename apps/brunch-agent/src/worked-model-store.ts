@@ -1,15 +1,24 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import {
-  parseSDCPNFile,
-  type DocumentRevisionId,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+  parseWorkedModelDefinition,
+  type WorkedModelNetProjection,
+  type WorkedModelNetProjectionDefinitionUpdate,
+  type WorkedModelNetProjectionLookup,
+} from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
 
 import { createPostgresWorkedModelStore as createPostgresStore } from "./worked-model-store/postgres.ts";
+import { isRetainedFixtureSession } from "./worked-model-store/retained-fixture-session.ts";
 
 import type { PostgresRunner } from "@flue/postgres";
 import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
+
+export type {
+  WorkedModelNetProjection,
+  WorkedModelNetProjectionDefinitionUpdate,
+  WorkedModelNetProjectionLookup,
+};
 
 export interface WorkedModelFixture {
   readonly bundleKey: string;
@@ -26,38 +35,17 @@ export interface WorkedModelFixture {
   readonly revisionId: DocumentRevisionId;
 }
 
-export interface WorkedModelNetProjection {
-  readonly bundleKey: string;
-  readonly copyId: string;
-  readonly conversationId: string;
-  readonly documentId: string;
-  readonly incarnationId: string;
-  readonly fixtureVersion: string;
-  readonly principalKey: string;
-  readonly title: string;
-  readonly definition: SDCPN;
-  readonly definitionSha256: string;
-  readonly revisionId: DocumentRevisionId;
-}
-
 export interface WorkedModelStore {
   readonly seed: (fixtures: readonly WorkedModelFixture[]) => Promise<void>;
-  readonly resolveNetProjection: (input: {
-    readonly bundleKey: string;
-    readonly principalKey: string;
-  }) => Promise<WorkedModelNetProjection | undefined>;
-  readonly createCleanNetProjection: (input: {
-    readonly bundleKey: string;
-    readonly principalKey: string;
-  }) => Promise<WorkedModelNetProjection | undefined>;
-  readonly updateNetProjectionDefinition: (input: {
-    readonly copyId: string;
-    readonly principalKey: string;
-    readonly expectedSha256: string;
-    readonly expectedRevisionId: DocumentRevisionId;
-    readonly definition: SDCPN;
-    readonly revisionId: DocumentRevisionId;
-  }) => Promise<WorkedModelNetProjection | undefined>;
+  readonly resolveNetProjection: (
+    input: WorkedModelNetProjectionLookup,
+  ) => Promise<WorkedModelNetProjection | undefined>;
+  readonly createCleanNetProjection: (
+    input: WorkedModelNetProjectionLookup,
+  ) => Promise<WorkedModelNetProjection | undefined>;
+  readonly updateNetProjectionDefinition: (
+    input: WorkedModelNetProjectionDefinitionUpdate,
+  ) => Promise<WorkedModelNetProjection | undefined>;
 }
 
 export const definitionSha256 = (definition: SDCPN): string =>
@@ -85,41 +73,16 @@ export const parseWorkedModelFixture = (value: unknown): WorkedModelFixture => {
   if (!/^[0-9a-f]{64}$/u.test(sourceManifestSha256))
     throw new Error("Worked-model fixture sourceManifestSha256 is invalid.");
   const session = fixture.session;
-  if (
-    typeof session !== "object" ||
-    session === null ||
-    Array.isArray(session) ||
-    !("v" in session) ||
-    session.v !== 1 ||
-    !("conversationId" in session) ||
-    typeof session.conversationId !== "string" ||
-    !("messages" in session) ||
-    !Array.isArray(session.messages) ||
-    !("settlements" in session) ||
-    !Array.isArray(session.settlements)
-  )
+  if (!isRetainedFixtureSession(session))
     throw new Error("Worked-model fixture session is invalid.");
-  const definitionValue = fixture.definition;
-  if (
-    typeof definitionValue !== "object" ||
-    definitionValue === null ||
-    Array.isArray(definitionValue)
-  )
-    throw new Error("Worked-model fixture definition is invalid.");
-  const parsedDefinition = parseSDCPNFile({
-    ...definitionValue,
-    title: "Worked-model fixture",
-  });
-  if (!parsedDefinition.ok) throw new Error(parsedDefinition.error);
-  const { title: _title, ...definition } = parsedDefinition.sdcpn;
   return {
     bundleKey,
     fixtureVersion: nonBlank(fixture.fixtureVersion, "fixtureVersion"),
     sourceManifestSha256,
     title: nonBlank(fixture.title, "title"),
-    session: session as FlueConversationSnapshot,
+    session,
     workpiece: nonBlank(fixture.workpiece, "workpiece"),
-    definition,
+    definition: parseWorkedModelDefinition(fixture.definition),
     revisionId: nonBlank(fixture.revisionId, "revisionId"),
   };
 };

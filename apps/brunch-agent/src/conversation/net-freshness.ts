@@ -11,6 +11,7 @@ import { deriveNetLedger } from "./net-ledger.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import type { DocumentRevisionId } from "@hashintel/petrinaut-core";
 
 /** Signal appended at user-turn start when the model must read before relying on the net. */
 export const NET_STALE_SIGNAL = "brunch.net-stale";
@@ -22,25 +23,25 @@ export type NetFreshness =
       readonly lastReadHash: string;
       /** Undefined when a browser change left the current net unrecorded. */
       readonly lastKnownHash: string | undefined;
-      readonly lastReadRevisionId?: string;
-      readonly lastKnownRevisionId?: string;
-      readonly reportedRevisionId?: string;
+      readonly lastReadRevisionId?: DocumentRevisionId;
+      readonly lastKnownRevisionId?: DocumentRevisionId;
+      readonly reportedRevisionId?: DocumentRevisionId;
     }
   | {
       readonly kind: "current";
       readonly hash: string;
-      readonly revisionId?: string;
+      readonly revisionId?: DocumentRevisionId;
     };
 
 export const deriveNetFreshness = async (
   snapshot: FlueConversationSnapshot,
   browser: BrowserContext,
-  reportedRevisionId?: string,
+  reportedRevisionId?: DocumentRevisionId,
 ): Promise<NetFreshness> => {
   let lastReadHash: string | undefined;
   let lastKnownHash: string | undefined;
-  let lastReadRevisionId: string | undefined;
-  let lastKnownRevisionId: string | undefined;
+  let lastReadRevisionId: DocumentRevisionId | undefined;
+  let lastKnownRevisionId: DocumentRevisionId | undefined;
   let unrecordedChange = false;
   for (const event of await deriveNetLedger(snapshot, browser)) {
     switch (event.kind) {

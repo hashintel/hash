@@ -1,28 +1,15 @@
 import { Hono } from "hono";
 
+import { parseWorkedModelNetProjectionDefinitionUpdate } from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
-import { parseSDCPNFile, type SDCPN } from "@hashintel/petrinaut-core";
 
 import type { WorkedModelStore } from "../worked-model-store.ts";
 
 const bundleKeyPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
-const sha256Pattern = /^[0-9a-f]{64}$/u;
 
 const principalFrom = (header: string | undefined): string | undefined => {
   const principalKey = header?.trim();
   return principalKey && principalKey.length > 0 ? principalKey : undefined;
-};
-
-const definitionFrom = (value: unknown): SDCPN | undefined => {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    return undefined;
-  const parsed = parseSDCPNFile({
-    ...value,
-    title: "Worked-model net projection",
-  });
-  if (!parsed.ok) return undefined;
-  const { title: _title, ...definition } = parsed.sdcpn;
-  return definition;
 };
 
 export const createWorkedModelNetProjectionRouter = (
@@ -75,43 +62,17 @@ export const createWorkedModelNetProjectionRouter = (
     if (principalKey === undefined)
       return context.json({ error: "unauthorized" }, 401);
     const body: unknown = await context.req.json().catch(() => undefined);
-    if (typeof body !== "object" || body === null || Array.isArray(body))
+    let update;
+    try {
+      update = parseWorkedModelNetProjectionDefinitionUpdate(body);
+    } catch {
       return context.json({ error: "invalid-definition-update" }, 400);
-    const expectedSha256 =
-      "expectedSha256" in body && typeof body.expectedSha256 === "string"
-        ? body.expectedSha256
-        : undefined;
-    const expectedRevisionId =
-      "expectedRevisionId" in body &&
-      typeof body.expectedRevisionId === "string" &&
-      body.expectedRevisionId.length > 0
-        ? body.expectedRevisionId
-        : undefined;
-    const revisionId =
-      "revisionId" in body &&
-      typeof body.revisionId === "string" &&
-      body.revisionId.length > 0
-        ? body.revisionId
-        : undefined;
-    const definition =
-      "definition" in body ? definitionFrom(body.definition) : undefined;
-    if (
-      expectedSha256 === undefined ||
-      !sha256Pattern.test(expectedSha256) ||
-      expectedRevisionId === undefined ||
-      revisionId === undefined ||
-      revisionId === expectedRevisionId ||
-      definition === undefined
-    )
-      return context.json({ error: "invalid-definition-update" }, 400);
+    }
     try {
       const netProjection = await store.updateNetProjectionDefinition({
         copyId: context.req.param("copyId"),
         principalKey,
-        expectedSha256,
-        expectedRevisionId,
-        definition,
-        revisionId,
+        ...update,
       });
       return netProjection === undefined
         ? context.json({ error: "copy-not-found" }, 404)

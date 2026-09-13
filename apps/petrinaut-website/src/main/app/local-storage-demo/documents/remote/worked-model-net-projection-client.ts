@@ -1,71 +1,11 @@
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
-  parseSDCPNFile,
-  type DocumentRevisionId,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+  parseWorkedModelNetProjection,
+  type WorkedModelNetProjection,
+  type WorkedModelNetProjectionDefinitionUpdate,
+} from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
+import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
-export interface WorkedModelNetProjection {
-  readonly bundleKey: string;
-  readonly copyId: string;
-  readonly conversationId: string;
-  readonly documentId: string;
-  readonly incarnationId: string;
-  readonly fixtureVersion: string;
-  readonly principalKey: string;
-  readonly title: string;
-  readonly definition: SDCPN;
-  readonly definitionSha256: string;
-  readonly revisionId: DocumentRevisionId;
-}
-
-const nonBlankString = (value: unknown, field: string): string => {
-  if (typeof value !== "string" || value.trim().length === 0)
-    throw new Error(`Worked-model response has no ${field}.`);
-  return value;
-};
-
-const definitionFrom = (value: unknown): SDCPN => {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new Error("Worked-model response has no definition.");
-  const parsed = parseSDCPNFile({
-    ...value,
-    title: "Worked-model net projection",
-  });
-  if (!parsed.ok) throw new Error(parsed.error);
-  const { title: _title, ...definition } = parsed.sdcpn;
-  return definition;
-};
-
-export const parseWorkedModelNetProjection = (
-  value: unknown,
-): WorkedModelNetProjection => {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new Error("Worked-model response is not an object.");
-  const netProjection = value as Record<string, unknown>;
-  return {
-    bundleKey: nonBlankString(netProjection.bundleKey, "bundleKey"),
-    copyId: nonBlankString(netProjection.copyId, "copyId"),
-    conversationId: nonBlankString(
-      netProjection.conversationId,
-      "conversationId",
-    ),
-    documentId: nonBlankString(netProjection.documentId, "documentId"),
-    incarnationId: nonBlankString(netProjection.incarnationId, "incarnationId"),
-    fixtureVersion: nonBlankString(
-      netProjection.fixtureVersion,
-      "fixtureVersion",
-    ),
-    principalKey: nonBlankString(netProjection.principalKey, "principalKey"),
-    title: nonBlankString(netProjection.title, "title"),
-    definition: definitionFrom(netProjection.definition),
-    definitionSha256: nonBlankString(
-      netProjection.definitionSha256,
-      "definitionSha256",
-    ),
-    revisionId: nonBlankString(netProjection.revisionId, "revisionId"),
-  };
-};
+export { parseWorkedModelNetProjection, type WorkedModelNetProjection };
 
 export const workedModelApiUrl = (
   chatEndpoint: string,
@@ -149,13 +89,7 @@ export const updateNetProjectionDefinition = (
   input: {
     readonly chatEndpoint: string;
     readonly currentOrigin: string;
-    readonly principalKey: string;
-    readonly copyId: string;
-    readonly expectedSha256: string;
-    readonly expectedRevisionId: DocumentRevisionId;
-    readonly definition: SDCPN;
-    readonly revisionId: DocumentRevisionId;
-  },
+  } & WorkedModelNetProjectionDefinitionUpdate,
   fetcher: typeof fetch = globalThis.fetch,
 ): Promise<WorkedModelNetProjection> =>
   netProjectionRequest(

@@ -13,6 +13,10 @@
     "./flue": {
       "types": "./src/flue.ts",
       "import": "./dist/flue.js"
+    },
+    "./worked-model": {
+      "types": "./src/worked-model-net-projection.ts",
+      "import": "./dist/worked-model.js"
     }
   },
   "scripts": {
