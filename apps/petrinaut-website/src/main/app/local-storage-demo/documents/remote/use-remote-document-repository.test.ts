@@ -72,6 +72,41 @@ describe("useRemoteDocumentRepository", () => {
     });
   });
 
+  test("forwards document and incarnation identity into persistDefinition", async () => {
+    const { result } = renderHook(() => useRemoteDocumentRepository(input));
+
+    await result.current.repository.persistRevision({
+      documentId: "document-1",
+      incarnationId: "incarnation-1",
+      definition: workedModel.netProjection.definition,
+      previousRevisionId: "revision-1",
+      revisionId: "revision-2",
+    });
+
+    expect(workedModel.persistDefinition).toHaveBeenCalledWith({
+      documentId: "document-1",
+      incarnationId: "incarnation-1",
+      definition: workedModel.netProjection.definition,
+      previousRevisionId: "revision-1",
+      revisionId: "revision-2",
+    });
+  });
+
+  test("rejects a revision from another incarnation", async () => {
+    const { result } = renderHook(() => useRemoteDocumentRepository(input));
+
+    await expect(
+      result.current.repository.persistRevision({
+        documentId: "document-1",
+        incarnationId: "stale-incarnation",
+        definition: workedModel.netProjection.definition,
+        previousRevisionId: "revision-1",
+        revisionId: "revision-2",
+      }),
+    ).rejects.toThrow("has a different incarnation");
+    expect(workedModel.persistDefinition).not.toHaveBeenCalled();
+  });
+
   test("rejects a revision for a document the repository does not own", async () => {
     const { result } = renderHook(() => useRemoteDocumentRepository(input));
 

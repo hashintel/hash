@@ -1089,6 +1089,10 @@ describe("worked-model net-projection selection", () => {
       status: { state: "loading" },
     };
     brunchPreviewConfig.isBrunchConfigured = true;
+    remoteRepositoryOperations.persistRevision.mockReset();
+    remoteRepositoryOperations.persistRevision.mockImplementation(
+      async (): Promise<void> => undefined,
+    );
   });
 
   test("opens the server-owned document and conversation selected by bundle", async () => {
@@ -1255,6 +1259,111 @@ describe("worked-model net-projection selection", () => {
     ).toBeNull();
   });
 
+  test("keeps a newer live handle when an earlier remote acknowledgement arrives", async () => {
+    stubStorage();
+    selectRemoteDocument();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    const firstAcknowledgement = Promise.withResolvers<void>();
+    remoteRepositoryOperations.persistRevision.mockReset();
+    remoteRepositoryOperations.persistRevision.mockImplementation(
+      async (change) => {
+        if (change.previousRevisionId === remoteDocument.revisionId)
+          await firstAcknowledgement.promise;
+        const current = remoteDocumentState.current.document;
+        if (current === null || current.documentId !== change.documentId)
+          return;
+        remoteDocumentState.current = {
+          ...remoteDocumentState.current,
+          document: {
+            ...current,
+            revisionId: change.revisionId,
+            definition: structuredClone(change.definition),
+          },
+        };
+      },
+    );
+
+    const view = render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "first-place",
+          name: "First place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    const secondRevisionId = handle.revisionId.get();
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "second-place",
+          name: "Second place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 10,
+          y: 10,
+        });
+      });
+    });
+    const thirdRevisionId = handle.revisionId.get();
+
+    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledTimes(2);
+    expect(
+      remoteRepositoryOperations.persistRevision.mock.calls[0]?.[0],
+    ).toMatchObject({
+      previousRevisionId: "bundle-revision",
+      revisionId: secondRevisionId,
+    });
+    expect(
+      remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
+    ).toMatchObject({
+      previousRevisionId: secondRevisionId,
+      revisionId: thirdRevisionId,
+    });
+
+    await act(async () => {
+      firstAcknowledgement.resolve();
+      await firstAcknowledgement.promise;
+    });
+    view.rerender(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await act(async () => Promise.resolve());
+
+    expect(editorProps.current?.handle).toBe(handle);
+    expect(handle.revisionId.get()).toBe(thirdRevisionId);
+    expect(handle.doc()?.places.map((place) => place.id)).toEqual([
+      "first-place",
+      "second-place",
+    ]);
+  });
+
   test("fails closed without an endpoint and does not read local documents", () => {
     seedStoredNet();
     const getItem = vi.spyOn(localStorage, "getItem");
@@ -1265,6 +1374,31 @@ describe("worked-model net-projection selection", () => {
       <LocalStorageDemoApp
         onSearchChange={() => {}}
         search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Worked-model document unavailable",
+      }),
+    ).toBeDefined();
+    expectNoFallbackStorageReads(getItem);
+    expect(editorProps.current).toBeNull();
+  });
+
+  test("selects the remote document when leftover fixture parameters accompany a bundle", () => {
+    seedStoredNet();
+    const getItem = vi.spyOn(localStorage, "getItem");
+    getItem.mockClear();
+    brunchPreviewConfig.isBrunchConfigured = false;
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{
+          bundle: "inventory-purchasing",
+          brunchTracer: "construction",
+        }}
       />,
     );
 

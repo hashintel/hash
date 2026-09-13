@@ -88,14 +88,14 @@ export const localStorageDemoRouteIdentity = (
   | "construction-candidate"
   | "root-creation-candidate"
   | typeof crewReservationFixtureId =>
-  search.brunchTracer === "root-creation"
-    ? "root-creation-candidate"
-    : isConstructionSelected(search)
-      ? "construction-candidate"
-      : isRootArcTracerSelected(search)
-        ? "root-arc-tracer"
-        : isCrewReservationFixtureSelected(search)
-          ? crewReservationFixtureId
-          : search.bundle !== undefined
-            ? "worked-model-bundle"
+  search.bundle !== undefined
+    ? "worked-model-bundle"
+    : search.brunchTracer === "root-creation"
+      ? "root-creation-candidate"
+      : isConstructionSelected(search)
+        ? "construction-candidate"
+        : isRootArcTracerSelected(search)
+          ? "root-arc-tracer"
+          : isCrewReservationFixtureSelected(search)
+            ? crewReservationFixtureId
             : "ordinary";

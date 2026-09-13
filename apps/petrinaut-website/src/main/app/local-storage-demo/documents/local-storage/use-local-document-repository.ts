@@ -228,9 +228,18 @@ export const useLocalDocumentRepository = (input: {
   );
 
   const settleRevision: DocumentRepository["settleRevision"] = useCallback(
-    async ({ documentId }) => {
-      if (documents[documentId] === undefined)
+    async ({ documentId, revisionId }) => {
+      const storedDocument = documents[documentId];
+      if (storedDocument === undefined)
         throw new Error(`Local document ${documentId} is not available.`);
+      const document = toDocumentRecord(storedDocument);
+      const identityKey = `${documentId}:${document.incarnationId}`;
+      const persistedRevision =
+        persistedRevisionsRef.current.get(identityKey) ?? document.revisionId;
+      if (persistedRevision !== revisionId)
+        throw new Error(
+          `Local document ${documentId} has not persisted revision ${revisionId}.`,
+        );
     },
     [documents],
   );

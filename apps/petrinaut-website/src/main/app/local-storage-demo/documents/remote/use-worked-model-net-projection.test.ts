@@ -51,6 +51,19 @@ const netProjection = (
   revisionId,
 });
 
+const persistChange = (
+  definition: SDCPN,
+  previousRevisionId: string,
+  revisionId: string,
+  documentId = "copy-1-document",
+) => ({
+  documentId,
+  incarnationId: `${documentId}-incarnation`,
+  definition,
+  previousRevisionId,
+  revisionId,
+});
+
 const input = {
   bundleKey: "inventory-purchasing",
   chatEndpoint: "/agents/chat",
@@ -128,16 +141,12 @@ test("serializes definition writes against each returned hash", async () => {
 
   await act(async () => {
     await Promise.all([
-      result.current.persistDefinition({
-        definition: firstDefinition,
-        previousRevisionId: "revision-1",
-        revisionId: "revision-2",
-      }),
-      result.current.persistDefinition({
-        definition: secondDefinition,
-        previousRevisionId: "revision-2",
-        revisionId: "revision-3",
-      }),
+      result.current.persistDefinition(
+        persistChange(firstDefinition, "revision-1", "revision-2"),
+      ),
+      result.current.persistDefinition(
+        persistChange(secondDefinition, "revision-2", "revision-3"),
+      ),
     ]);
   });
 
@@ -197,16 +206,12 @@ test("keys queued write bases by canonical document identity", async () => {
   await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   await act(async () => {
-    await result.current.persistDefinition({
-      definition: emptyDefinition,
-      previousRevisionId: "revision-1",
-      revisionId: "revision-2",
-    });
-    await result.current.persistDefinition({
-      definition: emptyDefinition,
-      previousRevisionId: "revision-2",
-      revisionId: "revision-3",
-    });
+    await result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2", "document-1"),
+    );
+    await result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-2", "revision-3", "document-1"),
+    );
   });
 
   expect(updateNetProjectionDefinition).toHaveBeenNthCalledWith(
@@ -228,11 +233,9 @@ test("settles the persistence operation for an exact document revision", async (
 
   let settled = false;
   act(() => {
-    void result.current.persistDefinition({
-      definition: emptyDefinition,
-      previousRevisionId: "revision-1",
-      revisionId: "revision-2",
-    });
+    void result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2"),
+    );
     void result.current.settleDocumentRevision("revision-2").then(() => {
       settled = true;
     });
@@ -257,11 +260,9 @@ test("creates a clean net projection only after queued writes settle", async () 
   await waitFor(() => expect(result.current.netProjection).not.toBeNull());
 
   await act(async () => {
-    await result.current.persistDefinition({
-      definition: emptyDefinition,
-      previousRevisionId: "revision-1",
-      revisionId: "revision-2",
-    });
+    await result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2"),
+    );
     await result.current.createCleanNetProjection();
   });
 
@@ -292,11 +293,9 @@ test("a delayed write cannot target or repopulate a newly selected copy", async 
 
   let write: Promise<void> | undefined;
   act(() => {
-    write = result.current.persistDefinition({
-      definition: emptyDefinition,
-      previousRevisionId: "revision-1",
-      revisionId: "revision-2",
-    });
+    write = result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2"),
+    );
   });
   await waitFor(() => expect(updateNetProjectionDefinition).toHaveBeenCalled());
   rerender({ bundleKey: "another-bundle" });
@@ -313,6 +312,44 @@ test("a delayed write cannot target or repopulate a newly selected copy", async 
     expect.objectContaining({ copyId: "copy-1" }),
   );
   expect(result.current.netProjection?.documentId).toBe("copy-2-document");
+});
+
+test("refuses a write whose document or incarnation no longer matches", async () => {
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
+
+  await expect(
+    result.current.persistDefinition({
+      ...persistChange(emptyDefinition, "revision-1", "revision-2"),
+      documentId: "other-document",
+    }),
+  ).rejects.toThrow("does not own document other-document");
+  await expect(
+    result.current.persistDefinition({
+      ...persistChange(emptyDefinition, "revision-1", "revision-2"),
+      incarnationId: "other-incarnation",
+    }),
+  ).rejects.toThrow("has a different incarnation");
+  expect(updateNetProjectionDefinition).not.toHaveBeenCalled();
+});
+
+test("refuses a write captured against a previous clean-copy identity", async () => {
+  vi.mocked(createCleanNetProjection).mockResolvedValue(
+    netProjection("a".repeat(64), emptyDefinition, "copy-clean"),
+  );
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
+
+  await act(async () => {
+    await result.current.createCleanNetProjection();
+  });
+
+  await expect(
+    result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2"),
+    ),
+  ).rejects.toThrow("does not own document copy-1-document");
+  expect(updateNetProjectionDefinition).not.toHaveBeenCalled();
 });
 
 test("does not resolve a bundle while disabled", () => {

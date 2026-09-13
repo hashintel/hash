@@ -21,6 +21,28 @@ const initialState: WorkedModelNetProjectionState = {
   loading: false,
 };
 
+const writeIdentityKey = (identity: {
+  readonly documentId: string;
+  readonly incarnationId: string;
+}): string => `${identity.documentId}:${identity.incarnationId}`;
+
+const requireMatchingWriteIdentity = (
+  projection: WorkedModelNetProjection,
+  change: {
+    readonly documentId: string;
+    readonly incarnationId: string;
+  },
+): void => {
+  if (projection.documentId !== change.documentId)
+    throw new Error(
+      `Worked-model net projection does not own document ${change.documentId}.`,
+    );
+  if (projection.incarnationId !== change.incarnationId)
+    throw new Error(
+      `Worked-model document ${change.documentId} has a different incarnation.`,
+    );
+};
+
 export const useWorkedModelNetProjection = (input: {
   readonly bundleKey: string | undefined;
   readonly chatEndpoint: string;
@@ -33,7 +55,7 @@ export const useWorkedModelNetProjection = (input: {
   const netProjectionRef = useRef<WorkedModelNetProjection | null>(null);
   const selectionGenerationRef = useRef(0);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const writeBasesByDocumentIdRef = useRef(
+  const writeBasesByIdentityRef = useRef(
     new Map<string, WorkedModelNetProjection>(),
   );
   const writesByRevisionRef = useRef(
@@ -43,8 +65,8 @@ export const useWorkedModelNetProjection = (input: {
   const acceptNetProjection = useCallback(
     (netProjection: WorkedModelNetProjection) => {
       netProjectionRef.current = netProjection;
-      writeBasesByDocumentIdRef.current.set(
-        netProjection.documentId,
+      writeBasesByIdentityRef.current.set(
+        writeIdentityKey(netProjection),
         netProjection,
       );
       setState({ netProjection, error: null, loading: false });
@@ -96,6 +118,8 @@ export const useWorkedModelNetProjection = (input: {
 
   const persistDefinition = useCallback(
     (change: {
+      readonly documentId: string;
+      readonly incarnationId: string;
       readonly definition: SDCPN;
       readonly previousRevisionId: DocumentRevisionId;
       readonly revisionId: DocumentRevisionId;
@@ -105,11 +129,17 @@ export const useWorkedModelNetProjection = (input: {
         return Promise.reject(
           new Error("Worked-model net projection is not available."),
         );
+      try {
+        requireMatchingWriteIdentity(netProjection, change);
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      const identityKey = writeIdentityKey(change);
       const selectionGeneration = selectionGenerationRef.current;
       const write = writeQueueRef.current.then(async () => {
         const writeBase =
-          writeBasesByDocumentIdRef.current.get(netProjection.documentId) ??
-          netProjection;
+          writeBasesByIdentityRef.current.get(identityKey) ?? netProjection;
+        requireMatchingWriteIdentity(writeBase, change);
         if (writeBase.revisionId !== change.previousRevisionId)
           throw new Error(
             "Worked-model document revision does not follow its queued predecessor.",
@@ -124,13 +154,11 @@ export const useWorkedModelNetProjection = (input: {
           definition: change.definition,
           revisionId: change.revisionId,
         });
-        writeBasesByDocumentIdRef.current.set(
-          netProjection.documentId,
-          updated,
-        );
+        writeBasesByIdentityRef.current.set(identityKey, updated);
         if (
           selectionGenerationRef.current === selectionGeneration &&
-          netProjectionRef.current?.documentId === netProjection.documentId
+          netProjectionRef.current?.documentId === change.documentId &&
+          netProjectionRef.current.incarnationId === change.incarnationId
         )
           acceptNetProjection(updated);
       });

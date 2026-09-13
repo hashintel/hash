@@ -431,7 +431,8 @@ export const LocalStorageDemoApp = ({
    * endpoint there is no Flue client to prepare the conversation, so the URL
    * falls back to the ordinary demo rather than a banner stuck on preparing.
    */
-  const constructionSelected = brunchSelected && isConstructionSelected(search);
+  const constructionSelected =
+    brunchSelected && !remoteRouteSelected && isConstructionSelected(search);
   const rootCreationSelected =
     constructionSelected && search.brunchTracer === "root-creation";
   const productConstructionSelected =
@@ -441,6 +442,7 @@ export const LocalStorageDemoApp = ({
     rootCreationSelected || productConstructionSelected;
   const crewReservationFixtureSelected =
     brunchSelected &&
+    !remoteRouteSelected &&
     (isCrewReservationFixtureSelected(search) || constructionSelected);
   const rootArcTracerSelected =
     crewReservationFixtureSelected &&
@@ -505,8 +507,7 @@ export const LocalStorageDemoApp = ({
     }
     setActiveHandle((previous) =>
       previous?.document.documentId === currentDocument.documentId &&
-      previous.document.incarnationId === currentDocument.incarnationId &&
-      previous.handle.revisionId.get() === currentDocument.revisionId
+      previous.document.incarnationId === currentDocument.incarnationId
         ? previous
         : createActiveHandle(currentDocument),
     );

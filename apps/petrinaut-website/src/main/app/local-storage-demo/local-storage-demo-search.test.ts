@@ -99,6 +99,34 @@ describe("local storage demo search", () => {
     ).toBeUndefined();
   });
 
+  test("selects a valid bundle over leftover fixture or tracer parameters", () => {
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        brunchTracer: "construction",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        brunchTracer: "root-creation",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        "brunch-fixture": crewReservationFixtureId,
+        brunchTracer: "root-arc",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        "brunch-fixture": crewReservationFixtureId,
+      }),
+    ).toBe("worked-model-bundle");
+  });
+
   test("selects only the explicit stable fixture value", () => {
     expect(
       isCrewReservationFixtureSelected({

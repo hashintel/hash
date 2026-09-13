@@ -238,4 +238,66 @@ describe("useLocalDocumentRepository", () => {
       }),
     ).resolves.toBeUndefined();
   });
+
+  test("rejects settlement of a revision that has not been persisted", async () => {
+    stubStorage({
+      "document-1": {
+        id: "document-1",
+        incarnationId: "incarnation-1",
+        revisionId: "revision-1",
+        title: "Before",
+        sdcpn: emptyDefinition,
+        lastUpdated: new Date(0).toISOString(),
+      },
+    });
+    const { result } = renderHook(() =>
+      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    );
+
+    await expect(
+      result.current.repository.settleRevision({
+        documentId: "document-1",
+        revisionId: "unpersisted-revision",
+      }),
+    ).rejects.toThrow("has not persisted revision");
+  });
+
+  test("settles only the revision that persistRevision just recorded", async () => {
+    stubStorage({
+      "document-1": {
+        id: "document-1",
+        incarnationId: "incarnation-1",
+        revisionId: "revision-1",
+        title: "Before",
+        sdcpn: emptyDefinition,
+        lastUpdated: new Date(0).toISOString(),
+      },
+    });
+    const { result } = renderHook(() =>
+      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    );
+
+    await act(async () => {
+      await result.current.repository.persistRevision({
+        documentId: "document-1",
+        incarnationId: "incarnation-1",
+        definition: emptyDefinition,
+        previousRevisionId: "revision-1",
+        revisionId: "revision-2",
+      });
+    });
+
+    await expect(
+      result.current.repository.settleRevision({
+        documentId: "document-1",
+        revisionId: "revision-1",
+      }),
+    ).rejects.toThrow("has not persisted revision");
+    await expect(
+      result.current.repository.settleRevision({
+        documentId: "document-1",
+        revisionId: "revision-2",
+      }),
+    ).resolves.toBeUndefined();
+  });
 });
