@@ -12,7 +12,6 @@
  */
 import {
   layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
@@ -36,15 +35,6 @@ import {
   type MutatePetrinetOperationFailure,
 } from "./mutate-petrinet-tool";
 import { observeBrowserDefinition } from "./mutation-record";
-
-/** Every Brunch-named tool the browser answers is a host dynamic tool. */
-export const brunchPetrinautDynamicToolNames: ReadonlySet<string> = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautNetToolName,
-  readPetrinautDiagnosticsToolName,
-  layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
-]);
 
 const passthrough = { parse: (value: unknown) => value };
 

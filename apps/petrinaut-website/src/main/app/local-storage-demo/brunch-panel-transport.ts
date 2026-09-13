@@ -1,8 +1,4 @@
 import {
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
   createFlueChatTransport,
   FlueChatAdmissionError,
 } from "@hashintel/brunch-agent-transport-aisdk";
@@ -10,11 +6,7 @@ import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-
-const brunchClientToolNames = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-]);
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,

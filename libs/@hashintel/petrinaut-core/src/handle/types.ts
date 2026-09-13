@@ -24,8 +24,6 @@ export type DocChangeEvent = {
 export type HistoryEntry = {
   revisionId: DocumentRevisionId;
   timestamp: string;
-  /** Patches which produced this revision; absent for the retained baseline. */
-  patches?: PetrinautPatch[];
 };
 
 export interface PetrinautHistory {

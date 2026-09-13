@@ -431,7 +431,6 @@ describe("PetrinautDocHandle history", () => {
     expect(events[0]?.patches).not.toHaveLength(0);
     expect(handle.history?.entries.get()[1]).toMatchObject({
       revisionId: changedRevisionId,
-      patches: events[0]?.patches,
     });
   });
 

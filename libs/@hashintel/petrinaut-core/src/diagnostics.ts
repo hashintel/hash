@@ -10,7 +10,6 @@ import { SDCPNLanguageServer } from "./lsp/lib/create-sdcpn-language-service";
 import type { PetrinautExtensionSettings } from "./extensions";
 import type { SDCPN } from "./types/sdcpn";
 
-export { checkSDCPN, SDCPNLanguageServer };
 export type {
   ItemType as SDCPNDiagnosticItemType,
   SDCPNCheckResult,

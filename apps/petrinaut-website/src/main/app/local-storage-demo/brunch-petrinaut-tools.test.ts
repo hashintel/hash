@@ -10,10 +10,8 @@ import {
 } from "@hashintel/petrinaut-core";
 import { petrinautDocsContent } from "@hashintel/petrinaut/ui";
 
-import {
-  brunchPetrinautDynamicToolNames,
-  createBrunchPetrinautTools,
-} from "./brunch-petrinaut-tools";
+import { brunchPetrinautDynamicToolNames } from "./brunch-client-tools";
+import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { observeBrowserDefinition } from "./mutation-record";
 
 import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/petrinaut/ui";

@@ -18,17 +18,6 @@ import { createPortal } from "react-dom";
 import {
   batchedConstructionMode,
   conversationConstructionMode,
-  layoutPetrinautNetToolName,
-  legacyLayoutPetrinautNetToolName,
-  legacyMutatePetrinautNetToolName,
-  legacyReadPetrinautDiagnosticsToolName,
-  legacyReadPetrinautNetToolName,
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  mutatePetrinautNetToolName,
-  observedConstructionBrowserToolNames,
-  readPetrinautDiagnosticsToolName,
-  readPetrinautNetToolName,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
@@ -77,6 +66,11 @@ import {
   useAssistantSelection,
 } from "./assistant-selection";
 import {
+  batchedConstructionClientToolNames,
+  brunchPetrinautDynamicToolNames,
+  constructionClientToolNames,
+} from "./brunch-client-tools";
+import {
   getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
 } from "./brunch-conversation-id";
@@ -86,10 +80,7 @@ import {
   createBrunchPanelTransport,
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
-import {
-  brunchPetrinautDynamicToolNames,
-  createBrunchPetrinautTools,
-} from "./brunch-petrinaut-tools";
+import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
@@ -152,25 +143,6 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
 };
 
 const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
-const constructionClientToolNames: ReadonlySet<string> = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  ...observedConstructionBrowserToolNames,
-  legacyReadPetrinautNetToolName,
-  legacyReadPetrinautDiagnosticsToolName,
-]);
-const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautNetToolName,
-  legacyReadPetrinautNetToolName,
-  readPetrinautDiagnosticsToolName,
-  legacyReadPetrinautDiagnosticsToolName,
-  mutatePetrinautNetToolName,
-  legacyMutatePetrinautNetToolName,
-  layoutPetrinautNetToolName,
-  legacyLayoutPetrinautNetToolName,
-]);
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
   ...preparedCrewReservationStoredSDCPN,

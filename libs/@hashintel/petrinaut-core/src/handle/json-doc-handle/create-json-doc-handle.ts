@@ -128,7 +128,6 @@ export function createJsonDocHandle(
       entries.push({
         revisionId: entry.revisionId,
         timestamp: entry.timestamp,
-        patches: entry.forward.map(fromImmerPatch),
       });
     }
     entriesStore.set(entries);
