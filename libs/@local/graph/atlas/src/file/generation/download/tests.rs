@@ -124,6 +124,7 @@ fn hold() -> (Trigger, HoldControl) {
 struct Fixture {
     _scratch: ScratchDirectory,
     path: Utf8PathBuf,
+    source: FilePath,
     storage: Storage,
     triggers: Mutex<HashMap<String, Trigger>>,
     reads: Mutex<Vec<String>>,
@@ -137,9 +138,15 @@ impl Fixture {
             .join(format!("atlas-download-fixture-{}", Uuid::now_v7()));
         fs::create_dir_all(&path).expect("should create the fixture source directory");
 
+        let source = path
+            .as_str()
+            .parse()
+            .expect("should parse the fixture source");
+
         Self {
             _scratch: ScratchDirectory::new(path.clone()),
             path,
+            source,
             storage: Storage::in_temp_dir()
                 .await
                 .expect("should create temporary storage"),
@@ -149,11 +156,8 @@ impl Fixture {
     }
 
     /// Returns the source containing the `generations/` namespace.
-    fn source(&self) -> FilePath {
-        self.path
-            .as_str()
-            .parse()
-            .expect("should parse the fixture source")
+    fn source(&self) -> &FilePath {
+        &self.source
     }
 
     /// Installs a one-shot override for the next read of `path`.
@@ -317,13 +321,15 @@ fn assert_published(
 }
 
 /// A download recovered from a spawned synchronization, with that call's result.
-type SynchronizeOutcome = (
-    Download<Arc<Fixture>>,
+type SynchronizeOutcome<'download> = (
+    Download<'download, Arc<Fixture>>,
     Result<Option<GenerationId>, DownloadError>,
 );
 
 /// Runs one synchronization on a task, returning the download with its result.
-fn spawn_synchronize(mut download: Download<Arc<Fixture>>) -> JoinHandle<SynchronizeOutcome> {
+fn spawn_synchronize<'download>(
+    mut download: Download<'download, Arc<Fixture>>,
+) -> JoinHandle<SynchronizeOutcome<'download>> {
     tokio::spawn(async move {
         let result = download.synchronize().await;
         (download, result)
@@ -354,8 +360,8 @@ async fn synchronize_fresh_source() {
 
     let handle = spawn_synchronize(Download::new(
         Arc::clone(&fixture),
-        target.clone(),
-        fixture.source(),
+        &target,
+        &fixture.source(),
     ));
     control
         .entered
@@ -437,7 +443,7 @@ async fn synchronize_source_pointer_absent() {
         .expect("the local generation should activate");
 
     let fixture = Arc::new(Fixture::new().await);
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
 
     let result = download
         .synchronize()
@@ -480,7 +486,7 @@ async fn synchronize_artifact_absent() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -546,7 +552,7 @@ async fn synchronize_artifact_corrupt() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -594,7 +600,7 @@ async fn synchronize_metadata_mismatch() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -651,7 +657,7 @@ async fn synchronize_body_truncated() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -685,7 +691,7 @@ async fn synchronize_publication_complete() {
     let fixture = Arc::new(Fixture::new().await);
     seed(&current_path(&fixture.path), id.to_string());
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let result = download
         .synchronize()
         .await
@@ -731,7 +737,7 @@ async fn synchronize_publication_incomplete() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -779,7 +785,7 @@ async fn synchronize_publication_metadata_absent() {
     target
         .activate(local)
         .expect("should activate the prior generation");
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -829,7 +835,7 @@ async fn synchronize_publication_corrupt() {
         .activate(local)
         .expect("the local generation should activate");
 
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     let error = download
         .synchronize()
         .await
@@ -868,7 +874,7 @@ async fn synchronize_repeat_unchanged() {
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     download
         .synchronize()
         .await
@@ -898,7 +904,7 @@ async fn synchronize_repeat_pointer_moved() {
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     download
         .synchronize()
         .await
@@ -939,7 +945,7 @@ async fn synchronize_repeat_directory_removed() {
     seed_source(&fixture, &source, id, &repository);
 
     let (_scratch, target) = root();
-    let mut download = Download::new(Arc::clone(&fixture), target.clone(), fixture.source());
+    let mut download = Download::new(Arc::clone(&fixture), &target, fixture.source());
     download
         .synchronize()
         .await
@@ -986,7 +992,7 @@ async fn synchronize_source_advances_during_read() {
     let (_scratch, target) = root();
     let handle = spawn_synchronize(Download::new(
         Arc::clone(&fixture),
-        target.clone(),
+        &target,
         fixture.source(),
     ));
     control
@@ -1058,11 +1064,10 @@ async fn run_shutdown_during_read() {
     );
 
     let (_scratch, target) = root();
-    let task = Download::new(Arc::clone(&fixture), target.clone(), fixture.source()).into_task(
-        DownloadOptions {
+    let task =
+        Download::new(Arc::clone(&fixture), &target, fixture.source()).into_task(DownloadOptions {
             poll_interval: Duration::from_secs(60),
-        },
-    );
+        });
     let (shutdown, shutdown_signal) = oneshot::channel();
     let mut run = pin!(task.run(async move {
         shutdown_signal.await.expect("should signal shutdown");

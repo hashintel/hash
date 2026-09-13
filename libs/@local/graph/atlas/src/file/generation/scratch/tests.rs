@@ -1,12 +1,17 @@
 //! Scratch fixtures for tests across the crate, and the input-completion cases.
 
-use std::{env, fs, io};
+#[cfg(test)]
+use std::io;
+use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+#[cfg(test)]
 use tokio::io::AsyncWriteExt as _;
 use uuid::Uuid;
 
-use super::{ScratchDirectory, ScratchFile};
+use super::ScratchDirectory;
+#[cfg(test)]
+use super::ScratchFile;
 
 /// Creates a fixture scratch directory under the system temporary directory.
 #[expect(

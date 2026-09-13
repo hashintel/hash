@@ -8,7 +8,7 @@ use std::{
 use camino::{Utf8Path, Utf8PathBuf};
 use uuid::Uuid;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub(crate) mod tests;
 
 /// A dot-prefixed directory for one run's transient working state.
