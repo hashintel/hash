@@ -1,4 +1,4 @@
-# Mission 7c — Inventory worked-model capability and provenance (FE-1573 / FE-1478)
+# Mission 7c — Record an Inventory worked example from scratch (FE-1573 / FE-1478)
 
 ## Status
 
@@ -6,43 +6,30 @@ Live, not accepted, on `ln/fe-1573-mission-7c`, [PR #9667](https://github.com/ha
 
 This file owns the contract and current progress dispositions. The PR holds detailed verification results and residuals; native run records hold execution evidence. Update the state below in place, not as a running log.
 
-- **Established base:** the PR reports mutation/compiler/layout/provenance infrastructure, document-source isolation and a principal-owned net projection. The projection starts an empty conversation; it is not a complete worked-model copy. See [proof dispositions](#throughline-proof-floor) for coverage and limits.
-- **Acceptance open:** the recorded persona flagship, Lu's semantic review and portfolio product evidence remain open. The complete-bundle path is blocked on the [session/workpiece fork](#fog-line) and the accepted build-packaged fixture.
-- **Next action — Lu and the builder:** discuss the requested scope split below. Completion of that decision means an agreed persona-example acceptance bar and an explicit disposition for omitted obligations, before committing a recut. No new product work or paid run is authorized by this documentation update.
+- **Established base:** mutation/compiler/layout/provenance infrastructure and the Pi persona launcher exist; see [mechanism coverage](#throughline-proof-floor). The existing Inventory opening assumes a preloaded reference net and needs alignment with this from-scratch cut before use.
+- **Acceptance open:** one retained run must connect ordinary-language elicitation to an agent-built net, explanation, correction and original-session reopen, followed by Lu's review. Distribution and portfolio breadth are [next-mission work](docs/mission-drafts/worked-example-distribution-and-breadth.md), not blockers on this run.
+- **Next observation — builder:** use the existing persona/product route with a fresh session and empty net to learn whether Brunch can construct Inventory from elicited meaning. First align the input and verify the empty starting state. Lu must supply the bounded model/run allocation under [execution safety](evaluations/README.md#execution-safety) before paid inference. Discriminator: native records show model-originated construction and its correspondence to the saved account, or the first concrete failure that prevents it.
 
 ### Owner decisions
 
-- **2026-09-13 — Lu:** improve mission direction and tracking now; discuss narrowing this branch's closure to a recorded worked example through the persona setup, excluding fixture seeding and template copying. The narrower contract is pending that discussion; the acceptance obligations below remain unchanged until the recut.
+- **2026-09-13 — Lu:** close this branch on a recorded persona-driven worked example starting from scratch. Defer fixture distribution and portfolio breadth to the next mission; the later reusable demo depends on first producing this example. This cut changes scope, not acceptance of the unrun example or authorization of a paid allocation.
 
 ## Imperative
 
-Use the team's established, compiler-clean Inventory reference SDCPN and local Pi-harness persona-based development to produce a versioned Inventory fixture bundle containing one retained Brunch session, its workpiece and that reviewed net. Package the complete accepted fixture with the deployed app and seed it into Postgres when the database is created or upgraded.
+Produce one recorded Inventory purchasing worked example through the local Pi persona setup and the actual Brunch/Petrinaut product route. Start with a fresh conversation, no prior workpiece and an empty net. The persona supplies operational knowledge in ordinary language; Brunch elicits and records it, constructs a connected compiler-clean SDCPN, explains consequential content and makes one bounded correction from a changed operational fact. Close and reopen that same local document/session and demonstrate continuity.
 
-Make a product manager able to open that stable Inventory purchasing template through `?bundle=inventory-purchasing` as an independently writable copy of the complete connected bundle, with the retained conversation, workpiece, net and their references intact; inspect its legible SDCPN; ask why consequential content exists; correct it in ordinary language; see compiler-clean model changes and coherent layout; and close and reopen the same copy. Editing one copy must not alter the seeded template or a sibling, and the product must create a clean complete-bundle copy from the seed on request.
+Retain the conversation, workpiece revisions, mutation/provenance records and final net in the original run for Lu's semantic review and the next mission's input. Recording a useful example does not require packaging, seeding, copying or exporting its session. Local-only evidence remains valid within that stated limit.
 
-Inventory is the fully recorded flagship and semantic acceptance exemplar, but the construction architecture must not depend on Inventory-specific nouns or IDs. The portfolio obligation is tiered:
+The established Inventory reference SDCPN was built by hand and has no associated workpiece or session. Brunch can interpret its visible structure, but cannot recover a recorded construction basis that does not exist. Keep it as an evaluator-side comparator, not a seed, an elicitor input or a source of prewritten mutations. The result need not copy its IDs or layout; it must faithfully represent the elicited operation. Reusable guidance and construction architecture must remain independent of Inventory-specific nouns and IDs.
 
-1. Inventory receives flagship-level construction, correction and explanation recording.
-2. All six named operational-process packs receive compatibility/capability probes through the construction route: Vestera Scheduling, Data Centre Thermal Operations, Industrial Gas VMI, Pharma Cold Chain, Semiconductor Fab Operations and Truck Fleet Maintenance.
-3. At least one non-Inventory pack receives a fresh end-to-end construction and correction run through the visible product route.
-
-Full end-to-end proof for every pack is not required. Inside the declared capability envelope, an ordinary request must either succeed through canonical Petrinaut operations or refuse visibly and specifically before unsupported work is claimed.
+This proves one worked example, not portfolio breadth, repeatability across runs, simulation correctness or fixture distribution. An unsupported request must refuse visibly and specifically rather than silently omit meaning or claim success.
 
 ## Throughline
 
 The full acceptance path is below. The next authorized action is in [Status](#status); the full path is not an execution schedule.
 
 ```text
-local persona-based development produces an accepted session + workpiece + net
-→ app build packages the versioned fixture bundle
-→ database creation or upgrade seeds the standard template idempotently
-→ ?bundle=inventory-purchasing selects the fail-closed remote document source
-→ principal-scoped resolution creates or resumes an independently writable
-  copy of the complete connected session + workpiece + net bundle
-→ copied identities are stable or coherently remapped while conversation,
-  workpiece, mutation/provenance and document-revision links remain intact
-→ the remote route fixes the Brunch process assistant and exposes a read-only
-  title while identity-explicit revisions persist through the remote repository
+fresh browser/session + empty local net; no preloaded reference or workpiece
 → persona speaks in ordinary language; workpiece revisions settle
 → Brunch recognizes explanation, construction or correction intent
 → read_petrinaut_net supplies a fresh, verified base
@@ -53,22 +40,22 @@ local persona-based development produces an accepted session + workpiece + net
 → layout_petrinaut_net records its pre/post hashes and position-only effects
 → query_workpiece maps selected Petrinaut elements to their recorded mutation
   revisions, workpiece passages and session turns, or reports absence
-→ close/reopen resumes the same owned copy coherently
+→ an ordinary-language correction changes the workpiece and bounded net region
+→ close/reopen resumes the original local document and conversation
+→ Lu reviews the retained run, operational account and agent-constructed net
 ```
 
 Assistant selection is host-owned. Each mode has its own transport, tool manifest and conversation history; no history or tool result is spliced across modes.
 
 ### Cold-start reads
 
-- [`evaluations/cases/inventory-purchasing/`](evaluations/cases/inventory-purchasing/) — situation pack, opening message and established `reference-sdcpn.json`.
-- [`../../../apps/brunch-agent/src/evaluations/persona/launch.ts`](../../../apps/brunch-agent/src/evaluations/persona/launch.ts) — Pi persona entrypoint; read [execution safety](evaluations/README.md#execution-safety) before provider checks or paid runs.
-- [`../../../apps/brunch-agent/src/standard-worked-model-fixtures.ts`](../../../apps/brunch-agent/src/standard-worked-model-fixtures.ts) — build discovery under `src/worked-model-fixtures/*.json`; the accepted Inventory bundle is not yet packaged there.
+- [`evaluations/cases/inventory-purchasing/`](evaluations/cases/inventory-purchasing/) — private persona situation pack and shared opening; `reference-sdcpn.json` is evaluator-only.
+- [`../../../apps/brunch-agent/src/evaluations/persona/launch.ts`](../../../apps/brunch-agent/src/evaluations/persona/launch.ts) — Pi persona entrypoint. Select an ordinary empty-document route explicitly, omit `--initial-net`, and verify actual initial state rather than infer it from flags. Read [execution safety](evaluations/README.md#execution-safety) before provider checks or paid runs.
 - [`docs/mission-archive/7b-ordinary-batched-construction-provenance.md`](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) — accepted ordinary batch and provenance base.
 - [`docs/reference/architecture/mutation-capability-matrix.md`](docs/reference/architecture/mutation-capability-matrix.md) — operation ownership, admission, execution and refusal authority.
 - [`../../../apps/brunch-agent/src/conversation/net-freshness.ts`](../../../apps/brunch-agent/src/conversation/net-freshness.ts) and [`../../../apps/brunch-agent/src/conversation/net-ledger.ts`](../../../apps/brunch-agent/src/conversation/net-ledger.ts) — current-net freshness and the candidate shared-history projection, including its authority constraints.
 - [`packages/plugin-sdcpn/src/mutate-petrinet.ts`](packages/plugin-sdcpn/src/mutate-petrinet.ts) and [`packages/plugin-sdcpn/src/mutation-record.ts`](packages/plugin-sdcpn/src/mutation-record.ts) — selected carrier and receiving-boundary verification.
 - [`../petrinaut-core/src/action-schemas.ts`](../petrinaut-core/src/action-schemas.ts), [`../petrinaut-core/src/selected-mutation-batch.ts`](../petrinaut-core/src/selected-mutation-batch.ts) and [`../petrinaut-core/src/diagnostics.ts`](../petrinaut-core/src/diagnostics.ts) — canonical actions, batch schema and TypeScript diagnostics.
-- [`../../../apps/brunch-agent/src/database-config.ts`](../../../apps/brunch-agent/src/database-config.ts) — existing SQLite/Postgres adapter on which the catalogue and copy path must build.
 - [`../../../apps/petrinaut-website/src/main/app/local-storage-demo/documents/`](../../../apps/petrinaut-website/src/main/app/local-storage-demo/documents/) and [`../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistants/brunch/use-process-agent-binding.ts`](../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistants/brunch/use-process-agent-binding.ts) — storage-neutral lifecycle, source crossing and typed conversation identity.
 - [`docs/reference/architecture/topology.md`](docs/reference/architecture/topology.md) — current tool and document-lifecycle topology.
 
@@ -89,43 +76,38 @@ Mission 7c proves levels 1 and 2 mechanically and obtains level 3 through Lu's r
 
 **Release-note sentence:** Brunch builds and corrects an operational-process model in ordinary conversation, keeps it compiler-clean and legible, and answers where visible content came from, with Inventory purchasing as the recorded flagship.
 
-**Product-manager script:** open `?bundle=inventory-purchasing` and receive an independently writable copy of the fixture's retained conversation, workpiece and net with their references intact; ask why two consequential elements exist; correct one operational fact in ordinary language; observe a compiler-clean bounded change and coherent layout; close and reopen the same connected copy; confirm the template and a sibling are unchanged; and create a clean complete-bundle copy. Confirm that the worked-model document states “This document uses the Brunch process assistant”, presents the template title as read-only and offers no assistant switch. Open an ordinary local document with the stock assistant and confirm that its stock transport, tool manifest and history remain unchanged.
+**Product-manager script:** watch the retained persona session start with an empty canvas and develop the Inventory operational account and model. In that conversation the persona asks why two consequential elements exist and corrects one operational fact in ordinary language. Observe a bounded, compiler-clean model change and legible layout, then reopen the same local document/session and inspect the continuing account and explanation. Lu reviews the resulting model against actual testimony; no tool vocabulary or developer-authored model repair is needed. A reusable template launch is not part of this script.
 
 ### Throughline proof floor
 
-These are the inner and middle-layer gates before the product-manager script can count as acceptance:
+These are existing mechanism checks to reuse while attempting the persona throughline, not an instruction to complete a subsystem checklist before the first informative run. Repair the first boundary that blocks or falsifies the selected run; use affected regression checks for each change.
 
 Dispositions are based on the inspected coverage artifacts and [PR #9667's reported verification and known failures](https://github.com/hashintel/hash/pull/9667), not a fresh execution. **Coverage present** means an instrument exists, not that the whole obligation passed. The PR reports passing affected suites but a failing full Brunch integration run, including compiler-feedback; it does not establish an all-green baseline.
 
 | Required result | Oracle | Current disposition / evidence |
 | --- | --- | --- |
 | Inventory-derived code-bearing slice fits the carrier | A frozen fixture names a coloured type, parameters, places and arcs, a stochastic transition and a differential equation; it parses, applies canonically and reaches clean TypeScript diagnostics. It is mechanism evidence only. | Coverage present: [Inventory slice test](packages/plugin-sdcpn/test/inventory-slice.test.ts). Persona construction remains open. |
-| The capability envelope is complete and honest | The canonical batch, plugin carrier and website-owned host executor admit the same operations. Every admitted shape verifies `applied` at the receiving boundary. An unadmitted shape is refused at its own position with the admitted names before anything applies. The dedicated [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) is the authority. | Coverage present: [carrier tests](packages/plugin-sdcpn/test/mutate-petrinet.test.ts), [admission controls](../../../apps/brunch-agent/test/integration/admission-controls.test.ts). Portfolio product proof remains open. |
+| The run's operations apply or refuse honestly | Use the [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) for admission and canonical execution. Receiving-boundary records verify applied effects; an unadmitted shape refuses at its position before application. A failed supported operation is a finding to repair, not a satisfied construction result. | Coverage present: [carrier tests](packages/plugin-sdcpn/test/mutate-petrinet.test.ts), [admission controls](../../../apps/brunch-agent/test/integration/admission-controls.test.ts). Full-envelope and portfolio proof moves to the successor. |
 | Compiler feedback is version-correlated | A structurally applied dirty batch reports errors or pending, never stale success; repair begins from a fresh observation and reaches diagnostics for the repaired definition. Dependency changes invalidate all affected code. | Coverage present: [browser compiler tracer](../../../apps/brunch-agent/test/compiler-feedback.integration.ts). Integration failure reported in PR; not accepted as a green product gate. |
 | Layout is a recorded document mutation | `layout_petrinaut_net` is separate from the semantic batch; its pre-hash equals the batch's final definition, its post-hash equals a fresh observation, and its effects are positions only. Existing user-arranged content uses the confirmation policy. | Coverage present: [mutation-record tests](packages/plugin-sdcpn/test/mutation-record.test.ts), [freshness tests](../../../apps/brunch-agent/test/net-freshness.test.ts). Flagship witness remains open. |
 | Workpiece query uses recorded current-revision evidence | An ordinary question about visible Petrinaut elements obtains a fresh observation, resolves element IDs to existing mutation-attempt revision IDs, maps those to current workpiece passages and relevant session turns, and reports missing or ambiguous provenance without inventing a link. | Coverage present: [root-creation provenance cases](../../../apps/brunch-agent/test/root-creation.integration.ts). Sampled flagship why answers remain open. |
-| Assistant modes are isolated | On ordinary local documents, host tests compare transports, tool manifests and history stores; switching preserves each provider's history without reinterpreting prior tool calls. Worked-model routes fix Brunch and do not offer the switch. | Partial coverage: [host selection tests](../../../apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx). Complete history/transport witness remains open. |
-| The partial worked-model net projection is source- and identity-explicit | Store, route, repository and controller tests must prove principal-scoped GET/POST/PUT, fresh net projections, fail-closed remote selection, revision persistence after open, typed process binding, fixed Brunch mode and read-only remote title. They cannot prove a worked-model copy without preserving the fixture session, workpiece and their links. | Reported passing: [store](../../../apps/brunch-agent/test/worked-model-store.test.ts), [routes](../../../apps/brunch-agent/test/worked-model-routes.test.ts), [browser integration](../../../apps/brunch-agent/test/integration/worked-model-net-projection.test.ts), and website document tests. Browser fixture is in-memory injected; Postgres case skips without its test URL. |
-| Complete connected-bundle acceptance remains executable debt | Contract pins must cover fixture-derived session/workpiece availability before a new turn, coherently remapped provenance links, same-copy reopen, clean session/workpiece/net copying and the build-discovered Postgres product path. Green net-projection tests cannot satisfy this result. | Blocked: five `test.fails` pins in [bundle-copy contract](../../../apps/brunch-agent/test/worked-model-bundle-copy.contract.test.ts). They are missing capabilities, not acceptance passes. |
+| Existing mode and tool boundaries remain intact | Reuse [host selection tests](../../../apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx), [catalogue](../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts) and [schema-carriage comparison](../../../apps/brunch-agent/test/integration/native-schema-carriage.integration.ts) if run repairs touch those boundaries. | Coverage present; full mode-continuity and topology-envelope adjudication is carried in the successor, not silently accepted here. |
 
-Host-executor tests are not live-browser construction evidence. The portfolio and persona gates below must exercise representative admitted operations and refusals through the visible product.
+Host-executor tests are not persona construction evidence. The readiness gate below must use model-originated calls through the visible product.
 
 ### Readiness gate
 
-The mission completes only when Lu can perform the product-manager script without IDs, tool vocabulary or developer repair, and all of the following hold:
+The mission completes only when the recorded product-manager script works without developer model repair and Lu accepts the worked example. The rows below are judgments over the same run, not separate feature workstreams:
 
 | Acceptance result | Required oracle | Current disposition |
 | --- | --- | --- |
-| Inventory template and copies behave as one worked model | Build/seed and Postgres integration plus two-principal product proof: the exact accepted local fixture is seeded idempotently; the route creates or resumes the right independently writable complete-bundle copy; copied or coherently remapped references connect its retained conversation, workpiece history, current revision/passages, mutation provenance, net and document revision history; copy edits never reach the template or sibling; same-copy reopen preserves that connected bundle; and a clean copy resets session, workpiece and net together. The complete-bundle pins above must pass; the current net projection cannot satisfy this gate. | Blocked: complete-bundle pins and packaged fixture unmet. |
 | Inventory is connected and operationally coherent | Lu reviews procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions. Structural and compiled evidence cannot pass this gate. | Open: Lu's flagship acceptance not recorded. |
-| The tiered portfolio obligation is met | Repeatable run records demonstrate all three tiers defined in the Imperative, and a scan confirms that reusable guidance contains no Inventory-specific nouns or IDs. | Open: portfolio witnesses and scan not established. |
-| Ordinary requests succeed or refuse visibly | Representative live-browser construction and correction across the capability envelope succeeds through canonical operations or produces a clear unsupported-operation refusal. No case crashes, stalls, corrupts the net, silently omits requested meaning, leaves hidden partial state or claims success. | Open: mechanism coverage is not representative product proof. |
-| Code-bearing construction is clean or visibly unresolved | The live copy reaches level 2 for the exact produced definition, or visibly reports errors/pending. No timeout is treated as success. | Open: needs the exact flagship version and diagnostics. |
-| Consequential content has an honest basis disposition | Sampled ordinary why questions traverse the recorded mechanical path and return a current-revision basis or an explicit absent/ambiguous disposition. | Open: needs flagship questions and native records. |
-| The flagship is genuinely persona-driven | A local Pi-harness recording shows ordinary-language interview around the established reference net, recurring workpiece revisions, model-originated tool calls, compiler repair where needed, layout, explanation, correction and same-copy reopen. Browser-only or faux-provider scripts remain product/mechanism tests, not persona evidence. | Open: [launcher](../../../apps/brunch-agent/src/evaluations/persona/launch.ts) exists; accepted recording is not identified. |
-| Mode isolation survives the product route | On an ordinary local document, a flag-off comparison preserves the stock transport, tool manifest and history behavior. A worked-model document offers no assistant switch and states “This document uses the Brunch process assistant.” | Partial: host coverage above; full product witness open. |
+| Ordinary construction and correction succeed | The retained persona run builds from the elicited account, then updates the workpiece and bounded net region for one changed operational fact without unrelated rebuilding. Unsupported work is reported explicitly, never silently omitted or falsely successful. A refusal that prevents a coherent Inventory example leaves this gate open. | Open: requires the from-scratch product run. |
+| Code-bearing construction is compiler-clean and legible | The exact final constructed/corrected definition has clean version-correlated diagnostics and recorded layout. Intermediate errors/pending remain visible and repairs start from fresh observations; a timeout never counts as clean. | Open: needs the exact flagship version and diagnostics. |
+| Consequential content has a recorded basis | Why questions about two consequential agent-constructed elements trace actual mutation records to workpiece passages and session testimony, checked against native records. Missing or ambiguous basis is disclosed honestly; such disclosures alone do not demonstrate provenance-backed explanation. | Open: needs flagship questions and native records. |
+| The flagship starts from scratch and is persona-driven | Initial document/session evidence shows no preloaded net, prior workpiece or retained conversation. A local Pi-harness recording shows ordinary-language elicitation, recurring workpiece revisions, model-originated construction, repair where needed, layout, explanation and correction. The persona's private pack and evaluator reference net never enter the elicitor's inputs. Browser-only scripts, fixed batches and operator-authored repairs are not this proof. | Open: [launcher](../../../apps/brunch-agent/src/evaluations/persona/launch.ts) exists; fresh-state verification and accepted recording remain. |
+| The original worked session resumes | Reopen the same local document and conversation in their original stores; recover the final net/workpiece and answer a current-basis question from native records. This is original-session continuity, not export, template copy or identity remapping. | Open: requires the retained run and reopen witness. |
 | Compaction dependence is disclosed | If the flagship crosses compaction, reopen, current-workpiece recovery and explanation are proven afterward. If it does not, dependence on uncompacted history is stated at closure and remains required before Mission 9 or any hosted long-lived provenance claim. | Open: depends on the retained flagship run. |
-| Tool authority and topology are coherent | The topology and import/mount tests agree with a generated or checked catalogue that fails on duplicate names, ownerless tools, schema copies and unrecorded mount modes. | Partial: [catalogue](../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts) and [schema-carriage comparison](../../../apps/brunch-agent/test/integration/native-schema-carriage.integration.ts) exist; full gate not adjudicated. |
 
 ## Constraints
 
@@ -145,8 +127,7 @@ Brunch is Petrinaut's default assistant for understanding, constructing, explain
 ### Persistence and identity
 
 - Flue history is canonical conversation history; the workpiece is the recoverable operational account; Petrinaut is the model authority.
-- The Inventory template and owned copies live in the Brunch app's Postgres store through the existing adapter and migrations. Versioned fixture bundles produced locally are build inputs whose exact session, workpiece and net are seeded idempotently; they are not a runtime promotion path. Every owned copy must preserve that complete connected bundle under stable or coherently remapped identities. The current net-only projection is an incomplete implementation finding, not accepted copy semantics. SQLite remains for lightweight tests and disposable local work. Do not create a second persistence system.
-- A `?bundle=` key identifies a template; it does not authenticate a user by obscurity. Any bearer-capability proposal requires explicit review of entropy, logging, sharing, revocation and authorization.
+- Retain the original run's session, workpiece and net through existing local persistence and native evidence. Label local-only records and name their actual locations at handoff; export and Postgres delivery are not prerequisites to believing an inspected run. Do not introduce a second persistence system.
 - A projection over Flue history remains recomputable and unpersisted. It cannot introduce identities, repair or drop ambiguous records, consult a live Petrinaut state as hidden input, reorder history, or become another authority.
 
 ### Ownership
@@ -154,28 +135,27 @@ Brunch is Petrinaut's default assistant for understanding, constructing, explain
 - Brunch core owns universal workpiece tools and formalism-independent guidance.
 - Petrinaut Core owns model actions, commands and canonical schemas.
 - The SDCPN plugin owns the selected carrier, formalism-specific operation policy, basis/effect interpretation and construction guidance.
-- The Brunch app owns composition, authorized history, browser/document reconciliation, freshness, workpiece-query history access, operational diagnostics and the Postgres catalogue/copy path.
-- The Petrinaut website owns browser execution, diagnostics/layout host integration, assistant selection and URL routing, including `?bundle=`. Route identity selects the document source independently of the host-local assistant preference. A bundle route fails closed, fixes Brunch, hides the switch and restores the untouched preference on return to an ordinary route. Its repository persists identity-explicit revisions; its title is read-only.
+- The Brunch app owns composition, authorized history, browser/document reconciliation, freshness, workpiece-query history access and operational diagnostics. The retained Postgres catalogue/copy path is successor work.
+- The Petrinaut website owns browser execution, diagnostics/layout host integration, assistant selection and document routing. Preserve stock transport/tool/history independence during any run-driven repair; deferred remote-route contracts live in the successor draft.
 - Workpiece operations use action names rather than ownership prefixes: `read_workpiece` reads the current workpiece and source/locator material; `mutate_workpiece` submits a complete next revision and records its verified delta from the cited base. Retained histories may recognize the legacy `brunch_workpiece` and `update_workpiece` names, but new conversations mount only the current names. Canonical Petrinaut action and command names remain unchanged. Definition homes, mounts, execution hosts, display consumers and persistence must agree before any other tool is renamed or moved.
 
 ### Scope boundary and external owners
 
 - No Petrinaut simulation scenarios or metrics, structured-question widgets or questionnaires enter 7c unless PM explicitly recuts the objective.
-- The established Inventory fixture's existing scenarios and metrics are retained as reference content. Mission 7c does not thereby support creating or editing them, or claim their behavioral results.
-- No arbitrary user import/clone, attachments or complete historical-effect rebinding enter the copy path. Catalogue-controlled instantiation of a versioned seeded fixture into an independently writable copy is the intended product path.
+- The established reference net's scenarios and metrics remain evaluator reference content, not preloaded model content, supported creation/editing or behavioral evidence.
+- Fixture packaging/seeding, template distribution, copy/reset/remapping, all six-pack probes and the non-Inventory end-to-end witness belong to the [next mission](docs/mission-drafts/worked-example-distribution-and-breadth.md). Preserve existing implementations and regression pins; deferral is neither deletion authority nor a completion claim.
 - No public deployment, hosted authentication, spend control, backup/recovery or multi-replica safety claim enters 7c. Tim owns hosted infrastructure and remote readiness under the Mission 8 successor and [FE-1569](https://linear.app/hash/issue/FE-1569).
 - Voice limitations remain Kostandin's. General optimization handoff is Mission 11's.
-- A second polished seeded bundle is not a completion gate. Portfolio breadth is proven by the tiered obligation above.
 - Crew reservation is a legacy, test-authored Mission 6 resume fixture: regression evidence only, not demo content, provenance evidence, a worked-model template, an owned-copy implementation or a precedent for the Inventory path.
 
 ## Fog-line
 
 - **Assumption-based preview — PM decision:** decide whether Brunch may offer a provisional model when operational evidence is incomplete. The recommended policy is evidence-first; offer only when blocked; require explicit assent; distinguish assumptions from testimony in workpiece, explanation and provenance; keep them confirmable, replaceable and rejectable. Settle what assent authorizes, which assumptions are acceptable, how provisional content appears in the UI and what review makes it accepted meaning. This is a candidate policy, not permission to implement it.
-- **Portfolio probe shape:** the obligation is settled, but the per-pack probe and turn budget, the non-Inventory end-to-end pack, and the reusable-guidance noun/ID scan remain to be selected.
+- **Run allocation — Lu:** select explicit models and a bounded allocation covering Brunch and the Pi persona, including continuation, compaction and retries under execution safety. Preparing inputs and inspecting local wiring do not authorize paid inference.
+- **Empty-start product path:** the launcher supports an omitted `--initial-net`, but flags alone do not prove the initial canvas, workpiece or history. Check the ordinary product route and starting evidence before claiming a from-scratch run; repair only a demonstrated setup blocker.
 - **Carrier shape:** provider/product probes decide whether one full union, capability-grouped carriers or supported deferred loading is simplest.
 - **Shared history projection:** shared interpretation of canonical Flue history is the product contract, not a predetermined module. The candidate projection is retained only if parity tests show that it removes duplicate interpretation without creating a store, identity scheme or authority.
 - **Question marker reliability:** `brunch_mark_question` supports Voice question replay when the model calls it with exact matching prose. Plumbing is proven; autonomous activation reliability is not. Decide whether this model-compliance mechanism remains mounted, moves behind a deterministic response contract, or is removed.
-- **Seeded session/workpiece fork:** Complete connected-bundle copying is blocked on a supported way to fork or export/import the retained Flue session and workpiece while coherently remapping identities and preserving links to mutation provenance and Petrinaut revisions. Flue 2.0.3 exposes no supported public operation for this, and projected `history()` cannot reconstruct canonical stream records or persistent state. Determine whether the capability belongs in Flue, an adapter-level utility or an application-owned archival format, and which identities it remaps. Never clone private Flue tables or present transcript replay as retained history. Until this closes, the current net projection remains an explicitly incomplete implementation and complete-bundle acceptance stays open.
 - **Diagnostics protocol:** select mutation-returned diagnostics, an explicit current read, or a hybrid pending/result protocol while preserving version correlation.
 
 ## Stop or reorient
@@ -184,15 +164,15 @@ Brunch is Petrinaut's default assistant for understanding, constructing, explain
 - Stop code-bearing construction if diagnostics cannot be correlated to the exact post-mutation definition.
 - Stop automatic layout if it can silently move user-arranged content, escape effect accounting or change the document after its recorded final hash.
 - Stop the assistant flag if it requires Brunch-specific behavior inside `@hashintel/petrinaut` beyond a generic host extension or merges provider histories.
-- Stop the copy path if one copy can alter the template or a sibling, or if reopen cannot resume the same copy.
+- Stop the from-scratch claim if the run starts from a prebuilt net, existing workpiece/history, or requires operator-authored mutations to count as success.
 - Stop Inventory acceptance for an inert, flattened, illegible, compiler-broken or operator-authored model, or a path that only works with Inventory-specific language.
 - Keep separate history walks rather than extracting a shared projection that fails the authority constraints.
 
 ## Deferred
 
-- [Mission 9](docs/mission-drafts/9-traceable-projection.md) / [FE-1438](https://linear.app/hash/issue/FE-1438/project-an-evidence-backed-workpiece-into-a-traceable-live-sdcpn): unchanged repeat without duplication; changed-input impact; retirement and identity epochs; concurrent/manual-edit reconciliation; cross-revision passage identity; repeated portfolio construction. Mission 7c hands off directly after valid closure.
+- [Next mission — worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md): complete versioned fixtures, build/Postgres seeding, connected-bundle copy/reset/reopen, identity/provenance remapping, template/sibling isolation, remote-mode continuity, six-pack capability probes, a non-Inventory end-to-end run and full-envelope/topology adjudication. Consumes the accepted original example; unresolved fork capability and expected-failure pins remain open there.
+- [Mission 9](docs/mission-drafts/9-traceable-projection.md) / [FE-1438](https://linear.app/hash/issue/FE-1438/project-an-evidence-backed-workpiece-into-a-traceable-live-sdcpn): unchanged repeat without duplication; changed-input impact; retirement and identity epochs; concurrent/manual-edit reconciliation; cross-revision passage identity; repeated construction beyond the next mission's portfolio probes.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) / [FE-1394](https://linear.app/hash/issue/FE-1394/revise-one-traceable-net-region-through-targeted-reviewer-elicitation): general reviewer authority and revision cadence.
 - [Mission 11](docs/mission-drafts/11-optimisation-handoff.md): consumer-accepted optimization handoff.
 - [After-demo evaluation](docs/mission-drafts/7-explainable-construction.md): broader semantic, behavioral, provenance and lifecycle evaluation.
 - [Future spine](MISSION.next.md): deployment, provider migration and unallocated product concerns.
-- After the Inventory bundle path lands, evaluate removing the user-facing crew-reservation fixture selector, manifest and preparation flow. Keep only useful frozen regression histories under tests; historical archives remain.

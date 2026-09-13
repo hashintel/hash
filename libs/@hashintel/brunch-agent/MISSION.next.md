@@ -67,8 +67,12 @@ A flagship proves one accepted product path. It does not prove every operational
 - Mission 7 tracks [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) and partially advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without closing the broader provenance objective.
 - [Mission 7a](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md) established workpiece, construction-record and explanation groundwork and landed on `main`.
 - [Mission 7b](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) established the ordinary selected structural batch, correction, recorded basis/effects, reopen and experimental create-new seam. Its engineering [PR #9649](https://github.com/hashintel/hash/pull/9649) remains a separate external closeout.
-- Live [Mission 7c](MISSION.md) owns the Inventory worked example; consult its [Status](MISSION.md#status), [proof dispositions](MISSION.md#proof) and [scope constraints](MISSION.md#scope-boundary-and-external-owners), including any pending recut.
+- Live [Mission 7c](MISSION.md) owns the Inventory worked example; consult its [Status](MISSION.md#status), [proof dispositions](MISSION.md#proof) and [scope constraints](MISSION.md#scope-boundary-and-external-owners).
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
+
+### Next mission — distribute the example and establish portfolio breadth
+
+The [successor draft](docs/mission-drafts/worked-example-distribution-and-breadth.md) consumes the accepted original example. It owns fixture distribution, connected-bundle copying and tiered portfolio breadth, including their carried capability gaps and proof obligations. Numbering, issue and branch assignment remain for its owner-authorized cut.
 
 ### Mission 8 successor
 
@@ -80,7 +84,7 @@ Cut a Mission 8 successor only when the resources exist. It must prove one autho
 
 ### Mission 9 — make projection repeatable
 
-[Draft Mission 9](docs/mission-drafts/9-traceable-projection.md) follows immediately after the Mission 7 seam is dependable.
+[Draft Mission 9](docs/mission-drafts/9-traceable-projection.md) follows the [distribution and breadth successor](docs/mission-drafts/worked-example-distribution-and-breadth.md).
 
 Its tracker projection is [FE-1438](https://linear.app/hash/issue/FE-1438/project-an-evidence-backed-workpiece-into-a-traceable-live-sdcpn); reconcile the issue title and body with the accepted Mission 7 seam before cutting live authority.
 
@@ -120,13 +124,13 @@ This register records product consequences, not every engineering idea. A scope 
 
 - **Assistant scope — PM communication required:** communicate the accepted [product boundary](MISSION.md#product-boundary).
 - **Assistant deployment policy — future owner decision:** resolve the [host-choice fork](#host-choice-and-continuity).
-- **Live exclusions and portfolio:** [MISSION.md](MISSION.md#scope-boundary-and-external-owners) settles simulation/metrics, structured questions and second-bundle scope. These are not pending confirmations here; changing them requires a live recut.
+- **Live exclusions:** [MISSION.md](MISSION.md#scope-boundary-and-external-owners) settles the current boundary; [distribution and breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) owns the deferred portfolio and bundle scope. These are not pending confirmations here.
 - **Assumption-based preview — open PM decision:** the candidate policy and unanswered questions have one home in the [live Fog-line](MISSION.md#fog-line).
 - **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); the live mission's [claim discipline](MISSION.md#claim-discipline) determines its evidence tier.
 
 ### Capability and lifecycle strains
 
-- **Live capability and portfolio obligations:** read [Mission 7c's Imperative](MISSION.md#imperative) and [Proof](MISSION.md#proof), not a second checklist here.
+- **Capability and portfolio obligations:** [Mission 7c](MISSION.md#proof) owns the selected run's evidence; [its successor](docs/mission-drafts/worked-example-distribution-and-breadth.md#outcome-2--establish-portfolio-breadth) owns breadth and full-envelope adjudication.
 - **Repeat/change/retirement/concurrency — Mission 9.** Mission 7c should leave stable IDs, fresh-base discipline, ordinary correction and current-state why as a usable handoff.
 - **General reviewer revision — Mission 10.** Mission 7c's ordinary correction does not establish reviewer authority, qualification, conflict handling or general patch locality.
 - **Optimization handoff — Mission 11.** Do not infer an optimization product from code-bearing dynamics.
@@ -135,7 +139,7 @@ This register records product consequences, not every engineering idea. A scope 
 
 - **Compaction survival:** consume the live mission's [compaction disposition](MISSION.md#readiness-gate) before Mission 9 or a long-lived hosted provenance claim. If proof remains open, exercise recovery and explanation across compaction first.
 - **Passage identity across revisions:** rename/move/paraphrase/split/merge/delete/reintroduce continuity belongs to Mission 9/10; consume the live mission's current-revision evidence without inferring continuity.
-- **Arbitrary import/clone:** re-enter general import, attachment rebinding or complete effect-history migration only for a named portability consumer; the live copy boundary is defined in [MISSION.md](MISSION.md#persistence-and-identity).
+- **Arbitrary import/clone:** re-enter general import, attachment rebinding or complete effect-history migration only for a named portability consumer; the planned fixture-copy boundary is defined in the [successor draft](docs/mission-drafts/worked-example-distribution-and-breadth.md#connected-bundle-contract).
 - **Provider migration — unallocated; Lu owns assignment.** Re-enter when a provider change is proposed or the current provider cannot reliably carry the named portfolio. Compare canonical tool-schema carriage, tool selection, argument acceptance, compiler-repair behavior, latency and cost on representative cases. Provider success does not establish semantic or behavioral correctness.
 
 ### External-owner strains
@@ -203,7 +207,7 @@ Before a mission claims Voice plus exact resume or broad pre-release continuity,
 - Generated, sanitized, migrated and layout effects do not automatically inherit operational testimony.
 - One model-facing agent owns the conversation. Bindings, transports and hosts adapt that agent without creating a second history or protocol.
 - Core owns universal elicitation; plugins own domain-typology/formalism guidance; the app owns composition; the Petrinaut website owns browser execution and assistant selection.
-- Document-lifecycle roles and worked-model terms live in [`CONTEXT.md`](CONTEXT.md#document-lifecycle); current copy semantics and limitations live in [MISSION.md](MISSION.md#persistence-and-identity).
+- Document-lifecycle roles and worked-model terms live in [`CONTEXT.md`](CONTEXT.md#document-lifecycle); copy requirements and known limitations live in the [distribution draft](docs/mission-drafts/worked-example-distribution-and-breadth.md#connected-bundle-contract).
 - Browser-local preferences and document records currently use the website's narrow `usePersistedState` boundary so reads begin after commit and writes stay outside React state updaters. Revisit an established external store when persisted state becomes shared across repositories, needs cross-tab subscription or migration, or the boundary grows beyond isolated values. Compare an explicit application dependency such as Zustand with the retained primitive at that gate; never depend on Zustand only because React Flow supplies it transitively.
 - HASH Graph, Temporal, Redis, HASH API, S3, Kratos and Petrinaut Optimizer are not Brunch runtime dependencies without a named consumer.
 
@@ -211,6 +215,7 @@ Retain the thin architecture unless observed product strain earns more. Do not i
 
 ## Detailed planning homes
 
+- [Worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) — next mission; consumes the accepted original example before delivering reusable copies and proving broader construction capability.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) — cross-scenario acquisition/conservation/construction quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle breadth.
 - [Mission 9](docs/mission-drafts/9-traceable-projection.md) — repeat, change, retirement, concurrency, expanded schema classes and current-state explanation.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) — reviewer authority, attributed revision, conflict, qualification, bounded patching and refusal.

@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7b](../mission-archive/7b-ordinary-batched-construction-provenance.md) owns the ordinary structural batch/correction seam. Live [Mission 7c](../../MISSION.md) requires ordinary PM exploration of a substantial broadly explainable flagship plus one correction family: saved workpiece revision → bounded net update without unrelated rebuilding → updated explanation distinguishing original support and correction. The route must tolerate ordinary rephrasing, follow-up and selection beyond one scripted element. This draft retains the general reviewer-authority, qualification, coexistence, conflict, refusal and impact-widening portfolios after the demo. Do not implement a universal semantic gate to satisfy 7c; re-evaluate the candidate mechanisms and predecessor gates before this broader mission is cut.
+**Demo allocation:** [Mission 7c](../../MISSION.md) owns the selected persona correction and explanation; [its successor](worked-example-distribution-and-breadth.md) owns distribution and portfolio breadth. Neither establishes general reviewer authority. This draft retains qualification, coexistence, conflict, refusal and impact-widening portfolios after Mission 9. Re-evaluate candidate mechanisms and predecessor evidence before cutting it; do not introduce a universal semantic gate to satisfy the flagship.
 
 ## Cold-start reads
 

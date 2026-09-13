@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7b](../mission-archive/7b-ordinary-batched-construction-provenance.md) owns the ordinary structural batch/correction seam. Live [Mission 7c](../../MISSION.md) requires a Postgres-seeded Inventory worked-model bundle, broad flagship explanation readiness, ordinary correction/reopen and a persona-driven construction recording. A model-specific dynamics policy enters where the sophisticated SDCPN needs it; Petrinaut simulation scenarios/metrics remain excluded pending PM confirmation, and dynamics alone is not optimisation. This draft's general optimisation support, accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions remain after 7c unless Lu explicitly adds that tier to the demo.
+**Demo allocation:** [Mission 7c](../../MISSION.md) owns the original Inventory worked example; [its successor](worked-example-distribution-and-breadth.md) owns distribution and portfolio breadth. Their exclusions do not await PM confirmation. Dynamics alone is not optimisation: this draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
 
 ## Cold-start reads
 
