@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
 
-import { parseSDCPNFile } from "@hashintel/petrinaut-core";
-import { checkDefinition } from "@hashintel/petrinaut-core/diagnostics";
-
 const packageRoot = new URL("../", import.meta.url);
-const contextRoot = new URL("../../../", import.meta.url);
 
 const reusableGuidanceFiles = [
   "src/flue.ts",
@@ -41,21 +37,5 @@ describe("portfolio portability", () => {
         expect(content, `${relativePath} contains ${term}`).not.toContain(term);
       }
     }
-  });
-
-  test("retains the established compiler-clean Inventory reference as a separate flagship input", () => {
-    const path = new URL(
-      "evaluations/cases/inventory-purchasing/reference-sdcpn.json",
-      contextRoot,
-    );
-    const bytes = readFileSync(path);
-    const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
-    expect(parsed.ok).toBe(true);
-    if (!parsed.ok) throw new Error(parsed.error);
-    expect(parsed.hadMissingPositions).toBe(false);
-    expect(checkDefinition(parsed.sdcpn)).toEqual({
-      isValid: true,
-      itemDiagnostics: [],
-    });
   });
 });

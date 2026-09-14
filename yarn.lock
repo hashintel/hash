@@ -7867,6 +7867,7 @@ __metadata:
     "@types/lodash-es": "npm:4.17.12"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
+    "@types/use-sync-external-store": "npm:0.0.6"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@vitejs/plugin-react": "npm:6.1.0"
     "@xyflow/react": "npm:12.10.1"
@@ -19514,7 +19515,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/use-sync-external-store@npm:^0.0.6":
+"@types/use-sync-external-store@npm:0.0.6, @types/use-sync-external-store@npm:^0.0.6":
   version: 0.0.6
   resolution: "@types/use-sync-external-store@npm:0.0.6"
   checksum: 10c0/77c045a98f57488201f678b181cccd042279aff3da34540ad242f893acc52b358bd0a8207a321b8ac09adbcef36e3236944390e2df4fcedb556ce7bb2a88f2a8

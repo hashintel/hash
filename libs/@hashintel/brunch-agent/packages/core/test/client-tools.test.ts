@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { describe, expect, test } from "vitest";
 
-import { AskInput, AskSubmission } from "@hashintel/brunch-agent/client-tools";
+import { AskInput, AskSubmission } from "../src/client-tools";
 
 describe("client tool schemas", () => {
   test("accept only non-empty ask questions and answers", () => {
