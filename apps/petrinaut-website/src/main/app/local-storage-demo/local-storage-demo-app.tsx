@@ -999,47 +999,59 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {remoteRouteSelected ? (
-        <p
+      {remoteRouteSelected || unsavedChangeMessage !== null ? (
+        // Host notices are centred below Petrinaut's 64px top bar and stacked
+        // above its side panels (z-index 1097) and bar (1100), so neither can
+        // hide them.
+        <div
           style={{
-            background: "#edf6ff",
-            left: "50%",
-            margin: 0,
-            padding: "6px 12px",
-            position: "fixed",
-            top: 8,
-            transform: "translateX(-50%)",
-            zIndex: 20,
-          }}
-        >
-          This document uses the Brunch process assistant
-        </p>
-      ) : null}
-      {unsavedChangeMessage !== null ? (
-        // Centred below Petrinaut's 64px top bar and stacked above its side
-        // panels (z-index 1097) and bar (1100), so neither can hide it.
-        <p
-          role="alert"
-          style={{
-            background: "#fff1f0",
-            border: "1px solid #ffa39e",
-            borderRadius: 8,
-            boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-            color: "#a8071a",
+            alignItems: "center",
+            display: "flex",
+            flexDirection: "column",
             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
             fontSize: 14,
+            gap: 8,
             left: "50%",
-            margin: 0,
             maxWidth: "calc(100vw - 32px)",
-            padding: "10px 12px",
+            pointerEvents: "none",
             position: "fixed",
             top: 80,
             transform: "translateX(-50%)",
             zIndex: 1200,
           }}
         >
-          Changes not saved: {unsavedChangeMessage}
-        </p>
+          {remoteRouteSelected ? (
+            <p
+              style={{
+                background: "#edf6ff",
+                border: "1px solid #91caff",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+                color: "#0958d9",
+                margin: 0,
+                padding: "10px 12px",
+              }}
+            >
+              This document uses the Brunch process assistant
+            </p>
+          ) : null}
+          {unsavedChangeMessage !== null ? (
+            <p
+              role="alert"
+              style={{
+                background: "#fff1f0",
+                border: "1px solid #ffa39e",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+                color: "#a8071a",
+                margin: 0,
+                padding: "10px 12px",
+              }}
+            >
+              Changes not saved: {unsavedChangeMessage}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {tracerIsCurrent &&
         !constructionSelected &&
