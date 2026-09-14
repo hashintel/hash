@@ -278,10 +278,9 @@ impl fmt::Display for FitVerdict {
     }
 }
 
-/// One fit invocation, resolved: the run's typed options over an opened root.
+/// A prepared fit with local inputs, a generation root and an optional upload destination.
 ///
-/// `P` is the run's progress observer: [`new`](Self::new) resolves the flags into a silent run, and
-/// [`with_progress`](Self::with_progress) hands the run to an operator surface that renders it.
+/// [`Self::with_progress`] replaces the initial silent observer with `P`.
 #[derive(Debug)]
 pub struct FitCommand<P> {
     root: GenerationRoot,
@@ -321,24 +320,20 @@ impl<P> FitCommand<P>
 where
     P: Progress + Sync,
 {
-    /// Runs one production generation over the live store and returns its verdict.
+    /// Fits one generation over the live store and returns its verdict.
     ///
-    /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
-    /// standalone shell, [`connect`] behind the graph binary's own store flags) and the embedding
-    /// provider's credential. This call pins the snapshot, so the run reads the store as of the
-    /// moment the command starts.
+    /// The store snapshot uses the temporal axes captured when fitting begins. The command writes
+    /// the admission report before uploading results. An activated generation also updates remote
+    /// current.
     ///
     /// # Errors
     ///
-    /// Returns [`FitError`] on embedding-provider preparation, fitting or report-write failure.
+    /// Returns [`FitError`] on preparation, fitting, report-write or remote-publication failure.
     ///
     /// # Panics
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
     /// CPU below the compiled baseline, on the conditions it documents.
-    ///
-    /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
-    /// [`connect`]: super::connect
     pub async fn run(
         self,
         client: &mut Client,
@@ -416,16 +411,15 @@ where
         })
     }
 
-    /// Runs one production generation over the dump directory at `dump` and returns its verdict.
+    /// Fits one generation from the snapshot and embeddings in `dump`.
     ///
-    /// The offline counterpart of [`run`](Self::run): the dump supplies the snapshot, its
-    /// temporal axes, and every embedding the run requests, so the command needs neither a store
-    /// connection nor a provider credential, and the generation publishes under the same root a
-    /// live fit's would.
+    /// The dump supplies the temporal axes. Report writing and remote publication follow
+    /// [`Self::run`].
     ///
     /// # Errors
     ///
-    /// Returns [`FitError`] if fitting the dump or writing the admission report fails.
+    /// Returns [`FitError`] on upload preparation, offline fitting, report-write or
+    /// remote-publication failure.
     ///
     /// # Panics
     ///
@@ -494,11 +488,11 @@ where
 }
 
 impl FitCommand<NoProgress> {
-    /// Creates a new `FitCommand` from the given arguments and storage.
+    /// Resolves local or S3 fit inputs before starting a fit.
     ///
     /// # Errors
     ///
-    /// Returns an error if the arguments are invalid or the storage is unavailable.
+    /// Returns [`StorageError`] if resolving or downloading an input fails.
     pub async fn new(
         root: super::RootArgs,
         args: FitArgs,

@@ -201,6 +201,21 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }
 
+/// Builds fit storage with the optional S3 backend.
+///
+/// # Errors
+///
+/// Returns [`super::S3ArgsError`] if the enabled backend's region or credentials cannot be
+/// resolved.
+#[cfg(feature = "cli")]
+async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
+    let mut storage = Storage::in_temp_dir();
+    if let Some(client) = s3.client().await? {
+        storage.set_s3(client);
+    }
+    Ok(storage)
+}
+
 /// Runs a prepared fit against the selected data source.
 ///
 /// # Errors
@@ -344,16 +359,10 @@ pub async fn main() -> std::process::ExitCode {
             tui: true,
             s3,
         } => {
-            let mut storage = Storage::in_temp_dir();
-            match s3.client().await {
-                Ok(Some(client)) => {
-                    storage.set_s3(client);
-                }
-                Ok(None) => {}
-                Err(err) => {
-                    return render_failure(err);
-                }
-            }
+            let storage = match fit_storage(s3).await {
+                Ok(storage) => storage,
+                Err(error) => return render_failure(error),
+            };
 
             match fit_on_dashboard(
                 root,
@@ -380,16 +389,10 @@ pub async fn main() -> std::process::ExitCode {
             offline,
             tui: false,
         } => {
-            let mut storage = Storage::in_temp_dir();
-            match s3.client().await {
-                Ok(Some(client)) => {
-                    storage.set_s3(client);
-                }
-                Ok(None) => {}
-                Err(err) => {
-                    return render_failure(err);
-                }
-            }
+            let storage = match fit_storage(s3).await {
+                Ok(storage) => storage,
+                Err(error) => return render_failure(error),
+            };
 
             fit_logged(
                 root,
