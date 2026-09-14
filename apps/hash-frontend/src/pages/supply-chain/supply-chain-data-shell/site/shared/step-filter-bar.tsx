@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import {
   Button,
@@ -19,6 +19,14 @@ import {
 } from "./step-filters";
 
 type MenuItems = React.ComponentProps<typeof Menu>["items"];
+
+// The chip to autofocus on the render that adds it. Module-scoped rather than
+// component state: adding the first chip moves the bar from the header
+// actions into the chips row, remounting the bar (and its FilterGroup, whose
+// own fresh-chip focus treats first-mount chips as restored state) — any
+// in-component record of the addition would be lost with it. Consumed by one
+// render pass, then cleared.
+let pendingAutoFocusKey: StepFilterKey | null = null;
 
 // With no chips the bar is just the add button; push it to the right edge of
 // whatever row hosts it (a block band or a flex title row).
@@ -49,8 +57,19 @@ export const StepFilterBar = ({
    */
   addableKeys?: ReadonlySet<StepFilterKey>;
 }) => {
+  // Read for this render, then cleared so later remounts (tab switches, the
+  // other table's bar) never re-focus the same key.
+  const autoFocusKey = pendingAutoFocusKey;
+  useEffect(() => {
+    pendingAutoFocusKey = null;
+  });
+
   const addMenuItems = useMemo<MenuItems>(() => {
     const activeKeys = new Set(filters.map((filter) => filter.filterKey));
+    const addFilter = (filterKey: StepFilterKey) => {
+      pendingAutoFocusKey = filterKey;
+      onFiltersChange([...filters, { filterKey, value: null }]);
+    };
     const groups = new Map<
       string,
       Array<{ id: string; text: string; onClick: () => void }>
@@ -66,11 +85,7 @@ export const StepFilterBar = ({
       groupItems.push({
         id: definition.key,
         text: stepFilterLabel(definition, options),
-        onClick: () =>
-          onFiltersChange([
-            ...filters,
-            { filterKey: definition.key, value: null },
-          ]),
+        onClick: () => addFilter(definition.key),
       });
       groups.set(definition.group, groupItems);
     }
@@ -145,6 +160,7 @@ export const StepFilterBar = ({
             operators={definition.operators(options)}
             value={filter.value}
             disabled={skipped}
+            autoFocus={filter.filterKey === autoFocusKey}
             onChange={(operatorKey, committed) =>
               setFilterValue(filter.filterKey, operatorKey, committed)
             }

@@ -79,7 +79,10 @@ const firstSegmentOf = (chip: HTMLElement) =>
  * added after mount. Without this, closing the add-filter menu restores
  * focus to its trigger, which strands keyboard users on the button and —
  * for `dismissAbandoned` chips — counts as focusing outside the fresh chip,
- * starting its abandonment countdown the moment it appears.
+ * starting its abandonment countdown the moment it appears. Chips already
+ * present on the group's first render are treated as restored state and not
+ * focused — a consumer that mounts the group together with its first chip
+ * should pass that chip `autoFocus` instead.
  *
  * `FilterGroup.AddFilter` and `FilterGroup.ClearFilters` are pre-styled
  * buttons for the group's two standard actions; wiring them up (and any
