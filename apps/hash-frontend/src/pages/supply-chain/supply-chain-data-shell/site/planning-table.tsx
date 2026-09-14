@@ -82,6 +82,7 @@ const PlanningSampleTooltip = ({
 };
 export const PlanningTable = ({
   rows,
+  totalCount,
   siteId,
   sort,
   onSort,
@@ -93,6 +94,8 @@ export const PlanningTable = ({
   filtersActive = false,
 }: {
   rows: PlanningRow[];
+  /** Row count before filters and search; distinguishes no data from no matches. */
+  totalCount: number;
   /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   sort: { key: SortKey; dir: SortDir };
@@ -396,7 +399,7 @@ export const PlanningTable = ({
             {displayedRows.length === 0 && (
               <tr>
                 <td colSpan={11} className={threshold.emptyCell}>
-                  {rows.length === 0
+                  {totalCount === 0
                     ? "No planning parameter data for this site."
                     : "No planning parameter data matches the current filters."}
                 </td>

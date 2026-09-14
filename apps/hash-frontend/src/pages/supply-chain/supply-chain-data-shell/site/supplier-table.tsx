@@ -46,6 +46,7 @@ const linesLate = css({
 
 export const SupplierTable = ({
   rows,
+  totalCount,
   sort,
   onSort,
   onRowClick,
@@ -54,6 +55,8 @@ export const SupplierTable = ({
   filtersActive = false,
 }: {
   rows: VendorOtifStats[];
+  /** Row count before filters and search; distinguishes no data from no matches. */
+  totalCount: number;
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (vendor: VendorOtifStats) => void;
@@ -253,7 +256,9 @@ export const SupplierTable = ({
               {sorted.length === 0 && (
                 <tr>
                   <td colSpan={8} className={threshold.emptyCell}>
-                    No supplier performance data available
+                    {totalCount === 0
+                      ? "No supplier performance data available"
+                      : "No suppliers match the current filters."}
                   </td>
                 </tr>
               )}
