@@ -142,23 +142,13 @@
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
-// TODO(BE-850): remove once all changes have landed
-#![allow(
-    unused_crate_dependencies,
-    unused_features,
-    unused_macros,
-    dead_code,
-    unreachable_pub,
-    unused_imports,
-    rustdoc::broken_intra_doc_links
+#![cfg_attr(
+    not(feature = "cli"),
+    allow(
+        dead_code,
+        reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
+    )
 )]
-// #![cfg_attr(
-//     not(feature = "cli"),
-//     allow(
-//         dead_code,
-//         reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
-//     )
-// )]
 #![allow(
     rustdoc::private_intra_doc_links,
     reason = "the crate is largely internal, for a user it makes more sense to read the full \
