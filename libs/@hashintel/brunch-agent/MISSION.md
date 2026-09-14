@@ -19,8 +19,10 @@ The semantic-VAD recut is implemented locally and provider-free checks pass.
 The corrected medium probe completed all three synthetic transcripts, with the
 correction retained in one item and continuous silence verified. Earlier correction
 verdicts remain invalid because those harnesses stopped sending after the last clip.
-Next: Kostandin reviews medium's human conversational latency and the physical
-speaker/headphone witness; no additional automatic tuning or provider run.
+Next: implement Kostandin's accepted 500 ms Speaking-indicator hold and patient
+Live listening prompt, run provider-free checks, commit without Amp thread IDs
+and push this child. Human conversational latency and the physical speaker/headphone
+witness remain owner-held; no additional automatic tuning or provider run.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
 All three provider allocations are consumed; no further provider run. Publication
 of the prepared work is authorized below. The parent has advanced beyond the pinned
@@ -34,6 +36,8 @@ requesting the browser processing already used by Realtime improves Live's captu
 This is a mitigation hypothesis, not deterministic feedback-loop prevention.
 Also reduce premature single-word submissions reported by Kostandin: use semantic
 turn detection on the separate transcription session rather than silence alone.
+Reduce rapid Speaking/Thinking/Listening flicker and ask Live to allow hesitation
+and self-correction without taking over the person's unfinished thought.
 
 ## Throughline
 
@@ -45,7 +49,8 @@ re-enter capture; filtering canonical input alone would not prevent Live reactin
 Protected source: FE-1664 at the pinned base above. Its complete integration,
 canonical ownership, admission, delivery and recovery contracts remain inherited
 behavior, not accepted proof. Permitted deltas are Live's `getUserMedia` preferences
-and the separate transcription session's turn-detection configuration below.
+and the separate transcription session's turn-detection configuration below,
+plus the accepted indicator hold and listening-prompt recut below.
 The prior mission and future obligations remain discoverable through
 [the future spine](MISSION.next.md#voice-feedback-follow-up).
 
@@ -57,7 +62,8 @@ Brunch work, show Thinking only while Live is connected, not stopped and not pla
 output. Connection/error states take precedence, and playback remains Speaking.
 These are inherited local UI semantics, not progress speech, `session.thinking.append`,
 new invocation or completion proof. Parent controller tests own the transitions;
-parent desktop/mobile witnesses own the visual layout. This cut changes neither.
+parent desktop/mobile witnesses own the visual layout. Only the output-activity
+hold changes; status precedence and layout remain unchanged.
 
 Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 
@@ -82,6 +88,23 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
   selected semantic configuration. Preserve model, scoped credential and raw SDP.
 - `openai-voice-policy.ts` and Realtime routes remain unchanged. PR #9619 already
   used semantic VAD with medium eagerness; this comparison now matches that setting.
+
+Patient-listening recut, relative to the website's `src/`:
+
+- `main/app/voice-interview/live-conversation.ts`: increase the existing local
+  output-activity hold from 300 to 500 ms. Keep the 100 ms sampler, immediate
+  activity onset and teardown/recovery behavior. This is display telemetry only,
+  never a playback-completion signal or a submission delay.
+- Extend its existing telemetry test first: 400 and 499 ms stay active; the next
+  sample at 500 ms clears activity. A later audio burst restarts the hold; Stop
+  during the hold mutes playback immediately and late samples cannot revive it.
+- `server/voice/openai-live-session.ts`: keep sparse backchannels and add a short
+  instruction to listen through thinking pauses and self-corrections rather than
+  take over unfinished thoughts. Preserve Brunch authority and interruption policy.
+- Run the Live transport, controller, session-creation, transcription, bridge and
+  Realtime regression suites plus website build/typecheck/lint. Review prompt
+  delivery in the existing request test; a phrase-inventory test is not a speech
+  oracle. No new files, mechanism, queue, gate, dependency or provider allocation.
 
 ### Owner decisions
 
@@ -112,8 +135,28 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
 - **2026-09-14:** Kostandin authorizes pushing the prepared semantic-VAD change and
   removing Amp thread-ID trailers from this child's commit messages. Preserve
   authorship and parent commits; no merge, deployment or new provider allocation.
+- **2026-09-14:** Kostandin accepts the patient-listening recut above with a 500 ms
+  indicator hold, not 800 ms, plus the prompt change. Test locally, commit without
+  Amp thread IDs, push and refresh this draft's proof. No restack, changed submission
+  timing, Realtime change, new provider run or other tracker write.
 
 ## Proof
+
+### Patient-listening recut — implementation and provider-free proof pending
+
+The existing `live-conversation.test.ts` telemetry case owns the 500 ms boundary,
+renewed activity and immediate Stop/late-sample behavior. Existing
+`live-conversation-control.test.tsx` cases own Speaking/Thinking/Listening and
+connection/error precedence. These tests do not establish conversational patience.
+The Live session-creation test owns outgoing instruction carriage and unchanged
+provider configuration; inspect the prompt against OpenAI's
+[pause-handling guidance](https://developers.openai.com/api/docs/guides/live-prompting).
+Provider-free checks may establish timing and configuration only. Kostandin's next
+fresh Live session remains the oracle for natural hesitation, short complete replies,
+corrections, sparse acknowledgments and stopping speech when interrupted. Stop and
+reorient if the indicator lingers misleadingly or the prompt worsens interruption
+handling. The previous three synthetic transcription probes do not evaluate this
+Live prompt, and their allocations remain consumed.
 
 ### Corrected medium probe — synthetic retention verified, human latency pending
 
@@ -338,13 +381,14 @@ separate bounded headless probe above grants an agent-run provider allocation.
 - Preserve visible full text and no truncation/chunking/replay on commentary
   rejection. Local Exit and canonical Stop remain distinct from acoustic interruption
   and from canceling already-executed effects.
-- No changes to parent branches, existing issues/PRs, Brunch prompts, models,
+- No changes to parent branches, other issues/PRs, Brunch prompts, models,
   services or infrastructure. Push and draft creation are authorized for this child
   only; no merge, deployment or agent microphone access. The only provider exception
   is the bounded transcription probe above. Prior FE-1664
   publication permissions do not transfer to this mission.
 - Only the separate Live transcription session may switch VAD as specified above;
-  do not change Realtime or native Live session behavior.
+  do not change Realtime. The only native Live behavior change is the accepted
+  patient-listening instruction; its effect is probabilistic, not enforced timing.
 
 ## Fog-line
 
