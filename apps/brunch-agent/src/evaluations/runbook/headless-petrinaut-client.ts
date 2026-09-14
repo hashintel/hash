@@ -136,8 +136,11 @@ export const createHeadlessPetrinautClient = (
   const definition = () => instance.definition.get();
   const document = () => ({ title, ...definition() });
   const parse = () => parseSDCPNFile(document());
+  const directEdit = (change: Parameters<typeof handle.change>[0]) =>
+    handle.change(change);
 
   return {
+    directEdit,
     definition,
     document,
     execute,
