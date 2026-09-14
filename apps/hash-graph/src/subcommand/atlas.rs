@@ -239,6 +239,7 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     clippy::integer_division_remainder_used,
     reason = "False positive on tokio::select!"
 )]
+#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 #[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"

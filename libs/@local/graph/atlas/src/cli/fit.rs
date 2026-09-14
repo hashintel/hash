@@ -267,7 +267,8 @@ pub struct FitCommand<P> {
     device: PinnedDevice,
     report: Utf8PathBuf,
     options: Options<P>,
-    upload: Option<(FilePath, Storage)>,
+    storage: Storage,
+    upload: Option<FilePath>,
 }
 
 impl<P> FitCommand<P> {
@@ -291,6 +292,7 @@ impl<P> FitCommand<P> {
                 nn_descent: self.options.nn_descent,
                 progress,
             },
+            storage: self.storage,
             upload: self.upload,
         }
     }
@@ -314,6 +316,10 @@ where
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
     /// CPU below the compiled baseline, on the conditions it documents.
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "storage is active for the lifetime of the closure"
+    )]
     pub async fn run(
         self,
         client: &mut Client,
@@ -346,8 +352,8 @@ where
             .map_err(FitError::Embedder)?;
 
         let upload = match self.upload.as_ref() {
-            Some((path, storage)) => {
-                let upload = Upload::prepare(storage, &self.root, path).await?;
+            Some(path) => {
+                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
                 Some(upload)
             }
             None => None,
@@ -405,6 +411,10 @@ where
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first, as in
     /// [`Self::run`].
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "storage is active for the lifetime of the closure"
+    )]
     pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError>
     where
         P::Detached: UnwindSafe,
@@ -429,8 +439,8 @@ where
         );
 
         let upload = match self.upload.as_ref() {
-            Some((path, storage)) => {
-                let upload = Upload::prepare(storage, &self.root, path).await?;
+            Some(path) => {
+                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
                 Some(upload)
             }
             None => None,
@@ -530,7 +540,8 @@ impl FitCommand<NoProgress> {
                 nn_descent: args.nn_descent,
                 progress: NoProgress,
             },
-            upload: args.upload.map(|path| (path, storage)),
+            storage,
+            upload: args.upload,
         })
     }
 }

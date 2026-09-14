@@ -17,7 +17,6 @@ use super::{
     Revision, RevisionKind, Storage, WriteCondition, error::StorageError, local::LocalFile,
     s3::path::BucketPath,
 };
-use crate::file::generation::scratch::ScratchFile;
 
 mod contents;
 pub(crate) mod error;
@@ -233,7 +232,7 @@ impl FilePath {
 
         let backend = storage.s3()?;
 
-        let mut output = ScratchFile::new(&storage.scratch.directory).await?;
+        let mut output = storage.scratch.scratch().await?;
         let result = backend.download(path, &mut output.file).await;
 
         output.finish(result).await.map(Cow::Owned)

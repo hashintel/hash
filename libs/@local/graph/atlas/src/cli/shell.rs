@@ -208,6 +208,7 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
 /// Returns [`super::S3ArgsError`] if the enabled backend's region or credentials cannot be
 /// resolved.
 #[cfg(feature = "cli")]
+#[expect(clippy::significant_drop_in_scrutinee, reason = "false positive")]
 async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
     let mut storage = Storage::in_temp_dir().await?;
 
@@ -292,6 +293,7 @@ async fn fit_on_dashboard(
 
 /// Runs a fit without a dashboard and renders its verdict or failure chain.
 #[cfg(feature = "cli")]
+#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 async fn fit_logged(
     root: RootArgs,
     source: FitSource,
@@ -309,6 +311,7 @@ async fn fit_logged(
                 Ok(client) => client,
                 Err(error) => return render_failure(error),
             };
+
             Box::pin(command.run(&mut client, credential)).await
         }
         FitSource::Offline(dump) => Box::pin(command.run_offline(&dump)).await,

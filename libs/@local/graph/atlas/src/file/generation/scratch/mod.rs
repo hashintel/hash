@@ -51,6 +51,15 @@ impl ScratchDirectory {
 
         File::create(&path).map(|file| (path, file))
     }
+
+    /// Creates a new scratch file under the scratch root and returns it with its path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when creating the scratch root or the file fails.
+    pub(crate) async fn scratch(&self) -> io::Result<ScratchFile> {
+        ScratchFile::new(&self.path).await
+    }
 }
 
 impl Drop for ScratchDirectory {
