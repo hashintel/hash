@@ -230,7 +230,7 @@ impl NormalEquationsDerivation {
     };
 
     /// Validates the accumulated sums, returning [`None`] if any is non-finite.
-    fn finish(self) -> Option<NormalEquations> {
+    const fn finish(self) -> Option<NormalEquations> {
         Some(NormalEquations {
             residual_sum_of_squares: self.residual_sum_of_squares.finish().ok()?,
             j_aa: self.j_aa.finish().ok()?,

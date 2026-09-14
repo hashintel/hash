@@ -53,7 +53,7 @@ impl QualityMetric {
     /// Every admission metric, in report-control order.
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the index runs over the variant count, an order of magnitude inside u8"
+        reason = "the six implicit discriminants fit in u8"
     )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
         // SAFETY: a fieldless `repr(u8)` enum has u8 size and requires a valid discriminant. These

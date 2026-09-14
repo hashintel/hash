@@ -1,12 +1,7 @@
 //! Common metadata and geometry fixtures for paired-movement tests.
 //!
-//! The identity pins freeze the exact bytes [`snapshot`] and [`reproducibility`] serialize
-//! into, and the writer pins record the salt they derive, so every sibling's tests must agree
-//! on one definition of these inputs. A definition that drifted in one test module and not
-//! another would fail a byte pin far from the drift, so the shared inputs live here and each
-//! test module keeps the fixtures it alone consumes.
-
-use core::num::NonZero;
+//! Identity and writer tests use the same [`snapshot`] and [`reproducibility`] values to compare
+//! their serialized bytes and derived salts.
 
 use hashql_core::id::IdSlice;
 
@@ -39,7 +34,7 @@ pub(super) fn config() -> FitConfig {
     FitConfig {
         seed: 0xC2,
         selection: SelectionOptions {
-            maximum_count: NonZero::new(512).expect("the fixture capacity is nonzero"),
+            maximum_count: nz!(512),
             ..
         },
         curve: AffinityCurve::new(positive!(1.5), positive!(0.9)),

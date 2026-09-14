@@ -8,8 +8,7 @@
     not(test),
     expect(
         dead_code,
-        reason = "training and release evaluation are the designed readers of the mapped graph, \
-                  not yet implemented"
+        reason = "retained API for reading the published semantic graph"
     )
 )]
 

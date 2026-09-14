@@ -1,7 +1,7 @@
 #![expect(
     clippy::float_cmp,
-    reason = "weight factors are hand-picked exactly representable values (powers of two), so the \
-              asserted products and square roots are exact contracts"
+    reason = "fixtures pin representable arithmetic, copied factors, and equal results from the \
+              same ordered floating-point operations"
 )]
 
 use core::assert_matches;
@@ -118,8 +118,15 @@ fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
 /// Panics for out-of-domain settings or incorrectly ordered channels.
 fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
     ProtectionConfig::new(
-        ChannelConfig::new(hard.0, hard.1).expect("the fixture channel is in domain"),
-        ChannelConfig::new(ordinary.0, ordinary.1).expect("the fixture channel is in domain"),
+        ChannelConfig {
+            floor: UnitFraction::new(f64::from(hard.0)).expect("hard.0 is inside of [0, 1]"),
+            threshold: NonNegative::new(hard.1).expect("hard.1 is inside of [0, inf)"),
+        },
+        ChannelConfig {
+            floor: UnitFraction::new(f64::from(ordinary.0))
+                .expect("ordinary.0 is inside of [0, 1]"),
+            threshold: NonNegative::new(ordinary.1).expect("ordinary.1 is inside of [0, inf)"),
+        },
         true,
     )
     .expect("the fixture channels are ordered")
@@ -352,9 +359,9 @@ fn evidence_components_aggregate_independently_by_maximum() {
         .expect("the linked pair is present");
     assert_eq!(evidence.discounted, 0.375);
     assert_eq!(evidence.undiscounted, 1.0);
-    assert_eq!(evidence.mass(0.0), 0.375);
-    assert_eq!(evidence.mass(0.5), 0.5);
-    assert_eq!(evidence.mass(1.0), 1.0);
+    assert_eq!(evidence.mass(unit_fraction!(0.0)), 0.375);
+    assert_eq!(evidence.mass(unit_fraction!(0.5)), 0.5);
+    assert_eq!(evidence.mass(unit_fraction!(1.0)), 1.0);
 }
 
 #[test]
@@ -528,12 +535,14 @@ fn row_domains_beyond_the_column_encoding_are_rejected() {
 
 #[test]
 fn option_constructors_reject_out_of_domain_settings() {
-    assert!(ChannelConfig::new(1.5, 0.0).is_none());
-    assert!(ChannelConfig::new(f32::NAN, 0.0).is_none());
-    assert!(ChannelConfig::new(0.0, -1.0).is_none());
-    assert!(ChannelConfig::new(0.0, f32::NAN).is_none());
-    let low = ChannelConfig::new(0.25, 0.5).expect("the channel is in domain");
-    let high = ChannelConfig::new(0.5, 0.25).expect("the channel is in domain");
+    let low = ChannelConfig {
+        floor: unit_fraction!(0.25),
+        threshold: non_negative!(0.5),
+    };
+    let high = ChannelConfig {
+        floor: unit_fraction!(0.5),
+        threshold: non_negative!(0.25),
+    };
 
     // Hard wants the higher floor and the lower threshold.
     assert!(ProtectionConfig::new(low, high, true).is_none());
@@ -731,10 +740,15 @@ fn build_is_order_independent_and_sorted(
     }
     prop_assert_eq!(mirrored, view.entries());
 
-    // The floor identity is exact: the stored two-component evidence reproduces every floored
-    // per-instance mass. The reference applies the floor inside the per-instance maximum, the form
-    // the identity factorizes.
-    for floor in [0.0_f32, 0.25, 0.5, 1.0] {
+    // the reference floors applicability before multiplying each instance's shared f32 evidence.
+    // This compares the unfactorized expression with the stored maxima at the same rounding
+    // boundaries.
+    for floor in [
+        unit_fraction!(0.0),
+        unit_fraction!(0.25),
+        unit_fraction!(0.5),
+        unit_fraction!(1.0),
+    ] {
         for row in 0..ROWS as u64 {
             for entry in view.row(NodeRowId::new(row)) {
                 let expected = forward_reference_mass(
@@ -1010,8 +1024,10 @@ fn forward_reference_mass(
     instances: &[RelationInstance<NodeRowId, EdgeRowId>],
     policies: &[RelationPolicy],
     pair: NodePair<NodeRowId>,
-    floor: f32,
+    floor: UnitFraction,
 ) -> f32 {
+    let floor = floor.as_f32();
+
     let mut mass = 0.0_f32;
     for instance in instances {
         if NodePair::new(instance.source, instance.target) != pair

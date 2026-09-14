@@ -191,21 +191,8 @@ impl core::error::Error for ThresholdSupplyError {
     }
 }
 
-/// One production run's failure, by step.
-///
-/// Every variant names the step that failed and holds that step's concrete fault - nothing erases
-/// to `dyn`.
-///
-/// The run payload's concrete type stays inside the crate. An external caller reads it
-/// through [`Error::source`](core::error::Error::source) as `&dyn Error`, and only in-crate
-/// consumers match on it.
-#[expect(
-    private_interfaces,
-    reason = "the run variant's payload is reachable outside the crate as a `dyn Error` source \
-              alone, and naming its concrete type stays an in-crate capability"
-)]
 #[derive(Debug)]
-pub enum RunError {
+enum RunErrorKind {
     /// The store could not open a snapshot transaction.
     Snapshot(PostgresDatasetError),
     /// The dump directory was refused.
@@ -226,23 +213,38 @@ pub enum RunError {
     OfflineRun(RunnerError<OfflineDatasetError, MissingCardText>),
 }
 
+/// A step-specific failure from a live or offline generation run.
+///
+/// Every variant retains the step's concrete error. Use [`core::error::Error::source`] to inspect
+/// the underlying failure, including runner errors whose concrete type is crate-private.
+#[derive(Debug)]
+pub struct RunError {
+    kind: RunErrorKind,
+}
+
 impl core::fmt::Display for RunError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
-            Self::Dump(_) => fmt.write_str("the dump directory was refused"),
-            Self::DumpEmbedder(_) => {
+        match &self.kind {
+            RunErrorKind::Snapshot(_) => {
+                fmt.write_str("the store could not open a snapshot transaction")
+            }
+            RunErrorKind::Dump(_) => fmt.write_str("the dump directory was refused"),
+            RunErrorKind::DumpEmbedder(_) => {
                 fmt.write_str("the dump's embedding stream was refused as the embedding provider")
             }
-            Self::Verdicts(_) => fmt.write_str("the supplied verdicts document was refused"),
-            Self::Thresholds(_) => {
+            RunErrorKind::Verdicts(_) => {
+                fmt.write_str("the supplied verdicts document was refused")
+            }
+            RunErrorKind::Thresholds(_) => {
                 fmt.write_str("the supplied quality-thresholds document was refused")
             }
-            Self::Annotations(_) => {
+            RunErrorKind::Annotations(_) => {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
-            Self::Classifier(_) => fmt.write_str("the supplied classifier artifact was refused"),
-            Self::Run(_) | Self::OfflineRun(_) => {
+            RunErrorKind::Classifier(_) => {
+                fmt.write_str("the supplied classifier artifact was refused")
+            }
+            RunErrorKind::Run(_) | RunErrorKind::OfflineRun(_) => {
                 fmt.write_str("the run could not reach a verdict")
             }
         }
@@ -251,16 +253,88 @@ impl core::fmt::Display for RunError {
 
 impl core::error::Error for RunError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match self {
-            Self::Snapshot(error) => Some(error),
-            Self::Dump(error) => Some(error),
-            Self::DumpEmbedder(error) => Some(error),
-            Self::Verdicts(error) => Some(error),
-            Self::Thresholds(error) => Some(error),
-            Self::Annotations(error) => Some(error),
-            Self::Classifier(error) => Some(error),
-            Self::Run(error) => Some(error),
-            Self::OfflineRun(error) => Some(error),
+        match &self.kind {
+            RunErrorKind::Snapshot(error) => Some(error),
+            RunErrorKind::Dump(error) => Some(error),
+            RunErrorKind::DumpEmbedder(error) => Some(error),
+            RunErrorKind::Verdicts(error) => Some(error),
+            RunErrorKind::Thresholds(error) => Some(error),
+            RunErrorKind::Annotations(error) => Some(error),
+            RunErrorKind::Classifier(error) => Some(error),
+            RunErrorKind::Run(error) => Some(error),
+            RunErrorKind::OfflineRun(error) => Some(error),
+        }
+    }
+}
+
+const impl From<PostgresDatasetError> for RunError {
+    fn from(error: PostgresDatasetError) -> Self {
+        Self {
+            kind: RunErrorKind::Snapshot(error),
+        }
+    }
+}
+
+const impl From<OpenDumpError> for RunError {
+    fn from(error: OpenDumpError) -> Self {
+        Self {
+            kind: RunErrorKind::Dump(error),
+        }
+    }
+}
+
+const impl From<OfflineDatasetError> for RunError {
+    fn from(error: OfflineDatasetError) -> Self {
+        Self {
+            kind: RunErrorKind::DumpEmbedder(error),
+        }
+    }
+}
+
+const impl From<VerdictSupplyError> for RunError {
+    fn from(error: VerdictSupplyError) -> Self {
+        Self {
+            kind: RunErrorKind::Verdicts(error),
+        }
+    }
+}
+
+const impl From<ThresholdSupplyError> for RunError {
+    fn from(error: ThresholdSupplyError) -> Self {
+        Self {
+            kind: RunErrorKind::Thresholds(error),
+        }
+    }
+}
+
+const impl From<AnnotationSupplyError> for RunError {
+    fn from(error: AnnotationSupplyError) -> Self {
+        Self {
+            kind: RunErrorKind::Annotations(error),
+        }
+    }
+}
+
+const impl From<ClassifierSupplyError> for RunError {
+    fn from(error: ClassifierSupplyError) -> Self {
+        Self {
+            kind: RunErrorKind::Classifier(error),
+        }
+    }
+}
+
+const impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
+    fn from(error: RunnerError<PostgresDatasetError, ExternalEmbeddingError>) -> Self {
+        Self {
+            kind: RunErrorKind::Run(error),
+        }
+    }
+}
+
+const impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
+    fn from(error: RunnerError<OfflineDatasetError, MissingCardText>) -> Self {
+        Self {
+            kind: RunErrorKind::OfflineRun(error),
         }
     }
 }
@@ -274,10 +348,10 @@ impl core::error::Error for RunError {
 fn classifier_input(source: &ClassifierSource) -> Result<ClassifierInput, RunError> {
     match source {
         ClassifierSource::Annotations(path) => Ok(ClassifierInput::Annotations(
-            SuppliedAnnotations::open(path).map_err(RunError::Annotations)?,
+            SuppliedAnnotations::open(path)?,
         )),
         ClassifierSource::Artifact(path) => {
-            ClassifierInput::open_artifact(path).map_err(RunError::Classifier)
+            ClassifierInput::open_artifact(path).map_err(From::from)
         }
     }
 }
@@ -315,12 +389,12 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
 
     let mut projector = match (steps, initial) {
         (Some(steps), _) => {
-            let mut projector = ProjectorOptions::ratified();
+            let mut projector = ProjectorOptions::live();
             projector.schedule = TrainingSchedule::shortened(steps);
             projector
         }
         (None, PlacementOptions::Projector(projector)) => projector,
-        (None, PlacementOptions::LandmarkBaseline) => ProjectorOptions::ratified(),
+        (None, PlacementOptions::LandmarkBaseline) => ProjectorOptions::live(),
     };
 
     projector.vacuous = vacuous;
@@ -373,8 +447,7 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
     runner_options.quality.thresholds = quality_thresholds(
         runner_options.quality.thresholds,
         options.quality_thresholds.as_deref(),
-    )
-    .map_err(RunError::Thresholds)?;
+    )?;
 
     if options.nn_descent {
         runner_options.fit.construction =
@@ -388,8 +461,7 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
         .verdicts
         .as_deref()
         .map(SuppliedVerdicts::open)
-        .transpose()
-        .map_err(RunError::Verdicts)?;
+        .transpose()?;
 
     let classifier = classifier_input(&options.classifier)?;
 

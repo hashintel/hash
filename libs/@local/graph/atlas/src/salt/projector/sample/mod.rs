@@ -116,7 +116,7 @@ where
         let total = *self
             .cumulative
             .last()
-            .unwrap_or_else(|| unreachable!("cumulatative is always non empty"));
+            .unwrap_or_else(|| unreachable!("the cumulative table is never empty"));
 
         let mut pairs = Vec::with_capacity_in(count, alloc);
 

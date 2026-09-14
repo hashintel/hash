@@ -69,7 +69,7 @@ fn curvature_scales_at_the_origin_are_uniform() {
     let problem = ScaledProblem {
         prepared,
         gram: GramView::full(&gram),
-        config: SolverConfig { .. },
+        config: SolverConfig::default(),
     };
 
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
@@ -83,7 +83,7 @@ fn curvature_scales_at_the_origin_are_uniform() {
         assert_eq!(
             reading.scale.to_bits(),
             expected.to_bits(),
-            "a uniform row's curvature scale is exactly (1/3)(2/3)",
+            "uniform row curvature should match p * (1 - p) in f64",
         );
     }
 }
@@ -121,7 +121,7 @@ fn census_readings_carry_row_weights_and_the_validated_total() {
     let problem = ScaledProblem {
         prepared,
         gram: GramView::full(&gram),
-        config: SolverConfig { .. },
+        config: SolverConfig::default(),
     };
 
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();

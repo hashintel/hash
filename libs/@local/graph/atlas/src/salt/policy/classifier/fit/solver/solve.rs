@@ -127,12 +127,7 @@ pub(crate) fn solve(
     counters: WorkCounters,
     detail: ReceiptDetail,
 ) -> SolverRun {
-    debug_assert!(
-        problem.config.validate().is_ok(),
-        "the solver configuration is validated",
-    );
-
-    let mut control = SolverControl::new(problem.config.radius_initial, counters);
+    let mut control = SolverControl::new(problem.config.radius_initial(), counters);
     let mut receipts = Vec::new();
     let mut certificate = None;
 
@@ -191,7 +186,7 @@ fn run(
             return certify(problem, accepted, control, threshold);
         }
 
-        if control.outer_iterations_started == config.maximum_outer_iterations.get() {
+        if control.outer_iterations_started == config.maximum_outer_iterations().get() {
             return Err(SolverFailure::OuterIterationBudget);
         }
         control.outer_iterations_started += 1;
@@ -207,8 +202,9 @@ fn run(
             return Err(SolverFailure::InvalidPredictedReduction);
         };
 
-        let resolution = objective_resolution(accepted.objective, config.objective_resolution_ulps)
-            .ok_or(SolverFailure::ResolutionScaleOverflow)?;
+        let resolution =
+            objective_resolution(accepted.objective, config.objective_resolution_ulps())
+                .ok_or(SolverFailure::ResolutionScaleOverflow)?;
         if predicted <= resolution {
             return Err(SolverFailure::ResolutionStall);
         }
@@ -235,7 +231,7 @@ fn run(
             return Err(SolverFailure::InvalidAcceptanceRatio);
         };
 
-        if ratio < config.eta_accept {
+        if ratio < config.eta_accept() {
             if let Some(recorded) = recorded.as_deref_mut() {
                 recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
             }
@@ -278,13 +274,13 @@ fn run(
         control.consecutive_rejections = 0;
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
-        if inner.is_boundary() && ratio >= config.eta_expand {
-            // A product of positives above the ceiling, +∞ included, lands on the finite
-            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
+        if inner.is_boundary() && ratio >= config.eta_expand() {
+            // A product of positives above the ceiling, +∞ included, clamps to the finite
+            // maximum, and the clamp re-enters the domain. Growth by a factor above one never
             // falls to zero.
             control.radius = DPositive::new_unchecked(
-                (config.expansion_factor.get() * control.radius.get())
-                    .min(config.radius_maximum.get()),
+                (config.expansion_factor().get() * control.radius.get())
+                    .min(config.radius_maximum().get()),
             );
         }
     }
@@ -398,14 +394,14 @@ pub(super) const fn rejected(
 
     // The typed equality is exact: the minimum radius is reached only through an exact clip to
     // its bytes.
-    if control.radius == config.radius_minimum {
+    if control.radius == config.radius_minimum() {
         return Err(SolverFailure::RadiusUnderflow);
     }
 
-    control.radius = match (config.shrink_factor * control.radius).finish() {
-        Ok(radius) => radius.max(config.radius_minimum),
+    control.radius = match (config.shrink_factor() * control.radius).finish() {
+        Ok(radius) => radius.max(config.radius_minimum()),
         // a positive fraction cannot overflow the radius. A rejected product rounded to zero.
-        Err(_) => config.radius_minimum,
+        Err(_) => config.radius_minimum(),
     };
     Ok(())
 }
@@ -470,30 +466,31 @@ fn curvature_diagnostic(
 
 #[cfg(test)]
 mod tests {
-    use super::{SolverConfig, SolverControl, SolverFailure, WorkCounters, rejected};
+    use super::{
+        super::config::SolverOptions, SolverConfig, SolverControl, SolverFailure, WorkCounters,
+        rejected,
+    };
     use crate::math::{d_positive, open_unit_fraction};
 
     #[test]
     fn rejected_product_underflow() {
-        let config = SolverConfig {
+        let config = SolverConfig::new(SolverOptions {
             radius_minimum: d_positive!(1e-300),
             radius_initial: d_positive!(1e-200),
             shrink_factor: open_unit_fraction!(1e-200),
             ..
-        };
-        config
-            .validate()
-            .expect("the radii and thresholds are ordered");
-        let mut control = SolverControl::new(config.radius_initial, WorkCounters::default());
+        })
+        .expect("should satisfy the radius and threshold constraints");
+        let mut control = SolverControl::new(config.radius_initial(), WorkCounters::default());
 
         assert_eq!(rejected(&mut control, &config), Ok(()));
-        assert_eq!(control.radius, config.radius_minimum);
+        assert_eq!(control.radius, config.radius_minimum());
         assert_eq!(control.consecutive_rejections, 1);
         core::assert_matches!(
             rejected(&mut control, &config),
             Err(SolverFailure::RadiusUnderflow)
         );
-        assert_eq!(control.radius, config.radius_minimum);
+        assert_eq!(control.radius, config.radius_minimum());
         assert_eq!(control.consecutive_rejections, 2);
     }
 }

@@ -371,7 +371,7 @@ const RULES: [FillRule; 4] = [
 /// This panics when `z` exceeds the key width or `(x, y)` lies off the zoom's grid.
 const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
     MortonCell::new(
-        Depth::new(z).expect("tile zooms lie within the key width"),
+        Depth::try_new(z).expect("tile zooms lie within the key width"),
         x,
         y,
     )
@@ -733,8 +733,8 @@ fn pyramid_cost(scales: &[usize]) {
                     black_box(bench.visible_cascade(VisibleRankOrder::Base));
                 });
                 let shallowest =
-                    Depth::new(bench.span()).expect("the span lies within the key width");
-                let middle = Depth::new(bench.span() + bench.max_zoom() / 2)
+                    Depth::try_new(bench.span()).expect("the span lies within the key width");
+                let middle = Depth::try_new(bench.span() + bench.max_zoom() / 2)
                     .expect("cut depths lie within the key width");
 
                 println!(
@@ -790,7 +790,7 @@ fn query_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
                 }
                 let cell = cell_of(z, x, y);
                 let cut =
-                    Depth::new(z + bench.span()).expect("cut depths lie within the key width");
+                    Depth::try_new(z + bench.span()).expect("cut depths lie within the key width");
                 let batch_micros = median_micros(|| {
                     for _ in 0..BATCH {
                         black_box(pyramid.count(black_box(cell), black_box(cut)));
@@ -1367,7 +1367,7 @@ fn served_density(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fill
                         continue;
                     }
 
-                    let cut = Depth::new(z + bench.span()).expect("a valid cut");
+                    let cut = Depth::try_new(z + bench.span()).expect("a valid cut");
                     let shown: HashSet<u64> = bench
                         .served_cumulative_delivery(rule, z, x, y, &generation)
                         .iter()
@@ -1588,7 +1588,7 @@ fn served_breakdown(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
                 if !z.is_multiple_of(6) {
                     continue;
                 }
-                let cut = Depth::new(z + bench.span()).expect("a valid cut");
+                let cut = Depth::try_new(z + bench.span()).expect("a valid cut");
                 let cells = bench
                     .served_representatives(z, x, y, cut, &generation)
                     .len();
@@ -2676,7 +2676,7 @@ fn rule_density_audit(
         if z == 3 {
             dots_at_three = delivered.len();
         }
-        let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+        let window_depth = Depth::try_new(z + 2).expect("the audit windows fit the key");
         let shown = delivered_window_counts(codes, &delivered, window_depth);
         let fit = best_density_fit(bench, &shown, z, window_depth);
 

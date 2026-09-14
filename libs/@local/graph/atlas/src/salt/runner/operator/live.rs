@@ -1,4 +1,4 @@
-//! Runs one production generation over a pinned store snapshot.
+use core::panic::UnwindSafe;
 
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use tokio_postgres::Client;
@@ -20,20 +20,20 @@ use crate::{
 ///
 /// # Errors
 ///
-/// Returns a [`RunError`] naming the step that failed: opening the snapshot transaction, admitting
-/// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents, or the
-/// run itself.
-pub(crate) async fn live<P: Progress + Sync>(
+/// Returns [`RunError`] when snapshot creation, supplied-document resolution or the generation run
+/// fails. The snapshot opens before document resolution.
+pub(crate) async fn live<P>(
     client: &mut Client,
     root: GenerationRoot,
     device: PinnedDevice,
     axes: TemporalAxes,
     options: Options<P>,
     embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient, P::Detached>,
-) -> Result<Summary, RunError> {
-    let dataset = PostgresDataset::new(client, axes)
-        .await
-        .map_err(RunError::Snapshot)?;
+) -> Result<Summary, RunError>
+where
+    P: Progress<Detached: UnwindSafe> + Sync,
+{
+    let dataset = PostgresDataset::new(client, axes).await?;
 
     let resolved = resolve(&options, device)?;
 
@@ -46,8 +46,7 @@ pub(crate) async fn live<P: Progress + Sync>(
         resolved.runner,
         &options.progress,
     )
-    .await
-    .map_err(RunError::Run)?;
+    .await?;
 
     Ok(summary(&outcome))
 }

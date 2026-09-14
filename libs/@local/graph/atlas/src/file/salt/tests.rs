@@ -24,8 +24,8 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, Bounds2, PositiveUnitFraction, Rotation, Similarity, UnitFraction, Vec2,
-        d_non_negative, d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
+        AffinityCurve, Bounds2, Rotation, Similarity, Vec2, d_non_negative, d_positive,
+        non_negative, nz, open_unit_fraction, positive, positive_unit_fraction, unit_fraction,
     },
     morton::Depth,
     salt::{
@@ -49,7 +49,7 @@ use crate::{
             },
         },
         postings::build::PostingsMeasurements,
-        projector::train::TrainingSchedule,
+        projector::train::{TrainingSchedule, fit::TrainingScheduleOptions},
         relation::BuildMeasurements,
     },
 };
@@ -68,17 +68,14 @@ fn binding<A: Artifact>(seed: &str) -> Binding<A> {
 
 /// Builds projector options with a short test schedule.
 fn placement() -> PlacementOptions {
-    let mut options = ProjectorOptions::ratified();
-    options.schedule = TrainingSchedule::new(
-        NonZero::new(12).expect("the fixture step count is nonzero"),
-        6,
-        NonZero::new(4).expect("the fixture cadence is nonzero"),
-        const {
-            PositiveUnitFraction::new(1.0e-3)
-                .expect("the fixture initial rate is a positive unit fraction")
-        },
-        const { UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction") },
-    )
+    let mut options = ProjectorOptions::live();
+    options.schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(12),
+        boundary: 6,
+        refresh_interval: nz!(4),
+        initial_learning_rate: positive_unit_fraction!(1.0e-3),
+        minimum_learning_rate: unit_fraction!(1.0e-5),
+    })
     .expect("the fixture schedule is valid");
     options.ladder = LadderOptions {
         conditions: Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
@@ -103,8 +100,12 @@ fn config() -> FitConfig {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(7),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.25, 0.5, 0.25])
-                    .expect("the fixture distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.25),
+                    unit_fraction!(0.5),
+                    unit_fraction!(0.25),
+                ])
+                .expect("the fixture distribution sums to one"),
             }],
             ..
         },
@@ -325,7 +326,7 @@ fn evidence() -> Evidence {
         landmarks: LandmarkEvidence {
             selected: 4_096,
             retained: 1_024,
-            layout_epochs: NonZero::new(500).expect("the fixture epoch count is nonzero"),
+            layout_epochs: nz!(500),
         },
         policy: PolicyEvidence {
             relations: 49,
@@ -345,7 +346,7 @@ fn evidence() -> Evidence {
         quad: QuadMeasurements {
             nodes: 21_845,
             leaves: 16_000,
-            depth: Depth::new(7).expect("the fixture depth is within the key width"),
+            depth: Depth::try_new(7).expect("the fixture depth is within the key width"),
             type_entries: 65_000,
         },
         postings: PostingsMeasurements {
@@ -792,9 +793,11 @@ fn a_step_without_the_capped_estimand_decodes_as_absent() {
 
 #[test]
 fn tampered_configuration_echo_refuses_to_deserialize() {
-    // Each tampered value violates a construction invariant of its
-    // field's type; the validating deserialization is what turns the
-    // echo from a record into a contract.
+    let document = serde_json::to_value(repository()).expect("the repository should serialize");
+    let decoded: SaltRepository = serde_json::from_value(document.clone())
+        .expect("the unchanged repository should deserialize");
+    assert_eq!(decoded, repository());
+
     for (pointer, tampered) in [
         (
             "/metadata/reproducibility/config/selection/retained_fraction",
@@ -834,8 +837,8 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             serde_json::json!(100),
         ),
         (
-            "/metadata/reproducibility/config/placement/projector/coefficients",
-            serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
+            "/metadata/reproducibility/config/placement/projector/coefficients/semantic",
+            serde_json::json!(0.0),
         ),
         // Each step must exceed the one before it, from the exact zero
         // baseline up.
@@ -857,9 +860,20 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/evidence/projector/ladder/steps/1/alignment/scale",
             serde_json::json!(0.0),
         ),
+        (
+            "/metadata/evidence/projector/ladder/steps/1/alignment/scale",
+            serde_json::json!(f32::MAX),
+        ),
+        (
+            "/metadata/evidence/projector/ladder/steps/1/alignment/translation",
+            serde_json::json!([1.0e40, 0.0]),
+        ),
+        (
+            "/metadata/evidence/lod/world/min",
+            serde_json::json!([9.0, -2.0]),
+        ),
     ] {
-        let mut document =
-            serde_json::to_value(repository()).expect("the repository should serialize");
+        let mut document = document.clone();
         *document
             .pointer_mut(pointer)
             .expect("the tampered field should exist in the document") = tampered;

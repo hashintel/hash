@@ -161,8 +161,10 @@ impl<N> LandmarkCandidate<N> {
     }
 }
 
+const DEFAULT_RETAINED_FRACTION: UnitFraction = const { UnitFraction::new(0.25).unwrap() };
+
 /// Capacity and retention settings for one selection.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionOptions {
     /// The landmark capacity `M`.
     ///
@@ -170,10 +172,9 @@ pub(crate) struct SelectionOptions {
     pub maximum_count: NonZero<u32>,
     /// Target fraction of prior landmarks, 0.25 by default.
     ///
-    /// Retention stabilizes generation-to-generation orientation.
-    // The default is an unvalidated starting point; the temporal-drift
-    // and landmark rank-correlation criteria revise it from evidence.
-    pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
+    /// Subgroup minimums take precedence. Available slots and prior candidates limit retention, while the final fill may exceed the target. Reusing landmarks encourages continuity between generations without fixing orientation.
+    // the default is an unvalidated starting point. Temporal drift and landmark rank correlation supply the measurements for revising it.
+    pub retained_fraction: UnitFraction = DEFAULT_RETAINED_FRACTION,
     /// Candidates per generator stream: the priority pass's seeding and parallel work unit.
     ///
     /// By default, uses 4,096 candidates. This value fixes which stream draws for each candidate. Equal-seed replay requires the same chunk size.
@@ -439,8 +440,7 @@ where
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
     clippy::cast_sign_loss,
-    reason = "the product of a bounded capacity and a unit-interval fraction is a small \
-              non-negative integer count"
+    reason = "retention converts the ceiling of the computed f64 product to an integer target"
 )]
 #[inline]
 const fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {

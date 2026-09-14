@@ -10,7 +10,12 @@
 //! including while a run fits or probes. The runner's quality check supplies no restriction on
 //! direct [`GenerationRoot::activate`] calls.
 //!
-//! Retiring old generations is offline tooling over published directories.
+//! The admission probe's generator derives from the fit seed under a fixed label. Equal seeds,
+//! population row order and sampling settings reproduce its anchor sample with the same sampler
+//! implementation. Replaying a complete fit additionally depends on the dataset, supplied
+//! artifacts, prior generation, fit configuration and numerical environment.
+
+use core::panic::UnwindSafe;
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -117,7 +122,7 @@ pub(crate) async fn run<D, E, P>(
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Sync,
+    P: Progress<Detached: UnwindSafe> + Sync,
 {
     let prior = match options.prior {
         PriorMode::FromActive => root

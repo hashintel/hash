@@ -226,7 +226,7 @@ impl<'fit> PlacementPass<'fit> {
         let training_roles = IdVec::from_elem(NodeRole::KnowledgeEntity, training.len());
         let landmarks = SupportAnchor::at_landmarks(
             self.inputs.skeleton,
-            options.landmark_support.weight(),
+            options.landmark_support.weight,
             |row| distinct.quotient.class_of(row),
         );
 
@@ -245,7 +245,7 @@ impl<'fit> PlacementPass<'fit> {
         // corpus.
         let vacuous = AttractionIndex::vacuous();
         let attraction = if options.vacuous {
-            tracing::info!("vacuous attraction select. no attraction term will be used");
+            tracing::info!("the placement is vacuous: training uses no attraction term");
             &vacuous
         } else {
             &distinct.indexes.attraction
@@ -439,9 +439,12 @@ impl<'fit> PlacementPass<'fit> {
 
     /// Stages the published model checkpoint.
     ///
-    /// Recording moves a clone of the parameters into the record, so the model still projects
-    /// the ladder after its checkpoint stages.
-    #[tracing::instrument(skip_all, ret)]
+    /// Consumes the training model to record its parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectorError`] when encoding or staging the checkpoint fails.
+    #[tracing::instrument(skip_all)]
     fn checkpoint(
         &self,
         model: Projector<Training>,

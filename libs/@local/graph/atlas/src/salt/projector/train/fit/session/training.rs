@@ -67,8 +67,8 @@ pub(crate) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrSchedule
 // No Debug: the optimizer adaptor inside `Training` does not implement it.
 #[expect(
     clippy::large_enum_variant,
-    reason = "the outcome is constructed and consumed once per run segment, so the size \
-              difference never rides a hot path"
+    reason = "the outcome is constructed and consumed once per run segment, and the size \
+              difference is never on a hot path"
 )]
 pub(crate) enum RunOutcome<N, B: AutodiffBackend<FloatElem = f32>> {
     /// The segment completed and the training state advanced.

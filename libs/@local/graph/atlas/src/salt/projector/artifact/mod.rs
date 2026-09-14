@@ -30,6 +30,7 @@ use burn::{
     tensor::backend::Backend,
 };
 
+use super::train::fit::TrainingScheduleError;
 use crate::{
     file::{WriteAs, WriteInto, salt::artifact},
     integrity::{Sha256, Sha256Digest, Writer},
@@ -55,11 +56,12 @@ pub(crate) enum CheckpointError {
     /// The decoded parameters do not describe the architecture.
     Architecture(ArchitectureMismatch),
     /// The decoded schedule fields do not form a valid schedule.
+    InvalidSchedule(TrainingScheduleError),
     #[cfg_attr(
         not(test),
         expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
     )]
-    InvalidSchedule,
+    MalformedSchedule,
     /// The decoded scheduler position does not sit at the schedule's boundary.
     ///
     /// The record's parts describe two different runs.
@@ -78,7 +80,8 @@ impl core::fmt::Display for CheckpointError {
                 write!(fmt, "could not encode or decode the checkpoint: {error}")
             }
             Self::Architecture(error) => error.fmt(fmt),
-            Self::InvalidSchedule => fmt.write_str(
+            Self::InvalidSchedule(error) => error.fmt(fmt),
+            Self::MalformedSchedule => fmt.write_str(
                 "the checkpoint's schedule fields do not form a valid training schedule",
             ),
             Self::SchedulerPosition { position, boundary } => write!(
@@ -96,8 +99,15 @@ impl core::error::Error for CheckpointError {
             Self::Io(error) => Some(error),
             Self::Record(error) => Some(error),
             Self::Architecture(error) => Some(error),
-            Self::InvalidSchedule | Self::SchedulerPosition { .. } => None,
+            Self::InvalidSchedule(error) => Some(error),
+            Self::SchedulerPosition { .. } | Self::MalformedSchedule => None,
         }
+    }
+}
+
+impl From<TrainingScheduleError> for CheckpointError {
+    fn from(value: TrainingScheduleError) -> Self {
+        Self::InvalidSchedule(value)
     }
 }
 

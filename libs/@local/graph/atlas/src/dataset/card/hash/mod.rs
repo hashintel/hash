@@ -483,8 +483,8 @@ fn recognizability<A: Allocator>(row: &ExampleRow<'_, A>) -> f64 {
 /// Returns `ln(1 + count)`.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "the widening is the operation: counts above 2^53 round to the nearest representable \
-              float, and the logarithm leaves that error far below the score's discrimination"
+    reason = "prominence uses an approximate logarithmic score, including rounded conversions of \
+              counts above 2⁵³"
 )]
 fn ln_count(count: u64) -> f64 {
     (count as f64).ln_1p()

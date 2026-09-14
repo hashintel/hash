@@ -6,7 +6,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "the dyadic fixtures produce exactly representable readings, so the asserted \
+    reason = "the dyadic fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"
 )]
 

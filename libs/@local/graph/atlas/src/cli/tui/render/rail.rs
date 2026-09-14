@@ -285,7 +285,7 @@ fn embedding_counter(workload: EmbeddingWorkload) -> String {
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
-    reason = "a cell lights once its whole share of the workload is covered, so the truncation is \
+    reason = "a cell lights once its whole share of the workload is covered. The truncation is \
               the reading"
 )]
 fn counter_bar(done: usize, total: NonZero<usize>) -> String {

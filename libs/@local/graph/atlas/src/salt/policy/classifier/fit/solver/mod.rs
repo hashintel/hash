@@ -50,7 +50,7 @@ mod work;
 mod tests;
 
 pub(crate) use self::{
-    config::{SolverConfig, SolverConfigError},
+    config::{SolverConfig, SolverConfigError, SolverOptions},
     gram::{Gram, GramView},
     prepare::{PreparationError, PreparationSettings},
     receipt::ReceiptDetail,

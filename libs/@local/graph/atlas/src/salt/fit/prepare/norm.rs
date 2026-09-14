@@ -50,7 +50,7 @@ const _: () = assert!(
 );
 
 /// Pinned tolerance and sampling settings for one norm spot check.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided.
     pub tolerance: DPositive = DEFAULT_TOLERANCE,

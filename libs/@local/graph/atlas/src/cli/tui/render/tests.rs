@@ -8,11 +8,11 @@ use ratatui::{Terminal, backend::TestBackend, buffer::Buffer, layout::Rect, styl
 use super::{
     ACCENT, frame,
     loss::{curve, step_bounds, value_bounds},
-    map::{SKELETON, map_bounds},
+    map::{SKELETON, map_bounds, render_map},
     rail::duration,
 };
 use crate::{
-    cli::tui::state::{KnnActivity, RunState},
+    cli::tui::state::{KnnActivity, PlacementMap, RunState},
     math::{Vec2, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, DescentIteration, Stage},
     salt::{
@@ -556,6 +556,42 @@ fn a_placement_with_no_extent_still_has_a_viewport() {
         map_bounds(&[Vec2::new(f32::NAN, 0.0)], inner).expect("should preserve the empty viewport");
     assert!(horizontal[0] < horizontal[1], "{horizontal:?}");
     assert!(vertical[0] < vertical[1], "{vertical:?}");
+}
+
+#[test]
+fn map_bounds_range_edges() {
+    let inner = Rect::new(0, 0, 40, 20);
+    let inside = [Vec2::ZERO, Vec2::splat(f32::MAX / 2.0)];
+    let [horizontal, vertical] =
+        map_bounds(&inside, inner).expect("should represent the margin below the range edge");
+    for [low, high] in [horizontal, vertical] {
+        assert!(low.is_finite() && low < 0.0);
+        assert!(high.is_finite() && high > f64::from(f32::MAX / 2.0));
+    }
+    assert_eq!(
+        map_bounds(&[Vec2::ZERO, Vec2::splat(f32::MAX)], inner),
+        None
+    );
+}
+
+#[test]
+fn map_unrepresentable_viewport() {
+    // the origin would be drawn by an unrelated unit-viewport fallback.
+    let placement = PlacementMap {
+        positions: vec![Vec2::ZERO, Vec2::splat(f32::MAX)],
+        landmarks: 1,
+    };
+    let mut terminal = Terminal::new(TestBackend::new(40, 12)).expect("should open a terminal");
+    terminal
+        .draw(|target| render_map(target, target.area(), &placement))
+        .expect("should draw the empty map frame");
+    let buffer = terminal.backend().buffer();
+    assert!(rows(buffer)[0].contains(" map "));
+    for y in 1..11 {
+        for x in 1..39 {
+            assert_eq!(buffer[(x, y)].symbol(), " ");
+        }
+    }
 }
 
 /// A run whose stages have all landed, carrying `readings` of the admission battery.

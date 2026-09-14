@@ -6,6 +6,7 @@
 //! full precision: a round-tripped model must compute the identical function, and any deviation
 //! breaks the round-trip rather than merely losing precision.
 
+use core::assert_matches;
 use std::sync::LazyLock;
 
 use burn::{
@@ -147,8 +148,9 @@ fn open_model_rejects_truncated_bytes() {
 
     let error = open_model::<Training>(bytes.as_slice(), architecture(), &*DEVICE)
         .expect_err("truncated bytes should be rejected");
-    assert!(
-        matches!(error, CheckpointError::Record(_)),
+    assert_matches!(
+        error,
+        CheckpointError::Record(_),
         "the rejection should name the record decode: {error}"
     );
 }

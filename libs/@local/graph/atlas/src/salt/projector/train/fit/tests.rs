@@ -53,7 +53,12 @@ use crate::{
             loss::{Penalty, UnitLaw},
             model::{Architecture, Projector},
             scale::frozen::{FrozenRuler, RulerParameters},
-            train::{Coefficients, refresh, step::LossBreakdown},
+            train::{
+                Coefficients,
+                fit::{TrainingScheduleError, TrainingScheduleOptions},
+                refresh,
+                step::LossBreakdown,
+            },
             verdict::{
                 ResolvedVerdict,
                 calibrate::{
@@ -207,14 +212,14 @@ fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
     let mut options = options(schedule(nz!(25), 25, nz!(10)));
     // A dominant landmark coefficient pins the anchored rows.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        non_negative!(0.5),
-        non_negative!(0.5),
-        NonNegative::ONE,
-        NonNegative::ZERO,
-        non_negative!(8.0),
-    );
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: non_negative!(0.5),
+        hard: non_negative!(0.5),
+        relation: NonNegative::ONE,
+        anchor: NonNegative::ZERO,
+        landmark: non_negative!(8.0),
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -253,16 +258,16 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
     // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
     // the mechanism the certificate names. Rows in one cluster share almost the same input
-    // representation, so the shared network weights let any other active force move cluster mates
-    // in a correlated way, and that confound must be off for the certificate to test what it names.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-    );
+    // representation: the shared network weights let any other active force move cluster mates in
+    // a correlated way, and that confound must be off for the certificate to test what it names.
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: NonNegative::ZERO,
+        hard: NonNegative::ZERO,
+        relation: NonNegative::ZERO,
+        anchor: NonNegative::ZERO,
+        landmark: NonNegative::ZERO,
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -307,14 +312,14 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
     // certificate reads. The relation term has no evidence in this corpus and goes to zero with
     // them. The semantic term's type admits no zero: the 8:1 landmark dominance carries the
     // isolation.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        non_negative!(8.0),
-    );
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: NonNegative::ZERO,
+        hard: NonNegative::ZERO,
+        relation: NonNegative::ZERO,
+        anchor: NonNegative::ZERO,
+        landmark: non_negative!(8.0),
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -719,7 +724,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
     .expect("the fixture model is finite");
     assert_eq!(
         chunked, whole,
-        "rows project independently, so slicing cannot change the frame"
+        "slicing cannot change the frame because rows project independently"
     );
 }
 
@@ -732,46 +737,82 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
 fn schedule_validates_its_domain() {
     // Out-of-range rates are unconstructible: the initial rate as a `PositiveUnitFraction`, the
     // minimum as a `UnitFraction`. The residual domain here is the boundary and the rate ordering.
-    let valid = TrainingSchedule::new(
-        nz!(10),
-        5,
-        nz!(2),
-        positive_unit_fraction!(0.05),
-        unit_fraction!(0.001),
+    TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.001),
+    })
+    .expect("should be a valid schedule");
+
+    assert_matches!(
+        TrainingSchedule::new(TrainingScheduleOptions {
+            steps: nz!(10),
+            boundary: 11,
+            refresh_interval: nz!(2),
+            initial_learning_rate: positive_unit_fraction!(0.05),
+            minimum_learning_rate: unit_fraction!(0.001),
+        }),
+        Err(TrainingScheduleError::BoundaryGreaterThanSteps { .. }),
     );
-    assert!(valid.is_some());
-    assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            11,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.001)
-        )
-        .is_none(),
-        "the boundary lies within the run"
+
+    TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.0),
+    })
+    .expect("a zero minimum decays the rate to nothing and is lawful");
+
+    assert_matches!(
+        TrainingSchedule::new(TrainingScheduleOptions {
+            steps: nz!(10),
+            boundary: 5,
+            refresh_interval: nz!(2),
+            initial_learning_rate: positive_unit_fraction!(0.05),
+            minimum_learning_rate: unit_fraction!(0.1)
+        }),
+        Err(TrainingScheduleError::InitialLearningRateSmallerThanMinimum { .. })
     );
-    assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            5,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.0)
-        )
-        .is_some(),
-        "a zero minimum decays the rate to nothing and is lawful"
+}
+
+#[test]
+fn schedule_deserialization_cross_field_constraints() {
+    let schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.001),
+    })
+    .expect("the fixture schedule is valid");
+    let document = serde_json::to_value(schedule).expect("the schedule serializes");
+    assert_eq!(
+        serde_json::from_value::<TrainingSchedule>(document.clone())
+            .expect("the unchanged schedule should deserialize"),
+        schedule,
     );
+
+    let mut boundary = document.clone();
+    boundary["boundary"] = serde_json::json!(11);
+    let error = serde_json::from_value::<TrainingSchedule>(boundary)
+        .expect_err("a boundary beyond the run refuses to parse");
     assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            5,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.1)
-        )
-        .is_none(),
-        "the minimum does not exceed the initial rate"
+        error
+            .to_string()
+            .contains("boundary must be less than or equal")
+    );
+
+    let mut rates = document;
+    rates["minimum_learning_rate"] = serde_json::json!(0.1);
+    let error = serde_json::from_value::<TrainingSchedule>(rates)
+        .expect_err("a minimum above the initial rate refuses to parse");
+    assert!(
+        error
+            .to_string()
+            .contains("minimum learning rate must be less than or equal"),
     );
 }
 
@@ -878,14 +919,14 @@ fn forked_ladders_share_the_frozen_radius() {
         )
         .expect("the resume checkpoint opens");
         let mut cell = opening;
-        cell.coefficients = Coefficients::new(
-            Positive::ONE,
-            non_negative!(0.5),
-            non_negative!(0.5),
+        cell.coefficients = Coefficients {
+            semantic: Positive::ONE,
+            ordinary: non_negative!(0.5),
+            hard: non_negative!(0.5),
             relation,
-            NonNegative::ZERO,
-            NonNegative::ONE,
-        );
+            anchor: NonNegative::ZERO,
+            landmark: NonNegative::ONE,
+        };
         fit_from_boundary(
             state,
             &corpus.inputs(),
@@ -1960,10 +2001,8 @@ fn open_checkpoint_invalid_schedule() {
     ) else {
         panic!("a minimum above the initial rate should be rejected");
     };
-    assert!(
-        matches!(error, CheckpointError::InvalidSchedule),
-        "the rejection should name the schedule: {error}"
-    );
+
+    assert_matches!(error, CheckpointError::InvalidSchedule(_));
 }
 
 /// A record whose scheduler position is off the boundary fails with `SchedulerPosition`.

@@ -383,7 +383,7 @@ where
             self.inputs.attraction,
             ScaledFrame::new(frame, &tables[0]),
             calibration_options(self.options),
-            energy.proximal().radius(),
+            energy.proximal().radius,
         )
     }
 

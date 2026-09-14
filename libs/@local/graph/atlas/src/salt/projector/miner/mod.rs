@@ -59,61 +59,15 @@ use crate::{
 /// `maximum_weight · (1 - r / neighbours)^rank_exponent`: the nearest surviving false neighbour
 /// carries the full weight and the last admissible rank fades toward zero, satisfying the bounded
 /// rank-weight contract.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MinerOptions {
-    neighbours: NonZero<usize>,
-    search_margin: NonZero<usize>,
-    maximum_weight: Positive,
-    rank_exponent: Positive,
+    pub neighbours: NonZero<usize>,
+    pub search_margin: NonZero<usize>,
+    pub maximum_weight: Positive,
+    pub rank_exponent: Positive,
 }
 
 impl MinerOptions {
-    /// Assembles a mining schedule.
-    ///
-    /// Every field arrives valid by construction, so no state this type can hold is invalid.
-    #[must_use]
-    pub(crate) const fn new(
-        neighbours: NonZero<usize>,
-        search_margin: NonZero<usize>,
-        maximum_weight: Positive,
-        rank_exponent: Positive,
-    ) -> Self {
-        Self {
-            neighbours,
-            search_margin,
-            maximum_weight,
-            rank_exponent,
-        }
-    }
-
-    /// Returns the per-row admission quota `h`.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn neighbours(self) -> NonZero<usize> {
-        self.neighbours
-    }
-
-    /// Returns the search-quota multiplier over the admission quota.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn search_margin(self) -> NonZero<usize> {
-        self.search_margin
-    }
-
-    /// Returns the bound every rank weight stays within.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn maximum_weight(self) -> f32 {
-        self.maximum_weight.get()
-    }
-
-    /// Returns the rank-decay exponent.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn rank_exponent(self) -> f32 {
-        self.rank_exponent.get()
-    }
-
     /// Computes the weight of the candidate at closeness `rank`.
     ///
     /// Ranks lie below the quota, and rank zero carries the full bound. The real formula
@@ -125,7 +79,7 @@ impl MinerOptions {
     fn weight(self, rank: usize) -> f32 {
         #[expect(
             clippy::cast_precision_loss,
-            reason = "ranks stay below the quota, far inside exact f32 integers"
+            reason = "rank and quota deliberately convert to f32 for the rank weight"
         )]
         let relative = rank as f32 / self.neighbours.get() as f32;
 
@@ -251,7 +205,7 @@ where
     /// fills or the readout ends. The result is short when the examined candidates run out, and
     /// the search never widens.
     fn mine_row(&self, field: &SpatialField<'_, N>, row: N) -> Vec<(N, f32)> {
-        let quota = self.options.neighbours().get();
+        let quota = self.options.neighbours.get();
 
         let mut accepted = Vec::with_capacity(quota);
 

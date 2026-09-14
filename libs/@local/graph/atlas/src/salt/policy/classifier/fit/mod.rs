@@ -50,10 +50,6 @@ use crate::{
 };
 
 mod applicability;
-pub(crate) use self::solver::{
-    NewtonStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
-    SolverFailure,
-};
 mod calibration;
 mod objective;
 pub(crate) mod regularization;
@@ -61,6 +57,11 @@ pub(crate) mod solver;
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::solver::{
+    NewtonStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
+    SolverFailure, SolverOptions,
+};
 
 /// A training input violated the corpus contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -130,13 +131,13 @@ pub(crate) enum FitError {
 
 #[expect(
     clippy::use_debug,
-    reason = "the wrapped verdicts are typed vocabulary; their variant names are the message"
+    reason = "the wrapped verdicts are typed vocabulary, and their variant names are the message"
 )]
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Config(error) => {
-                write!(fmt, "the solver configuration is invalid: {error:?}")
+                write!(fmt, "the solver configuration is invalid: {error}")
             }
             Self::FoldCount { folds } => {
                 write!(fmt, "{folds} validation folds cannot hold anything out")
@@ -157,6 +158,12 @@ impl fmt::Display for FitError {
 }
 
 impl Error for FitError {}
+
+const impl From<SolverConfigError> for FitError {
+    fn from(error: SolverConfigError) -> Self {
+        Self::Config(error)
+    }
+}
 
 /// One soft label, vote weight, and indivisible validation group.
 ///
@@ -284,19 +291,45 @@ impl<'training> TrainingSet<'training> {
     }
 }
 
+/// Raw classifier-fit knobs admitted by [`FitConfig::new`].
+#[derive(Debug, Copy, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+pub(crate) struct FitOptions {
+    /// The bounded trust-region exact-Newton solver configuration, preparation knobs included.
+    ///
+    /// By default, uses [`SolverOptions`]' defaults.
+    pub solver: SolverOptions = SolverOptions { .. },
+    /// Grouped cross-validation fold count. At least 2.
+    ///
+    /// By default, this is `5`.
+    pub folds: usize = 5,
+    /// Fold-assignment seed.
+    ///
+    /// By default, this is `0`.
+    pub seed: u64 = 0,
+}
+
+impl TryFrom<FitOptions> for FitConfig {
+    type Error = FitError;
+
+    fn try_from(value: FitOptions) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Solver and grouped-validation settings.
 ///
 /// The solver defaults are the deployment configuration, with the regularization strength selected
 /// per fit ([`regularization`]). The out-of-fold metrics in [`FitEvidence`] judge the selected
 /// configuration.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "FitOptions")]
 pub(crate) struct FitConfig {
     /// The bounded trust-region exact-Newton solver configuration, preparation knobs included.
-    pub solver: SolverConfig = SolverConfig { .. },
+    pub solver: SolverConfig,
     /// Grouped cross-validation fold count. At least 2.
-    pub folds: usize = 5,
+    folds: usize,
     /// Fold-assignment seed.
-    pub seed: u64 = 0,
+    seed: u64,
 }
 
 impl FitConfig {
@@ -304,16 +337,43 @@ impl FitConfig {
     ///
     /// # Errors
     ///
-    /// Returns [`FitError::Config`] for a solver configuration violating a cross-field constraint
-    /// and [`FitError::FoldCount`] for fewer than two folds.
-    pub(crate) fn validate(self) -> Result<(), FitError> {
-        self.solver.validate().map_err(FitError::Config)?;
+    /// Returns [`FitError`] for invalid solver options or fewer than two folds.
+    pub(crate) const fn new(
+        FitOptions {
+            solver,
+            folds,
+            seed,
+        }: FitOptions,
+    ) -> Result<Self, FitError> {
+        let solver = SolverConfig::new(solver)?;
 
-        if self.folds < 2 {
-            return Err(FitError::FoldCount { folds: self.folds });
+        if folds < 2 {
+            return Err(FitError::FoldCount { folds });
         }
 
-        Ok(())
+        Ok(Self {
+            solver,
+            folds,
+            seed,
+        })
+    }
+
+    /// Returns the grouped cross-validation fold count.
+    pub(crate) const fn folds(&self) -> usize {
+        self.folds
+    }
+
+    /// Returns the fold-assignment seed.
+    pub(crate) const fn seed(&self) -> u64 {
+        self.seed
+    }
+}
+
+const impl Default for FitConfig {
+    fn default() -> Self {
+        const DEFAULT: FitConfig = FitConfig::new(FitOptions { .. }).ok().unwrap();
+
+        DEFAULT
     }
 }
 
@@ -365,8 +425,6 @@ pub(crate) fn fit<P: Progress + Sync>(
     config: FitConfig,
     progress: &P,
 ) -> Result<Fit, FitError> {
-    config.validate()?;
-
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
     progress.classifier_started(config.folds);
 

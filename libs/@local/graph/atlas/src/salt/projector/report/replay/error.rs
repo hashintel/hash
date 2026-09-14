@@ -369,7 +369,7 @@ impl ReplayError {
                  domain",
             )),
             Self::EmptyArrivals => Some(fmt.write_str(
-                "the later generation contains no arrival, so no run can exercise the deployed \
+                "the later generation contains no arrival, and no run can exercise the deployed \
                  path",
             )),
             Self::InsufficientStableRows {

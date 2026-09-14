@@ -165,7 +165,7 @@ where
         // The column is present regardless, and the rank contract and the wire shape therefore do
         // not depend on whether a boost signal exists.
         let priority = IdVec::from_domain(0.0_f32, &importance);
-        let inputs = RankInputs::new(&importance, &priority, self.ids.ids()).ok_or_else(|| {
+        let inputs = RankInputs::new(&importance, &priority, self.ids.keys()).ok_or_else(|| {
             DeliveryError::WireEncoding {
                 rows: self.ids.len(),
             }

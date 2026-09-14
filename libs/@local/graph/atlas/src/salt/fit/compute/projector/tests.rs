@@ -25,6 +25,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::{Device, Inference, Training},
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{GenerationRoot, StagedGeneration},
         repository::Artifact as _,
@@ -39,9 +40,9 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Similarity,
+        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Similarity,
         UnitFraction, Vec2, d_non_negative, d_positive, non_negative, nz, open_unit_fraction,
-        positive, positive_unit_fraction,
+        positive, positive_unit_fraction, unit_fraction,
     },
     salt::{
         embedding::EmbedderFingerprint,
@@ -57,7 +58,8 @@ use crate::{
             scale::{LocalScales, ScaledFrame},
             train::{
                 BoundaryEvidence, BudgetBreakdown, FrozenRadius, Model, NodeColumns,
-                RefreshFraction, RelationLens, TrainingEvidence, TrainingSchedule, refresh,
+                RefreshFraction, RelationLens, TrainingEvidence, TrainingSchedule,
+                fit::TrainingScheduleOptions, refresh,
             },
             verdict::calibrate::{
                 ProximalCalibration,
@@ -221,7 +223,7 @@ fn stage_attraction(staging: &StagedGeneration) {
 /// The representation width stays the pipeline's contract while the hidden architecture
 /// shrinks: a forward pass costs a fraction of the `ratified()` model's.
 fn skinny_options() -> ProjectorOptions {
-    let mut options = ProjectorOptions::ratified();
+    let mut options = ProjectorOptions::live();
     options.architecture = Architecture {
         width: nz!(8),
         residual_blocks: nz!(1),
@@ -229,19 +231,22 @@ fn skinny_options() -> ProjectorOptions {
         role_dimensions: nz!(4),
         condition_dimensions: nz!(1),
     };
-    options.schedule = TrainingSchedule::new(
-        nz!(1),
-        0,
-        nz!(1),
-        positive_unit_fraction!(1.0e-3),
-        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
-    )
+    options.schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(1),
+        boundary: 0,
+        refresh_interval: nz!(1),
+        initial_learning_rate: positive_unit_fraction!(1.0e-3),
+        minimum_learning_rate: unit_fraction!(1.0e-5),
+    })
     .expect("the fixture schedule is valid");
-    options.lens = RelationLens::new(
-        CoincidentEnergy::new(non_negative!(0.01), positive!(0.5)),
-        Positive::new(0.25).expect("the fixture temperature is positive"),
-        Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
-    );
+    options.lens = RelationLens {
+        coincident: CoincidentEnergy {
+            radius: non_negative!(0.01),
+            threshold: positive!(0.5),
+        },
+        temperature: positive!(0.25),
+        epsilon: positive!(1.0e-8),
+    };
     options.ladder.conditions = Conditions::new(vec![NonNegative::ZERO, NonNegative::ONE])
         .expect("the fixture schedule is valid");
     options.ladder.canonical = NonNegative::ONE;
@@ -673,7 +678,7 @@ fn fit_config() -> FitConfig {
 #[test]
 #[expect(
     clippy::significant_drop_tightening,
-    reason = "the staging directory is read back after the publish returns; dropping it early \
+    reason = "the staging directory is read back after the publish returns, and dropping it early \
               would delete the files under assertion"
 )]
 fn publish_vacuous_baseline() {
@@ -792,7 +797,7 @@ fn publish_vacuous_baseline() {
 #[test]
 #[expect(
     clippy::significant_drop_tightening,
-    reason = "the staging directory is read back after the publish returns; dropping it early \
+    reason = "the staging directory is read back after the publish returns, and dropping it early \
               would delete the files under assertion"
 )]
 fn publish_measured_aligned_canonical() {

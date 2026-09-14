@@ -51,6 +51,7 @@ pub(super) struct DrawSizes {
 }
 
 /// The seeded draws of both estimands.
+#[derive(Debug)]
 pub(super) struct DrawnSamples {
     /// Sampled arrival indices, ascending.
     pub query_draw: Vec<ArrivalIndex>,

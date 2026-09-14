@@ -145,7 +145,7 @@ where
     /// wiring contracts checked in debug builds, since both artifacts come from one generation.
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the declared constant lives in the working f32 precision; the domain check \
+        reason = "the declared constant lives in the working f32 precision, and the domain check \
                   reads the narrowed value"
     )]
     pub(crate) fn freeze(
@@ -315,9 +315,8 @@ where
         not(test),
         expect(
             dead_code,
-            reason = "the band trainer's bounded-staleness check is the designed reader: the live \
-                      field re-measured over the frozen neighbour sets; that trainer is not yet \
-                      wired"
+            reason = "the live field re-measured over the frozen neighbour sets is the \
+                      bounded-staleness check, and nothing outside the tests calls it"
         )
     )]
     pub(crate) fn live_scales(
@@ -375,8 +374,8 @@ where
         not(test),
         expect(
             dead_code,
-            reason = "called by live_scales for the bounded-staleness check; tests are today's \
-                      readers"
+            reason = "read by live_scales for the bounded-staleness check, and nothing outside \
+                      the tests reaches either"
         )
     )]
     pub(crate) const fn frozen_set(&self, row: N) -> &IdSlice<NeighbourSlot, N>
@@ -503,13 +502,14 @@ fn positive_quantile(
 
     #[expect(
         clippy::cast_precision_loss,
-        reason = "row counts sit far below 2^53, so the count converts exactly"
+        reason = "row counts lie far below 2^53 and convert exactly"
     )]
     let mass = parameters.scale_quantile * positive.len() as f64;
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the quantile lies in (0, 1], so the ceiling lies in [1, len] and fits usize"
+        reason = "the quantile lies in (0, 1], and the ceiling therefore lies in [1, len] and \
+                  fits usize"
     )]
     let rank = mass.ceil() as usize;
 

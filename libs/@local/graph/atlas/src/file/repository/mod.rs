@@ -26,7 +26,7 @@ use std::path::Path;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::generation::Generation;
+use super::{OpenAs, generation::Generation};
 use crate::integrity::Sha256Digest;
 
 #[cfg(test)]
@@ -49,7 +49,7 @@ impl core::error::Error for UnknownRepositoryVersion {}
 /// The entry names the file and carries the SHA-256 the publisher computed over its bytes. A
 /// verification hashes the file as it is on disk and compares.
 #[derive(Debug)]
-pub enum IntegrityVerificationError {
+pub(crate) enum IntegrityVerificationError {
     /// The file's bytes hash to a digest other than the recorded one.
     Checksum {
         /// The repository entry the file failed, holding its name and the recorded digest.
@@ -259,7 +259,8 @@ impl AsRef<Path> for VerifiedUtf8PathBuf {
 
 /// One published file, identified by its name within the repository and the SHA-256 of its bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RepositoryFile {
+pub(crate) struct RepositoryFile {
+    /// The file's name within its generation directory.
     pub name: FileName,
     /// The SHA-256 the publisher computed over the file's bytes.
     pub hash: Sha256Digest,
@@ -309,6 +310,46 @@ impl RepositoryFile {
 pub(crate) trait Artifact {
     /// The artifact's pinned file name.
     const NAME: FileName;
+}
+
+/// Opening the artifact a binding certifies failed.
+#[derive(Debug)]
+pub(crate) enum OpenBindingError<E> {
+    /// The verified file failed to open in the artifact's reader.
+    Artifact(E),
+    /// The file failed verification against the binding's digest.
+    Integrity(IntegrityVerificationError),
+}
+
+const impl<E> From<IntegrityVerificationError> for OpenBindingError<E> {
+    /// Wraps a verification failure as [`OpenBindingError::Integrity`].
+    fn from(error: IntegrityVerificationError) -> Self {
+        Self::Integrity(error)
+    }
+}
+
+impl<E> fmt::Display for OpenBindingError<E>
+where
+    E: fmt::Display,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Artifact(error) => write!(fmt, "the verified file failed to open: {error}"),
+            Self::Integrity(error) => write!(fmt, "the file failed verification: {error}"),
+        }
+    }
+}
+
+impl<E> core::error::Error for OpenBindingError<E>
+where
+    E: core::error::Error + 'static,
+{
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Artifact(error) => Some(error),
+            Self::Integrity(error) => Some(error),
+        }
+    }
 }
 
 /// A repository binding typed by the artifact it certifies.
@@ -362,6 +403,25 @@ where
             name: A::NAME,
             hash: self.hash,
         }
+    }
+
+    /// Verifies the bound file in `generation` and opens it as `F`.
+    ///
+    /// The type bound admits only a reader the crate has declared an admitted reader of `A`. The
+    /// artifact a binding certifies and the reader it opens with cannot drift apart. The bytes are
+    /// verified against the binding's digest first, and the reader never sees a file that failed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpenBindingError::Integrity`] when the file is missing, unreadable, or hashes
+    /// to another digest, and [`OpenBindingError::Artifact`] when the verified bytes are not a
+    /// file the reader accepts.
+    pub(crate) fn open<F>(&self, generation: &Generation) -> Result<F, OpenBindingError<F::Error>>
+    where
+        F: OpenAs<A>,
+    {
+        let path = self.file().verify(generation)?;
+        F::open(path).map_err(OpenBindingError::Artifact)
     }
 }
 

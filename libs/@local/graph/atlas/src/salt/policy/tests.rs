@@ -6,6 +6,7 @@
 use zerocopy::TryFromBytes as _;
 
 use super::{GeometryClass, Posterior};
+use crate::math::{UnitFraction, unit_fraction};
 
 /// Lists the three geometry classes in discriminant order under `VARIANTS`.
 ///
@@ -48,7 +49,12 @@ fn wire_bytes_admit_only_declared_discriminants() {
 /// `Posterior::new` accepts a distribution and reports each class's probability and the array.
 #[test]
 fn posterior_accepts_a_distribution() {
-    let posterior = Posterior::new([0.5, 0.25, 0.25]).expect("a distribution should validate");
+    let posterior = Posterior::new([
+        unit_fraction!(0.5),
+        unit_fraction!(0.25),
+        unit_fraction!(0.25),
+    ])
+    .expect("a distribution should validate");
     assert_eq!(posterior.probability(GeometryClass::Coincident), 0.5);
     assert_eq!(posterior.probability(GeometryClass::Proximal), 0.25);
     assert_eq!(posterior.probability(GeometryClass::Overlay), 0.25);
@@ -57,22 +63,24 @@ fn posterior_accepts_a_distribution() {
 
 #[test]
 fn posterior_accepts_negative_zero_components() {
-    let posterior =
-        Posterior::new([-0.0, 0.5, 0.5]).expect("negative zero compares equal to a legal zero");
+    let posterior = Posterior::new([
+        unit_fraction!(-0.0),
+        unit_fraction!(0.5),
+        unit_fraction!(0.5),
+    ])
+    .expect("negative zero compares equal to a legal zero");
     assert_eq!(posterior.probability(GeometryClass::Coincident), 0.0);
-}
-
-#[test]
-fn posterior_rejects_non_distributions() {
-    assert_eq!(Posterior::new([f64::NAN, 0.5, 0.5]), None);
-    assert_eq!(Posterior::new([f64::INFINITY, 0.0, 0.0]), None);
-    assert_eq!(Posterior::new([-0.125, 0.625, 0.5]), None);
-    assert_eq!(Posterior::new([0.5, 0.25, 0.125]), None);
-    assert_eq!(Posterior::new([0.5, 0.5, 0.125]), None);
 }
 
 #[test]
 fn posterior_tolerates_softmax_rounding() {
     let rounded = [0.2, 0.3, 0.5 + 5.0e-10];
-    assert!(Posterior::new(rounded).is_some());
+    assert!(Posterior::new(rounded.map(UnitFraction::new_unchecked)).is_some());
+}
+
+#[test]
+fn posterior_deserialization_rejects_an_unnormalized_distribution() {
+    let error = serde_json::from_value::<Posterior>(serde_json::json!([0.5, 0.5, 0.5]))
+        .expect_err("an unnormalized posterior refuses to parse");
+    assert!(error.to_string().contains("posterior must sum to one"));
 }

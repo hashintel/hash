@@ -34,8 +34,7 @@
 #![expect(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,
-    reason = "probe universes, neighbourhood sizes, and query counts are bounded orders of \
-              magnitude below both u32 and the f64 mantissa"
+    reason = "rank positions must fit u32. Integer totals may round when converted to f64"
 )]
 #![expect(
     clippy::min_ident_chars,
@@ -161,8 +160,7 @@ impl NeighbourhoodAggregate {
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "k and (2m - 3k + 1) never share odd parity, so halving the worst-case penalty \
-                  is exact"
+        reason = "k and (2m - 3k + 1) never share odd parity. Halving their even product is exact"
     )]
     #[must_use]
     pub(crate) fn supports(&self, observations: usize) -> bool {
@@ -174,8 +172,8 @@ impl NeighbourhoodAggregate {
             .checked_mul(3)
             .and_then(|tripled| doubled.checked_sub(tripled - 1))
             .expect(
-                "construction bounds the neighbourhood within half the universe, so the span \
-                 arithmetic cannot overflow or underflow",
+                "construction bounds the neighbourhood within half the universe. The doubled \
+                 universe already fits usize. The span arithmetic cannot overflow or underflow",
             );
         let Some(worst) = self.k.checked_mul(span) else {
             return false;
@@ -428,8 +426,7 @@ impl NeighbourhoodAggregate {
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "k and (2m - 3k + 1) never share odd parity, so halving the worst-case penalty \
-                  is exact"
+        reason = "k and (2m - 3k + 1) never share odd parity. Halving their even product is exact"
     )]
     fn normalized(&self, penalty: u64) -> UnitFraction {
         if self.queries == 0 {

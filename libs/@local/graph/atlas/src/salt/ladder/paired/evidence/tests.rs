@@ -5,7 +5,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "the oracles restate exact decimal readings, so equality is the contract"
+    reason = "the quantile oracle returns the same represented input reading"
 )]
 #![expect(
     clippy::cast_precision_loss,
@@ -241,7 +241,7 @@ fn control_deciles_stratify_the_candidate_census() {
     assert_eq!(deciles[1].selected, 1, "3.0 lies above 2.0 and reaches 4.0");
     assert_eq!(
         deciles[9].selected, 1,
-        "the census maximum lands in the final stratum"
+        "the census maximum belongs to the final stratum"
     );
     for decile in &deciles[2..9] {
         assert_eq!(decile.selected, 0);

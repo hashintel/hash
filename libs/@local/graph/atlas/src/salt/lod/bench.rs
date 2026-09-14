@@ -59,8 +59,8 @@ use super::{
 use crate::{
     file::morton::{Fenceposts, SEGMENTS},
     identity::{BasePosition, ImportanceRank, NodeRowId, bench::KeyOrdinal},
-    math::{FinitePointField, Vec2},
-    morton::{Depth, MortonCell, MortonKey},
+    math::{FinitePointField, Log2, Vec2, nz},
+    morton::{Depth, MortonCell, MortonKey, MortonTile, Zoom},
     random::{keyed_rng, uniform_below},
 };
 
@@ -238,7 +238,7 @@ pub struct ChainAudit {
 #[derive(Debug)]
 pub struct VisibleCellPyramid {
     /// The shallowest depth the levels cover.
-    shallowest: u8,
+    shallowest: Depth,
     /// Ascending distinct cell indexes per depth, shallowest level first.
     levels: Box<[Box<[u64]>]>,
 }
@@ -354,9 +354,9 @@ pub enum VisibleRankOrder {
 #[derive(Debug)]
 pub struct VisibleCascade {
     /// Visible points as key bits paired with their bucket depth, ascending by key.
-    points: Box<[(u64, u8)]>,
+    points: Box<[(u64, Depth)]>,
     /// The cut's span exponent `m`.
-    span: u8,
+    span: Log2,
     /// The deepest grid the cascade assigned over.
     deepest: Depth,
 }
@@ -417,9 +417,9 @@ pub struct WalkBench {
     /// Every bucket's full segment in the base order.
     segments: Ranges,
     /// The cut's span exponent `m`.
-    span: u8,
+    span: Log2,
     /// The deepest tile zoom the schedule serves.
-    max_zoom: u8,
+    max_zoom: Zoom,
     /// Bit `r` set means row `r` is visible.
     visible: DenseBitSet<NodeRowId>,
 }
@@ -528,11 +528,11 @@ impl WalkBench {
     /// # Panics
     ///
     /// This panics when `points` is zero or exceeds the `u32` row domain.
-    #[must_use]
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "coordinates land in [-1, 1] and importances in [0, 1); f32 keeps the shape"
+        reason = "finite fixture coordinates and scores narrow to f32 before LOD normalization"
     )]
+    #[must_use]
     pub fn build(points: usize, seed: u64) -> Self {
         /// Per-cluster gaussian spread, widening with the cluster index.
         const SIGMAS: [f64; 8] = [0.02, 0.035, 0.05, 0.065, 0.08, 0.095, 0.11, 0.125];
@@ -549,11 +549,8 @@ impl WalkBench {
 
         let mut coordinates = Vec::with_capacity(points);
         for _ in 0..points {
-            let pick = usize::try_from(uniform_below(
-                &mut rng,
-                NonZero::new(10).expect("ten is nonzero"),
-            ))
-            .expect("draws below ten fit usize");
+            let pick = usize::try_from(uniform_below(&mut rng, nz!(10)))
+                .expect("draws below ten fit usize");
             let point = if pick < 8 {
                 let (unit, angle) = (uniform(&mut rng), uniform(&mut rng));
                 let radius = SIGMAS[pick] * (-2.0 * unit.max(f64::MIN_POSITIVE).ln()).sqrt();
@@ -621,7 +618,7 @@ impl WalkBench {
             rank_of_position,
             position_of_key,
             key_order_of_position,
-            span: config.span.get(),
+            span: config.span,
             max_zoom: config.max_tile_depth,
             visible,
         }
@@ -696,8 +693,8 @@ impl WalkBench {
             position_of_key,
             key_order_of_position,
             segments,
-            span,
-            max_zoom,
+            span: log2_of(span),
+            max_zoom: zoom_of(max_zoom),
             visible,
         }
     }
@@ -753,9 +750,7 @@ impl WalkBench {
         clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
         clippy::cast_sign_loss,
-        reason = "the expects name drawn depths and coordinates that lie on the grid by \
-                  construction; the quota is a hiding target and row counts sit far below the \
-                  mantissa width"
+        reason = "row counts fit u32 and are exact in f64. The quota truncates to whole rows"
     )]
     pub fn mask_clustered(&mut self, visible: f64, seed: u64) {
         let rows = self.row_of_position.len();
@@ -765,15 +760,12 @@ impl WalkBench {
 
         let mut count = 0;
         while count < quota {
-            let depth = 4 + u8::try_from(uniform_below(
-                &mut rng,
-                NonZero::new(4).expect("four is nonzero"),
-            ))
-            .expect("draws below four fit u8");
+            let depth =
+                4 + u8::try_from(uniform_below(&mut rng, nz!(4))).expect("draws below four fit u8");
             let side = u64::from(1_u32 << depth);
             let bound = NonZero::new(side).expect("cell grids have nonzero sides");
             let cell = MortonCell::new(
-                Depth::new(depth).expect("depths 4 through 7 lie within the key width"),
+                Depth::new(depth),
                 u32::try_from(uniform_below(&mut rng, bound)).expect("draws stay below the side"),
                 u32::try_from(uniform_below(&mut rng, bound)).expect("draws stay below the side"),
             )
@@ -830,20 +822,21 @@ impl WalkBench {
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn reached(&self, z: u8, x: u32, y: u32) -> Vec<u64> {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
         let cell = cell_of(z, x, y);
-        let ranges = if z == 0 {
+        let ranges = if z == Zoom::MIN {
             self.segments.clone()
         } else {
             self.narrowed(cell)
         };
 
         let mut keys = Vec::new();
-        for range in &ranges[..=usize::from(z + self.span)] {
+        for range in &ranges[..=usize::from(self.cut_of(z).get())] {
             for position in range.clone() {
                 if self
                     .visible
@@ -867,7 +860,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid, `z > 32`, or `z + span > 32`.
     #[must_use]
     pub fn scheduled(&self, z: u8, x: u32, y: u32) -> usize {
-        self.budget_of(z, x, y)
+        self.budget_of(zoom_of(z), x, y)
     }
 
     /// Returns the corpus row count.
@@ -885,7 +878,7 @@ impl WalkBench {
     /// Returns the deepest tile zoom the schedule serves.
     #[must_use]
     pub const fn max_zoom(&self) -> u8 {
-        self.max_zoom
+        self.max_zoom.get()
     }
 
     /// Returns the cut's span exponent `m`.
@@ -893,32 +886,28 @@ impl WalkBench {
     /// A tile at zoom `z` cuts at depth `z + m`.
     #[must_use]
     pub const fn span(&self) -> u8 {
-        self.span
+        self.span.get()
     }
 
     /// Returns the root-to-deepest descent path through the densest cells.
     ///
-    /// Each step descends into the child holding the most points before masking, so the path is one
-    /// fixture-determined column a whole mask sweep can share.
-    #[must_use]
+    /// Each step chooses the child holding the most points before masking. Quadrant order breaks
+    /// population ties. The path is independent of the mask and stops when every child is empty.
     #[expect(
         clippy::missing_panics_doc,
         reason = "the expects name children of on-grid cells, on the grid by construction"
     )]
+    #[must_use]
     pub fn descent(&self) -> Vec<(u8, u32, u32)> {
         let mut path = vec![(0_u8, 0_u32, 0_u32)];
         let (mut x, mut y) = (0_u32, 0_u32);
 
-        for z in 1..=self.max_zoom {
+        for z in (Zoom::MIN..=self.max_zoom).skip(1) {
             let mut best = (0_usize, 0_u32, 0_u32);
             for quadrant in 0..4 {
                 let (cx, cy) = (2 * x + (quadrant & 1), 2 * y + (quadrant >> 1));
-                let cell = MortonCell::new(
-                    Depth::new(z).expect("tile zooms lie within the key width"),
-                    cx,
-                    cy,
-                )
-                .expect("children of an on-grid cell lie on the grid");
+                let cell = MortonCell::new(Depth::from_zoom(z), cx, cy)
+                    .expect("children of an on-grid cell lie on the grid");
                 let population = self
                     .narrowed(cell)
                     .iter()
@@ -932,7 +921,7 @@ impl WalkBench {
                 break;
             }
             (x, y) = (best.1, best.2);
-            path.push((z, x, y));
+            path.push((z.get(), x, y));
         }
 
         path
@@ -945,6 +934,7 @@ impl WalkBench {
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent(&self, z: u8, x: u32, y: u32) -> Selection {
+        let z = zoom_of(z);
         let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled)
@@ -963,17 +953,18 @@ impl WalkBench {
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn chained(&self, z: u8, x: u32, y: u32) -> Selection {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         let mut scanned = 0_usize;
 
-        for level in 0..z {
-            let shift = z - level;
+        for level in Zoom::MIN..z {
+            let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
             delivered.clear();
             let ancestor = self.walk(
                 level,
-                x >> shift,
-                y >> shift,
+                ancestor_x,
+                ancestor_y,
                 &taken,
                 &mut delivered,
                 FillTarget::Scheduled,
@@ -1005,6 +996,7 @@ impl WalkBench {
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let z = zoom_of(z);
         let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
@@ -1022,16 +1014,17 @@ impl WalkBench {
     /// Ancestor exhaustion can return before checking the target address.
     #[must_use]
     pub fn chained_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
-        for level in 0..z {
-            let shift = z - level;
+        for level in Zoom::MIN..z {
+            let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
             delivered.clear();
             let ancestor = self.walk(
                 level,
-                x >> shift,
-                y >> shift,
+                ancestor_x,
+                ancestor_y,
                 &taken,
                 &mut delivered,
                 FillTarget::Scheduled,
@@ -1071,24 +1064,22 @@ impl WalkBench {
         }
         codes.sort_unstable();
 
-        let deepest = self.max_zoom + self.span;
-        let mut levels = Vec::with_capacity(usize::from(self.max_zoom) + 1);
-        for depth in self.span..=deepest {
-            let depth = Depth::new(depth).expect("the schedule's cuts lie within the key width");
-            let mut cells: Vec<u64> = Vec::new();
-            for &bits in &codes {
-                let cell = MortonKey::from_bits(bits).prefix(depth);
-                if cells.last() != Some(&cell) {
-                    cells.push(cell);
+        let shallowest = self.cut_of(Zoom::MIN);
+        let deepest = self.cut_of(self.max_zoom);
+        let levels = (shallowest..=deepest)
+            .map(|depth| {
+                let mut cells: Vec<u64> = Vec::new();
+                for &bits in &codes {
+                    let cell = MortonKey::from_bits(bits).prefix(depth);
+                    if cells.last() != Some(&cell) {
+                        cells.push(cell);
+                    }
                 }
-            }
-            levels.push(cells.into_boxed_slice());
-        }
+                cells.into_boxed_slice()
+            })
+            .collect();
 
-        VisibleCellPyramid {
-            shallowest: self.span,
-            levels: levels.into_boxed_slice(),
-        }
+        VisibleCellPyramid { shallowest, levels }
     }
 
     /// Builds the Morton-ordered visible column over the whole corpus.
@@ -1113,10 +1104,11 @@ impl WalkBench {
     /// enumerates a grid's occupied cells, at four bytes per visible row. The key of an entry comes
     /// from the corpus-wide base column the position indexes, and its importance rank from the
     /// corpus-wide rank column.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the visible rows overrun the `u32` row domain.
+    #[expect(
+        clippy::missing_panics_doc,
+        reason = "construction bounds the base-column length by u32::MAX. Every base position \
+                  fits u32"
+    )]
     #[must_use]
     pub fn position_column(&self) -> Box<[u32]> {
         let mut positions: Vec<u32> = Vec::with_capacity(self.visible.count());
@@ -1147,12 +1139,13 @@ impl WalkBench {
     /// grid. The root ignores x and y.
     #[must_use]
     pub fn gather(&self, z: u8, x: u32, y: u32) -> VisibleColumn {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
-        let ranges = if z == 0 {
+        let ranges = if z == Zoom::MIN {
             self.segments.clone()
         } else {
             self.narrowed(cell_of(z, x, y))
@@ -1245,8 +1238,7 @@ impl WalkBench {
         row_of_rank.sort_unstable_by_key(|&entry| ranks[entry]);
         let ranking = Ranking::from_row_of_rank(row_of_rank);
 
-        let deepest = Depth::new(self.max_zoom + self.span)
-            .expect("the schedule's cuts lie within the key width");
+        let deepest = self.cut_of(self.max_zoom);
         let buckets = cascade::buckets(keyed, &ranking, deepest);
         let order = BaseOrder::new(keyed, &buckets, &ranking);
 
@@ -1332,7 +1324,15 @@ impl WalkBench {
     /// worst-rank-first from a key-ordered list exposes exactly these neighbours. Therefore two
     /// sorts and one linear deletion pass recover the first-separation bucket assignment.
     ///
-    /// This panics when the visible rows overrun the `u32` row domain.
+    /// For a point with better-ranked neighbours, let D be the deepest shared grid. Its bucket is
+    /// min(D + 1, 32). The best-ranked point takes bucket zero. Equal keys share every grid and
+    /// later-ranked duplicates take the catch-all. This is the assignment computed by
+    /// [`Self::generation`].
+    #[expect(
+        clippy::missing_panics_doc,
+        reason = "construction bounds the base-column length by u32::MAX. Visible rows form a \
+                  subset"
+    )]
     #[must_use]
     pub fn separated_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let (keys, positions, ranks) = self.visible_entries();
@@ -1378,7 +1378,7 @@ impl WalkBench {
             buckets[entry as usize] = if separated {
                 Depth::MIN
             } else {
-                shared.saturating_add(1)
+                shared.saturating_add(Log2::ONE)
             };
 
             let (low, high) = (before[at], after[at]);
@@ -1740,14 +1740,13 @@ impl WalkBench {
         };
         let ranking = Ranking::from_row_of_rank(row_of_rank);
 
-        let deepest = Depth::new(self.max_zoom + self.span)
-            .expect("the schedule's cuts lie within the key width");
+        let deepest = self.cut_of(self.max_zoom);
         let buckets = cascade::buckets(keyed, &ranking, deepest);
 
-        let mut points: Vec<(u64, u8)> = keys
+        let mut points: Vec<(u64, Depth)> = keys
             .iter()
             .zip(buckets.iter())
-            .map(|(key, bucket)| (key.to_bits(), bucket.get()))
+            .map(|(key, bucket)| (key.to_bits(), *bucket))
             .collect();
         points.sort_unstable();
 
@@ -1778,6 +1777,7 @@ impl WalkBench {
         y: u32,
         view: VisibleView<'_>,
     ) -> Selection {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.chain(
             rule,
@@ -1811,6 +1811,7 @@ impl WalkBench {
         y: u32,
         view: VisibleView<'_>,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.chain(
             rule,
@@ -1844,6 +1845,7 @@ impl WalkBench {
         y: u32,
         view: VisibleView<'_>,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         self.chain(
@@ -1873,7 +1875,7 @@ impl WalkBench {
     /// Panics when `z > 32` or the coordinate lies off its grid.
     #[must_use]
     pub fn occupied_cells(&self, z: u8, x: u32, y: u32, depth: Depth) -> HashSet<u64> {
-        let cell = cell_of(z, x, y);
+        let cell = cell_of(zoom_of(z), x, y);
         let mut cells = HashSet::new();
         for (position, code) in self.codes.iter().enumerate() {
             if cell.contains(*code)
@@ -1907,6 +1909,7 @@ impl WalkBench {
         y: u32,
         view: VisibleView<'_>,
     ) -> ChainAudit {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         let chain = self.chain(
@@ -1921,7 +1924,7 @@ impl WalkBench {
             },
         );
 
-        let cut = Depth::new(z + self.span).expect("the schedule's cuts lie within the key width");
+        let cut = self.cut_of(z);
         let inherited_cells = self.distinct_cells(&inside, cut);
         inside.extend_from_slice(&delivered);
         let cumulative_cells = self.distinct_cells(&inside, cut);
@@ -1955,7 +1958,7 @@ impl WalkBench {
     fn chain(
         &self,
         rule: FillRule,
-        z: u8,
+        z: Zoom,
         x: u32,
         y: u32,
         view: VisibleView<'_>,
@@ -1967,26 +1970,27 @@ impl WalkBench {
 
         let pyramid = view.pyramid;
         let ChainBuffers { own, mut inside } = buffers;
+        let tile_depth = Depth::from_zoom(z);
+        let tile_entry = usize::from(tile_depth.get());
         let key = cell_of(z, x, y).min_key();
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         // Chain deliveries by the deepest chain level whose cell holds them: a position counts
         // inside every level at or above its entry.
-        let mut nesting = vec![0_usize; usize::from(z) + 1];
-        // The cell rule re-reads the chain's positions at each level's own cut depth, so the
-        // history stays grouped by the deepest level holding them.
+        let mut nesting = vec![0_usize; tile_entry + 1];
+        // grouping history by the deepest containing level permits each cell rule to resolve
+        // inherited positions at its own cut depth
         let mut history: Vec<Vec<u32>> = if rule == FillRule::CoverageCells {
-            vec![Vec::new(); usize::from(z) + 1]
+            vec![Vec::new(); tile_entry + 1]
         } else {
             Vec::new()
         };
         let mut scanned = 0_usize;
         let mut spent = false;
 
-        for level in 0..z {
-            let shift = z - level;
-            let (ancestor_x, ancestor_y) = (x >> shift, y >> shift);
-            let inherited: usize = nesting[usize::from(level)..].iter().sum();
+        for level in Zoom::MIN..z {
+            let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
+            let inherited: usize = nesting[usize::from(level.get())..].iter().sum();
             let cut = self.cut_of(level);
             let covered = covered_of(rule, cell_of(level, ancestor_x, ancestor_y), cut, pyramid);
             let mut represented = HashSet::new();
@@ -2006,12 +2010,17 @@ impl WalkBench {
 
             for &position in &delivered {
                 taken.insert(BasePosition::from_u32(position));
-                let depth = self.codes[position as usize].shared_depth(key).get().min(z);
-                nesting[usize::from(depth)] += 1;
+                let entry = usize::from(
+                    self.codes[position as usize]
+                        .shared_depth(key)
+                        .min(tile_depth)
+                        .get(),
+                );
+                nesting[entry] += 1;
                 if rule == FillRule::CoverageCells {
-                    history[usize::from(depth)].push(position);
+                    history[entry].push(position);
                 }
-                if depth == z
+                if entry == tile_entry
                     && let Some(inside) = inside.as_deref_mut()
                 {
                     inside.push(position);
@@ -2029,7 +2038,7 @@ impl WalkBench {
             }
         }
 
-        let inherited = nesting[usize::from(z)];
+        let inherited = nesting[tile_entry];
         let cut = self.cut_of(z);
         // The audit reports the tile's covered count under every rule; the coverage rules need it
         // for the target itself.
@@ -2044,19 +2053,13 @@ impl WalkBench {
         let target = target_of(rule, inherited, covered, cut, &mut represented);
 
         if spent {
-            return ChainOutcome {
-                own: Selection {
-                    budget: spent_budget(&target, self.budget_of(z, x, y), entry),
-                    natural: 0,
-                    tail: 0,
-                    scanned,
-                },
-                covered,
-                inherited,
-                spent,
-                refined: 0,
-                deepened: 0,
+            let own = Selection {
+                budget: spent_budget(&target, self.budget_of(z, x, y), entry),
+                natural: 0,
+                tail: 0,
+                scanned,
             };
+            return ChainOutcome::walked(own, covered, inherited, spent);
         }
 
         let mut selection = self.walk(z, x, y, &taken, own, target);
@@ -2064,14 +2067,7 @@ impl WalkBench {
             selection.budget = covered.saturating_sub(entry);
         }
         selection.scanned += scanned;
-        ChainOutcome {
-            own: selection,
-            covered,
-            inherited,
-            spent,
-            refined: 0,
-            deepened: 0,
-        }
+        ChainOutcome::walked(selection, covered, inherited, spent)
     }
 
     /// Delivers one tile's new cell representatives after recomputing its chain.
@@ -2089,7 +2085,7 @@ impl WalkBench {
     fn rank_chain(
         &self,
         plan: RankPlan,
-        z: u8,
+        z: Zoom,
         x: u32,
         y: u32,
         column: &VisibleColumn,
@@ -2104,13 +2100,13 @@ impl WalkBench {
         let mut scanned = 0_usize;
         let mut inherited = 0_usize;
 
-        for level in 0..z {
-            let shift = z - level;
+        for level in Zoom::MIN..z {
+            let (level_x, level_y) = ancestor_of(z, level, x, y);
             level_out.clear();
             let step = self.rank_level(
                 plan,
                 RankLevel {
-                    address: (level, x >> shift, y >> shift),
+                    address: (level, level_x, level_y),
                     column,
                     represented: &represented,
                     scratch: &mut scratch,
@@ -2201,8 +2197,9 @@ impl WalkBench {
             };
             // the cut grid is the minimum resolution, even when its target exceeds the budget
             while depth < Depth::MAX && cells.len() < range.len() {
-                let finer =
-                    Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+                let finer = depth
+                    .checked_add(Log2::ONE)
+                    .expect("a depth below the maximum has a successor");
                 column.split(range.clone(), finer, &mut scratch.finer);
                 let wanted = needing(column, &scratch.finer, represented, finer);
                 scanned += scratch.finer.len();
@@ -2216,8 +2213,9 @@ impl WalkBench {
             }
 
             if refinement.order != RefineOrder::Whole && depth < Depth::MAX {
-                let finer =
-                    Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+                let finer = depth
+                    .checked_add(Log2::ONE)
+                    .expect("a depth below the maximum has a successor");
                 let deepening = rank_deepen(
                     (refinement.order, budget.saturating_sub(target)),
                     column,
@@ -2232,8 +2230,7 @@ impl WalkBench {
             }
         }
 
-        let finer = Depth::new(depth.get().saturating_add(1).min(Depth::MAX.get()))
-            .expect("the clamped successor lies within the key width");
+        let finer = depth.saturating_add(Log2::ONE);
         let mut delivered = 0_usize;
         for (index, leaf) in cells.iter().enumerate() {
             if scratch.split.get(index).copied().unwrap_or(false) {
@@ -2280,6 +2277,7 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Selection {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.served_chain(
             served_plan(rule),
@@ -2310,6 +2308,7 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.served_chain(
             served_plan(rule),
@@ -2340,6 +2339,7 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         self.served_chain(
@@ -2378,6 +2378,7 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> ChainAudit {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         let chain = self.served_chain(
@@ -2392,7 +2393,7 @@ impl WalkBench {
             },
         );
 
-        let cut = Depth::new(z + self.span).expect("the schedule's cuts lie within the key width");
+        let cut = self.cut_of(z);
         let inherited_cells = self.distinct_cells(&inside, cut);
         inside.extend_from_slice(&delivered);
         let cumulative_cells = self.distinct_cells(&inside, cut);
@@ -2434,6 +2435,7 @@ impl WalkBench {
         depth: Depth,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -2441,7 +2443,7 @@ impl WalkBench {
         );
         let cell = cell_of(z, x, y);
         assert!(
-            cell.depth().get() <= depth.get(),
+            cell.depth() <= depth,
             "a cell at depth {} holds no depth-{} cells",
             cell.depth().get(),
             depth.get(),
@@ -2467,14 +2469,22 @@ impl WalkBench {
     /// Panics when `z` exceeds the schedule's maximum zoom or `additional_depth ≥ 64`.
     #[must_use]
     pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> Depth {
+        self.grid_depth(zoom_of(z), log2_of(additional_depth))
+    }
+
+    /// Returns the clamped sum of zoom, span and additional depth.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `z` exceeds the schedule's maximum zoom.
+    fn grid_depth(&self, z: Zoom, additional_depth: Log2) -> Depth {
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
-        Depth::new(z)
-            .expect("the asserted zoom lies within the key width")
-            .saturating_add(self.span)
+
+        z.saturating_depth(self.span)
             .saturating_add(additional_depth)
     }
 
@@ -2490,27 +2500,18 @@ impl WalkBench {
     /// the corpus key column.
     fn uniform_positions(
         &self,
-        address: (u8, u32, u32),
-        depths: (u8, u8),
+        address: (Zoom, u32, u32),
+        grid: (Depth, Option<Depth>),
         generation: &ServedGeneration,
-        cumulative: bool,
     ) -> Vec<u32> {
         let (z, x, y) = address;
-        let (additional_depth, previous_additional_depth) = depths;
-        let depth = self.uniform_grid_depth(z, additional_depth);
-        let ranges = if z == 0 {
+        let (depth, previous) = grid;
+        let ranges = if z == Zoom::MIN {
             generation.segments.clone()
         } else {
             generation.narrowed(cell_of(z, x, y), &generation.segments, &self.codes)
         };
-        let first = if cumulative || z == 0 {
-            0
-        } else {
-            usize::from(
-                self.uniform_grid_depth(z - 1, previous_additional_depth)
-                    .get(),
-            ) + 1
-        };
+        let first = previous.map_or(0, |previous| usize::from(previous.get()) + 1);
         let last = usize::from(depth.get());
         if first > last {
             return Vec::new();
@@ -2552,12 +2553,13 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        self.uniform_positions(
-            (z, x, y),
-            (additional_depth, additional_depth),
-            generation,
-            false,
-        )
+        let additional_depth = log2_of(additional_depth);
+        let z = zoom_of(z);
+        let depth = self.grid_depth(z, additional_depth);
+        let previous = z
+            .shallower()
+            .map(|parent| self.grid_depth(parent, additional_depth));
+        self.uniform_positions((z, x, y), (depth, previous), generation)
     }
 
     /// Accumulates a uniform grid inside one tile in generation-bucket order.
@@ -2580,12 +2582,9 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        self.uniform_positions(
-            (z, x, y),
-            (additional_depth, additional_depth),
-            generation,
-            true,
-        )
+        let z = zoom_of(z);
+        let depth = self.grid_depth(z, log2_of(additional_depth));
+        self.uniform_positions((z, x, y), (depth, None), generation)
     }
 
     /// Returns the grid depth of a public one-level refinement step.
@@ -2598,12 +2597,30 @@ impl WalkBench {
     /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> Depth {
-        let additional_depth = if z == self.max_zoom {
-            Depth::MAX.get().saturating_sub(z.saturating_add(self.span))
+        self.step_grid_depth(threshold_of(refine_from_zoom), zoom_of(z))
+    }
+
+    /// Returns the cut, one finer grid after the threshold, or the terminal catch-all.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `z` exceeds the schedule's maximum zoom.
+    fn step_grid_depth(&self, refine_from_zoom: Zoom, z: Zoom) -> Depth {
+        assert!(
+            z <= self.max_zoom,
+            "the schedule serves zooms up to {}",
+            self.max_zoom,
+        );
+        if z == self.max_zoom {
+            return Depth::MAX;
+        }
+
+        let additional_depth = if z >= refine_from_zoom {
+            Log2::ONE
         } else {
-            u8::from(z >= refine_from_zoom)
+            Log2::ZERO
         };
-        self.uniform_grid_depth(z, additional_depth)
+        self.grid_depth(z, additional_depth)
     }
 
     /// Delivers one tile from a public one-level refinement step.
@@ -2628,19 +2645,13 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let additional_depth =
-            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
-        let previous_additional_depth = if z == 0 {
-            0
-        } else {
-            self.uniform_step_grid_depth(refine_from_zoom, z - 1).get() - (z - 1) - self.span
-        };
-        self.uniform_positions(
-            (z, x, y),
-            (additional_depth, previous_additional_depth),
-            generation,
-            false,
-        )
+        let refine_from_zoom = threshold_of(refine_from_zoom);
+        let z = zoom_of(z);
+        let depth = self.step_grid_depth(refine_from_zoom, z);
+        let previous = z
+            .shallower()
+            .map(|parent| self.step_grid_depth(refine_from_zoom, parent));
+        self.uniform_positions((z, x, y), (depth, previous), generation)
     }
 
     /// Accumulates a public one-level refinement step inside one tile.
@@ -2662,14 +2673,9 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let additional_depth =
-            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
-        self.uniform_positions(
-            (z, x, y),
-            (additional_depth, additional_depth),
-            generation,
-            true,
-        )
+        let z = zoom_of(z);
+        let depth = self.step_grid_depth(threshold_of(refine_from_zoom), z);
+        self.uniform_positions((z, x, y), (depth, None), generation)
     }
 
     /// Delivers one tile behind its chain out of a served generation.
@@ -2685,7 +2691,7 @@ impl WalkBench {
     fn served_chain(
         &self,
         plan: RankPlan,
-        z: u8,
+        z: Zoom,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
@@ -2703,9 +2709,8 @@ impl WalkBench {
         let mut scanned = 0_usize;
         let mut inherited = 0_usize;
 
-        for level in 0..z {
-            let shift = z - level;
-            let (level_x, level_y) = (x >> shift, y >> shift);
+        for level in Zoom::MIN..z {
+            let (level_x, level_y) = ancestor_of(z, level, x, y);
             ranges = generation.narrowed(cell_of(level, level_x, level_y), &ranges, &self.codes);
             level_out.clear();
             let step = self.served_level(
@@ -2733,12 +2738,12 @@ impl WalkBench {
                 }
             }
             merge_ascending(&mut represented, &mut merged, &run);
-            // Every later level's extent lies inside the next one, so a key outside it can never
-            // sit in a cell a later level asks about.
-            retain_cell(
-                &mut represented,
-                cell_of(level + 1, x >> (shift - 1), y >> (shift - 1)),
-            );
+            // Later extents are subsets of the next extent. Their represented cells can contain
+            // only keys inside it. Therefore keys outside the next extent can be removed from the
+            // chain history.
+            let deeper = level.deeper().expect("a chain level lies above the tile");
+            let (deeper_x, deeper_y) = ancestor_of(z, deeper, x, y);
+            retain_cell(&mut represented, cell_of(deeper, deeper_x, deeper_y));
         }
 
         ranges = generation.narrowed(cell, &ranges, &self.codes);
@@ -2821,8 +2826,7 @@ impl WalkBench {
         scratch.split.clear();
         scratch.split.resize(cells, false);
 
-        let finer = Depth::new(depth.get().saturating_add(1).min(Depth::MAX.get()))
-            .expect("the clamped successor lies within the key width");
+        let finer = depth.saturating_add(Log2::ONE);
         let mut deepened = 0_usize;
         if let RankPlan::Refined(refinement) = plan
             && refinement.order != RefineOrder::Whole
@@ -2866,7 +2870,7 @@ impl WalkBench {
     fn served_grid(
         &self,
         plan: RankPlan,
-        address: (u8, u32, u32),
+        address: (Zoom, u32, u32),
         extent: &ServedExtent<'_>,
         cut: Depth,
     ) -> (Depth, usize, usize) {
@@ -2884,8 +2888,9 @@ impl WalkBench {
         let mut covered = reach(&extent.ranges, cut);
         let mut reads = 0_usize;
         while depth < Depth::MAX && covered < population {
-            let finer =
-                Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+            let finer = depth
+                .checked_add(Log2::ONE)
+                .expect("a depth below the maximum has a successor");
             let reached = covered + extent.ranges[usize::from(finer.get())].len();
             reads += extent.held.len();
             if reached - distinct_prefixes(extent.held, finer) > budget {
@@ -3046,9 +3051,14 @@ impl WalkBench {
         probes
     }
 
-    /// Returns the level's cut depth.
-    const fn cut_of(&self, z: u8) -> Depth {
-        Depth::new(z + self.span).expect("the schedule's cuts lie within the key width")
+    /// Returns the level's zoom plus the schedule span.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the sum exceeds [`Depth::MAX`].
+    const fn cut_of(&self, z: Zoom) -> Depth {
+        z.depth(self.span)
+            .expect("the schedule's cuts lie within the key width")
     }
 
     /// Collects the cells the chain's deliveries inside the level's cell occupy at `cut`.
@@ -3064,7 +3074,7 @@ impl WalkBench {
         &self,
         rule: FillRule,
         history: &[Vec<u32>],
-        z: u8,
+        z: Zoom,
         cut: Depth,
         represented: &mut HashSet<u64>,
     ) {
@@ -3072,7 +3082,7 @@ impl WalkBench {
             return;
         }
 
-        for level in history.iter().skip(usize::from(z)) {
+        for level in history.iter().skip(usize::from(z.get())) {
             for &position in level {
                 represented.insert(self.codes[position as usize].prefix(cut));
             }
@@ -3094,16 +3104,20 @@ impl WalkBench {
 
     /// Returns the tile's scheduled count before masking.
     ///
-    /// A function of the corpus and the tile address alone: no mask enters it.
-    fn budget_of(&self, z: u8, x: u32, y: u32) -> usize {
+    /// Depends on the corpus and tile address, with no mask input. The maximum zoom is not checked.
+    ///
+    /// # Panics
+    ///
+    /// Panics on an off-grid coordinate or a cut beyond the key width.
+    fn budget_of(&self, z: Zoom, x: u32, y: u32) -> usize {
         let cell = cell_of(z, x, y);
-        let ranges = if z == 0 {
+        let ranges = if z == Zoom::MIN {
             self.segments.clone()
         } else {
             self.narrowed(cell)
         };
-        let cut = usize::from(z + self.span);
-        let natural = if z == 0 { 0..=cut } else { cut..=cut };
+        let cut = usize::from(self.cut_of(z).get());
+        let natural = if z == Zoom::MIN { 0..=cut } else { cut..=cut };
 
         ranges[natural].iter().map(ExactSizeIterator::len).sum()
     }
@@ -3115,16 +3129,17 @@ impl WalkBench {
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn crowding(&self, z: u8, x: u32, y: u32) -> Crowding {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
-        for level in 0..z {
-            let shift = z - level;
+        for level in Zoom::MIN..z {
+            let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
             delivered.clear();
             self.walk(
                 level,
-                x >> shift,
-                y >> shift,
+                ancestor_x,
+                ancestor_y,
                 &taken,
                 &mut delivered,
                 FillTarget::Scheduled,
@@ -3160,7 +3175,7 @@ impl WalkBench {
     /// domain.
     fn walk(
         &self,
-        z: u8,
+        z: Zoom,
         x: u32,
         y: u32,
         taken: &DenseBitSet<BasePosition>,
@@ -3174,15 +3189,15 @@ impl WalkBench {
         );
         let cell = cell_of(z, x, y);
 
-        let ranges = if z == 0 {
+        let ranges = if z == Zoom::MIN {
             self.segments.clone()
         } else {
             self.narrowed(cell)
         };
-        let cut = usize::from(z + self.span);
+        let cut = usize::from(self.cut_of(z).get());
 
         // The root's schedule is buckets 0..=m whole. Deeper tiles schedule bucket z + m alone.
-        let natural_buckets = if z == 0 { 0..=cut } else { cut..=cut };
+        let natural_buckets = if z == Zoom::MIN { 0..=cut } else { cut..=cut };
         let scheduled: usize = ranges[natural_buckets.clone()]
             .iter()
             .map(ExactSizeIterator::len)
@@ -3336,11 +3351,7 @@ impl VisibleCellPyramid {
     /// Returns the pyramid's depths, shallowest first.
     #[must_use]
     pub fn depths(&self) -> impl IntoIterator<Item = Depth> {
-        let shallowest = self.shallowest;
-        (0..self.levels.len()).map(move |offset| {
-            let offset = u8::try_from(offset).expect("the levels span at most the key width");
-            Depth::new(shallowest + offset).expect("every level's depth lies within the key width")
-        })
+        (self.shallowest..=Depth::MAX).take(self.levels.len())
     }
 
     /// Returns the bytes the cell levels occupy.
@@ -3360,7 +3371,7 @@ impl VisibleCellPyramid {
     fn level(&self, depth: Depth) -> &[u64] {
         let offset = depth
             .get()
-            .checked_sub(self.shallowest)
+            .checked_sub(self.shallowest.get())
             .expect("the pyramid holds the depth");
         &self.levels[usize::from(offset)]
     }
@@ -3683,14 +3694,19 @@ impl VisibleCascade {
     /// Panics when `z > 32`, the coordinate lies off its grid or `z + span > 32`.
     #[must_use]
     pub fn schedule(&self, z: u8, x: u32, y: u32) -> usize {
-        let cut = z + self.span;
+        let z = zoom_of(z);
+        let cut = z
+            .depth(self.span)
+            .expect("the cut lies within the key width");
         self.within(cell_of(z, x, y))
             .iter()
-            .filter(
-                |&&(_, bucket)| {
-                    if z == 0 { bucket <= cut } else { bucket == cut }
-                },
-            )
+            .filter(|&&(_, bucket)| {
+                if z == Zoom::MIN {
+                    bucket <= cut
+                } else {
+                    bucket == cut
+                }
+            })
             .count()
     }
 
@@ -3704,7 +3720,10 @@ impl VisibleCascade {
     /// Panics when `z > 32`, the coordinate lies off its grid or `z + span > 32`.
     #[must_use]
     pub fn covered(&self, z: u8, x: u32, y: u32) -> usize {
-        let cut = z + self.span;
+        let z = zoom_of(z);
+        let cut = z
+            .depth(self.span)
+            .expect("the cut lies within the key width");
         self.within(cell_of(z, x, y))
             .iter()
             .filter(|&&(_, bucket)| bucket <= cut)
@@ -3728,11 +3747,7 @@ impl VisibleCascade {
             .iter()
             .map(|&(bits, _)| MortonKey::from_bits(bits))
             .collect();
-        let buckets: Vec<Depth> = self
-            .points
-            .iter()
-            .map(|&(_, bucket)| Depth::new(bucket).expect("buckets lie within the key width"))
-            .collect();
+        let buckets: Vec<Depth> = self.points.iter().map(|&(_, bucket)| bucket).collect();
 
         cascade::verify_coverage(
             IdSlice::<NodeRowId, _>::from_raw(&keys),
@@ -3743,7 +3758,7 @@ impl VisibleCascade {
     }
 
     /// Returns the points inside `cell`.
-    fn within(&self, cell: MortonCell) -> &[(u64, u8)] {
+    fn within(&self, cell: MortonCell) -> &[(u64, Depth)] {
         let low = cell.min_key().to_bits();
         let high = cell.max_key().to_bits();
         let start = self.points.partition_point(|&(bits, _)| bits < low);
@@ -3777,6 +3792,20 @@ struct ChainOutcome {
     refined: u8,
     /// Cells a partial refinement took one level further.
     deepened: usize,
+}
+
+impl ChainOutcome {
+    /// Records a bucket-walk outcome with zero refinement counts.
+    const fn walked(own: Selection, covered: usize, inherited: usize, spent: bool) -> Self {
+        Self {
+            own,
+            covered,
+            inherited,
+            spent,
+            refined: 0,
+            deepened: 0,
+        }
+    }
 }
 
 /// One rank-representative level's outcome.
@@ -3839,7 +3868,7 @@ struct ServedScratch {
 #[derive(Debug)]
 struct ServedLevel<'level> {
     /// The level's tile address, `(z, x, y)`.
-    address: (u8, u32, u32),
+    address: (Zoom, u32, u32),
     /// The generation the level reads its grid and representatives out of.
     generation: &'level ServedGeneration,
     /// The level extent's per-bucket ranges of the generation.
@@ -3871,7 +3900,7 @@ struct RankScratch {
 #[derive(Debug)]
 struct RankLevel<'level> {
     /// The level's tile address, `(z, x, y)`.
-    address: (u8, u32, u32),
+    address: (Zoom, u32, u32),
     /// The visible view the level scans.
     column: &'level VisibleColumn,
     /// The chain's deliveries so far, ascending by key.
@@ -4335,18 +4364,59 @@ fn target_of(
     }
 }
 
+/// Validates a raw tile zoom against the key width.
+///
+/// # Panics
+///
+/// This panics when the zoom lies beyond the key width.
+const fn zoom_of(z: u8) -> Zoom {
+    Zoom::new(z).expect("the zoom lies within the key width")
+}
+
+/// Validates a raw grid exponent against the shift width.
+///
+/// # Panics
+///
+/// This panics when the exponent lies at or above the `u64` shift width.
+const fn log2_of(levels: u8) -> Log2 {
+    Log2::new(levels).expect("the exponent lies below the shift width")
+}
+
+/// Converts a refinement threshold, clamping values above the zoom domain.
+///
+/// Values beyond the zoom domain clamp to [`Zoom::MAX`]. No regular served zoom reaches that
+/// threshold before the terminal catch-all takes over, making it a way to request no intermediate
+/// refinement.
+const fn threshold_of(zoom: u8) -> Zoom {
+    match Zoom::new(zoom) {
+        Some(zoom) => zoom,
+        None => Zoom::MAX,
+    }
+}
+
 /// Returns the cell at `(z, x, y)`.
 ///
 /// # Panics
 ///
-/// This panics when the zoom lies beyond the key width or the coordinate off the zoom's grid.
-const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
-    MortonCell::new(
-        Depth::new(z).expect("tile zooms lie within the key width"),
+/// Panics when the coordinate lies off the zoom's grid.
+const fn cell_of(z: Zoom, x: u32, y: u32) -> MortonCell {
+    MortonCell::new(Depth::from_zoom(z), x, y).expect("the coordinate lies on the zoom's grid")
+}
+
+/// Returns the tile's ancestor coordinates on `level`'s grid.
+///
+/// # Panics
+///
+/// This panics when `level` lies deeper than `z`.
+const fn ancestor_of(z: Zoom, level: Zoom, x: u32, y: u32) -> (u32, u32) {
+    let tile = MortonTile {
+        z: Depth::from_zoom(z),
         x,
         y,
-    )
-    .expect("the coordinate lies on the zoom's grid")
+    }
+    .ancestor(Depth::from_zoom(level));
+
+    (tile.x, tile.y)
 }
 
 /// Returns every bucket's full segment as scan offsets.
@@ -4371,6 +4441,7 @@ mod tests {
     use core::ops::RangeInclusive;
     use std::collections::HashSet;
 
+    use hashql_core::id::Id as _;
     use proptest::{
         prop_assert, prop_assert_eq, prop_oneof, property_test,
         sample::Index,
@@ -4379,9 +4450,9 @@ mod tests {
 
     use super::{
         ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement,
-        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench, cell_of,
+        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench,
     };
-    use crate::morton::{Depth, MortonKey};
+    use crate::morton::{Depth, MortonCell, MortonKey};
 
     /// The corpus scale the module's exhaustive checks run at.
     const POINTS: usize = 8_000;
@@ -4415,6 +4486,15 @@ mod tests {
     /// A clustered mask requires `visible` in `[0, 1]` as in [`WalkBench::mask_clustered`].
     fn masked(clustered: bool, visible: f64) -> WalkBench {
         corpus(POINTS, SEED, clustered, visible)
+    }
+
+    /// Returns the cell at `(z, x, y)` through the probe's untyped boundary.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `z > 32` or the coordinate lies off its grid.
+    fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
+        super::cell_of(super::zoom_of(z), x, y)
     }
 
     /// Builds a corpus of `points` rows from `seed` and masks it with the same seed.
@@ -4527,7 +4607,7 @@ mod tests {
     fn buckets_by_position(generation: &ServedGeneration, positions: usize) -> Vec<Depth> {
         let mut buckets = vec![Depth::MAX; positions];
         for (bucket, segment) in generation.segments.iter().enumerate() {
-            let depth = Depth::new(
+            let depth = Depth::try_new(
                 u8::try_from(bucket).expect("the segment table lies in the depth domain"),
             )
             .expect("every segment names a valid depth");
@@ -4553,7 +4633,12 @@ mod tests {
                 ..
             }) => bench.scheduled(z, x, y).max(
                 bench
-                    .occupied_cells(z, x, y, Depth::new(z + bench.span()).expect("a valid cut"))
+                    .occupied_cells(
+                        z,
+                        x,
+                        y,
+                        Depth::try_new(z + bench.span()).expect("a valid cut"),
+                    )
                     .len(),
             ),
             FillRule::Refined(Refinement {
@@ -4776,8 +4861,8 @@ mod tests {
                 let (codes, _, _) = bench.columns();
 
                 for (z, x, y) in tiles(&bench) {
-                    let cut = Depth::new(z + bench.span()).expect("a valid cut");
-                    for depth in [cut, Depth::new(cut.get() + 2).expect("a valid grid")] {
+                    let cut = Depth::try_new(z + bench.span()).expect("a valid cut");
+                    for depth in [cut, Depth::try_new(cut.get() + 2).expect("a valid grid")] {
                         let served = bench.served_representatives(z, x, y, depth, &generation);
                         let cells: HashSet<u64> = served
                             .iter()
@@ -4883,7 +4968,7 @@ mod tests {
         }
         assert!(
             strict > 0,
-            "no point moved shallower, so the check pins nothing"
+            "masking should move at least one visible fixture point to a shallower bucket"
         );
     }
 
@@ -4941,8 +5026,8 @@ mod tests {
         for rule in refinements(DotBudget::Scheduled) {
             assert!(
                 served_interference(rule, false, 0.5).is_some(),
-                "{rule:?} passed the noninterference check over the served engine, so the check \
-                 no longer separates a hidden-independent rule from a leaking one",
+                "scheduled-budget {rule:?} should serve different rows after removing hidden rows \
+                 in this fixture",
             );
         }
     }
@@ -5202,8 +5287,8 @@ mod tests {
         for rule in refinements(DotBudget::Scheduled) {
             assert!(
                 served_interference(rule, false, 0.5).is_some(),
-                "{rule:?} passed beside the public grid, so the identity check no longer \
-                 separates the known-bad rule",
+                "scheduled-budget {rule:?} should serve different rows after removing hidden rows \
+                 in this fixture",
             );
         }
     }
@@ -5220,7 +5305,7 @@ mod tests {
             let generation = bench.indexed_generation(GenerationLayout::Inline);
 
             for z in 0..=3_u8 {
-                let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+                let window_depth = Depth::try_new(z + 2).expect("the audit windows fit the key");
                 let windows = 1_usize << (2 * u32::from(window_depth.get()));
                 let counts = |positions: Vec<u32>| {
                     let mut counts = vec![0_usize; windows];
@@ -5328,8 +5413,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.served_audit(rule, z, x, y, &generation);
         let delivered = bench.served_cumulative_delivery(rule, z, x, y, &generation);
-        let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
-        let grid = Depth::new(cut.get() + audit.refined)
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5404,8 +5489,7 @@ mod tests {
         for rule in rules {
             assert!(
                 interference(rule, false, 0.5).is_some(),
-                "{rule:?} passed the noninterference check, so the check no longer separates a \
-                 hidden-independent rule from a leaking one",
+                "{rule:?} should deliver different rows after removing hidden rows in this fixture",
             );
         }
     }
@@ -5450,7 +5534,8 @@ mod tests {
                 assert_eq!(column.len(), bench.visible_rows());
 
                 for (z, x, y) in bench.descent() {
-                    let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
+                    let cut =
+                        Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
                     assert_eq!(
                         pyramid.count(cell_of(z, x, y), cut),
                         cascade.covered(z, x, y),
@@ -5583,8 +5668,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.audit(rule, z, x, y, view);
         let delivered = bench.cumulative_delivery(rule, z, x, y, view);
-        let cut = Depth::new(z + bench.span()).expect("the cut lies within the key width");
-        let grid = Depth::new(cut.get() + audit.refined)
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5634,7 +5719,7 @@ mod tests {
         let mut overruns = 0_usize;
         for (z, x, y) in tiles(&bench) {
             let audit = bench.audit(rule, z, x, y, view);
-            let cut = Depth::new(z + bench.span()).expect("the cut lies within the key width");
+            let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
             let shown: HashSet<u64> = bench
                 .cumulative_delivery(rule, z, x, y, view)
                 .iter()
@@ -5651,7 +5736,7 @@ mod tests {
 
         assert!(
             overruns > 0,
-            "the small budget never bound, so this check pins nothing",
+            "covering the cut cells should overrun the small budget on at least one fixture tile",
         );
     }
 

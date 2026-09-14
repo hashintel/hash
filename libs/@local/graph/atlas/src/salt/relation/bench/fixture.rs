@@ -147,8 +147,8 @@ impl<N, E> Corpus<N, E> {
                 clippy::cast_precision_loss,
                 clippy::cast_possible_truncation,
                 clippy::cast_sign_loss,
-                reason = "the hub count is far below f64 integer precision, and the Zipf power \
-                          lies in [1, hubs), so the floor fits every integer type in play"
+                reason = "the power-of-two hub count converts exactly to f64. The power lies \
+                          between one and that count, within the integer encodings"
             )]
             let rank = (hubs as f64).powf(rng.random::<f64>()) as u64 - 1;
             let target = N::from_u64(rank.wrapping_mul(HUB_SCATTER) & (rows as u64 - 1));
