@@ -145,6 +145,29 @@ export const assertCrashRecovery = (
     ordinal: 1,
     markdown: receipt.markdown,
   };
+  const emptySha256 = createHash("sha256").update("").digest("hex");
+  const expectedOutput = {
+    ...expected,
+    mutation: {
+      baseRevisionId: null,
+      beforeSha256: null,
+      afterSha256: expected.sha256,
+      commonPrefixUtf16: 0,
+      commonSuffixUtf16: 0,
+      removed: {
+        start: 0,
+        end: 0,
+        utf16Length: 0,
+        sha256: emptySha256,
+      },
+      inserted: {
+        start: 0,
+        end: receipt.markdown.length,
+        utf16Length: receipt.markdown.length,
+        sha256: expected.sha256,
+      },
+    },
+  };
   const result = asObject(
     readJson(join(directory, "recover-plain-result.json")),
     "recover result",
@@ -166,18 +189,9 @@ export const assertCrashRecovery = (
     { markdown: receipt.markdown },
     "Recovered tool input must match the crashed markdown",
   );
-  assert.ok(
-    isJsonObject(recovered.output),
-    "Recovered tool output must remain structured",
-  );
-  const { mutation, ...recoveredPointer } = recovered.output;
-  assert.ok(
-    isJsonObject(mutation),
-    "Recovered tool output must retain its mutation summary",
-  );
   assert.deepEqual(
-    recoveredPointer,
-    expected,
+    recovered.output,
+    expectedOutput,
     "Recovered tool output must match the crashed pointer and markdown",
   );
   assert.deepEqual(
