@@ -10,7 +10,7 @@ import type {
   Provider,
 } from "@earendil-works/pi-ai";
 
-// Limits cover the entire buffered proposal, not each individual chunk. Errors
+// Limits cover the entire proposal, not each individual chunk. Errors
 // deliberately do not resemble Flue's retryable provider/network failures.
 export const admissionBufferLimits = {
   bytes: 8 * 1024 * 1024,
@@ -53,7 +53,7 @@ class AdmittedStream extends EventStream<
     // Providers start eagerly; a caller may not yet have attached its iterator.
     // Keep rejection observable through both read surfaces, without an unhandled
     // rejection if cancellation wins before the caller starts reading.
-    void this.#admitted.catch(() => {});
+    void this.#admitted.catch(() => this.end());
   }
 
   async #collect(
@@ -67,6 +67,7 @@ class AdmittedStream extends EventStream<
       : controller.signal;
     const events: BufferedEvent[] = [];
     let bytes = 0;
+    let eventCount = 0;
     let rejectAbort: () => void = () => {};
     let iterator: AsyncIterator<AssistantMessageEvent> | undefined;
     const interrupted = new Promise<never>((_resolve, reject) => {
@@ -79,7 +80,7 @@ class AdmittedStream extends EventStream<
       bytes += Buffer.byteLength(JSON.stringify(value), "utf8");
       if (
         bytes > admissionBufferLimits.bytes ||
-        events.length >= admissionBufferLimits.events
+        eventCount > admissionBufferLimits.events
       )
         throw bufferLimitError();
     };
@@ -98,8 +99,17 @@ class AdmittedStream extends EventStream<
           "partial" in event
             ? (({ partial: _partial, ...rest }) => rest)(event)
             : event;
+        eventCount += 1;
         count(compact);
-        events.push(structuredClone(compact));
+        // Flue publishes executable inputs only at toolcall_end. Text and
+        // thinking can stream without admitting a call or completing a turn.
+        if (
+          event.type === "toolcall_end" ||
+          event.type === "done" ||
+          event.type === "error"
+        )
+          events.push(structuredClone(compact));
+        else this.push(event);
       }
       const message = await Promise.race([upstream.result(), interrupted]);
       count(message);
@@ -149,7 +159,16 @@ class AdmittedStream extends EventStream<
           "Inconsistent browser proposal refused before admission: published inputs must match the final call.",
         );
       }
-      return { events, message: structuredClone(message) };
+      const approved = structuredClone(message);
+      for (const event of events) {
+        this.push(
+          event.type === "done" || event.type === "error"
+            ? event
+            : { ...event, partial: approved },
+        );
+      }
+      this.end();
+      return approved;
     } catch (error) {
       events.length = 0;
       controller.abort(error);
@@ -165,20 +184,21 @@ class AdmittedStream extends EventStream<
   }
 
   override async *[Symbol.asyncIterator]() {
-    const { events, message } = await this.#admitted;
-    for (const event of events) {
+    const iterator = super[Symbol.asyncIterator]();
+    for (;;) {
+      // eslint-disable-next-line no-await-in-loop -- Preserve provider event order.
+      const next = await iterator.next();
+      if (next.done) break;
       if (this.#parentSignal?.aborted) throw cancelled();
-      // The complete approved message is the partial snapshot during replay.
-      // Keeping every upstream growing partial would require quadratic memory;
-      // deltas, call arguments, signatures and terminal results stay unchanged.
-      yield event.type === "done" || event.type === "error"
-        ? event
-        : { ...event, partial: message };
+      yield next.value;
     }
+    // Closing the queue wakes a waiting reader on failure; it must still see
+    // the refusal, not interpret a truncated stream as successful completion.
+    await this.#admitted;
   }
 
   override async result() {
-    const { message } = await this.#admitted;
+    const message = await this.#admitted;
     if (this.#parentSignal?.aborted) throw cancelled();
     return message;
   }

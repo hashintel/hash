@@ -14,12 +14,13 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
+import { readPetrinautNetToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolResultSignal,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import {
   agentOwnershipHeaders,
@@ -55,9 +56,13 @@ const binding = {
   documentId: "net-freshness-document",
   incarnationId: crypto.randomUUID(),
 };
+const host = createHeadlessPetrinautClient("Freshness net");
 const client = createFlueClient({
   url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
-  headers: agentOwnershipHeaders(identity),
+  headers: () => ({
+    ...agentOwnershipHeaders(identity),
+    [BRUNCH_DOCUMENT_REVISION_HEADER]: host.revisionId(),
+  }),
   fetch: async (input, init) =>
     application.fetch(
       input instanceof Request ? input : new Request(input, init),
@@ -74,19 +79,19 @@ const capturing =
 const staleMarkersIn = (text: string): number =>
   text.split(`<${NET_STALE_SIGNAL}`).length - 1;
 
-const host = createHeadlessPetrinautClient("Freshness net");
 try {
   // Turn 1: the conversation has never read the net.
   faux.setResponses([
     capturing(
       fauxAssistantMessage(
-        [fauxToolCall(getLatestNetDefinitionToolName, {}, { id: "read-1" })],
+        [fauxToolCall(readPetrinautNetToolName, {}, { id: "read-1" })],
         { stopReason: "toolUse" },
       ),
     ),
   ]);
   await client.wait(
     await client.send({
+      idempotencyKey: "net-freshness-initial",
       initialData: {
         mode: batchedConstructionMode,
         construction: { binding },
@@ -117,7 +122,7 @@ try {
 
   // The browser answers the read with its verified observation sidecar.
   const read = await host.execute({
-    toolName: getLatestNetDefinitionToolName,
+    toolName: readPetrinautNetToolName,
     toolCallId: "read-1",
     input: {},
   });
@@ -127,6 +132,7 @@ try {
     sha256: createHash("sha256")
       .update(JSON.stringify(definition))
       .digest("hex"),
+    revisionId: host.revisionId(),
   };
   faux.setResponses([
     capturing(fauxAssistantMessage([fauxText("GROUNDED_FROM_READ")])),
@@ -155,6 +161,7 @@ try {
   ]);
   await client.wait(
     await client.send({
+      idempotencyKey: "net-freshness-current-read",
       message: { kind: "user", body: "And what does the first place hold?" },
     }),
   );
@@ -175,7 +182,7 @@ try {
     "each user turn is recorded once",
   );
   const projected = snapshotToUiMessages(afterSecondTurn, {
-    clientToolNames: new Set([getLatestNetDefinitionToolName]),
+    clientToolNames: new Set([readPetrinautNetToolName]),
   });
   assert(
     !JSON.stringify(projected).includes(NET_STALE_SIGNAL),
@@ -185,6 +192,44 @@ try {
     projected.filter((message) => message.role === "user").length,
     2,
   );
+
+  // A direct host edit has a Petrinaut revision but no Brunch mutation record.
+  const revisionBeforeDirectEdit = host.revisionId();
+  await host.execute({
+    toolName: "addPlace",
+    toolCallId: "direct-edit",
+    input: {
+      id: "direct-place",
+      name: "DirectPlace",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  });
+  assert.notEqual(host.revisionId(), revisionBeforeDirectEdit);
+  faux.setResponses([
+    capturing(fauxAssistantMessage([fauxText("REQUESTED_FRESH_READ")])),
+  ]);
+  await client.wait(
+    await client.send({
+      idempotencyKey: "net-freshness-direct-edit",
+      message: {
+        kind: "user",
+        body: "Now explain the directly edited model.",
+      },
+    }),
+  );
+  const afterDirectEdit = await client.history();
+  assert.equal(
+    afterDirectEdit.messages.filter(
+      (message) => message.signal?.tagName === NET_STALE_SIGNAL,
+    ).length,
+    2,
+    "a direct Petrinaut revision adds a new stale marker before the model turn",
+  );
+  assert.equal(staleMarkersIn(contexts[3]!), 2);
   process.stdout.write(`NET_FRESHNESS_PASS ${directory}\n`);
 } finally {
   host.dispose();

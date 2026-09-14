@@ -1,12 +1,11 @@
-import * as v from "valibot";
+import { z } from "zod";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { observedArcEnvelopeSchema } from "./root-arc";
+import { observedArcEnvelopeSchema, rootArcWhyInputSchema } from "./root-arc";
 
 import type { ConstructionMutationRequest } from "./mutation-record";
 import type { SDCPN } from "@hashintel/petrinaut-core";
-import type { z } from "zod";
 
 export const observedStateMutationNames = [
   "addParameter",
@@ -73,20 +72,36 @@ export const parseObservedStateInput = (
   return input as z.input<(typeof schemas)[ObservedStateMutationName]>;
 };
 
-export const rootStateWhyInputSchema = v.strictObject({
-  kind: v.picklist([
-    "parameter",
-    "differential-equation",
-    "type",
-    "type-element",
-    "scenario",
-  ]),
-  name: v.string(),
-  type: v.optional(v.string()),
-  field: v.optional(v.string(), "entity"),
-  observationToolCallId: v.optional(v.string()),
-});
-export type RootStateWhyInput = v.InferOutput<typeof rootStateWhyInputSchema>;
+const stateWhyFields = {
+  name: z
+    .string()
+    .describe(
+      "Unique name or ID from read_petrinaut_net; for a type element, select within its parent type.",
+    ),
+  field: z
+    .string()
+    .default("entity")
+    .describe(
+      "Explain the whole entity (entity), a top-level field, or an entity-relative JSON pointer such as /initialState/content.",
+    ),
+  observationToolCallId: rootArcWhyInputSchema.shape.observationToolCallId,
+};
+export const rootStateWhyInputSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    ...stateWhyFields,
+    kind: z.enum(["parameter", "differential-equation", "type", "scenario"]),
+  }),
+  z.strictObject({
+    ...stateWhyFields,
+    kind: z.literal("type-element"),
+    type: z
+      .string()
+      .describe(
+        "Required parent colour/type's unique name or ID; not the element's primitive data type.",
+      ),
+  }),
+]);
+export type RootStateWhyInput = z.output<typeof rootStateWhyInputSchema>;
 const pointer = (value: string) =>
   value.replaceAll("~", "~0").replaceAll("/", "~1");
 
@@ -95,14 +110,15 @@ export const locateRootState = (
   definition: SDCPN,
   query: RootStateWhyInput,
 ) => {
-  const types = definition.types.filter(
-    (entry) => entry.id === query.type || entry.name === query.type,
-  );
+  const types =
+    query.kind === "type-element"
+      ? definition.types.filter(
+          (entry) => entry.id === query.type || entry.name === query.type,
+        )
+      : [];
   const parent = types[0];
   if (query.kind === "type-element" && (types.length !== 1 || !parent))
     throw new Error("Unknown or ambiguous parent type; use a unique ID.");
-  if (query.kind !== "type-element" && query.type !== undefined)
-    throw new Error("Only a type-element query accepts a parent type.");
   const entries =
     query.kind === "type-element"
       ? parent!.elements
@@ -152,9 +168,10 @@ export const locateRootState = (
     value = property.value;
   }
   return {
-    kind: query.kind,
+    ...(query.kind === "type-element"
+      ? { kind: query.kind, typeId: parent!.id }
+      : { kind: query.kind }),
     id: "elementId" in entity ? entity.elementId : entity.id,
-    ...(query.kind === "type-element" ? { typeId: parent!.id } : {}),
     nodePath,
     path: nodePath + fields.map((field) => `/${pointer(field)}`).join(""),
     value,
@@ -310,16 +327,20 @@ export const stateMutationTarget = (
           : "elementId" in input
             ? input.elementId
             : input.typeId;
-  const kind =
-    request.toolName === "addParameter"
-      ? "parameter"
+  const query = {
+    name: id,
+    field: "entity",
+    ...(request.toolName === "addParameter"
+      ? { kind: "parameter" as const }
       : request.toolName === "addDifferentialEquation"
-        ? "differential-equation"
+        ? { kind: "differential-equation" as const }
         : request.toolName.includes("Scenario")
-          ? "scenario"
-          : request.toolName.includes("Element")
-            ? "type-element"
-            : "type";
+          ? { kind: "scenario" as const }
+          : "element" in input || "elementId" in input
+            ? { kind: "type-element" as const, type: input.typeId }
+            : { kind: "type" as const }),
+  };
+  const { kind } = query;
   const parent =
     "typeId" in input
       ? definition.types.find((entry) => entry.id === input.typeId)
@@ -346,14 +367,7 @@ export const stateMutationTarget = (
               : `/${kind === "type" ? "types" : kind === "parameter" ? "parameters" : kind === "differential-equation" ? "differentialEquations" : "scenarios"}/${entries.length}`,
           value: undefined,
         }
-      : locateRootState(definition, {
-          kind,
-          name: id,
-          field: "entity",
-          ...(kind === "type-element" && "typeId" in input
-            ? { type: input.typeId }
-            : {}),
-        });
+      : locateRootState(definition, query);
   const raw = request.input as Record<string, unknown>;
   return {
     target,

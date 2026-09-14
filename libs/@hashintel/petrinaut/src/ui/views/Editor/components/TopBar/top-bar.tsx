@@ -63,6 +63,7 @@ interface TopBarProps {
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
+  titleEditable: boolean;
   hideNetManagementControls?: "all" | "except-title";
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
@@ -76,6 +77,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   menuItems,
   title,
   onTitleChange,
+  titleEditable,
   hideNetManagementControls,
   mode,
   onModeChange,
@@ -123,6 +125,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             variant="subtle"
             value={title}
             onChange={onTitleChange}
+            readonly={!titleEditable}
             placeholder="Process"
             className={titleStyles}
             size="sm"

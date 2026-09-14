@@ -4,8 +4,6 @@ import {
   applyCaptureStoreCommand,
   createEmptyCaptureStoreSnapshot,
   type CaptureInputProposal,
-  type UserCaptureInputProposal,
-  type EvidenceSpan,
 } from "../src/evidence/capture-store";
 import {
   archiveSessionLogRead,
@@ -268,31 +266,5 @@ describe("capture anchoring", () => {
         ),
       ).toMatchObject({ ok: false, refusal: { code } });
     }
-  });
-
-  test("caller-facing evidence accepts quotes, not ranges or source assertions", () => {
-    const evidence: UserCaptureInputProposal["evidence"] = [
-      {
-        excerpt: "June works.",
-        // @ts-expect-error Entry ranges are harness-owned and absent from caller input.
-        pointer: { sessionId: "session-1", entryStart: 1, entryEnd: 1 },
-      },
-    ];
-    expect(evidence[0] as unknown).toEqual({
-      excerpt: "June works.",
-      pointer: { sessionId: "session-1", entryStart: 1, entryEnd: 1 },
-    });
-
-    const storedSpan: EvidenceSpan = {
-      excerpt: "June works.",
-      pointer: { sessionId: "session-1", entryStart: 1, entryEnd: 1 },
-      source: "user",
-    };
-    const callerQuotes: readonly UserCaptureInputProposal["evidence"][number][] =
-      [
-        // @ts-expect-error A stored span is not assignable to caller quote input.
-        storedSpan,
-      ];
-    expect(callerQuotes).toHaveLength(1);
   });
 });

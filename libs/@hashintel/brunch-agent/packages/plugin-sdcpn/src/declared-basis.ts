@@ -12,12 +12,28 @@ export const sha256Schema = z.string().regex(sha256Pattern);
 // Tool inputs are Zod by contract, so these cannot import core's Valibot
 // schemas; the `satisfies` pins them to core's shapes so drift fails to compile.
 const revisionCitation = z.strictObject({
-  revisionId: nonempty,
-  sha256: sha256Schema,
+  revisionId: nonempty.describe(
+    "Copy the settled revisionId from read_workpiece without candidate markdown. An unsettled candidate has no revision ID.",
+  ),
+  sha256: sha256Schema.describe(
+    "Copy that same settled workpiece revision's sha256, not the browser net hash or an unsettled candidate hash.",
+  ),
 }) satisfies z.ZodType<Pick<WorkpieceRevision, "revisionId" | "sha256">>;
 const locator = z.strictObject({
-  start: z.number().int().min(0),
-  end: z.number().int().min(1),
+  start: z
+    .number()
+    .int()
+    .min(0)
+    .describe(
+      "Inclusive UTF-16 offset returned by read_workpiece locateTexts for this settled revision. Do not count offsets yourself.",
+    ),
+  end: z
+    .number()
+    .int()
+    .min(1)
+    .describe(
+      "Exclusive UTF-16 end offset from that same match; must exceed start and stay within this revision's Markdown.",
+    ),
 }) satisfies z.ZodType<WorkpieceEvidenceRelation["locator"]>;
 
 /** Immutable revision-local UTF-16 spans; no cross-revision continuity claim. */
@@ -25,12 +41,33 @@ export const declaredBasisSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("declared"),
     ...revisionCitation.shape,
-    locators: z.array(locator).min(1),
-    rationale: nonempty,
-    scope: z.literal("operation"),
-    supersessionIntended: z.boolean().optional(),
+    locators: z
+      .array(locator)
+      .min(1)
+      .describe(
+        "Passages supporting this representation. Use read_workpiece with locateTexts and no candidate markdown; select relevant returned matches, not every match.",
+      ),
+    rationale: nonempty.describe(
+      "Explain how the cited operational meaning supports this operation; distinguish representational inference from user testimony.",
+    ),
+    scope: z
+      .literal("operation")
+      .describe(
+        "Basis covers the logical operation, not independent support for every field or derived effect.",
+      ),
+    supersessionIntended: z
+      .boolean()
+      .optional()
+      .describe(
+        "Set true only to intentionally cite a retained, superseded workpiece revision. Normally use the current revision; this does not waive hash or locator validation.",
+      ),
   }),
-  z.strictObject({ kind: z.literal("absent"), reason: nonempty }),
+  z.strictObject({
+    kind: z.literal("absent"),
+    reason: nonempty.describe(
+      "Explain why no recorded passage supports this operation. This discloses absent provenance; it does not authorize inventing operational facts or bypass the need for a settled workpiece.",
+    ),
+  }),
 ]);
 export type DeclaredBasis = z.output<typeof declaredBasisSchema>;
 

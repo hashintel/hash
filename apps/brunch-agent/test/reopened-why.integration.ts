@@ -294,12 +294,12 @@ export const runReopenedWhyWitness = async ({
       const settledText = `TEST ${cohort}: authorized revision settled, relevance unassessed.`;
       faux.setResponses([
         tool(
-          "brunch_workpiece",
+          "read_workpiece",
           { markdown, locateTexts },
           `a5-${cohort}-sources`,
         ),
         (modelContext) => {
-          const output = toolOutput(modelContext, "brunch_workpiece");
+          const output = toolOutput(modelContext, "read_workpiece");
           assert(Array.isArray(output.sources));
           const source = output.sources.find(
             (value: unknown) =>
@@ -320,7 +320,7 @@ export const runReopenedWhyWitness = async ({
             "Candidate lookup does not settle state.",
           );
           return tool(
-            "update_workpiece",
+            "mutate_workpiece",
             {
               markdown,
               evidence:
@@ -353,7 +353,7 @@ export const runReopenedWhyWitness = async ({
           );
         },
         (modelContext) => {
-          const pointer = toolOutput(modelContext, "update_workpiece");
+          const pointer = toolOutput(modelContext, "mutate_workpiece");
           assert.equal(pointer.revisionId, revisionCallId);
           assert.equal(typeof pointer.sha256, "string");
           revision = {
@@ -361,13 +361,13 @@ export const runReopenedWhyWitness = async ({
             sha256: pointer.sha256 as string,
           };
           return tool(
-            "brunch_workpiece",
+            "read_workpiece",
             { locateTexts },
             `a5-${cohort}-current`,
           );
         },
         (modelContext) => {
-          const result = toolOutput(modelContext, "brunch_workpiece");
+          const result = toolOutput(modelContext, "read_workpiece");
           const settled = productLocators(result, "current-revision");
           assert.equal(settled.lookup.subject.revisionId, revision?.revisionId);
           assert.equal(settled.lookup.sha256, revision?.sha256);
@@ -484,6 +484,7 @@ export const runReopenedWhyWitness = async ({
       assert(createdPath);
       save(
         `${cohort}-inventory`,
+        // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable inventory entries while adding evaluation annotations.
         inventory(post).map((entry) => ({
           ...entry,
           cohort:
@@ -516,18 +517,20 @@ export const runReopenedWhyWitness = async ({
             ? [tool("getLatestNetDefinition", {}, readId)]
             : []),
           tool(
-            "brunch_why",
+            "query_workpiece",
             {
-              ...query,
-              ...extra,
-              ...(mode === "live" ? { observationToolCallId: readId } : {}),
+              selector: {
+                ...query,
+                ...extra,
+                ...(mode === "live" ? { observationToolCallId: readId } : {}),
+              },
             },
             `a5-${cohort}-why-${sequence}`,
           ),
           (modelContext) => {
             const answer = toolOutput(
               modelContext,
-              "brunch_why",
+              "query_workpiece",
             ) as unknown as RootArcExplanation;
             assert.equal(
               answer.disposition,
@@ -658,7 +661,7 @@ export const runReopenedWhyWitness = async ({
         assert.equal(whyAnswers.at(-1)?.target?.value, "standard");
         faux.setResponses([
           tool(
-            "update_workpiece",
+            "mutate_workpiece",
             { markdown: `${markdown}\n\nUnrelated context remains unrelated.` },
             "a5-carried-revision",
           ),
@@ -702,6 +705,7 @@ export const runReopenedWhyWitness = async ({
         save("hand-edit-canonical", handEdited);
         save(
           "hand-edit-inventory",
+          // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable inventory entries while adding evaluation annotations.
           inventory(handEdited).map((entry) => ({
             ...entry,
             cohort:

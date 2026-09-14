@@ -35,6 +35,88 @@ export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("removeArc"),
     input: mutationActionInputSchemas.removeArc,
   }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addType"),
+    input: mutationActionInputSchemas.addType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addParameter"),
+    input: mutationActionInputSchemas.addParameter,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addDifferentialEquation"),
+    input: mutationActionInputSchemas.addDifferentialEquation,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateDifferentialEquation"),
+    input: mutationActionInputSchemas.updateDifferentialEquation,
+  }),
+  // Edits to existing parts of the net. Canvas positions stay with layout.
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updatePlace"),
+    input: mutationActionInputSchemas.updatePlace,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateTransition"),
+    input: mutationActionInputSchemas.updateTransition,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateArcWeight"),
+    input: mutationActionInputSchemas.updateArcWeight,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateArcType"),
+    input: mutationActionInputSchemas.updateArcType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateType"),
+    input: mutationActionInputSchemas.updateType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addTypeElement"),
+    input: mutationActionInputSchemas.addTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateTypeElement"),
+    input: mutationActionInputSchemas.updateTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateParameter"),
+    input: mutationActionInputSchemas.updateParameter,
+  }),
+  // Removals of net-level state; Petrinaut clears the references they leave.
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeType"),
+    input: mutationActionInputSchemas.removeType,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeTypeElement"),
+    input: mutationActionInputSchemas.removeTypeElement,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeParameter"),
+    input: mutationActionInputSchemas.removeParameter,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeDifferentialEquation"),
+    input: mutationActionInputSchemas.removeDifferentialEquation,
+  }),
 ]);
 
 export const selectedMutationBatchSchema = z

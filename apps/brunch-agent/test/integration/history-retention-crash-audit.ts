@@ -166,8 +166,17 @@ export const assertCrashRecovery = (
     { markdown: receipt.markdown },
     "Recovered tool input must match the crashed markdown",
   );
+  assert.ok(
+    isJsonObject(recovered.output),
+    "Recovered tool output must remain structured",
+  );
+  const { mutation, ...recoveredPointer } = recovered.output;
+  assert.ok(
+    isJsonObject(mutation),
+    "Recovered tool output must retain its mutation summary",
+  );
   assert.deepEqual(
-    recovered.output,
+    recoveredPointer,
     expected,
     "Recovered tool output must match the crashed pointer and markdown",
   );

@@ -17,8 +17,11 @@ The assistant panel only renders in **Edit** mode. Switching to **Simulate** mod
 While a response is streaming you can:
 
 - Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
+- Follow tool operations as they run. A spinner and **Preparing…** or **Running…** distinguish an unfinished operation from its completed or failed result; a collapsed group also shows its active status. Preparing is available only when the host streams tool arguments. Brunch currently publishes tool cards after argument validation, so a proposal may still be generating before its card appears. Interactive questions remain waiting for your answer rather than showing a running spinner.
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. A Stop pressed while the assistant is reading or editing the net also withholds browser tools that have not started and the follow-up reply that would otherwise start automatically. Already-applied changes are not rolled back.
 - Type your next message in the composer -- it is queued for after the current response ends.
+
+The assistant's compilation check runs against the current model, even when its diagnostics are unchanged from the previous check. If you edit the model during that check, the result asks for another check instead of claiming the new version compiles. Compilation checks do not establish simulation correctness.
 
 The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
 If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
@@ -143,7 +146,7 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
 - **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
-- **`setNetTitle`** -- renames the net.
+- **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
@@ -156,6 +159,12 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 
 An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
+
+### Document titles
+
+Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. The host also controls the assistant's tool manifest: `setNetTitle` is useful only alongside `setTitle` and should be omitted for a read-only title. If it is nevertheless called, Petrinaut reports that no change was applied because the host does not provide title editing.
+
+For example, the Petrinaut website's worked-model route displays its template title as read-only and its Brunch tool manifest exposes no title mutation while still allowing permitted net edits. Ordinary local documents on that website supply title editing.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 

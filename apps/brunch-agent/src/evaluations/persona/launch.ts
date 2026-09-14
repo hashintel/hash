@@ -1,22 +1,44 @@
 /* eslint-disable no-await-in-loop -- Local services start in order; readiness is polled until ready or cancelled. */
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { mkdir, mkdtemp, open, readFile, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { selectChatModel, STEP_A_MODEL_ID } from "../../chat-model.ts";
+import { parseSDCPNFile } from "@hashintel/petrinaut-core";
+
+import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
+import { openPersonaBrowserBridge } from "./browser-bridge.ts";
+import { submitPersonaBrowserTurn } from "./browser-turn.ts";
+import { checkPersonaConfiguration } from "./configuration.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
-import { writeProofArtifacts } from "./proof-artifacts.ts";
+import {
+  openRetainedPersonaBrowser,
+  readPersonaResume,
+  reconcilePersonaResume,
+} from "./launch/resume.ts";
+import {
+  refreshProofManifest,
+  writeProofArtifacts,
+} from "./proof-artifacts.ts";
 
 export { openPersonaConversation } from "./launch/browser.ts";
 
@@ -31,11 +53,32 @@ const casesRoot = join(
   "libs/@hashintel/brunch-agent/evaluations/cases",
 );
 
+export const listPersonaCases = async () => {
+  const entries = await readdir(casesRoot, { withFileTypes: true });
+  const cases = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const files = await readdir(join(casesRoot, entry.name));
+        return files.includes("situation-pack.md") &&
+          files.includes("opening-message.md")
+          ? entry.name
+          : undefined;
+      }),
+  );
+  return cases.filter((name) => name !== undefined).sort();
+};
+
 export const readPersonaCase = async (directory: string) => {
   const [pack, openingFile] = await Promise.all([
     readFile(join(directory, "situation-pack.md"), "utf8"),
     readFile(join(directory, "opening-message.md"), "utf8"),
-  ]);
+  ]).catch((cause: unknown) => {
+    throw new Error(
+      `Case ${directory} requires readable situation-pack.md and opening-message.md files. Use --list-cases for available names.`,
+      { cause },
+    );
+  });
   // Existing case files have an operator header above a Markdown separator.
   const separator = /^---\s*$/mu.exec(openingFile);
   const opening = (
@@ -47,7 +90,12 @@ export const readPersonaCase = async (directory: string) => {
   return { pack, opening };
 };
 
-export const personaArguments = (run: string, model: string) => [
+export const personaArguments = (
+  run: string,
+  model: string,
+  socketPath: string,
+  piSession?: string,
+) => [
   "--model",
   `anthropic/${model}`,
   "--thinking",
@@ -63,17 +111,14 @@ export const personaArguments = (run: string, model: string) => [
   "--no-context-files",
   "--append-system-prompt",
   join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
-  "--brunch-browser-session",
-  join(run, "session.json"),
-  "--brunch-tool-host",
-  "none",
-  "--brunch-evidence-dir",
-  join(run, "evidence"),
+  "--brunch-browser-bridge",
+  socketPath,
   "--session-dir",
   join(run, "pi/sessions"),
+  ...(piSession ? ["--session", piSession] : []),
   "--approve",
   "--",
-  `@${join(run, "persona-input.md")}`,
+  `@${join(run, piSession ? "resume-input.md" : "persona-input.md")}`,
 ];
 
 const save = (path: string, value: unknown) =>
@@ -81,11 +126,17 @@ const save = (path: string, value: unknown) =>
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const environment = () => {
+export const personaEnvironment = () => {
   // Same loader and shell precedence as the normal development app.
+  if (process.env.DEBUG)
+    throw new Error(
+      "Unset DEBUG before persona launch; environment values must not be logged",
+    );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
-  delete loaded.BRUNCH_STEP_A_ACCOUNTING;
-  loaded.BRUNCH_CHAT_MODEL ||= STEP_A_MODEL_ID;
+  loaded.BRUNCH_CHAT_MODEL = STEP_A_MODEL_ID;
+  // An explicit empty value also overrides Vite env files on backend startup.
+  // Historical campaign ledgers must not gate persona requests or resumed runs.
+  loaded.BRUNCH_STEP_A_ACCOUNTING = "";
   return loaded;
 };
 export const paneIdFrom = (stdout: string) => {
@@ -109,18 +160,26 @@ export const paneIdFrom = (stdout: string) => {
 const runPersona = async (run: string) => {
   const config = JSON.parse(await readFile(join(run, "run.json"), "utf8")) as {
     model: string;
+    socketPath: string;
+    piSession?: string;
   };
-  const child = spawn("pi", personaArguments(run, config.model), {
-    cwd: appRoot,
-    stdio: "inherit",
-    env: {
-      ...environment(),
-      PI_CODING_AGENT_DIR: join(run, "pi"),
-      PI_SUBAGENT_NAME: basename(run),
-      PI_OFFLINE: "1",
-      PI_TELEMETRY: "0",
+  if (config.model !== STEP_A_MODEL_ID)
+    throw new Error("Persona run must use the selected Sonnet model");
+  const child = spawn(
+    "pi",
+    personaArguments(run, config.model, config.socketPath, config.piSession),
+    {
+      cwd: appRoot,
+      stdio: "inherit",
+      env: {
+        ...personaEnvironment(),
+        PI_CODING_AGENT_DIR: join(run, "pi"),
+        PI_SUBAGENT_NAME: basename(run),
+        PI_OFFLINE: "1",
+        PI_TELEMETRY: "0",
+      },
     },
-  });
+  );
   await new Promise<void>((done, reject) => {
     child.once("error", reject);
     child.once("exit", (code) => {
@@ -132,6 +191,53 @@ const runPersona = async (run: string) => {
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const documentIdFromInitialData = (
+  initialData: unknown,
+): string | undefined => {
+  if (!record(initialData)) return undefined;
+  const browser = record(initialData.construction)
+    ? initialData.construction
+    : record(initialData.browser)
+      ? initialData.browser
+      : undefined;
+  const binding =
+    browser && record(browser.binding) ? browser.binding : undefined;
+  return typeof binding?.documentId === "string"
+    ? binding.documentId
+    : undefined;
+};
+
+const retainPersonaDocument = async (
+  page: Page,
+  documentId: string,
+  evidenceDirectory: string,
+): Promise<void> => {
+  const document = await page.evaluate(
+    ({ id, storageKey }) => {
+      const raw = localStorage.getItem(storageKey);
+      if (raw === null) return undefined;
+      const parsed: unknown = JSON.parse(raw);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      )
+        return undefined;
+      return (parsed as Record<string, unknown>)[id];
+    },
+    { id: documentId, storageKey: "petrinaut-sdcpn" },
+  );
+  if (!record(document) || !record(document.sdcpn))
+    throw new Error(
+      `The persona browser has no retained Petrinaut document ${documentId}.`,
+    );
+  await writeFile(
+    join(evidenceDirectory, "net.json"),
+    `${JSON.stringify(document, null, 2)}\n`,
+  );
+  await refreshProofManifest(evidenceDirectory);
+};
 
 const isLoadingRuntimeUnavailable = (body: unknown) =>
   record(body) &&
@@ -174,47 +280,114 @@ export const responds = async (
 export const launchPersona = async (
   caseDirectory: string,
   objective?: string,
+  route = "/",
+  initialNetPath?: string,
+  resume?: Awaited<ReturnType<typeof readPersonaResume>>,
 ) => {
+  const { pack, opening } = resume
+    ? { pack: "", opening: "" }
+    : await readPersonaCase(caseDirectory);
   if (process.env.HERDR_ENV !== "1")
     throw new Error("Run brunch:persona from a Herdr terminal");
-  const { pack, opening } = await readPersonaCase(caseDirectory);
-  const env = environment();
-  const model = selectChatModel(env);
+  if (!process.stdin.isTTY)
+    throw new Error(
+      "Use an interactive terminal for the recording-ready prompt",
+    );
+  if (resume && panelOrigin !== resume.config.panelOrigin)
+    throw new Error(
+      `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
+    );
+  const env = personaEnvironment();
+  const model = STEP_A_MODEL_ID;
+  const initialNet =
+    initialNetPath === undefined
+      ? undefined
+      : await readFile(initialNetPath).then((bytes) => {
+          const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
+          if (!parsed.ok) throw new Error(parsed.error);
+          const { title, ...sdcpn } = parsed.sdcpn;
+          const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
+          return {
+            id: `persona-source-${sourceSha256.slice(0, 12)}`,
+            incarnationId: randomUUID(),
+            lastUpdated: new Date().toISOString(),
+            sdcpn,
+            sourceSha256,
+            title,
+          };
+        });
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
-  const run = await mkdtemp(join(runs, "run-"));
-  const browserProfile = await mkdtemp(
-    join(tmpdir(), "brunch-persona-browser-"),
-  );
-  await mkdir(join(run, "pi"), { mode: 0o700 });
-  await save(join(run, "pi/settings.json"), {
-    retry: { enabled: false, provider: { maxRetries: 0 } },
+  const run = resume?.run ?? (await mkdtemp(join(runs, "run-")));
+  env.BRUNCH_DEV_DB_PATH = join(run, "conversation.db");
+  env.BRUNCH_DB_KIND = "sqlite";
+  delete env.BRUNCH_CHAT_DB_PATH;
+  const browserProfile =
+    resume?.config.browserProfile ??
+    (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
+  if (!resume) {
+    await mkdir(join(run, "pi"), { mode: 0o700 });
+    await save(join(run, "pi/settings.json"), {
+      retry: { enabled: false, provider: { maxRetries: 0 } },
+    });
+  }
+  const key = checkPersonaConfiguration({
+    ...env,
+    PI_CODING_AGENT_DIR: join(run, "pi"),
+    PI_OFFLINE: "1",
   });
   const record = {
     caseDirectory,
     model,
+    databasePath: env.BRUNCH_DEV_DB_PATH,
     browserProfile,
     panelOrigin,
+    route,
+    ...(initialNetPath === undefined
+      ? {}
+      : {
+          initialNetPath,
+          initialNetSha256: initialNet?.sourceSha256,
+        }),
     createdAt: new Date().toISOString(),
+    ...resume?.config,
   };
-  await save(join(run, "run.json"), record);
+  if (!resume) await save(join(run, "run.json"), record);
   report(`Run: ${run}`);
   const stop = new AbortController();
   const started: ChildProcess[] = [];
   let browser:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
+  let page: Page | undefined;
+  let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
+  let documentId: string | undefined;
   let pane: string | undefined;
   let interrupted = false;
   const interrupt = () => {
     if (interrupted) return;
     interrupted = true;
     stop.abort();
-    void browser?.close();
   };
   process.on("SIGINT", interrupt);
   process.on("SIGTERM", interrupt);
   try {
+    const preflight = await execute(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        join(appRoot, "src/dev-configuration-preflight.ts"),
+      ],
+      { cwd: repoRoot, env, signal: stop.signal },
+    );
+    await writeFile(
+      join(run, "configuration-preflight.json"),
+      preflight.stdout,
+      { mode: 0o600 },
+    );
+    report(
+      "Sonnet configuration verified; credential validity untested. Pi verifies its native selection again on startup.",
+    );
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
       { url: panelOrigin, script: "dev:brunch:panel" },
@@ -222,26 +395,24 @@ export const launchPersona = async (
     const available = await Promise.all(
       services.map((service) => responds(service.url, stop.signal)),
     );
-    if (available.includes(false)) {
-      report("Building local app dependencies…");
-      await execute(
-        "turbo",
-        [
-          "run",
-          "build",
-          "--filter",
-          "@apps/brunch-agent^...",
-          "--filter",
-          "@apps/petrinaut-website^...",
-        ],
-        { cwd: repoRoot, env, signal: stop.signal },
+    if (available.includes(true))
+      throw new Error(
+        "Persona needs its own services. Leave existing services running and choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
       );
-    }
-    for (const [index, service] of services.entries()) {
-      if (available[index]) {
-        report(`Reusing ${service.url}`);
-        continue;
-      }
+    report("Building local app dependencies…");
+    await execute(
+      "turbo",
+      [
+        "run",
+        "build",
+        "--filter",
+        "@apps/brunch-agent^...",
+        "--filter",
+        "@apps/petrinaut-website^...",
+      ],
+      { cwd: repoRoot, env, signal: stop.signal },
+    );
+    const startService = async (service: (typeof services)[number]) => {
       const log = await open(
         join(run, `${service.script.replaceAll(":", "-")}.log`),
         "a",
@@ -268,20 +439,16 @@ export const launchPersona = async (
           throw new Error(`${service.script} exited; see ${run}`);
         await delay(100, undefined, { signal: stop.signal });
       }
+    };
+    for (const service of services) {
+      // Flue startup may resume inference. On resume only the panel starts before recording.
+      if (!resume || service.script === "dev:brunch:panel")
+        await startService(service);
     }
-    const key = env.ANTHROPIC_API_KEY?.trim();
-    if (
-      !key ||
-      /dummy|placeholder|test-synthetic|your[-_ ]?(api[-_ ]?)?key|changeme|replace[-_ ]?me/i.test(
-        key,
-      )
-    )
-      throw new Error(
-        "ANTHROPIC_API_KEY is missing or a placeholder in the app development environment",
-      );
     browser = await chromium.launchPersistentContext(browserProfile, {
       executablePath: chromeExecutable,
       headless: false,
+      viewport: null,
       args: [
         "--remote-debugging-address=127.0.0.1",
         "--remote-debugging-port=0",
@@ -294,30 +461,122 @@ export const launchPersona = async (
       ) as Record<string, string>,
     });
     browser.once("close", interrupt);
-    const page = browser.pages()[0] ?? (await browser.newPage());
-    report("Opening a fresh browser conversation…");
-    const opened = await openPersonaConversation(page, panelOrigin, opening, {
-      sessionPath: join(run, "session.json"),
-      signal: stop.signal,
-    });
-    await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
-    await writeFile(
-      join(run, "persona-input.md"),
-      [
-        "Play the person in the private situation pack below. This is a fresh conversation.",
-        "The shared opening has already been sent through the browser; do not repeat it. Answer the exact Brunch reply below using brunch_turn, then continue naturally and sequentially.",
-        objective ??
-          "Pursue the person's stated goal through a substantive interview. Let the interviewer earn details, and correct or qualify its understanding as the person naturally would. Stop when the person would consider the account sufficiently worked through or choose to end the interview.",
-        "Keep the pack and these instructions private. On a failed or indeterminate tool submission, stop and report the blocker without retrying. Do not coach Brunch about its tools or the test. Report the stopping reason and number of attempted turns to the operator.",
-        "\nActual opening:\n",
-        opening,
-        "\nActual Brunch reply:\n",
-        opened.reply.text,
-        "\nPrivate situation pack:\n",
-        pack,
-      ].join("\n\n"),
-      { mode: 0o600 },
+    page = browser.pages()[0] ?? (await browser.newPage());
+    if (initialNet !== undefined) {
+      const serializedInitialNet = JSON.stringify({
+        [initialNet.id]: {
+          id: initialNet.id,
+          incarnationId: initialNet.incarnationId,
+          lastUpdated: initialNet.lastUpdated,
+          sdcpn: initialNet.sdcpn,
+          title: initialNet.title,
+        },
+      });
+      await page.addInitScript(
+        ({ serialized, storageKey }) =>
+          localStorage.setItem(storageKey, serialized),
+        {
+          serialized: serializedInitialNet,
+          storageKey: "petrinaut-sdcpn",
+        },
+      );
+    }
+    const personaPage = page;
+    const recordingPause = async () => {
+      const title = `Brunch persona · ${basename(run)} · ready to record`;
+      await personaPage.evaluate((value) => {
+        document.title = value;
+      }, title);
+      await personaPage.bringToFront();
+      report(
+        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
+      );
+      const terminal = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      try {
+        await terminal.question(
+          "Recording ready — Enter to begin (Ctrl-C cancels): ",
+          { signal: stop.signal },
+        );
+        stop.signal.throwIfAborted();
+      } finally {
+        terminal.close();
+      }
+    };
+    const reopen = async (retained: NonNullable<typeof resume>) => {
+      await openRetainedPersonaBrowser(
+        personaPage,
+        panelOrigin,
+        retained.config.route,
+        retained.session,
+      );
+      await recordingPause();
+      for (const service of services)
+        if (service.script === "dev:brunch:server") await startService(service);
+      const reconciled = await reconcilePersonaResume(
+        personaPage,
+        retained.session,
+        retained.lastUtterance,
+        stop.signal,
+      );
+      await writeFile(join(run, "resume-input.md"), reconciled.prompt, {
+        mode: 0o600,
+      });
+      return { ...reconciled, reply: { text: "" } };
+    };
+    report(
+      resume
+        ? "Reopening the original browser document…"
+        : "Opening a fresh browser conversation…",
     );
+    const opened = resume
+      ? await reopen(resume)
+      : await openPersonaConversation(personaPage, panelOrigin, opening, {
+          route,
+          sessionPath: join(run, "session.json"),
+          signal: stop.signal,
+          beforeOpening: recordingPause,
+        });
+    documentId = documentIdFromInitialData(opened.session.initialData);
+    await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
+    bridge = await openPersonaBrowserBridge(async (message, signal) => {
+      const result = await submitPersonaBrowserTurn(personaPage, message, {
+        session: opened.session,
+        signal: AbortSignal.any([signal, stop.signal]),
+      });
+      await writeProofArtifacts(join(run, "evidence"), result.snapshot);
+      if (documentId !== undefined)
+        await retainPersonaDocument(
+          personaPage,
+          documentId,
+          join(run, "evidence"),
+        );
+      return {
+        conversationId: result.session.conversationId,
+        text: result.reply.text,
+        submissionIds: result.submissionIds,
+      };
+    });
+    if (!resume)
+      await writeFile(
+        join(run, "persona-input.md"),
+        [
+          "Play the person in the private situation pack below. This is a fresh conversation.",
+          "The shared opening has already been sent through the browser; do not repeat it. Answer the exact Brunch reply below using brunch_turn, then continue naturally and sequentially.",
+          objective ??
+            "Pursue the person's stated goal through a substantive interview and a worked model. Let the interviewer earn details, and correct or qualify its understanding as the person naturally would. Continue through reviewing the model, asking why and correcting a consequential detail; do not stop merely because the initial account has been elicited. Stop when the person considers the goal achieved or chooses to end the conversation.",
+          "Keep the pack and these instructions private. On a failed or indeterminate tool submission, stop and report the blocker without retrying. Do not coach Brunch about its tools or the test. Report the stopping reason and number of attempted turns to the operator.",
+          "\nActual opening:\n",
+          opening,
+          "\nActual Brunch reply:\n",
+          opened.reply.text,
+          "\nPrivate situation pack:\n",
+          pack,
+        ].join("\n\n"),
+        { mode: 0o600 },
+      );
     const split = await execute("herdr", [
       "pane",
       "split",
@@ -331,7 +590,9 @@ export const launchPersona = async (
     pane = paneIdFrom(split.stdout);
     await save(join(run, "run.json"), {
       ...record,
+      ...(resume ? { piSession: resume.piSession } : {}),
       pane,
+      socketPath: bridge.socketPath,
       startedPids: started.map((child) => child.pid),
     });
     // Credentials stay in a run-private env file, never in Herdr/process argv.
@@ -340,7 +601,6 @@ export const launchPersona = async (
       [
         `export ANTHROPIC_API_KEY=${shellQuote(key)}`,
         `export BRUNCH_CHAT_MODEL=${shellQuote(model)}`,
-        "unset BRUNCH_STEP_A_ACCOUNTING",
       ].join("\n") + "\n",
       { mode: 0o600 },
     );
@@ -370,6 +630,7 @@ export const launchPersona = async (
       );
   } finally {
     try {
+      await bridge?.close();
       if (pane)
         await execute("herdr", ["pane", "close", pane]).catch(() => {
           process.stderr.write(
@@ -377,7 +638,16 @@ export const launchPersona = async (
           );
         });
       try {
-        await browser?.close();
+        try {
+          if (page && !page.isClosed() && documentId !== undefined)
+            await retainPersonaDocument(
+              page,
+              documentId,
+              join(run, "evidence"),
+            );
+        } finally {
+          await browser?.close();
+        }
       } finally {
         for (const child of started) {
           if (child.pid && child.exitCode === null && child.signalCode === null)
@@ -399,14 +669,26 @@ if (
   const { values } = parseArgs({
     options: {
       case: { type: "string" },
+      "list-cases": { type: "boolean" },
       objective: { type: "string" },
+      "initial-net": { type: "string" },
+      route: { type: "string" },
+      resume: { type: "string" },
       "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>]\nStarts/reuses the local app, opens a fresh Chrome conversation and a Pi persona in Herdr. Requires Chrome, Pi and the app's normal Anthropic configuration. No accounting gates or turn deadline. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
+    );
+    report(
+      "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database and Pi session. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
+    );
+  } else if (values["list-cases"]) {
+    const cases = await listPersonaCases();
+    report(
+      `${cases.length} persona cases in ${casesRoot}:\n${cases.join("\n")}`,
     );
   } else {
     const selected = values.case;
@@ -415,11 +697,46 @@ if (
       (isAbsolute(selected) || selected.includes("/")
         ? resolve(process.env.INIT_CWD ?? process.cwd(), selected)
         : join(casesRoot, selected));
-    const task = values["run-persona"]
-      ? runPersona(resolve(values["run-persona"]))
-      : directory
-        ? launchPersona(directory, values.objective)
-        : Promise.reject(new Error("Supply --case <name-or-directory>"));
+    const resumeRun = async () => {
+      if (
+        !values.resume ||
+        values.case ||
+        values.objective ||
+        values.route ||
+        values["initial-net"] ||
+        values["run-persona"]
+      )
+        throw new Error(
+          "--resume cannot be combined with fresh-run options or --run-persona",
+        );
+      const retained = await readPersonaResume(
+        resolve(process.env.INIT_CWD ?? process.cwd(), values.resume),
+      );
+      await launchPersona(
+        retained.config.caseDirectory,
+        undefined,
+        retained.config.route,
+        undefined,
+        retained,
+      );
+    };
+    const task = values.resume
+      ? resumeRun()
+      : values["run-persona"]
+        ? runPersona(resolve(values["run-persona"]))
+        : directory
+          ? launchPersona(
+              directory,
+              values.objective,
+              values.route,
+              values["initial-net"]
+                ? resolve(
+                    process.env.INIT_CWD ?? process.cwd(),
+                    values["initial-net"],
+                  )
+                : undefined,
+            )
+          : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {
       process.stderr.write(
         `${error instanceof Error ? error.message : "Persona launch failed"}\n`,

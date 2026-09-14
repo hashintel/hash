@@ -37,22 +37,142 @@ describe("selected mutation batch", () => {
         },
       ]),
     ).toHaveLength(1);
-    expect(() =>
+    expect(
       selectedMutationBatchSchema.parse([
         {
-          operationId: "update",
+          operationId: "rename",
           type: "updatePlace",
           input: { placeId: "p1", update: { name: "Renamed" } },
         },
+        {
+          operationId: "code",
+          type: "updateTransition",
+          input: { transitionId: "t1", update: { lambdaCode: "return 1;" } },
+        },
+        {
+          operationId: "weight",
+          type: "updateArcWeight",
+          input: {
+            transitionId: "t1",
+            arcDirection: "input",
+            placeId: "p1",
+            weight: 2,
+          },
+        },
+        {
+          operationId: "arc-type",
+          type: "updateArcType",
+          input: { transitionId: "t1", placeId: "p1", type: "inhibitor" },
+        },
+        {
+          operationId: "type-name",
+          type: "updateType",
+          input: { typeId: "item", update: { name: "Lot" } },
+        },
+        {
+          operationId: "field",
+          type: "addTypeElement",
+          input: {
+            typeId: "item",
+            element: { elementId: "age", name: "age", type: "real" },
+          },
+        },
+        {
+          operationId: "field-name",
+          type: "updateTypeElement",
+          input: {
+            typeId: "item",
+            elementId: "age",
+            update: { name: "age_days" },
+          },
+        },
+        {
+          operationId: "parameter-name",
+          type: "updateParameter",
+          input: { parameterId: "rate", update: { variableName: "demand" } },
+        },
+        {
+          operationId: "drop-type",
+          type: "removeType",
+          input: { typeId: "item" },
+        },
+        {
+          operationId: "drop-field",
+          type: "removeTypeElement",
+          input: { typeId: "item", elementId: "age" },
+        },
+        {
+          operationId: "drop-parameter",
+          type: "removeParameter",
+          input: { parameterId: "rate" },
+        },
+        {
+          operationId: "drop-dynamics",
+          type: "removeDifferentialEquation",
+          input: { equationId: "decay" },
+        },
       ]),
-    ).toThrow();
-    for (const type of [
-      "addType",
-      "addDifferentialEquation",
-      "addParameter",
-      "addScenario",
-      "addMetric",
-    ] as const) {
+    ).toHaveLength(12);
+    for (const type of ["updatePlacePosition", "updateTransitionPosition"]) {
+      expect(() =>
+        selectedMutationBatchSchema.parse([
+          {
+            operationId: type,
+            type,
+            input: {
+              placeId: "p1",
+              transitionId: "t1",
+              position: { x: 0, y: 0 },
+            },
+          },
+        ]),
+      ).toThrow();
+    }
+    expect(
+      selectedMutationBatchSchema.parse([
+        {
+          operationId: "type",
+          type: "addType",
+          input: {
+            id: "item",
+            name: "Item",
+            iconSlug: "circle",
+            displayColor: "#1E90FF",
+            elements: [],
+          },
+        },
+        {
+          operationId: "parameter",
+          type: "addParameter",
+          input: {
+            id: "rate",
+            name: "Rate",
+            variableName: "arrival_rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        },
+        {
+          operationId: "dynamics",
+          type: "addDifferentialEquation",
+          input: {
+            id: "decay",
+            name: "Decay",
+            colorId: "item",
+            code: "return tokens.map(() => ({}));",
+          },
+        },
+        {
+          operationId: "repair-dynamics",
+          type: "updateDifferentialEquation",
+          input: {
+            equationId: "decay",
+            update: { code: "return tokens.map(() => ({}));" },
+          },
+        },
+      ]),
+    ).toHaveLength(4);
+    for (const type of ["addScenario", "addMetric"] as const) {
       expect(() =>
         selectedMutationBatchSchema.parse([
           {

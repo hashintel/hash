@@ -126,6 +126,7 @@ export const EditorView = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
+  titleEditable,
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
@@ -134,6 +135,7 @@ export const EditorView = ({
    */
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
+  titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
@@ -514,6 +516,7 @@ export const EditorView = ({
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
+        titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
         mode={effectiveMode}
         onModeChange={setGlobalMode}

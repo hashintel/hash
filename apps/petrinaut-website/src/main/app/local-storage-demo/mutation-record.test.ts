@@ -150,6 +150,57 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     ]);
     fixture.instance.dispose();
   });
+  test("records applyAutoLayout as its own observed pre/post hashes and position effects, and refuses hidden changes", async () => {
+    const fixture = setup();
+    const joined = createJoinedBrowserMutationRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      construction: true,
+    });
+    const call = {
+      toolName: "applyAutoLayout",
+      toolCallId: "layout-1",
+      input: { askUserFirst: false },
+    };
+    const pre = observeBrowserDefinition(fixture.handle);
+    joined.mapClientToolInput(call);
+    const { commitCount } = await fixture.instance.commands.applyAutoLayout();
+    expect(commitCount).toBeGreaterThan(0);
+    const output = { applied: true, title: `Moved ${commitCount} nodes` };
+    const metadata = joined.clientToolResultMetadata({ ...call, output });
+    const parsed = parseClientToolResultMetadata(metadata)?.layoutRecord;
+    expect(parsed).toBeDefined();
+    expect(parsed?.pre.sha256).toBe(pre.sha256);
+    expect(parsed?.post.sha256).toBe(
+      observeBrowserDefinition(fixture.handle).sha256,
+    );
+    expect(parsed?.post.sha256).not.toBe(pre.sha256);
+    const effects = parsed?.effects as { kind: string; path: string }[];
+    expect(effects.length).toBeGreaterThan(0);
+    for (const effect of effects) {
+      expect(effect.kind).toBe("updated");
+      expect(effect.path).toMatch(/^\/(places|transitions)\/\d+\/(x|y)$/u);
+    }
+    // Re-sending the same result reproduces the same record.
+    expect(joined.clientToolResultMetadata({ ...call, output })).toEqual(
+      metadata,
+    );
+    expect(() =>
+      joined.clientToolResultMetadata({
+        ...call,
+        toolCallId: "unknown",
+        output,
+      }),
+    ).toThrow(/issued browser layout/iu);
+    // A structural edit hiding behind a layout result is refused.
+    const hidden = { ...call, toolCallId: "layout-2" };
+    joined.mapClientToolInput(hidden);
+    fixture.execute();
+    expect(() =>
+      joined.clientToolResultMetadata({ ...hidden, output }),
+    ).toThrow(/more than positions/iu);
+    fixture.instance.dispose();
+  });
   test("keeps mutation raw-base refusal even for object-key-order-equivalent definitions", () => {
     const fixture = setup();
     const observed = observeBrowserDefinition(fixture.handle);
@@ -281,9 +332,13 @@ describe("browser transition adapter (canonical handle, not a real browser witne
 
   test("derives disjoint created, updated, deleted, derived sets from pre and post definitions", async () => {
     const fixture = setup();
+    const initialRevisionId = fixture.handle.revisionId.get();
     fixture.run();
     const attempt = fixture.recorder.records()[0]!.attempts[0]!;
     expect(attempt.outcome).toBe("applied");
+    expect(attempt.pre.revisionId).toBe(initialRevisionId);
+    expect(attempt.post?.revisionId).toBe(fixture.handle.revisionId.get());
+    expect(attempt.post?.revisionId).not.toBe(initialRevisionId);
     expect(attempt.effects).toEqual({
       created: [
         {
@@ -493,23 +548,29 @@ describe("browser transition adapter (canonical handle, not a real browser witne
         },
       ],
     };
-    await tool.execute({
+    const output = await tool.execute({
       input,
       mutations: fixture.instance.mutations,
       handle: fixture.handle,
       toolCallId: "batch-sidecar",
       signal: new AbortController().signal,
     });
+    const result = {
+      toolCallId: "batch-sidecar",
+      toolName: mutatePetrinetToolName,
+      output,
+    };
     const metadata = parseClientToolResultMetadata(
-      recorder.clientToolResultMetadata({
-        toolCallId: "batch-sidecar",
-        toolName: mutatePetrinetToolName,
-        output: { execution: "ordered-stop" },
-      }),
+      recorder.clientToolResultMetadata(result),
     );
     expect(metadata).toMatchObject({
       mutationRecord: { outcome: "applied" },
     });
+    // The reported final hash is final: a later change cannot hide behind it.
+    fixture.execute();
+    expect(() => recorder.clientToolResultMetadata(result)).toThrow(
+      /after the mutate_petrinaut_net result/iu,
+    );
     const attempt = metadata?.mutationRecord?.attempts[0];
     if (!attempt) throw new Error("Expected a retained batch attempt.");
     await expect(

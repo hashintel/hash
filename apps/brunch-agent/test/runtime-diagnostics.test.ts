@@ -33,7 +33,7 @@ const toolObservation = (
 ): FlueObservation => ({
   ...envelope,
   type: "tool",
-  toolName: "brunch_why",
+  toolName: "query_workpiece",
   toolCallId: "call-1",
   isError,
   durationMs: 12,
@@ -106,7 +106,7 @@ describe("runtime diagnostics observer", () => {
       submissionId: "submission-1",
       turnId: "turn-1",
       toolCallId: "call-1",
-      toolName: "brunch_why",
+      toolName: "query_workpiece",
       eventIndex: 7,
     });
     const error = meta.error as Record<string, unknown>;

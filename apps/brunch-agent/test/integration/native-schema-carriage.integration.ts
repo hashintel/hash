@@ -13,17 +13,28 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
+  validateToolArguments,
   type Context,
+  type Tool,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { joinedRootArcInputSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  batchedConstructionMode,
+  queryWorkpieceInputSchema,
+  joinedRootArcInputSchema,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+  parseConstructionWhyInput,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  conversationConstructionMode,
   validatedFixtureMutationMode,
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { ordinaryBrunchToolCatalogue } from "../../src/agents/chat-agent/tool-catalogue.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -34,6 +45,8 @@ import {
   nativeSchemaProvider,
   type NativeRequestCapture,
 } from "../native-schema-provider.ts";
+
+import type { RootArcExplanation } from "../../src/conversation/why.ts";
 
 let networkAttempts = 0;
 const forbidden = () => {
@@ -121,7 +134,7 @@ try {
         fauxAssistantMessage(
           [
             fauxToolCall(
-              "update_workpiece",
+              "mutate_workpiece",
               {
                 markdown:
                   "# Synthetic native validation controls\n\nNo operational testimony or construction claim.",
@@ -266,20 +279,210 @@ try {
       assert.equal(issuedType.state, "output-available");
       assert.deepEqual(issuedType.input, nested);
       assert.deepEqual(issuedType.output, { awaiting: "client" });
+
+      for (const mode of [
+        batchedConstructionMode,
+        conversationConstructionMode,
+      ]) {
+        const batchIdentity = {
+          ...identity,
+          conversationId: `${identity.conversationId}-${mode}`,
+        };
+        const batchClient = createFlueClient({
+          url: `http://brunch.local/agents/chat/${flueConversationIdFrom(batchIdentity)}`,
+          headers: agentOwnershipHeaders(batchIdentity),
+          fetch: async (input, init) =>
+            mounted.fetch(
+              input instanceof Request ? input : new Request(input, init),
+            ),
+        });
+        faux.setResponses([
+          fauxAssistantMessage(
+            [
+              fauxToolCall(
+                "query_workpiece",
+                { selector: { kind: "place", name: "Waiting" } },
+                { id: `${method}-${mode}-query` },
+              ),
+            ],
+            { stopReason: "toolUse" },
+          ),
+          fauxAssistantMessage([
+            fauxText("Synthetic batched schema carriage control."),
+          ]),
+        ]);
+        await batchClient.wait(
+          await batchClient.send({
+            initialData: {
+              mode,
+              construction: {
+                binding: {
+                  conversationId: batchIdentity.conversationId,
+                  documentId: "synthetic-document",
+                  incarnationId: "synthetic-incarnation",
+                },
+              },
+            },
+            message: {
+              kind: "user",
+              body: "Synthetic batched schema carriage control.",
+            },
+          }),
+        );
+        const batchHistory = await batchClient.history();
+        histories.push(batchHistory);
+        const query = batchHistory.messages
+          .flatMap((message) => message.parts)
+          .find(
+            (part) =>
+              part.type === "dynamic-tool" &&
+              part.toolCallId === `${method}-${mode}-query`,
+          );
+        assert(query?.type === "dynamic-tool");
+        assert.equal(
+          query.state,
+          "output-available",
+          "Nested selector must reach the mounted query executor",
+        );
+        const explanation = query.output as RootArcExplanation;
+        assert.equal(explanation.disposition, "refused");
+        assert.equal(
+          explanation.reason,
+          "Current workpiece state is unknown; history cannot replace it.",
+        );
+      }
     }
   }
   for (const method of ["stream", "streamSimple"] as const) {
     const requests = captures.filter((capture) => capture.method === method);
     assert(requests.length > 0);
-    for (const name of ["addArc", "addType"] as const) {
+    for (const request of requests) {
+      for (const tool of request.serialized.tools) {
+        assert(tool.input_schema && typeof tool.input_schema === "object");
+        for (const keyword of ["oneOf", "allOf", "anyOf"]) {
+          assert(
+            !(keyword in tool.input_schema),
+            `${tool.name}: Anthropic rejects top-level ${keyword} in input_schema`,
+          );
+        }
+      }
+    }
+    const ordinaryRequest = requests.find((request) =>
+      request.serialized.tools.some(
+        (tool) => tool.name === mutatePetrinetToolName,
+      ),
+    );
+    assert(ordinaryRequest, `${method} must carry ordinary Brunch tools`);
+    const mountedNames = ordinaryRequest.serialized.tools.map(
+      (tool) => tool.name,
+    );
+    assert.equal(
+      new Set(mountedNames).size,
+      mountedNames.length,
+      `${method} ordinary Brunch tools must have unique names`,
+    );
+    assert.deepEqual(
+      mountedNames,
+      ordinaryBrunchToolCatalogue.map(({ name }) => name),
+      `${method} ordinary Brunch tools must match the checked catalogue`,
+    );
+    const queryTool = ordinaryRequest.serialized.tools.find(
+      (tool) => tool.name === "query_workpiece",
+    );
+    assert(queryTool);
+    assert.deepEqual(
+      queryTool.input_schema,
+      queryWorkpieceInputSchema(true)["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    // Exercise the serialized schema, not just its source: a flattened bag of
+    // optional fields accepts the invalid controls even when the parser refuses.
+    for (const [input, accepted] of [
+      [{}, false],
+      [{ kind: "place" }, false],
+      [{ transition: "Process", place: "Waiting" }, false],
+      [{ kind: "type-element", name: "quantity" }, false],
+      [{ kind: "type", name: "Item", type: "WrongParent" }, false],
+      [{ kind: "place", name: "Waiting", place: "mixed" }, false],
+      [{ kind: "place", name: "Waiting" }, true],
+      [{ kind: "transition", name: "Process", field: "lambdaCode" }, true],
+      [
+        { transition: "Process", place: "Waiting", arcDirection: "input" },
+        true,
+      ],
+      [{ kind: "type-element", name: "quantity", type: "Item" }, true],
+      [{ kind: "parameter", name: "Rate", field: "defaultValue" }, true],
+      [
+        { kind: "scenario", name: "Baseline", field: "/initialState/content" },
+        true,
+      ],
+    ] as const) {
+      const validateSent = () => {
+        validateToolArguments(
+          {
+            name: queryTool.name,
+            description: "Captured query tool",
+            parameters: queryTool.input_schema as Tool["parameters"],
+          },
+          {
+            type: "toolCall",
+            id: "query-schema-control",
+            name: queryTool.name,
+            arguments: { selector: structuredClone(input) },
+          },
+        );
+      };
+      if (accepted) {
+        assert.doesNotThrow(validateSent);
+        assert.doesNotThrow(() => parseConstructionWhyInput(input));
+      } else {
+        assert.throws(validateSent);
+        assert.throws(() => parseConstructionWhyInput(input));
+      }
+    }
+    for (const arguments_ of [
+      {},
+      { kind: "place", name: "Waiting" },
+      { selector: { kind: "place", name: "Waiting" }, name: "outside" },
+    ]) {
+      assert.throws(() =>
+        validateToolArguments(
+          {
+            name: queryTool.name,
+            description: "Captured query tool",
+            parameters: queryTool.input_schema as Tool["parameters"],
+          },
+          {
+            type: "toolCall",
+            id: "query-envelope-control",
+            name: queryTool.name,
+            arguments: arguments_,
+          },
+        ),
+      );
+    }
+    for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
       const expected = (
         name === "addArc"
           ? joinedRootArcInputSchema
-          : petrinautAiTools.addType.inputSchema
+          : name === "addType"
+            ? petrinautAiTools.addType.inputSchema
+            : mutatePetrinetInputSchema
       )["~standard"].jsonSchema.input({ target: "draft-2020-12" });
-      const tools = requests.flatMap((request) =>
-        request.serialized.tools.filter((tool) => tool.name === name),
-      );
+      // The candidate has observation-bearing wrappers for addArc/addType;
+      // nativeSchemaProvider checks those against their actual mounted source.
+      const tools = requests
+        .filter(
+          (request) =>
+            name === mutatePetrinetToolName ||
+            !request.serialized.tools.some(
+              (tool) => tool.name === "read_petrinaut_net",
+            ),
+        )
+        .flatMap((request) =>
+          request.serialized.tools.filter((tool) => tool.name === name),
+        );
       assert(tools.length > 0);
       // Headless mode also mounts its unchanged legacy addArc; inspect native joined arcs only.
       const nativeTools = tools.filter(

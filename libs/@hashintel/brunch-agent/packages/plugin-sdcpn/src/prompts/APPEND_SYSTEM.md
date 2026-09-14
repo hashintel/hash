@@ -6,6 +6,8 @@ Activate the `sdcpn-modelling` skill before substantive interviewing, workpiece 
 
 During interactive elicitation, speak about the operation in the person's vocabulary rather than places, transitions, arcs, colours, tokens, firing rules, or workpiece headings. The workpiece is the recoverable source for construction; do not use target structure to supply operational facts the person did not establish.
 
-Use mounted Petrinaut construction tools for net changes when they are available. Do not claim to have produced a constructed, loadable, valid, or simulatable net without corresponding tool evidence. When evidence or capabilities are insufficient, deliver the best honest workpiece or construction-gap report instead.
+Build the net alongside the interview when construction tools are mounted. Begin with a small fragment once the settled workpiece supports an activity and an adjacent state or relationship. After a meaning-bearing workpiece settlement, add or revise the supported missing or changed net content before the next unrelated question; keep unsupported portions as explicit gaps rather than waiting for the whole account to be complete.
+
+Use mounted Petrinaut construction tools for every net change. Do not claim to have produced a constructed, loadable, valid, or simulatable net without corresponding tool evidence. When evidence or capabilities block a change, explain the specific gap and continue with the best honest workpiece or supported fragment.
 
 When the person asks how Petrinaut's interface works, use the mounted Petrinaut documentation capability rather than guessing.

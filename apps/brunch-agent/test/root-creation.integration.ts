@@ -129,17 +129,13 @@ const browserResult = (context: Context, name: string): BrowserResult =>
   );
 let basis: Record<string, unknown> | undefined;
 const settle = (markdown: string, id: string) => [
-  tool("update_workpiece", { markdown }, id),
+  tool("mutate_workpiece", { markdown }, id),
   checked((context) => {
-    assert.equal(toolOutput(context, "update_workpiece").revisionId, id);
-    return tool(
-      "brunch_workpiece",
-      { locateTexts: [markdown] },
-      `${id}-locate`,
-    );
+    assert.equal(toolOutput(context, "mutate_workpiece").revisionId, id);
+    return tool("read_workpiece", { locateTexts: [markdown] }, `${id}-locate`);
   }),
   checked((context) => {
-    const result = toolOutput(context, "brunch_workpiece");
+    const result = toolOutput(context, "read_workpiece");
     const current = result.currentWorkpiece as {
       revisionId: string;
       sha256: string;
@@ -369,21 +365,23 @@ try {
     afterMutation("updateTransition", "creation-read-correction"),
     checked((context) =>
       tool(
-        "brunch_why",
+        "query_workpiece",
         {
-          kind: "place",
-          name: queue.name,
-          field: "capacity",
-          observationToolCallId: browserResult(
-            context,
-            "getLatestNetDefinition",
-          ).metadata!.observation!.toolCallId,
+          selector: {
+            kind: "place",
+            name: queue.name,
+            field: "capacity",
+            observationToolCallId: browserResult(
+              context,
+              "getLatestNetDefinition",
+            ).metadata!.observation!.toolCallId,
+          },
         },
         "creation-why-capacity",
       ),
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-queue");
@@ -396,13 +394,19 @@ try {
         "creation-revision-two",
       );
       return tool(
-        "brunch_why",
-        { kind: "transition", name: step.name, field: "lambdaCode" },
+        "query_workpiece",
+        {
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "lambdaCode",
+          },
+        },
         "creation-why-pause",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-step");
@@ -411,25 +415,27 @@ try {
         "creation-pause",
       );
       return tool(
-        "brunch_why",
-        { kind: "place", name: queue.name, field: "entity" },
+        "query_workpiece",
+        { selector: { kind: "place", name: queue.name, field: "entity" } },
         "creation-why-entity",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.originToolCallId, "creation-queue");
       assert.equal(answer.disposition, "refused");
       assert.equal(answer.governing, undefined);
       return tool(
-        "brunch_why",
-        { kind: "transition", name: step.name, field: "inputArcs" },
+        "query_workpiece",
+        {
+          selector: { kind: "transition", name: step.name, field: "inputArcs" },
+        },
         "creation-why-input-arcs",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /aggregate.*descendant/iu);
@@ -437,13 +443,19 @@ try {
       assert.equal(answer.governing, undefined);
       assert.equal(answer.recordedChange, undefined);
       return tool(
-        "brunch_why",
-        { kind: "transition", name: step.name, field: "outputArcs" },
+        "query_workpiece",
+        {
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "outputArcs",
+          },
+        },
         "creation-why-output-arcs",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       answers.push(answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /aggregate.*descendant/iu);
@@ -540,7 +552,7 @@ try {
       [
         fauxToolCall("addPlace", queue, { id: "creation-mixed-place" }),
         fauxToolCall(
-          "update_workpiece",
+          "mutate_workpiece",
           { markdown: "TEST forbidden sibling" },
           { id: "creation-mixed-revision" },
         ),
@@ -746,18 +758,20 @@ try {
       assert(observation);
       reopenedObservationId = observation.toolCallId;
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
-          kind: "place",
-          name: queue.name,
-          field: "capacity",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            kind: "place",
+            name: queue.name,
+            field: "capacity",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "creation-reopened-capacity-why",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       reopenedAnswers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-queue");
@@ -782,18 +796,20 @@ try {
         ),
       );
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
-          kind: "transition",
-          name: step.name,
-          field: "lambdaCode",
-          observationToolCallId: reopenedObservationId,
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "lambdaCode",
+            observationToolCallId: reopenedObservationId,
+          },
         },
         "creation-reopened-code-why",
       );
     }),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       reopenedAnswers.push(answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "creation-step");
@@ -902,17 +918,19 @@ try {
   );
   faux.setResponses([
     tool(
-      "brunch_why",
+      "query_workpiece",
       {
-        kind: "place",
-        name: queue.name,
-        field: "capacity",
-        observationToolCallId: envelope?.observationToolCallId,
+        selector: {
+          kind: "place",
+          name: queue.name,
+          field: "capacity",
+          observationToolCallId: envelope?.observationToolCallId,
+        },
       },
       "creation-external-why",
     ),
     checked((context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("external-why", answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/);

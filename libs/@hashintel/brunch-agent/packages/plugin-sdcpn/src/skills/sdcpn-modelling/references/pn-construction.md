@@ -6,9 +6,9 @@ Construction translates recorded operational meaning into SDCPN structure. It ma
 
 ## Construction boundary
 
-Before constructing, confirm that the workpiece states what the model must support and contains a usable process spine: what flows, what admits it, what happens and in what order, what changes the path, what resources are occupied, and what outcome ends or hands off the case.
+Before constructing a fragment, confirm that the workpiece states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
 
-If materially different nets remain possible because one operational distinction is missing, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path.
+If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
@@ -30,14 +30,62 @@ A physical location becomes target structure only through its recorded operation
 
 ## Petrinaut tool sequence
 
-When the corresponding tools are mounted:
+When `mutate_petrinaut_net` is mounted, names such as `addPlace` and `addArc` are operation types inside that tool's `operations` array, not separate tools. Use this sequence, waiting for each proposal's results before the next:
 
-1. Call `getLatestNetDefinition` before changing the net.
-2. Add only workpiece-supported token types and tunable parameters with `addType` and `addParameter`.
-3. Add places and transitions with `addPlace` and `addTransition`; establish stable identifiers before connecting them.
-4. Add connections with `addArc`. Arc weights are positive token multiplicities, not switches for mutually exclusive modes.
-5. Re-inspect with `getLatestNetDefinition` after each dependent stage and at the end.
-6. Correct rejected calls in the same conversation or state why construction remains partial.
+1. Settle the supported account with `mutate_workpiece`. Use `read_workpiece` with `locateTexts` and no candidate Markdown to obtain the settled revision/hash and relevant passage spans. Complete required skill-resource reads here, before browser tools.
+2. Call only `read_petrinaut_net`. Copy `metadata.observation.toolCallId` and `metadata.observation.observed.sha256` into the next batch's `observation`. Inspect `extensions` before authoring extension-specific content.
+3. Call only `mutate_petrinaut_net` with a bounded, ordered chunk for the next supported connected fragment. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Each operation has its own `operationId` and references an entry in `bases` by `basisId`. Several operations may share one supported basis.
+4. After code or code-dependency changes, call only `read_petrinaut_diagnostics`. Repeat a pending read until settled; repair reported errors from a fresh net observation. Structural acceptance is not compiler success.
+5. After adding or restructuring nodes, call only `layout_petrinaut_net` once diagnostics are settled. Use `askUserFirst: false` only if this conversation built the net from an empty canvas; otherwise request confirmation. Type/parameter/dynamics-only changes do not need layout.
+6. Read the net again before another mutation or a live explanation, and at delivery. A failed batch may have committed a prefix: inspect its outcomes and the current net, then submit only the needed repair and unattempted work against the new observation. Do not replay the whole batch.
+
+If a different runtime mounts individual mutation tools instead, use those exact mounted schemas with the same dependency ordering and available checks. Do not translate the batch envelope into invented tool names.
+
+### Minimal batch example
+
+Illustrative values only: suppose the settled account says “Items wait until processing consumes them.” `read_workpiece` returned revision `workpiece-1`, hash `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`, and span `[0,42)`. A subsequent browser read returned call `net-read-1` and hash `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`. The flat batch shape is:
+
+```json
+{
+  "observation": {
+    "toolCallId": "net-read-1",
+    "baseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "bases": [{
+    "basisId": "waiting",
+    "basis": {
+      "kind": "declared",
+      "revisionId": "workpiece-1",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locators": [{ "start": 0, "end": 42 }],
+      "rationale": "Represent the recorded waiting state and its processing handoff.",
+      "scope": "operation"
+    }
+  }],
+  "operations": [
+    {
+      "operationId": "waiting-place", "basisId": "waiting", "type": "addPlace",
+      "input": { "id": "waiting", "name": "Waiting", "colorId": null, "dynamicsEnabled": false, "differentialEquationId": null, "x": 0, "y": 0 }
+    },
+    {
+      "operationId": "processing-transition", "basisId": "waiting", "type": "addTransition",
+      "input": { "id": "process", "name": "Process", "inputArcs": [], "outputArcs": [], "lambdaType": "predicate", "lambdaCode": "", "transitionKernelCode": "", "x": 200, "y": 0 }
+    },
+    {
+      "operationId": "waiting-input", "basisId": "waiting", "type": "addArc",
+      "input": { "transitionId": "process", "arcDirection": "input", "placeId": "waiting", "weight": 1, "type": "standard" }
+    }
+  ]
+}
+```
+
+Use actual returned IDs, hashes and locators in live calls, and an account that supports every operation; this shape example supplies no operational evidence or initial marking.
+
+### Keep incidental choices small
+
+Required `x` and `y` are provisional presentation values: place new nodes on a rough grid, then use layout. For a new type, `iconSlug: "circle"` and a simple CSS `displayColor` are sufficient visual choices. These choices carry no operational meaning. Optional metadata, visualizers and port fields are unnecessary for a simple root-net chunk; use them only when the task needs their capability. Existing component endpoints must be observed, not invented.
+
+For separately wired transitions, start with empty `inputArcs` and `outputArcs`, then use `addArc` operations. Uncoloured places use `colorId: null`; disabled dynamics use `dynamicsEnabled: false` and `differentialEquationId: null`. Keep code strings empty only where their schema permits the built-in behaviour; coloured outputs or a meaningful guard/rate require the corresponding code. Arc weights are token multiplicities, never branch probabilities.
 
 The mounted schemas, not this prose, govern exact payload fields.
 

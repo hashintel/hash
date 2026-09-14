@@ -16,6 +16,12 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import {
+  BRUNCH_CONVERSATION_HEADER,
+  BRUNCH_DOCUMENT_REVISION_HEADER,
+  BRUNCH_PRINCIPAL_HEADER,
+} from "@hashintel/brunch-agent-transport-aisdk/headers";
+
 import { ChatAgent } from "../../src/agents/chat-agent/agent";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application";
 
@@ -76,8 +82,10 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
     expect(bundle).toContain(`config.kind === "postgres"`);
     expect(bundle).toContain(
-      `postgres(createPostgresRunner(config, shutdownBrunchTelemetry))`,
+      `createPostgresRunner(config, shutdownBrunchTelemetry)`,
     );
+    expect(bundle).toContain(`createPostgresWorkedModelStore(runner)`);
+    expect(bundle).toContain(`postgres(runner)`);
     expect(bundle).toContain("Postgres database configuration requires");
     expect(bundle).toContain(
       String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,
@@ -102,49 +110,84 @@ describe("the emitted server bundle", () => {
 
   test("applies route-scoped CORS before ownership", async () => {
     const application = await loadBuiltBrunchApplication();
-    const [preflight, guardedResponse, bareOptions, healthResponse] =
-      await Promise.all([
-        application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
+    const [
+      preflight,
+      workedModelPutPreflight,
+      guardedResponse,
+      bareOptions,
+      healthResponse,
+    ] = await Promise.all([
+      application.fetch(
+        new Request("http://brunch.test/agents/chat/conversation", {
+          method: "OPTIONS",
+          headers: {
+            Origin: allowedCorsOrigin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": [
+              "content-type",
+              BRUNCH_PRINCIPAL_HEADER,
+              BRUNCH_CONVERSATION_HEADER,
+              BRUNCH_DOCUMENT_REVISION_HEADER,
+            ].join(","),
+          },
+        }),
+      ),
+      application.fetch(
+        new Request(
+          "http://brunch.test/api/worked-models/copies/copy-1/definition",
+          {
             method: "OPTIONS",
             headers: {
               Origin: allowedCorsOrigin,
-              "Access-Control-Request-Method": "POST",
-              "Access-Control-Request-Headers":
-                "content-type,x-brunch-principal,x-brunch-conversation",
+              "Access-Control-Request-Method": "PUT",
+              "Access-Control-Request-Headers": `content-type,${BRUNCH_PRINCIPAL_HEADER}`,
             },
-          }),
+          },
         ),
-        application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
-            headers: { Origin: allowedCorsOrigin },
-          }),
-        ),
-        application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
-            method: "OPTIONS",
-          }),
-        ),
-        application.fetch(
-          new Request("http://brunch.test/health", {
-            headers: { Origin: allowedCorsOrigin },
-          }),
-        ),
-      ]);
+      ),
+      application.fetch(
+        new Request("http://brunch.test/agents/chat/conversation", {
+          headers: { Origin: allowedCorsOrigin },
+        }),
+      ),
+      application.fetch(
+        new Request("http://brunch.test/agents/chat/conversation", {
+          method: "OPTIONS",
+        }),
+      ),
+      application.fetch(
+        new Request("http://brunch.test/health", {
+          headers: { Origin: allowedCorsOrigin },
+        }),
+      ),
+    ]);
 
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-origin")).toBe(
       allowedCorsOrigin,
     );
     expect(preflight.headers.get("access-control-allow-methods")).toBe(
-      "GET,POST,OPTIONS",
+      "GET,POST,PUT,OPTIONS",
     );
     expect(preflight.headers.get("access-control-allow-headers")).toBe(
-      "Content-Type,x-brunch-principal,x-brunch-conversation",
+      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
     );
     expect(
       preflight.headers.get("access-control-allow-credentials"),
     ).toBeNull();
+
+    expect(workedModelPutPreflight.status).toBe(204);
+    expect(
+      workedModelPutPreflight.headers.get("access-control-allow-origin"),
+    ).toBe(allowedCorsOrigin);
+    expect(
+      workedModelPutPreflight.headers.get("access-control-allow-methods"),
+    ).toBe("GET,POST,PUT,OPTIONS");
+    expect(
+      workedModelPutPreflight.headers.get("access-control-allow-headers"),
+    ).toBe(
+      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+    );
 
     expect(guardedResponse.status).toBe(401);
     expect(guardedResponse.headers.get("access-control-allow-origin")).toBe(

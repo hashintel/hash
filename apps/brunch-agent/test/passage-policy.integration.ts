@@ -227,7 +227,7 @@ const seed = async (current: Session, markdown = base) => {
   let sourceId = "";
   setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { markdown, locateTexts: [quote, narrow, tail, markdown] },
       `${prefix}-candidate`,
     ),
@@ -259,13 +259,13 @@ const seed = async (current: Session, markdown = base) => {
         { locator: spanFrom(candidate, tail), messageIds: [], kind: "default" },
       ];
       return call(
-        "update_workpiece",
+        "mutate_workpiece",
         { markdown, evidence: relations },
         `${prefix}-revision`,
       );
     },
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: [quote, narrow, tail, markdown] },
       `${prefix}-read`,
     ),
@@ -308,7 +308,7 @@ const edit = async (
   let evidence: WorkpieceEvidenceRelation[] | undefined;
   setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { markdown, locateTexts: queries },
       `${prefix}-candidate`,
     ),
@@ -322,12 +322,12 @@ const edit = async (
       );
       evidence = declaration?.(candidate);
       return call(
-        "update_workpiece",
+        "mutate_workpiece",
         { markdown, ...(evidence === undefined ? {} : { evidence }) },
         `${prefix}-revision`,
       );
     },
-    call("brunch_workpiece", { locateTexts: queries }, `${prefix}-read`),
+    call("read_workpiece", { locateTexts: queries }, `${prefix}-read`),
     (context) => {
       actual = modelOutput(context, `${prefix}-read`);
       checkLookup(actual, markdown, `${prefix}-revision`);
@@ -527,7 +527,7 @@ try {
   const prefix = `override-${++serial}`;
   let overlapResult: ReadResult | undefined;
   setResponses([
-    call("brunch_workpiece", { locateTexts: [narrow] }, `${prefix}-lookup`),
+    call("read_workpiece", { locateTexts: [narrow] }, `${prefix}-lookup`),
     (context) => {
       const read = modelOutput(context, `${prefix}-lookup`);
       checkLookup(read, base, overlapSeed.revision.revisionId);
@@ -537,16 +537,12 @@ try {
         messageIds: [overlapSeed.sourceId],
       };
       return call(
-        "update_workpiece",
+        "mutate_workpiece",
         { markdown: base, evidence: [explicit] },
         `${prefix}-revision`,
       );
     },
-    call(
-      "brunch_workpiece",
-      { locateTexts: [quote, narrow] },
-      `${prefix}-read`,
-    ),
+    call("read_workpiece", { locateTexts: [quote, narrow] }, `${prefix}-read`),
     (context) => {
       overlapResult = modelOutput(context, `${prefix}-read`);
       assert.deepEqual(overlapResult.currentWorkpiece?.evidence, [
@@ -614,8 +610,8 @@ try {
     const id = `negative-${++serial}`;
     let read: ReadResult | undefined;
     setResponses([
-      call("update_workpiece", { markdown: base, evidence }, id),
-      call("brunch_workpiece", { locateTexts: [quote] }, `${id}-read`),
+      call("mutate_workpiece", { markdown: base, evidence }, id),
+      call("read_workpiece", { locateTexts: [quote] }, `${id}-read`),
       (context) => {
         read = modelOutput(context, `${id}-read`);
         assert.deepEqual(read.currentWorkpiece, negativeSeed.revision);
@@ -636,7 +632,7 @@ try {
   // The read operation does not select arbitrary revisions or accept old lookup identities.
   setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { revisionId: "TEST-wrong-revision", locateTexts: [quote] },
       "wrong-revision-read",
     ),
@@ -674,7 +670,7 @@ try {
 
   // Mechanically valid does NOT mean scoped to the candidate lookup or semantically relevant.
   // Use a real OLD product span on different current text, explicitly declared. This is a
-  // counterexample to any claim that update_workpiece authenticates a locator's source hash.
+  // counterexample to any claim that mutate_workpiece authenticates a locator's source hash.
   const scope = session("stale-explicit-control");
   const scopeSeed = await seed(scope);
   const staleRelation = scopeSeed.relations[0];
@@ -709,7 +705,7 @@ try {
   let reopened: ReadResult | undefined;
   setResponses([
     call(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: [quote] },
       "reopened-negative-current",
     ),

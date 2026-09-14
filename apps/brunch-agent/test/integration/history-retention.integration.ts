@@ -14,6 +14,7 @@ import { observe } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { projectFlueHistoryForSweep } from "@hashintel/brunch-agent-binding-flue";
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolHistoryFrom,
   snapshotToUiMessages,
@@ -348,7 +349,7 @@ const tools = (name: string, input: Record<string, unknown>, id: string) =>
   });
 const project = (snapshot: FlueConversationSnapshot) =>
   snapshotToUiMessages(snapshot, {
-    clientToolNames: new Set(["readPetrinautDoc"]),
+    clientToolNames: new Set([READ_PETRINAUT_DOCS_TOOL_NAME]),
     hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   });
 const status = async (operation: () => Promise<unknown>) => {
@@ -410,7 +411,7 @@ const completeClientTool = async (toolCallId: string, output: string) =>
     tagName: CLIENT_TOOL_RESULT_SIGNAL,
     attributes: { toolCallIds: toolCallId },
     body: JSON.stringify([
-      { toolCallId, toolName: "readPetrinautDoc", output },
+      { toolCallId, toolName: READ_PETRINAUT_DOCS_TOOL_NAME, output },
     ]),
   });
 
@@ -435,7 +436,11 @@ try {
         { question: "Which synthetic record follows?" },
         "a4-question",
       ),
-      tools("readPetrinautDoc", { doc: "ai-assistant" }, "a4-doc-early"),
+      tools(
+        READ_PETRINAUT_DOCS_TOOL_NAME,
+        { doc: "ai-assistant" },
+        "a4-doc-early",
+      ),
       fauxAssistantMessage(
         "Which synthetic record follows? A4 first controlled continuation.",
       ),
@@ -474,7 +479,11 @@ try {
       admission.uid,
     );
     responses.push(
-      tools("readPetrinautDoc", { doc: "ai-assistant" }, "a4-doc-late"),
+      tools(
+        READ_PETRINAUT_DOCS_TOOL_NAME,
+        { doc: "ai-assistant" },
+        "a4-doc-late",
+      ),
       fauxAssistantMessage("A4 second controlled continuation."),
     );
     await send(

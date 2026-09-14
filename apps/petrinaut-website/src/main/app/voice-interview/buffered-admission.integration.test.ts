@@ -63,7 +63,9 @@ test("buffered production output remains silent until approved; marker and ordin
     canonicalSegments: pending.segments,
     status: "streaming",
   });
-  expect(pending.segments).toEqual([]);
+  expect(pending.segments.map((segment) => segment.text)).toEqual([
+    sample.text,
+  ]);
   expect(speakCanonical).not.toHaveBeenCalled();
   const completed = speechFrom(sample.projectedAfter);
   expect(completed.questionSegment?.text).toBe(result.question);

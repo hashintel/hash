@@ -18,7 +18,10 @@ import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { afterEach, expect, test } from "vitest";
 
 import { createStepARequestAccounting } from "../src/provider-accounting.ts";
-import { RequestLedger } from "../src/provider-accounting/request-ledger.ts";
+import {
+  initializeRequestLedger,
+  RequestLedger,
+} from "../src/provider-accounting/request-ledger.ts";
 import { withBufferedToolAdmission } from "../src/provider-admission.ts";
 
 const native: Provider = anthropicProvider();
@@ -240,6 +243,7 @@ test("completed native usage survives cancellation after approval without publis
 
 test("no opt-in means no instrument, invalid configuration fails without printing input", () => {
   expect(createStepARequestAccounting(undefined)).toBeUndefined();
+  expect(createStepARequestAccounting("")).toBeUndefined();
   expect(() => createStepARequestAccounting("SECRET-invalid")).toThrow(
     "Invalid Step A accounting configuration.",
   );
@@ -546,6 +550,76 @@ const piIdentity = {
   sessionId: "TEST-pi-session",
   requestId: "TEST-pi-request",
 };
+
+test("fresh persona allocation is shared across participants and cannot be reset", () => {
+  const directory = mkdtempSync(join(tmpdir(), "TEST-persona-allocation-"));
+  directories.push(directory);
+  const path = join(directory, "usage-ledger.json");
+  for (const usd of [NaN, 100.001, 7.9199])
+    expect(() => initializeRequestLedger(path, "TEST-run", usd, model)).toThrow(
+      /Persona allocation/,
+    );
+  // Native Sonnet: 1M input at the 1h-cache ceiling $6/M + 128K output at $15/M.
+  // Enough for two 0.00045 settlements, but not a third full $7.92 hold.
+  initializeRequestLedger(path, "TEST-run", 7.9207, model);
+  const createLedger = () =>
+    new RequestLedger(path, join(directory, "attempt-ledger.md"), "TEST-run");
+  for (const identity of [
+    piIdentity,
+    {
+      instanceId: "TEST-instance",
+      conversationId: "TEST-conversation",
+      submissionId: "TEST-submission",
+      operationId: "TEST-operation",
+      turnId: "TEST-turn",
+    },
+  ]) {
+    const attempt = createLedger().prepare(identity, model);
+    attempt.started();
+    attempt.dispatched();
+    attempt.terminal(complete);
+  }
+  const before = readFileSync(path, "utf8");
+  expect(JSON.parse(before)).toMatchObject({
+    totals: { spentCalls: 2, spentUsd: 0.0009, outstandingReservedUsd: 0 },
+  });
+  expect(() =>
+    createLedger().prepare({ ...piIdentity, requestId: "TEST-third" }, model),
+  ).toThrow(/accounting refused/);
+  expect(() => initializeRequestLedger(path, "TEST-reset", 100, model)).toThrow(
+    /EEXIST/,
+  );
+  expect(readFileSync(path, "utf8")).toBe(before);
+});
+
+test("explicit unknown acceptance retains the call and its hold without resetting the allocation", async () => {
+  const fixture = setup();
+  fixture.respond({ ...complete, stopReason: "error" });
+  await fixture.run(async () => {
+    await fixture.metered
+      .streamSimple(model, { messages: [] }, fixture.options)
+      .result();
+  });
+  const before = fixture.read();
+  const ledger = new RequestLedger(
+    fixture.ledgerPath,
+    join(fixture.directory, "attempt-ledger.md"),
+    "TEST-run",
+  );
+  ledger.acceptUnknown(1);
+  const accepted = fixture.read();
+  expect(accepted.calls).toEqual(before.calls);
+  expect(accepted.totals).toEqual(before.totals);
+  expect(accepted.reservation).toEqual({
+    ...before.reservation,
+    acceptedUnknownSequences: [1],
+  });
+  const next = ledger.prepare(piIdentity, model);
+  expect(fixture.read().totals.outstandingReservedUsd).toBe(14);
+  next.notStarted();
+  expect(() => ledger.acceptUnknown(3)).toThrow(/accounting refused/);
+  expect(fixture.read().calls[0]).toEqual(before.calls[0]);
+});
 
 for (const sameRun of [false, true]) {
   for (const ceiling of ["global", "run"] as const) {

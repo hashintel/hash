@@ -4,7 +4,7 @@ import {
   isCrewReservationFixtureSelected,
   localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
-  withBrunchFixtureKey,
+  withLocalStorageDemoIdentity,
 } from "./local-storage-demo-search";
 import { crewReservationFixtureId } from "./prepared-crew-reservation-fixture";
 
@@ -23,8 +23,10 @@ describe("local storage demo search", () => {
       }),
     ).toBe("root-arc-tracer");
     expect(
-      withBrunchFixtureKey(search, { itemType: "arc", itemId: "arc" })
-        .brunchTracer,
+      withLocalStorageDemoIdentity(search, {
+        itemType: "arc",
+        itemId: "arc",
+      }).brunchTracer,
     ).toBe("construction");
     expect(isCrewReservationFixtureSelected(search)).toBe(false);
   });
@@ -45,7 +47,7 @@ describe("local storage demo search", () => {
 
   test("carries the fixture key across a shared-contract write", () => {
     expect(
-      withBrunchFixtureKey(
+      withLocalStorageDemoIdentity(
         { "brunch-fixture": crewReservationFixtureId, subnet: "subnet-1" },
         { itemType: "place", itemId: "place-1" },
       ),
@@ -74,6 +76,55 @@ describe("local storage demo search", () => {
     });
     expect(search.scenario).toBe("inventory-purchasing");
     expect(localStorageDemoRouteIdentity(search)).toBe("ordinary");
+  });
+
+  test("treats bundle as a distinct validated worked-model route identity", () => {
+    const search = validateLocalStorageDemoSearch({
+      bundle: "inventory-purchasing",
+    });
+    expect(search.bundle).toBe("inventory-purchasing");
+    expect(localStorageDemoRouteIdentity(search)).toBe("worked-model-bundle");
+    expect(
+      withLocalStorageDemoIdentity(search, {
+        itemType: "place",
+        itemId: "on-hand",
+      }),
+    ).toMatchObject({
+      bundle: "inventory-purchasing",
+      itemType: "place",
+      itemId: "on-hand",
+    });
+    expect(
+      validateLocalStorageDemoSearch({ bundle: "Inventory_Purchasing" }).bundle,
+    ).toBeUndefined();
+  });
+
+  test("selects a valid bundle over leftover fixture or tracer parameters", () => {
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        brunchTracer: "construction",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        brunchTracer: "root-creation",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        "brunch-fixture": crewReservationFixtureId,
+        brunchTracer: "root-arc",
+      }),
+    ).toBe("worked-model-bundle");
+    expect(
+      localStorageDemoRouteIdentity({
+        bundle: "inventory-purchasing",
+        "brunch-fixture": crewReservationFixtureId,
+      }),
+    ).toBe("worked-model-bundle");
   });
 
   test("selects only the explicit stable fixture value", () => {
