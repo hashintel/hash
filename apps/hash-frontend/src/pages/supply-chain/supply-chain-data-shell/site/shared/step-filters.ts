@@ -836,6 +836,32 @@ export const applyStepFilters = <Row extends FilterableStepRow>(
  * that define a `vendor` predicate apply; every other active filter is
  * skipped and reported.
  */
+/**
+ * Filter keys a view offers in its add-filter menu: those at least one of the
+ * view's rows carries the property for. An empty view restricts nothing
+ * (mirroring apply's empty-table behaviour). Pass the view's full row set,
+ * not its filtered rows, so one active filter cannot hide the others.
+ */
+export const applicableFilterKeys = (
+  rows: FilterableStepRow[],
+  context: StepFilterContext,
+): Set<StepFilterKey> =>
+  new Set(
+    STEP_FILTER_DEFINITIONS.filter(
+      (definition) =>
+        rows.length === 0 ||
+        rows.some((row) => definition.isApplicable(row, context)),
+    ).map((definition) => definition.key),
+  );
+
+/** Supplier-table variant: only filters with a `vendor` predicate apply. */
+export const vendorApplicableFilterKeys = (): Set<StepFilterKey> =>
+  new Set(
+    [...definitionByKey.values()]
+      .filter((definition) => definition.vendor)
+      .map((definition) => definition.key as StepFilterKey),
+  );
+
 export const applyVendorStepFilters = (
   vendors: VendorOtifStats[],
   filters: ActiveStepFilter[],
