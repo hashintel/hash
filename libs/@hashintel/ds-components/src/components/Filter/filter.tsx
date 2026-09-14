@@ -26,6 +26,7 @@ import {
   type FilterValue,
   type InputFor,
   abandonedFadeStyle,
+  focusWithoutRing,
   type AbandonmentPhase,
   createAbandonmentController,
   isAbandonable,
@@ -322,11 +323,12 @@ export const Filter = <
         if (root.contains(document.activeElement)) {
           return;
         }
-        root
-          .querySelector<HTMLElement>(
-            'button:enabled:not([data-part="remove"]), input:enabled',
-          )
-          ?.focus();
+        const segment = root.querySelector<HTMLElement>(
+          'button:enabled:not([data-part="remove"]), input:enabled',
+        );
+        if (segment) {
+          focusWithoutRing(root, segment);
+        }
       });
     });
   }, []);

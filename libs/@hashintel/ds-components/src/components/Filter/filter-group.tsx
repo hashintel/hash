@@ -9,6 +9,7 @@ import {
   clearFiltersButton,
   styles,
 } from "./filter-group.recipe";
+import { focusWithoutRing } from "./filter-util";
 
 import type { DistributedOmit } from "type-fest";
 
@@ -131,7 +132,10 @@ const FilterGroupRoot = ({
         if (active instanceof Element && active.closest(chipSelector)) {
           return;
         }
-        firstSegmentOf(freshChip)?.focus();
+        const segment = firstSegmentOf(freshChip);
+        if (segment) {
+          focusWithoutRing(freshChip, segment);
+        }
       });
     });
   });

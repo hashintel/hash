@@ -105,6 +105,12 @@ export const filterRecipe = sva({
       "&:has(:focus-visible)": {
         overflow: "visible",
       },
+      // Programmatic focus (Filter's autoFocus, FilterGroup's fresh-chip
+      // move) sets this marker so the ring stays hidden until a real
+      // interaction follows (see focusWithoutRing).
+      "&[data-focus-ring-suppressed]": {
+        "--filter-ring": "transparent",
+      },
     },
     property: {
       display: "block",
