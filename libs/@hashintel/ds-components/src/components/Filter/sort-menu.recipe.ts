@@ -148,25 +148,25 @@ export const triggerDirectionToggle = cva({
     {
       size: "sm",
       align: "left",
-      css: { marginLeft: "[-1px]", marginRight: "[-2px]" },
+      css: { marginLeft: "[-2px]", marginRight: "[-3px]" },
     },
     {
       size: "sm",
       align: "right",
-      css: { marginLeft: "[-2px]", marginRight: "[-1px]" },
+      css: { marginLeft: "[-3px]", marginRight: "[-2px]" },
     },
     {
       size: "md",
       align: "left",
-      css: { marginLeft: "[-1px]", marginRight: "[-4px]" },
+      css: { marginLeft: "[-2px]", marginRight: "[-5px]" },
     },
     {
       size: "md",
       align: "right",
-      css: { marginLeft: "[-4px]", marginRight: "[-1px]" },
+      css: { marginLeft: "[-5px]", marginRight: "[-2px]" },
     },
-    { size: "lg", align: "left", css: { marginLeft: "[3px]" } },
-    { size: "lg", align: "right", css: { marginRight: "[3px]" } },
+    { size: "lg", align: "left", css: { marginLeft: "[2px]", marginRight: "[-4px]" } },
+    { size: "lg", align: "right", css: { marginRight: "[2px]", marginLeft: "[-4px]" } },
   ],
   defaultVariants: {
     align: "left",
