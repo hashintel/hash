@@ -25,7 +25,10 @@ export const installFauxProvider = (provider: Provider): void => {
       return url === factoryUrl
         ? {
             format: "module",
-            source: `export const ${provider.id}Provider = () => globalThis[Symbol.for(${JSON.stringify(key)})];`,
+            source:
+              provider.id === "anthropic"
+                ? 'export const anthropicProvider = () => globalThis[Symbol.for("brunch.evaluation.faux-provider.anthropic")];'
+                : 'export const openaiProvider = () => globalThis[Symbol.for("brunch.evaluation.faux-provider.openai")];',
             shortCircuit: true,
           }
         : nextLoad(url, context);

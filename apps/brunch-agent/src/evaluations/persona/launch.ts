@@ -178,6 +178,14 @@ const runPersona = async (run: string) => {
   const piSession =
     typeof fields.piSession === "string" ? fields.piSession : undefined;
   if (!socketPath) throw new Error("Persona run is missing its private socket");
+  const credentials = checkPersonaConfiguration(
+    {
+      ...process.env,
+      PI_CODING_AGENT_DIR: join(run, "pi"),
+      PI_OFFLINE: "1",
+    },
+    roles.personaModel,
+  );
   const child = spawn(
     "pi",
     personaArguments(run, roles, socketPath, piSession),
@@ -185,7 +193,24 @@ const runPersona = async (run: string) => {
       cwd: appRoot,
       stdio: "inherit",
       env: {
-        ...personaEnvironment(roles),
+        // The pane supplies the selected credential; do not reload app env files
+        // or inherit server credentials and executable configuration into Pi.
+        ...Object.fromEntries(
+          [
+            "PATH",
+            "HOME",
+            "USER",
+            "LOGNAME",
+            "SHELL",
+            "TERM",
+            "COLORTERM",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "TMPDIR",
+          ].map((name) => [name, process.env[name]]),
+        ),
+        ...credentials,
         PI_CODING_AGENT_DIR: join(run, "pi"),
         PI_SUBAGENT_NAME: basename(run),
         PI_OFFLINE: "1",

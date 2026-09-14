@@ -79,6 +79,82 @@ test("both launcher children override inherited campaign accounting", () => {
   ).toBeUndefined();
 });
 
+test.each([
+  ["anthropic/claude-sonnet-4-6", "ANTHROPIC_API_KEY"],
+  ["openai/gpt-5.6-sol", "OPENAI_API_KEY"],
+])(
+  "Pi child receives only the selected credential for %s",
+  async (model, key) => {
+    const run = await mkdtemp(join(tmpdir(), "TEST-persona-child-"));
+    try {
+      await mkdir(join(run, "pi"));
+      await Promise.all([
+        writeFile(
+          join(run, "run.json"),
+          JSON.stringify({
+            ...resolvePersonaRoleSettings({ personaModel: model }),
+            socketPath: join(run, "bridge.sock"),
+          }),
+        ),
+        writeFile(
+          join(run, "pi/settings.json"),
+          JSON.stringify({
+            retry: { enabled: false, provider: { maxRetries: 0 } },
+          }),
+        ),
+      ]);
+      await mkdir(join(run, "bin"));
+      await writeFile(
+        join(run, "bin/pi"),
+        `#!${process.execPath}\nconsole.log(JSON.stringify({ keys: Object.keys(process.env), selected: process.env[${JSON.stringify(key)}] === "TEST-configuration-key", directory: process.env.PI_CODING_AGENT_DIR }));\n`,
+        { mode: 0o700 },
+      );
+      const { stdout } = await promisify(execFile)(
+        process.execPath,
+        [
+          "--experimental-strip-types",
+          fileURLToPath(new URL("./launch.ts", import.meta.url)),
+          "--run-persona",
+          run,
+        ],
+        {
+          env: {
+            ...process.env,
+            PATH: `${join(run, "bin")}:${process.env.PATH ?? ""}`,
+            ANTHROPIC_API_KEY: "TEST-configuration-key",
+            OPENAI_API_KEY: "TEST-configuration-key",
+            UNRELATED_SECRET: "TEST-unrelated-secret",
+            BRUNCH_STEP_A_ACCOUNTING: "TEST-inherited-accounting",
+            DEBUG: "",
+            HTTP_PROXY: "",
+            HTTPS_PROXY: "",
+            ALL_PROXY: "",
+            ANTHROPIC_AUTH_TOKEN: "",
+            ANTHROPIC_OAUTH_TOKEN: "",
+            ANTHROPIC_BASE_URL: "",
+          },
+        },
+      );
+      const result = JSON.parse(stdout) as {
+        keys: string[];
+        selected: boolean;
+        directory: string;
+      };
+      expect(result.selected).toBe(true);
+      expect(result.directory).toBe(join(run, "pi"));
+      expect(result.keys).toContain("PATH");
+      expect(result.keys).not.toContain(
+        key === "ANTHROPIC_API_KEY" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY",
+      );
+      expect(result.keys).not.toContain("UNRELATED_SECRET");
+      expect(result.keys).not.toContain("BRUNCH_STEP_A_ACCOUNTING");
+    } finally {
+      await rm(run, { recursive: true });
+    }
+  },
+  15_000,
+);
+
 test.each([false, true])(
   "resume reads original stores without consulting accounting (legacy: %s)",
   async (legacy) => {
