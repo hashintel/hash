@@ -19,10 +19,11 @@ The semantic-VAD recut is implemented locally and provider-free checks pass.
 The corrected medium probe completed all three synthetic transcripts, with the
 correction retained in one item and continuous silence verified. Earlier correction
 verdicts remain invalid because those harnesses stopped sending after the last clip.
-Next: implement Kostandin's accepted 500 ms Speaking-indicator hold and patient
-Live listening prompt, run provider-free checks, commit without Amp thread IDs
-and push this child. Human conversational latency and the physical speaker/headphone
-witness remain owner-held; no additional automatic tuning or provider run.
+The accepted 500 ms Speaking-indicator hold and patient Live listening prompt are
+implemented and provider-free checks pass. Next: Kostandin tries a fresh Live session
+to judge hesitation, self-corrections and the indicator's feel. Human conversational
+latency and the physical speaker/headphone witness remain owner-held; no additional
+automatic tuning or provider run. Commit and push of this preparation are authorized.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
 All three provider allocations are consumed; no further provider run. Publication
 of the prepared work is authorized below. The parent has advanced beyond the pinned
@@ -142,14 +143,23 @@ Patient-listening recut, relative to the website's `src/`:
 
 ## Proof
 
-### Patient-listening recut — implementation and provider-free proof pending
+### Patient-listening recut — provider-free proof passed, human witness pending
 
 The existing `live-conversation.test.ts` telemetry case owns the 500 ms boundary,
 renewed activity and immediate Stop/late-sample behavior. Existing
 `live-conversation-control.test.tsx` cases own Speaking/Thinking/Listening and
 connection/error precedence. These tests do not establish conversational patience.
+Verified 2026-09-14: the new 400 ms assertion failed on the old 300 ms hold, then
+passed with 500 ms. The test also checks 499/500 ms, renewed activity, immediate
+Stop at 499 ms during a pending stats read, and no late-state revival. All 386 tests
+in 11 targeted Live/Realtime suites passed under OS network denial; after tightening
+the Stop timing, all 40 transport tests passed again. A temporary jsdom render of
+the real `VoiceDock` verified its accessible region and Speaking → Thinking →
+Listening text transitions; the temporary probe was removed. No layout changed.
+Website build, typecheck and lint passed all 16 Turbo tasks (10 cached); changed-file
+formatting and whitespace checks passed. The full website suite was not rerun.
 The Live session-creation test owns outgoing instruction carriage and unchanged
-provider configuration; inspect the prompt against OpenAI's
+provider configuration; the prompt was inspected against OpenAI's
 [pause-handling guidance](https://developers.openai.com/api/docs/guides/live-prompting).
 Provider-free checks may establish timing and configuration only. Kostandin's next
 fresh Live session remains the oracle for natural hesitation, short complete replies,

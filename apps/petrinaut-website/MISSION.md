@@ -6,7 +6,9 @@ This file is a pointer, not a second mission.
 
 FE-1712 permits explicit browser capture preferences, semantic VAD with medium
 eagerness on the separate Live transcription session, and provider-free checks.
-It preserves native Live speech, separate finalized transcription and Realtime.
+It also permits a 500 ms Speaking-indicator hold and a patient-listening Live
+instruction. Submission timing, separate finalized transcription and Realtime stay
+unchanged. The indicator does not control playback or establish turn completion.
 Acoustic benefit remains Kostandin's matched speaker/headphone witness; no
 deterministic feedback prevention or migration-readiness claim is established.
 The sole mission specifies bounded headless probe allocations and their results;
