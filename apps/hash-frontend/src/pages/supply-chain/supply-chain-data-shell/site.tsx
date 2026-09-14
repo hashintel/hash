@@ -451,57 +451,54 @@ export const SiteOverview = ({
       opportunityStatusHistory,
     ],
   );
-  const dwellApplication = useMemo(
-    () =>
-      applyStepFilters(
-        dwellRows.filter(searchMatchers.siteNode),
-        stepFilters,
-        stepFilterContext,
-      ),
-    [dwellRows, searchMatchers, stepFilters, stepFilterContext],
-  );
-  const planningApplication = useMemo(
-    () =>
-      applyStepFilters(
-        planningRows.filter(searchMatchers.siteNode),
-        stepFilters,
-        stepFilterContext,
-      ),
-    [planningRows, searchMatchers, stepFilters, stepFilterContext],
-  );
-  const trendApplication = useMemo(
-    () =>
-      applyStepFilters(
-        trendRows.filter(searchMatchers.siteNode),
-        stepFilters,
-        stepFilterContext,
-      ),
-    [trendRows, searchMatchers, stepFilters, stepFilterContext],
-  );
-  const supplierApplication = useMemo(
-    () =>
-      applyVendorStepFilters(
-        supplierRows.filter(searchMatchers.supplier),
-        stepFilters,
-        stepFilterContext,
-      ),
-    [supplierRows, searchMatchers, stepFilters, stepFilterContext],
-  );
-  const opportunityApplication = useMemo(
-    () =>
-      applyStepFiltersBy(
-        generatedOpportunities.filter(searchMatchers.opportunity),
-        (opportunity) => opportunity.node,
-        opportunityFilters,
-        stepFilterContext,
-      ),
-    [
+  // Filters run over the full table rows so applicability (skippedKeys)
+  // reflects the table, not the current search; search narrows afterwards.
+  const dwellApplication = useMemo(() => {
+    const { rows, skippedKeys } = applyStepFilters(
+      dwellRows,
+      stepFilters,
+      stepFilterContext,
+    );
+    return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
+  }, [dwellRows, searchMatchers, stepFilters, stepFilterContext]);
+  const planningApplication = useMemo(() => {
+    const { rows, skippedKeys } = applyStepFilters(
+      planningRows,
+      stepFilters,
+      stepFilterContext,
+    );
+    return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
+  }, [planningRows, searchMatchers, stepFilters, stepFilterContext]);
+  const trendApplication = useMemo(() => {
+    const { rows, skippedKeys } = applyStepFilters(
+      trendRows,
+      stepFilters,
+      stepFilterContext,
+    );
+    return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
+  }, [trendRows, searchMatchers, stepFilters, stepFilterContext]);
+  const supplierApplication = useMemo(() => {
+    const { rows, skippedKeys } = applyVendorStepFilters(
+      supplierRows,
+      stepFilters,
+      stepFilterContext,
+    );
+    return { rows: rows.filter(searchMatchers.supplier), skippedKeys };
+  }, [supplierRows, searchMatchers, stepFilters, stepFilterContext]);
+  const opportunityApplication = useMemo(() => {
+    const { rows, skippedKeys } = applyStepFiltersBy(
       generatedOpportunities,
-      searchMatchers,
+      (opportunity) => opportunity.node,
       opportunityFilters,
       stepFilterContext,
-    ],
-  );
+    );
+    return { rows: rows.filter(searchMatchers.opportunity), skippedKeys };
+  }, [
+    generatedOpportunities,
+    searchMatchers,
+    opportunityFilters,
+    stepFilterContext,
+  ]);
   const filteredDwellRows = dwellApplication.rows;
   const filteredPlanningRows = planningApplication.rows;
   const filteredTrendRows = trendApplication.rows;
