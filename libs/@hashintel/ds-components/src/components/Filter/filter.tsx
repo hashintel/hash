@@ -724,9 +724,23 @@ export const Filter = <
 
   // Manual removal matches the abandoned dismissal: inside a FilterGroup the
   // chip collapses its width before onRemove so the row closes up smoothly;
-  // standalone chips are removed instantly. The ref guards double-clicks
-  // during the animation.
+  // standalone chips are removed instantly. `removingRef` guards
+  // double-clicks during the animation. The delayed call goes through
+  // `onRemoveRef` — the click-time callback closes over the parent's state
+  // snapshot from that render, and firing it after later changes (a second
+  // remove, a clear, an add) would clobber them — and the timer is cleared
+  // on unmount so it can never fire against a chip the parent already
+  // removed some other way.
   const removingRef = useRef(false);
+  const removeTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (removeTimerRef.current !== null) {
+        window.clearTimeout(removeTimerRef.current);
+      }
+    },
+    [],
+  );
   const handleRemove = () => {
     if (!removeable || removingRef.current) {
       return;
@@ -738,7 +752,10 @@ export const Filter = <
     }
     removingRef.current = true;
     startChipCollapse(root);
-    window.setTimeout(removeable.onRemove, CHIP_COLLAPSE_MS);
+    removeTimerRef.current = window.setTimeout(() => {
+      removeTimerRef.current = null;
+      onRemoveRef.current?.();
+    }, CHIP_COLLAPSE_MS);
   };
 
   const abandonGhosted =
