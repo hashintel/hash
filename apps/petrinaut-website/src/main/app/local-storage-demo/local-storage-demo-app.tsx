@@ -118,7 +118,6 @@ import {
 } from "./use-prepare-crew-reservation-conversation";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
-import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { DocumentRecord } from "./documents/document-repository";
 import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 
@@ -370,7 +369,7 @@ export const LocalStorageDemoApp = ({
   search,
 }: {
   onSearchChange: (
-    search: SharedExampleSearch,
+    search: LocalStorageDemoSearch,
     history: "push" | "replace",
   ) => void;
   search: LocalStorageDemoSearch;
@@ -448,7 +447,15 @@ export const LocalStorageDemoApp = ({
     crewReservationFixtureSelected &&
     (isRootArcTracerSelected(search) || constructionSelected);
   const selectLocalRoute = useCallback(
-    () => onSearchChange({}, "push"),
+    () =>
+      onSearchChange(
+        {
+          bundle: undefined,
+          "brunch-fixture": undefined,
+          brunchTracer: undefined,
+        },
+        "push",
+      ),
     [onSearchChange],
   );
   const { controller } = useDocumentController({

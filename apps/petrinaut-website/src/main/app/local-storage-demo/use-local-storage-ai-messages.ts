@@ -71,6 +71,7 @@ export const useLocalStorageAiMessages = (input?: {
     enabled,
     fallback: noAiMessages,
     read: readMessages,
+    storageKey: rootLocalStorageKey,
     write: writeMessages,
   });
   return { aiMessagesByNetId, setAiMessagesByNetId };

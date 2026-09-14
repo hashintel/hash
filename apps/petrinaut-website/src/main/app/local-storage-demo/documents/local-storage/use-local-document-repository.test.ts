@@ -4,6 +4,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { startEmptyNetInStorage } from "../../use-local-storage-sdcpns";
 import { useLocalDocumentRepository } from "./use-local-document-repository";
 
 const emptyDefinition = {
@@ -332,5 +333,79 @@ describe("useLocalDocumentRepository", () => {
         revisionId: "revision-2",
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+const savedDocument = (id: string, lastUpdated: string) => ({
+  id,
+  title: id,
+  lastUpdated,
+  incarnationId: `${id}-incarnation`,
+  revisionId: `${id}-revision`,
+  sdcpn: {
+    ...emptyDefinition,
+    places: [
+      {
+        id: `${id}-place`,
+        name: "Place",
+        x: 0,
+        y: 0,
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+      },
+    ],
+  },
+});
+
+test("selects the newest stored document and retains an explicit selection", () => {
+  stubStorage({
+    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+    newer: savedDocument("newer", "2026-01-02T00:00:00.000Z"),
+  });
+  const { result, rerender } = renderHook(() =>
+    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+  );
+  expect(result.current.repository.current?.documentId).toBe("newer");
+  act(() => result.current.repository.open("older"));
+  rerender();
+  expect(result.current.repository.current?.documentId).toBe("older");
+});
+
+test("opens the empty document created by the new route", () => {
+  const storage = stubStorage({
+    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+  });
+  const created = startEmptyNetInStorage(storage);
+  const { result } = renderHook(() =>
+    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+  );
+  expect(result.current.repository.current?.documentId).toBe(created.id);
+});
+
+test("preserves another tab's document when renaming before its storage event arrives", () => {
+  const storage = stubStorage({
+    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+  });
+  const { result } = renderHook(() =>
+    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+  );
+  storage.setItem(
+    "petrinaut-sdcpn",
+    JSON.stringify({
+      older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+      otherTab: savedDocument("otherTab", "2026-01-02T00:00:00.000Z"),
+    }),
+  );
+  act(() =>
+    result.current.repository.actions.rename?.({
+      documentId: "older",
+      title: "Renamed",
+    }),
+  );
+  const saved: unknown = JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}");
+  expect(saved).toMatchObject({
+    older: { title: "Renamed" },
+    otherTab: { id: "otherTab" },
   });
 });

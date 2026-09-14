@@ -32,6 +32,10 @@ cannot make a second net and Back skips the route. Empty nets earlier visits
 left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
+The editor chooses the initial document after saved nets load. Open tabs refresh
+their saved nets and stock-assistant messages when local storage changes, and
+updates start from the latest persisted value so another tab's documents survive.
+
 ## Choosing the assistant
 
 With `VITE_BRUNCH_CHAT_ENDPOINT` configured, Brunch is the AI panel's default assistant and Petrinaut's stock assistant is the alternate. The command palette (⌘K) offers **Use the stock Petrinaut assistant** and, once switched, **Use Brunch (default assistant)**. The choice is this website's own browser-local preference (`petrinaut-website:assistant`), not a Petrinaut setting. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.

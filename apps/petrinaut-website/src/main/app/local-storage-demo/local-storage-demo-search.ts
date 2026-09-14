@@ -52,7 +52,7 @@ export const validateLocalStorageDemoSearch = (
  */
 export const withLocalStorageDemoIdentity = (
   current: LocalStorageDemoSearch,
-  next: SharedExampleSearch,
+  next: LocalStorageDemoSearch,
 ): LocalStorageDemoSearch => ({
   [crewReservationFixtureQuery]: current[crewReservationFixtureQuery],
   bundle: current.bundle,
