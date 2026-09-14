@@ -60,16 +60,12 @@ mod positive_unit_fraction;
 mod tests;
 mod unit_fraction;
 
-pub(crate) use d_non_negative::DNonNegative;
-#[cfg(test)]
-pub(crate) use d_non_negative::d_non_negative;
+pub(crate) use d_non_negative::{DNonNegative, d_non_negative};
 pub(crate) use d_positive::{DPositive, d_positive};
 #[cfg(test)]
 pub(crate) use finite::finite;
 pub(crate) use finite::{DFinite, Finite, d_finite};
-pub(crate) use greater_than_one::GreaterThanOne;
-#[cfg(test)]
-pub(crate) use greater_than_one::greater_than_one;
+pub(crate) use greater_than_one::{GreaterThanOne, greater_than_one};
 pub(crate) use log2::Log2;
 pub(crate) use negative::Negative;
 pub(crate) use non_negative::{NonNegative, non_negative};
@@ -296,6 +292,95 @@ pub(crate) const fn narrow_f32(value: f64) -> Option<f32> {
                   finiteness before being returned"
     )]
     let narrowed = value as f32;
+
+    if narrowed.is_finite() {
+        Some(narrowed)
+    } else {
+        None
+    }
+}
+
+/// Narrows an `f64` to the largest `f32` at or below it.
+///
+/// The directed twin of [`narrow_f32`]. The result never exceeds `value`: a lower bound
+/// computed in `f64` stays a lower bound at working precision. An `f32` value narrows to itself,
+/// `-0.0` included. Returns [`None`] for NaN, for both infinities, and where no finite `f32` lies
+/// at or below `value`, which is every value below `-f32::MAX`.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
+///
+/// ```ignore
+/// use crate::math::scalar::{narrow_f32_down};
+///
+/// // 0.1 has no exact `f32`. The nearest lies above it, and the narrowing steps down.
+/// let below = narrow_f32_down(0.1).expect("0.1 is finite");
+/// assert!(f64::from(below) <= 0.1 && f64::from(below.next_up()) > 0.1);
+/// assert_eq!(narrow_f32_down(0.25), Some(0.25_f32));
+/// assert_eq!(narrow_f32_down(1e300), Some(f32::MAX));
+/// assert_eq!(narrow_f32_down(-1e300), None);
+/// ```
+#[inline]
+#[must_use]
+pub(crate) const fn narrow_f32_down(value: f64) -> Option<f32> {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the rounding cast supplies the nearest `f32`, and the step below corrects its \
+                  direction"
+    )]
+    let nearest = value as f32;
+
+    // one step corrects upward rounding, including positive overflow to infinity.
+    // positive infinity itself compares equal and remains infinite for the check below.
+    let narrowed = if (nearest as f64) > value {
+        nearest.next_down()
+    } else {
+        nearest
+    };
+
+    if narrowed.is_finite() {
+        Some(narrowed)
+    } else {
+        None
+    }
+}
+
+/// Narrows an `f64` to the smallest `f32` at or above it.
+///
+/// The mirror of [`narrow_f32_down`]. The result never falls below `value`: an upper bound
+/// computed in `f64` stays an upper bound at working precision. An `f32` value narrows to itself,
+/// `-0.0` included. Returns [`None`] for NaN, for both infinities, and where no finite `f32` lies
+/// at or above `value`, which is every value above `f32::MAX`.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
+///
+/// ```ignore
+/// use crate::math::scalar::{narrow_f32_up};
+///
+/// let above = narrow_f32_up(0.1).expect("0.1 is finite");
+/// assert!(f64::from(above) >= 0.1 && f64::from(above.next_down()) < 0.1);
+/// assert_eq!(narrow_f32_up(0.25), Some(0.25_f32));
+/// assert_eq!(narrow_f32_up(-1e300), Some(-f32::MAX));
+/// assert_eq!(narrow_f32_up(1e300), None);
+/// ```
+#[inline]
+#[must_use]
+pub(crate) const fn narrow_f32_up(value: f64) -> Option<f32> {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the rounding cast supplies the nearest `f32`, and the step below corrects its \
+                  direction"
+    )]
+    let nearest = value as f32;
+
+    let narrowed = if (nearest as f64) < value {
+        nearest.next_up()
+    } else {
+        nearest
+    };
 
     if narrowed.is_finite() {
         Some(narrowed)

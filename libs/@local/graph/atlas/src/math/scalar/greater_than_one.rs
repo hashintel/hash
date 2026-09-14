@@ -6,7 +6,6 @@ use super::unsafe_impl_try_from_bytes;
 ///
 /// The expansion is a `const` block over [`GreaterThanOne::new`], so a literal outside the domain
 /// fails the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
 macro_rules! greater_than_one {
     ($value:expr) => {
         const {
@@ -15,7 +14,6 @@ macro_rules! greater_than_one {
         }
     };
 }
-#[cfg(test)]
 pub(crate) use greater_than_one;
 
 /// A finite `f64` strictly greater than one, valid by construction.
@@ -76,3 +74,21 @@ impl GreaterThanOne {
 }
 
 unsafe_impl_try_from_bytes!(GreaterThanOne[f64]);
+
+impl serde::Serialize for GreaterThanOne {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GreaterThanOne {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f64::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(value),
+                &"a finite positive number greater than one",
+            )
+        })
+    }
+}

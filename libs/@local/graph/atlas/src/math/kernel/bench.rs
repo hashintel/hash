@@ -9,8 +9,7 @@ use core::simd::{f32x4, f32x8, f64x4};
 /// Approximates each lane's exponential through [`super::exp_f64x4`].
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the wrapper as production calls it: transparently inlined, \
-              with only the vendored kernel's call remaining"
+    reason = "request inlining to expose the benchmark expression to call-site optimization"
 )]
 #[inline(always)]
 #[must_use]
@@ -21,8 +20,7 @@ pub fn exp_f64x4(values: f64x4) -> f64x4 {
 /// Approximates each lane's exponential through [`super::exp_f32x8`].
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the wrapper as production calls it: transparently inlined, \
-              with only the vendored kernel's call remaining"
+    reason = "request inlining to expose the benchmark expression to call-site optimization"
 )]
 #[inline(always)]
 #[must_use]
@@ -35,8 +33,7 @@ pub fn exp_f32x8(values: f32x8) -> f32x8 {
 /// This exposes the 16-entry split-table candidate for comparison with [`exp_f32x8`].
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the candidate as a production wrapper would call it: \
-              transparently inlined, with only the kernel's call remaining"
+    reason = "request inlining to expose the benchmark expression to call-site optimization"
 )]
 #[inline(always)]
 #[must_use]
@@ -51,8 +48,7 @@ pub fn exp_f32x8_table_gather(values: f32x8) -> f32x8 {
 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the candidate as a production wrapper would call it: \
-              transparently inlined, with only the kernel's call remaining"
+    reason = "request inlining to expose the benchmark expression to call-site optimization"
 )]
 #[inline(always)]
 #[must_use]
@@ -66,8 +62,7 @@ pub fn exp_f32x8_table_tbl4(values: f32x8) -> f32x8 {
 /// apply.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the wrapper as production calls it: transparently inlined, \
-              with only the vendored kernels' calls remaining"
+    reason = "request inlining to expose the benchmark expression to call-site optimization"
 )]
 #[inline(always)]
 #[must_use]

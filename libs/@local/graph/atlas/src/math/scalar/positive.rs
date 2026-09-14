@@ -6,7 +6,8 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DPositive, Finite, Negative, raw_interop, unsafe_impl_try_from_bytes};
+use super::{DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
+use crate::math::Derivation;
 
 /// Validates a positive literal at compile time.
 ///
@@ -304,6 +305,33 @@ const impl core::ops::Sub for Positive {
     #[inline]
     fn sub(self, rhs: Self) -> Finite {
         Finite::new_unchecked(self.0 - rhs.0)
+    }
+}
+
+const impl core::ops::Mul for Positive {
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 * rhs.0)
+    }
+}
+
+const impl core::ops::Mul<NonNegative> for Positive {
+    type Output = Derivation<NonNegative>;
+
+    #[inline]
+    fn mul(self, rhs: NonNegative) -> Self::Output {
+        Derivation::raw(self.0 * rhs.get())
+    }
+}
+
+const impl core::ops::Div for Positive {
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn div(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 / rhs.0)
     }
 }
 

@@ -14,9 +14,8 @@ use crate::math::derivation::Derivation;
 
 /// Validates a non-negative double-precision literal at compile time.
 ///
-/// The expansion is a `const` block over [`DNonNegative::new`], so a literal outside the domain
-/// fails the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
+/// A `const` block validates the literal with [`DNonNegative::new`] during compilation. A literal
+/// outside the domain fails the build. Runtime values use the checked constructor.
 macro_rules! d_non_negative {
     ($value:expr) => {
         const {
@@ -25,7 +24,6 @@ macro_rules! d_non_negative {
         }
     };
 }
-#[cfg(test)]
 pub(crate) use d_non_negative;
 
 /// A finite, non-negative `f64`, valid by construction.
@@ -241,9 +239,8 @@ impl DNonNegative {
     /// Overflow and zero raised to a negative exponent produce infinity in the [`Derivation`]. Zero
     /// raised to zero is one. Underflow to zero remains nonnegative.
     #[inline]
-    #[must_use]
-    pub(crate) fn powf(self, exponent: f64) -> Self {
-        Self::new_unchecked(self.0.powf(exponent))
+    pub(crate) fn powf(self, exponent: DFinite) -> Derivation<Self> {
+        Derivation::raw(self.0.powf(exponent.get()))
     }
 }
 
@@ -613,3 +610,39 @@ const impl core::ops::Mul<DNonNegative> for OpenUnitFraction {
 
 raw_interop!(DNonNegative[f64]);
 unsafe_impl_try_from_bytes!(DNonNegative[f64]);
+
+#[cfg(test)]
+mod tests {
+    use super::DNonNegative;
+    use crate::math::{Derivation, d_finite, derivation::Diverged};
+
+    #[test]
+    fn power_deferred_overflow() {
+        let power = d_non_negative!(f64::MAX).powf(d_finite!(2.0));
+        assert_eq!(power.finish(), Err(Diverged { raw: f64::INFINITY }));
+        let reciprocal = Derivation::from(DNonNegative::ONE) / power;
+        assert_eq!(reciprocal.finish(), Ok(DNonNegative::ZERO));
+    }
+
+    #[test]
+    fn power_signed_exponent() {
+        assert_eq!(
+            d_non_negative!(4.0).powf(d_finite!(-0.5)).finish(),
+            Ok(d_non_negative!(0.5))
+        );
+        assert_eq!(
+            DNonNegative::ZERO.powf(d_finite!(-1.0)).finish(),
+            Err(Diverged { raw: f64::INFINITY })
+        );
+        assert_eq!(
+            DNonNegative::ZERO.powf(d_finite!(0.0)).finish(),
+            Ok(DNonNegative::ONE)
+        );
+        assert_eq!(
+            d_non_negative!(f64::from_bits(1))
+                .powf(d_finite!(2.0))
+                .finish(),
+            Ok(DNonNegative::ZERO)
+        );
+    }
+}

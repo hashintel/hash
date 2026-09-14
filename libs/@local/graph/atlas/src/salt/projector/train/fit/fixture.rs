@@ -297,7 +297,7 @@ pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
             temporal_anchors: 0,
         },
         affinity: AffinityEnergy::new(
-            AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
+            AffinityCurve::new(positive!(1.0), positive!(1.0)),
             positive!(0.5),
         )
         .expect("the fixture exponent satisfies the objective bound"),

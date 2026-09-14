@@ -105,7 +105,7 @@ mod affinity_curve {
 
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
-    use crate::math::AffinityCurve;
+    use crate::math::{AffinityCurve, Positive};
 
     /// The curve's wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
@@ -123,8 +123,8 @@ mod affinity_curve {
         S: serde::Serializer,
     {
         Record {
-            a: curve.a(),
-            b: curve.b(),
+            a: curve.a().get(),
+            b: curve.b().get(),
         }
         .serialize(serializer)
     }
@@ -134,12 +134,13 @@ mod affinity_curve {
         D: serde::Deserializer<'de>,
     {
         let Record { a, b } = Record::deserialize(deserializer)?;
-        AffinityCurve::new(a, b).ok_or_else(|| {
-            D::Error::custom(format_args!(
+        match (Positive::new(a), Positive::new(b)) {
+            (Some(a), Some(b)) => Ok(AffinityCurve::new(a, b)),
+            _ => Err(D::Error::custom(format_args!(
                 "the parameters a = {a}, b = {b} do not form an affinity curve; both must be \
                  finite and strictly positive"
-            ))
-        })
+            ))),
+        }
     }
 }
 

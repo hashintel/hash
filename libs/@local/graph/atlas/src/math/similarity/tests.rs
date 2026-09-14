@@ -3,14 +3,12 @@
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]
 
-use core::num::NonZero;
-
 use hashql_core::id::IdSlice;
 use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
-    DNonNegative, FinitePointField, Positive, Rotation, Vec2, Vec2x4T, positive,
+    DNonNegative, FinitePointField, Positive, Rotation, Vec2, Vec2x4T, nz, positive,
     tests::{POINTS, assert_vec2_close},
     transform::Transform,
 };
@@ -226,7 +224,9 @@ fn inverse_round_trips_both_directions() {
         Vec2::new(10.0, -2.0),
     )
     .expect("scale 4.0 is normal and positive");
-    let inverse = similarity.inverse();
+    let inverse = similarity
+        .inverse()
+        .expect("inverse coefficients are in range");
 
     // A power-of-two scale inverts exactly.
     assert_eq!(inverse.scale(), 0.25);
@@ -249,9 +249,14 @@ fn boundary_scales_and_their_inverses_stay_valid() {
     )
     .expect("2^126 has the reciprocal f32::MIN_POSITIVE, which is normal");
 
-    // Powers of two invert exactly, so each edge maps onto the other.
-    assert_eq!(bottom.inverse().scale(), 2.0_f32.powi(126));
-    assert_eq!(top.inverse().scale(), f32::MIN_POSITIVE);
+    assert_eq!(
+        bottom.inverse().expect("zero translation").scale(),
+        2.0_f32.powi(126)
+    );
+    assert_eq!(
+        top.inverse().expect("zero translation").scale(),
+        f32::MIN_POSITIVE
+    );
 }
 
 #[test]
@@ -414,7 +419,7 @@ fn fit_is_equivariant_under_target_transformation() {
         .expect("a similarity image of a well-determined target stays well-determined");
     let expected = base
         .then(post)
-        .expect("both scales are near one, so the product stays in the accepted range");
+        .expect("multiplying the near-one fixture scales stays inside the accepted range");
 
     for (actual, reference) in refitted.to_array().into_iter().zip(expected.to_array()) {
         assert_scalar_close(actual, reference);
@@ -810,8 +815,134 @@ fn fit_par_rejects_an_invalid_chunk_beside_a_valid_one() {
     // validity propagation through the merge
     let mut weights = [1.0_f32; 8];
     weights[6] = -0.5;
-    let chunk = NonZero::new(4).expect("four is not zero");
+    let chunk = nz!(4);
     assert!(Similarity::fit_par_with(source, &target, &weights, chunk).is_none());
+}
+
+#[test]
+fn similarity_construction_validates_rotation_and_translation() {
+    for [cos, sin, x, y] in [
+        [0.0, 0.0, 0.0, 0.0],
+        [2.0, 0.0, 0.0, 0.0],
+        [f32::NAN, 0.0, 0.0, 0.0],
+        [1.0, f32::INFINITY, 0.0, 0.0],
+        [1.0, 0.0, f32::INFINITY, 0.0],
+        [1.0, 0.0, 0.0, f32::NAN],
+    ] {
+        assert!(
+            Similarity::new(
+                Positive::ONE,
+                Rotation::from_cos_sin(cos, sin),
+                Vec2::new(x, y)
+            )
+            .is_none()
+        );
+        assert!(Similarity::from_array([1.0, cos, sin, x, y]).is_none());
+    }
+
+    let accepted_cos = f32::from_bits(1.0_f32.to_bits() + 4);
+    let rejected_cos = f32::from_bits(1.0_f32.to_bits() + 5);
+    let coefficients = [1.0, accepted_cos, 0.0, 3.0, -4.0];
+    let similarity = Similarity::from_array(coefficients).expect("squared-norm defect below 1e-6");
+    assert_eq!(similarity.to_array(), coefficients);
+    assert!(Similarity::from_array([1.0, rejected_cos, 0.0, 3.0, -4.0]).is_none());
+    assert!(similarity.then(similarity).is_none());
+    assert_eq!(similarity.then(Similarity::IDENTITY), Some(similarity));
+}
+
+#[test]
+fn similarity_serde_validates_all_coefficients() {
+    for json in [
+        r#"{"scale":1e-45,"rotation":[1,0],"translation":[0,0]}"#,
+        r#"{"scale":1e38,"rotation":[1,0],"translation":[0,0]}"#,
+        r#"{"scale":1,"rotation":[2,0],"translation":[0,0]}"#,
+        r#"{"scale":1,"rotation":[1,1e40],"translation":[0,0]}"#,
+        r#"{"scale":1,"rotation":[1,0],"translation":[1e40,0]}"#,
+        r#"{"scale":1,"rotation":[1,0],"translation":[0,-1e40]}"#,
+    ] {
+        serde_json::from_str::<Similarity>(json)
+            .expect_err("invalid coefficients should not deserialize");
+    }
+    let json = r#"{"scale":2.0,"rotation":[0.0,1.0],"translation":[3.0,-4.0]}"#;
+    let similarity: Similarity = serde_json::from_str(json).expect("valid coefficients");
+    assert_eq!(similarity.to_array(), [2.0, 0.0, 1.0, 3.0, -4.0]);
+    assert_eq!(
+        serde_json::to_string(&similarity).expect("finite coefficients"),
+        json
+    );
+
+    let accepted_cos = f32::from_bits(1.0_f32.to_bits() + 4);
+    let similarity = Similarity::from_array([1.0, accepted_cos, 0.0, 0.0, 0.0])
+        .expect("squared-norm defect below 1e-6");
+    let encoded = serde_json::to_string(&similarity).expect("finite coefficients");
+    let restored: Similarity =
+        serde_json::from_str(&encoded).expect("admitted rotation stays valid");
+    assert_eq!(restored.to_array(), similarity.to_array());
+}
+
+#[test]
+fn similarity_inverse_rejects_translation_overflow() {
+    let scaled = Similarity::new(
+        positive!(f32::MIN_POSITIVE),
+        Rotation::IDENTITY,
+        Vec2::new(8.0, 0.0),
+    )
+    .expect("finite coefficients with invertible scale");
+    assert!(scaled.inverse().is_none());
+
+    let rotated = Similarity::new(
+        Positive::ONE,
+        Rotation::from_radians(core::f32::consts::FRAC_PI_4),
+        Vec2::splat(f32::MAX),
+    )
+    .expect("finite coefficients with unit rotation");
+    assert!(rotated.inverse().is_none());
+
+    let finite = Similarity::new(Positive::ONE, Rotation::IDENTITY, Vec2::splat(f32::MAX))
+        .expect("finite coefficients");
+    assert_eq!(
+        finite
+            .inverse()
+            .expect("negation remains finite")
+            .translation(),
+        Vec2::splat(-f32::MAX)
+    );
+}
+
+#[test]
+fn similarity_composition_rejects_translation_overflow() {
+    let translated = Similarity::new(Positive::ONE, Rotation::IDENTITY, Vec2::new(f32::MAX, 0.0))
+        .expect("finite translation");
+    assert!(translated.then(translated).is_none());
+    let scaled =
+        Similarity::new(positive!(2.0), Rotation::IDENTITY, Vec2::ZERO).expect("normal scale");
+    assert!(translated.then(scaled).is_none());
+    assert_eq!(translated.then(Similarity::IDENTITY), Some(translated));
+}
+
+#[test]
+fn similarity_fit_rejects_unrepresentable_translation() {
+    let source = [Vec2::new(-f32::MAX, 0.0), Vec2::new(-f32::MAX / 2.0, 0.0)];
+    let target = [Vec2::new(f32::MAX / 2.0, 0.0), Vec2::new(f32::MAX, 0.0)];
+    assert_fit_rejects(&source, &target, &[1.0; 2]);
+    assert!(Similarity::fit_uniform(field(&source), field(&target)).is_none());
+    assert!(Similarity::fit_uniform_par(field(&source), field(&target)).is_none());
+
+    let source = [Vec2::new(-4.0, 0.0), Vec2::new(-2.0, 0.0)];
+    let target = [Vec2::new(2.0, 0.0), Vec2::new(4.0, 0.0)];
+    for fitted in [
+        Similarity::fit(&source, &target, &[1.0; 2]),
+        Similarity::fit_par(&source, &target, &[1.0; 2]),
+        Similarity::fit_uniform(field(&source), field(&target)),
+        Similarity::fit_uniform_par(field(&source), field(&target)),
+    ] {
+        assert_eq!(
+            fitted
+                .expect("unit scale and finite translation")
+                .to_array(),
+            [1.0, 1.0, 0.0, 6.0, 0.0]
+        );
+    }
 }
 
 #[test]
@@ -952,18 +1083,20 @@ fn inverse_stays_inside_the_constructed_range(
     let similarity = Similarity::new(
         Positive::new(scale).expect("a normal positive scale is in domain"),
         Rotation::from_radians(radians),
-        Vec2::new(1.0, -2.0),
+        Vec2::ZERO,
     )
     .expect("a normal scale below 2^126 has a normal reciprocal");
 
-    let inverse = similarity.inverse();
+    let inverse = similarity
+        .inverse()
+        .expect("zero translation remains finite");
     prop_assert!(
         Similarity::from_array(inverse.to_array()).is_some(),
         "inverse scale {} left the accepted range",
         inverse.scale(),
     );
 
-    let double = inverse.inverse();
+    let double = inverse.inverse().expect("zero translation remains finite");
     prop_assert!(
         Similarity::from_array(double.to_array()).is_some(),
         "double-inverse scale {} left the accepted range",

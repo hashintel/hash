@@ -181,6 +181,17 @@ impl DPositive {
         DFinite::new_unchecked(self.0.ln())
     }
 
+    /// Narrows to single precision, rejecting overflow and underflow to zero.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the checked narrowing is the operation"
+    )]
+    #[inline]
+    #[must_use]
+    pub(crate) const fn narrow(self) -> Option<Positive> {
+        Positive::new(self.0 as f32)
+    }
+
     /// Divides, refusing the escape.
     ///
     /// The quotient of positives is never NaN and never negative. Returns [`None`] exactly when
@@ -428,3 +439,41 @@ impl<'de> serde::Deserialize<'de> for DPositive {
 
 raw_interop!(DPositive[f64]);
 unsafe_impl_try_from_bytes!(DPositive[f64]);
+
+#[cfg(test)]
+mod tests {
+    use super::DPositive;
+    use crate::math::{Positive, positive};
+
+    #[test]
+    fn narrow_subnormal_bounds() {
+        let smallest = Positive::MIN.widen();
+        assert_eq!(smallest.narrow(), Some(Positive::MIN));
+        assert_eq!(
+            (smallest / d_positive!(2.0))
+                .finish()
+                .expect("the half-subnormal is representable in f64")
+                .narrow(),
+            None
+        );
+        assert_eq!(
+            DPositive::new(smallest.get() * 0.75)
+                .expect("the value is positive")
+                .narrow(),
+            Some(Positive::MIN)
+        );
+    }
+
+    #[test]
+    fn narrow_overflow() {
+        assert_eq!(Positive::MAX.widen().narrow(), Some(Positive::MAX));
+        assert_eq!(
+            (Positive::MAX.widen() * d_positive!(2.0))
+                .finish()
+                .expect("twice the f32 maximum is finite in f64")
+                .narrow(),
+            None
+        );
+        assert_eq!(d_positive!(1.5).narrow(), Some(positive!(1.5)));
+    }
+}

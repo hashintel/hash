@@ -183,7 +183,7 @@ mod tests {
             salt::metadata::{Placement, Reproducibility},
         },
         integrity::{Sha256, Sha256Digest, Update as _},
-        math::AffinityCurve,
+        math::{AffinityCurve, nz, positive},
         salt::{
             embedding::EmbedderFingerprint, fit::FitConfig, landmark::select::SelectionOptions,
         },
@@ -204,8 +204,7 @@ mod tests {
                 maximum_count: NonZero::new(2).expect("the fixture capacity is nonzero"),
                 ..
             },
-            curve: AffinityCurve::new(1.577, 0.895)
-                .expect("the fixture parameters are finite and strictly positive"),
+            curve: AffinityCurve::new(positive!(1.577), positive!(0.895)),
             ..
         }
     }

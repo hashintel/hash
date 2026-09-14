@@ -23,15 +23,21 @@
 //!
 //! # Lookup portability
 //!
-//! The arithmetic is target-independent. Only the 16-entry lookup is not.
-//! [`Simd::gather_or_default`] is the portable form. On AVX2/AVX-512 it lowers to `vgatherdps`
-//! (fine), on NEON it scalarizes (poor). The `aarch64` path below instead uses `vqtbl4q_u8` - a
-//! single-instruction 64-byte table lookup, which is exactly a 16-entry f32 table for four lanes.
-//! On x86 without fast gathers, the analogous trick is two `u8x32` `swizzle_dyn` calls per table
-//! with the second index offset by 32 and the results OR-ed (out-of-range indices yield zero),
-//! which lowers to `vpshufb` pairs on AVX2 and `vpermb` on AVX-512VBMI.
+//! Little-endian `aarch64` builds with NEON enabled use `vqtbl4q_u8`. Its 64-byte table holds 16
+//! f32 entries, and byte indices select four float values per call. Other configurations use
+//! [`Simd::gather_or_default`].
 
-use core::simd::prelude::*;
+#[cfg(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+))]
+use core::simd::simd_swizzle;
+use core::simd::{
+    Select as _, Simd,
+    cmp::SimdPartialOrd as _,
+    num::{SimdFloat as _, SimdInt as _},
+};
 use std::simd::StdFloat as _;
 
 use super::sleef::scale_by_pow2_f32;
@@ -107,10 +113,14 @@ const EXP16_LO: [f32; 16] = [
 
 /// Looks four lanes of a 16-entry `f32` table up in a single `TBL4`.
 ///
-/// Lane `i` with index `j` reads bytes `4j..4j+4`. The lookup builds the byte indices in the
-/// `u32` domain (`4j` replicated to all four bytes, plus `0,1,2,3`) and reinterprets them, which
-/// assumes little-endian lane layout.
-#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+/// Each lane's index j must satisfy 0 ≤ j < 16. Lane `i` with index `j` reads bytes `4j..4j+4`. The
+/// lookup builds the byte indices in the `u32` domain (`4j` replicated to all four bytes, plus
+/// `0,1,2,3`) and reinterprets them, which assumes little-endian lane layout.
+#[cfg(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+))]
 #[inline]
 fn tbl4_lookup(table: &[f32; 16], index: Simd<u32, 4>) -> Simd<f32, 4> {
     use core::arch::aarch64::{
@@ -176,8 +186,12 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     finish(values, reduced, quotient, table_hi, table_lo)
 }
 
-/// aarch64 form: both table lookups are one `TBL4` each.
-#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+/// Evaluates four lanes with NEON table lookups.
+#[cfg(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+))]
 #[inline]
 pub(crate) fn exp_f32x4(values: Simd<f32, 4>) -> Simd<f32, 4> {
     let nearest = (values * Simd::splat(INVLN2_16)).round_ties_even();
@@ -193,14 +207,23 @@ pub(crate) fn exp_f32x4(values: Simd<f32, 4>) -> Simd<f32, 4> {
     finish(values, reduced, quotient, table_hi, table_lo)
 }
 
-#[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]
+/// Evaluates four lanes with portable gather lookups.
+#[cfg(not(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+)))]
 #[inline]
 pub(crate) fn exp_f32x4(values: Simd<f32, 4>) -> Simd<f32, 4> {
     exp_f32(values)
 }
 
 /// Evaluates eight lanes as two four-lane `TBL4` halves.
-#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+#[cfg(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+))]
 #[inline]
 pub(crate) fn exp_f32x8(values: Simd<f32, 8>) -> Simd<f32, 8> {
     let low = exp_f32x4(simd_swizzle!(values, [0, 1, 2, 3]));
@@ -208,7 +231,12 @@ pub(crate) fn exp_f32x8(values: Simd<f32, 8>) -> Simd<f32, 8> {
     simd_swizzle!(low, high, [0, 1, 2, 3, 4, 5, 6, 7])
 }
 
-#[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]
+/// Evaluates eight lanes with portable gather lookups.
+#[cfg(not(all(
+    target_arch = "aarch64",
+    target_endian = "little",
+    target_feature = "neon"
+)))]
 #[inline]
 pub(crate) fn exp_f32x8(values: Simd<f32, 8>) -> Simd<f32, 8> {
     exp_f32(values)
@@ -216,10 +244,27 @@ pub(crate) fn exp_f32x8(values: Simd<f32, 8>) -> Simd<f32, 8> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    #[cfg(all(
+        target_arch = "aarch64",
+        target_endian = "little",
+        target_feature = "neon"
+    ))]
+    use core::simd::num::SimdUint as _;
+    use core::simd::{Simd, num::SimdFloat as _, simd_swizzle};
 
-    /// The NEON lookup must agree with the portable gather for every index.
-    #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+    #[cfg(all(
+        target_arch = "aarch64",
+        target_endian = "little",
+        target_feature = "neon"
+    ))]
+    use super::{EXP16_HI, EXP16_LO, tbl4_lookup};
+    use super::{exp_f32, exp_f32x4, exp_f32x8};
+
+    #[cfg(all(
+        target_arch = "aarch64",
+        target_endian = "little",
+        target_feature = "neon"
+    ))]
     #[test]
     fn tbl4_matches_gather() {
         for base in 0..16_u32 {
@@ -233,8 +278,11 @@ mod tests {
         }
     }
 
-    /// Both entry points agree bit-for-bit.
-    #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+    #[cfg(all(
+        target_arch = "aarch64",
+        target_endian = "little",
+        target_feature = "neon"
+    ))]
     #[test]
     #[expect(
         clippy::cast_precision_loss,
@@ -287,7 +335,7 @@ mod tests {
         clippy::cast_possible_truncation,
         reason = "narrowing the wider-precision libm result is how the sweep builds its reference"
     )]
-    fn tracks_libm_across_the_full_bit_range() {
+    fn exp_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -319,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn edge_cases_are_exact() {
+    fn exp_f32_specials() {
         let output = exp_f32::<4>(Simd::from_array([
             0.0,
             f32::NEG_INFINITY,
@@ -337,7 +385,7 @@ mod tests {
     /// Little-endian aarch64 with NEON enabled uses TBL4. Other configurations use portable gather
     /// lookups.
     #[test]
-    fn entry_points_agree_with_the_generic_kernel() {
+    fn entry_point_agreement() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {

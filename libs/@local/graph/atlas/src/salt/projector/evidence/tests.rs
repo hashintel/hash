@@ -35,7 +35,7 @@ fn positive(value: f32) -> Positive {
 fn bridge(evidence: &EvaluationEvidence) -> Option<Similarity> {
     evidence
         .gauge_similarity
-        .inverse()
+        .inverse()?
         .then(evidence.corpus_similarity)
 }
 
