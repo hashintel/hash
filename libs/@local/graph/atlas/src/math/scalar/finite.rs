@@ -183,13 +183,34 @@ const impl From<Finite> for f64 {
     }
 }
 
+const impl core::ops::Neg for Finite {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        Self(-self.0)
+    }
+}
+
+const impl<T> core::ops::Mul<T> for Finite
+where
+    T: [const] Into<Finite>,
+{
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn mul(self, rhs: T) -> Self::Output {
+        Derivation::raw(self.0 * rhs.into().0)
+    }
+}
+
 const impl core::ops::Div<Positive> for Finite {
-    type Output = f32;
+    type Output = Derivation<Self>;
 
     /// Divides by a nonzero divisor with deferred validation of overflow.
     #[inline]
-    fn div(self, rhs: Positive) -> f32 {
-        self.0 / rhs.get()
+    fn div(self, rhs: Positive) -> Self::Output {
+        Derivation::raw(self.0 / rhs.get())
     }
 }
 

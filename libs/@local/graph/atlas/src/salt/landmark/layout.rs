@@ -369,7 +369,7 @@ where
 
             let gradients =
                 self.curve
-                    .repulsion_x4(position, targets, self.options.repulsion_strength.get());
+                    .repulsion_x4(position, targets, self.options.repulsion_strength);
             let step =
                 Vec2::new(gradients.xs().reduce_sum(), gradients.ys().reduce_sum()) * learning_rate;
             self.coordinates[anchor] += step;
@@ -382,7 +382,7 @@ where
             let gradient = self.curve.repulsion(
                 self.coordinates[anchor],
                 target,
-                self.options.repulsion_strength.get(),
+                self.options.repulsion_strength,
             );
 
             self.coordinates[anchor] += gradient * learning_rate;

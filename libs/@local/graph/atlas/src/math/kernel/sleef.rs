@@ -37,13 +37,19 @@
 //!
 //! # Verification
 //!
-//! The tests at the bottom of this file sweep strided samples of the full input bit range (every
-//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads) and bound each kernel's
-//! distance from a scalar libm reference evaluated in wider precision. Each bound is the kernel's
-//! accuracy tier plus the reference's own rounding step. [`math::kernel`](super)'s tests assert the
-//! special points exactly.
+//! The tests compare strided samples of input bit patterns against scalar libm. The f32 reference
+//! uses f64 precision before narrowing. The f64 reference uses f64 precision, and the sampling
+//! tests do not establish a worst-case error bound over all f64 inputs. [`math::kernel`](super)'s
+//! tests assert special points separately.
 
-use core::{f32, f64, f128, simd::prelude::*};
+use core::{
+    f32, f64, f128,
+    simd::{
+        Select as _, Simd,
+        cmp::{SimdPartialEq as _, SimdPartialOrd as _},
+        num::{SimdFloat as _, SimdInt as _, SimdUint as _},
+    },
+};
 use std::simd::StdFloat as _;
 
 // A product is exact when its significand fits the destination precision and its exponent is in
@@ -348,7 +354,7 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
     reason = "narrowing the wider-precision libm result is how each sweep builds its reference"
 )]
 mod tests {
-    use core::simd::prelude::*;
+    use core::simd::Simd;
 
     use super::{exp_f32, exp_f64, exp2_f32, log2_f32};
 
@@ -421,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn exp_f32_tracks_libm_across_the_full_bit_range() {
+    fn exp_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -446,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn exp2_f32_tracks_libm_across_the_full_bit_range() {
+    fn exp2_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -471,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn log2_f32_tracks_libm_across_the_full_bit_range() {
+    fn log2_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -501,7 +507,7 @@ mod tests {
     /// compares the class over every representable input around `ln(f32::MAX)`, independently of
     /// that distance tolerance.
     #[test]
-    fn exp_f32_overflow_boundary_is_class_exact() {
+    fn exp_f32_overflow_class() {
         let mut bits = 88.5_f32.to_bits();
         let end = 89.0_f32.to_bits();
         while bits <= end {
@@ -530,7 +536,7 @@ mod tests {
     /// permits infinity beside `MAX`. This scan checks classification and distance at every
     /// representable input in `[709.782711, 709.782713]`, which straddles that transition.
     #[test]
-    fn exp_f64_overflow_boundary_is_class_exact() {
+    fn exp_f64_overflow_class() {
         let mut bits = 709.782_711_f64.to_bits();
         let end = 709.782_713_f64.to_bits();
         while bits <= end {
@@ -560,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn exp_f64_tracks_libm_across_the_full_bit_range() {
+    fn exp_f64_libm_samples() {
         let mut lanes = [0.0_f64; 4];
         let mut filled = 0;
         for bits in (0..=u64::MAX).step_by(F64_STRIDE) {

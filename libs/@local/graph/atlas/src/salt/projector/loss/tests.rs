@@ -55,7 +55,10 @@ static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).re
     reason = "`a` and `b` are the affinity curve's literature parameter names"
 )]
 fn curve(a: f32, b: f32) -> AffinityCurve {
-    AffinityCurve::new(a, b).expect("test curve parameters are positive and finite")
+    AffinityCurve::new(
+        Positive::new(a).expect("test curve parameters are positive and finite"),
+        Positive::new(b).expect("test curve parameters are positive and finite"),
+    )
 }
 
 /// Builds an affinity energy over `curve(a, b)` with the log guard `epsilon`.

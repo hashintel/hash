@@ -1,6 +1,7 @@
 //! Axis-aligned bounding boxes over 2D point sets.
 
 use core::{
+    mem::{offset_of, size_of},
     num::NonZero,
     simd::{Simd, num::SimdFloat as _},
 };
@@ -9,10 +10,14 @@ use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
 };
+use serde::de::Error as _;
+use zerocopy::FromBytes as _;
 
 use super::{
+    dvec2::DVec2,
     kernel::mul_add_f64x4,
-    scalar::Positive,
+    nz,
+    scalar::{Positive, narrow_f32_down, narrow_f32_up},
     transform::Transform,
     translation::Translation,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -20,6 +25,14 @@ use super::{
 
 #[cfg(test)]
 mod tests;
+
+/// Corner coordinates awaiting finiteness and ordering validation.
+#[derive(serde::Deserialize)]
+#[serde(rename = "Bounds2")]
+struct UnvalidatedBounds2 {
+    min: Vec2,
+    max: Vec2,
+}
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
@@ -55,10 +68,10 @@ mod tests;
     Clone,
     PartialEq,
     zerocopy::ByteHash,
-    zerocopy::FromZeros,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    serde::Serialize,
 )]
 pub(crate) struct Bounds2 {
     min: Vec2,
@@ -68,9 +81,9 @@ pub(crate) struct Bounds2 {
 impl Bounds2 {
     /// Points per rayon work item in [`from_slice_par`](Self::from_slice_par).
     ///
-    /// 4096 points are 32 KiB, comfortably inside L1 while large enough that per-task overhead
-    /// disappears against the fold.
-    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
+    /// The default chunk is 4096 points, or 32 KiB of coordinates. Use
+    /// [`from_slice_par_with`](Self::from_slice_par_with) to tune the work size.
+    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = nz!(4096);
 
     /// Creates a bounding box from its corners.
     ///
@@ -202,6 +215,15 @@ impl Bounds2 {
         self.max - self.min
     }
 
+    /// Returns the per-axis extent widened to `f64`.
+    ///
+    /// Exact where an axis's corners differ in exponent by at most 28, and within one `f64`
+    /// rounding otherwise.
+    #[inline]
+    const fn extent_wide(self) -> DVec2 {
+        DVec2::from(self.max) - DVec2::from(self.min)
+    }
+
     /// Returns the centre of the box.
     ///
     /// Each component is the exact midpoint of its axis rounded once to the nearest `f32`. The
@@ -210,7 +232,12 @@ impl Bounds2 {
     #[inline]
     #[must_use]
     pub(crate) const fn centre(self) -> Vec2 {
-        (self.min + self.max) * 0.5
+        // A finite `f32` widens to `f64` exactly, and the sum of two rounds in `f64` only when
+        // their exponents differ by more than 28, where the smaller is below 2⁻²⁸ of the larger
+        // and the half-sum rounds to half the larger at `f32` with or without that rounding.
+        // Halving in `f64` is exact. Therefore the narrowing is the one rounding, and it stays
+        // finite because the midpoint is bounded by the corners.
+        ((DVec2::from(self.min) + DVec2::from(self.max)) * 0.5).narrow_lossy()
     }
 
     /// Returns whether the point lies inside the box, boundary included.
@@ -235,7 +262,25 @@ impl Bounds2 {
         }
     }
 
-    /// Widens any axis narrower than `minimum` to exactly `minimum`.
+    /// Folds one more point into an extent accumulated so far.
+    ///
+    /// The incremental form of [`from_points`](Self::from_points) for callers that visit their
+    /// points one at a time. `None` seeds the extent with the point. A non-finite point yields
+    /// [`None`], as [`from_points`](Self::from_points) does, and a later finite point re-seeds.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn extend(extent: Option<Self>, point: Vec2) -> Option<Self> {
+        match extent {
+            Some(bounds) if point.is_finite() => Some(Self {
+                min: bounds.min.min(point),
+                max: bounds.max.max(point),
+            }),
+            Some(_) => None,
+            None => Self::new(point, point),
+        }
+    }
+
+    /// Widens axes narrower than `minimum`.
     ///
     /// Each narrow axis grows symmetrically in exact arithmetic. Rounding follows
     /// [`with_aspect_ratio`](Self::with_aspect_ratio). An axis already at least `minimum` wide
@@ -247,16 +292,14 @@ impl Bounds2 {
     /// Returns [`None`] when a widened corner would lie beyond the finite `f32` range.
     #[inline]
     #[must_use]
-    pub(crate) fn with_minimum_extent(self, minimum: f32) -> Self {
-        let size = self.size();
-        let centre = self.centre();
+    pub(crate) fn with_minimum_extent(self, minimum: Positive) -> Option<Self> {
+        let minimum = f64::from(minimum);
+        let extent = self.extent_wide();
 
-        let half = Vec2::new((size.x().max(minimum)) * 0.5, (size.y().max(minimum)) * 0.5);
+        let [min_x, max_x] = resize_axis(self.min.x(), self.max.x(), extent.x().max(minimum))?;
+        let [min_y, max_y] = resize_axis(self.min.y(), self.max.y(), extent.y().max(minimum))?;
 
-        Self {
-            min: centre - half,
-            max: centre + half,
-        }
+        Self::new(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y))
     }
 
     /// Grows the shorter axis toward the given width-to-height ratio.
@@ -309,20 +352,30 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub(crate) const fn with_aspect_ratio(self, ratio: Positive) -> Self {
-        let size = self.size();
-        let centre = self.centre();
+    pub(crate) fn with_aspect_ratio(self, ratio: Positive) -> Option<Self> {
+        let ratio = f64::from(ratio);
+        let extent = self.extent_wide();
 
-        // Both components read the original size, so exactly one axis
-        // grows: whichever is short for the ratio.
-        let half = Vec2::new(
-            size.x().max(size.y() * ratio),
-            size.y().max(size.x() / ratio),
-        ) * 0.5;
+        // One comparison picks the axis that is short for the ratio. Only that axis is resized:
+        // the other keeps its corners bit for bit.
+        if extent.x() < extent.y() * ratio {
+            let [min_x, max_x] = resize_axis(self.min.x(), self.max.x(), extent.y() * ratio)?;
 
-        Self {
-            min: centre - half,
-            max: centre + half,
+            Self::new(
+                Vec2::new(min_x, self.min.y()),
+                Vec2::new(max_x, self.max.y()),
+            )
+        } else {
+            // The quotient can round a hair below the height when the box already has the
+            // ratio. The floor at the current extent makes that case a no-op rather than an
+            // inward move.
+            let target = (extent.x() / ratio).max(extent.y());
+            let [min_y, max_y] = resize_axis(self.min.y(), self.max.y(), target)?;
+
+            Self::new(
+                Vec2::new(self.min.x(), min_y),
+                Vec2::new(self.max.x(), max_y),
+            )
         }
     }
 
@@ -354,14 +407,14 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub(crate) const fn scaled_about_centre(self, factor: Positive) -> Self {
-        let centre = self.centre();
-        let half = self.size() * (factor * 0.5);
+    pub(crate) fn scaled_about_centre(self, factor: Positive) -> Option<Self> {
+        let factor = f64::from(factor);
+        let extent = self.extent_wide();
 
-        Self {
-            min: centre - half,
-            max: centre + half,
-        }
+        let [min_x, max_x] = resize_axis(self.min.x(), self.max.x(), extent.x() * factor)?;
+        let [min_y, max_y] = resize_axis(self.min.y(), self.max.y(), extent.y() * factor)?;
+
+        Self::new(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y))
     }
 
     /// Fits an axis-aligned transform from this box to `target`.
@@ -468,9 +521,42 @@ impl Bounds2 {
 
         mapped
     }
-}
 
-impl Bounds2 {
+    /// Returns the bounds of this box's computed image in `target`.
+    ///
+    /// Applies [`normalize_into`](Self::normalize_into)'s map to the corners, including its
+    /// rounding. A zero-extent axis maps to the target midpoint. For a tight box of finite
+    /// points, monotonicity makes these mapped corners the tight bounds of the mapped points.
+    /// The result need not equal `target` when its extent loses precision in `f64`.
+    ///
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
+    ///
+    /// ```ignore
+    /// use crate::math::{Bounds2, Vec2};
+    ///
+    /// let world = Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+    ///     .expect("corners are finite and ordered");
+    /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
+    ///
+    /// assert_eq!(world.image_in(frame), frame);
+    /// ```
+    #[must_use]
+    pub(crate) fn image_in(self, target: Self) -> Self {
+        let x = AxisMap::new(self.min.x(), self.max.x(), target.min.x(), target.max.x());
+        let y = AxisMap::new(self.min.y(), self.max.y(), target.min.y(), target.max.y());
+
+        // Nondegenerate endpoints produce unit coordinates zero and one, and a degenerate axis
+        // produces the target midpoint. The non-negative target extent keeps these results ordered.
+        // At an extreme target endpoint, f64 rounding is smaller than the distance from f32::MAX
+        // to the overflow threshold. Therefore the narrowed corners are finite and ordered.
+        Self {
+            min: Vec2::new(x.apply(self.min.x()), y.apply(self.min.y())),
+            max: Vec2::new(x.apply(self.max.x()), y.apply(self.max.y())),
+        }
+    }
+
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
     /// Divides the coordinate's offset from the minimum by the extent returned by [`Self::size`],
@@ -503,6 +589,125 @@ impl Bounds2 {
             quantize_axis(point.y(), self.min.y(), size.y()),
         ]
     }
+}
+
+impl<'de> serde::Deserialize<'de> for Bounds2 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let corners = UnvalidatedBounds2::deserialize(deserializer)?;
+        Self::new(corners.min, corners.max).ok_or_else(|| {
+            D::Error::custom("bounds corners must be finite and ordered per component")
+        })
+    }
+}
+
+// zerocopy's hidden validation APIs have no compatibility guarantee. Recheck this implementation
+// when updating the dependency.
+// SAFETY: TryFromBytes requires an accepted candidate to contain a valid Self. `offset_of!` locates
+// each Vec2 in this exact type, without assuming a repr(Rust) field order. `Maybe` uses a
+// transparent ReadOnly wrapper, and `as_bytes` preserves its initialized referent. The checked
+// reads copy those field bytes, and `new` accepts only finite, ordered corners without changing
+// their representation. Therefore every accepted candidate satisfies the Bounds2 invariant.
+unsafe impl zerocopy::TryFromBytes for Bounds2 {
+    fn only_derive_is_allowed_to_implement_this_trait() {}
+
+    fn is_bit_valid<A>(candidate: zerocopy::Maybe<'_, Self, A>) -> bool
+    where
+        A: zerocopy::invariant::Alignment,
+    {
+        let bytes = candidate.as_bytes::<zerocopy::BecauseImmutable>().as_ref();
+
+        let min_offset = offset_of!(Self, min);
+        let max_offset = offset_of!(Self, max);
+
+        let Ok(min) = Vec2::read_from_bytes(&bytes[min_offset..min_offset + size_of::<Vec2>()])
+        else {
+            return false;
+        };
+
+        let Ok(max) = Vec2::read_from_bytes(&bytes[max_offset..max_offset + size_of::<Vec2>()])
+        else {
+            return false;
+        };
+
+        Self::new(min, max).is_some()
+    }
+}
+
+// SAFETY: FromZeros requires the all-zero representation to be valid. Each Vec2 is transparent
+// over [f32; 2], whose zero bytes represent positive zero. Both corners are then finite and equal.
+// Therefore the all-zero Bounds2 satisfies its invariant.
+unsafe impl zerocopy::FromZeros for Bounds2 {
+    fn only_derive_is_allowed_to_implement_this_trait() {}
+}
+
+/// Resizes one axis to the extent `target` about its midpoint.
+///
+/// A `target` equal to the extent returns the corners bit for bit. Otherwise each corner shifts
+/// by half the change in extent, with outward narrowing as in [`Bounds2::with_aspect_ratio`].
+///
+/// Returns [`None`] when a shifted corner lies beyond the finite `f32` range.
+#[expect(
+    clippy::float_cmp,
+    reason = "an unchanged target repeats the extent calculation and compares equal bit for bit"
+)]
+fn resize_axis(low: f32, high: f32, target: f64) -> Option<[f32; 2]> {
+    let extent = f64::from(high) - f64::from(low);
+    if target == extent {
+        return Some([low, high]);
+    }
+
+    let shift = (target - extent) * 0.5;
+
+    Some([
+        shift_corner_down(low, shift)?,
+        shift_corner_up(high, shift)?,
+    ])
+}
+
+/// Subtracts `shift` from a low corner, with outward narrowing.
+///
+/// A negative `shift` moves the corner inward. Returns [`None`] when the downward rounding or
+/// outward step leaves the finite `f32` range.
+#[expect(
+    clippy::float_cmp,
+    reason = "the comparison detects a rounding that left the corner exactly in place"
+)]
+fn shift_corner_down(corner: f32, shift: f64) -> Option<f32> {
+    let shifted = narrow_f32_down(f64::from(corner) - shift)?;
+
+    // A positive shift no larger than half an `f64` ulp of the corner can round away in the
+    // subtraction and leave the corner in place, although the exact result lies strictly below
+    // it. The next `f32` down is then the largest at or below that result.
+    let shifted = if shift > 0.0 && shifted == corner {
+        corner.next_down()
+    } else {
+        shifted
+    };
+
+    shifted.is_finite().then_some(shifted)
+}
+
+/// Adds `shift` to a high corner, with outward narrowing.
+///
+/// A negative `shift` moves the corner inward. Returns [`None`] when the upward rounding or
+/// outward step leaves the finite `f32` range.
+#[expect(
+    clippy::float_cmp,
+    reason = "the comparison detects a rounding that left the corner exactly in place"
+)]
+fn shift_corner_up(corner: f32, shift: f64) -> Option<f32> {
+    let shifted = narrow_f32_up(f64::from(corner) + shift)?;
+
+    let shifted = if shift > 0.0 && shifted == corner {
+        corner.next_up()
+    } else {
+        shifted
+    };
+
+    shifted.is_finite().then_some(shifted)
 }
 
 /// The number of grid positions per axis of [`Bounds2::quantize`].
@@ -560,7 +765,7 @@ impl AxisMap {
     /// Maps one coordinate onto its target axis.
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the single f64-to-f32 rounding is the mapping's error bound"
+        reason = "the f64 result is deliberately narrowed to the f32 output"
     )]
     fn apply(self, value: f32) -> f32 {
         if self.extent == 0.0 {
@@ -581,7 +786,7 @@ impl AxisMap {
         if self.extent == 0.0 {
             #[expect(
                 clippy::cast_possible_truncation,
-                reason = "the single f64-to-f32 rounding is the mapping's error bound"
+                reason = "the f64 midpoint is deliberately narrowed to the f32 lane value"
             )]
             return Simd::splat(self.target_centre as f32);
         }

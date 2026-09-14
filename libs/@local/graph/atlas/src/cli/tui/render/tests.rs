@@ -498,7 +498,8 @@ fn the_map_keeps_the_placement_square() {
         [Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0)],
         [Vec2::new(-0.5, -12.0), Vec2::new(0.5, 12.0)],
     ] {
-        let [horizontal, vertical] = map_bounds(&placement, inner);
+        let [horizontal, vertical] =
+            map_bounds(&placement, inner).expect("should represent an ordinary placement viewport");
 
         let across = (horizontal[1] - horizontal[0]) / (f64::from(inner.width) * 2.0);
         let down = (vertical[1] - vertical[0]) / (f64::from(inner.height) * 4.0);
@@ -546,11 +547,13 @@ fn a_placement_with_no_extent_still_has_a_viewport() {
 
     // A collapsed placement and a frame with nothing finite in it
     // both draw a box rather than a degenerate one.
-    let [horizontal, vertical] = map_bounds(&[Vec2::new(3.0, 3.0); 4], inner);
+    let [horizontal, vertical] =
+        map_bounds(&[Vec2::new(3.0, 3.0); 4], inner).expect("should widen the collapsed placement");
     assert!(horizontal[0] < horizontal[1], "{horizontal:?}");
     assert!(vertical[0] < vertical[1], "{vertical:?}");
 
-    let [horizontal, vertical] = map_bounds(&[Vec2::new(f32::NAN, 0.0)], inner);
+    let [horizontal, vertical] =
+        map_bounds(&[Vec2::new(f32::NAN, 0.0)], inner).expect("should preserve the empty viewport");
     assert!(horizontal[0] < horizontal[1], "{horizontal:?}");
     assert!(vertical[0] < vertical[1], "{vertical:?}");
 }

@@ -54,8 +54,11 @@ mod tests;
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[repr(transparent)]
+#[serde(transparent)]
 pub(crate) struct Rotation(Vec2);
 
 impl Rotation {

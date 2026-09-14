@@ -13,7 +13,8 @@ use crate::math::{
     d_finite, finite, non_negative, positive,
     scalar::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
-        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, narrow_f32, softplus,
+        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, narrow_f32,
+        narrow_f32_down, narrow_f32_up, softplus,
     },
 };
 
@@ -406,6 +407,72 @@ fn narrowing_preserves_negative_zero() {
     assert_eq!(rounded.to_bits(), (-0.0_f32).to_bits());
 }
 
+/// The directed narrowings bracket a value the nearest rounding would cross: `0.1_f32` lies above
+/// `0.1`: `narrow_f32_down` steps below it and `narrow_f32_up` returns it.
+#[test]
+fn directed_narrowing_inexact() {
+    // `0.1_f32` is the nearest `f32` to 0.1 and sits above it.
+    assert!(f64::from(0.1_f32) > 0.1);
+
+    assert_eq!(narrow_f32_down(0.1), Some(0.1_f32.next_down()));
+    assert_eq!(narrow_f32_up(0.1), Some(0.1_f32));
+
+    // A value whose nearest `f32` lies below it: the mirror image.
+    let below = f64::from(0.1_f32.next_down());
+    let between = f64::midpoint(below, f64::from(0.1_f32)) - 1e-12;
+    assert_eq!(narrow_f32_down(between), Some(0.1_f32.next_down()));
+    assert_eq!(narrow_f32_up(between), Some(0.1_f32));
+}
+
+/// A value that is already an `f32` narrows to itself in both directions, `-0.0` with its sign bit.
+#[test]
+fn directed_narrowing_exact() {
+    assert_eq!(narrow_f32_down(0.25), Some(0.25_f32));
+    assert_eq!(narrow_f32_up(0.25), Some(0.25_f32));
+    assert_eq!(narrow_f32_down(f64::from(f32::MAX)), Some(f32::MAX));
+    assert_eq!(narrow_f32_up(f64::from(-f32::MAX)), Some(-f32::MAX));
+
+    let down = narrow_f32_down(-0.0).expect("negative zero is finite");
+    let up = narrow_f32_up(-0.0).expect("negative zero is finite");
+    assert_eq!(down.to_bits(), (-0.0_f32).to_bits());
+    assert_eq!(up.to_bits(), (-0.0_f32).to_bits());
+}
+
+/// Beyond `f32::MAX` only the downward narrowing has an answer, beyond `-f32::MAX` only the upward
+/// one, and neither has one for NaN or the infinities.
+#[test]
+fn directed_narrowing_range_edges() {
+    // Just past the range, where the nearest rounding still returns `f32::MAX`.
+    let past_max = f64::from(f32::MAX) + 1e30;
+    assert_eq!(narrow_f32_down(past_max), Some(f32::MAX));
+    assert_eq!(narrow_f32_up(past_max), None);
+
+    // Far past the range, where the nearest rounding is infinite.
+    assert_eq!(narrow_f32_down(1e300), Some(f32::MAX));
+    assert_eq!(narrow_f32_up(1e300), None);
+    assert_eq!(narrow_f32_down(-1e300), None);
+    assert_eq!(narrow_f32_up(-1e300), Some(-f32::MAX));
+
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert_eq!(narrow_f32_down(value), None, "down({value})");
+        assert_eq!(narrow_f32_up(value), None, "up({value})");
+    }
+}
+
+/// Below the smallest subnormal magnitude the directed narrowings step onto the neighbouring
+/// subnormal or zero, on the side the direction names.
+#[test]
+fn directed_narrowing_subnormal() {
+    let tiny = f32::from_bits(1);
+
+    assert_eq!(narrow_f32_down(1e-50), Some(0.0));
+    assert_eq!(narrow_f32_up(1e-50), Some(tiny));
+    assert_eq!(narrow_f32_down(-1e-50), Some(-tiny));
+
+    let up = narrow_f32_up(-1e-50).expect("the value is finite");
+    assert_eq!(up.to_bits(), (-0.0_f32).to_bits());
+}
+
 /// Softplus is non-negative and satisfies the shift identity.
 ///
 /// `softplus(x) - softplus(-x) == x` up to rounding scaled by `|x|`. The strategy bounds inputs to
@@ -496,6 +563,33 @@ fn huber_is_monotone_in_the_magnitude(
 #[property_test]
 fn narrow_f32_round_trips_every_finite_f32(#[strategy = -f32::MAX..=f32::MAX] value: f32) {
     prop_assert_eq!(narrow_f32(f64::from(value)), Some(value));
+}
+
+/// The directed narrowings are the floor and ceiling onto the `f32` grid.
+///
+/// For every finite `f64` inside the `f32` range, `narrow_f32_down` returns a value at or below it
+/// whose successor lies above it, and `narrow_f32_up` a value at or above it whose predecessor lies
+/// below it. The strategy spans the whole range in both signs, subnormals included.
+#[property_test]
+fn directed_narrowing_order_laws(
+    #[strategy = -f64::from(f32::MAX)..=f64::from(f32::MAX)] value: f64,
+) {
+    let down = narrow_f32_down(value).expect("the value is inside the range");
+    prop_assert!(
+        f64::from(down) <= value,
+        "down({value}) = {down} lies above"
+    );
+    prop_assert!(
+        f64::from(down.next_up()) > value,
+        "down({value}) = {down} has a successor at or below",
+    );
+
+    let up = narrow_f32_up(value).expect("the value is inside the range");
+    prop_assert!(f64::from(up) >= value, "up({value}) = {up} lies below");
+    prop_assert!(
+        f64::from(up.next_down()) < value,
+        "up({value}) = {up} has a predecessor at or above",
+    );
 }
 
 /// The whole `u8` domain, exhaustively: exactly the shiftable exponents construct.

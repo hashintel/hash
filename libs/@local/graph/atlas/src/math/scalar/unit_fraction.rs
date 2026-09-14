@@ -5,11 +5,12 @@ use core::{
     error::Error,
     fmt,
     hash::{Hash, Hasher},
-    ops::{Mul, MulAssign, Sub},
+    ops::{Add, Mul, MulAssign, Sub},
 };
 
 use super::{
-    DFinite, OpenUnitFraction, PositiveUnitFraction, raw_interop, unsafe_impl_try_from_bytes,
+    DFinite, DNonNegative, OpenUnitFraction, PositiveUnitFraction, raw_interop,
+    unsafe_impl_try_from_bytes,
 };
 
 /// Validates a unit-fraction literal at compile time.
@@ -252,7 +253,8 @@ impl UnitFraction {
     /// Returns `true` when the fraction is exactly one.
     #[expect(
         clippy::float_cmp,
-        reason = "one is exactly representable and stored canonically, so equality is exact"
+        reason = "the endpoint test needs exact equality with the exactly representable, \
+                  canonical one"
     )]
     #[inline]
     #[must_use]
@@ -311,6 +313,20 @@ impl UnitFraction {
         // In range with no check: sqrt is monotone into [0, 1] over this domain, never NaN for
         // a non-negative operand, and sqrt(+0.0) is +0.0.
         Self(self.0.sqrt())
+    }
+
+    /// Returns the fraction rounded to `f32`.
+    ///
+    /// The result remains finite and in `[0, 1]`. Both endpoints are exact.
+    ///
+    /// # Warning
+    ///
+    /// Rounding can map a positive fraction to `0.0` or a fraction below one to `1.0`.
+    #[inline]
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) const fn as_f32(self) -> f32 {
+        self.0 as f32
     }
 }
 
@@ -531,6 +547,15 @@ const impl Mul<PositiveUnitFraction> for UnitFraction {
         // [0, 1], and both operands have sign bit zero, which multiplication preserves even on
         // underflow to +0.0. The rounded product is in-domain and canonical without normalization.
         Self(self.0 * rhs.get())
+    }
+}
+
+const impl Add<UnitFraction> for UnitFraction {
+    type Output = DNonNegative;
+
+    #[inline]
+    fn add(self, rhs: UnitFraction) -> DNonNegative {
+        DNonNegative::new_unchecked(self.get() + rhs.get())
     }
 }
 

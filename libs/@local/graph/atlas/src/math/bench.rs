@@ -16,8 +16,8 @@ use rayon::{
 };
 
 use super::{
-    AffinityCurve, Bounds2, DVecN, FinitePointField, Positive, Similarity, Vec2, Vec2x4T, VecN,
-    field::POINT_CHUNK, transform::Transform, vec2::Vec2x4,
+    AffinityCurve, Bounds2, DVecN, FinitePointField, NonNegative, Positive, Similarity, Vec2,
+    Vec2x4T, VecN, field::POINT_CHUNK, transform::Transform, vec2::Vec2x4,
 };
 
 /// Fixed-size operands for vector-kernel benchmarks.
@@ -112,8 +112,10 @@ pub fn affinity_state(
     to: [[f32; 2]; 4],
 ) -> AffinityState {
     AffinityState {
-        curve: AffinityCurve::new(curve_a, curve_b)
-            .expect("curve parameters should be positive and finite"),
+        curve: AffinityCurve::new(
+            Positive::new(curve_a).expect("curve parameters should be positive and finite"),
+            Positive::new(curve_b).expect("curve parameters should be positive and finite"),
+        ),
         from: vec2_batch(from),
         to: vec2_batch(to),
     }
@@ -164,6 +166,9 @@ pub fn affinity_attraction_scalar_reference(state: &AffinityState) {
 )]
 #[inline(always)]
 pub fn affinity_repulsion_x4(state: &AffinityState, repulsion_strength: f32) {
+    let repulsion_strength = NonNegative::new(repulsion_strength)
+        .expect("the benchmark passes a non-negative repulsion strength");
+
     black_box(black_box(state.curve).repulsion_x4(
         black_box(state.from),
         black_box(state.to),
@@ -265,6 +270,11 @@ impl Points {
     reason = "the modulus is the fixture's deterministic spread rule, as the benchmark target \
               wrote it"
 )]
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "the remainder modulo 40000 is below u16::MAX, making its checked conversion \
+              infallible"
+)]
 #[must_use]
 #[expect(clippy::missing_panics_doc)]
 pub fn scattered_points(count: usize) -> Points {
@@ -331,7 +341,8 @@ pub struct SimilarityFixture {
 #[must_use]
 pub fn similarity_fixture(count: usize, reference: [f32; 5]) -> SimilarityFixture {
     let Points(source) = scattered_points(count);
-    let reference = Similarity::from_array(reference).expect("scale should be normal and positive");
+    let reference =
+        Similarity::from_array(reference).expect("reference coefficients must be valid");
     let target = source.iter().map(|&point| reference.apply(point)).collect();
     let weights = vec![1.0_f32; source.len()];
 

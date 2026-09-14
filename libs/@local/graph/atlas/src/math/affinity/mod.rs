@@ -32,18 +32,18 @@
 use core::simd::{Select as _, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _};
 
 use super::{
-    NonNegative,
+    Derivation, Finite, NonNegative, Positive,
     kernel::{mul_add_f32x4, pow_f32x4},
-    non_negative,
+    non_negative, positive,
     vec2::{Vec2, Vec2x4T},
 };
 
 mod fit;
 #[cfg(test)]
-pub(crate) use self::fit::AffinityFitConfig;
+mod tests;
 
 #[cfg(test)]
-mod tests;
+pub(crate) use self::fit::AffinityFitConfig;
 
 /// A positive-parameter affinity curve for layout distances.
 ///
@@ -69,10 +69,10 @@ mod tests;
 /// assert!(gradient.x() < 0.0);
 /// assert_eq!(gradient.y(), 0.0);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AffinityCurve {
-    a: f32,
-    b: f32,
+    a: Positive,
+    b: Positive,
 }
 
 impl AffinityCurve {
@@ -90,21 +90,21 @@ impl AffinityCurve {
 
     /// Creates a curve from its fitted parameters.
     #[must_use]
-    pub(crate) fn new(a: f32, b: f32) -> Option<Self> {
-        (a.is_finite() && a > 0.0 && b.is_finite() && b > 0.0).then_some(Self { a, b })
+    pub(crate) const fn new(a: Positive, b: Positive) -> Self {
+        Self { a, b }
     }
 
     /// Returns the coefficient controlling the affinity's distance scale.
     #[inline]
     #[must_use]
-    pub(crate) const fn a(self) -> f32 {
+    pub(crate) const fn a(self) -> Positive {
         self.a
     }
 
     /// Returns the exponent shaping the affinity's decay.
     #[inline]
     #[must_use]
-    pub(crate) const fn b(self) -> f32 {
+    pub(crate) const fn b(self) -> Positive {
         self.b
     }
 
@@ -115,12 +115,14 @@ impl AffinityCurve {
     /// strict monotonicity or ULP guarantee is made for the approximation. Overflow in the positive
     /// denominator can produce a zero affinity.
     #[must_use]
-    pub(crate) fn affinity(self, distance_squared: f32) -> f32 {
+    pub(crate) fn affinity(self, distance_squared: NonNegative) -> f32 {
         if distance_squared <= 0.0 {
             return 1.0;
         }
 
-        self.a.mul_add(distance_squared.powf(self.b), 1.0).recip()
+        let raised = distance_squared.powf(self.b.into());
+        let denominator = Derivation::from(self.a).mul_add(raised, Positive::ONE);
+        (Derivation::from(NonNegative::ONE) / denominator).into_raw()
     }
 
     /// Computes the clipped attraction gradients of four point pairs.
@@ -136,11 +138,15 @@ impl AffinityCurve {
     pub(crate) fn attraction_x4(self, from: Vec2x4T, to: Vec2x4T) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
 
-        // Shared power: d^(2b - 2), with d^(2b) recovered by one multiply.
-        let power = pow_f32x4(distance_squared, Simd::splat(self.b - 1.0));
-        let coefficient = (Simd::splat(-2.0 * self.a * self.b) * power)
+        // share ρ^(b−1) between the numerator and denominator, with ρᵇ recovered by multiplication
+        let power = pow_f32x4(
+            distance_squared,
+            Simd::splat((self.b - Positive::ONE).get()),
+        );
+        let scale = (-Finite::from(positive!(2.0)) * self.a) * self.b;
+        let coefficient = (Simd::splat(scale.into_raw()) * power)
             / mul_add_f32x4(
-                Simd::splat(self.a) * power,
+                Simd::splat(self.a.get()) * power,
                 distance_squared,
                 Simd::splat(1.0),
             );
@@ -167,14 +173,15 @@ impl AffinityCurve {
         self,
         from: Vec2x4T,
         to: Vec2x4T,
-        repulsion_strength: f32,
+        repulsion_strength: NonNegative,
     ) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
 
-        let power = pow_f32x4(distance_squared, Simd::splat(self.b));
+        let power = pow_f32x4(distance_squared, Simd::splat(self.b.get()));
         let denominator = (Simd::splat(Self::REPULSION_GUARD.get()) + distance_squared)
-            * mul_add_f32x4(Simd::splat(self.a), power, Simd::splat(1.0));
-        let coefficient = Simd::splat(2.0 * repulsion_strength * self.b) / denominator;
+            * mul_add_f32x4(Simd::splat(self.a.get()), power, Simd::splat(1.0));
+        let scale = (positive!(2.0) * repulsion_strength) * self.b;
+        let coefficient = Simd::splat(scale.into_raw()) / denominator;
 
         // Coincident pairs: no direction to push along.
         let coefficient = distance_squared
@@ -197,11 +204,13 @@ impl AffinityCurve {
             return Vec2::ZERO;
         }
 
-        let power = distance_squared.powf(self.b - 1.0);
-        let coefficient = (-2.0 * self.a * self.b * power)
-            / (self.a * power).mul_add(distance_squared.get(), 1.0);
+        let power = distance_squared.powf(self.b - Positive::ONE);
+        let numerator = (-Finite::from(positive!(2.0)) * self.a) * self.b * power;
+        let denominator =
+            (Derivation::from(self.a) * power).mul_add(distance_squared, Positive::ONE);
+        let coefficient = numerator / denominator;
 
-        clip_vec2((from - to) * coefficient)
+        clip_vec2((from - to) * coefficient.into_raw())
     }
 
     /// Computes the clipped repulsion gradient of a single point pair.
@@ -211,17 +220,18 @@ impl AffinityCurve {
     /// squared distance returns zero. The coefficient and scaled differences must avoid NaNs for a
     /// finite clipped result. Scalar and SIMD values can differ.
     #[must_use]
-    pub(crate) fn repulsion(self, from: Vec2, to: Vec2, repulsion_strength: f32) -> Vec2 {
+    pub(crate) fn repulsion(self, from: Vec2, to: Vec2, repulsion_strength: NonNegative) -> Vec2 {
         let distance_squared = from.distance_squared(to);
         if distance_squared <= 0.0 {
             return Vec2::ZERO;
         }
 
-        let denominator = (Self::REPULSION_GUARD + distance_squared)
-            * self.a.mul_add(distance_squared.powf(self.b).get(), 1.0);
-        let coefficient = 2.0 * repulsion_strength * self.b / denominator;
+        let power = distance_squared.powf(self.b.into());
+        let denominator = (Derivation::from(Self::REPULSION_GUARD) + distance_squared)
+            * Derivation::from(self.a).mul_add(power, Positive::ONE);
+        let coefficient = (positive!(2.0) * repulsion_strength) * self.b / denominator;
 
-        clip_vec2((from - to) * coefficient)
+        clip_vec2((from - to) * coefficient.into_raw())
     }
 }
 

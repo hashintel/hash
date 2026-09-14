@@ -168,7 +168,7 @@ fn relation_indexes(
 /// (zero value), and the derivative mass is exactly `0.25`.
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
-        AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
+        AffinityCurve::new(positive!(1.0), positive!(1.0)),
         positive!(0.5),
     )
     .expect("the fixture exponent satisfies the objective bound")

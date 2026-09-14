@@ -68,15 +68,15 @@ impl Transform {
     /// let fitted = Transform::fit_uniform(source, target).expect("the pairs are exact");
     /// assert_eq!(fitted.apply(Vec2::new(1.0, 1.0)), expected.apply(Vec2::new(1.0, 1.0)));
     /// ```
-    #[must_use]
     #[expect(
         clippy::cast_precision_loss,
-        reason = "pair counts remain exactly representable in f64 far beyond any corpus"
+        reason = "deliberately convert the pair count for double-precision arithmetic"
     )]
     #[expect(
         clippy::similar_names,
         reason = "the raw moments carry their axis-pair names, which the closed form is written in"
     )]
+    #[must_use]
     pub(crate) fn fit_uniform<I: Id>(
         source: &FinitePointField<I>,
         target: &FinitePointField<I>,

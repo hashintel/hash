@@ -14,7 +14,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::attraction::read::OpenAttractionError,
     identity::NodeRowId,
-    math::NonFinitePoint,
+    math::{NonFinitePoint, Positive},
     salt::{
         ladder::{CanonicalError, LadderError, paired::EncodeError},
         projector::{
@@ -31,7 +31,7 @@ use crate::{
 #[derive(Debug)]
 pub(crate) enum ProjectorError {
     /// The projector objective rejects the fit's low-dimensional kernel.
-    ObjectiveCurve { exponent: f32 },
+    ObjectiveCurve { exponent: Positive },
     /// The configured architecture disagrees with the dataset's representation width.
     RepresentationWidth { configured: usize },
     /// Projector training failed.
