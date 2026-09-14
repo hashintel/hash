@@ -226,26 +226,6 @@ pub struct FitVerdict {
     elapsed: Duration,
 }
 
-impl FitVerdict {
-    /// The run's summary.
-    #[must_use]
-    pub const fn summary(&self) -> &Summary {
-        &self.summary
-    }
-
-    /// Where the admission report landed.
-    #[must_use]
-    pub fn report(&self) -> &Utf8Path {
-        &self.report
-    }
-
-    /// How long the run took.
-    #[must_use]
-    pub const fn elapsed(&self) -> Duration {
-        self.elapsed
-    }
-}
-
 impl fmt::Display for FitVerdict {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(fmt)?;
