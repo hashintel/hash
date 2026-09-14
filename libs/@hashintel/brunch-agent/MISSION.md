@@ -5,15 +5,16 @@
 Live constraints-only mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
 Publication base: restacked FE-1664 at
-[cd8793cc45](https://github.com/hashintel/hash/commit/cd8793cc45a14d243b7144657683ba4a2ad59c8f),
+[9499b9287b](https://github.com/hashintel/hash/commit/9499b9287bd69b751ebcdd61b0c6bf2586bc191e),
 not `origin/main`. The original comparison revision is
 [3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54).
-Only this child's unpublished commits were rebased; FE-1664 and its PR are not
-modified by this mission. All five touched files were unchanged on the new base.
+Only this child's commits were rebased; FE-1664 and its PR are not modified by
+this mission. The sole conflict was this mission; the parent's newer consent and
+Thinking dock contracts are preserved below, without expanding the capture-only cut.
 The separate authority commit is
-[1038a4a797](https://github.com/hashintel/hash/commit/1038a4a79716df484e2baa9d0def2f1c42f3898b).
+[41671b9935](https://github.com/hashintel/hash/commit/41671b9935676744b024e4045f3e89237e74bef6).
 The capture-only implementation is prepared: its assertion failed before the
-change, and 312 targeted tests, website typechecking, lint and build now pass.
+change, and 317 targeted tests, website typechecking, lint and build now pass.
 Next: Kostandin's matched speaker/headphone witness below. Acoustic benefit and
 mission acceptance remain unproved. No provider session is agent-authorized.
 
@@ -70,6 +71,9 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
   against FE-1664. This supersedes only the local-only publication restriction;
   existing issues/PRs, parent branches, agent microphone/provider sessions, merge
   and deployment remain outside scope.
+- **2026-09-14:** Kostandin authorizes fixing this child's parent conflict by
+  rebasing, reconciling the mission, rerunning checks and pushing with an explicit
+  lease. Refresh this draft PR's proof record; leave other issues/PRs unchanged.
 
 ## Proof
 
@@ -85,7 +89,7 @@ Run from the repository root with the pinned Node/Yarn toolchain:
 sandbox-exec -p '(version 1)(allow default)(deny network*)' yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/live-conversation.test.ts
 ```
 
-Verified 2026-09-14: the same command with these seven files passes 312 tests:
+Verified 2026-09-14 after conflict resolution: these seven files pass 317 tests:
 `live-conversation.test.ts`, `live-brunch-bridge.test.ts`,
 `live-conversation-control.test.tsx`, `openai-realtime-session.test.ts`,
 `realtime-brunch-bridge.test.ts`, `voice-turn-controller.test.ts`, and
@@ -101,11 +105,11 @@ Lint reports zero warnings/errors. Build reports unchanged React Compiler
 and `git diff --check` pass; Brunch Markdown is excluded by repository formatter
 configuration and reviewed directly. No UI appearance or interaction controls change.
 
-Publication verification after restacking: the same seven suites pass all 312 tests
-again after refreshing generated dependencies. The initial direct typecheck found
-stale Petrinaut navigation declarations; the normal workspace task resolves them
-without source changes. `turbo run build lint:tsc lint:eslint --filter
+Current restack verification: `turbo run build lint:tsc lint:eslint --filter
 @apps/petrinaut-website --output-logs=errors-only` passes all 16 tasks (9 cached).
+The seven-suite run includes the parent's new consent and Thinking controller tests.
+The production diff against this parent remains only the capture preferences;
+consent and dock implementation are unchanged from that parent.
 
 ### Manual speaker and headphone witness — pending, owner-held
 
