@@ -303,6 +303,31 @@ export const isSelectDropdownOpen = (
       element.querySelector("[data-part=trigger][data-state=open]") !== null,
   );
 
+/**
+ * Focus a segment on the chip's behalf without surfacing the focus ring:
+ * programmatic focus following a click often still matches `:focus-visible`
+ * (and text inputs always do), which flashes a keyboard ring the user never
+ * asked for. A marker on the chip root blanks `--filter-ring` (see the
+ * recipe) until the next real interaction — a key press, pointer press, or
+ * focus moving on — each of which lifts it.
+ */
+export const focusWithoutRing = (
+  chipRoot: HTMLElement,
+  target: HTMLElement,
+): void => {
+  chipRoot.setAttribute("data-focus-ring-suppressed", "");
+  const lift = () => {
+    chipRoot.removeAttribute("data-focus-ring-suppressed");
+    document.removeEventListener("keydown", lift, true);
+    document.removeEventListener("pointerdown", lift, true);
+    chipRoot.removeEventListener("focusout", lift, true);
+  };
+  document.addEventListener("keydown", lift, true);
+  document.addEventListener("pointerdown", lift, true);
+  chipRoot.addEventListener("focusout", lift, true);
+  target.focus();
+};
+
 // ── Abandoned-chip dismissal (removeable.dismissAbandoned) ──────────────────
 
 /** How long an abandoned chip sits untouched before its fade-out begins. */
