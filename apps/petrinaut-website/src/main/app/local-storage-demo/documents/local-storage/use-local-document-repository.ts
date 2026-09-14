@@ -40,6 +40,7 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
     title: stored.title,
     definition: stored.sdcpn,
     origin: { kind: "local" },
+    lastUpdated: stored.lastUpdated,
   };
 };
 
@@ -70,7 +71,21 @@ export const useLocalDocumentRepository = (input: {
         : storedSDCPNs,
     [defaultDocument, storageReady, storedSDCPNs],
   );
+  // Mirrors the revision each stored document sits at, keyed by
+  // `documentId:incarnationId`, for `settleRevision`, which has no store
+  // snapshot of its own to read. `persistRevision` advances it as it writes,
+  // and the effect below re-syncs it whenever storage changes — including
+  // writes made by another tab.
   const persistedRevisionsRef = useRef(new Map<string, DocumentRevisionId>());
+  useEffect(() => {
+    persistedRevisionsRef.current = new Map(
+      Object.values(storedSDCPNs).flatMap((stored) =>
+        stored.incarnationId === undefined || stored.revisionId === undefined
+          ? []
+          : [[`${stored.id}:${stored.incarnationId}`, stored.revisionId]],
+      ),
+    );
+  }, [storedSDCPNs]);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
     null,
   );
@@ -197,26 +212,45 @@ export const useLocalDocumentRepository = (input: {
 
   const persistRevision: DocumentRepository["persistRevision"] = useCallback(
     async (change) => {
-      const storedDocument = documents[change.documentId];
-      if (storedDocument === undefined)
-        throw new Error(
-          `Local document ${change.documentId} is not available.`,
-        );
-      const document = toDocumentRecord(storedDocument);
-      if (document.incarnationId !== change.incarnationId)
-        throw new Error(
-          `Local document ${change.documentId} has a different incarnation.`,
-        );
-      const identityKey = `${change.documentId}:${change.incarnationId}`;
-      const persistedRevision =
-        persistedRevisionsRef.current.get(identityKey) ?? document.revisionId;
-      if (persistedRevision !== change.previousRevisionId)
-        throw new Error(
-          `Local document ${change.documentId} revision does not follow its predecessor.`,
-        );
-      persistedRevisionsRef.current.set(identityKey, change.revisionId);
+      // Predecessor and incarnation are checked against the very store the
+      // write lands in: `setStoredSDCPNs` re-reads storage when another tab
+      // has written since this tab last did, so a check made outside the
+      // updater could pass on a revision the store no longer holds and then
+      // overwrite the other tab's work.
+      const refusal: { error: Error | null } = { error: null };
       setStoredSDCPNs((previous) => {
-        const stored = previous[change.documentId] ?? storedDocument;
+        const stored =
+          previous[change.documentId] ?? documents[change.documentId];
+        if (stored === undefined) {
+          refusal.error = new Error(
+            `Local document ${change.documentId} is not available.`,
+          );
+          return previous;
+        }
+        // A stored entry predating incarnation tracking takes the identity
+        // its record was given until the mirroring effect stamps it.
+        const record = records.find(
+          ({ documentId }) => documentId === change.documentId,
+        );
+        const storedIncarnationId =
+          stored.incarnationId ?? record?.incarnationId;
+        const storedRevisionId = stored.revisionId ?? record?.revisionId;
+        if (storedIncarnationId !== change.incarnationId) {
+          refusal.error = new Error(
+            `Local document ${change.documentId} has a different incarnation.`,
+          );
+          return previous;
+        }
+        if (storedRevisionId !== change.previousRevisionId) {
+          refusal.error = new Error(
+            `Local document ${change.documentId} revision does not follow its predecessor.`,
+          );
+          return previous;
+        }
+        persistedRevisionsRef.current.set(
+          `${change.documentId}:${change.incarnationId}`,
+          change.revisionId,
+        );
         const next: SDCPNInLocalStorage = {
           ...stored,
           incarnationId: change.incarnationId,
@@ -228,8 +262,9 @@ export const useLocalDocumentRepository = (input: {
           draft[change.documentId] = castDraft(next);
         });
       });
+      if (refusal.error !== null) throw refusal.error;
     },
-    [documents, persistedRevisionsRef, setStoredSDCPNs],
+    [documents, persistedRevisionsRef, records, setStoredSDCPNs],
   );
 
   const settleRevision: DocumentRepository["settleRevision"] = useCallback(

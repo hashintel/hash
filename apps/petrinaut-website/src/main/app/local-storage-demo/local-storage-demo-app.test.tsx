@@ -55,6 +55,7 @@ import type {
   FlueClient,
 } from "@flue/sdk";
 import type {
+  MinimalNetMetadata,
   PetrinautDocHandle,
   PetrinautMutations,
 } from "@hashintel/petrinaut-core";
@@ -133,6 +134,7 @@ const editorProps = vi.hoisted(() => ({
     }) => void;
     existingNets?: unknown;
     handle?: unknown;
+    loadPetriNet?: unknown;
     navigation?: unknown;
     title?: string;
   } | null,
@@ -238,6 +240,16 @@ const stubStorage = () => {
     setItem: (key: string, value: string) => entries.set(key, value),
   } satisfies Storage);
 };
+
+/**
+ * The `storage` event another tab's write raises. Built by hand because the
+ * stubbed store is not a jsdom `Storage`, which `StorageEvent` insists on.
+ */
+const otherTabStorageEvent = (key: string): Event =>
+  Object.defineProperties(new Event("storage"), {
+    key: { value: key },
+    storageArea: { value: localStorage },
+  });
 
 const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   stubStorage();
@@ -771,6 +783,10 @@ describe("local document revision persistence", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
+    remoteRepositoryOperations.persistRevision.mockReset();
+    remoteRepositoryOperations.persistRevision.mockImplementation(
+      async (): Promise<void> => undefined,
+    );
   });
 
   test("retains direct document changes across handle reopen", async () => {
@@ -816,6 +832,251 @@ describe("local document revision persistence", () => {
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+  });
+
+  test("lists each stored net with the time it was last written", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    expect(editorProps.current?.existingNets).toEqual([
+      {
+        netId: "net-1",
+        title: "Seeded net",
+        lastUpdated: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "listed-place",
+          name: "Listed place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+
+    await waitFor(() => {
+      const nets = editorProps.current?.existingNets as MinimalNetMetadata[];
+      expect(new Date(nets[0]?.lastUpdated ?? 0).getTime()).toBeGreaterThan(
+        new Date("2020-01-01T00:00:00.000Z").getTime(),
+      );
+    });
+  });
+
+  test("adopts another tab's revision of the open document and chains later changes from it", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
+
+    const otherTabPlace = {
+      id: "other-tab-place",
+      name: "Other tab place",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    };
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, { sdcpn: { places: unknown[] } }>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...stored,
+        "net-1": {
+          ...stored["net-1"],
+          revisionId: "other-tab-revision",
+          lastUpdated: "2026-01-01T00:00:00.000Z",
+          sdcpn: { ...stored["net-1"]?.sdcpn, places: [otherTabPlace] },
+        },
+      }),
+    );
+    act(() => {
+      window.dispatchEvent(otherTabStorageEvent("petrinaut-sdcpn"));
+    });
+
+    await waitFor(() =>
+      expect(
+        (
+          editorProps.current?.handle as PetrinautDocHandle | undefined
+        )?.revisionId.get(),
+      ).toBe("other-tab-revision"),
+    );
+    const adoptedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(adoptedHandle).not.toBe(firstHandle);
+    expect(adoptedHandle.doc()?.places.map((place) => place.id)).toEqual([
+      "other-tab-place",
+    ]);
+
+    act(() => {
+      adoptedHandle.change((draft) => {
+        draft.places.push({ ...otherTabPlace, id: "this-tab-place" });
+      });
+    });
+    const chainedRevisionId = adoptedHandle.revisionId.get();
+    await waitFor(() => {
+      const persisted = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<
+        string,
+        { revisionId?: string; sdcpn: { places: { id: string }[] } }
+      >;
+      expect(persisted["net-1"]?.revisionId).toBe(chainedRevisionId);
+      expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
+        ["other-tab-place", "this-tab-place"],
+      );
+    });
+    expect(editorProps.current?.handle).toBe(adoptedHandle);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("reports a refused change and reopens the editor from the repository's record so the next change is accepted", async () => {
+    stubStorage();
+    vi.clearAllMocks();
+    selectRemoteDocument();
+    // Like the worked-model repository: the first write is refused, and any
+    // later write is refused unless it follows the revision the record holds.
+    // A handle kept after the refusal would name its refused revision as the
+    // predecessor and be refused again.
+    remoteRepositoryOperations.persistRevision
+      .mockRejectedValueOnce(new Error("Worked-model write refused."))
+      .mockImplementation(async (change) => {
+        if (change.previousRevisionId !== remoteDocument.revisionId)
+          throw new Error(
+            `Worked-model write refused: ${change.previousRevisionId} is not the stored revision.`,
+          );
+      });
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const refusedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    const addPlace = (handle: PetrinautDocHandle, id: string) =>
+      act(() => {
+        handle.change((draft) => {
+          draft.places.push({
+            id,
+            name: id,
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          });
+        });
+      });
+
+    addPlace(refusedHandle, "refused-place");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("not saved");
+    expect(alert.textContent).toContain("Worked-model write refused.");
+    // The refused change is dropped: the editor reopens from the record.
+    await waitFor(() =>
+      expect(editorProps.current?.handle).not.toBe(refusedHandle),
+    );
+    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(reopenedHandle.revisionId.get()).toBe(remoteDocument.revisionId);
+    expect(reopenedHandle.doc()?.places).toEqual([]);
+    // The notice outlives the handle it was raised for.
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Worked-model write refused.",
+    );
+
+    addPlace(reopenedHandle, "accepted-place");
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(editorProps.current?.handle).toBe(reopenedHandle);
+    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledTimes(2);
+    expect(
+      remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
+    ).toMatchObject({ previousRevisionId: remoteDocument.revisionId });
+  });
+
+  test("forgets a refused change once another document is opened", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, Record<string, unknown>>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...stored,
+        "net-2": {
+          ...stored["net-1"],
+          id: "net-2",
+          title: "Second net",
+          incarnationId: "second-incarnation",
+          revisionId: "second-revision",
+          lastUpdated: "2019-01-01T00:00:00.000Z",
+        },
+      }),
+    );
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.revisionId.get()).toBe("local-revision-1");
+
+    // Another tab moves net-1 on; its storage event has not reached this tab.
+    // (Its place also keeps net-1 from being pruned as empty when net-2 opens.)
+    const otherTabPlace = {
+      id: "other-tab-place",
+      name: "Other tab place",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    };
+    const current = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, { sdcpn: Record<string, unknown> }>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...current,
+        "net-1": {
+          ...current["net-1"],
+          revisionId: "other-tab-revision",
+          sdcpn: { ...current["net-1"]?.sdcpn, places: [otherTabPlace] },
+        },
+      }),
+    );
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "refused-place",
+          name: "Refused place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    await screen.findByRole("alert");
+
+    const loadPetriNet = editorProps.current?.loadPetriNet as (
+      petriNetId: string,
+    ) => void;
+    act(() => loadPetriNet("net-2"));
+    await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    act(() => loadPetriNet("net-1"));
+    await waitFor(() => expect(editorProps.current?.title).toBe("Seeded net"));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {

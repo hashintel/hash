@@ -62,6 +62,7 @@ const createFixtureRecord = (
     bundleKey: document.id,
     fixtureVersion,
   },
+  lastUpdated: document.lastUpdated,
 });
 
 const createRootArcTracerDocument = (

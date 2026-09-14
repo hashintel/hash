@@ -250,6 +250,47 @@ describe("useLocalDocumentRepository", () => {
     ).rejects.toThrow("revision does not follow its predecessor");
   });
 
+  test("refuses to overwrite a revision another tab stored before its storage event arrives", async () => {
+    const stored = (revisionId: string, title: string) => ({
+      "document-1": {
+        id: "document-1",
+        incarnationId: "incarnation-1",
+        revisionId,
+        title,
+        sdcpn: emptyDefinition,
+        lastUpdated: new Date(0).toISOString(),
+      },
+    });
+    const storage = stubStorage(stored("revision-1", "Mine"));
+    const { result } = renderHook(() =>
+      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    );
+    await waitFor(() =>
+      expect(result.current.repository.current?.revisionId).toBe("revision-1"),
+    );
+    // Another tab writes revision-2; this tab's `storage` event has not run.
+    storage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify(stored("revision-2", "Other tab")),
+    );
+
+    await expect(
+      result.current.repository.persistRevision({
+        documentId: "document-1",
+        incarnationId: "incarnation-1",
+        definition: emptyDefinition,
+        previousRevisionId: "revision-1",
+        revisionId: "revision-3",
+      }),
+    ).rejects.toThrow("revision does not follow its predecessor");
+    const saved: unknown = JSON.parse(
+      storage.getItem("petrinaut-sdcpn") ?? "{}",
+    );
+    expect(saved).toMatchObject({
+      "document-1": { revisionId: "revision-2", title: "Other tab" },
+    });
+  });
+
   test("settles an available local revision immediately", async () => {
     stubStorage({
       "document-1": {

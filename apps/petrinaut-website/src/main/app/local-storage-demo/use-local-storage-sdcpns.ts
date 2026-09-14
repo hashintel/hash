@@ -99,7 +99,12 @@ export const createLocalStorageNetRecord = (params: {
   };
 };
 
-const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
+/**
+ * The stored envelope as written, before any entry is recognized as a document.
+ * Content that is not a JSON object is treated as an empty envelope and is
+ * replaced by the next write.
+ */
+const readRawStore = (storage: Storage): Record<string, unknown> => {
   const raw = readBrowserStorage(storage, rootLocalStorageKey);
 
   if (raw === null) {
@@ -110,16 +115,41 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // Content the store cannot parse is replaced. `useLocalStorage` hands the
-    // raw string to the editor, which lists no nets from it either.
     return {};
   }
 
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return {};
-  }
+  return isRecord(parsed) ? parsed : {};
+};
+
+/**
+ * Entries this version of the editor does not recognize as documents. They are
+ * never listed, but every write carries them through unchanged so an entry
+ * written by another version, or damaged in transit, is not silently deleted.
+ */
+const unrecognizedEntries = (
+  raw: Record<string, unknown>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(raw).filter(
+      ([documentId, value]) => !isStoredDocumentIngress(value, documentId),
+    ),
+  );
+
+const writeStore = (
+  storage: Storage,
+  documents: LocalStorageSDCPNsStore,
+  raw: Record<string, unknown> = readRawStore(storage),
+): void =>
+  writeBrowserStorage(
+    storage,
+    rootLocalStorageKey,
+    JSON.stringify({ ...unrecognizedEntries(raw), ...documents }),
+  );
+
+const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
+  const raw = readRawStore(storage);
   const documents: LocalStorageSDCPNsStore = {};
-  for (const [documentId, value] of Object.entries(parsed)) {
+  for (const [documentId, value] of Object.entries(raw)) {
     if (!isStoredDocumentIngress(value, documentId)) {
       continue;
     }
@@ -176,11 +206,7 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
     }),
   );
   if (needsNormalization) {
-    writeBrowserStorage(
-      storage,
-      rootLocalStorageKey,
-      JSON.stringify(withIdentities),
-    );
+    writeStore(storage, withIdentities, raw);
   }
   return withIdentities;
 };
@@ -188,11 +214,7 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
 const readStoredSDCPNs = (): LocalStorageSDCPNsStore => readStore(localStorage);
 
 const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
-  writeBrowserStorage(
-    localStorage,
-    rootLocalStorageKey,
-    JSON.stringify(documents),
-  );
+  writeStore(localStorage, documents);
 
 /**
  * Adds an empty net to `storage` and returns it, dropping the empty nets earlier
@@ -211,11 +233,7 @@ export const startEmptyNetInStorage = (
     ([, stored]) => !isEmptySDCPN(stored.sdcpn),
   );
 
-  writeBrowserStorage(
-    storage,
-    rootLocalStorageKey,
-    JSON.stringify({ ...Object.fromEntries(kept), [net.id]: net }),
-  );
+  writeStore(storage, { ...Object.fromEntries(kept), [net.id]: net });
 
   return net;
 };

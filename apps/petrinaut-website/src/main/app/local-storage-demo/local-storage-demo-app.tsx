@@ -28,6 +28,7 @@ import {
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
+  type DocumentRevisionId,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -239,6 +240,21 @@ const createConversationTrackerFor = (
 type ActiveHandle = {
   handle: PetrinautDocHandle;
   document: DocumentRecord;
+  /**
+   * Every revision this handle has produced (plus the one it opened at). A
+   * repository revision outside this set was written by someone else — another
+   * tab, typically — and the handle must be recreated from it rather than keep
+   * chaining edits from a predecessor the repository no longer holds.
+   */
+  emittedRevisionIds: Set<DocumentRevisionId>;
+};
+
+type PersistFailure = {
+  /** The handle whose change was refused; it is replaced, not kept. */
+  handle: PetrinautDocHandle;
+  documentId: DocumentRecord["documentId"];
+  incarnationId: DocumentRecord["incarnationId"];
+  error: Error;
 };
 
 const useProcessAgentSession = (input: {
@@ -277,6 +293,7 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
   return {
     handle,
     document,
+    emittedRevisionIds: new Set([document.revisionId]),
   };
 };
 
@@ -506,6 +523,18 @@ export const LocalStorageDemoApp = ({
     activeHandleRef.current = activeHandle;
   }, [activeHandle]);
 
+  // The most recent change the repository refused to persist, if any. It is
+  // about the open document: cleared once a later change to that document
+  // lands, or when another document is opened in its place.
+  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
+    null,
+  );
+
+  // The handle follows the repository: it is recreated from the repository's
+  // record whenever the two diverge — the record shows a revision this handle
+  // never emitted (another tab wrote it), or the repository refused one of
+  // this handle's changes, after which every further change from it would be
+  // refused too, because each names the rejected revision as predecessor.
   useEffect(() => {
     if (currentDocument === null) {
       // eslint-disable-next-line react-hooks-js/set-state-in-effect -- repository selection synchronizes the selected document handle
@@ -514,35 +543,68 @@ export const LocalStorageDemoApp = ({
     }
     setActiveHandle((previous) =>
       previous?.document.documentId === currentDocument.documentId &&
-      previous.document.incarnationId === currentDocument.incarnationId
+      previous.document.incarnationId === currentDocument.incarnationId &&
+      previous.emittedRevisionIds.has(currentDocument.revisionId) &&
+      persistFailure?.handle !== previous.handle
         ? previous
         : createActiveHandle(currentDocument),
     );
-  }, [currentDocument]);
+    setPersistFailure((failure) =>
+      failure !== null &&
+      (failure.documentId !== currentDocument.documentId ||
+        failure.incarnationId !== currentDocument.incarnationId)
+        ? null
+        : failure,
+    );
+  }, [currentDocument, persistFailure]);
 
   useEffect(() => {
     if (!activeHandle) {
       return;
     }
 
-    const { document, handle } = activeHandle;
+    const { document, emittedRevisionIds, handle } = activeHandle;
     const repository = source.repository;
     return handle.subscribe((event) => {
-      void repository.persistRevision({
-        documentId: document.documentId,
-        incarnationId: document.incarnationId,
-        definition: event.next,
-        previousRevisionId: event.previousRevisionId,
-        revisionId: event.revisionId,
-      });
+      emittedRevisionIds.add(event.revisionId);
+      repository
+        .persistRevision({
+          documentId: document.documentId,
+          incarnationId: document.incarnationId,
+          definition: event.next,
+          previousRevisionId: event.previousRevisionId,
+          revisionId: event.revisionId,
+        })
+        .then(
+          () =>
+            setPersistFailure((failure) =>
+              failure?.documentId === document.documentId &&
+              failure.incarnationId === document.incarnationId
+                ? null
+                : failure,
+            ),
+          (error: unknown) =>
+            setPersistFailure({
+              handle,
+              documentId: document.documentId,
+              incarnationId: document.incarnationId,
+              error: error instanceof Error ? error : new Error(String(error)),
+            }),
+        );
     });
   }, [activeHandle, source.repository]);
+  const unsavedChangeMessage =
+    persistFailure !== null &&
+    persistFailure.documentId === currentDocument?.documentId &&
+    persistFailure.incarnationId === currentDocument.incarnationId
+      ? persistFailure.error.message
+      : null;
 
   const existingNets: MinimalNetMetadata[] = source.repository.records.map(
     (document) => ({
       netId: document.documentId,
       title: document.title,
-      lastUpdated: new Date(0).toISOString(),
+      lastUpdated: document.lastUpdated ?? new Date(0).toISOString(),
     }),
   );
 
@@ -960,21 +1022,60 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {remoteRouteSelected ? (
-        <p
+      {remoteRouteSelected || unsavedChangeMessage !== null ? (
+        // Host notices are centred below Petrinaut's 64px top bar and stacked
+        // above its side panels (z-index 1097) and bar (1100), so neither can
+        // hide them.
+        <div
           style={{
-            background: "#edf6ff",
+            alignItems: "center",
+            display: "flex",
+            flexDirection: "column",
+            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+            fontSize: 14,
+            gap: 8,
             left: "50%",
-            margin: 0,
-            padding: "6px 12px",
+            maxWidth: "calc(100vw - 32px)",
+            pointerEvents: "none",
             position: "fixed",
-            top: 8,
+            top: 80,
             transform: "translateX(-50%)",
-            zIndex: 20,
+            zIndex: 1200,
           }}
         >
-          This document uses the Brunch process assistant
-        </p>
+          {remoteRouteSelected ? (
+            <p
+              style={{
+                background: "#edf6ff",
+                border: "1px solid #91caff",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+                color: "#0958d9",
+                margin: 0,
+                padding: "10px 12px",
+              }}
+            >
+              This document uses the Brunch process assistant
+            </p>
+          ) : null}
+          {unsavedChangeMessage !== null ? (
+            <p
+              role="alert"
+              style={{
+                background: "#fff1f0",
+                border: "1px solid #ffa39e",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+                color: "#a8071a",
+                margin: 0,
+                padding: "10px 12px",
+              }}
+            >
+              Changes not saved: {unsavedChangeMessage} The editor shows the
+              last saved version.
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {tracerIsCurrent &&
         !constructionSelected &&
