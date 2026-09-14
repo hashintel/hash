@@ -2,7 +2,7 @@
 
 ## Status
 
-Live constraints-only mission for
+Live capture and transcription turn-boundary mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
 Publication base: restacked FE-1664 at
 [006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce),
@@ -15,8 +15,10 @@ The separate authority commit is
 [8ebf29b85d](https://github.com/hashintel/hash/commit/8ebf29b85d4821a5f5199813d699c2205aac797a).
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
-Next: Kostandin's matched speaker/headphone witness below. Acoustic benefit and
-mission acceptance remain unproved. No provider session is agent-authorized.
+Next: implement Kostandin's accepted semantic-VAD recut below and run provider-free
+checks, then return for the owner-held speech and speaker/headphone witnesses.
+Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
+No provider session is agent-authorized; this recut grants no new publication.
 
 ## Imperative
 
@@ -24,6 +26,8 @@ Reduce the risk that assistant playback becomes fresh user input while preservin
 genuine interruptions and existing Realtime support. First determine whether
 requesting the browser processing already used by Realtime improves Live's capture.
 This is a mitigation hypothesis, not deterministic feedback-loop prevention.
+Also reduce premature single-word submissions reported by Kostandin: use semantic
+turn detection on the separate transcription session rather than silence alone.
 
 ## Throughline
 
@@ -34,7 +38,8 @@ re-enter capture; filtering canonical input alone would not prevent Live reactin
 
 Protected source: FE-1664 at the pinned base above. Its complete integration,
 canonical ownership, admission, delivery and recovery contracts remain inherited
-behavior, not accepted proof. Only Live's `getUserMedia` preferences may change.
+behavior, not accepted proof. Permitted deltas are Live's `getUserMedia` preferences
+and the separate transcription session's turn-detection configuration below.
 The prior mission and future obligations remain discoverable through
 [the future spine](MISSION.next.md#voice-feedback-follow-up).
 
@@ -61,6 +66,17 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 - `openai-realtime-session.ts`: reference for the preferences; leave it unchanged.
   No shared helper is warranted for this small literal.
 
+Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
+
+- `openai-transcription-session.ts`: replace `server_vad` with
+  `{ type: "semantic_vad", eagerness: "low" }` for `gpt-4o-transcribe` only.
+  No silence timer, transcript aggregation, admission change or fallback retry.
+- `openai-transcription-session.test.ts`: update the existing exact outbound
+  session-body assertion first; observe failure on server VAD, then pass on the
+  selected semantic configuration. Preserve model, scoped credential and raw SDP.
+- `openai-voice-policy.ts` and Realtime routes remain unchanged. PR #9619 already
+  used semantic VAD with medium eagerness; low deliberately allows more hesitation.
+
 ### Owner decisions
 
 - **2026-09-14:** Kostandin approves the separate constraints-only implementation
@@ -74,8 +90,27 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 - **2026-09-14:** Kostandin authorizes fixing this child's parent conflict by
   rebasing, reconciling the mission, rerunning checks and pushing with an explicit
   lease. Refresh this draft PR's proof record; leave other issues/PRs unchanged.
+- **2026-09-14:** Kostandin accepts switching Live's separate transcription session
+  to semantic VAD after reporting single-word submissions. Use the discussed low
+  eagerness, keep Realtime unchanged, commit this authority separately and verify
+  locally without microphone/provider sessions. No new push or tracker write.
 
 ## Proof
+
+### Semantic turn-boundary recut — preparation pending
+
+Run `openai-transcription-session.test.ts`, `openai-realtime-call.test.ts` and
+`openai-voice-policy.test.ts` under `src/server/voice/` using the network-denied
+unit command below. These prove request configuration, unchanged Realtime policy
+and existing failure/no-retry behavior, not provider acceptance or speech quality.
+Run website typechecking and lint plus changed-file formatting/diff checks.
+
+Owner-held witness: in a fresh Live session, compare a hesitant phrase such as
+“The inventory ... um ... purchase quantity is twelve, not twenty” against a
+deliberately complete “Yes.” Check exact retained words, submission count/order,
+and whether waiting feels excessive. Repeat with speakers and headphones. Do not
+discard short legitimate answers to make the witness pass. Compatibility and
+improved boundaries remain unproved until this actual product observation.
 
 ### Provider-free configuration and regressions
 
@@ -105,10 +140,10 @@ Lint reports zero warnings/errors. Build reports unchanged React Compiler
 and `git diff --check` pass; Brunch Markdown is excluded by repository formatter
 configuration and reviewed directly. No UI appearance or interaction controls change.
 
-Current restack verification: `turbo run build lint:tsc lint:eslint --filter
+Prior capture-only restack verification: `turbo run build lint:tsc lint:eslint --filter
 @apps/petrinaut-website --output-logs=errors-only` passes all 16 tasks (9 cached).
 The seven-suite run includes the parent's new consent and Thinking controller tests.
-The production diff against this parent remains only the capture preferences;
+That production diff against the parent contained only the capture preferences;
 consent and dock implementation are unchanged from that parent.
 
 ### Manual speaker and headphone witness — pending, owner-held
@@ -139,7 +174,7 @@ allocation, recording or agent-run audio session is granted.
 - Preserve Realtime, default provider selection, consent, provider pinning, one
   capture feeding both sessions, and teardown on failure/Stop. No extra capture,
   session, dependency, telemetry store, retry or automatic fallback.
-- Keep `gpt-4o-transcribe`, default server VAD, provider item ordering, no-delegation
+- Keep `gpt-4o-transcribe`, provider item ordering, no-delegation
   admission, one waiting composer slot, frozen settled commentary and once-only
   offering unchanged. No transcript suppression, fuzzy matching or new timers.
 - Brunch remains canonical answer/tool authority. Live speech remains native and
@@ -148,10 +183,12 @@ allocation, recording or agent-run audio session is granted.
 - Preserve visible full text and no truncation/chunking/replay on commentary
   rejection. Local Exit and canonical Stop remain distinct from acoustic interruption
   and from canceling already-executed effects.
-- No changes to parent branches, existing issues/PRs, Brunch prompts, models, VAD,
+- No changes to parent branches, existing issues/PRs, Brunch prompts, models,
   services or infrastructure. Push and draft creation are authorized for this child
   only; no merge, deployment or agent microphone/provider sessions. Prior FE-1664
   publication permissions do not transfer to this mission.
+- Only the separate Live transcription session may switch VAD as specified above;
+  do not change Realtime or native Live session behavior.
 
 ## Fog-line
 
@@ -159,6 +196,13 @@ The reported silent “No tengo.” admission demonstrates unwanted input, not w
 echo, background audio, routing or hallucination caused it. Browser defaults may
 already apply these preferences; effective settings and the manual contrast decide
 whether this change has acoustic value. A passing configuration test does not.
+
+OpenAI's [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad)
+documents semantic VAD for supported transcription sessions and low eagerness for
+larger chunks. Actual acceptance with this model/session remains owner-witnessed.
+Semantic VAD is probabilistic and may add latency; it does not guarantee a complete
+thought or prevent echo. The earlier VAD rejection on a different model does not
+establish incompatibility for `gpt-4o-transcribe`.
 
 Live-native transcripts and client delegation remain an alternative, not a selected
 replacement. Transcript deltas lack authoritative finalization/item identity;
@@ -179,6 +223,10 @@ Stop after provider-free preparation for Kostandin's witness. Do not add filteri
 automatically. Return to the owner if preferences change neither settings nor
 failure, headphones still produce silent admissions, or genuine corrections are
 lost. Reclassify the observed failure before adding a mechanism.
+For the turn-boundary recut, stop on provider rejection, continued fragmentation,
+lost corrections or unacceptable delay. Preserve the existing visible connection
+failure without silently reverting VAD; use typed input or explicitly ended Live
+followed by Realtime. Return to the owner before selecting another setting.
 
 If deterministic prevention is required, select half-duplex/typed policy explicitly.
 If delegation-driven invocation is required, resolve finalization/range selection

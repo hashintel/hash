@@ -10,8 +10,8 @@ mission or grant its paid-run permissions to voice work.
 
 ## Voice feedback follow-up
 
-FE-1712 selects only explicit capture preferences and an owner-held acoustic
-comparison. The complete
+FE-1712 selects explicit capture preferences, semantic transcription turn detection
+and owner-held speech/acoustic comparisons as specified in the live mission. The complete
 [FE-1664 contract](https://github.com/hashintel/hash/blob/9499b9287bd69b751ebcdd61b0c6bf2586bc191e/libs/%40hashintel/brunch-agent/MISSION.md)
 is retained at the branch's pinned parent, not archived as accepted or replaced
 on that branch. Its input/delivery contracts, first no-tool exchange, later

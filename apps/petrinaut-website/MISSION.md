@@ -4,10 +4,13 @@ The child branch's sole execution authority is the
 [Brunch mission](../../libs/@hashintel/brunch-agent/MISSION.md).
 This file is a pointer, not a second mission.
 
-FE-1712 permits only explicit browser capture preferences and provider-free checks.
+FE-1712 permits explicit browser capture preferences, semantic VAD with low
+eagerness on the separate Live transcription session, and provider-free checks.
 It preserves native Live speech, separate finalized transcription and Realtime.
 Acoustic benefit remains Kostandin's matched speaker/headphone witness; no
 deterministic feedback prevention or migration-readiness claim is established.
+Natural turn boundaries and provider acceptance also require the owner witness
+specified in the sole mission. The VAD recut grants no new publication authority.
 
 The publication base is restacked FE-1664 at
 [9499b9287b](https://github.com/hashintel/hash/commit/9499b9287bd69b751ebcdd61b0c6bf2586bc191e).
