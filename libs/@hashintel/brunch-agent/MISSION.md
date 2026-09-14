@@ -15,10 +15,11 @@ The separate authority commit is
 [8ebf29b85d](https://github.com/hashintel/hash/commit/8ebf29b85d4821a5f5199813d699c2205aac797a).
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
-Next: implement Kostandin's accepted semantic-VAD recut below and run provider-free
-checks, then return for the owner-held speech and speaker/headphone witnesses.
+The semantic-VAD recut is implemented locally and provider-free checks pass.
+Next: the one authorized headless transcription probe below, then return to
+Kostandin with its result; physical speaker/headphone witnesses remain owner-held.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
-No provider session is agent-authorized; this recut grants no new publication.
+Only the bounded transcription probe is provider-authorized; no new publication.
 
 ## Imperative
 
@@ -94,16 +95,48 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
   to semantic VAD after reporting single-word submissions. Use the discussed low
   eagerness, keep Realtime unchanged, commit this authority separately and verify
   locally without microphone/provider sessions. No new push or tracker write.
+- **2026-09-14:** Kostandin authorizes one real `gpt-4o-transcribe` session with
+  at most three minutes of synthetic audio, no microphone access and no retries,
+  to test hesitation, short replies and correction retention headlessly.
 
 ## Proof
 
-### Semantic turn-boundary recut — preparation pending
+### Bounded headless transcription probe — authorized, not yet run
 
-Run `openai-transcription-session.test.ts`, `openai-realtime-call.test.ts` and
-`openai-voice-policy.test.ts` under `src/server/voice/` using the network-denied
-unit command below. These prove request configuration, unchanged Realtime policy
+Use the actual `createOpenAITranscriptionSessionHandler` with the website's Vite
+development environment loader (process values win). Drive its raw-SDP WebRTC
+boundary from installed headless Chromium with a Web Audio synthetic track, not
+`getUserMedia`. Generate only the three fixed witness phrases locally with macOS
+speech synthesis; no TTS provider, Live session, Brunch inference or private data.
+The only paid allocation is one `gpt-4o-transcribe` session, at most 180 seconds
+of synthetic input, closed within 180 seconds after connection. No retries,
+alternate models, second allocation or provider fallback on rejection/timeout.
+
+Inspect effective session configuration, provider item boundaries, exact completed
+transcripts and timing relative to the scheduled one-second intra-phrase pauses.
+Hesitation should remain one item; “Yes” must finalize without waiting for another
+utterance; correction must retain both twenty and twelve in order. Report latency
+rather than claiming a universal acceptable threshold. This is a synthetic
+transcription-boundary probe, not proof of Brunch admission or physical echo.
+Keep request/session IDs, returned usage and safe events in one local-only native
+record under `/tmp/fe1712-semantic-vad-T-01a09fe5/`; unknown billing is not zero.
+Stop after the single run or first rejection and return its evidence. Remove
+temporary harness/audio after inspection; retain the safe native result.
+
+### Semantic turn-boundary recut — locally verified, owner witness pending
+
+Verified 2026-09-14: the exact outbound-body assertion failed on `server_vad`
+before the change. After switching to semantic VAD with low eagerness, 127 tests
+pass under OS network denial: `openai-transcription-session.test.ts`,
+`openai-realtime-call.test.ts` and `openai-voice-policy.test.ts` under
+`src/server/voice/`, plus `live-conversation.test.ts` and `live-brunch-bridge.test.ts`
+under `src/main/app/voice-interview/`. Use the network-denied unit command below
+with those five paths. These prove request configuration, unchanged Realtime policy
 and existing failure/no-retry behavior, not provider acceptance or speech quality.
-Run website typechecking and lint plus changed-file formatting/diff checks.
+`turbo run lint:tsc lint:eslint --filter @apps/petrinaut-website
+--output-logs=errors-only` passes all 15 tasks (10 cached). Changed TypeScript
+formatting and `git diff --check` pass. Full website tests/build were not rerun
+for this configuration-only recut. No provider session or UI change was made.
 
 Owner-held witness: in a fresh Live session, compare a hesitant phrase such as
 “The inventory ... um ... purchase quantity is twelve, not twenty” against a
@@ -166,8 +199,8 @@ capture just to inspect settings. Requested preferences may already be defaults.
    or replay automatically. Unknown admission requires inspecting history first.
 
 This witness can support a limited mitigation claim, not an all-device guarantee,
-native speech fidelity, tool-turn acceptance or migration readiness. No new paid
-allocation, recording or agent-run audio session is granted.
+native speech fidelity, tool-turn acceptance or migration readiness. Only the
+separate bounded headless probe above grants an agent-run provider allocation.
 
 ## Constraints
 
@@ -185,7 +218,8 @@ allocation, recording or agent-run audio session is granted.
   and from canceling already-executed effects.
 - No changes to parent branches, existing issues/PRs, Brunch prompts, models,
   services or infrastructure. Push and draft creation are authorized for this child
-  only; no merge, deployment or agent microphone/provider sessions. Prior FE-1664
+  only; no merge, deployment or agent microphone access. The only provider exception
+  is the bounded transcription probe above. Prior FE-1664
   publication permissions do not transfer to this mission.
 - Only the separate Live transcription session may switch VAD as specified above;
   do not change Realtime or native Live session behavior.
@@ -199,7 +233,8 @@ whether this change has acoustic value. A passing configuration test does not.
 
 OpenAI's [VAD guide](https://developers.openai.com/api/docs/guides/realtime-vad)
 documents semantic VAD for supported transcription sessions and low eagerness for
-larger chunks. Actual acceptance with this model/session remains owner-witnessed.
+larger chunks. Actual acceptance with this model/session is the headless probe's
+first discriminator; natural human speech remains owner-witnessed.
 Semantic VAD is probabilistic and may add latency; it does not guarantee a complete
 thought or prevent echo. The earlier VAD rejection on a different model does not
 establish incompatibility for `gpt-4o-transcribe`.
@@ -219,7 +254,7 @@ do not invent it from activity telemetry or append acknowledgments.
 
 ## Stop or reorient
 
-Stop after provider-free preparation for Kostandin's witness. Do not add filtering
+Stop after the bounded headless probe for Kostandin's review. Do not add filtering
 automatically. Return to the owner if preferences change neither settings nor
 failure, headphones still produce silent admissions, or genuine corrections are
 lost. Reclassify the observed failure before adding a mechanism.

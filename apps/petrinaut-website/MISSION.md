@@ -9,8 +9,8 @@ eagerness on the separate Live transcription session, and provider-free checks.
 It preserves native Live speech, separate finalized transcription and Realtime.
 Acoustic benefit remains Kostandin's matched speaker/headphone witness; no
 deterministic feedback prevention or migration-readiness claim is established.
-Natural turn boundaries and provider acceptance also require the owner witness
-specified in the sole mission. The VAD recut grants no new publication authority.
+The sole mission also permits one bounded headless transcription probe; natural
+human turn boundaries still require the owner witness. No new publication authority.
 
 The publication base is restacked FE-1664 at
 [9499b9287b](https://github.com/hashintel/hash/commit/9499b9287bd69b751ebcdd61b0c6bf2586bc191e).
@@ -22,5 +22,6 @@ publication permission. This child's local Git branch description mirrors its mi
 Kostandin authorizes pushing this child and opening its draft PR against FE-1664.
 The authorized conflict fix preserves the parent's consent and Thinking dock behavior
 and refreshes this draft's proof record. No other issue/PR changes, agent
-microphone/provider sessions, merge or deployment are authorized.
+microphone access, merge or deployment are authorized. The sole provider exception
+is the bounded synthetic transcription probe specified in the mission.
 Delegation-driven invocation and transcript filtering remain deferred.
