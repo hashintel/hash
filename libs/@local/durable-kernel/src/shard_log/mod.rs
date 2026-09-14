@@ -410,14 +410,6 @@ impl ShardLogWriter {
         self.append_with_fault(value, AppendFault::None).await
     }
 
-    async fn append_projection_snapshot<T: DurableRecord + Sync>(
-        &self,
-        value: &T,
-    ) -> Result<u64, ShardAppendError> {
-        self.append_registered(PROJECTION_SNAPSHOTS_KEY, value, AppendFault::None)
-            .await
-    }
-
     /// Exclusive end of durable records captured from the writer opened with
     /// `ReadVisibility::Remote`. Records below this exclusive end are the
     /// complete startup-recovery window.
@@ -488,11 +480,20 @@ impl ShardLogWriter {
         let bytes = value
             .encode()
             .map_err(|error| definitely_not_committed("encode durable shard record", error))?;
+        self.append_encoded(key, Bytes::from(bytes), fault).await
+    }
+
+    async fn append_encoded(
+        &self,
+        key: &'static [u8],
+        bytes: Bytes,
+        fault: AppendFault,
+    ) -> Result<u64, ShardAppendError> {
         match &self.backend {
             WriterBackend::Real(log) => {
                 let record = Record {
                     key: Bytes::from_static(key),
-                    value: Bytes::from(bytes),
+                    value: bytes,
                 };
                 let _: AppendFault = fault;
 
@@ -524,9 +525,7 @@ impl ShardLogWriter {
                         "injected post-append failure",
                     ));
                 }
-                log.flush()
-                    .await
-                    .map_err(|error| post_invocation_source("flush shard record", error))?;
+                flush_with_timeout(log.flush(), self.durability_timeout).await?;
                 #[cfg(any(test, feature = "test-util"))]
                 if fault == AppendFault::AfterFlush {
                     let report = Report::new(DurableError).attach("injected post-flush failure");
@@ -558,7 +557,7 @@ impl ShardLogWriter {
                 } else {
                     crate::sim::SimKey::Snapshots
                 };
-                match writer.append(sim_key, bytes) {
+                match writer.append(sim_key, bytes.to_vec()) {
                     crate::sim::SimAppendResult::Acked(sequence) => Ok(sequence),
                     crate::sim::SimAppendResult::DefinitelyNotCommitted => {
                         Err(definitely_not_committed_message(
@@ -689,6 +688,16 @@ fn recovery_range(
         ),
         window: (start, durable_end_exclusive),
     })
+}
+
+async fn flush_with_timeout(
+    flush: impl core::future::Future<Output = opendata_log::Result<()>>,
+    timeout: Duration,
+) -> Result<(), ShardAppendError> {
+    tokio::time::timeout(timeout, flush)
+        .await
+        .map_err(|error| post_invocation_source("flush shard record", error))?
+        .map_err(|error| post_invocation_source("flush shard record", error))
 }
 
 /// Reads and decodes the requested journal range, checking its sequence bounds.
@@ -929,7 +938,9 @@ impl RawShardLog {
     ) -> Result<u64, ShardAppendError> {
         crate::registry::intern_declaration(*T::declaration())
             .map_err(|error| definitely_not_committed("intern raw-append declaration", error))?;
-        self.0.append_projection_snapshot(value).await
+        self.0
+            .append_registered(PROJECTION_SNAPSHOTS_KEY, value, AppendFault::None)
+            .await
     }
 
     #[must_use]
@@ -963,8 +974,20 @@ mod tests {
         routing::{Shard, shard_path},
     };
 
+    #[tokio::test]
+    async fn flush_stalled() {
+        let error = super::flush_with_timeout(
+            core::future::pending(),
+            core::time::Duration::from_millis(1),
+        )
+        .await
+        .expect_err("stalled flush should time out");
+        assert_eq!(error.kind, AppendFailureKind::CommitUnknown);
+    }
+
     static TEST_RECORD_DECLARATION: RecordDeclaration = RecordDeclaration {
         name: "kernel_shard_log_test_record",
+        codec: core::any::TypeId::of::<TestRecord>(),
         owning_module: "durable_kernel::shard_log::tests",
         emitted_version: 1,
         supported_versions: &[1],

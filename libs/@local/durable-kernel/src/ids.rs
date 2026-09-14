@@ -50,7 +50,7 @@ macro_rules! digest_id {
                 Ok(Self(value))
             }
 
-            pub fn from_digest(digest: String) -> Self {
+            pub(crate) fn from_digest(digest: String) -> Self {
                 debug_assert_eq!(digest.len(), $crate::ids::SHA256_HEX_BYTES);
                 Self(digest)
             }
