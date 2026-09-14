@@ -26,6 +26,7 @@ import {
   type FilterValue,
   type InputFor,
   abandonedFadeStyle,
+  type AbandonmentPhase,
   createAbandonmentController,
   isAbandonable,
   isIntegerConfig,
@@ -45,7 +46,7 @@ import {
   type CommittedValue,
   type SlotValue,
 } from "./filter-util";
-import { filterRecipe } from "./filter.recipe";
+import { abandonedGhost, filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { MultiSelectItem } from "../Select/select";
@@ -222,8 +223,15 @@ const FilterSelectInput = ({
  *
  * With `removeable.dismissAbandoned`, a chip left with an incomplete draft
  * (no operator, or any empty input) after the user focuses or clicks
- * elsewhere waits 1s, fades over 2s, then removes itself; returning to it at
- * any point (including via its portaled dropdowns) rescues it.
+ * elsewhere waits 1s, fades over 2s, then removes itself; returning to it
+ * during the countdown (including via its portaled dropdowns) rescues it.
+ * Once fully faded, the removal itself waits for a quiet moment: while a
+ * sibling control's overlay is open within the chip's enclosing FilterGroup
+ * (or its parent, when standalone) or the pointer rests over it, the chip
+ * holds its space as a faint inert placeholder — so nothing shifts or closes
+ * under the user — and then leaves with a width collapse once the
+ * interaction ends. A never-held chip is removed instantly, with no
+ * placeholder or animation.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -282,7 +290,7 @@ export const Filter = <
   // Abandoned-chip dismissal (removeable.dismissAbandoned). The listeners and
   // timers live in a mount effect below; these refs let render-scope handlers
   // (dropdown open/close) reach them without stale closures.
-  const [abandonFading, setAbandonFading] = useState(false);
+  const [abandonPhase, setAbandonPhase] = useState<AbandonmentPhase>("idle");
   const abandonEligibleRef = useRef(false);
   const abandonEvaluateRef = useRef<() => void>(() => {});
   const abandonCancelRef = useRef<() => void>(() => {});
@@ -649,7 +657,7 @@ export const Filter = <
         operatorDropdownOpenRef.current ||
         isSelectDropdownOpen(inputRefs.current),
       getRoot: () => rootRef.current,
-      onFadeChange: setAbandonFading,
+      onPhaseChange: setAbandonPhase,
       onDismiss: () => onRemoveRef.current?.(),
     });
     abandonEvaluateRef.current = controller.evaluate;
@@ -698,8 +706,13 @@ export const Filter = <
       lazyMount
       unmountOnExit
       ref={rootRef as React.Ref<HTMLDivElement>}
-      className={cx(classes.root, className)}
-      style={abandonFading ? abandonedFadeStyle : undefined}
+      className={cx(
+        classes.root,
+        className,
+        (abandonPhase === "held" || abandonPhase === "collapsing") &&
+          abandonedGhost,
+      )}
+      style={abandonPhase === "fading" ? abandonedFadeStyle : undefined}
       onBlur={handleRootBlur}
       onKeyDownCapture={handleArrowKeyCapture}
       role="group"

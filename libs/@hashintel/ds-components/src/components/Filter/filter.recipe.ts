@@ -1,6 +1,24 @@
-import { cva, sva } from "@hashintel/ds-helpers/css";
+import { css, cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
+
+/**
+ * A held/collapsing abandoned chip (see `createAbandonmentController`): a
+ * skeleton-style placeholder — no text or borders, just a subtle grey pill in
+ * the chip's shape, footprint kept — so the row doesn't read as an
+ * unexplained gap while the removal waits out an in-progress interaction,
+ * and inert to the pointer since the chip is condemned.
+ */
+export const abandonedGhost = css({
+  background: "neutral.s15",
+  // Declared on the destination state, so the grey fades in as the class
+  // lands (and snaps away on rescue, where speed is the point).
+  transition: "[background 750ms ease]",
+  pointerEvents: "none",
+  // Opacity rather than visibility: a descendant can undo an inherited
+  // `visibility: hidden` by declaring its own, and some segments do.
+  "& > *": { opacity: "[0]" },
+});
 
 /**
  * Per-size `--filter-font-size` declarations shared by the Filter chip and

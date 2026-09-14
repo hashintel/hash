@@ -310,11 +310,18 @@ export const ABANDONED_GRACE_MS = 1000;
 /** How long the abandoned fade-out runs before onRemove fires. */
 export const ABANDONED_FADE_MS = 2000;
 
+/** How often a held removal re-checks whether the interaction has ended. */
+const ABANDONED_HOLD_RECHECK_MS = 250;
+/** How long a previously held chip's width-collapse runs before onRemove. */
+export const ABANDONED_COLLAPSE_MS = 200;
+
 /** Inline style applied to the chip root while the abandoned fade runs. */
 export const abandonedFadeStyle: CSSProperties = {
   opacity: 0,
   transition: `opacity ${ABANDONED_FADE_MS}ms ease-out`,
 };
+
+export type AbandonmentPhase = "idle" | "fading" | "held" | "collapsing";
 
 /**
  * Whether the chip currently counts as abandonable: its draft is incomplete
@@ -349,10 +356,11 @@ export interface AbandonmentController {
   /**
    * Re-decide arming from the current facts: cancels when the chip is
    * ineligible, a dropdown is open, or focus sits inside; otherwise starts
-   * the grace timer (an already-running countdown keeps its timing).
+   * the grace timer (an already-running countdown keeps its timing), or —
+   * once the fade has completed — retries the held removal.
    */
   evaluate: () => void;
-  /** Clear the timers and undo any in-progress fade. */
+  /** Clear the timers and undo any in-progress fade or held removal. */
   cancel: () => void;
   /** Install the document listeners; returns cleanup that also clears timers. */
   attach: () => () => void;
@@ -361,17 +369,29 @@ export interface AbandonmentController {
 /**
  * Drives the abandoned-chip countdown: once the user focuses or clicks
  * outside the chip while it is eligible, waits {@link ABANDONED_GRACE_MS},
- * signals the fade via `onFadeChange(true)`, and after
- * {@link ABANDONED_FADE_MS} calls `onDismiss`. Dropdowns render in portals,
- * so their interactions land outside the root; while `hasOpenDropdown()`
- * reports one open, no event counts as "outside" — the dropdown's own close
- * hook should call `evaluate` (deferred) afterwards.
+ * fades via `onPhaseChange("fading")`, and after {@link ABANDONED_FADE_MS}
+ * removes the chip via `onDismiss`. Dropdowns render in portals, so their
+ * interactions land outside the root; while `hasOpenDropdown()` reports one
+ * open, no event counts as "outside" — the dropdown's own close hook should
+ * call `evaluate` (deferred) afterwards.
+ *
+ * Removal itself waits for a quiet moment: removing the chip reflows the row,
+ * which would shift — or, by unmounting a trigger, close — any open popup the
+ * user is interacting with. So while a sibling control's overlay is open
+ * within the chip's own scope (its enclosing FilterGroup, or its parent when
+ * standalone), or the pointer rests over that scope, the fully faded chip is
+ * *held* (`onPhaseChange("held")`): a faint inert placeholder keeping its
+ * space (see the `abandonedGhost` recipe class). Once the interaction ends, a
+ * held chip collapses its width over {@link ABANDONED_COLLAPSE_MS}
+ * (`onPhaseChange("collapsing")`) before `onDismiss`, so the row closes up
+ * smoothly; a never-held chip is removed immediately, with no placeholder or
+ * animation.
  */
 export const createAbandonmentController = ({
   isEligible,
   hasOpenDropdown,
   getRoot,
-  onFadeChange,
+  onPhaseChange,
   onDismiss,
 }: {
   /** Whether the chip is currently abandonable (see {@link isAbandonable}). */
@@ -379,13 +399,27 @@ export const createAbandonmentController = ({
   /** Whether any of the chip's (portaled) dropdowns is open. */
   hasOpenDropdown: () => boolean;
   getRoot: () => HTMLElement | null;
-  onFadeChange: (fading: boolean) => void;
+  onPhaseChange: (phase: AbandonmentPhase) => void;
   onDismiss: () => void;
 }): AbandonmentController => {
-  const timers: { grace: number | null; fade: number | null } = {
+  const timers: {
+    grace: number | null;
+    fade: number | null;
+    collapse: number | null;
+  } = {
     grace: null,
     fade: null,
+    collapse: null,
   };
+  let held = false;
+  let holdRecheck: number | null = null;
+  // Assigned below — the hold teardown needs a stable listener handle first.
+  // Deferred so the overlay/focus fallout of the triggering event settles.
+  let finalize: () => void = () => {};
+  const deferredFinalize = () => {
+    window.setTimeout(() => finalize(), 0);
+  };
+
   const clearTimers = () => {
     if (timers.grace !== null) {
       window.clearTimeout(timers.grace);
@@ -395,30 +429,162 @@ export const createAbandonmentController = ({
       window.clearTimeout(timers.fade);
       timers.fade = null;
     }
+    if (timers.collapse !== null) {
+      window.clearTimeout(timers.collapse);
+      timers.collapse = null;
+    }
+  };
+  // The collapse animates inline width styles the controller owns (React's
+  // style prop never sets them, so they survive re-renders); a cancel mid-way
+  // must undo them for the rescued chip to lay out normally again.
+  const clearCollapseStyles = () => {
+    const root = getRoot();
+    if (!root) {
+      return;
+    }
+    root.style.removeProperty("width");
+    root.style.removeProperty("min-width");
+    root.style.removeProperty("overflow");
+    root.style.removeProperty("transition");
+  };
+  const stopHold = () => {
+    held = false;
+    if (holdRecheck !== null) {
+      window.clearInterval(holdRecheck);
+      holdRecheck = null;
+    }
+    document.removeEventListener("pointerup", deferredFinalize, true);
+    document.removeEventListener("keyup", deferredFinalize, true);
   };
   const cancel = () => {
     clearTimers();
-    onFadeChange(false);
+    stopHold();
+    clearCollapseStyles();
+    onPhaseChange("idle");
   };
   const focusIsInside = () => {
     const active = document.activeElement;
     return !!active && !!getRoot()?.contains(active);
   };
+  /**
+   * The DOM scope whose interactions removal defers to: the chip's enclosing
+   * FilterGroup when it sits in one, otherwise its immediate parent.
+   */
+  const interactionScope = (): HTMLElement | null => {
+    const root = getRoot();
+    return (
+      root?.closest<HTMLElement>("[data-part=filter-group]") ??
+      root?.parentElement ??
+      null
+    );
+  };
+  /**
+   * Whether removing the chip now would disturb an interaction in progress
+   * within its own scope: a sibling control's overlay is open (the portaled
+   * content lives outside the scope, but the owning trigger stays inside it,
+   * flagged open via data-state/aria-expanded), or the pointer rests over the
+   * scope (removal would reflow the row under the cursor).
+   */
+  const removalBlocked = () => {
+    if (hasOpenDropdown()) {
+      return true;
+    }
+    const scope = interactionScope();
+    if (!scope) {
+      return false;
+    }
+    return (
+      scope.matches(":hover") ||
+      scope.querySelector('[data-state="open"], [aria-expanded="true"]') !==
+        null
+    );
+  };
+
+  /**
+   * A previously held chip leaves by collapsing its width, so the row closes
+   * up smoothly right in front of the user rather than snapping. The inline
+   * width animation is driven here (not via the React style prop) so its
+   * start value can be measured and the transition applied in one sequence.
+   */
+  const collapseThenDismiss = () => {
+    const root = getRoot();
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (!root || reduceMotion) {
+      onDismiss();
+      return;
+    }
+    onPhaseChange("collapsing");
+    root.style.width = `${root.getBoundingClientRect().width}px`;
+    root.style.minWidth = "0";
+    root.style.overflow = "hidden";
+    // Commit the start width before the transition targets zero.
+    root.getBoundingClientRect();
+    root.style.transition = `width ${ABANDONED_COLLAPSE_MS}ms ease`;
+    root.style.width = "0px";
+    timers.collapse = window.setTimeout(() => {
+      timers.collapse = null;
+      clearCollapseStyles();
+      onDismiss();
+    }, ABANDONED_COLLAPSE_MS);
+  };
+
+  finalize = () => {
+    // Rescued while held (e.g. an external value commit): stand down fully.
+    if (!isEligible()) {
+      cancel();
+      return;
+    }
+    if (timers.collapse !== null) {
+      return;
+    }
+    if (removalBlocked()) {
+      if (!held) {
+        held = true;
+        onPhaseChange("held");
+        // Overlays close and hovers end without any single reliable event, so
+        // poll cheaply while held, with pointer/key activity as fast paths.
+        holdRecheck = window.setInterval(
+          deferredFinalize,
+          ABANDONED_HOLD_RECHECK_MS,
+        );
+        document.addEventListener("pointerup", deferredFinalize, true);
+        document.addEventListener("keyup", deferredFinalize, true);
+      }
+      return;
+    }
+    if (held) {
+      stopHold();
+      collapseThenDismiss();
+      return;
+    }
+    onDismiss();
+  };
+
   const evaluate = () => {
     if (!isEligible() || hasOpenDropdown() || focusIsInside()) {
       cancel();
       return;
     }
-    // Already counting down (or fading): keep the original timing.
-    if (timers.grace !== null || timers.fade !== null) {
+    if (held) {
+      finalize();
+      return;
+    }
+    // Already counting down (fading or collapsing): keep the original timing.
+    if (
+      timers.grace !== null ||
+      timers.fade !== null ||
+      timers.collapse !== null
+    ) {
       return;
     }
     timers.grace = window.setTimeout(() => {
       timers.grace = null;
-      onFadeChange(true);
+      onPhaseChange("fading");
       timers.fade = window.setTimeout(() => {
         timers.fade = null;
-        onDismiss();
+        finalize();
       }, ABANDONED_FADE_MS);
     }, ABANDONED_GRACE_MS);
   };
@@ -457,6 +623,8 @@ export const createAbandonmentController = ({
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("focusin", onFocusIn, true);
       clearTimers();
+      stopHold();
+      clearCollapseStyles();
     };
   };
 
