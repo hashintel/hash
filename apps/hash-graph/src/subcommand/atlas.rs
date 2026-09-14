@@ -2,16 +2,14 @@ use core::time::Duration;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_atlas::cli::{self, PasswordString};
+use hash_graph_atlas::cli;
 use hash_graph_postgres_store::store::DatabaseConnectionInfo;
 use reqwest::Client;
 use tokio::time::timeout;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{
-        HealthcheckArgs, wait_healthcheck,
-    },
+    subcommand::{HealthcheckArgs, wait_healthcheck},
 };
 
 /// Address configuration for the atlas server.

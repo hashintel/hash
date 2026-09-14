@@ -122,14 +122,28 @@
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
-// Operator-command machinery is unconditional library code whose one consumer, the command
-// shell, sits behind `cli`, so a build without `cli` marks that machinery dead rather than
-// finding real rot. Bench machinery carries `cfg(any(test, feature = "bench"))` per item, so the
-// dead-code lint is live on every other item in every unit with `cli` on.
-#![cfg_attr(not(feature = "cli"), allow(dead_code))]
-// The documentation's audience is the crate's developers. Module docs link private items on
-// purpose, and readers view the docs under `--document-private-items`, where those links resolve.
-#![allow(rustdoc::private_intra_doc_links)]
+// TODO(BE-850): remove once all changes have landed
+#![allow(
+    unused_crate_dependencies,
+    unused_features,
+    dead_code,
+    unreachable_pub,
+    unused_imports,
+    rustdoc::broken_intra_doc_links
+)]
+// #![cfg_attr(
+//     not(feature = "cli"),
+//     allow(
+//         dead_code,
+//         reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
+//     )
+// )]
+#![allow(
+    rustdoc::private_intra_doc_links,
+    reason = "the crate is largely internal, for a user it makes more sense to read the full \
+              docs, instead of just the outer public shell. Having arbitrary separation hurts \
+              that exploration."
+)]
 extern crate alloc;
 
 mod allocator;
