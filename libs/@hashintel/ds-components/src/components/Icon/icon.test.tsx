@@ -12,13 +12,12 @@ const CustomIcon = (props: SVGProps<SVGSVGElement>) => (
 );
 
 describe("IconProvider", () => {
-  it("replaces checkbox marks and loading indicators without changing their state", () => {
+  it("preserves checked and indeterminate checkbox indicators with an icon pack", () => {
     const markup = renderToStaticMarkup(
       <IconProvider
         icons={{
           check: CustomIcon,
           dash: CustomIcon,
-          loadingSpinner: CustomIcon,
         }}
       >
         <Checkbox value onChange={() => {}} label="Checked option" />
@@ -28,21 +27,30 @@ describe("IconProvider", () => {
           onChange={() => {}}
           label="Partial option"
         />
-        <LoadingSpinner size="sm" />
-        <LoadingSpinner variant="bars" size="xs" />
       </IconProvider>,
     );
-    expect(markup.match(/data-custom="true"/g)).toHaveLength(4);
+    expect(markup).not.toContain("data-custom");
     expect(markup).toContain('data-state="checked"');
     expect(markup).toContain('data-state="indeterminate"');
-    expect(markup).toContain("animation:none");
-    expect(renderToStaticMarkup(<LoadingSpinner />)).not.toContain(
-      "data-custom",
-    );
-    expect(
-      renderToStaticMarkup(<Checkbox value onChange={() => {}} />),
-    ).toContain("M20 6 9 17l-5-5");
+    expect(markup).toContain('d="M20 6 9 17l-5-5"');
+    expect(markup).toContain('d="M5 12h14"');
   });
+
+  it.each(["default", "bars"] as const)(
+    "preserves the %s loading variant with an icon pack",
+    (variant) => {
+      const original = renderToStaticMarkup(
+        <LoadingSpinner variant={variant} size="sm" />,
+      );
+      expect(
+        renderToStaticMarkup(
+          <IconProvider icons={{ loadingSpinner: CustomIcon }}>
+            <LoadingSpinner variant={variant} size="sm" />
+          </IconProvider>,
+        ),
+      ).toBe(original);
+    },
+  );
 
   it("uses the original icon when the pack does not contain its name", () => {
     const original = renderToStaticMarkup(<Icon name="table" size="sm" />);

@@ -1,8 +1,7 @@
-import { use, useId } from "react";
+import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { IconPackContext } from "../Icon/icon";
 import { styles } from "./loading-spinner.recipe";
 
 import type { DataAttributes } from "../../util/dom";
@@ -36,18 +35,6 @@ export const LoadingSpinner = ({
   className?: string;
 } & DataAttributes) => {
   const gradientId = useId();
-  const { loadingSpinner: SpinnerIcon } = use(IconPackContext);
-
-  if (SpinnerIcon) {
-    return (
-      <SpinnerIcon
-        {...dataAttributes}
-        className={cx(styles({ size }), className)}
-        style={{ animation: "none" }}
-        aria-hidden="true"
-      />
-    );
-  }
 
   if (variant === "bars") {
     return (
