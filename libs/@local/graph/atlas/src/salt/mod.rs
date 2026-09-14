@@ -22,4 +22,3 @@ pub(crate) mod quality;
 pub(crate) mod relation;
 pub(crate) mod runner;
 pub(crate) mod semantic;
-pub(crate) mod wire;

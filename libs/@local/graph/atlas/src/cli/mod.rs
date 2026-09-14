@@ -1,8 +1,7 @@
-//! The operator commands that fit a generation and serve the atlas.
+//! The operator commands that fit a generation.
 //!
 //! The `hash-graph atlas` subcommand is one entry point. [`FitArgs`] and [`FitCommand`] run one
-//! production generation over the live store. [`ServeArgs`] and [`ServeCommand`] open the root's
-//! active generation and build the read-API router ([`crate::api`]) the graph binary hosts.
+//! production generation over the live store.
 //!
 //! The standalone `hash-graph-atlas` binary is the other entry point, and the `cli` feature gates
 //! its shell. Its command line carries the fit command over its own store flags ([`PostgresArgs`])
@@ -46,13 +45,11 @@ pub use self::{
     embedder::{EmbedderArgs, EmbedderError},
     fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
-    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions},
 };
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{
     integrity::{EmptyPasswordError, PasswordString, SecretString},
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{EmbeddingWorkflow, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
 };
 
 mod dump;
@@ -60,7 +57,6 @@ mod embedder;
 mod fit;
 mod postgres;
 mod report;
-mod serve;
 mod shell;
 #[cfg(feature = "cli")]
 mod tui;
