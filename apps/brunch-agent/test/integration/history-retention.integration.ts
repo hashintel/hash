@@ -469,18 +469,53 @@ try {
     );
     const finalPayload = serialized.at(-1);
     assert(finalPayload);
+    const countMarkdown = (value: unknown): number => {
+      if (value === markdown) return 1;
+      if (typeof value === "string") {
+        try {
+          const parsed: unknown = JSON.parse(value);
+          return parsed === value ? 0 : countMarkdown(parsed);
+        } catch {
+          return 0;
+        }
+      }
+      if (Array.isArray(value))
+        return value.reduce(
+          (total, member) => total + countMarkdown(member),
+          0,
+        );
+      if (typeof value === "object" && value !== null)
+        return Object.values(value).reduce(
+          (total, member) => total + countMarkdown(member),
+          0,
+        );
+      return 0;
+    };
     const encodedMarkdown = JSON.stringify(markdown).slice(1, -1);
-    const markdownOccurrences = finalPayload.split(encodedMarkdown).length - 1;
+    const markdownOccurrences = countMarkdown(agentContexts.at(-1)?.context);
+    const compactionContexts = contexts.filter(
+      (entry) =>
+        entry.purpose === "compaction" || entry.purpose === "compaction_prefix",
+    );
+    assert(compactionContexts.length > 0);
+    for (const [index, entry] of compactionContexts.entries()) {
+      const payload = JSON.stringify(entry.context);
+      if (payload.includes("markdownReference"))
+        assert(
+          payload.includes("markdownIdentity"),
+          `Compaction consumer ${entry.purpose}[${index}] has a content reference without its authoritative body: ${payload.slice(Math.max(0, payload.indexOf("markdownReference") - 300), payload.indexOf("markdownReference") + 500)}`,
+        );
+    }
     const snapshot = await client.history();
     const workpieceOutputs = snapshot.messages
       .flatMap((message) => message.parts)
-      .filter(
-        (part) =>
-          part.type === "dynamic-tool" &&
-          (part.toolName === "mutate_workpiece" ||
-            part.toolName === "read_workpiece"),
-      )
-      .map((part) => JSON.stringify(part.output));
+      .flatMap((part) =>
+        part.type === "dynamic-tool" &&
+        (part.toolName === "mutate_workpiece" ||
+          part.toolName === "read_workpiece")
+          ? [JSON.stringify(part.output)]
+          : [],
+      );
     assert.equal(workpieceOutputs.length, 3);
     assert(
       workpieceOutputs.every((output) => output.includes(encodedMarkdown)),

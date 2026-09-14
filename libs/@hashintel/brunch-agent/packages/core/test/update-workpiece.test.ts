@@ -189,7 +189,7 @@ test("captures the persistent-state setter at render and writes from run", async
   expect(prompt).toContain("as soon as one consequential distinction exists");
   expect(prompt).toContain("after each useful stretch or correction");
   expect(prompt).toContain(
-    "After settlement, call `read_workpiece` when available",
+    "Use a full `read_workpiece` only when content changed",
   );
   const cadence =
     "Create a first partial workpiece as soon as one consequential distinction exists, then update after each useful stretch or correction and before delivery.";
@@ -457,4 +457,71 @@ test("discovers every authorized true-user source ID and truncates long excerpts
     },
   });
   expect(result.output).not.toHaveProperty("earlierSourcesOmitted");
+});
+
+test("focused reads return settled identity without retransmitting Markdown", async () => {
+  const markdown = "# Account\nReserve one crew.";
+  const currentRevision = {
+    revisionId: "rev-focused",
+    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    ordinal: 2,
+    markdown,
+  };
+  const reader = createWorkpieceReadTool({
+    currentRevision,
+    readSources: async () => [
+      {
+        id: "user-source",
+        role: "user",
+        purpose: "user",
+        text: "Reserve one crew.",
+      },
+    ],
+  });
+  const context = {
+    toolCallId: "focused-read",
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+  };
+
+  const sources = await reader.run({
+    ...context,
+    data: { includeContent: false },
+  });
+  expect(sources.output).toMatchObject({
+    currentWorkpiece: null,
+    currentWorkpiecePointer: {
+      revisionId: currentRevision.revisionId,
+      sha256: currentRevision.sha256,
+      ordinal: currentRevision.ordinal,
+    },
+    sources: [{ id: "user-source", text: "Reserve one crew." }],
+  });
+  expect(JSON.stringify(sources.output)).not.toContain(markdown);
+
+  const locators = await reader.run({
+    ...context,
+    data: {
+      includeContent: false,
+      includeSources: false,
+      locateTexts: ["Reserve one crew."],
+    },
+  });
+  expect(locators.output.sources).toEqual([]);
+  expect(locators.output.locatorLookup).toMatchObject({
+    subject: {
+      kind: "current-revision",
+      revisionId: currentRevision.revisionId,
+    },
+    queries: [
+      {
+        occurrences: [
+          {
+            start: markdown.indexOf("Reserve"),
+            end: markdown.length,
+          },
+        ],
+      },
+    ],
+  });
+  expect(JSON.stringify(locators.output)).not.toContain(markdown);
 });
