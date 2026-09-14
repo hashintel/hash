@@ -390,6 +390,13 @@ test("starts Live and transcription WebRTC from one consented capture and connec
   const fixture = setup();
   await fixture.conversation.start();
   expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+  expect(fixture.getUserMedia).toHaveBeenCalledWith({
+    audio: {
+      autoGainControl: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
   expect(fixture.fetch.mock.calls.map(([url]) => url)).toEqual([
     "/api/voice/live-session",
     "/api/voice/transcription-session",

@@ -7,10 +7,12 @@ Live constraints-only mission for
 Base: local FE-1664 at
 [3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54),
 not `origin/main`. FE-1664 and its PR remain unchanged and unclosed.
-Next: the agent commits this authority separately, extends the capture test,
-observes its failure, then changes only the capture preferences and verifies.
-Acoustic benefit is unproved; Kostandin owns the subsequent matched
-speaker/headphone witness and acceptance. No provider session is agent-authorized.
+The separate authority commit is
+[f445301001](https://github.com/hashintel/hash/commit/f445301001e4545ac7d64db3159d6380cf572ec4).
+The capture-only implementation is prepared: its assertion failed before the
+change, and 312 targeted tests, website typechecking, lint and build now pass.
+Next: Kostandin's matched speaker/headphone witness below. Acoustic benefit and
+mission acceptance remain unproved. No provider session is agent-authorized.
 
 ## Imperative
 
@@ -68,7 +70,8 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 ### Provider-free configuration and regressions
 
 Baseline: `live-conversation.test.ts` passes 40 tests on the pinned base under
-OS network denial. New assertion and post-change verification are pending.
+OS network denial. The new capture assertion failed specifically because the old
+call supplied `{ audio: true }`, then passed with the selected preferences.
 
 Run from the repository root with the pinned Node/Yarn toolchain:
 
@@ -76,16 +79,21 @@ Run from the repository root with the pinned Node/Yarn toolchain:
 sandbox-exec -p '(version 1)(allow default)(deny network*)' yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/live-conversation.test.ts
 ```
 
-The capture assertion must fail for `{ audio: true }` and pass for the selected
-preferences. Existing late-permission, partial-failure and Stop tests must retain
-media release and stale-callback invalidation. Run the Live bridge/control,
-Realtime session/bridge, turn controller and Voice control suites under the same
-network denial. They guard input admission, settlement, interruption, consent,
-handoff and teardown; they cannot establish acoustic correctness.
+Verified 2026-09-14: the same command with these seven files passes 312 tests:
+`live-conversation.test.ts`, `live-brunch-bridge.test.ts`,
+`live-conversation-control.test.tsx`, `openai-realtime-session.test.ts`,
+`realtime-brunch-bridge.test.ts`, `voice-turn-controller.test.ts`, and
+`voice-interview-control.test.tsx`, all under the cold-start directory above.
+Existing late-permission, partial-failure and Stop tests retain media release and
+stale-callback invalidation. These suites guard input admission, settlement,
+interruption, consent, handoff and teardown; they do not establish acoustic correctness.
+The full website suite was not rerun for this localized change.
 
-Run website `lint:tsc`, `lint:eslint`, build and changed-file formatting checks.
-No UI appearance or interaction controls change. Any unrelated baseline failures
-must remain visible rather than prompting unrelated repairs.
+`yarn workspace @apps/petrinaut-website lint:tsc`, `lint:eslint` and `build` pass.
+Lint reports zero warnings/errors. Build reports unchanged React Compiler
+`try`/`finally` optimization and chunk-size warnings. Changed-file `oxfmt --check`
+and `git diff --check` pass; Brunch Markdown is excluded by repository formatter
+configuration and reviewed directly. No UI appearance or interaction controls change.
 
 ### Manual speaker and headphone witness — pending, owner-held
 

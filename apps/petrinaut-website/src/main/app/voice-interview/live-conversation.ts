@@ -701,7 +701,13 @@ export const createLiveConversation = (
     try {
       audio = new Audio();
       audio.autoplay = true;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
       if (abort.signal.aborted) {
         stream.getTracks().forEach((track) => track.stop());
         return;
