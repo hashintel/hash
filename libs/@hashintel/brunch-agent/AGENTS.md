@@ -134,7 +134,7 @@ Before retaining run output, preparing a handoff or wrapping a run, read [run-di
 - **Plugin scope:** each plugin pairs one reusable domain typology with one target formalism; it may name concepts from that typology but never facts or nouns from a concrete domain, organization, situation, or scenario.
 - **Plugin freshness:** after core guidance changes, re-read roughed-in plugins before treating them as seam evidence. Classify each divergence as lag (realign) or intent (record why), then update the plugin's single `Aligned to core as of <commit>` marker to the reviewed core revision. Coordinate in-progress packages with their assigned owner rather than editing across ownership.
 - **Topology gates** (enforced by tests): core and plugins expose Flue-native production resources through dedicated `./flue` subpaths; plugins and transport packages depend only inward on core, never on one another or an application; core depends on no sibling package; production source never imports test code. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
-- **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
+- **Posture:** prototype · stakes high — persisted conversation data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.
 - **Flue:** when adding state, a loop, a route, or a test harness, consult
   [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md)
