@@ -1,3 +1,9 @@
+/**
+ * Parked read-only Linear project graph utility.
+ *
+ * This script remains runnable on demand, but no package typechecks, lints, or
+ * tests it. Keep it self-contained and treat it as unsupported reference code.
+ */
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -526,7 +532,7 @@ export const fetchProjectGraph = (
   };
 };
 
-const usage = `Usage: turbo run linear:graph --filter '@hashintel/brunch-agent' -- [--project <name>] [--all]
+const usage = `Usage: node --experimental-strip-types libs/@hashintel/brunch-agent/docs/agents/linear-project-graph.ts [--project <name>] [--all]
 
 Print a compact, read-only hard-dependency projection for agent sequencing.
 Defaults to open issues in the brunch-agent project. The output is factual input;
@@ -582,7 +588,7 @@ if (isMain) {
       `linear:graph: ${error instanceof Error ? error.message : String(error)}\n`,
     );
     process.stderr.write(
-      "Run `turbo run linear:graph --filter '@hashintel/brunch-agent' -- --help` for usage.\n",
+      "Run `node --experimental-strip-types libs/@hashintel/brunch-agent/docs/agents/linear-project-graph.ts --help` for usage.\n",
     );
     process.exitCode = 1;
   }

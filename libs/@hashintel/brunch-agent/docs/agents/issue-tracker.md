@@ -72,3 +72,8 @@ than only `linear issue mine`: creator, assignee, state, parent, title, and desc
 minimum fields needed to distinguish stakeholder requests, historical plan artifacts, and active
 missions. The audit itself changes nothing. Any resulting cleanup proposal is a separate,
 approval-gated decision.
+
+The parked [`linear-project-graph.ts`](linear-project-graph.ts) utility can print a compact,
+read-only hard-dependency projection with
+`node --experimental-strip-types libs/@hashintel/brunch-agent/docs/agents/linear-project-graph.ts --help`.
+It is retained for occasional manual use but is not typechecked, linted, or tested by a package.
