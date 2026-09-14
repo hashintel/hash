@@ -1567,6 +1567,124 @@ mod tests {
         assert!(matches!(error, registry::DeclarationError::Invalid { .. }));
     }
 
+    async fn snapshot_failure(
+        outcome: crate::sim::SimAppendOutcome,
+    ) -> (
+        crate::sim::SimLogHandle,
+        StartedShard<Toy>,
+        crate::shard_log::ShardCommandError,
+    ) {
+        let journal = crate::sim::SimLogHandle::new(42, Vec::new());
+        let record = incremented("orders", 5);
+        let location = ShardLogLocation::simulated(shard_of(&record.partition), journal.clone());
+        let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+            .await
+            .expect("shard should open")
+            .recover_with_snapshots(&())
+            .await
+            .expect("shard should recover");
+        let started =
+            recovered.enable(ShardCommandConfig::default().require_full_lease_handshake());
+        started
+            .handle
+            .propose(record)
+            .await
+            .expect("event should apply");
+        let snapshot = started
+            .handle
+            .capture_snapshot(1)
+            .await
+            .expect("capture should succeed")
+            .expect("snapshot should be due")
+            .into_record(chrono::Utc::now().to_rfc3339());
+        journal.force_outcomes([outcome]);
+        let error = started
+            .handle
+            .commit_snapshot(snapshot)
+            .await
+            .expect_err("injected snapshot failure should be returned");
+        (journal, started, error)
+    }
+
+    #[tokio::test]
+    async fn snapshot_commit_unknown_continues() {
+        use crate::{shard_log::ShardCommandErrorKind, sim::SimAppendOutcome};
+
+        for outcome in [
+            SimAppendOutcome::CommitUnknownDurable,
+            SimAppendOutcome::CommitUnknownLost,
+        ] {
+            let (journal, started, error) = snapshot_failure(outcome).await;
+            assert_eq!(error.kind, ShardCommandErrorKind::CommitUnknown);
+            let next = incremented("orders", 7);
+            let shard = shard_of(&next.partition);
+            assert!(matches!(
+                started
+                    .handle
+                    .propose(next)
+                    .await
+                    .expect("next event should apply"),
+                ShardCommandOutcome::Applied { .. }
+            ));
+            let totals = started
+                .handle
+                .read(|state| state.domain().totals.clone())
+                .await
+                .expect("state should remain readable");
+            assert_eq!(totals.get("orders"), Some(&12));
+            journal.force_outcomes([SimAppendOutcome::CommitUnknownLost]);
+            let error = started
+                .handle
+                .propose(incremented("orders", 9))
+                .await
+                .expect_err("uncertain event commit should still stop the shard");
+            assert_eq!(error.kind, ShardCommandErrorKind::CommitUnknown);
+            started
+                .task
+                .await
+                .expect("task should join")
+                .expect_err("uncertain event should be terminal");
+
+            let location = ShardLogLocation::simulated(shard, journal);
+            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+                .await
+                .expect("shard should reopen")
+                .recover_with_snapshots(&())
+                .await
+                .expect("recovery should handle either snapshot outcome");
+            let restarted =
+                recovered.enable(ShardCommandConfig::default().require_full_lease_handshake());
+            let totals = restarted
+                .handle
+                .read(|state| state.domain().totals.clone())
+                .await
+                .expect("recovered state should be readable");
+            assert_eq!(totals.get("orders"), Some(&12));
+            restarted
+                .handle
+                .shutdown()
+                .await
+                .expect("shutdown should succeed");
+            restarted
+                .task
+                .await
+                .expect("task should join")
+                .expect("loop should stop cleanly");
+        }
+    }
+
+    #[tokio::test]
+    async fn snapshot_fenced_stops_shard() {
+        let (_, started, error) = snapshot_failure(crate::sim::SimAppendOutcome::Fenced).await;
+        assert_eq!(error.kind, crate::shard_log::ShardCommandErrorKind::Fenced);
+        let error = started
+            .task
+            .await
+            .expect("task should join")
+            .expect_err("fencing should stop the shard");
+        assert_eq!(error.kind, crate::shard_log::ShardCommandErrorKind::Fenced);
+    }
+
     #[tokio::test]
     async fn snapshot_failed_attempt_interval() {
         register::<ToyDomain>().expect("toy domain should register");
