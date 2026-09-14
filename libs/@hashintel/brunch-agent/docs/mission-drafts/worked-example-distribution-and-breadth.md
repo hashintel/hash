@@ -56,7 +56,7 @@ Provider/product probes decide whether the existing full carrier, capability-gro
 
 ## Joins and non-claims
 
-Consume the original run's compaction disposition. If it did not cross compaction, exercise reopen, current-workpiece recovery and explanation after real compaction before Mission 9 or a hosted long-lived provenance claim. Distribution must prove the copied record, not infer continuity from the original session's success.
+Consume the original run's compaction disposition and the executed results of Mission 7d's tooling-context remediation. Crossing compaction is not proof of successful recovery: exercise reopen, current-workpiece recovery and explanation after compaction wherever that proof remains open before Mission 9 or a hosted long-lived provenance claim. Distribution must prove the copied record, not infer continuity from the original session's success. Ordinary-document cross-browser recovery has its own deferred entry in the [future spine](../../MISSION.next.md#conditional-technical-strains); neither compact prompts nor copying a principal ID provides it.
 
 [Mission 9](9-traceable-projection.md) follows this successor for unchanged repeat, changed-input impact, retirement/epochs, concurrent/manual edits, cross-revision passage identity and additional schema/scenario classes required by those behaviors. General reviewer authority remains Mission 10; optimization handoff remains Mission 11.
 

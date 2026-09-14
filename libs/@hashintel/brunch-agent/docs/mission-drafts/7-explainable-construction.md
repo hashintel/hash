@@ -6,7 +6,7 @@
 
 Evaluate the effectiveness of Brunch's structurally checked but semantically model-led prompt/skill architecture separately from proving its end-to-end operation. Mechanical revision, construction and citation checks remain product contracts. A valid link does not establish relevance; model fidelity and useful explanation are evaluation judgments, not a mandate for a semantic runtime gate.
 
-The retained complex-case candidate is Vestera's multi-line production eligibility and changeovers: shared crew contention, asymmetric family changes, product/line restrictions and distinctions among staging, availability, occupancy and release. The original full-region and 100% useful ordinary behaviour-affecting explanation goals survive here as evaluation targets to re-evaluate with Lu before a campaign, not September execution prerequisites or permission to invent missing quantities. Broader cases remain with [Mission 9](9-traceable-projection.md).
+The retained complex-case candidate is Vestera's multi-line production eligibility and changeovers: shared crew contention, asymmetric family changes, product/line restrictions and distinctions among staging, availability, occupancy and release. The original full-region and 100% useful ordinary behaviour-affecting explanation goals survive here as evaluation targets to re-evaluate with Lu before a campaign, not September execution prerequisites or permission to invent missing quantities. General portfolio coverage belongs to [distribution and breadth](worked-example-distribution-and-breadth.md); [Mission 9](9-traceable-projection.md) selects additional cases/classes needed for its repeat/change/retirement claims.
 
 The former packet is recoverable at `8ee42f81b7:libs/@hashintel/brunch-agent/docs/mission-drafts/7-explainable-construction.md`. Its campaign sequencing, inherited budget/repair-count defaults, and mandatory predecessor gates are superseded by the demo recut. Its substantive unresolved obligations have the current homes below; historical test names and source paths must be re-resolved before use.
 
@@ -40,7 +40,7 @@ Retain the genuine adversarial set: distinguishable passages and two declared-ba
 
 ### Lifecycle breadth
 
-Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
+Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. The live [tooling-context side quest](../../SIDE_QUEST.md) owns the observed payload amplification and bounded compaction/reopen remediation; consume its executed results rather than deferring that blocker to this campaign. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
 
 For any claim including Voice/exact resume, retain a genuine two-tab scenario with typed-origin and Voice-origin messages and a durably stopped assistant entry. Verify attribution and stopped presentation after reopening, and distinguish Exit voice mode from durable Stop. Mission 6's waiver and Mission 6b's narrower accepted results are not passes for the deferred properties.
 
@@ -52,7 +52,7 @@ For any claim including Voice/exact resume, retain a genuine two-tab scenario wi
 - Mission 7b owns the ordinary structural batch/correction seam. [Mission 7d](../../MISSION.md) owns Inventory persona demo completion; [distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope.
 - Additional revision list/diff, broad source navigation and per-field intention mapping re-enter when the review task needs them; no new graph or UI is selected here.
 - Retire orphaned ask/sweep handlers and subset-era fixtures only after inspecting current consumers. The historical inventory named website ask mappings/interactive tools, sweep filters/output, Voice speech/coverage references and suspended core ask contracts. Some may already be removed; do not recreate or delete by stale path lists.
-- Capture/archive-lane subtraction follows the real retention need. The named historical consumers are app `capture/apply-sweep.ts`, binding history reading and core evidence/capture exports. Keep only a required archive function, not rejected capture-envelope semantics or a second transcript store.
+- The disconnected capture/archive lane was removed during Mission 7d topology remediation. Do not restore it from historical consumer lists; canonical Flue retention is the current evidence source, and the model-context side quest introduces no second store.
 - Preserve native `readPetrinautDoc`, skill activation and necessary checks; broader tool breadth or batching is a separate construction-design decision, not evaluation infrastructure.
 
 ## Successor joins
