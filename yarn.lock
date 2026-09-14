@@ -445,7 +445,6 @@ __metadata:
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
-    "@hashintel/brunch-agent-binding-flue": "workspace:*"
     "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
@@ -7637,22 +7636,6 @@ __metadata:
     "@mui/system": 5.18.0
     react: ^19.0.0
     react-dom: ^19.0.0
-  languageName: unknown
-  linkType: soft
-
-"@hashintel/brunch-agent-binding-flue@workspace:*, @hashintel/brunch-agent-binding-flue@workspace:libs/@hashintel/brunch-agent/packages/binding-flue":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/brunch-agent-binding-flue@workspace:libs/@hashintel/brunch-agent/packages/binding-flue"
-  dependencies:
-    "@flue/runtime": "npm:2.0.3"
-    "@flue/sdk": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
-    "@types/node": "npm:22.18.13"
-    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
-    oxlint: "npm:1.63.0"
-    oxlint-tsgolint: "npm:0.22.1"
-    vite: "npm:8.2.2"
-    vitest: "npm:4.1.11"
   languageName: unknown
   linkType: soft
 

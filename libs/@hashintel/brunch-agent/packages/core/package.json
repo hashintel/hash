@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The Brunch harness evidence layer, client contracts, and Flue-native core agent contribution.",
+  "description": "The Brunch harness client contracts and Flue-native core agent contribution.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
@@ -21,10 +21,6 @@
     "./question-marker": {
       "types": "./src/question-marker.ts",
       "import": "./dist/question-marker.js"
-    },
-    "./storage": {
-      "types": "./src/storage.ts",
-      "import": "./dist/storage.js"
     },
     "./workpiece": {
       "types": "./src/workpiece.ts",

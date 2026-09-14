@@ -44,12 +44,6 @@ export interface PetrinautChatResult {
     { type: "tool-input-available" }
   > | null;
   readonly interviewerToolNames: readonly string[];
-  readonly captureUserText: string;
-  readonly captureIds: readonly string[];
-  readonly recaptureIds: readonly string[];
-  readonly skippedDedupKeys: readonly string[];
-  readonly capturePayloads: readonly unknown[];
-  readonly captureExcerpts: readonly string[];
 }
 
 export interface PetrinautResumeResult {

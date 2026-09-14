@@ -2,7 +2,6 @@
   "package": "@apps/brunch-agent",
   "dependencies": [
     "@hashintel/brunch-agent",
-    "@hashintel/brunch-agent-binding-flue",
     "@hashintel/brunch-agent-plugin-sdcpn",
     "@hashintel/brunch-agent-transport-aisdk",
     "@hashintel/petrinaut-core",
@@ -12,7 +11,6 @@
     "build": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -116,7 +114,6 @@
     "dev": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -173,7 +170,6 @@
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -229,7 +225,6 @@
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -288,7 +283,6 @@
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -343,7 +337,6 @@
     "petrinaut:dev": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -563,7 +556,6 @@
     "test:integration": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
@@ -622,7 +614,6 @@
     "test:unit": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-binding-flue#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
