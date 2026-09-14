@@ -276,31 +276,20 @@ const renderTestPanel = ({
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
-        <LanguageClientContext
-          value={{
-            ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
-            requestDiagnostics: async () => ({
-              byUri: new Map(),
-              total: 0,
-              errorCount: 0,
-            }),
-          }}
-        >
-          <NotificationsProvider>
-            <EditorContext.Provider value={nextEditorContext}>
-              <SDCPNContext.Provider value={sdcpnContext}>
-                <AiAssistantPanel
-                  aiAssistant={nextAiAssistant}
-                  initialInteractionMode={nextInitialInteractionMode}
-                  initialMessage={nextInitialMessage}
-                  onInitialInteractionModeConsumed={
-                    onInitialInteractionModeConsumed
-                  }
-                />
-              </SDCPNContext.Provider>
-            </EditorContext.Provider>
-          </NotificationsProvider>
-        </LanguageClientContext>
+        <NotificationsProvider>
+          <EditorContext.Provider value={nextEditorContext}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={nextAiAssistant}
+                initialInteractionMode={nextInitialInteractionMode}
+                initialMessage={nextInitialMessage}
+                onInitialInteractionModeConsumed={
+                  onInitialInteractionModeConsumed
+                }
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </NotificationsProvider>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
@@ -5290,7 +5279,7 @@ describe("AiAssistantPanel host interactive tools", () => {
     expect(diagnosticsOutputs).toHaveLength(2);
     expect(
       diagnosticsOutputs.every((output) =>
-        output.includes("everything compiles"),
+        output.includes("No net-code diagnostics."),
       ),
     ).toBe(true);
     expect(
