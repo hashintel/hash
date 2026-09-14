@@ -16,8 +16,8 @@ export type Sorter<SortKey> = {
 };
 
 export const directionIcons: Record<SortDirection, IconName> = {
-  ASCENDING: "sortDownAZ",
-  DESCENDING: "sortUpAZ",
+  ASCENDING: "sortUpAZ",
+  DESCENDING: "sortDownAZ",
 };
 
 const directionsByAvailability: Record<
