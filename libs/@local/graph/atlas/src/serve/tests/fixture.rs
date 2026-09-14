@@ -232,7 +232,7 @@ fn parents() -> IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> {
 ///
 /// The seed and the schedule are what [`Lod::build`] consumes. The remaining fields describe
 /// stages a synthetic generation does not run and carry values their validators accept.
-fn config() -> FitConfig {
+const fn config() -> FitConfig {
     FitConfig {
         seed: SEED,
         selection: SelectionOptions {

@@ -110,6 +110,11 @@ impl StagedGeneration {
         Ok(Binding::new(hash))
     }
 
+    /// Checks that the staging directory contains exactly the manifest's file names.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SealError`] if reading the directory fails or its names differ from the manifest.
     fn validate_files(&self, repository: &SaltRepository) -> Result<BTreeSet<FileName>, SealError> {
         // artifact names are distinct and exclude the metadata document's name.
         let expected: BTreeSet<FileName> = repository.files.files().map(|file| file.name).collect();
@@ -144,6 +149,16 @@ impl StagedGeneration {
         Ok(staged)
     }
 
+    /// Writes the metadata document and moves the whole staging directory into place.
+    ///
+    /// Syncs the document and staged files, makes them read-only, then syncs and renames the
+    /// staging directory. Readers see all files together. Syncing the root after the rename makes
+    /// the directory entry durable. A failure before rename leaves staging in place, while a
+    /// failure after rename can leave a visible generation.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`io::Error`] of writing, syncing, sealing or renaming.
     fn persist(
         &self,
         document: &[u8],
@@ -171,6 +186,12 @@ impl StagedGeneration {
         Ok(())
     }
 
+    /// Publishes at `id` without replacing an existing generation directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SealError`] if the destination exists or persistence fails. An error after rename
+    /// can leave the generation visible.
     fn publish(
         self,
         id: GenerationId,

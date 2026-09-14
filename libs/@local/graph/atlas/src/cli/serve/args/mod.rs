@@ -45,7 +45,7 @@ const DEFAULT_DELTA: DeltaTaskOptions = DeltaTaskOptions {
 };
 /// Serving's own maintenance cadence, the source of each manager flag's default.
 const DEFAULT_MANAGER: ManagerOptions = ManagerOptions { .. };
-/// Serving's own download polling cadence, the source of the download flag's default.
+/// Serving's own source-polling cadence, the source of the download poll flag's default.
 const DEFAULT_DOWNLOAD: DownloadOptions = DownloadOptions { .. };
 
 /// Per-request limits also published by the manifest.
@@ -338,7 +338,7 @@ pub struct ServeArgs {
     #[command(flatten)]
     manager: ManagerArgs,
 
-    /// The remote generation source and its polling cadence.
+    /// The optional generation source and its polling cadence.
     #[command(flatten)]
     download: DownloadArgs,
 
