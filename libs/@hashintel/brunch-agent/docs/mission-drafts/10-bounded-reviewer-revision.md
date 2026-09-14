@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7c](../../MISSION.md) owns the selected persona correction and explanation; [its successor](worked-example-distribution-and-breadth.md) owns distribution and portfolio breadth. Neither establishes general reviewer authority. This draft retains qualification, coexistence, conflict, refusal and impact-widening portfolios after Mission 9. Re-evaluate candidate mechanisms and predecessor evidence before cutting it; do not introduce a universal semantic gate to satisfy the flagship.
+**Demo allocation:** [Mission 7d](../../MISSION.md) owns the selected persona correction and explanation; [distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope. Neither establishes general reviewer authority. This draft retains qualification, coexistence, conflict, refusal and impact-widening portfolios after Mission 9. Re-evaluate candidate mechanisms and predecessor evidence before cutting it; do not introduce a universal semantic gate to satisfy the flagship.
 
 ## Cold-start reads
 

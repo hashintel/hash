@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7c](../../MISSION.md) owns the original Inventory worked example; [its successor](worked-example-distribution-and-breadth.md) owns distribution and portfolio breadth. Their exclusions do not await PM confirmation. Dynamics alone is not optimisation: this draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
+**Demo allocation:** [Mission 7d](../../MISSION.md) owns worked-example completion, assessment of Chris's experiment API and in-memory configuration-only assistance. Consume its evidence at cut time; configuration is not execution or consumer acceptance. [Distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope. This draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
 
 ## Cold-start reads
 
