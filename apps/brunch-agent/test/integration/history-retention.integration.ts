@@ -13,6 +13,11 @@ import {
 import { observe } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import {
+  deriveMutationEffects,
+  mutatePetrinautNetToolName,
+  readPetrinautNetToolName,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolHistoryFrom,
@@ -421,6 +426,20 @@ const completeClientTool = async (toolCallId: string, output: string) =>
     ]),
   });
 
+const completeBrowserTool = async (
+  toolCallId: string,
+  toolName: string,
+  output: unknown,
+  metadata: unknown,
+) =>
+  send({
+    kind: "signal",
+    type: CLIENT_TOOL_RESULT_SIGNAL,
+    tagName: CLIENT_TOOL_RESULT_SIGNAL,
+    attributes: { toolCallIds: toolCallId },
+    body: JSON.stringify([{ toolCallId, toolName, output, metadata }]),
+  });
+
 try {
   const authorizationResult = await authorization();
   assert.deepEqual(authorizationResult, {
@@ -431,6 +450,72 @@ try {
   });
   if (projectionOracle) {
     const markdown = `# A4 projection workpiece\n\n${"Authoritative retained detail. ".repeat(900)}`;
+    const emptyDefinition = {
+      places: [],
+      transitions: [],
+      types: [],
+      parameters: [],
+      differentialEquations: [],
+    };
+    const changedDefinition = {
+      ...emptyDefinition,
+      places: [
+        {
+          id: "projection-place",
+          name: "ProjectionPlace",
+          description: `A4 proof carriage ${"repeated definition ".repeat(4000)}`,
+          x: 10,
+          y: 5,
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+        },
+      ],
+    };
+    const hashOf = (value: unknown) =>
+      createHash("sha256").update(JSON.stringify(value)).digest("hex");
+    const preHash = hashOf(emptyDefinition);
+    const postHash = hashOf(changedDefinition);
+    const mutationOutput = {
+      execution: "ordered-stop",
+      toolCallId: "a4-net-mutation",
+      observationToolCallId: "a4-net-read",
+      preHash,
+      postHash,
+      outcomes: [
+        {
+          index: 0,
+          operationId: "applied-place",
+          basisId: "absent",
+          status: "applied",
+          preHash,
+          postHash,
+          effects: [
+            {
+              classification: "direct",
+              path: "/places/0",
+              kind: "created",
+              after: changedDefinition.places[0],
+            },
+          ],
+        },
+        {
+          index: 1,
+          operationId: "failed-place",
+          basisId: "absent",
+          status: "failed",
+          preHash: postHash,
+          postHash,
+          error: "A4 controlled browser rejection.",
+        },
+        {
+          index: 2,
+          operationId: "unattempted-place",
+          basisId: "absent",
+          status: "unattempted",
+        },
+      ],
+    };
     responses.push(
       tools(
         "mutate_workpiece",
@@ -438,10 +523,9 @@ try {
         "a4-workpiece-mutation",
       ),
       tools("read_workpiece", {}, "a4-workpiece-read"),
-      tools("read_workpiece", {}, "a4-workpiece-redundant-read"),
-      fauxAssistantMessage("A4 projection oracle complete."),
+      tools(readPetrinautNetToolName, {}, "a4-net-read"),
     );
-    await send(
+    const admission = await send(
       {
         kind: "user",
         body: [
@@ -462,8 +546,191 @@ try {
         },
       },
     );
+    responses.push(
+      tools(
+        mutatePetrinautNetToolName,
+        {
+          observation: { toolCallId: "a4-net-read", baseHash: preHash },
+          bases: [
+            {
+              basisId: "absent",
+              basis: { kind: "absent", reason: "A4 projection oracle." },
+            },
+          ],
+          operations: [
+            {
+              operationId: "applied-place",
+              basisId: "absent",
+              type: "addPlace",
+              input: changedDefinition.places[0],
+            },
+            {
+              operationId: "failed-place",
+              basisId: "absent",
+              type: "addPlace",
+              input: {
+                ...changedDefinition.places[0],
+                id: "failed-place",
+                name: "FailedPlace",
+              },
+            },
+            {
+              operationId: "unattempted-place",
+              basisId: "absent",
+              type: "addPlace",
+              input: {
+                ...changedDefinition.places[0],
+                id: "unattempted-place",
+                name: "UnattemptedPlace",
+              },
+            },
+          ],
+        },
+        "a4-net-mutation",
+      ),
+    );
+    await completeBrowserTool(
+      "a4-net-read",
+      readPetrinautNetToolName,
+      { title: "A4 projection net", definition: emptyDefinition },
+      {
+        observation: {
+          toolCallId: "a4-net-read",
+          binding: {
+            conversationId: identity.conversationId,
+            documentId: "a4-projection-document",
+            incarnationId: "a4-projection-incarnation",
+          },
+          observed: {
+            definition: emptyDefinition,
+            sha256: preHash,
+            revisionId: "a4-net-revision-1",
+          },
+        },
+      },
+    );
+    responses.push(
+      tools("read_workpiece", {}, "a4-workpiece-redundant-read"),
+      fauxAssistantMessage("A4 projection oracle complete."),
+    );
+    await completeBrowserTool(
+      "a4-net-mutation",
+      mutatePetrinautNetToolName,
+      mutationOutput,
+      {
+        mutationRecord: {
+          outcome: "failed",
+          attempts: [
+            {
+              request: {
+                toolCallId: "a4-net-mutation:applied-place",
+                toolName: "addPlace",
+                input: changedDefinition.places[0],
+                binding: {
+                  conversationId: identity.conversationId,
+                  documentId: "a4-projection-document",
+                  incarnationId: "a4-projection-incarnation",
+                },
+                requestedBaseHash: preHash,
+                observationToolCallId: "a4-net-read",
+              },
+              binding: {
+                conversationId: identity.conversationId,
+                documentId: "a4-projection-document",
+                incarnationId: "a4-projection-incarnation",
+              },
+              outcome: "applied",
+              pre: {
+                definition: emptyDefinition,
+                sha256: preHash,
+                revisionId: "a4-net-revision-1",
+              },
+              post: {
+                definition: changedDefinition,
+                sha256: postHash,
+                revisionId: "a4-net-revision-2",
+              },
+              effects: {
+                ...deriveMutationEffects(
+                  {
+                    toolCallId: "a4-net-mutation:applied-place",
+                    toolName: "addPlace",
+                    input: changedDefinition.places[0],
+                    binding: {
+                      conversationId: identity.conversationId,
+                      documentId: "a4-projection-document",
+                      incarnationId: "a4-projection-incarnation",
+                    },
+                    requestedBaseHash: preHash,
+                    observationToolCallId: "a4-net-read",
+                  },
+                  emptyDefinition,
+                  changedDefinition,
+                ),
+              },
+            },
+            {
+              request: {
+                toolCallId: "a4-net-mutation:failed-place",
+                toolName: "addPlace",
+                input: {
+                  ...changedDefinition.places[0],
+                  id: "failed-place",
+                  name: "FailedPlace",
+                },
+                binding: {
+                  conversationId: identity.conversationId,
+                  documentId: "a4-projection-document",
+                  incarnationId: "a4-projection-incarnation",
+                },
+                requestedBaseHash: postHash,
+                observationToolCallId: "a4-net-read",
+              },
+              binding: {
+                conversationId: identity.conversationId,
+                documentId: "a4-projection-document",
+                incarnationId: "a4-projection-incarnation",
+              },
+              outcome: "failed",
+              pre: {
+                definition: changedDefinition,
+                sha256: postHash,
+                revisionId: "a4-net-revision-2",
+              },
+              post: {
+                definition: changedDefinition,
+                sha256: postHash,
+                revisionId: "a4-net-revision-2",
+              },
+              effects: deriveMutationEffects(
+                {
+                  toolCallId: "a4-net-mutation:failed-place",
+                  toolName: "addPlace",
+                  input: {
+                    ...changedDefinition.places[0],
+                    id: "failed-place",
+                    name: "FailedPlace",
+                  },
+                  binding: {
+                    conversationId: identity.conversationId,
+                    documentId: "a4-projection-document",
+                    incarnationId: "a4-projection-incarnation",
+                  },
+                  requestedBaseHash: postHash,
+                  observationToolCallId: "a4-net-read",
+                },
+                changedDefinition,
+                changedDefinition,
+              ),
+              error: "A4 controlled browser rejection.",
+            },
+          ],
+        },
+      },
+    );
+    assert(admission.uid);
     const agentContexts = contexts.filter((entry) => entry.purpose === "agent");
-    assert.equal(agentContexts.length, 4);
+    assert.equal(agentContexts.length, 6);
     const serialized = agentContexts.map((entry) =>
       JSON.stringify(entry.context),
     );
@@ -522,6 +789,64 @@ try {
       "Public history must retain every complete authoritative result",
     );
     const canonical = JSON.stringify(canonicalRecords());
+    const finalContext = agentContexts.at(-1)?.context;
+    const finalContextJson = JSON.stringify(finalContext);
+    assert(finalContextJson.includes('\\"status\\":\\"applied\\"'));
+    assert(finalContextJson.includes('\\"status\\":\\"failed\\"'));
+    assert(finalContextJson.includes('\\"status\\":\\"unattempted\\"'));
+    assert(
+      finalContextJson.includes(
+        '\\"error\\":\\"A4 controlled browser rejection.\\"',
+      ),
+    );
+    assert(
+      finalContextJson.includes(
+        JSON.stringify(JSON.stringify(emptyDefinition)).slice(1, -1),
+      ),
+      "The current-net read output remains complete for the model",
+    );
+    assert(
+      !finalContextJson.includes(
+        JSON.stringify(JSON.stringify(changedDefinition)).slice(1, -1),
+      ),
+      "Mutation provenance definitions are projected out",
+    );
+    const publicJson = JSON.stringify(snapshot);
+    const payloadClassCharacters = {
+      workpieceMarkdown: {
+        retained: workpieceOutputs.reduce(
+          (total, output) =>
+            total +
+            (output.includes(encodedMarkdown) ? encodedMarkdown.length : 0),
+          0,
+        ),
+        provider: markdownOccurrences * encodedMarkdown.length,
+      },
+      mutationOutput: {
+        retained: JSON.stringify(mutationOutput).length,
+        provider: finalContextJson.includes(
+          JSON.stringify(JSON.stringify(mutationOutput)).slice(1, -1),
+        )
+          ? JSON.stringify(mutationOutput).length
+          : 0,
+      },
+      mutationProvenanceDefinitions: {
+        retained:
+          JSON.stringify(emptyDefinition).length +
+          JSON.stringify(changedDefinition).length * 3,
+        provider:
+          (finalContextJson.split(JSON.stringify(emptyDefinition)).length - 1) *
+            JSON.stringify(emptyDefinition).length +
+          (finalContextJson.split(JSON.stringify(changedDefinition)).length -
+            1) *
+            JSON.stringify(changedDefinition).length,
+      },
+    };
+    const encodedChangedDefinition = JSON.stringify(
+      JSON.stringify(changedDefinition),
+    ).slice(1, -1);
+    assert(publicJson.includes(encodedChangedDefinition));
+    assert(canonical.includes(encodedChangedDefinition));
     assert(
       canonical.split(encodedMarkdown).length - 1 >= 3,
       "Canonical records must retain every complete authoritative result",
@@ -535,6 +860,8 @@ try {
       finalMarkdownOccurrences: markdownOccurrences,
       canonicalCharacters: canonical.length,
       publicHistoryCharacters: JSON.stringify(snapshot).length,
+      payloadClassCharacters,
+      canonicalAndPublicMutationDefinitionsFull: true,
     });
     assert.equal(
       markdownOccurrences,
