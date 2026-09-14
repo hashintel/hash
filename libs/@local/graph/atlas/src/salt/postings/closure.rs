@@ -68,13 +68,6 @@ pub(crate) struct IconSource {
 #[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
     /// Reflexive descendant reachability for each ontology row.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "retained descendant rows are inspected only by test helpers"
-        )
-    )]
     bits: BitMatrix<OntologyRowId, OntologyRowId>,
     icon_sources: IdVec<OntologyRowId, Option<IconSource>>,
     memberships: IdVec<OntologyRowId, Option<Box<DenseBitSlice<BasePosition>>>>,
