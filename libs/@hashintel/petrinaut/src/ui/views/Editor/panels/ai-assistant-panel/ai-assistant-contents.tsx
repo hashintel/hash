@@ -27,6 +27,10 @@ import {
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
+import {
+  ExperimentalIcon,
+  useExperimentalIconMotionAllowed,
+} from "../../../../experimental-icons";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import {
@@ -238,6 +242,7 @@ const voiceModeStyle = cva({
 });
 
 const headerStyle = css({
+  position: "relative",
   display: "flex",
   alignItems: "center",
   gap: "1",
@@ -249,28 +254,52 @@ const headerStyle = css({
 });
 
 const headerLabelStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  width: "[100%]",
   display: "flex",
   alignItems: "center",
   gap: "2",
-  flex: "[1]",
   minWidth: "[0]",
   color: "neutral.fg.heading",
   fontSize: "sm",
   fontWeight: "medium",
   whiteSpace: "nowrap",
   border: "none",
-  padding: "[0]",
+  padding: "[0 12px]",
   backgroundColor: "[transparent]",
   textAlign: "left",
-  _enabled: { cursor: "grab", touchAction: "none" },
-  _active: { cursor: "grabbing" },
+  _enabled: {
+    cursor: "grab",
+    touchAction: "none",
+    _active: { cursor: "grabbing" },
+  },
   _focusVisible: {
     outline: "[2px solid {colors.blue.s50}]",
-    outlineOffset: "[4px]",
+    outlineOffset: "[-2px]",
+  },
+  '&[data-icon-motion="true"] > svg': {
+    transition: "[transform 180ms ease-out]",
+  },
+  '&[data-icon-motion="true"]:is(:hover, :focus-visible) > svg': {
+    transform: "[rotate(8deg) scale(1.06)]",
+  },
+  '&[data-icon-motion="true"]:active > svg': {
+    transform: "[rotate(-8deg) scale(0.94)]",
   },
 });
 
+const headerTabsStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minWidth: "[0]",
+  marginLeft: "[28px]",
+  pointerEvents: "none",
+  "& button": { pointerEvents: "auto" },
+});
+
 const headerButtonStyle = css({
+  position: "relative",
   color: "neutral.s90",
   _hover: {
     color: "neutral.s110",
@@ -681,6 +710,8 @@ export const AiAssistantContents = ({
 
   const isFloating = aiAssistantPlacement === "floating";
   const voiceDockRef = useRef<HTMLDivElement>(null);
+  const HeaderLabel = isFloating ? "button" : "div";
+  const iconMotionAllowed = useExperimentalIconMotionAllowed();
   const {
     panelRef,
     anchorForResize,
@@ -925,11 +956,10 @@ export const AiAssistantContents = ({
               visible: !isVoiceDockCollapsed,
             })}`}
           >
-            <button
-              type="button"
+            <HeaderLabel
+              type={isFloating ? "button" : undefined}
               className={headerLabelStyle}
-              style={additionalTab ? { flex: "0 0 auto" } : undefined}
-              disabled={!isFloating}
+              data-icon-motion={iconMotionAllowed}
               aria-label={isFloating ? "Move AI assistant" : undefined}
               title={
                 isFloating ? "Drag to move, or use the arrow keys" : undefined
@@ -938,9 +968,9 @@ export const AiAssistantContents = ({
             >
               <AiAssistantIcon size={16} />
               {!additionalTab && <span>AI</span>}
-            </button>
-            {additionalTab && (
-              <div style={{ flex: 1, minWidth: 0 }}>
+            </HeaderLabel>
+            <div className={headerTabsStyle}>
+              {additionalTab && (
                 <HorizontalTabsHeader
                   subViews={[
                     { id: aiTabId, title: "AI" },
@@ -951,8 +981,8 @@ export const AiAssistantContents = ({
                     setHostTabSelected(tabId === hostTabId)
                   }
                 />
-              </div>
-            )}
+              )}
+            </div>
             <Button
               size="xs"
               variant="ghost"
@@ -961,7 +991,12 @@ export const AiAssistantContents = ({
               onClick={() =>
                 setAiAssistantPlacement(isFloating ? "docked" : "floating")
               }
-              iconName={isFloating ? "sidebar" : "externalLink"}
+              prefix={
+                <ExperimentalIcon
+                  name={isFloating ? "sidebar" : "externalLink"}
+                  size={14}
+                />
+              }
               tooltip={placementLabel}
             />
             {!isVoiceDockCollapsed && !isVoiceSessionLive && voiceAlertIndicator}
@@ -976,7 +1011,7 @@ export const AiAssistantContents = ({
                 setVoiceAlerts([]);
                 onClearMessages?.();
               }}
-              iconName="trash"
+              prefix={<ExperimentalIcon name="trash" size={14} />}
               tooltip="Clear AI chat"
             />
             <Button
@@ -985,7 +1020,7 @@ export const AiAssistantContents = ({
               className={headerButtonStyle}
               aria-label="Close AI assistant"
               onClick={onClose}
-              iconName="close"
+              prefix={<ExperimentalIcon name="close" size={14} />}
               tooltip="Close AI assistant"
             />
           </div>

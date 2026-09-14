@@ -32,7 +32,7 @@ export const useFloatingPosition = (width: number) => {
     };
   };
 
-  const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+  const onPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.button !== 0) {
       return;
     }
@@ -50,7 +50,7 @@ export const useFloatingPosition = (width: number) => {
     setIsDragging(true);
   };
 
-  const onPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = (event: PointerEvent<HTMLElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
@@ -72,7 +72,7 @@ export const useFloatingPosition = (width: number) => {
     setIsDragging(false);
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const bounds = getBounds();
     if (!bounds) {
       return;
