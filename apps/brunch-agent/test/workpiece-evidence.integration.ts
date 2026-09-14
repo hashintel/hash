@@ -253,11 +253,20 @@ try {
       };
       const current = result.currentWorkpiece as {
         revisionId: string;
-        markdown: string;
         sha256: string;
+        markdownReference: {
+          revisionId: string;
+          sha256: string;
+          retainedEntryId: string;
+        };
       };
       assert.equal(current.revisionId, "evidence-revision");
-      assert.equal(current.markdown, markdown);
+      assert.deepEqual(current.markdownReference, {
+        revisionId: current.revisionId,
+        sha256: current.sha256,
+        retainedEntryId: current.markdownReference.retainedEntryId,
+      });
+      assert(current.markdownReference.retainedEntryId.length > 0);
       assert.equal(lookup.subject.kind, "unsettled-candidate");
       assert.equal(lookup.subject.revisionId, undefined);
       assert.equal(lookup.subject.ordinal, undefined);
