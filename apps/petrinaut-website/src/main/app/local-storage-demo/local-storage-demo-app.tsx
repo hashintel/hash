@@ -249,6 +249,11 @@ type ActiveHandle = {
   emittedRevisionIds: Set<DocumentRevisionId>;
 };
 
+type PersistFailure = {
+  handle: PetrinautDocHandle;
+  error: Error;
+};
+
 const useProcessAgentSession = (input: {
   readonly activeHandleRef: RefObject<ActiveHandle | null>;
   readonly binding: ProcessAgentBinding | null;
@@ -530,6 +535,13 @@ export const LocalStorageDemoApp = ({
     );
   }, [currentDocument]);
 
+  // The most recent change the repository refused to persist, if any. Cleared
+  // once a later change from the same handle lands, or when the handle is
+  // replaced; a new handle opens from what the repository actually holds.
+  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
+    null,
+  );
+
   useEffect(() => {
     if (!activeHandle) {
       return;
@@ -539,15 +551,31 @@ export const LocalStorageDemoApp = ({
     const repository = source.repository;
     return handle.subscribe((event) => {
       emittedRevisionIds.add(event.revisionId);
-      void repository.persistRevision({
-        documentId: document.documentId,
-        incarnationId: document.incarnationId,
-        definition: event.next,
-        previousRevisionId: event.previousRevisionId,
-        revisionId: event.revisionId,
-      });
+      repository
+        .persistRevision({
+          documentId: document.documentId,
+          incarnationId: document.incarnationId,
+          definition: event.next,
+          previousRevisionId: event.previousRevisionId,
+          revisionId: event.revisionId,
+        })
+        .then(
+          () =>
+            setPersistFailure((failure) =>
+              failure?.handle === handle ? null : failure,
+            ),
+          (error: unknown) =>
+            setPersistFailure({
+              handle,
+              error: error instanceof Error ? error : new Error(String(error)),
+            }),
+        );
     });
   }, [activeHandle, source.repository]);
+  const unsavedChangeMessage =
+    persistFailure !== null && persistFailure.handle === activeHandle?.handle
+      ? persistFailure.error.message
+      : null;
 
   const existingNets: MinimalNetMetadata[] = source.repository.records.map(
     (document) => ({
@@ -985,6 +1013,32 @@ export const LocalStorageDemoApp = ({
           }}
         >
           This document uses the Brunch process assistant
+        </p>
+      ) : null}
+      {unsavedChangeMessage !== null ? (
+        // Centred below Petrinaut's 64px top bar and stacked above its side
+        // panels (z-index 1097) and bar (1100), so neither can hide it.
+        <p
+          role="alert"
+          style={{
+            background: "#fff1f0",
+            border: "1px solid #ffa39e",
+            borderRadius: 8,
+            boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+            color: "#a8071a",
+            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+            fontSize: 14,
+            left: "50%",
+            margin: 0,
+            maxWidth: "calc(100vw - 32px)",
+            padding: "10px 12px",
+            position: "fixed",
+            top: 80,
+            transform: "translateX(-50%)",
+            zIndex: 1200,
+          }}
+        >
+          Changes not saved: {unsavedChangeMessage}
         </p>
       ) : null}
       {tracerIsCurrent &&

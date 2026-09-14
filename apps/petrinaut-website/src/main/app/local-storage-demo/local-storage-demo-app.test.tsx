@@ -894,6 +894,52 @@ describe("local document revision persistence", () => {
       );
     });
     expect(editorProps.current?.handle).toBe(adoptedHandle);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("reports a change the repository refused to persist until a later change succeeds", async () => {
+    stubStorage();
+    vi.clearAllMocks();
+    selectRemoteDocument();
+    remoteRepositoryOperations.persistRevision.mockRejectedValueOnce(
+      new Error("Worked-model write refused."),
+    );
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ bundle: "inventory-purchasing" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Inventory purchasing"),
+    );
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    const addPlace = (id: string) =>
+      act(() => {
+        handle.change((draft) => {
+          draft.places.push({
+            id,
+            name: id,
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          });
+        });
+      });
+
+    addPlace("refused-place");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("not saved");
+    expect(alert.textContent).toContain("Worked-model write refused.");
+    // The record still names the handle's starting revision while the write is
+    // outstanding; that must not rebuild the handle.
+    expect(editorProps.current?.handle).toBe(handle);
+
+    addPlace("accepted-place");
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(editorProps.current?.handle).toBe(handle);
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
