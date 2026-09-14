@@ -741,6 +741,8 @@ export const Filter = <
     window.setTimeout(removeable.onRemove, CHIP_COLLAPSE_MS);
   };
 
+  const abandonGhosted =
+    abandonPhase === "held" || abandonPhase === "collapsing";
   const classes = filterRecipe({
     size,
     invalid,
@@ -768,13 +770,13 @@ export const Filter = <
       lazyMount
       unmountOnExit
       ref={rootRef as React.Ref<HTMLDivElement>}
-      className={cx(
-        classes.root,
-        className,
-        (abandonPhase === "held" || abandonPhase === "collapsing") &&
-          abandonedGhost,
-      )}
+      className={cx(classes.root, className, abandonGhosted && abandonedGhost)}
       style={abandonPhase === "fading" ? abandonedFadeStyle : undefined}
+      // A condemned placeholder is fully inert: no pointer target, no tab
+      // stops, no accessibility-tree entries — otherwise Tab would focus its
+      // invisible controls and rescue it, trapping keyboard users in a
+      // rescue/re-countdown loop.
+      inert={abandonGhosted}
       onBlur={handleRootBlur}
       onKeyDownCapture={handleArrowKeyCapture}
       role="group"

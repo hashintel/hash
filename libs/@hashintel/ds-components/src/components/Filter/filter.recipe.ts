@@ -6,8 +6,10 @@ import { formSizes } from "../../util/form-size.recipe";
  * A held/collapsing abandoned chip (see `createAbandonmentController`): a
  * skeleton-style placeholder — no text or borders, just a subtle grey pill in
  * the chip's shape, footprint kept — so the row doesn't read as an
- * unexplained gap while the removal waits out an in-progress interaction,
- * and inert to the pointer since the chip is condemned.
+ * unexplained gap while the removal waits out an in-progress interaction.
+ * The chip is condemned, so the root also carries the `inert` attribute
+ * (no tab stops, no accessibility-tree entries); the pointerEvents here is
+ * belt-and-braces alongside it.
  */
 export const abandonedGhost = css({
   background: "neutral.s15",
