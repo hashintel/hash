@@ -21,17 +21,21 @@ mod projector;
 mod task;
 pub(crate) mod topology;
 
+pub(crate) use self::{
+    feed::DeltaFeedTaskOptions,
+    placement::{DeltaPlacementTaskOptions, EmbeddingWorkflow},
+    task::{DeltaReader, DeltaTask, DeltaTaskError, DeltaTaskOptions},
+};
+
+#[cfg(test)]
+mod tests;
+
 use alloc::sync::Arc;
 
 use hashql_core::id::Id as _;
 use rand::TryCryptoRng;
 use zerocopy::{NativeEndian, U64};
 
-pub(crate) use self::{
-    feed::DeltaFeedTaskOptions,
-    placement::{DeltaPlacementTaskOptions, EmbeddingWorkflow},
-    task::{DeltaReader, DeltaTask, DeltaTaskError, DeltaTaskOptions},
-};
 use self::{
     layout::{LayoutDelta, provider::NaiveLayoutProvider},
     overlay::{

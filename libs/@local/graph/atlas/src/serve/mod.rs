@@ -16,9 +16,11 @@
 //! request using the new token may therefore reuse a soft-stale scope while its detached refresh
 //! runs.
 
+pub(crate) mod authorization;
 pub(crate) mod codec;
 pub(crate) mod delta;
 pub(crate) mod density;
+pub(crate) mod document;
 pub(crate) mod hydrate;
 mod intern;
 pub(crate) mod membership;
