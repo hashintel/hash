@@ -67,12 +67,6 @@ impl GenerationDocument {
         self.id
     }
 
-    /// Returns the original JSON encoding, including its whitespace.
-    #[must_use]
-    pub(crate) const fn bytes(&self) -> &[u8] {
-        &self.bytes
-    }
-
     /// Recovers the original JSON allocation for transfer.
     pub(crate) fn into_bytes(self) -> Bytes {
         Bytes::from(self.bytes)
