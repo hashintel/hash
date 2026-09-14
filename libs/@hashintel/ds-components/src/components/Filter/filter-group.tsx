@@ -134,7 +134,14 @@ const FilterGroupRoot = ({
   });
 
   return (
-    <div role="group" ref={rootRef} className={cx(styles, className)}>
+    // data-part marks the interaction scope a member chip's abandoned-removal
+    // defers to (see createAbandonmentController).
+    <div
+      role="group"
+      data-part="filter-group"
+      ref={rootRef}
+      className={cx(styles, className)}
+    >
       {children}
     </div>
   );
