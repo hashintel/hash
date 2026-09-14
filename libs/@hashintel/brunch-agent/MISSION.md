@@ -5,14 +5,18 @@
 Live capture and transcription turn-boundary mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
 Publication base: restacked FE-1664 at
-[006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce),
+[1d34240db9](https://github.com/hashintel/hash/commit/1d34240db9c2605187abe9c6442d51326d16e5da),
 not `origin/main`. The original comparison revision is
-[3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54).
+[3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54);
+the previous publication base was
+[006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce).
 Only this child's commits were rebased; FE-1664 and its PR are not modified by
-this mission. The sole conflict was this mission; the parent's newer consent and
-Thinking dock contracts are preserved below, without expanding the capture-only cut.
+this mission. In both restacks the sole conflicts were this mission and its website
+pointer; the parent's newer consent and Thinking dock contracts are preserved below,
+without expanding the capture-only cut. The parent's removal of the dock notice
+prop and of the inherited `PR_DESCRIPTION.md` draft is inherited unchanged.
 The separate authority commit is
-[8ebf29b85d](https://github.com/hashintel/hash/commit/8ebf29b85d4821a5f5199813d699c2205aac797a).
+[466034cfe1](https://github.com/hashintel/hash/commit/466034cfe138e4f1f7befdcde3d16cd9f6037905).
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
 The semantic-VAD recut is implemented locally and provider-free checks pass.
@@ -26,8 +30,10 @@ latency and the physical speaker/headphone witness remain owner-held; no additio
 automatic tuning or provider run. Commit and push of this preparation are authorized.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
 All three provider allocations are consumed; no further provider run. Publication
-of the prepared work is authorized below. The parent has advanced beyond the pinned
-base and the draft currently conflicts; this push does not restack or change it.
+of the prepared work is authorized below. The child is restacked on the parent's
+current head; the inherited root `PR_DESCRIPTION.md` that failed CI Markdown lint
+and formatting is gone with the parent. Repository-wide format and Markdown lint
+pass locally; the GitHub Lint workflow had not run since the parent conflict began.
 
 ## Imperative
 
@@ -140,6 +146,11 @@ Patient-listening recut, relative to the website's `src/`:
   indicator hold, not 800 ms, plus the prompt change. Test locally, commit without
   Amp thread IDs, push and refresh this draft's proof. No restack, changed submission
   timing, Realtime change, new provider run or other tracker write.
+- **2026-09-14:** After CI Markdown lint and formatting failed on the inherited
+  `PR_DESCRIPTION.md`, Kostandin authorizes the cleanup, removal of Amp thread IDs
+  from this child's commits, and restacking onto the parent's current head with an
+  explicit lease, reconciling this mission and refreshing the draft PR. No Linear,
+  parent-branch, merge, deployment or microphone/provider change.
 
 ## Proof
 

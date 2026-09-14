@@ -15,12 +15,11 @@ The sole mission specifies bounded headless probe allocations and their results;
 natural human turn boundaries still require the owner witness. No new publication authority.
 
 The publication base is restacked FE-1664 at
-[006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce).
+[1d34240db9](https://github.com/hashintel/hash/commit/1d34240db9c2605187abe9c6442d51326d16e5da).
 Its integration contract and earlier standalone comparisons are retained in the
 [future spine](../../libs/@hashintel/brunch-agent/MISSION.next.md#voice-feedback-follow-up).
-FE-1664's superseded `PR_DESCRIPTION.md` draft is removed from this child; the
-parent PR body on GitHub is its authority. This child's local Git branch description
-mirrors its mission.
+The parent has removed its superseded `PR_DESCRIPTION.md` draft; its PR body on
+GitHub is its authority. This child's local Git branch description mirrors its mission.
 
 Kostandin authorizes pushing this child and opening its draft PR against FE-1664.
 The authorized conflict fix preserves the parent's consent and Thinking dock behavior
