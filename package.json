@@ -104,6 +104,7 @@
     "bull/uuid": "11.1.0",
     "canvas": "3.2.0",
     "dompurify": "3.4.13",
+    "fast-uri": "3.1.7",
     "fast-xml-parser": "5.7.0",
     "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch",
     "jsondiffpatch": "0.7.6",
