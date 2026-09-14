@@ -407,6 +407,14 @@ const composerActionGlyphStyle = css({
   },
 });
 
+const composerActionButtonStyle = css({
+  flexShrink: 0,
+  width: "[30px]",
+  height: "[30px]",
+  minWidth: "[30px]",
+  borderRadius: "[calc({radii.lg} - {spacing.1} - 1px)]",
+});
+
 const composerStyle = css({
   display: "flex",
   alignItems: "flex-end",
@@ -433,9 +441,7 @@ const composerMaxHeight = 160;
 const composerTextareaStyle = css({
   flex: "[1]",
   minWidth: "[0]",
-  // Matches the previous single-line `size="sm"` input height so the
-  // collapsed composer looks unchanged.
-  minHeight: "[28px]",
+  minHeight: "[30px]",
   maxHeight: `[${composerMaxHeight}px]`,
   paddingX: "2",
   paddingY: "[5px]",
@@ -1197,6 +1203,7 @@ export const AiAssistantContents = ({
                     {composerControl}
                     <Button
                       aria-label={composerAction.label}
+                      className={composerActionButtonStyle}
                       data-ai-assistant-submit={
                         composerAction.isSubmit || undefined
                       }

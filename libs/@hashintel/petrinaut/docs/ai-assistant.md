@@ -27,6 +27,8 @@ The header icons animate on hover and click, respecting your reduced-motion pref
 
 ## The conversation
 
+Type in the message field and press **Enter** or choose **Send message** at its right edge. **Shift+Enter** adds a line. The field grows with your message while the send button stays at the bottom right.
+
 While a response is streaming you can:
 
 - Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
