@@ -517,6 +517,7 @@ fn radix_key_order(
     source
 }
 
+#[expect(clippy::missing_panics_doc)]
 impl WalkBench {
     /// Builds the corpus and runs the production cascade over it.
     ///
@@ -749,7 +750,6 @@ impl WalkBench {
     ///
     /// Panics when a retained row id lies outside the resident row count.
     #[expect(
-        clippy::missing_panics_doc,
         clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
         clippy::cast_sign_loss,
@@ -3301,6 +3301,7 @@ impl WalkBench {
     }
 }
 
+#[expect(clippy::missing_panics_doc)]
 impl VisibleCellPyramid {
     /// Counts the depth's cells inside `cell` holding a visible point.
     ///
@@ -3670,6 +3671,7 @@ impl ServedGeneration {
     }
 }
 
+#[expect(clippy::missing_panics_doc)]
 impl VisibleCascade {
     /// Returns the tile's scheduled count under the visible-only assignment.
     ///

@@ -266,6 +266,7 @@ impl Points {
               wrote it"
 )]
 #[must_use]
+#[expect(clippy::missing_panics_doc)]
 pub fn scattered_points(count: usize) -> Points {
     Points(
         (0..count)
