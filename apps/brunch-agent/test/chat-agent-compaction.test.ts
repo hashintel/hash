@@ -20,6 +20,7 @@ vi.mock(
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
   useInstruction: () => undefined,
+  useContextProjection: () => undefined,
   useInitialData: () => undefined,
   useDelivery: () => ({ kind: "user", body: "test" }),
   useAgentStart: () => undefined,
