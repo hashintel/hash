@@ -128,7 +128,7 @@ const makeCall = (name: string) =>
     name,
     name === "addType"
       ? typeInput
-      : name === "update_workpiece"
+      : name === "mutate_workpiece"
         ? { markdown: privateMarkdown }
         : { question },
     { id: `${caseId}-${name}` },
@@ -154,18 +154,18 @@ const run = async () => {
     for (const names of [
       [BRUNCH_QUESTION_TOOL_NAME, "addType"],
       ["addType", BRUNCH_QUESTION_TOOL_NAME],
-      ["update_workpiece", "addType"],
-      ["addType", "update_workpiece"],
-      [BRUNCH_QUESTION_TOOL_NAME, "update_workpiece", "addType"],
-      [BRUNCH_QUESTION_TOOL_NAME, "addType", "update_workpiece"],
-      ["update_workpiece", BRUNCH_QUESTION_TOOL_NAME, "addType"],
-      ["update_workpiece", "addType", BRUNCH_QUESTION_TOOL_NAME],
-      ["addType", BRUNCH_QUESTION_TOOL_NAME, "update_workpiece"],
-      ["addType", "update_workpiece", BRUNCH_QUESTION_TOOL_NAME],
+      ["mutate_workpiece", "addType"],
+      ["addType", "mutate_workpiece"],
+      [BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece", "addType"],
+      [BRUNCH_QUESTION_TOOL_NAME, "addType", "mutate_workpiece"],
+      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME, "addType"],
+      ["mutate_workpiece", "addType", BRUNCH_QUESTION_TOOL_NAME],
+      ["addType", BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece"],
+      ["addType", "mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
       ["addType", "unmounted_admission_probe"],
       ["addType"],
       [BRUNCH_QUESTION_TOOL_NAME],
-      ["update_workpiece", BRUNCH_QUESTION_TOOL_NAME],
+      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
     ]) {
       caseId = names.join("-");
       const client = clientFor();
@@ -190,7 +190,7 @@ const run = async () => {
         fauxAssistantMessage(
           [
             fauxToolCall(
-              "update_workpiece",
+              "mutate_workpiece",
               { markdown: "# Synthetic settled account\nUnknown timing." },
               { id: `${caseId}-old-revision` },
             ),
@@ -282,6 +282,7 @@ const run = async () => {
       caseId = abort ? "buffered-cancelled" : "buffered-valid";
       const client = clientFor();
       const stalled = createStall();
+      const progressed = Promise.withResolvers<void>();
       nextStall = stalled;
       const receipt = await client.send({
         initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
@@ -293,7 +294,10 @@ const run = async () => {
       const settlement = client
         .wait(receipt, {
           signal: AbortSignal.timeout(10000),
-          onEvent: recordWire,
+          onEvent: (chunk) => {
+            recordWire(chunk);
+            if (chunk.type === "message-delta") progressed.resolve();
+          },
         })
         .then(
           () => null,
@@ -301,7 +305,7 @@ const run = async () => {
         );
       await stalled.started.promise;
       const text = abort
-        ? "Cancelled prose must never be spoken."
+        ? "Visible progress before Stop."
         : `The account is recorded. ${question}`;
       const message = fauxAssistantMessage(
         [
@@ -309,7 +313,7 @@ const run = async () => {
           ...(abort
             ? [makeCall("addType")]
             : [
-                makeCall("update_workpiece"),
+                makeCall("mutate_workpiece"),
                 makeCall(BRUNCH_QUESTION_TOOL_NAME),
               ]),
         ],
@@ -354,8 +358,14 @@ const run = async () => {
           });
         }
       }
-      // Reading the mounted store while the provider is unfinished must expose
-      // neither the prose nor the proposed tool inputs to Voice/browser hosts.
+      // Progress is published natively before completion, but executable tool
+      // inputs remain withheld from browser hosts until the proposal is valid.
+      await Promise.race([
+        progressed.promise,
+        settlement.then((error) => {
+          throw new Error(error ?? "Submission completed before progress");
+        }),
+      ]);
       const during = await client.history();
       if (abort) await client.abort();
       else

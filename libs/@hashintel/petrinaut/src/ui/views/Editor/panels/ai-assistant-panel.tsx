@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -51,12 +52,12 @@ import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-a
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
-import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
+import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -82,6 +83,7 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
+export { petrinautDocsContent };
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -455,41 +457,6 @@ export const addMappedToolOutput = async ({
   }
 };
 
-const waitForDiagnosticsRefresh = async ({
-  consumePendingMutationDiagnosticsVersion,
-  diagnosticsVersionRef,
-}: {
-  consumePendingMutationDiagnosticsVersion: () => number | null;
-  diagnosticsVersionRef: { current: number };
-}) => {
-  const pendingVersion = consumePendingMutationDiagnosticsVersion();
-
-  if (
-    pendingVersion === null ||
-    diagnosticsVersionRef.current > pendingVersion
-  ) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const timeoutAt = Date.now() + 1_000;
-
-    const check = () => {
-      if (
-        diagnosticsVersionRef.current > pendingVersion ||
-        Date.now() >= timeoutAt
-      ) {
-        resolve();
-        return;
-      }
-
-      setTimeout(check, 25);
-    };
-
-    check();
-  });
-};
-
 const applyPetrinautAiCommand = async ({
   aiToolCall,
   instance,
@@ -525,9 +492,8 @@ const ConversationAiAssistantPanel = ({
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
-  // The wrapped AI transport closes over several refs (diagnostics version,
-  // pending mutation version, diagnostics context) so the transport's
-  // `sendMessages` can read the latest values when it eventually runs. React
+  // The wrapped AI transport reads the latest language client through a ref
+  // when `sendMessages` eventually runs. React
   // Compiler can't prove those reads happen off-render, so we opt out here.
   "use no memo";
 
@@ -539,7 +505,8 @@ const ConversationAiAssistantPanel = ({
     readOnlyReasonRef.current = readOnlyReason;
   }, [readOnlyReason]);
 
-  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { requestDiagnostics } = use(LanguageClientContext);
+  const requestDiagnosticsRef = useLatest(requestDiagnostics);
 
   const {
     hasSelection,
@@ -550,7 +517,8 @@ const ConversationAiAssistantPanel = ({
     setAiAssistantOpen,
   } = use(EditorContext);
 
-  const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
+  const { petriNetDefinition, setTitle, title, titleEditable } =
+    use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
   const errorTracker = use(ErrorTrackerContext);
   const errorTrackerRef = useLatest(errorTracker);
@@ -617,65 +585,27 @@ const ConversationAiAssistantPanel = ({
     titleRef.current = title;
   }, [title]);
 
-  const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
-  const diagnosticsVersionRef = useRef(0);
-  const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    diagnosticsVersionRef.current += 1;
-  }, [diagnosticsByUri]);
-
-  useEffect(() => {
-    diagnosticsContextRef.current = formatDiagnosticsForAi({
-      definition: petriNetDefinition,
-      diagnosticsByUri,
-    });
-  }, [diagnosticsByUri, petriNetDefinition]);
+  const readDiagnosticsContext = useCallback(() => {
+    if (!instance) throw new Error("The AI assistant has no editor instance.");
+    return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
+  }, [instance, requestDiagnosticsRef]);
 
   /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
      above: the refs are only read when the wrapped transport runs, never during
      render. The lint rule can't see that. */
-  const buildWrappedTransport = (transport: typeof aiAssistant.transport) =>
-    // The timing wrapper sits on the outside so reasoning-chunk receipt is
-    // tagged with `Date.now()` even when the inner diagnostics wrapper has
-    // added the post-tool diagnostics context message to the request. Order
-    // matters here only insofar as the timing wrapper consumes the *response*
-    // stream from whatever inner transport produced it — it does not touch
-    // the request side.
-    createReasoningTimingAwareAiTransport(
-      createDiagnosticsAwareAiTransport({
-        getDiagnosticsContext: () => diagnosticsContextRef.current,
-        transport,
-        waitForDiagnosticsRefresh: () =>
-          waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
-            diagnosticsVersionRef,
-          }),
-      }),
-    );
-
-  const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
-    () => ({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    }),
+  // The wrapper is render-derived from the host transport. Delaying this to an
+  // effect leaves useChat on the previous host for one committed render.
+  // Timing stays outside diagnostics so it tags receipt of the response chunks.
+  const diagnosticsTransport = useMemo(
+    () =>
+      createReasoningTimingAwareAiTransport(
+        createDiagnosticsAwareAiTransport({
+          readDiagnosticsContext,
+          transport: aiAssistant.transport,
+        }),
+      ),
+    [aiAssistant.transport, readDiagnosticsContext],
   );
-
-  useEffect(() => {
-    if (diagnosticsTransportState.source === aiAssistant.transport) {
-      return;
-    }
-
-    setDiagnosticsTransportState({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    });
-  }, [aiAssistant.transport, diagnosticsTransportState.source]);
   /* eslint-enable react-hooks-js/refs */
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
@@ -918,7 +848,9 @@ const ConversationAiAssistantPanel = ({
             await automaticTool.execute({
               input: toolInput,
               mutations: instance.mutations,
+              commands: instance.commands,
               handle: instance.handle,
+              readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
@@ -963,18 +895,10 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === getNetCompilationErrorsToolName) {
-      await waitForDiagnosticsRefresh({
-        consumePendingMutationDiagnosticsVersion: () => {
-          const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-          pendingMutationDiagnosticsVersionRef.current = null;
-          return pendingVersion;
-        },
-        diagnosticsVersionRef,
-      });
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: diagnosticsContextRef.current,
+        output: await readDiagnosticsContext(),
       });
       return;
     }
@@ -990,6 +914,18 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
+      if (titleEditable !== true) {
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            reason: "The host application does not provide title editing.",
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({
@@ -1066,9 +1002,6 @@ const ConversationAiAssistantPanel = ({
         return;
       }
 
-      pendingMutationDiagnosticsVersionRef.current =
-        diagnosticsVersionRef.current;
-
       const aiToolCall = {
         toolName,
         input: commandInput,
@@ -1089,9 +1022,6 @@ const ConversationAiAssistantPanel = ({
     const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
       toolCall.input,
     );
-
-    pendingMutationDiagnosticsVersionRef.current =
-      diagnosticsVersionRef.current;
 
     const aiToolCall = {
       toolName,
@@ -1126,7 +1056,7 @@ const ConversationAiAssistantPanel = ({
       ? {}
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
-    transport: diagnosticsTransportState.transport,
+    transport: diagnosticsTransport,
     // Interactive tools retain AI SDK's native continuation; static tools
     // suppress it while addAutomaticToolOutput owns the explicit chain.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
@@ -2148,9 +2078,6 @@ const ConversationAiAssistantPanel = ({
           });
           return;
         }
-
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
 
         void instance.commands.applyAutoLayout().then((result) => {
           safelyAddToolOutput(addToolOutput, {

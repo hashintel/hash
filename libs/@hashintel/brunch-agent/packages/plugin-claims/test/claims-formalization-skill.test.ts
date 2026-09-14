@@ -13,9 +13,6 @@ const readSkillFile = (fileName: string): string =>
 
 test("the skill is a valid Flue skill whose packaged paths equal the authored paths", () => {
   expect(claimsFormalizationSkill.name).toBe("claims-formalization");
-  expect(claimsFormalizationSkill.instructions).toContain(
-    "Aligned to core as of",
-  );
   expect(Object.keys(claimsFormalizationSkill.files ?? {}).sort()).toEqual([
     "references/cards-and-standing.md",
     "references/claims-elicitation.md",
@@ -23,5 +20,10 @@ test("the skill is a valid Flue skill whose packaged paths equal the authored pa
   ]);
   for (const path of Object.keys(claimsFormalizationSkill.files ?? {})) {
     expect(claimsFormalizationSkill.files?.[path]).toBe(readSkillFile(path));
+  }
+  for (const referenced of claimsFormalizationSkill.instructions.matchAll(
+    /`((?:references|templates)\/[\w-]+\.md)`/gu,
+  )) {
+    expect(claimsFormalizationSkill.files).toHaveProperty(referenced[1]!);
   }
 });

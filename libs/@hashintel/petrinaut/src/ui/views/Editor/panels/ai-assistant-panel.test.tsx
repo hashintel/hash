@@ -18,6 +18,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   getLatestNetDefinitionToolName,
+  setNetTitleToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -26,6 +27,11 @@ import {
   ErrorTrackerContext,
 } from "../../../../react/error-tracker-context";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
+import {
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+  LanguageClientContext,
+  type LanguageClientContextValue,
+} from "../../../../react/lsp/context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
 import { notificationsToaster } from "../../../../react/notifications/toaster";
 import {
@@ -224,6 +230,12 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
   strictMode = false,
+  titleEditable,
+  requestDiagnostics = async () => ({
+    byUri: new Map(),
+    total: 0,
+    errorCount: 0,
+  }),
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
@@ -233,6 +245,8 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
   strictMode?: boolean;
+  titleEditable?: boolean;
+  requestDiagnostics?: LanguageClientContextValue["requestDiagnostics"];
 }) => {
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
@@ -250,6 +264,7 @@ const renderTestPanel = ({
     extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     setTitle: () => {},
     title: "AI assistant panel test",
+    titleEditable,
     getItemType: () => null,
   };
 
@@ -278,10 +293,15 @@ const renderTestPanel = ({
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
-  const rendered = render(
-    renderPanel(aiAssistant, editorContext),
-    strictMode ? { wrapper: StrictMode } : undefined,
-  );
+  const rendered = render(renderPanel(aiAssistant, editorContext), {
+    wrapper: ({ children }) => (
+      <LanguageClientContext
+        value={{ ...DEFAULT_LANGUAGE_CLIENT_CONTEXT, requestDiagnostics }}
+      >
+        {strictMode ? <StrictMode>{children}</StrictMode> : children}
+      </LanguageClientContext>
+    ),
+  });
 
   return {
     ...rendered,
@@ -314,6 +334,50 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("declines setNetTitle when the host omits title editing", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "set-title-1",
+                    toolName: setNetTitleToolName,
+                    input: { title: "Renamed" },
+                  },
+                ]
+              : [...textChunks("done", "Title was not changed.")],
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Rename the net",
+    });
+
+    await waitFor(() =>
+      expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        toolCallId: "set-title-1",
+        output: {
+          applied: false,
+          reason: "The host application does not provide title editing.",
+        },
+      }),
+    );
+  });
   test("normalizes current and legacy voice tool origins", () => {
     expect(
       getVoiceToolCallIds({
@@ -1200,7 +1264,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("executes one automatic tool call recovered from host history", async () => {
+  test("executes a canonical built-in with an empty host tool catalogue", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
       ({ messages }) => {
@@ -1225,6 +1289,7 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const { rerenderPanel } = renderTestPanel({
       aiAssistant: {
+        automaticTools: [],
         conversationId: "conversation-with-pending-tool",
         messages: [],
         transport,
@@ -1247,6 +1312,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ];
 
     rerenderPanel({
+      automaticTools: [],
       conversationId: "conversation-with-pending-tool",
       messages: pendingMessages,
       transport,
@@ -1267,6 +1333,7 @@ describe("AiAssistantPanel composer submissions", () => {
     });
 
     rerenderPanel({
+      automaticTools: [],
       conversationId: "conversation-with-pending-tool",
       messages: pendingMessages,
       transport,
@@ -5116,7 +5183,9 @@ describe("AiAssistantPanel host interactive tools", () => {
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
         mutations: instance.mutations,
+        commands: instance.commands,
         handle: instance.handle,
+        readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
         toolCallId: "automatic-call-1",
         signal: expect.any(AbortSignal) as AbortSignal,
       });
@@ -5132,6 +5201,92 @@ describe("AiAssistantPanel host interactive tools", () => {
     } finally {
       instance.dispose();
     }
+  });
+
+  test("checks the actual definition after a host mutation even when pushed diagnostics stay empty", async () => {
+    const diagnosticsOutputs: string[] = [];
+    const requestDiagnostics = vi
+      .fn<LanguageClientContextValue["requestDiagnostics"]>()
+      .mockResolvedValue({ byUri: new Map(), total: 0, errorCount: 0 });
+    const turn = {
+      current: 0,
+      calls: [
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-1" },
+        { toolName: "hostAddPlace", toolCallId: "host-mutate-1" },
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-2" },
+      ],
+    };
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
+      const call = turn.calls[turn.current];
+      turn.current += 1;
+      return Promise.resolve(
+        streamChunks(
+          call === undefined
+            ? [...textChunks("host-done", "Host tools finished.")]
+            : [
+                { type: "start-step" },
+                {
+                  type: "tool-input-available",
+                  dynamic: true,
+                  toolCallId: call.toolCallId,
+                  toolName: call.toolName,
+                  input: {},
+                },
+              ],
+        ),
+      );
+    });
+    const passthrough = { parse: (raw: unknown) => raw };
+    renderTestPanel({
+      requestDiagnostics,
+      aiAssistant: {
+        automaticTools: [
+          {
+            toolName: "hostReadDiagnostics",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: async ({ readDiagnosticsContext }) => {
+              const context = await readDiagnosticsContext();
+              diagnosticsOutputs.push(context);
+              return { context };
+            },
+          },
+          {
+            toolName: "hostAddPlace",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: ({ mutations }) => {
+              mutations.addPlace({
+                id: "host-place",
+                name: "HostPlace",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              });
+              return { applied: true };
+            },
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      initialMessage: "Run the host tools",
+    });
+
+    // No pushed diagnostics change; each explicit request still completes.
+    await screen.findByText("Host tools finished.", {}, { timeout: 5_000 });
+    expect(diagnosticsOutputs).toHaveLength(2);
+    expect(
+      diagnosticsOutputs.every((output) =>
+        output.includes("everything compiles"),
+      ),
+    ).toBe(true);
+    expect(
+      requestDiagnostics.mock.calls.map(
+        ([definition]) => definition.places.length,
+      ),
+    ).toEqual([0, 1]);
   });
 
   test("aborts an in-flight automatic tool when the panel unmounts", async () => {

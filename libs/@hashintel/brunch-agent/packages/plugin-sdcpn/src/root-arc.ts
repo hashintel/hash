@@ -22,6 +22,7 @@ export const isObservedArcMutation = (
 export const batchedArcMutationNames = [
   ...observedArcMutationNames,
   "removeArc",
+  "updateArcType",
 ] as const;
 export type BatchedArcMutationName = (typeof batchedArcMutationNames)[number];
 export const isBatchedArcMutation = (
@@ -30,20 +31,26 @@ export const isBatchedArcMutation = (
   batchedArcMutationNames.some((entry) => entry === name);
 
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */
-export const rootArcWhyInputSchema = v.strictObject({
-  transition: v.string(),
-  place: v.string(),
-  // Petrinaut owns the direction enum; why-queries stay Valibot but do not restate it.
-  arcDirection: v.picklist(
-    petrinautAiTools.addArc.inputSchema.shape.arcDirection.options,
-  ),
-  field: v.optional(
-    v.picklist(["entity", "placeId", "weight", "type"]),
-    "entity",
-  ),
-  observationToolCallId: v.optional(v.string()),
+export const rootArcWhyInputSchema = z.strictObject({
+  transition: z
+    .string()
+    .describe("Unique transition name or ID from read_petrinaut_net."),
+  place: z
+    .string()
+    .describe("Unique root-place name or ID from read_petrinaut_net."),
+  arcDirection: petrinautAiTools.addArc.inputSchema.shape.arcDirection,
+  field: z
+    .enum(["entity", "placeId", "weight", "type"])
+    .default("entity")
+    .describe("Explain the whole arc (entity), or the named arc field."),
+  observationToolCallId: z
+    .string()
+    .optional()
+    .describe(
+      "Copy metadata.observation.toolCallId from a fresh read_petrinaut_net result. Omit only for an explicitly historical, as-of explanation, not a claim about the live canvas.",
+    ),
 });
-export type RootArcWhyInput = v.InferOutput<typeof rootArcWhyInputSchema>;
+export type RootArcWhyInput = z.output<typeof rootArcWhyInputSchema>;
 
 export const locateRootArc = (definition: SDCPN, query: RootArcWhyInput) => {
   const transitions = definition.transitions.filter(

@@ -10,6 +10,9 @@ export default defineConfig({
       entry: {
         flue: fileURLToPath(new URL("src/flue.ts", import.meta.url)),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
+        "worked-model": fileURLToPath(
+          new URL("src/worked-model-net-projection.ts", import.meta.url),
+        ),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

@@ -4,7 +4,14 @@ import {
   type FlueClient,
   type FlueConversationMessage,
 } from "@flue/sdk";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import {
   agentOwnershipHeaders,
@@ -103,13 +110,22 @@ function ChatConversation({
     agent.status === "submitted" ||
     agent.status === "streaming";
 
-  function submit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const reply = input.trim();
-    if (!reply || busy) return;
-    setInput("");
-    void agent.sendMessage(reply);
-  }
+  const submit = useCallback(
+    (event: FormEvent<HTMLFormElement>): void => {
+      event.preventDefault();
+      const reply = input.trim();
+      if (!reply || busy) return;
+      setInput("");
+      void agent.sendMessage(reply);
+    },
+    [agent, busy, input],
+  );
+  const updateInput = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>): void => {
+      setInput(event.target.value);
+    },
+    [],
+  );
 
   return (
     <main className="shell">
@@ -141,7 +157,7 @@ function ChatConversation({
             <textarea
               id="reply"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={updateInput}
               placeholder="Ask something."
               rows={3}
             />

@@ -2,9 +2,11 @@
 
 This application belongs to the Brunch context rooted at
 `../../libs/@hashintel/brunch-agent/`. Read that context's `AGENTS.md` and current `MISSION.md`
-before changing this application. If `MISSION.next.md` exists, it is a scratchpad for later
-concerns and is not execution authority. Consult `CONTEXT.md` or historical design documents only when a
-concrete question requires them; ADRs and specs are hypotheses, not implementation obligations.
+before changing this application. Read `MISSION.next.md` when work affects future sequence,
+cross-mission constraints, open product decisions, or re-entry gates; it is the canonical future
+spine, not execution authority. Consult `CONTEXT.md` or historical design documents only when a
+concrete vocabulary or rationale question requires them; ADRs and specs are hypotheses, not
+implementation obligations.
 HASH root guidance takes precedence.
 
 The application composes the Flue runtime, HTTP routes, and the Brunch packages required by the

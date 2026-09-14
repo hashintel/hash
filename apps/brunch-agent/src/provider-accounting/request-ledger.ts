@@ -8,7 +8,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 
 import { calculateCost } from "@earendil-works/pi-ai";
 import * as v from "valibot";
@@ -183,20 +183,103 @@ const totalsFrom = (ledger: Ledger) => {
   };
 };
 
+const requestHoldUsd = (model: Model<Api>, maxOutputTokens: number) =>
+  (model.contextWindow *
+    Math.max(
+      model.cost.input * 2,
+      model.cost.cacheWrite,
+      model.cost.cacheRead,
+    ) +
+    maxOutputTokens * model.cost.output) /
+  1_000_000;
+
+/** A fresh allocation shared by every participant; existing ledgers are never reset. */
+export const initializeRequestLedger = (
+  path: string,
+  runId: string,
+  usd: number,
+  model: Model<Api>,
+) => {
+  const reservedUsd = requestHoldUsd(model, model.maxTokens);
+  if (
+    model.id !== STEP_A_MODEL_ID ||
+    model.provider !== "anthropic" ||
+    !Number.isFinite(usd) ||
+    usd > 100 ||
+    usd < reservedUsd
+  ) {
+    throw new Error(
+      "Persona allocation must cover one full Sonnet request and be at most USD 100.",
+    );
+  }
+  // Dollars bound this allocation. Historical instruments may still set their own call limit.
+  const calls = Number.MAX_SAFE_INTEGER;
+  const ledger: Ledger = v.parse(ledgerSchema, {
+    limits: { calls, usd },
+    reservation: {
+      runId,
+      status: "active",
+      calls,
+      usd,
+      perCall: { maxOutputTokens: model.maxTokens, reservedUsd },
+    },
+    totals: {
+      spentCalls: 0,
+      spentUsd: 0,
+      remainingCalls: calls,
+      remainingUsd: usd,
+      outstandingReservedCalls: 0,
+      outstandingReservedUsd: 0,
+    },
+    calls: [],
+  });
+  writeFileSync(
+    join(dirname(path), "attempt-ledger.md"),
+    "# Persona request accounting\n",
+    { flag: "wx", mode: 0o600 },
+  );
+  writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`, {
+    flag: "wx",
+    mode: 0o600,
+  });
+  return { ledgerPath: path, runId };
+};
+
 /** One evidence authority shared by the app and persona processes. Each synchronous
  * transaction owns an exclusive file guard; contention/stale guards stop, never retry or steal.
  * JSON is authority; Markdown is its attempt journal, not a second production store.
  */
 export class RequestLedger {
   #poisoned = false;
-  constructor(
-    readonly path: string,
-    readonly attemptPath: string,
-    readonly runId: string,
-  ) {}
+  readonly path: string;
+  readonly attemptPath: string;
+  readonly runId: string;
+  constructor(path: string, attemptPath: string, runId: string) {
+    this.path = path;
+    this.attemptPath = attemptPath;
+    this.runId = runId;
+  }
 
   poison() {
     this.#poisoned = true;
+  }
+
+  /** Explicit operator acceptance permits continuation, never releases the unknown hold. */
+  acceptUnknown(sequence: number) {
+    this.#transaction(() => {
+      const ledger = this.#read();
+      const call = ledger.calls.find((entry) => entry.sequence === sequence);
+      if (
+        ledger.reservation.runId !== this.runId ||
+        !call ||
+        call.status !== "unknown"
+      )
+        return fail();
+      const accepted = ledger.reservation.acceptedUnknownSequences ?? [];
+      if (accepted.includes(sequence)) return;
+      ledger.reservation.acceptedUnknownSequences = [...accepted, sequence];
+      this.#save(ledger, call);
+    });
   }
 
   #transaction<T>(operation: () => T): T {
@@ -233,7 +316,6 @@ export class RequestLedger {
     }
     const totals = totalsFrom(ledger);
     if (
-      ledger.limits.calls > 200 ||
       ledger.limits.usd > 100 ||
       ledger.calls.some((call) => call.journalPending === true) ||
       Object.entries(totals).some(
@@ -365,15 +447,7 @@ export class RequestLedger {
       fail();
     // Before tokenization there is no exact input count. Reserve the model's
     // ENTIRE context window at the highest input/cache rate, including 1h writes.
-    const inputRate = Math.max(
-      model.cost.input * 2,
-      model.cost.cacheWrite,
-      model.cost.cacheRead,
-    );
-    const worstUsd =
-      (model.contextWindow * inputRate +
-        bounds.maxOutputTokens * model.cost.output) /
-      1_000_000;
+    const worstUsd = requestHoldUsd(model, bounds.maxOutputTokens);
     const runCalls = ledger.calls.filter(
       (call) => call.runId === this.runId && call.status !== "not-started",
     );

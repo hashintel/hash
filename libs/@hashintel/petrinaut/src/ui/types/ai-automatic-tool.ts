@@ -1,4 +1,5 @@
 import type {
+  PetrinautCommands,
   PetrinautDocHandle,
   PetrinautMutations,
 } from "@hashintel/petrinaut-core";
@@ -8,11 +9,22 @@ export type PetrinautAiAutomaticToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
 
-/** Capability passed to a host automatic tool: mutations plus the live handle. */
+/**
+ * Capability passed to a host automatic tool: the same mutations, commands,
+ * handle and diagnostics the built-in assistant tools execute against.
+ */
 export type PetrinautAiAutomaticToolExecuteParams = {
   input: unknown;
   mutations: PetrinautMutations;
+  commands: PetrinautCommands;
   handle: PetrinautDocHandle;
+  /**
+   * The editor's current TypeScript diagnostics formatted for the model, as
+   * the built-in compilation read reports them. Waits, within a bound, for
+   * diagnostics to catch up with the latest tool-applied change and reports
+   * them as pending instead of describing an earlier version.
+   */
+  readDiagnosticsContext: () => Promise<string>;
   toolCallId: string;
   signal: AbortSignal;
 };

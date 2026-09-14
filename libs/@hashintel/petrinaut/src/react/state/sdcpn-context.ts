@@ -17,6 +17,7 @@ export type SDCPNProviderProps = {
   extensions: PetrinautExtensionSettings;
   setTitle: (title: string) => void;
   title: string;
+  titleEditable?: boolean;
 };
 
 export type SDCPNContextValue = SDCPNProviderProps & {
@@ -51,6 +52,7 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "",
+  titleEditable: false,
   getItemType: () => null,
 };
 

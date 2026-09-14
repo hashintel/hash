@@ -234,21 +234,21 @@ const corrected =
   "TEST synthetic correction: the same operation must reserve two available resources; timing remains unknown.";
 const settle = (content: string, revisionId: string) => [
   tool(
-    "update_workpiece",
+    "mutate_workpiece",
     { markdown: `# Synthetic workpiece\n\n${content}` },
     revisionId,
   ),
   (context: Context) => {
-    const result = toolOutput(context, "update_workpiece");
+    const result = toolOutput(context, "mutate_workpiece");
     assert.equal(result.revisionId, revisionId);
     return tool(
-      "brunch_workpiece",
+      "read_workpiece",
       { locateTexts: [content] },
       `${revisionId}-locate`,
     );
   },
   (context: Context) => {
-    const result = toolOutput(context, "brunch_workpiece");
+    const result = toolOutput(context, "read_workpiece");
     const current = result.currentWorkpiece as {
       revisionId: string;
       sha256: string;
@@ -406,19 +406,21 @@ try {
         .metadata?.observation;
       assert(observation);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
-          transition: "Start final inspection",
-          place: "Dispatch crew available",
-          arcDirection: "input",
-          field: "weight",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            transition: "Start final inspection",
+            place: "Dispatch crew available",
+            arcDirection: "input",
+            field: "weight",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "construction-why",
       );
     },
     (context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("why", answer);
       assert.equal(answer.disposition, "partially-supported");
       assert.equal(answer.originToolCallId, "construction-add");
@@ -493,7 +495,7 @@ try {
       [
         fauxToolCall("updateArcWeight", secondCall, { id: "mixed-weight" }),
         fauxToolCall(
-          "update_workpiece",
+          "mutate_workpiece",
           { markdown: "TEST forbidden sibling settlement" },
           { id: "mixed-revision" },
         ),
@@ -638,19 +640,21 @@ try {
         .metadata?.observation;
       assert(observation);
       return tool(
-        "brunch_why",
+        "query_workpiece",
         {
-          transition: "Start final inspection",
-          place: "Dispatch crew available",
-          arcDirection: "input",
-          field: "weight",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            transition: "Start final inspection",
+            place: "Dispatch crew available",
+            arcDirection: "input",
+            field: "weight",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "hand-edit-why",
       );
     },
     (context) => {
-      const answer = toolOutput(context, "brunch_why");
+      const answer = toolOutput(context, "query_workpiece");
       save("hand-edit-why", answer);
       assert.equal(answer.disposition, "refused");
       assert.match(String(answer.reason), /Unrecorded/u);

@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Stream reads and backpressure are necessarily sequential. */
+
 /** Shared HTTP/static/Chrome setup for the root and persona browser witnesses. */
 import assert from "node:assert/strict";
 import { once } from "node:events";
@@ -24,7 +26,10 @@ export const openBrowserFixture = async (
         `http://${incoming.headers.host}`,
       );
       let response: Response;
-      if (url.pathname.startsWith("/agents/")) {
+      if (
+        url.pathname.startsWith("/agents/") ||
+        url.pathname.startsWith("/api/worked-models/")
+      ) {
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) {
           const bytes: unknown = chunk;

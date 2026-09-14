@@ -58,7 +58,7 @@ export const selectCanonicalSpeech = (
   let questionSegment: CanonicalSpeechSegment | undefined;
 
   for (const message of messages) {
-    if (message.role !== "assistant") {
+    if (message.role !== "assistant" || message.metadata?.stopped) {
       continue;
     }
 

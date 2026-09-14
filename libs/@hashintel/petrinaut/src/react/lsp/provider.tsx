@@ -109,6 +109,7 @@ export const LanguageClientProvider: React.FC<{
     requestCompletion: client.requestCompletion,
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
+    requestDiagnostics: client.requestDiagnostics,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,

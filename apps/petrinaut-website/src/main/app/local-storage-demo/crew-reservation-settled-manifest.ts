@@ -44,6 +44,8 @@ export const asFlueSubmissionId = (value: string): FlueSubmissionId =>
 export const asManifestId = (value: string): ManifestId => value as ManifestId;
 export const asSha256Digest = (value: string): Sha256Digest =>
   value as Sha256Digest;
+export const sha256Digest = (value: string): Sha256Digest =>
+  asSha256Digest(bytesToHex(sha256Bytes(new TextEncoder().encode(value))));
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -73,6 +75,87 @@ export interface CrewReservationSettledManifest {
   readonly settledAt: string;
   readonly version: 1;
 }
+
+const sha256Pattern = /^[0-9a-f]{64}$/u;
+
+const isNonBlankString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+/**
+ * Establishes trust in a manifest read from local storage. The literal
+ * fixture identities and the content-addressed manifest id prevent a stale or
+ * foreign fixture record from being treated as this fixture's settlement.
+ */
+export const parseCrewReservationSettledManifest = (
+  value: unknown,
+): CrewReservationSettledManifest | null => {
+  if (!isRecord(value)) return null;
+  const conversation = value.conversation;
+  const latestWorkpiece = value.latestWorkpiece;
+  const document = value.document;
+  if (
+    value.version !== 1 ||
+    value.fixtureId !== crewReservationFixtureId ||
+    !Number.isSafeInteger(value.revision) ||
+    (value.revision as number) < 0 ||
+    !isNonBlankString(value.settledAt) ||
+    !isRecord(conversation) ||
+    conversation.logicalId !== crewReservationConversationId ||
+    !isNonBlankString(conversation.canonicalId) ||
+    !isNonBlankString(conversation.offset) ||
+    !isRecord(latestWorkpiece) ||
+    (latestWorkpiece.authorship !== "model-produced" &&
+      latestWorkpiece.authorship !== "test-authored") ||
+    !isNonBlankString(latestWorkpiece.contentSha256) ||
+    !sha256Pattern.test(latestWorkpiece.contentSha256) ||
+    (latestWorkpiece.sourceKind !== "assistant" &&
+      latestWorkpiece.sourceKind !== "prepared-signal") ||
+    !isNonBlankString(latestWorkpiece.sourceMessageId) ||
+    !isNonBlankString(latestWorkpiece.sourceMessageSha256) ||
+    !sha256Pattern.test(latestWorkpiece.sourceMessageSha256) ||
+    !isNonBlankString(latestWorkpiece.sourceSubmissionId) ||
+    !isRecord(document) ||
+    document.id !== crewReservationDocumentId ||
+    !isNonBlankString(document.sha256) ||
+    !sha256Pattern.test(document.sha256) ||
+    (document.targetArc !== "absent" && document.targetArc !== "present") ||
+    !isNonBlankString(value.manifestId)
+  ) {
+    return null;
+  }
+  const withoutId = {
+    version: 1 as const,
+    fixtureId: crewReservationFixtureId,
+    revision: value.revision as number,
+    settledAt: value.settledAt,
+    conversation: {
+      logicalId: crewReservationConversationId,
+      canonicalId: asCanonicalConversationId(conversation.canonicalId),
+      offset: asConversationOffset(conversation.offset),
+    },
+    latestWorkpiece: {
+      authorship: latestWorkpiece.authorship,
+      contentSha256: asSha256Digest(latestWorkpiece.contentSha256),
+      sourceKind: latestWorkpiece.sourceKind,
+      sourceMessageId: asFlueMessageId(latestWorkpiece.sourceMessageId),
+      sourceMessageSha256: asSha256Digest(latestWorkpiece.sourceMessageSha256),
+      sourceSubmissionId: asFlueSubmissionId(
+        latestWorkpiece.sourceSubmissionId,
+      ),
+    },
+    document: {
+      id: crewReservationDocumentId,
+      sha256: asSha256Digest(document.sha256),
+      targetArc: document.targetArc,
+    },
+  } satisfies Omit<CrewReservationSettledManifest, "manifestId">;
+  const expectedManifestId = sha256Digest(JSON.stringify(withoutId));
+  if (value.manifestId !== expectedManifestId) return null;
+  return {
+    ...withoutId,
+    manifestId: asManifestId(value.manifestId),
+  };
+};
 
 export type CrewReservationSettlementResult =
   | {
@@ -132,9 +215,6 @@ const hasOneCorrelatedTargetMutation = (
   );
   return correlatedTargetCallIds.size === 1;
 };
-
-export const sha256Digest = (value: string): Sha256Digest =>
-  asSha256Digest(bytesToHex(sha256Bytes(new TextEncoder().encode(value))));
 
 export const hasCrewReservationTargetArc = (definition: SDCPN): boolean => {
   const transition = definition.transitions.find(

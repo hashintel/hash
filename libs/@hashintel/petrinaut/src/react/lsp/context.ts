@@ -9,6 +9,7 @@ import type {
   LowerConstraintResult,
   Diagnostic,
   DocumentUri,
+  LanguageClient,
   HirCompileResult,
   Hover,
   PetrinautExtensionSettings,
@@ -49,6 +50,8 @@ export interface LanguageClientContextValue {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /** Check a captured net, independently of pushed editor diagnostics. */
+  requestDiagnostics: LanguageClient["requestDiagnostics"];
   /**
    * Compile the SDCPN's user code to HIR artifacts (in the language worker).
    * Required before starting simulations/experiments — the engine has no
@@ -113,6 +116,10 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
+  requestDiagnostics: () =>
+    Promise.reject(
+      new Error("No language client is wired; diagnostics are unavailable."),
+    ),
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {

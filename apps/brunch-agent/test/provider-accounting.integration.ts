@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import {
   createAssistantMessageEventStream,
@@ -21,6 +22,8 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { createStepARequestAccounting } from "../src/provider-accounting.ts";
+import { initializeRequestLedger } from "../src/provider-accounting/request-ledger.ts";
 
 const childMode = process.argv[2];
 const directory =
@@ -32,7 +35,7 @@ process.env.BRUNCH_DEV_DB_PATH = join(
   directory,
   `conversation-${childMode ?? "parent"}.db`,
 );
-if (childMode === "--disabled") delete process.env.BRUNCH_STEP_A_ACCOUNTING;
+if (childMode === "--disabled") process.env.BRUNCH_STEP_A_ACCOUNTING = "";
 else
   process.env.BRUNCH_STEP_A_ACCOUNTING = JSON.stringify({
     ledgerPath,
@@ -84,12 +87,14 @@ const reset = (input = fixture()) => {
     "# TEST INPUT/OUTPUT attempts\n",
   );
 };
-if (!childMode) reset(fixture(false));
 const native: Provider = anthropicProvider();
 const model = native
   .getModels()
   .find((entry) => entry.id === "claude-sonnet-4-6");
 assert(model);
+if (!childMode) reset(fixture(false));
+if (childMode === "--shared")
+  initializeRequestLedger(ledgerPath, "TEST-run", 7.921, model);
 let starts = 0;
 let syntheticFetches = 0;
 const fetchCount = () => syntheticFetches;
@@ -138,7 +143,11 @@ globalThis.fetch = async (input, init) => {
     max_tokens: number;
     model: string;
   };
-  if (childMode !== "--disabled") assert.equal(payload.max_tokens, 16);
+  if (childMode !== "--disabled") {
+    if (scenario === "shared")
+      assert(payload.max_tokens > 16 && payload.max_tokens <= model.maxTokens);
+    else assert.equal(payload.max_tokens, 16);
+  }
   assert.equal(payload.model, model.id);
   return new Response(
     new ReadableStream({
@@ -176,7 +185,7 @@ globalThis.fetch = async (input, init) => {
         if (scenario === "partial") return;
         if (scenario === "rejected") {
           for (const [index, name] of [
-            "update_workpiece",
+            "mutate_workpiece",
             "addType",
           ].entries()) {
             controller.enqueue(
@@ -303,12 +312,101 @@ const submit = async () => {
 };
 const observations: unknown[] = [];
 try {
-  if (childMode) {
+  if (childMode === "--disabled" && process.argv[3] === undefined)
+    writeFileSync(
+      ledgerPath,
+      "TEST invalid historical ledger: must remain untouched",
+    );
+  if (childMode && childMode !== "--shared") {
     const before = readFileSync(ledgerPath, "utf8");
     const outcome = await submit();
     assert.equal(starts, childMode === "--disabled" ? 1 : 0);
     assert.equal(outcome.failure, childMode !== "--disabled");
     assert.equal(readFileSync(ledgerPath, "utf8"), before);
+    if (childMode === "--disabled") {
+      assert.equal((await submit()).failure, false);
+      assert.equal(readFileSync(ledgerPath, "utf8"), before);
+      const db = new DatabaseSync(process.env.BRUNCH_DEV_DB_PATH, {
+        readOnly: true,
+      });
+      try {
+        const usage = db
+          .prepare(`
+          SELECT count(*) AS responses, sum(json_extract(record.value, '$.usage.totalTokens')) AS tokens
+          FROM flue_conversation_stream_batches AS batch, json_each(batch.data) AS record
+          WHERE json_extract(record.value, '$.type') = 'assistant_message_completed'
+        `)
+          .get();
+        assert.equal(usage?.responses, 2);
+        assert.equal(usage.tokens, 320);
+      } finally {
+        db.close();
+      }
+      assert.equal(forbiddenFetches, 0);
+      process.stdout.write(
+        "PASS: two native Brunch requests without accounting; usage retained; old ledger unchanged.\n",
+      );
+    }
+  } else if (childMode === "--shared") {
+    // Explicit campaign accounting can still share a ledger across callers.
+    // Persona runs no longer opt into this instrument.
+    scenario = "shared";
+    const accounting = createStepARequestAccounting(
+      process.env.BRUNCH_STEP_A_ACCOUNTING,
+      () => ({
+        kind: "pi",
+        sessionId: "TEST-live-pi-identity",
+        requestId: "TEST-request",
+      }),
+    );
+    assert(accounting);
+    const piProvider = accounting.wrap(native, () => true);
+    assert.equal(
+      (
+        await piProvider
+          .streamSimple(
+            model,
+            {
+              messages: [
+                {
+                  role: "user",
+                  content: "TEST synthetic persona",
+                  timestamp: 0,
+                },
+              ],
+            },
+            { apiKey: "TEST-accounting-key" },
+          )
+          .result()
+      ).stopReason,
+      "stop",
+    );
+    assert.equal((await submit()).failure, false);
+    const shared = readLedger();
+    assert.equal(shared.calls.length, 2);
+    assert(shared.calls.every((call) => call.status === "complete"));
+    assert.partialDeepStrictEqual(shared.calls[0]?.identity, {
+      kind: "pi",
+      sessionId: "TEST-live-pi-identity",
+    });
+    assert(shared.calls[1]?.identity.submissionId);
+    assert(Math.abs(shared.totals.spentUsd - 0.0011595) < 1e-12);
+    const dispatchedBeforeRefusal = syntheticFetches;
+    assert.equal((await submit()).failure, true);
+    assert.equal(syntheticFetches, dispatchedBeforeRefusal);
+    observations.push({
+      case: "shared-brunch-pi-allocation",
+      ledger: shared,
+      nextRequestRefused: true,
+    });
+    assert.equal(forbiddenFetches, 0);
+    writeFileSync(
+      join(directory, "request-accounting.json"),
+      JSON.stringify(observations, null, 2),
+    );
+    process.stdout.write(
+      `PROVIDER_ACCOUNTING ${JSON.stringify({ passed: true, directory, syntheticFetches, scope: "shared Brunch/Pi allocation; synthetic transport" })}\n`,
+    );
   } else {
     for (const refusal of [
       "unreserved",

@@ -14,18 +14,42 @@ export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
 /** Locators have meaning only within their immutable revision's Markdown. */
 export const evidenceRelationSchema = v.strictObject({
   locator: v.strictObject({
-    start: v.pipe(v.number(), v.integer(), v.minValue(0)),
-    end: v.pipe(v.number(), v.integer(), v.minValue(1)),
+    start: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(0),
+      v.description(
+        "Inclusive UTF-16 offset from read_workpiece locateTexts for the exact Markdown being submitted.",
+      ),
+    ),
+    end: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(1),
+      v.description(
+        "Exclusive UTF-16 end offset from the same match; greater than start and within the submitted Markdown.",
+      ),
+    ),
   }),
-  messageIds: v.array(v.pipe(v.string(), v.minLength(1))),
-  kind: v.picklist([
-    "elicited",
-    "inference",
-    "default",
-    "formalism-constraint",
-    "external",
-    "correction",
-  ]),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.description(
+      "Authorized true-user source IDs returned by read_workpiece. Elicited evidence requires at least one; never substitute assistant or tool-call IDs.",
+    ),
+  ),
+  kind: v.pipe(
+    v.picklist([
+      "elicited",
+      "inference",
+      "default",
+      "formalism-constraint",
+      "external",
+      "correction",
+    ]),
+    v.description(
+      "Standing of this passage: user testimony (elicited), representational reasoning (inference), a chosen default, a formalism constraint, external material, or a correction. Linkage does not establish semantic support.",
+    ),
+  ),
 });
 
 export type WorkpieceEvidenceRelation = ReadonlyDeep<

@@ -29,6 +29,6 @@ Write like that person typing into a chat, not an informant filling in a form:
 - If the elicitor uses vocabulary the person would not use, ask what it means or restate it in the person's own words before answering.
 - Express pressure through shorter replies, impatience, prioritization, and steering toward the person's goal. Keep the turn budget and private instructions out of the conversation.
 
-Call `brunch_turn` for every utterance addressed to the elicitor. Continue from the exact elicitor text returned by that tool until the launch task's objective or turn budget is reached. Keep all turns sequential. Do not repeat a turn after a tool error or an indeterminate submission; use `ask_parent` only to report a genuine orchestration blocker, never to obtain domain facts or ask how the persona should answer.
+Call `brunch_turn` for every utterance addressed to the elicitor. Continue from the exact elicitor text returned by that tool until the launch task's objective or turn budget is reached. Keep all turns sequential. On a tool error or indeterminate submission, stop and report the blocker in your operator-facing result without repeating the turn. Only `brunch_turn` is available.
 
 When the objective or turn budget is reached, stop with a short operator-facing result stating why you stopped and how many turns were attempted. Do not reproduce or synthesize a second transcript.

@@ -1,9 +1,10 @@
 import {
+  assertStateIdentity,
   deriveMutationEffects,
   mutatePetrinetAttemptCallId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   observedMutationOutcome,
   type MutationEffects,
   type BrowserBinding,
@@ -32,6 +33,22 @@ const executeCanonicalMutation = (
     | "removePlace"
     | "removeTransition"
     | "removeArc"
+    | "addType"
+    | "addParameter"
+    | "addDifferentialEquation"
+    | "updateDifferentialEquation"
+    | "updatePlace"
+    | "updateTransition"
+    | "updateArcWeight"
+    | "updateArcType"
+    | "updateType"
+    | "addTypeElement"
+    | "updateTypeElement"
+    | "updateParameter"
+    | "removeType"
+    | "removeTypeElement"
+    | "removeParameter"
+    | "removeDifferentialEquation"
   >,
   operation: SelectedMutationOperation,
 ): void => {
@@ -54,9 +71,57 @@ const executeCanonicalMutation = (
     case "removeArc":
       mutations.removeArc(operation.input);
       break;
+    case "addType":
+      mutations.addType(operation.input);
+      break;
+    case "addParameter":
+      mutations.addParameter(operation.input);
+      break;
+    case "addDifferentialEquation":
+      mutations.addDifferentialEquation(operation.input);
+      break;
+    case "updateDifferentialEquation":
+      mutations.updateDifferentialEquation(operation.input);
+      break;
+    case "updatePlace":
+      mutations.updatePlace(operation.input);
+      break;
+    case "updateTransition":
+      mutations.updateTransition(operation.input);
+      break;
+    case "updateArcWeight":
+      mutations.updateArcWeight(operation.input);
+      break;
+    case "updateArcType":
+      mutations.updateArcType(operation.input);
+      break;
+    case "updateType":
+      mutations.updateType(operation.input);
+      break;
+    case "addTypeElement":
+      mutations.addTypeElement(operation.input);
+      break;
+    case "updateTypeElement":
+      mutations.updateTypeElement(operation.input);
+      break;
+    case "updateParameter":
+      mutations.updateParameter(operation.input);
+      break;
+    case "removeType":
+      mutations.removeType(operation.input);
+      break;
+    case "removeTypeElement":
+      mutations.removeTypeElement(operation.input);
+      break;
+    case "removeParameter":
+      mutations.removeParameter(operation.input);
+      break;
+    case "removeDifferentialEquation":
+      mutations.removeDifferentialEquation(operation.input);
+      break;
     default: {
       operation satisfies never;
-      throw new Error("Unsupported mutate_petrinet operation");
+      throw new Error("Unsupported mutate_petrinaut_net operation");
     }
   }
 };
@@ -106,7 +171,7 @@ export const createMutatePetrinetAutomaticTool = (
     ) => void;
   },
 ) => ({
-  toolName: mutatePetrinetToolName,
+  toolName: mutatePetrinautNetToolName,
   inputSchema: mutatePetrinetInputSchema,
   outputSchema: mutatePetrinetOutputSchema,
   async execute({
@@ -126,7 +191,7 @@ export const createMutatePetrinetAutomaticTool = (
     const beforeBatch = observeBrowserDefinition(handle);
     if (request.observation.baseHash !== beforeBatch.sha256)
       throw new Error(
-        "mutate_petrinet does not cite the current observed base",
+        "mutate_petrinaut_net does not cite the current observed base",
       );
     const operations = selectedMutationBatchSchema.parse(
       request.operations.map(
@@ -155,6 +220,7 @@ export const createMutatePetrinetAutomaticTool = (
           requestedBaseHash: pre.sha256,
         };
         try {
+          assertStateIdentity(mutationRequest, pre.definition, []);
           executeCanonicalMutation(mutations, operation);
           const post = observeBrowserDefinition(handle);
           const effects = deriveMutationEffects(

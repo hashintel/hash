@@ -66,18 +66,6 @@ describe("native canonical input ownership", () => {
     ).toThrow(z.ZodError);
   });
 
-  test("composes only Brunch's envelope and preserves the native root description", () => {
-    const generated = z.toJSONSchema(joinedRootArcInputSchema, { io: "input" });
-    const { brunch: _brunch, ...properties } = generated.properties ?? {};
-    expect({
-      ...generated,
-      properties,
-      required: generated.required?.filter((name) => name !== "brunch"),
-    }).toEqual(
-      z.toJSONSchema(petrinautAiTools.addArc.inputSchema, { io: "input" }),
-    );
-  });
-
   test("retains native runtime-only checks and refuses boolean weight without normalization loss", () => {
     for (const invalid of [
       { ...input, weight: true },

@@ -24,22 +24,32 @@ export const SDCPN_FILE_FORMAT_VERSION = 1;
 
 /*
  * File import intentionally stays more permissive than current runtime/action
- * schemas: older files may omit visual fields and input arc type, and imported
- * display names may predate current UI validation rules.
+ * schemas: hand-written and older files may omit visual fields, arc weight and
+ * type, and a place's colour and dynamics fields, and imported display names
+ * may predate current UI validation rules.
  */
 const inputArcSchema = z.object({
   ...currentInputArcSchema.shape,
   type: currentInputArcSchema.shape.type.optional().default("standard"),
+  weight: currentInputArcSchema.shape.weight.optional().default(1),
 });
 
 const outputArcSchema = z.object({
   ...currentOutputArcSchema.shape,
+  weight: currentOutputArcSchema.shape.weight.optional().default(1),
 });
 
 const placeSchema = z.object({
   ...currentPlaceSchema.shape,
   id: z.string(),
   name: z.string(),
+  colorId: currentPlaceSchema.shape.colorId.optional().default(null),
+  dynamicsEnabled: currentPlaceSchema.shape.dynamicsEnabled
+    .optional()
+    .default(false),
+  differentialEquationId: currentPlaceSchema.shape.differentialEquationId
+    .optional()
+    .default(null),
   x: z.number().optional(),
   y: z.number().optional(),
 });

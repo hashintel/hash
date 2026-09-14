@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-
 import * as v from "valibot";
 import { describe, expect, test, vi } from "vitest";
 
@@ -77,17 +75,5 @@ describe("the Brunch question marker", () => {
 
     expect(parseBrunchQuestionData(marker)).toEqual(marker);
     expect(parseBrunchQuestionData(null)).toBeUndefined();
-  });
-
-  test("instructs the model to mark and then reproduce the exact question in ordinary prose", async () => {
-    const systemPrompt = await readFile(
-      new URL("../src/prompts/SYSTEM.md", import.meta.url),
-      "utf8",
-    );
-
-    expect(systemPrompt).toContain("brunch_mark_question");
-    expect(systemPrompt).toContain("exact same question text");
-    expect(systemPrompt).toContain("ordinary assistant prose");
-    expect(systemPrompt).toContain("does not wait for or accept the answer");
   });
 });

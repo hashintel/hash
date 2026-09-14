@@ -30,9 +30,13 @@ export const getOrCreateBrunchConversationId = (
     return existing;
   }
   const conversationId = createId();
-  storage.setItem(
-    conversationStorageKey,
-    JSON.stringify({ ...stored, [netId]: conversationId }),
-  );
+  try {
+    storage.setItem(
+      conversationStorageKey,
+      JSON.stringify({ ...stored, [netId]: conversationId }),
+    );
+  } catch {
+    // The generated id remains valid for this page load.
+  }
   return conversationId;
 };

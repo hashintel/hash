@@ -9,7 +9,7 @@ implementation archaeology are ephemeral by default.
 | Supported launchers | `apps/brunch-agent/src/evaluations/` |
 | Local run output | `apps/brunch-agent/.data-wipe-me/evaluations/` |
 | Inputs a test actually loads | Beside that test under `test/fixtures/` |
-| Current authority | [`MISSION.md`](../../MISSION.md) |
+| Current authority and proof dispositions | [`MISSION.md`](../../MISSION.md) |
 | Lasting architectural decisions | An [ADR](../adr/) |
 | Evaluation conclusion unavailable from tests or code | One final campaign adjudication here |
 | Per-implementation proof | Nowhere: the code, test, commit and PR are the record |
@@ -30,9 +30,20 @@ Promotion is a deliberate review action that selects one fixture or one final ad
 There is no promotion framework and no archive generator. Do not add
 `docs/evidence/implementations/` packets. `MISSION.md`, `SIDE_QUEST.md` and run directories are
 not evidence sinks either: run narrative goes to native records, commits and the PR, under the
-[run-directory rule](../../AGENTS.md#run-directories).
+[run-directory rule](#run-directories). The mission retains only current dispositions and evidence pointers, not copied execution reports.
 
 A normal evaluation can run repeatedly without changing `git status`.
+
+## Run directories
+
+Ignored run output, including `apps/brunch-agent/.data-wipe-me/persona-runs/<run>/`, retains native evidence rather than accumulating review packets.
+
+- Keep **native records**: canonical history, workpiece records, snapshots, stop state, product/launcher observations and logs. They are the oracle for what the run did.
+- Keep **one current handoff** (`handoff.md` or `gate-packet.md`), overwritten in place. Do not retain `review-*`, `final`, `wrap` or `linked` generations or a second handoff copy.
+- Write an **observation summary** only for a concrete decision. Promote the decision to `MISSION.md`'s Owner decisions list and the resulting contract; do not keep the summary as a sibling packet. Other delegated results return in chat or the PR.
+- The operator deletes superseded handoff generations when wrapping the run; they are not archived beside native records.
+
+Evidence held only in a local ignored store is **local-only / not portable**. Name the native record and the observation it establishes. An inspected local record can verify that observation without export; missing portability is not an `ORACLE GAP`. An uninspected record or merely available test does not establish a pass.
 
 ## Retired but recoverable
 

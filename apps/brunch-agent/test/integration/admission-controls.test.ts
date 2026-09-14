@@ -145,7 +145,7 @@ test("production still settles revisions and noninteractive markers without brow
       .flatMap((message) => message.parts)
       .find(
         (part) =>
-          part.type === "dynamic-tool" && part.toolName === "update_workpiece",
+          part.type === "dynamic-tool" && part.toolName === "mutate_workpiece",
       );
     expect(revision).toMatchObject({
       output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
@@ -153,7 +153,7 @@ test("production still settles revisions and noninteractive markers without brow
   }
   for (const caseId of [
     "brunch_mark_question",
-    "update_workpiece-brunch_mark_question",
+    "mutate_workpiece-brunch_mark_question",
   ]) {
     const observation = result.observations.find(
       (entry) => entry.caseId === caseId,
@@ -195,11 +195,18 @@ test("an independently admitted browser mutation waits for its correlated result
   ).toBe(true);
 });
 
-test("active Stop cancels buffered output and late completion cannot leak prose or tools", () => {
+test("progress streams before admission; Stop prevents tools and late completion without erasing partial prose", () => {
   for (const sample of result.buffering) {
+    const parts = sample.projectedDuring.flatMap((message) => message.parts);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: "text", text: sample.text }),
+    );
+    expect(parts.filter(isToolUIPart)).toEqual([]);
     expect(
-      sample.projectedDuring.filter((message) => message.role === "assistant"),
-    ).toEqual([]);
+      sample.during.settlements.some(
+        (settlement) => settlement.submissionId === sample.receipt.submissionId,
+      ),
+    ).toBe(false);
   }
   const stopped = result.buffering.find(
     ({ caseId }) => caseId === "buffered-cancelled",
@@ -213,15 +220,22 @@ test("active Stop cancels buffered output and late completion cannot leak prose 
     }),
   );
   expect(
-    stopped.projectedAfter.filter((message) => message.role === "assistant"),
+    stopped.projectedAfter.flatMap((message) => message.parts),
+  ).toContainEqual(
+    expect.objectContaining({ type: "text", text: stopped.text }),
+  );
+  expect(
+    result.wire.filter(
+      ({ caseId, chunk }) =>
+        caseId === stopped.caseId && chunk.type === "tool-input",
+    ),
   ).toEqual([]);
   expect(
     result.wire.filter(
       ({ caseId, chunk }) =>
-        caseId === stopped.caseId &&
-        (chunk.type === "tool-input" || chunk.type === "message-delta"),
+        caseId === stopped.caseId && chunk.type === "message-delta",
     ),
-  ).toEqual([]);
+  ).toHaveLength(1);
   const valid = result.buffering.find(
     ({ caseId }) => caseId === "buffered-valid",
   )!;

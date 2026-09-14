@@ -104,6 +104,12 @@ export interface LanguageClient {
     uri: DocumentUri,
     position: Position,
   ): Promise<SignatureHelp | null>;
+  /** Check one captured definition without changing editor or session state. */
+  requestDiagnostics(
+    this: void,
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ): Promise<DiagnosticsSnapshot>;
   /**
    * Compiles the SDCPN's user code to HIR artifacts (in the worker, where the
    * TypeScript frontend lives). Pass the result as `hirArtifacts` when
@@ -466,6 +472,13 @@ export function createLanguageClient(
         textDocument: { uri },
         position,
       });
+    },
+    async requestDiagnostics(sdcpn, extensions) {
+      const params = await sendRequest<PublishDiagnosticsParams[]>(
+        "sdcpn/diagnostics",
+        { sdcpn, extensions },
+      );
+      return buildSnapshot(params, EMPTY_DIAGNOSTICS);
     },
     requestHirArtifacts(sdcpn, extensions, options) {
       return sendRequest<HirCompileResult>("sdcpn/compileHirArtifacts", {
