@@ -47,11 +47,17 @@ export const selectOperators = {
   }),
 };
 
+/** Passed through to the underlying multi select. */
+interface MultiSelectOperatorOpts {
+  searchable?: boolean;
+  overflow?: FilterMultiSelectInput["overflow"];
+}
+
 /** Multi-select operators; items vary per filter, so these are factories. */
 export const multiSelectOperators = {
   isAnyOf: (
     items: MultiSelectItems,
-    opts?: { searchable?: boolean },
+    opts?: MultiSelectOperatorOpts,
   ): OperatorConfig => ({
     label: "is any of",
     input: {
@@ -59,11 +65,12 @@ export const multiSelectOperators = {
       items,
       multiple: true,
       searchable: opts?.searchable ?? false,
+      overflow: opts?.overflow,
     },
   }),
   isNoneOf: (
     items: MultiSelectItems,
-    opts?: { searchable?: boolean },
+    opts?: MultiSelectOperatorOpts,
   ): OperatorConfig => ({
     label: "is none of",
     input: {
@@ -71,6 +78,7 @@ export const multiSelectOperators = {
       items,
       multiple: true,
       searchable: opts?.searchable ?? false,
+      overflow: opts?.overflow,
     },
   }),
 };
@@ -95,7 +103,7 @@ export const pickSingleSelectOperators = (
 export const pickMultiSelectOperators = (
   keys: ReadonlyArray<keyof typeof multiSelectOperators>,
   items: MultiSelectItems,
-  opts?: { searchable?: boolean },
+  opts?: MultiSelectOperatorOpts,
 ): StepFilterOperator[] =>
   keys.map((key) => ({ key, ...multiSelectOperators[key](items, opts) }));
 

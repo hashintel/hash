@@ -480,7 +480,9 @@ export const STEP_FILTER_DEFINITIONS = [
     label: "Step type",
     group: "Scope",
     operators: () =>
-      pickMultiSelectOperators(["isAnyOf", "isNoneOf"], stepTypeItems),
+      pickMultiSelectOperators(["isAnyOf", "isNoneOf"], stepTypeItems, {
+        overflow: "summary",
+      }),
     matches: (row, value) =>
       matchesSelectionOperator(value.key, [row.type], value.value),
     isApplicable: () => true,
@@ -492,6 +494,7 @@ export const STEP_FILTER_DEFINITIONS = [
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.materialItems, {
         searchable: true,
+        overflow: "summary",
       }),
     matches: (row, value) =>
       matchesSelectionOperator(
@@ -514,6 +517,7 @@ export const STEP_FILTER_DEFINITIONS = [
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.productItems, {
         searchable: true,
+        overflow: "summary",
       }),
     matches: (row, value) =>
       matchesSelectionOperator(
@@ -530,6 +534,7 @@ export const STEP_FILTER_DEFINITIONS = [
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.supplierItems, {
         searchable: true,
+        overflow: "summary",
       }),
     matches: (row, value, context) =>
       matchesSelectionOperator(
