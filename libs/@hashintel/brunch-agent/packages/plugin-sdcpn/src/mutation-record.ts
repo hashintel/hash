@@ -479,12 +479,13 @@ export const expectedNodeDefinition = (
 const batchedStateLocator = (
   request: ConstructionMutationRequest,
 ): {
-  kind: "parameter" | "differential-equation" | "type" | "type-element";
   name: string;
-  typeId?: string;
   removing: boolean;
   fields: Record<string, unknown>;
-} => {
+} & (
+  | { kind: "parameter" | "differential-equation" | "type"; typeId?: never }
+  | { kind: "type-element"; typeId: string }
+) => {
   switch (request.toolName) {
     case "updateParameter": {
       const parsed = mutationActionInputSchemas.updateParameter.parse(
@@ -564,10 +565,11 @@ const deriveNodeEffects = (
     const located = batchedStateLocator(request);
     return {
       target: locateRootState(definition, {
-        kind: located.kind,
         name: located.name,
         field: "entity",
-        ...(located.typeId === undefined ? {} : { type: located.typeId }),
+        ...(located.kind === "type-element"
+          ? { kind: located.kind, type: located.typeId }
+          : { kind: located.kind }),
       }),
       creating: false,
       fields: located.fields,

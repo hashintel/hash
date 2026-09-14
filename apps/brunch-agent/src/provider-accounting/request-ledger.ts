@@ -264,6 +264,24 @@ export class RequestLedger {
     this.#poisoned = true;
   }
 
+  /** Explicit operator acceptance permits continuation, never releases the unknown hold. */
+  acceptUnknown(sequence: number) {
+    this.#transaction(() => {
+      const ledger = this.#read();
+      const call = ledger.calls.find((entry) => entry.sequence === sequence);
+      if (
+        ledger.reservation.runId !== this.runId ||
+        !call ||
+        call.status !== "unknown"
+      )
+        return fail();
+      const accepted = ledger.reservation.acceptedUnknownSequences ?? [];
+      if (accepted.includes(sequence)) return;
+      ledger.reservation.acceptedUnknownSequences = [...accepted, sequence];
+      this.#save(ledger, call);
+    });
+  }
+
   #transaction<T>(operation: () => T): T {
     if (this.#poisoned) fail();
     const lockPath = `${this.path}.lock`;

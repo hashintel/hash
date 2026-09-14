@@ -591,6 +591,35 @@ test("fresh persona allocation is shared across participants and cannot be reset
   expect(readFileSync(path, "utf8")).toBe(before);
 });
 
+test("explicit unknown acceptance retains the call and its hold without resetting the allocation", async () => {
+  const fixture = setup();
+  fixture.respond({ ...complete, stopReason: "error" });
+  await fixture.run(async () => {
+    await fixture.metered
+      .streamSimple(model, { messages: [] }, fixture.options)
+      .result();
+  });
+  const before = fixture.read();
+  const ledger = new RequestLedger(
+    fixture.ledgerPath,
+    join(fixture.directory, "attempt-ledger.md"),
+    "TEST-run",
+  );
+  ledger.acceptUnknown(1);
+  const accepted = fixture.read();
+  expect(accepted.calls).toEqual(before.calls);
+  expect(accepted.totals).toEqual(before.totals);
+  expect(accepted.reservation).toEqual({
+    ...before.reservation,
+    acceptedUnknownSequences: [1],
+  });
+  const next = ledger.prepare(piIdentity, model);
+  expect(fixture.read().totals.outstandingReservedUsd).toBe(14);
+  next.notStarted();
+  expect(() => ledger.acceptUnknown(3)).toThrow(/accounting refused/);
+  expect(fixture.read().calls[0]).toEqual(before.calls[0]);
+});
+
 for (const sameRun of [false, true]) {
   for (const ceiling of ["global", "run"] as const) {
     test(`accepted unknown preserves its hold against ${ceiling}, same run=${sameRun}`, async () => {

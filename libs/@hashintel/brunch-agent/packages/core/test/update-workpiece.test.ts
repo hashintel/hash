@@ -128,6 +128,11 @@ test("records the exact changed window and refuses a stale cited base", async ()
   await expect(
     run("# Account\n\nStale change.", "third", undefined, "first"),
   ).rejects.toThrow(/baseRevisionId/u);
+  expect(current).toMatchObject({
+    revisionId: "second",
+    ordinal: 2,
+    markdown: "# Account\n\nOne changed fact.",
+  });
 });
 
 test("refuses empty Markdown", async () => {

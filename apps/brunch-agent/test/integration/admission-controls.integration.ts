@@ -282,6 +282,7 @@ const run = async () => {
       caseId = abort ? "buffered-cancelled" : "buffered-valid";
       const client = clientFor();
       const stalled = createStall();
+      const progressed = Promise.withResolvers<void>();
       nextStall = stalled;
       const receipt = await client.send({
         initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
@@ -293,7 +294,10 @@ const run = async () => {
       const settlement = client
         .wait(receipt, {
           signal: AbortSignal.timeout(10000),
-          onEvent: recordWire,
+          onEvent: (chunk) => {
+            recordWire(chunk);
+            if (chunk.type === "message-delta") progressed.resolve();
+          },
         })
         .then(
           () => null,
@@ -301,7 +305,7 @@ const run = async () => {
         );
       await stalled.started.promise;
       const text = abort
-        ? "Cancelled prose must never be spoken."
+        ? "Visible progress before Stop."
         : `The account is recorded. ${question}`;
       const message = fauxAssistantMessage(
         [
@@ -354,8 +358,14 @@ const run = async () => {
           });
         }
       }
-      // Reading the mounted store while the provider is unfinished must expose
-      // neither the prose nor the proposed tool inputs to Voice/browser hosts.
+      // Progress is published natively before completion, but executable tool
+      // inputs remain withheld from browser hosts until the proposal is valid.
+      await Promise.race([
+        progressed.promise,
+        settlement.then((error) => {
+          throw new Error(error ?? "Submission completed before progress");
+        }),
+      ]);
       const during = await client.history();
       if (abort) await client.abort();
       else

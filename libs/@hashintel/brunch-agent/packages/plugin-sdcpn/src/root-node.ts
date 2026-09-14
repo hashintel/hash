@@ -1,4 +1,4 @@
-import * as v from "valibot";
+import { z } from "zod";
 
 import { getArcEndpointPlaceId, type SDCPN } from "@hashintel/petrinaut-core";
 import {
@@ -11,48 +11,33 @@ import { rootStateWhyInputSchema } from "./root-state";
 
 import type { ConstructionMutationRequest } from "./mutation-record";
 
-export const rootNodeWhyInputSchema = v.strictObject({
-  kind: v.picklist(["place", "transition"]),
-  name: v.string(),
-  field: v.optional(v.string(), "entity"),
-  observationToolCallId: v.optional(v.string()),
-});
-export type RootNodeWhyInput = v.InferOutput<typeof rootNodeWhyInputSchema>;
-
-/** Flue requires an object at the tool root. Legacy arc queries keep their exact accepted shape. */
-export const constructionWhyInputSchema = v.pipe(
-  v.strictObject({
-    ...v.partial(rootArcWhyInputSchema).entries,
-    ...v.partial(rootNodeWhyInputSchema).entries,
-    kind: v.optional(
-      v.picklist([
-        ...rootNodeWhyInputSchema.entries.kind.options,
-        ...rootStateWhyInputSchema.entries.kind.options,
-      ]),
+export const rootNodeWhyInputSchema = z.strictObject({
+  kind: z.enum(["place", "transition"]),
+  name: z
+    .string()
+    .describe(
+      "Unique name or ID of the selected element from read_petrinaut_net.",
     ),
-    type: v.optional(v.string()),
-  }),
-  v.check(
-    (input) =>
-      v.safeParse(
-        input.kind === undefined
-          ? rootArcWhyInputSchema
-          : input.kind === "place" || input.kind === "transition"
-            ? rootNodeWhyInputSchema
-            : rootStateWhyInputSchema,
-        input,
-      ).success,
-    "Supply an exact root arc query or an entity kind/name/field query; type-element also requires its parent type.",
-  ),
-);
-export const parseConstructionWhyInput = (input: unknown) => {
-  const checked = v.parse(constructionWhyInputSchema, input);
-  return checked.kind === undefined
-    ? v.parse(rootArcWhyInputSchema, checked)
-    : checked.kind === "place" || checked.kind === "transition"
-      ? v.parse(rootNodeWhyInputSchema, checked)
-      : v.parse(rootStateWhyInputSchema, checked);
-};
+  field: z
+    .string()
+    .default("entity")
+    .describe(
+      "Explain the whole element (entity), or one top-level field such as capacity or lambdaCode.",
+    ),
+  observationToolCallId: rootArcWhyInputSchema.shape.observationToolCallId,
+});
+export type RootNodeWhyInput = z.output<typeof rootNodeWhyInputSchema>;
+
+/** Every alternative is an object; retain Flue's object root without flattening its requirements. */
+export const constructionWhyInputSchema = z
+  .union([
+    rootArcWhyInputSchema,
+    rootNodeWhyInputSchema,
+    ...rootStateWhyInputSchema.options,
+  ])
+  .meta({ type: "object" });
+export const parseConstructionWhyInput = (input: unknown) =>
+  constructionWhyInputSchema.parse(input);
 
 export const observedNodeMutationNames = [
   "addPlace",

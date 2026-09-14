@@ -561,13 +561,18 @@ export const queryWorkpiece = async (input: {
           case "parameter":
           case "differential-equation":
           case "type":
-          case "type-element":
           case "scenario":
             return locateRootState(definition, {
               kind: target.kind,
               name: target.id,
               field,
-              ...("typeId" in target ? { type: target.typeId } : {}),
+            });
+          case "type-element":
+            return locateRootState(definition, {
+              kind: target.kind,
+              type: target.typeId,
+              name: target.id,
+              field,
             });
           default: {
             const unhandled: never = target;

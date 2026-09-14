@@ -13,15 +13,19 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
+  validateToolArguments,
   type Context,
+  type Tool,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
 import {
   batchedConstructionMode,
+  constructionWhyInputSchema,
   joinedRootArcInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
+  parseConstructionWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   validatedFixtureMutationMode,
@@ -333,6 +337,61 @@ try {
       ordinaryBrunchToolCatalogue.map(({ name }) => name),
       `${method} ordinary Brunch tools must match the checked catalogue`,
     );
+    const queryTool = ordinaryRequest.serialized.tools.find(
+      (tool) => tool.name === "query_workpiece",
+    );
+    assert(queryTool);
+    assert.deepEqual(
+      queryTool.input_schema,
+      constructionWhyInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    // Exercise the serialized schema, not just its source: a flattened bag of
+    // optional fields accepts the invalid controls even when the parser refuses.
+    for (const [input, accepted] of [
+      [{}, false],
+      [{ kind: "place" }, false],
+      [{ transition: "Process", place: "Waiting" }, false],
+      [{ kind: "type-element", name: "quantity" }, false],
+      [{ kind: "type", name: "Item", type: "WrongParent" }, false],
+      [{ kind: "place", name: "Waiting", place: "mixed" }, false],
+      [{ kind: "place", name: "Waiting" }, true],
+      [{ kind: "transition", name: "Process", field: "lambdaCode" }, true],
+      [
+        { transition: "Process", place: "Waiting", arcDirection: "input" },
+        true,
+      ],
+      [{ kind: "type-element", name: "quantity", type: "Item" }, true],
+      [{ kind: "parameter", name: "Rate", field: "defaultValue" }, true],
+      [
+        { kind: "scenario", name: "Baseline", field: "/initialState/content" },
+        true,
+      ],
+    ] as const) {
+      const validateSent = () => {
+        validateToolArguments(
+          {
+            name: queryTool.name,
+            description: "Captured query tool",
+            parameters: queryTool.input_schema as Tool["parameters"],
+          },
+          {
+            type: "toolCall",
+            id: "query-schema-control",
+            name: queryTool.name,
+            arguments: structuredClone(input),
+          },
+        );
+      };
+      if (accepted) {
+        assert.doesNotThrow(validateSent);
+        assert.doesNotThrow(() => parseConstructionWhyInput(input));
+      } else {
+        assert.throws(validateSent);
+        assert.throws(() => parseConstructionWhyInput(input));
+      }
+    }
     for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
       const expected = (
         name === "addArc"

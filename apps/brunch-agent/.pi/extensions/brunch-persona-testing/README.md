@@ -50,7 +50,13 @@ cdp-cli --cdp-url "$cdp" screenshot "$page" "$run/browser-observer.png"
 
 The debugging endpoint controls this browser: keep it loopback-only and keep its run-private profile/control material out of commits and shared proof artifacts. Pair any screenshot with its canonical history observation; the screenshot alone does not establish a settlement, freshness, or utility verdict.
 
-A failed or indeterminate bridge turn stops the persona without replay. Cancellation requests the panel's ordinary Stop action. Inspect canonical history before deciding whether to continue manually or start another run. Model-visible tool errors may be repaired by Brunch within the same turn; a bridge failure is not permission to manufacture results or switch identity. The bridge refuses to overwrite a nonempty composer draft.
+A failed or indeterminate bridge turn stops the persona without replay. Cancellation requests the panel's ordinary Stop action. Model-visible tool errors may be repaired by Brunch within the same turn; a bridge failure is not permission to manufacture results or switch identity. The bridge refuses to overwrite a nonempty composer draft.
+
+### Resume the original run
+
+Use `yarn brunch:persona --resume <absolute-run-directory>` with the original `BRUNCH_PANEL_PORT` and an unused `BRUNCH_CHAT_PORT`. Use the absolute run path printed by the launcher because nested Yarn workspace commands change relative-path resolution. Resume reuses the saved Chrome profile, database, exact Pi session and original budget; it does not replay the opening or import a snapshot. Fresh-run options are rejected. If the owner accepts an interrupted request's unknown usage, add `--accept-unknown <sequence>`: the request remains unknown and its full reservation remains charged against the allocation.
+
+The panel opens first and the launcher waits for recording readiness **before starting backend recovery or Pi**. Until Enter, the conversation/workpiece may be unavailable because the backend is stopped. After Enter, Flue settles the prior admitted submission; the launcher checks it against Pi's last utterance and refuses mismatches or unanswered browser calls. Pi receives a private reconciliation notice, then authors its next ordinary utterance from the original history. The interrupted utterance is never resent. Missing original stores or ambiguous Pi sessions require operator investigation, not a new identity or automatic replay.
 
 ## Retained data
 
@@ -60,7 +66,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `usage-ledger.json` and `attempt-ledger.md`: shared request identities, usage, outstanding reservations and combined budget. `configuration-preflight.json` records request-free Brunch configuration checks; Pi checks its native model and auth selection again at startup and before dispatch.
 - `conversation.db` and adjacent capture files: this run's original local conversation/workpiece stores, retained for original-session reopening.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
-- `persona-input.md` and `pi/`: private actor input and native Pi session.
+- `persona-input.md` and `pi/`: private actor input and native Pi session; `resume-input.md`, when present, is the latest private reconciliation notice.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, workpiece and bound `net.json`; refreshed after completed turns and net retention on shutdown.
 - Service logs, only for services this launch started.
 
@@ -68,7 +74,7 @@ The persistent Chrome profile lives outside the checkout to avoid source-watcher
 
 ## Verification and implementation
 
-`test/persona-construction.integration.ts` uses the actual opening helper, registered Pi extension, local socket and ordinary composer against the built ChatAgent and real Chrome with a synthetic provider. It checks empty start, opening-tool continuation, repeated workpiece/net updates, tab switching during a continuation, cancellation and no replay on reload. It establishes mechanism viability, not persona fidelity, construction quality or accepted Inventory evidence. The older `test/persona-browser.integration.ts` targets the legacy SDK spectator attachment; it currently fails its old construction-mode validator before reaching the intentionally unanswered browser read. It does not test the launcher's browser-executed path.
+`test/persona-construction.integration.ts` uses the actual opening helper, registered Pi extension, local socket and ordinary composer against the built ChatAgent and real Chrome with a synthetic provider. It checks empty start, opening-tool continuation, repeated workpiece/net updates, tab switching during a continuation, cancellation and no replay on reload. It also restarts the backend after an aborted turn, reconciles without sending, retains the net/workpiece and executes a new browser-tool turn in the original conversation; mismatched utterances and browser principals refuse. It establishes mechanism viability, not persona fidelity, construction quality, crash recovery at every boundary or accepted Inventory evidence. The older `test/persona-browser.integration.ts` targets the legacy SDK spectator attachment; it currently fails its old construction-mode validator before reaching the intentionally unanswered browser read. It does not test the launcher's browser-executed path.
 
 The construction proof also holds the recording pause and checks that no submission occurs before release. `node --experimental-strip-types test/provider-accounting.integration.ts --shared` exercises the fresh allocation with the built ChatAgent and Pi's registered native provider against synthetic SDK responses, checking both identities/usage in one ledger and refusal before a request that cannot fit. The older default accounting integration resets its ledger after refusal without resetting the process's stop latch and is not a green baseline. These checks do not prove live-model fidelity or successful generation with the operator's credential.
 

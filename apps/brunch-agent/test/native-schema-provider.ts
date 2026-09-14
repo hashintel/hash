@@ -18,7 +18,10 @@ export type NativeRequestCapture = {
   };
 };
 
-const syntheticResponse = (message: AssistantMessage) => {
+const syntheticResponse = (
+  message: AssistantMessage,
+  beforeFinish?: () => Promise<void>,
+) => {
   const frames: { type: string; [key: string]: unknown }[] = [
     {
       type: "message_start",
@@ -73,11 +76,24 @@ const syntheticResponse = (message: AssistantMessage) => {
     { type: "message_stop" },
   );
   return new Response(
-    frames
-      .map(
-        (frame) => `event: ${frame.type}\ndata: ${JSON.stringify(frame)}\n\n`,
-      )
-      .join(""),
+    new ReadableStream({
+      async start(controller) {
+        try {
+          for (const frame of frames) {
+            // eslint-disable-next-line no-await-in-loop -- Test barrier must precede the terminal SSE frame.
+            if (frame.type === "message_stop") await beforeFinish?.();
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: ${frame.type}\ndata: ${JSON.stringify(frame)}\n\n`,
+              ),
+            );
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    }),
     { headers: { "content-type": "text/event-stream" } },
   );
 };
@@ -88,6 +104,7 @@ export const nativeSchemaProvider = (
   captures: NativeRequestCapture[],
   contexts: Context[],
   entrypoint: "stream" | "streamSimple" = "streamSimple",
+  beforeFinish?: () => Promise<void>,
 ): Provider => {
   const native: Provider = anthropicProvider();
   const supply =
@@ -127,6 +144,7 @@ export const nativeSchemaProvider = (
           captures.push({ method, payload, serialized });
           return syntheticResponse(
             await responses.streamSimple(model, context, options).result(),
+            beforeFinish,
           );
         },
       });

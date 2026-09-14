@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, test, vi } from "vitest";
+
+import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
 
 import { mutatePetrinetInputSchema } from "../src/mutate-petrinet";
 import { createMutatePetrinetTool } from "../src/tools/mutate-petrinet";
@@ -106,6 +110,21 @@ const requiredOf = (schema: Record<string, unknown>): string[] =>
     : [];
 
 describe("mutate_petrinet tool", () => {
+  test("the construction resource's batch example is an accepted payload", () => {
+    const resource = readFileSync(
+      new URL(
+        "../src/skills/sdcpn-modelling/references/pn-construction.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const example = /```json\n([\s\S]*?)\n```/u.exec(resource)?.[1];
+    if (!example) throw new Error("Missing batch example");
+    expect(() =>
+      mutatePetrinetInputSchema.parse(JSON.parse(example)),
+    ).not.toThrow();
+  });
+
   test("admits the provisional 30-operation boundary and refuses 31", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
@@ -487,6 +506,28 @@ describe("mutate_petrinet tool", () => {
       const inputSchema = property(variant, "input", root);
       expect(property(inputSchema, "targetSubnetId", root)).toBeUndefined();
       expect(asRecord(inputSchema?.properties)?.targetSubnetId).toBeUndefined();
+      const operationType = property(variant, "type", root)?.const;
+      if (typeof operationType !== "string")
+        throw new Error("Missing operation type");
+      const canonical = Object.entries(mutationActionInputSchemas).find(
+        ([name]) => name === operationType,
+      )?.[1];
+      if (!canonical)
+        throw new Error(`Missing canonical operation ${operationType}`);
+      // Preserve canonical summaries except where the selected surface supplies
+      // narrower arc/parameter/transition guidance.
+      if (
+        [
+          "addArc",
+          "removeArc",
+          "updateArcWeight",
+          "updateArcType",
+          "addParameter",
+          "updateTransition",
+        ].includes(operationType)
+      )
+        continue;
+      expect(inputSchema?.description).toBe(canonical.description);
     }
     const addArc = variants.find((variant) => {
       const type = property(variant, "type", root);

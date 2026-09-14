@@ -93,6 +93,21 @@ test("launches a fresh restricted persona using input files, not prior session o
   expect(args).not.toContain("--api-key");
 });
 
+test("resumes an exact Pi session without replaying the opening input", () => {
+  const args = personaArguments(
+    "/tmp/TEST-persona",
+    "claude-sonnet-4-6",
+    "/tmp/TEST-new-socket",
+    "/tmp/TEST-persona/pi/sessions/original.jsonl",
+  );
+  expect(
+    args.slice(args.indexOf("--session"), args.indexOf("--session") + 2),
+  ).toEqual(["--session", "/tmp/TEST-persona/pi/sessions/original.jsonl"]);
+  expect(args.at(-1)).toBe("@/tmp/TEST-persona/resume-input.md");
+  expect(args).not.toContain("@/tmp/TEST-persona/persona-input.md");
+  expect(args).not.toContain("--continue");
+});
+
 test("treats only Flue's loading runtime-unavailable response as not ready while polling an owned service", async () => {
   const fetch = vi.fn<() => Promise<Response>>().mockResolvedValue(
     new Response(JSON.stringify(loadingRuntimeUnavailable), {

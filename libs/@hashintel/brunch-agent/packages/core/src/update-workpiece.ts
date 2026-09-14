@@ -82,9 +82,17 @@ export const settleWorkpieceEvidence = async (
 /** Ceiling in UTF-8 bytes, before hashing; whitespace and line endings are preserved. */
 export const workpieceMarkdownByteCeiling = 262_144;
 export const updateWorkpieceInputSchema = v.object({
-  baseRevisionId: v.optional(v.nullable(v.string())),
+  baseRevisionId: v.pipe(
+    v.optional(v.nullable(v.string())),
+    v.description(
+      "Revision ID of the current settled workpiece. Use null only for the first revision; obtain the current ID with read_workpiece before updating.",
+    ),
+  ),
   markdown: v.pipe(
     v.string(),
+    v.description(
+      "Complete Markdown for the next workpiece revision, including all unchanged content; this replaces the prior document rather than applying a patch.",
+    ),
     v.check((markdown) => /\S/u.test(markdown), "Markdown must not be empty."),
     v.check(
       (markdown) => Buffer.from(markdown, "utf8").toString("utf8") === markdown,
@@ -96,7 +104,12 @@ export const updateWorkpieceInputSchema = v.object({
       "Markdown exceeds the 262144-byte UTF-8 ceiling.",
     ),
   ),
-  evidence: v.optional(v.array(evidenceRelationSchema)),
+  evidence: v.pipe(
+    v.optional(v.array(evidenceRelationSchema)),
+    v.description(
+      "Optional relations from immutable UTF-16 [start,end) spans in this submitted Markdown to authorized true-user messageIds from read_workpiece, with kind declaring the relation's evidential standing. Valid linkage does not establish relevance.",
+    ),
+  ),
 });
 
 export const workpieceMutationSchema = v.object({
@@ -172,6 +185,9 @@ export const deriveWorkpieceMutation = (
 export const workpieceLocatorTextsSchema = v.pipe(
   v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
   v.maxLength(16),
+  v.description(
+    "Literal text passages to locate. Results are UTF-16 [start,end) spans in the supplied unsettled candidate, or in the current settled revision when candidate markdown is omitted.",
+  ),
 );
 
 /** Candidate identity is hash and length only; no revision, state or evidence. */

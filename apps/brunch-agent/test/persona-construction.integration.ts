@@ -27,6 +27,10 @@ import {
   documentIdFromInitialData,
   openPersonaConversation,
 } from "../src/evaluations/persona/launch.ts";
+import {
+  openRetainedPersonaBrowser,
+  reconcilePersonaResume,
+} from "../src/evaluations/persona/launch/resume.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
 import { browserResultFrom } from "./browser-result.ts";
@@ -52,8 +56,13 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: "claude-sonnet-4-6", reasoning: true }],
 });
-installFauxProvider(nativeSchemaProvider(faux.provider, [], []));
-const app = await loadBuiltBrunchApplication();
+let finishBarrier: ReturnType<typeof Promise.withResolvers<void>> | undefined;
+installFauxProvider(
+  nativeSchemaProvider(faux.provider, [], [], "streamSimple", async () => {
+    await finishBarrier?.promise;
+  }),
+);
+let app = await loadBuiltBrunchApplication();
 let fixture: Awaited<ReturnType<typeof openBrowserFixture>> | undefined;
 let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
 const text = (value: string) => fauxAssistantMessage([fauxText(value)]);
@@ -62,7 +71,10 @@ const call = (name: string, args: Record<string, unknown>, id: string) =>
     stopReason: "toolUse",
   });
 try {
-  fixture = await openBrowserFixture(app, resolve("../petrinaut-website/dist"));
+  fixture = await openBrowserFixture(
+    { fetch: (request) => app.fetch(request), stop: () => app.stop() },
+    resolve("../petrinaut-website/dist"),
+  );
   const { page, origin } = fixture;
   faux.setResponses([
     call("read_petrinaut_net", {}, "opening-read"),
@@ -176,11 +188,20 @@ try {
     const reachedRead = Promise.withResolvers<void>();
     const continueRead = Promise.withResolvers<void>();
     const markdown = `# Synthetic operation\n\nThere are ${index} waiting stages. Timing is unknown.`;
+    if (index === 1) finishBarrier = Promise.withResolvers<void>();
     faux.setResponses([
-      call(
-        "mutate_workpiece",
-        { markdown, baseRevisionId: index === 1 ? null : "workpiece-1" },
-        `workpiece-${index}`,
+      fauxAssistantMessage(
+        [
+          fauxText(
+            `Preparing stage ${index}; the workpiece is not updated yet.`,
+          ),
+          fauxToolCall(
+            "mutate_workpiece",
+            { markdown, baseRevisionId: index === 1 ? null : "workpiece-1" },
+            { id: `workpiece-${index}` },
+          ),
+        ],
+        { stopReason: "toolUse" },
       ),
       call("read_petrinaut_net", {}, `read-${index}`),
       async (context: Context) => {
@@ -241,7 +262,43 @@ try {
       { message: `Please add waiting stage ${index}.` },
       AbortSignal.timeout(30_000),
     );
+    void pending.catch(() => {});
+    if (index === 1) {
+      await expect(
+        page.getByText("Preparing stage 1; the workpiece is not updated yet.", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Stop AI response", exact: true }),
+      ).toBeVisible();
+      const partial = await client.history();
+      assert(
+        !partial.messages
+          .flatMap((message) => message.parts)
+          .some(
+            (part) =>
+              part.type === "dynamic-tool" && part.toolCallId === "workpiece-1",
+          ),
+        "No tool input is admitted before provider completion",
+      );
+      await page.screenshot({ path: join(output, "streaming.png") });
+      finishBarrier?.resolve();
+      finishBarrier = undefined;
+    }
     await reachedRead.promise;
+    if (index === 1) {
+      await page
+        .getByRole("button", { name: "2 operations", exact: true })
+        .click();
+      await expect(
+        page.getByText("mutate_workpiece", { exact: true }),
+      ).toBeVisible();
+      await page.screenshot({
+        path: join(output, "tools.png"),
+        animations: "disabled",
+      });
+    }
     // Switch during the client continuation, not merely between turns.
     await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
     continueRead.resolve();
@@ -351,30 +408,58 @@ try {
     "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
   );
   await page.getByRole("tab", { name: "AI", exact: true }).click();
-  const generating = Promise.withResolvers<void>();
+  finishBarrier = Promise.withResolvers<void>();
   faux.setResponses([
-    async (_context, options) => {
-      generating.resolve();
-      await delay(60_000, undefined, { signal: options?.signal });
-      return text("Must not finish after Stop");
-    },
+    fauxAssistantMessage(
+      [
+        fauxText("Review in progress; this turn will be stopped."),
+        fauxToolCall(
+          "mutate_workpiece",
+          {
+            markdown: "# Must not apply after Stop",
+            baseRevisionId: "workpiece-2",
+          },
+          { id: "cancelled-write" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
   ]);
-  const cancellation = new AbortController();
-  const cancelled = persona.execute(
-    "cancel",
-    { message: "Begin another review." },
-    cancellation.signal,
+  const cancelled = persona.execute("cancel", {
+    message: "Begin another review.",
+  });
+  const rejected = assert.rejects(
+    cancelled,
+    /Persona browser turn was stopped/,
   );
-  const rejected = assert.rejects(cancelled, /abort/i);
-  await generating.promise;
-  cancellation.abort();
+  await expect(
+    page.getByText("Review in progress; this turn will be stopped.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Stop AI response", exact: true })
+    .click();
   await rejected;
+  finishBarrier.resolve();
+  finishBarrier = undefined;
   await expect(
     page.getByRole("button", { name: "Stop AI response", exact: true }),
   ).toBeHidden();
   await expect
     .poll(async () => (await client.history()).settlements.at(-1)?.outcome)
     .toBe("aborted");
+  const stopped = await client.history();
+  assert(
+    !stopped.messages
+      .flatMap((message) => message.parts)
+      .some(
+        (part) =>
+          part.type === "dynamic-tool" && part.toolCallId === "cancelled-write",
+      ),
+    "Stop must not admit buffered tool input",
+  );
+  await page.screenshot({ path: join(output, "stopped.png") });
   const stoppedDeliveries = fixture.deliveries.length;
   await assert.rejects(
     persona.execute("no-retry", { message: "Do not resend." }),
@@ -389,11 +474,87 @@ try {
     join(output, "stopped-snapshot.json"),
     JSON.stringify(await client.history(), null, 2),
   );
+  // Native restart + original browser storage. Never resend the interrupted utterance.
+  await app.stop();
+  app = await loadBuiltBrunchApplication();
+  await openRetainedPersonaBrowser(page, origin, "/", opened.session);
+  await assert.rejects(
+    reconcilePersonaResume(page, opened.session, "A different utterance"),
+    /disagree on the last admitted utterance/,
+  );
+  const resumed = await reconcilePersonaResume(
+    page,
+    opened.session,
+    "Begin another review.",
+  );
+  assert.match(resumed.prompt, /settled as: aborted/);
+  assert.equal(
+    fixture.deliveries.length,
+    stoppedDeliveries,
+    "Resume reconciliation is read-only",
+  );
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("petrinaut-sdcpn")),
+    net,
+  );
+  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
+    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  );
+  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  faux.setResponses([
+    call("read_petrinaut_net", {}, "resumed-read"),
+    text("Resumed against the existing two-stage model."),
+  ]);
+  const continued = await submitPersonaBrowserTurn(
+    page,
+    "Please pick up where we left off.",
+    { session: opened.session },
+  );
+  assert.equal(continued.session.uid, opened.session.uid);
+  assert.equal(
+    continued.submissionIds.length,
+    2,
+    "Resumed turns still execute browser tools",
+  );
+  assert.equal(
+    continued.snapshot.messages.filter((message) => message.purpose === "user")
+      .length,
+    resumed.snapshot.messages.filter((message) => message.purpose === "user")
+      .length + 1,
+  );
+  await page.screenshot({ path: join(output, "resumed.png") });
+  writeFileSync(
+    join(output, "resumed-snapshot.json"),
+    JSON.stringify(continued.snapshot, null, 2),
+  );
+  await assert.rejects(
+    openRetainedPersonaBrowser(page, origin, "/", {
+      ...opened.session,
+      principalKey: "different-principal",
+    }),
+    /principal is missing or changed/,
+  );
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("petrinaut-sdcpn")),
+    net,
+  );
   assert.deepEqual(fixture.errors, []);
   process.stdout.write(
-    `PASS persona browser construction, workpiece, tab independence, cancellation and no replay: ${output}\n`,
+    `PASS persona browser streaming, admitted tools, construction, workpiece, tab independence, panel Stop and no replay: ${output}\n`,
   );
+} catch (error) {
+  await fixture?.page.screenshot({ path: join(output, "failure.png") });
+  writeFileSync(
+    join(output, "failure.txt"),
+    `${String(error)}\n${await fixture?.page.locator("body").ariaSnapshot()}`,
+  );
+  process.stderr.write(
+    `Browser failure evidence: ${output}\n${String(error)}\n`,
+  );
+  throw error;
 } finally {
+  finishBarrier?.resolve();
   await bridge?.close();
   await fixture?.browser.close();
   fixture?.server.closeAllConnections();

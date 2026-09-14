@@ -547,6 +547,7 @@ describe("native typed state construction", () => {
     expect(() =>
       locateRootState(current, {
         kind: "type-element",
+        type: "missing-parent",
         name: "value",
         field: "type",
       }),
@@ -572,6 +573,6 @@ describe("native typed state construction", () => {
         name: scenario.name,
         transition: "mixed",
       }),
-    ).toThrow(/exact root arc query/);
+    ).toThrow(/Invalid input/u);
   });
 });

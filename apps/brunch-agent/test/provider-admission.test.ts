@@ -34,13 +34,13 @@ const fixture = (active = true) => {
 };
 
 test.each(["stream", "streamSimple"] as const)(
-  "%s rejects a complete mixed proposal before emitting anything",
+  "%s rejects a complete mixed proposal without publishing executable calls",
   async (method) => {
     const { faux, provider, model } = fixture();
     faux.setResponses([
       fauxAssistantMessage(
         [
-          fauxText("Must not escape."),
+          fauxText("Visible progress is not tool admission."),
           fauxToolCall("server", {}),
           fauxToolCall("browser", {}),
         ],
@@ -54,7 +54,12 @@ test.each(["stream", "streamSimple"] as const)(
         for await (const event of stream) events.push(event);
       })(),
     ).rejects.toThrow("Mixed browser/server proposal");
-    expect(events).toEqual([]);
+    expect(events.some((event) => event.type === "text_delta")).toBe(true);
+    expect(
+      events.filter(
+        (event) => event.type === "toolcall_end" || event.type === "done",
+      ),
+    ).toEqual([]);
     await expect(stream.result()).rejects.toThrow(
       "Mixed browser/server proposal",
     );
@@ -86,11 +91,108 @@ for (const method of ["stream", "streamSimple"] as const) {
           for await (const event of stream) events.push(event);
         })(),
       ).rejects.toThrow("Multiple browser calls");
-      expect(events).toEqual([]);
+      expect(
+        events.filter(
+          (event) => event.type === "toolcall_end" || event.type === "done",
+        ),
+      ).toEqual([]);
       await expect(stream.result()).rejects.toThrow("Multiple browser calls");
     },
   );
 }
+
+test.each(["stream", "streamSimple"] as const)(
+  "%s streams progress before completion but holds executable inputs until admission",
+  async (method) => {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    const provider = withBufferedToolAdmission(
+      { ...faux.provider, [method]: () => upstream },
+      () => true,
+      new Set(["browser"]),
+    );
+    const abort = new AbortController();
+    const stream = provider[method](
+      model,
+      { messages: [] },
+      { signal: abort.signal },
+    );
+    const published: AssistantMessageEvent[] = [];
+    const reading = (async () => {
+      for await (const event of stream) published.push(event);
+      return stream.result();
+    })();
+    void reading.catch(() => {});
+    const toolCall = fauxToolCall("browser", { value: "é" }, { id: "held" });
+    const message = fauxAssistantMessage(
+      [
+        {
+          type: "thinking",
+          thinking: "Considering the model.",
+          thinkingSignature: "preserved",
+        },
+        fauxText("Preparing a change."),
+        toolCall,
+      ],
+      { stopReason: "toolUse" },
+    );
+    const progress: AssistantMessageEvent[] = [
+      { type: "start", partial: message },
+      { type: "thinking_start", contentIndex: 0, partial: message },
+      {
+        type: "thinking_delta",
+        contentIndex: 0,
+        delta: "Considering the model.",
+        partial: message,
+      },
+      {
+        type: "thinking_end",
+        contentIndex: 0,
+        content: "Considering the model.",
+        partial: message,
+      },
+      { type: "text_start", contentIndex: 1, partial: message },
+      {
+        type: "text_delta",
+        contentIndex: 1,
+        delta: "Preparing a change.",
+        partial: message,
+      },
+      {
+        type: "text_end",
+        contentIndex: 1,
+        content: "Preparing a change.",
+        partial: message,
+      },
+      { type: "toolcall_start", contentIndex: 2, partial: message },
+      {
+        type: "toolcall_delta",
+        contentIndex: 2,
+        delta: '{"value":"é"}',
+        partial: message,
+      },
+    ];
+    try {
+      for (const event of progress) upstream.push(event);
+      upstream.push({
+        type: "toolcall_end",
+        contentIndex: 2,
+        toolCall,
+        partial: message,
+      });
+      await expect.poll(() => published.length).toBe(progress.length);
+      expect(published).toEqual(progress);
+      upstream.push({ type: "done", reason: "toolUse", message });
+      expect(await reading).toEqual(message);
+      expect(
+        published.slice(progress.length).map((event) => event.type),
+      ).toEqual(["toolcall_end", "done"]);
+    } finally {
+      abort.abort();
+      await reading.catch(() => {});
+    }
+  },
+);
 
 test.each(["missing", "arguments", "identity"] as const)(
   "refuses inconsistent streamed and final browser calls (%s)",

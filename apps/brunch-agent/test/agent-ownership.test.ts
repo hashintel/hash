@@ -5,7 +5,7 @@
  */
 
 import { Hono } from "hono";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
@@ -22,11 +22,13 @@ import {
 } from "../src/conversation/reported-document-revision.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
+import { diagnostics } from "../src/runtime-diagnostics.ts";
 
 const mount = `/agents/${CHAT_AGENT_ROUTE}`;
 const agentName = "test-agent";
 const app = new Hono();
 app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agentName));
+app.post(`${mount}/:id/abort`, (context) => context.json({ aborted: true }));
 app.all(`${mount}/*`, async (context) => {
   if (context.req.method !== "POST") return context.text("admitted");
   const body: unknown = await context.req.json();
@@ -80,6 +82,30 @@ const instanceId = flueConversationIdFrom(identity);
 const conversationUrl = `http://brunch.test${mount}/${instanceId}`;
 const submissionIdFor = (idempotencyKey: string) =>
   reportedRevisionSubmissionId(agentName, instanceId, idempotencyKey);
+
+test("bodyless Stop retains ownership checks without admission-body diagnostics", async () => {
+  const report = vi.spyOn(diagnostics, "report");
+  try {
+    const response = await app.fetch(
+      new Request(`${conversationUrl}/abort`, {
+        method: "POST",
+        headers: agentOwnershipHeaders(identity),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ aborted: true });
+    expect(report).not.toHaveBeenCalled();
+    const forbidden = await app.fetch(
+      new Request(`${conversationUrl}/abort`, {
+        method: "POST",
+        headers: agentOwnershipHeaders({ ...identity, principalKey: "other" }),
+      }),
+    );
+    expect(forbidden.status).toBe(403);
+  } finally {
+    report.mockRestore();
+  }
+});
 
 test("the mounted agent route rejects a request with no ownership headers", async () => {
   const response = await app.fetch(new Request(conversationUrl));

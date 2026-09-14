@@ -203,13 +203,17 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("addPlace"),
-    input: rootAddPlaceInputSchema,
+    input: rootAddPlaceInputSchema.meta(
+      mutationActionInputSchemas.addPlace.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("addTransition"),
-    input: rootAddTransitionInputSchema,
+    input: rootAddTransitionInputSchema.meta(
+      mutationActionInputSchemas.addTransition.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
@@ -221,13 +225,17 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removePlace"),
-    input: rootRemovePlaceInputSchema,
+    input: rootRemovePlaceInputSchema.meta(
+      mutationActionInputSchemas.removePlace.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removeTransition"),
-    input: rootRemoveTransitionInputSchema,
+    input: rootRemoveTransitionInputSchema.meta(
+      mutationActionInputSchemas.removeTransition.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
@@ -239,7 +247,9 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("addType"),
-    input: rootAddTypeInputSchema,
+    input: rootAddTypeInputSchema.meta(
+      mutationActionInputSchemas.addType.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
@@ -251,25 +261,33 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("addDifferentialEquation"),
-    input: rootAddDifferentialEquationInputSchema,
+    input: rootAddDifferentialEquationInputSchema.meta(
+      mutationActionInputSchemas.addDifferentialEquation.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updateDifferentialEquation"),
-    input: rootUpdateDifferentialEquationInputSchema,
+    input: rootUpdateDifferentialEquationInputSchema.meta(
+      mutationActionInputSchemas.updateDifferentialEquation.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updatePlace"),
-    input: rootUpdatePlaceInputSchema,
+    input: rootUpdatePlaceInputSchema.meta(
+      mutationActionInputSchemas.updatePlace.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updateTransition"),
-    input: rootUpdateTransitionInputSchema,
+    input: rootUpdateTransitionInputSchema.describe(
+      "Update a transition's name, description, metadata or executable code. Change connections with the arc operations, not this update object.",
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
@@ -287,49 +305,65 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updateType"),
-    input: rootUpdateTypeInputSchema,
+    input: rootUpdateTypeInputSchema.meta(
+      mutationActionInputSchemas.updateType.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("addTypeElement"),
-    input: rootAddTypeElementInputSchema,
+    input: rootAddTypeElementInputSchema.meta(
+      mutationActionInputSchemas.addTypeElement.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updateTypeElement"),
-    input: rootUpdateTypeElementInputSchema,
+    input: rootUpdateTypeElementInputSchema.meta(
+      mutationActionInputSchemas.updateTypeElement.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("updateParameter"),
-    input: rootUpdateParameterInputSchema,
+    input: rootUpdateParameterInputSchema.meta(
+      mutationActionInputSchemas.updateParameter.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removeType"),
-    input: rootRemoveTypeInputSchema,
+    input: rootRemoveTypeInputSchema.meta(
+      mutationActionInputSchemas.removeType.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removeTypeElement"),
-    input: rootRemoveTypeElementInputSchema,
+    input: rootRemoveTypeElementInputSchema.meta(
+      mutationActionInputSchemas.removeTypeElement.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removeParameter"),
-    input: rootRemoveParameterInputSchema,
+    input: rootRemoveParameterInputSchema.meta(
+      mutationActionInputSchemas.removeParameter.meta() ?? {},
+    ),
   }),
   z.strictObject({
     operationId: operationIdSchema,
     basisId: basisIdSchema,
     type: z.literal("removeDifferentialEquation"),
-    input: rootRemoveDifferentialEquationInputSchema,
+    input: rootRemoveDifferentialEquationInputSchema.meta(
+      mutationActionInputSchemas.removeDifferentialEquation.meta() ?? {},
+    ),
   }),
 ]);
 
@@ -338,8 +372,15 @@ export const mutatePetrinetInputSchema = z
   .strictObject({
     observation: z
       .strictObject({
-        toolCallId: z.string().min(1),
-        baseHash: sha256Schema,
+        toolCallId: z
+          .string()
+          .min(1)
+          .describe(
+            "Copy metadata.observation.toolCallId from the preceding read_petrinaut_net browser result.",
+          ),
+        baseHash: sha256Schema.describe(
+          "Copy metadata.observation.observed.sha256 from that same read. This is the net-definition hash, not a workpiece hash; never calculate or guess it.",
+        ),
       })
       .meta({
         description:

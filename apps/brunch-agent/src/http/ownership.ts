@@ -51,7 +51,10 @@ export const agentOwnershipGuard = (
     ) {
       return context.json({ error: "forbidden" }, 403);
     }
-    if (context.req.method === "POST") {
+    if (
+      context.req.method === "POST" &&
+      context.req.path === `${mountPrefix}${instanceId}`
+    ) {
       const documentRevisionId = context.req
         .header(BRUNCH_DOCUMENT_REVISION_HEADER)
         ?.trim();

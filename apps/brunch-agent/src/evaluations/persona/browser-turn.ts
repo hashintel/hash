@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 
-import { createFlueClient, type AgentSendResult } from "@flue/sdk";
+import {
+  createFlueClient,
+  FlueExecutionError,
+  type AgentSendResult,
+} from "@flue/sdk";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
@@ -49,12 +53,13 @@ export const submitPersonaBrowserTurn = async (
     "Refusing to overwrite an existing browser draft",
   );
   const responses: BrowserResponse[] = [];
+  // Only the conversation POST admits work. /abort is a control request,
+  // not another conversation or a client-tool continuation.
+  const isAdmission = (response: BrowserResponse) =>
+    response.request().method() === "POST" &&
+    /^\/agents\/chat\/[^/]+$/u.test(new URL(response.url()).pathname);
   const collect = (response: BrowserResponse) => {
-    if (
-      response.request().method() === "POST" &&
-      new URL(response.url()).pathname.startsWith("/agents/chat/")
-    )
-      responses.push(response);
+    if (isAdmission(response)) responses.push(response);
   };
   let admitted = false;
   let stopTask: Promise<void> | undefined;
@@ -73,11 +78,7 @@ export const submitPersonaBrowserTurn = async (
   try {
     await composer.fill(message);
     signal?.throwIfAborted();
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === "POST" &&
-        new URL(response.url()).pathname.startsWith("/agents/chat/"),
-    );
+    const responsePromise = page.waitForResponse(isAdmission);
     await composer.press("Enter");
     admitted = true;
     if (signal?.aborted) cancel();
@@ -152,6 +153,21 @@ export const submitPersonaBrowserTurn = async (
       url: session.url,
       headers: agentOwnershipHeaders(session),
     });
+    // Local Stop hides the busy state before the native abort can settle.
+    // read() waits for that settlement; a history snapshot alone can race it.
+    const reply = await client
+      .read(last, { signal })
+      .catch((error: unknown) => {
+        if (error instanceof FlueExecutionError) {
+          admitted = false;
+          if (error.failure === "aborted")
+            throw new DOMException(
+              "Persona browser turn was stopped.",
+              "AbortError",
+            );
+        }
+        throw error;
+      });
     const snapshot = await client.history();
     const submissionIds = admissions.map((entry) => entry.submissionId);
     for (const entry of admissions) {
@@ -194,7 +210,6 @@ export const submitPersonaBrowserTurn = async (
           );
       }
     }
-    const reply = await client.read(last, { signal });
     assert(reply.text.trim(), "Persona turn completed without reply text");
     return { session, reply, snapshot, submissionIds };
   } catch (error) {
