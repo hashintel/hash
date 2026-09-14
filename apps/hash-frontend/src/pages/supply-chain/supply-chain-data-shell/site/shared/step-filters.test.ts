@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { monthKeyMonthsAgo } from "../../../shared/time-range";
 import {
+  applicableFilterKeys,
   applyStepFilters,
   applyVendorStepFilters,
   buildStepFilterContext,
   buildStepFilterOptions,
+  vendorApplicableFilterKeys,
   type ActiveStepFilter,
   type FilterableStepRow,
   type StepFilterContext,
@@ -294,6 +296,41 @@ describe("applyVendorStepFilters", () => {
     );
     expect(application.rows).toEqual([acme]);
     expect(application.skippedKeys).toEqual([]);
+  });
+});
+
+describe("applicableFilterKeys", () => {
+  it("offers only filters some row carries the property for", () => {
+    const dwellOnly = [
+      row({
+        id: "raw_material_dwell_mat-a",
+        type: "raw_material_dwell",
+        material: "MAT-A",
+        periodCost: 5_000,
+      }),
+    ];
+    const keys = applicableFilterKeys(dwellOnly, context(dwellOnly));
+    expect(keys.has("stepType")).toBe(true);
+    expect(keys.has("carryingCost")).toBe(true);
+    // No plan on any row: the plan-calibration filters are not offered.
+    expect(keys.has("deviationPct")).toBe(false);
+    expect(keys.has("bufferReleasable")).toBe(false);
+    expect(keys.has("basis")).toBe(false);
+  });
+
+  it("restricts nothing for an empty view", () => {
+    const keys = applicableFilterKeys([], context([]));
+    expect(keys.has("deviationPct")).toBe(true);
+    expect(keys.has("basis")).toBe(true);
+  });
+});
+
+describe("vendorApplicableFilterKeys", () => {
+  it("offers only vendor-capable filters", () => {
+    expect([...vendorApplicableFilterKeys()].sort()).toEqual([
+      "material",
+      "supplier",
+    ]);
   });
 });
 

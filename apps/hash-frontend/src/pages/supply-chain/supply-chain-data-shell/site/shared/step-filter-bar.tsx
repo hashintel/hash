@@ -33,12 +33,20 @@ export const StepFilterBar = ({
   onFiltersChange,
   options,
   skippedKeys,
+  addableKeys,
 }: {
   filters: ActiveStepFilter[];
   onFiltersChange: (next: ActiveStepFilter[]) => void;
   options: StepFilterOptions;
   /** Active filter keys not applied to the adjacent table. */
   skippedKeys?: ReadonlySet<StepFilterKey>;
+  /**
+   * Filter keys the adjacent table can offer in the add menu (see
+   * `applicableFilterKeys`). Filters already active render regardless, so a
+   * set carried over from another view survives — it just cannot be added
+   * afresh here. Omit to offer everything.
+   */
+  addableKeys?: ReadonlySet<StepFilterKey>;
 }) => {
   const addMenuItems = useMemo<MenuItems>(() => {
     const activeKeys = new Set(filters.map((filter) => filter.filterKey));
@@ -48,6 +56,9 @@ export const StepFilterBar = ({
     >();
     for (const definition of STEP_FILTER_DEFINITIONS) {
       if (activeKeys.has(definition.key)) {
+        continue;
+      }
+      if (addableKeys && !addableKeys.has(definition.key)) {
         continue;
       }
       const groupItems = groups.get(definition.group) ?? [];
@@ -67,7 +78,7 @@ export const StepFilterBar = ({
       label,
       items,
     }));
-  }, [filters, onFiltersChange]);
+  }, [filters, onFiltersChange, addableKeys]);
 
   const setFilterValue = (
     filterKey: StepFilterKey,

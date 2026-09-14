@@ -37,11 +37,13 @@ import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
 import { StepFilterBar } from "./site/shared/step-filter-bar";
 import {
+  applicableFilterKeys,
   applyStepFilters,
   applyStepFiltersBy,
   applyVendorStepFilters,
   buildStepFilterContext,
   buildStepFilterOptions,
+  vendorApplicableFilterKeys,
   type ActiveStepFilter,
 } from "./site/shared/step-filters";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
@@ -508,6 +510,29 @@ export const SiteOverview = ({
     () => new Set(opportunityApplication.skippedKeys),
     [opportunityApplication],
   );
+  // Add-menu availability per view, from each view's full (unfiltered) row
+  // set: a filter only carries over from another view, it cannot be added
+  // where nothing can match it.
+  const opportunityAddableKeys = useMemo(
+    () =>
+      applicableFilterKeys(
+        generatedOpportunities.map((opportunity) => opportunity.node),
+        stepFilterContext,
+      ),
+    [generatedOpportunities, stepFilterContext],
+  );
+  const activeTabAddableKeys = useMemo(() => {
+    if (tab === "suppliers") {
+      return vendorApplicableFilterKeys();
+    }
+    const rows =
+      tab === "dwell"
+        ? dwellRows
+        : tab === "planning"
+          ? planningRows
+          : trendRows;
+    return applicableFilterKeys(rows, stepFilterContext);
+  }, [tab, dwellRows, planningRows, trendRows, stepFilterContext]);
   const activeTabSkippedKeys = useMemo(() => {
     const application =
       tab === "dwell"
@@ -533,6 +558,7 @@ export const SiteOverview = ({
       onFiltersChange={setStepFilters}
       options={stepFilterOptions}
       skippedKeys={activeTabSkippedKeys}
+      addableKeys={activeTabAddableKeys}
     />
   );
   const changeTab = (nextTab: Tab) => {
@@ -826,6 +852,7 @@ export const SiteOverview = ({
               onFiltersChange={setOpportunityFilters}
               options={stepFilterOptions}
               skippedKeys={opportunitySkippedKeys}
+              addableKeys={opportunityAddableKeys}
             />
           }
           filtersActive={opportunityFilters.length > 0}
