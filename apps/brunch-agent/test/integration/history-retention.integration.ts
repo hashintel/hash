@@ -583,14 +583,14 @@ try {
               operationId: "applied-place",
               basisId: "absent",
               type: "addPlace",
-              input: changedDefinition.places[0],
+              input: changedDefinition.places[0]!,
             },
             {
               operationId: "failed-place",
               basisId: "absent",
               type: "addPlace",
               input: {
-                ...changedDefinition.places[0],
+                ...changedDefinition.places[0]!,
                 id: "failed-place",
                 name: "FailedPlace",
               },
@@ -600,7 +600,7 @@ try {
               basisId: "absent",
               type: "addPlace",
               input: {
-                ...changedDefinition.places[0],
+                ...changedDefinition.places[0]!,
                 id: "unattempted-place",
                 name: "UnattemptedPlace",
               },
@@ -646,7 +646,7 @@ try {
               request: {
                 toolCallId: "a4-net-mutation:applied-place",
                 toolName: "addPlace",
-                input: changedDefinition.places[0],
+                input: changedDefinition.places[0]!,
                 binding: {
                   conversationId: identity.conversationId,
                   documentId: "a4-projection-document",
@@ -676,7 +676,7 @@ try {
                   {
                     toolCallId: "a4-net-mutation:applied-place",
                     toolName: "addPlace",
-                    input: changedDefinition.places[0],
+                    input: changedDefinition.places[0]!,
                     binding: {
                       conversationId: identity.conversationId,
                       documentId: "a4-projection-document",
@@ -695,7 +695,7 @@ try {
                 toolCallId: "a4-net-mutation:failed-place",
                 toolName: "addPlace",
                 input: {
-                  ...changedDefinition.places[0],
+                  ...changedDefinition.places[0]!,
                   id: "failed-place",
                   name: "FailedPlace",
                 },
@@ -728,7 +728,7 @@ try {
                   toolCallId: "a4-net-mutation:failed-place",
                   toolName: "addPlace",
                   input: {
-                    ...changedDefinition.places[0],
+                    ...changedDefinition.places[0]!,
                     id: "failed-place",
                     name: "FailedPlace",
                   },
@@ -936,7 +936,9 @@ try {
           part.type === "dynamic-tool" &&
           part.toolCallId === "a4-reopened-workpiece-read",
       );
-    assert(reread?.state === "output-available");
+    assert(
+      reread?.type === "dynamic-tool" && reread.state === "output-available",
+    );
     assert.equal(
       (reread.output as { currentWorkpiece: { markdown: string } })
         .currentWorkpiece.markdown,
