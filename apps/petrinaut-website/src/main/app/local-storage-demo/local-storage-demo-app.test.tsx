@@ -55,6 +55,7 @@ import type {
   FlueClient,
 } from "@flue/sdk";
 import type {
+  MinimalNetMetadata,
   PetrinautDocHandle,
   PetrinautMutations,
 } from "@hashintel/petrinaut-core";
@@ -826,6 +827,41 @@ describe("local document revision persistence", () => {
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+  });
+
+  test("lists each stored net with the time it was last written", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    expect(editorProps.current?.existingNets).toEqual([
+      {
+        netId: "net-1",
+        title: "Seeded net",
+        lastUpdated: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "listed-place",
+          name: "Listed place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+
+    await waitFor(() => {
+      const nets = editorProps.current?.existingNets as MinimalNetMetadata[];
+      expect(new Date(nets[0]?.lastUpdated ?? 0).getTime()).toBeGreaterThan(
+        new Date("2020-01-01T00:00:00.000Z").getTime(),
+      );
+    });
   });
 
   test("adopts another tab's revision of the open document and chains later changes from it", async () => {

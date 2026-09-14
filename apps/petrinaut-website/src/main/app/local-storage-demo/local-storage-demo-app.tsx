@@ -581,7 +581,7 @@ export const LocalStorageDemoApp = ({
     (document) => ({
       netId: document.documentId,
       title: document.title,
-      lastUpdated: new Date(0).toISOString(),
+      lastUpdated: document.lastUpdated ?? new Date(0).toISOString(),
     }),
   );
 

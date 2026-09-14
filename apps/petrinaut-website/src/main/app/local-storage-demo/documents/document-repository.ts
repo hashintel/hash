@@ -15,6 +15,8 @@ export interface DocumentRecord {
   readonly title: string;
   readonly definition: SDCPN;
   readonly origin: DocumentOrigin;
+  /** ISO timestamp of the last write, when the source records one. */
+  readonly lastUpdated?: string;
 }
 
 export type DocumentRepositoryStatus =

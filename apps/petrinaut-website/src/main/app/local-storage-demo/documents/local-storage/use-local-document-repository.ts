@@ -40,6 +40,7 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
     title: stored.title,
     definition: stored.sdcpn,
     origin: { kind: "local" },
+    lastUpdated: stored.lastUpdated,
   };
 };
 
