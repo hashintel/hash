@@ -127,7 +127,6 @@ struct UpsertCustomer {
 }
 
 struct CrmSync {
-    crm_path: PathBuf,
     reject_customer_three: bool,
     crash_after_customer: Option<&'static str>,
 }
@@ -165,7 +164,7 @@ impl Executor<CustomerDomain> for CrmSync {
         }
 
         let key = effect_id(effect).expect("effect should serialize");
-        let outcome = upsert_crm(&self.crm_path, &key, effect).expect("CRM write should succeed");
+        let outcome = upsert_crm(&key, effect).expect("CRM write should succeed");
 
         if outcome.duplicate {
             println!(
@@ -212,12 +211,9 @@ struct UpsertOutcome {
     duplicate: bool,
 }
 
-fn upsert_crm(
-    path: &Path,
-    idempotency_key: &str,
-    effect: &UpsertCustomer,
-) -> std::io::Result<UpsertOutcome> {
-    let mut crm: CrmState = std::fs::read(path)
+fn upsert_crm(idempotency_key: &str, effect: &UpsertCustomer) -> std::io::Result<UpsertOutcome> {
+    let path = state_dir().join("crm.json");
+    let mut crm: CrmState = std::fs::read(&path)
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
@@ -302,7 +298,6 @@ async fn main() {
         .register::<CustomerDomain>()
         .expect("customer domain should register")
         .start(CrmSync {
-            crm_path: state_dir().join("crm.json"),
             reject_customer_three: mode == "defer",
             crash_after_customer: (mode == "crash").then_some("customer-3"),
         })
