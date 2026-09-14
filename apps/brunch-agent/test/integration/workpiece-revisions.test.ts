@@ -25,20 +25,20 @@ beforeAll(async () => {
 });
 
 test("the built agent settles a revision over the mounted route", () => {
-  expect(result.settled).toContainEqual(
-    expect.objectContaining({
-      toolName: "mutate_workpiece",
-      state: "output-available",
-      output: {
-        revisionId: "settled-revision",
-        sha256: createHash("sha256")
-          .update(result.markdown, "utf8")
-          .digest("hex"),
-        ordinal: 1,
-        markdown: result.markdown,
-      },
-    }),
-  );
+  expect(
+    result.settled.find((part) => part.toolName === "mutate_workpiece"),
+  ).toMatchObject({
+    toolName: "mutate_workpiece",
+    state: "output-available",
+    output: {
+      revisionId: "settled-revision",
+      sha256: createHash("sha256")
+        .update(result.markdown, "utf8")
+        .digest("hex"),
+      ordinal: 1,
+      markdown: result.markdown,
+    },
+  });
   expect(
     result.second.find((part) => part.toolCallId === "second-revision")?.output,
   ).toMatchObject({ revisionId: "second-revision", ordinal: 2 });

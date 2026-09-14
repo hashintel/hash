@@ -82,8 +82,10 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
     expect(bundle).toContain(`config.kind === "postgres"`);
     expect(bundle).toContain(
-      `postgres(createPostgresRunner(config, shutdownBrunchTelemetry))`,
+      `createPostgresRunner(config, shutdownBrunchTelemetry)`,
     );
+    expect(bundle).toContain(`createPostgresWorkedModelStore(runner)`);
+    expect(bundle).toContain(`postgres(runner)`);
     expect(bundle).toContain("Postgres database configuration requires");
     expect(bundle).toContain(
       String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,

@@ -14,13 +14,13 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
+import { readPetrinautNetToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolResultSignal,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import {
   agentOwnershipHeaders,
@@ -84,13 +84,14 @@ try {
   faux.setResponses([
     capturing(
       fauxAssistantMessage(
-        [fauxToolCall(getLatestNetDefinitionToolName, {}, { id: "read-1" })],
+        [fauxToolCall(readPetrinautNetToolName, {}, { id: "read-1" })],
         { stopReason: "toolUse" },
       ),
     ),
   ]);
   await client.wait(
     await client.send({
+      idempotencyKey: "net-freshness-initial",
       initialData: {
         mode: batchedConstructionMode,
         construction: { binding },
@@ -121,7 +122,7 @@ try {
 
   // The browser answers the read with its verified observation sidecar.
   const read = await host.execute({
-    toolName: getLatestNetDefinitionToolName,
+    toolName: readPetrinautNetToolName,
     toolCallId: "read-1",
     input: {},
   });
@@ -160,6 +161,7 @@ try {
   ]);
   await client.wait(
     await client.send({
+      idempotencyKey: "net-freshness-current-read",
       message: { kind: "user", body: "And what does the first place hold?" },
     }),
   );
@@ -180,7 +182,7 @@ try {
     "each user turn is recorded once",
   );
   const projected = snapshotToUiMessages(afterSecondTurn, {
-    clientToolNames: new Set([getLatestNetDefinitionToolName]),
+    clientToolNames: new Set([readPetrinautNetToolName]),
   });
   assert(
     !JSON.stringify(projected).includes(NET_STALE_SIGNAL),
@@ -212,6 +214,7 @@ try {
   ]);
   await client.wait(
     await client.send({
+      idempotencyKey: "net-freshness-direct-edit",
       message: {
         kind: "user",
         body: "Now explain the directly edited model.",

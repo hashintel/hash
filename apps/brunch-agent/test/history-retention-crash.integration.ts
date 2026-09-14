@@ -143,8 +143,13 @@ const assertRevision = (
     { markdown: content },
     "Raw call input survives",
   );
+  const { mutation, ...settledPointer } = tool.output as Record<
+    string,
+    unknown
+  >;
+  assert(mutation, "The durable result retains its mutation summary");
   assert.deepEqual(
-    tool.output,
+    settledPointer,
     pointer,
     "Stable call/result identity, ordinal, and exact markdown",
   );

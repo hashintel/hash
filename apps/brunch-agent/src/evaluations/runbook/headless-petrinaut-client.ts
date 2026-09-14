@@ -1,3 +1,4 @@
+import { readPetrinautNetToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   type PetrinautConstructionToolName,
@@ -81,6 +82,18 @@ export const createHeadlessPetrinautClient = (
   const execute = async (
     call: HeadlessPetrinautToolCall,
   ): Promise<HeadlessPetrinautToolResult> => {
+    if (call.toolName === readPetrinautNetToolName) {
+      return {
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        output: {
+          title,
+          definition: instance.definition.get(),
+          extensions: instance.extensions,
+        },
+      };
+    }
+
     if (!isPetrinautConstructionToolName(call.toolName)) {
       return {
         toolCallId: call.toolCallId,
