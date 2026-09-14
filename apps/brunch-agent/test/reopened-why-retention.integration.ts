@@ -30,11 +30,11 @@ import {
 } from "./native-schema-provider.ts";
 import {
   retentionCall,
-  retentionQuery,
-  retentionQuote,
+  retentionQueries,
+  retentionQuotes,
   retentionSource,
-  seedRetentionBrowser,
-} from "./reopened-why-retention-browser.ts";
+  seedRetentionApplication,
+} from "./reopened-why-retention-seed.ts";
 
 import type { RootArcExplanation } from "../src/conversation/why.ts";
 import type { Context, FauxResponseStep } from "@earendil-works/pi-ai";
@@ -238,16 +238,27 @@ type Seed = {
   pid: number;
   identity: { principalKey: string; conversationId: string };
   sourceId: string;
-  locator: { start: number; end: number };
+  locators: { start: number; end: number }[];
   governing: WorkpieceRevision;
   binding: RootArcExplanation["binding"];
   dbPath: string;
+  witnesses: {
+    query: (typeof retentionQueries)[number];
+    quote: string;
+    locator: { start: number; end: number };
+    mutationToolCallId: string;
+    whyToolCallId: string;
+    observationToolCallId: string;
+  }[];
 };
 const assertWhy = (
   answer: RootArcExplanation,
   seed: Seed,
   expectedCurrent: WorkpieceRevision,
+  witnessIndex: number,
 ) => {
+  const witness = seed.witnesses[witnessIndex];
+  assert(witness);
   assert.equal(answer.disposition, "partially-supported", answer.reason);
   assert.equal(answer.untrusted, true);
   assert.deepEqual(answer.binding, seed.binding);
@@ -265,8 +276,8 @@ const assertWhy = (
   assert.equal(answer.governing.status, "superseded");
   assert.deepEqual(answer.governing.passages, [
     {
-      locator: seed.locator,
-      text: retentionQuote,
+      locator: witness.locator,
+      text: witness.quote,
       standing: "declared-relations",
       relations: [
         {
@@ -285,23 +296,33 @@ const assertWhy = (
       ],
     },
   ]);
-  assert.equal(answer.recordedChange?.toolCallId, "retention-arc");
+  assert.equal(answer.recordedChange?.toolCallId, witness.mutationToolCallId);
   assert.equal(answer.quality.sourceRelevance, "unassessed");
 };
 try {
   if (phase === "create") {
-    await seedRetentionBrowser({ application, faux, directory });
+    await seedRetentionApplication({ application, faux, directory });
     const seed = load<Seed>("seed");
     const history = load<FlueConversationSnapshot>("create-history");
-    const answer = output(history, "retention-live-why") as RootArcExplanation;
-    assert(answer.currentWorkpiece);
-    assertWhy(answer, seed, answer.currentWorkpiece);
-    assert.equal(answer.reconciliation.status, "live-observed");
-    assert.equal(answer.reconciliation.observationScope, "live-observed");
-    assert.equal(
-      answer.reconciliation.observationToolCallId,
-      "retention-live-read",
+    const answers = seed.witnesses.map(
+      ({ whyToolCallId }) =>
+        output(history, whyToolCallId) as RootArcExplanation,
     );
+    const answer = answers[0];
+    assert(answer);
+    assert(answer.currentWorkpiece);
+    for (const [index, witnessAnswer] of answers.entries()) {
+      assertWhy(witnessAnswer, seed, answer.currentWorkpiece, index);
+      assert.equal(witnessAnswer.reconciliation.status, "live-observed");
+      assert.equal(
+        witnessAnswer.reconciliation.observationScope,
+        "live-observed",
+      );
+      assert.equal(
+        witnessAnswer.reconciliation.observationToolCallId,
+        seed.witnesses[index]?.observationToolCallId,
+      );
+    }
     assert.equal(answer.currentWorkpiece.revisionId, "retention-revision-3");
     assert.equal(answer.currentWorkpiece.evidenceValidated, true);
     assert.deepEqual(answer.currentWorkpiece.evidence, seed.governing.evidence);
@@ -324,8 +345,8 @@ try {
       pid: process.pid,
       dbPath,
       requests: captures.length,
-      actualBrowser: true,
-      why: answer,
+      syntheticClientResults: true,
+      why: answers,
     });
   } else {
     const seed = load<Seed>("seed");
@@ -355,10 +376,12 @@ try {
     );
     assert.equal(faux.state.callCount, 0);
     const baseline = load<FlueConversationSnapshot>("create-history");
-    const originalAnswer = output(
-      baseline,
-      "retention-live-why",
-    ) as RootArcExplanation;
+    const originalAnswers = seed.witnesses.map(
+      ({ whyToolCallId }) =>
+        output(baseline, whyToolCallId) as RootArcExplanation,
+    );
+    const originalAnswer = originalAnswers[0];
+    assert(originalAnswer);
     assert(originalAnswer.currentWorkpiece);
     const expectedCurrent = originalAnswer.currentWorkpiece;
     const status = async (operation: () => Promise<unknown>) => {
@@ -427,21 +450,31 @@ try {
         .map((part) => part.toolCallId);
       const beforeContext = contexts.length;
       const readId = `${label}-workpiece`;
-      const whyId = `${label}-why`;
+      const whyIds = seed.witnesses.map(
+        (_witness, index) => `${label}-why-${index + 1}`,
+      );
       const oldId = `${label}-old-observation-why`;
       const refusedId = `${label}-unknown-observation-why`;
+      const missingId = `${label}-missing-element-why`;
+      const ambiguousId = `${label}-ambiguous-element-why`;
       responses.push(
         retentionCall(
           "read_workpiece",
-          { locateTexts: [retentionQuote] },
+          { locateTexts: [...retentionQuotes] },
           readId,
         ),
-        retentionCall("query_workpiece", { selector: retentionQuery }, whyId),
+        ...seed.witnesses.map((witness, index) =>
+          retentionCall(
+            "query_workpiece",
+            { selector: witness.query },
+            whyIds[index]!,
+          ),
+        ),
         retentionCall(
           "query_workpiece",
           {
             selector: {
-              ...retentionQuery,
+              ...retentionQueries[0],
               observationToolCallId: "retention-live-read",
             },
           },
@@ -451,11 +484,31 @@ try {
           "query_workpiece",
           {
             selector: {
-              ...retentionQuery,
+              ...retentionQueries[0],
               observationToolCallId: "TEST-not-an-observed-read",
             },
           },
           refusedId,
+        ),
+        retentionCall(
+          "query_workpiece",
+          {
+            selector: {
+              ...retentionQueries[0],
+              transition: "TEST-missing-transition",
+            },
+          },
+          missingId,
+        ),
+        retentionCall(
+          "query_workpiece",
+          {
+            selector: {
+              ...retentionQueries[0],
+              place: "DispatchCrewAvailable",
+            },
+          },
+          ambiguousId,
         ),
         fauxAssistantMessage(
           `TEST ${label}: structured as-of answers obtained; no fresh browser connected.`,
@@ -480,16 +533,25 @@ try {
         expectedCurrent.revisionId,
       );
       assert.equal(read.locatorLookup.sha256, expectedCurrent.sha256);
-      assert.deepEqual(read.locatorLookup.queries[0]?.occurrences, [
-        seed.locator,
-      ]);
-      const why = output(history, whyId) as RootArcExplanation;
-      assertWhy(why, seed, expectedCurrent);
-      assert.equal(why.reconciliation.status, "as-of");
-      assert.equal(why.reconciliation.observationToolCallId, undefined);
-      assert.deepEqual(why.recordedChange, originalAnswer.recordedChange);
+      assert.deepEqual(
+        read.locatorLookup.queries.map((query) => query.occurrences),
+        seed.locators.map((locator) => [locator]),
+      );
+      const whyAnswers = whyIds.map(
+        (whyId) => output(history, whyId) as RootArcExplanation,
+      );
+      for (const [index, whyAnswer] of whyAnswers.entries()) {
+        assertWhy(whyAnswer, seed, expectedCurrent, index);
+        assert.equal(whyAnswer.reconciliation.status, "as-of");
+        assert.equal(whyAnswer.reconciliation.observationToolCallId, undefined);
+        assert.deepEqual(
+          whyAnswer.recordedChange,
+          originalAnswers[index]?.recordedChange,
+        );
+      }
+      const why = whyAnswers[0]!;
       const old = output(history, oldId) as RootArcExplanation;
-      assertWhy(old, seed, expectedCurrent);
+      assertWhy(old, seed, expectedCurrent, 0);
       assert.equal(old.reconciliation.status, "as-of");
       assert.equal(
         old.reconciliation.observationScope,
@@ -507,38 +569,93 @@ try {
         "Unknown admitted browser observation call.",
       );
       assert.equal(refused.governing, undefined);
+      const missing = output(history, missingId) as RootArcExplanation;
+      assert.equal(missing.disposition, "refused");
+      assert.equal(missing.governing, undefined);
+      const ambiguous = output(history, ambiguousId) as RootArcExplanation;
+      assert.equal(ambiguous.disposition, "refused");
+      assert.equal(ambiguous.governing, undefined);
       // Assert that the actual model saw the structured output, not just public presence.
       const actual = contexts
         .slice(beforeContext)
         .filter((entry) => entry.purpose === "agent");
       for (const [name, id, expected] of [
         ["read_workpiece", readId, read],
-        ["query_workpiece", whyId, why],
+        ...whyAnswers.map(
+          (answer, index) =>
+            ["query_workpiece", whyIds[index]!, answer] as const,
+        ),
         ["query_workpiece", oldId, old],
         ["query_workpiece", refusedId, refused],
+        ["query_workpiece", missingId, missing],
+        ["query_workpiece", ambiguousId, ambiguous],
       ] as const) {
         assert(
           actual.some((entry) =>
-            entry.context.messages.some(
-              (message) =>
-                message.role === "toolResult" &&
-                message.toolName === name &&
-                message.toolCallId === id &&
-                JSON.stringify(
-                  JSON.parse(
-                    message.content
-                      .flatMap((part) =>
-                        part.type === "text" ? [part.text] : [],
-                      )
-                      .join(""),
-                  ),
-                ) === JSON.stringify(expected),
-            ),
+            entry.context.messages.some((message) => {
+              if (
+                message.role !== "toolResult" ||
+                message.toolName !== name ||
+                message.toolCallId !== id
+              )
+                return false;
+              const projected = JSON.parse(
+                message.content
+                  .flatMap((part) => (part.type === "text" ? [part.text] : []))
+                  .join(""),
+              ) as Record<string, unknown>;
+              if (name !== "read_workpiece")
+                return JSON.stringify(projected) === JSON.stringify(expected);
+              const projectedCurrent = projected.currentWorkpiece as Record<
+                string,
+                unknown
+              >;
+              const publicRead = expected as typeof read;
+              const reference = projectedCurrent.markdownReference as
+                | Record<string, unknown>
+                | undefined;
+              const exactMaterialized =
+                projectedCurrent.markdown ===
+                publicRead.currentWorkpiece.markdown;
+              const exactReference =
+                !("markdown" in projectedCurrent) &&
+                reference?.revisionId ===
+                  publicRead.currentWorkpiece.revisionId &&
+                reference.sha256 === publicRead.currentWorkpiece.sha256 &&
+                typeof reference.retainedEntryId === "string" &&
+                reference.retainedEntryId.length > 0;
+              return (
+                (exactMaterialized || exactReference) &&
+                JSON.stringify(projected.locatorLookup) ===
+                  JSON.stringify(publicRead.locatorLookup) &&
+                JSON.stringify(projected.sources) ===
+                  JSON.stringify(publicRead.sources)
+              );
+            }),
           ),
           `Actual model result required: ${id}`,
         );
       }
       if (folded) {
+        const projectedReadMessage = actual
+          .flatMap((entry) => entry.context.messages)
+          .find(
+            (message) =>
+              message.role === "toolResult" &&
+              message.toolName === "read_workpiece" &&
+              message.toolCallId === readId,
+          );
+        assert(projectedReadMessage?.role === "toolResult");
+        const projectedRead = JSON.parse(
+          projectedReadMessage.content
+            .flatMap((part) => (part.type === "text" ? [part.text] : []))
+            .join(""),
+        ) as { currentWorkpiece: WorkpieceRevision };
+        assert.equal(
+          projectedRead.currentWorkpiece.markdown,
+          expectedCurrent.markdown,
+          "A post-cut reread must materialize exact canonical content",
+        );
         assert(
           read.sources.some((source) => source.id === seed.sourceId),
           "Authorized history still discovers the original source ID after fold",
@@ -578,6 +695,7 @@ try {
                     "retention-revision-1",
                     "retention-revision-2",
                     "retention-arc",
+                    "retention-signoff-arc",
                   ].includes(part.id),
               ),
           ),
@@ -586,9 +704,11 @@ try {
       }
       save(label, {
         read,
-        why,
+        why: whyAnswers,
         oldObservationWhy: old,
         refusedObservationWhy: refused,
+        missingElementWhy: missing,
+        ambiguousElementWhy: ambiguous,
         beforeRequestContextIndex: beforeContext,
         priorQueryIds,
         currentRevisionRemainsInContext: true,
@@ -761,7 +881,7 @@ try {
     const completedNames = new Set([
       "mutate_workpiece",
       "addArc",
-      "getLatestNetDefinition",
+      "read_petrinaut_net",
     ]);
     assert.deepEqual(
       tools(after).filter((part) => completedNames.has(part.toolName)),
@@ -774,7 +894,7 @@ try {
     );
     assert(
       !snapshotToUiMessages(after, {
-        clientToolNames: new Set(["addArc", "getLatestNetDefinition"]),
+        clientToolNames: new Set(["addArc", "read_petrinaut_net"]),
         validatedClientToolNames: new Set(["addArc"]),
       }).some((message) =>
         message.parts.some(
