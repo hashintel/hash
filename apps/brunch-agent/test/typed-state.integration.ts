@@ -631,7 +631,7 @@ try {
       compilations.push(result);
       assert.equal(
         result.output,
-        "No errors or warnings found in net function code.",
+        "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
         "Final corrected net must report clean canonical diagnostics; no scenario execution follows",
       );
       return text(
