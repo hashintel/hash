@@ -52,12 +52,12 @@ import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-a
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
-import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
+import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -65,11 +65,6 @@ import {
   summarizeApplyAutoLayout,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
-import {
-  pendingDiagnosticsContext,
-  type PendingMutationDiagnosticsVersion,
-  waitForDiagnosticsRefresh,
-} from "./ai-assistant-panel/wait-for-diagnostics-refresh";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
@@ -497,9 +492,8 @@ const ConversationAiAssistantPanel = ({
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
-  // The wrapped AI transport closes over several refs (diagnostics version,
-  // pending mutation version, diagnostics context) so the transport's
-  // `sendMessages` can read the latest values when it eventually runs. React
+  // The wrapped AI transport reads the latest language client through a ref
+  // when `sendMessages` eventually runs. React
   // Compiler can't prove those reads happen off-render, so we opt out here.
   "use no memo";
 
@@ -511,7 +505,8 @@ const ConversationAiAssistantPanel = ({
     readOnlyReasonRef.current = readOnlyReason;
   }, [readOnlyReason]);
 
-  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { requestDiagnostics } = use(LanguageClientContext);
+  const requestDiagnosticsRef = useLatest(requestDiagnostics);
 
   const {
     hasSelection,
@@ -589,60 +584,26 @@ const ConversationAiAssistantPanel = ({
     titleRef.current = title;
   }, [title]);
 
-  const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
-  const diagnosticsVersionRef = useRef(0);
-  const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
-  // Read and disarm through one pair so a timed-out diagnostics read leaves
-  // the version armed and only the wait that saw it pass may clear it. Built
-  // at each call over the ref alone, so the wrapped transport keeps closing
-  // over refs only.
-  const armedDiagnosticsVersion = (): PendingMutationDiagnosticsVersion => ({
-    peek: () => pendingMutationDiagnosticsVersionRef.current,
-    disarm: (version) => {
-      if (pendingMutationDiagnosticsVersionRef.current === version) {
-        pendingMutationDiagnosticsVersionRef.current = null;
-      }
-    },
-  });
-
-  useEffect(() => {
-    diagnosticsVersionRef.current += 1;
-  }, [diagnosticsByUri]);
-
-  useEffect(() => {
-    diagnosticsContextRef.current = formatDiagnosticsForAi({
-      definition: petriNetDefinition,
-      diagnosticsByUri,
-    });
-  }, [diagnosticsByUri, petriNetDefinition]);
+  const readDiagnosticsContext = useCallback(() => {
+    if (!instance) throw new Error("The AI assistant has no editor instance.");
+    return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
+  }, [instance, requestDiagnosticsRef]);
 
   /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
      above: the refs are only read when the wrapped transport runs, never during
      render. The lint rule can't see that. */
-  const buildWrappedTransport = (transport: typeof aiAssistant.transport) =>
-    // The timing wrapper sits on the outside so reasoning-chunk receipt is
-    // tagged with `Date.now()` even when the inner diagnostics wrapper has
-    // added the post-tool diagnostics context message to the request. Order
-    // matters here only insofar as the timing wrapper consumes the *response*
-    // stream from whatever inner transport produced it — it does not touch
-    // the request side.
-    createReasoningTimingAwareAiTransport(
-      createDiagnosticsAwareAiTransport({
-        getDiagnosticsContext: () => diagnosticsContextRef.current,
-        transport,
-        waitForDiagnosticsRefresh: () =>
-          waitForDiagnosticsRefresh({
-            pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
-            diagnosticsVersionRef,
-          }),
-      }),
-    );
-
   // The wrapper is render-derived from the host transport. Delaying this to an
   // effect leaves useChat on the previous host for one committed render.
+  // Timing stays outside diagnostics so it tags receipt of the response chunks.
   const diagnosticsTransport = useMemo(
-    () => buildWrappedTransport(aiAssistant.transport),
-    [aiAssistant.transport],
+    () =>
+      createReasoningTimingAwareAiTransport(
+        createDiagnosticsAwareAiTransport({
+          readDiagnosticsContext,
+          transport: aiAssistant.transport,
+        }),
+      ),
+    [aiAssistant.transport, readDiagnosticsContext],
   );
   /* eslint-enable react-hooks-js/refs */
 
@@ -877,16 +838,6 @@ const ConversationAiAssistantPanel = ({
         ({ toolName }) => toolName === toolCall.toolName,
       );
       if (automaticTool) {
-        // Arm the pending diagnostics version only once the tool has changed
-        // the document: a host read must not leave diagnostics "pending" for
-        // a change that never happened.
-        const diagnosticsVersionBefore = diagnosticsVersionRef.current;
-        const revisionIdBefore = instance.handle.revisionId.get();
-        const armDiagnosticsIfChanged = () => {
-          if (instance.handle.revisionId.get() !== revisionIdBefore)
-            pendingMutationDiagnosticsVersionRef.current =
-              diagnosticsVersionBefore;
-        };
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
         let output: unknown;
@@ -898,24 +849,16 @@ const ConversationAiAssistantPanel = ({
               mutations: instance.mutations,
               commands: instance.commands,
               handle: instance.handle,
-              readDiagnosticsContext: async () =>
-                (await waitForDiagnosticsRefresh({
-                  pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
-                  diagnosticsVersionRef,
-                })) === "pending"
-                  ? pendingDiagnosticsContext
-                  : diagnosticsContextRef.current,
+              readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
           );
         } catch (error) {
           automaticToolAbortsRef.current.delete(abortController);
-          armDiagnosticsIfChanged();
           throw error;
         }
         automaticToolAbortsRef.current.delete(abortController);
-        armDiagnosticsIfChanged();
         if (abortController.signal.aborted) {
           pendingAutomaticToolCallExecutionsRef.current.delete(
             `${executionConversationId}:${toolCall.toolCallId}`,
@@ -951,19 +894,10 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === getNetCompilationErrorsToolName) {
-      const outcome = await waitForDiagnosticsRefresh({
-        pendingMutationDiagnosticsVersion: armedDiagnosticsVersion(),
-        diagnosticsVersionRef,
-      });
-      // A read that timed out reports pending, never the previous version's
-      // diagnostics as if they described the change just applied.
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output:
-          outcome === "pending"
-            ? pendingDiagnosticsContext
-            : diagnosticsContextRef.current,
+        output: await readDiagnosticsContext(),
       });
       return;
     }
@@ -1055,9 +989,6 @@ const ConversationAiAssistantPanel = ({
         return;
       }
 
-      pendingMutationDiagnosticsVersionRef.current =
-        diagnosticsVersionRef.current;
-
       const aiToolCall = {
         toolName,
         input: commandInput,
@@ -1078,9 +1009,6 @@ const ConversationAiAssistantPanel = ({
     const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
       toolCall.input,
     );
-
-    pendingMutationDiagnosticsVersionRef.current =
-      diagnosticsVersionRef.current;
 
     const aiToolCall = {
       toolName,
@@ -2137,9 +2065,6 @@ const ConversationAiAssistantPanel = ({
           });
           return;
         }
-
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
 
         void instance.commands.applyAutoLayout().then((result) => {
           safelyAddToolOutput(addToolOutput, {

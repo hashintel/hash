@@ -26,6 +26,11 @@ import {
   ErrorTrackerContext,
 } from "../../../../react/error-tracker-context";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
+import {
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+  LanguageClientContext,
+  type LanguageClientContextValue,
+} from "../../../../react/lsp/context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
 import { notificationsToaster } from "../../../../react/notifications/toaster";
 import {
@@ -224,6 +229,11 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
   strictMode = false,
+  requestDiagnostics = async () => ({
+    byUri: new Map(),
+    total: 0,
+    errorCount: 0,
+  }),
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
@@ -233,6 +243,7 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
   strictMode?: boolean;
+  requestDiagnostics?: LanguageClientContextValue["requestDiagnostics"];
 }) => {
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
@@ -278,10 +289,15 @@ const renderTestPanel = ({
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
-  const rendered = render(
-    renderPanel(aiAssistant, editorContext),
-    strictMode ? { wrapper: StrictMode } : undefined,
-  );
+  const rendered = render(renderPanel(aiAssistant, editorContext), {
+    wrapper: ({ children }) => (
+      <LanguageClientContext
+        value={{ ...DEFAULT_LANGUAGE_CLIENT_CONTEXT, requestDiagnostics }}
+      >
+        {strictMode ? <StrictMode>{children}</StrictMode> : children}
+      </LanguageClientContext>
+    ),
+  });
 
   return {
     ...rendered,
@@ -5139,8 +5155,11 @@ describe("AiAssistantPanel host interactive tools", () => {
     }
   });
 
-  test("arms pending diagnostics only for a host tool that changed the document", async () => {
+  test("checks the actual definition after a host mutation even when pushed diagnostics stay empty", async () => {
     const diagnosticsOutputs: string[] = [];
+    const requestDiagnostics = vi
+      .fn<LanguageClientContextValue["requestDiagnostics"]>()
+      .mockResolvedValue({ byUri: new Map(), total: 0, errorCount: 0 });
     const turn = {
       current: 0,
       calls: [
@@ -5171,6 +5190,7 @@ describe("AiAssistantPanel host interactive tools", () => {
     });
     const passthrough = { parse: (raw: unknown) => raw };
     renderTestPanel({
+      requestDiagnostics,
       aiAssistant: {
         automaticTools: [
           {
@@ -5206,13 +5226,19 @@ describe("AiAssistantPanel host interactive tools", () => {
       initialMessage: "Run the host tools",
     });
 
-    // The test LSP context never refreshes, so the second read can only be
-    // "current" if nothing armed it, and can only be "pending" if the
-    // mutation between the reads did.
+    // No pushed diagnostics change; each explicit request still completes.
     await screen.findByText("Host tools finished.", {}, { timeout: 5_000 });
     expect(diagnosticsOutputs).toHaveLength(2);
-    expect(diagnosticsOutputs[0]).not.toMatch(/still pending/u);
-    expect(diagnosticsOutputs[1]).toMatch(/still pending/u);
+    expect(
+      diagnosticsOutputs.every((output) =>
+        output.includes("everything compiles"),
+      ),
+    ).toBe(true);
+    expect(
+      requestDiagnostics.mock.calls.map(
+        ([definition]) => definition.places.length,
+      ),
+    ).toEqual([0, 1]);
   });
 
   test("aborts an in-flight automatic tool when the panel unmounts", async () => {

@@ -1514,6 +1514,7 @@ describe("AiAssistantContents", () => {
 
     expect(parseInput).toHaveBeenCalledOnce();
     expect(screen.getByText("Ship this change?")).not.toBeNull();
+    expect(screen.queryByText("Running…")).toBeNull();
   });
 
   test("allows retry when an interactive tool output is rejected", async () => {
@@ -1923,7 +1924,87 @@ describe("AiAssistantContents", () => {
     });
   });
 
-  test("renders grouped tool rows with Figma-style tones and no item chevrons", () => {
+  test("shows known noninteractive tool progress and replaces it with the terminal result", () => {
+    const createMessages = (
+      state: "input-streaming" | "input-available" | "output-available",
+    ) =>
+      [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-addPlace",
+              state,
+              toolCallId: "tool-1",
+              input: {
+                id: "place__buffer",
+                name: "Buffer",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              },
+              output:
+                state === "output-available"
+                  ? { applied: true, title: "Added place Buffer" }
+                  : undefined,
+            },
+          ],
+        },
+      ] as PetrinautAiMessage[];
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const rendered = render(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("input-streaming")}
+      />,
+    );
+
+    expect(screen.getByText("Preparing…")).not.toBeNull();
+    expect(screen.queryByText(/Buffer/u)).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: /Preparing/u })
+        .getAttribute("aria-busy"),
+    ).toBe("true");
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("input-available")}
+      />,
+    );
+
+    expect(screen.queryByText("Preparing…")).toBeNull();
+    expect(screen.getByText("Running…")).not.toBeNull();
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={createMessages("output-available")}
+      />,
+    );
+
+    expect(screen.queryByText("Running…")).toBeNull();
+    const completedRow = screen.getByRole("button", {
+      name: /Added place Buffer/u,
+    });
+    expect(completedRow.hasAttribute("aria-busy")).toBe(false);
+    expect(
+      completedRow.querySelector('[data-tool-result-icon="complete"]'),
+    ).not.toBeNull();
+  });
+
+  test("renders grouped tool rows with Figma-style tones and no item chevrons", async () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -1971,9 +2052,9 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /2 operations/u }),
-    ).not.toBeNull();
+    const groupHeader = screen.getByRole("button", {
+      name: /2 operations · Running/u,
+    });
     expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
     expect(
       screen
@@ -1985,6 +2066,11 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Deleted 1 item/u })
         .getAttribute("data-tone"),
     ).toBe("danger");
+    fireEvent.click(groupHeader);
+    await waitFor(() => {
+      expect(groupHeader.getAttribute("aria-expanded")).toBe("false");
+    });
+    expect(groupHeader.textContent).toContain("Running…");
   });
 
   test("auto-collapses grouped changes once every tool is complete", () => {

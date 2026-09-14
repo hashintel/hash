@@ -1,8 +1,3 @@
-import {
-  type DiagnosticsRefreshOutcome,
-  pendingDiagnosticsContext,
-} from "./wait-for-diagnostics-refresh";
-
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
 import type { ChatTransport } from "ai";
 
@@ -51,13 +46,11 @@ const lastMessageIsCompleteToolResultMessage = (
 };
 
 export const createDiagnosticsAwareAiTransport = ({
-  getDiagnosticsContext,
+  readDiagnosticsContext,
   transport,
-  waitForDiagnosticsRefresh,
 }: {
-  getDiagnosticsContext: () => string;
+  readDiagnosticsContext: () => Promise<string>;
   transport: PetrinautAiTransport;
-  waitForDiagnosticsRefresh: () => Promise<DiagnosticsRefreshOutcome>;
 }): PetrinautAiTransport => {
   const wrappedTransport: ChatTransport<PetrinautAiMessage> = {
     reconnectToStream: (options) => transport.reconnectToStream(options),
@@ -66,19 +59,13 @@ export const createDiagnosticsAwareAiTransport = ({
         return transport.sendMessages(options);
       }
 
-      // Diagnostics that have not caught up with the latest mutation describe
-      // an earlier model; the context says so rather than repeating them.
-      const outcome = await waitForDiagnosticsRefresh();
+      const diagnosticsContext = await readDiagnosticsContext();
 
       return transport.sendMessages({
         ...options,
         messages: [
           ...options.messages,
-          createDiagnosticsContextMessage(
-            outcome === "pending"
-              ? pendingDiagnosticsContext
-              : getDiagnosticsContext(),
-          ),
+          createDiagnosticsContextMessage(diagnosticsContext),
         ],
       });
     },

@@ -152,6 +152,7 @@ function makeLanguageClient(): LanguageClientContextValue {
     diagnosticsByUri: new Map(),
     totalDiagnosticsCount: 0,
     errorDiagnosticsCount: 0,
+    requestDiagnostics: vi.fn(),
     notifyDocumentChanged: vi.fn(),
     requestCompletion: vi.fn(() =>
       Promise.resolve({ isIncomplete: false, items: [] }),

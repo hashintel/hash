@@ -1,4 +1,4 @@
-/** Invalid dynamics must reach Flue as compiler errors, then repair to a correlated clean. */
+/** Real browser diagnostics must finish for dirty, repaired, and still-clean changed nets. */
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,6 +18,8 @@ import {
   batchedConstructionMode,
   mutatePetrinetToolName,
   parseClientToolResultMetadata,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
   type MutatePetrinetOperation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
@@ -195,7 +197,7 @@ const mutateCall = (
 ) => {
   const observation = browserResultFrom(
     textsFrom(context),
-    "getLatestNetDefinition",
+    readPetrinautNetToolName,
     "Missing observation",
   ).metadata?.observation;
   assert(observation);
@@ -248,24 +250,59 @@ try {
           message.toolName === "read_workpiece",
       );
       assert(locate?.role === "toolResult" && !locate.isError);
-      return tool("getLatestNetDefinition", {}, "read-before-dirty");
+      return tool(readPetrinautNetToolName, {}, "read-before-dirty");
     },
     (context: Context) => mutateCall(context, dirtyOperations, "batch-dirty"),
-    () => tool("getNetCompilationErrors", {}, "check-dirty"),
+    async () => {
+      // Hold the actual worker request, not its result, so the progress state
+      // is inspectable before the real compiler returns its diagnostics.
+      await page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- Rebound to each actual worker through call below.
+        const postMessage = Worker.prototype.postMessage;
+        Worker.prototype.postMessage =
+          function postMessageWithDiagnosticsBarrier(
+            this: Worker,
+            message: unknown,
+            options?: Transferable[] | StructuredSerializeOptions,
+          ) {
+            const send = () =>
+              postMessage.call(
+                this,
+                message,
+                Array.isArray(options) ? { transfer: options } : options,
+              );
+            if (
+              message !== null &&
+              typeof message === "object" &&
+              "method" in message &&
+              message.method === "sdcpn/diagnostics"
+            ) {
+              Worker.prototype.postMessage = postMessage;
+              window.addEventListener("release-test-diagnostics", send, {
+                once: true,
+              });
+              return;
+            }
+            send();
+          };
+      });
+      return tool(readPetrinautDiagnosticsToolName, {}, "check-dirty");
+    },
     (context: Context) => {
-      browserResultFrom(
+      const dirty = browserResultFrom(
         textsFrom(context),
-        "getNetCompilationErrors",
+        readPetrinautDiagnosticsToolName,
         "Missing dirty compilation",
       );
-      return tool("getLatestNetDefinition", {}, "read-before-repair");
+      assert.match(String(dirty.output), /definitelyNotDefined/u);
+      return tool(readPetrinautNetToolName, {}, "read-before-repair");
     },
     (context: Context) => mutateCall(context, repairOperations, "batch-repair"),
-    () => tool("getNetCompilationErrors", {}, "check-clean"),
+    () => tool(readPetrinautDiagnosticsToolName, {}, "check-clean"),
     (context: Context) => {
       const clean = browserResultFrom(
         textsFrom(context),
-        "getNetCompilationErrors",
+        readPetrinautDiagnosticsToolName,
         "Missing clean compilation",
       );
       assert.equal(clean.output, cleanCompilation);
@@ -281,8 +318,10 @@ try {
         applyAutoLayoutToolName,
         "Missing layout result",
       );
-      return tool("getLatestNetDefinition", {}, "read-after-layout");
+      return tool(readPetrinautNetToolName, {}, "read-after-layout");
     },
+    () =>
+      tool(readPetrinautDiagnosticsToolName, {}, "check-clean-after-layout"),
     fauxAssistantMessage([
       fauxText("Compiler-feedback dirty-then-repair completed."),
     ]),
@@ -296,11 +335,25 @@ try {
   );
   await composer.press("Enter");
   try {
+    const runningDiagnostics = page
+      .getByRole("button")
+      .filter({ hasText: /read_petrinaut_diagnostics.*Running…/su });
+    await runningDiagnostics.waitFor({ timeout: 30_000 });
+    assert.equal(await runningDiagnostics.getAttribute("aria-busy"), "true");
+    await page.screenshot({ path: join(output, "tool-running.png") });
+    await runningDiagnostics.screenshot({
+      path: join(output, "diagnostics-progress.png"),
+    });
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event("release-test-diagnostics")),
+    );
     await page
       .getByText("Compiler-feedback dirty-then-repair completed.", {
         exact: true,
       })
       .waitFor({ timeout: 90_000 });
+    assert.equal(await runningDiagnostics.count(), 0);
+    await page.screenshot({ path: join(output, "tools-completed.png") });
   } catch (error) {
     save("page-text", await page.locator("body").innerText());
     save("fixture-errors", { errors, blocked, deliveries: deliveries.length });
@@ -349,6 +402,9 @@ try {
   save("results", results);
   const dirty = results.find((result) => result.toolCallId === "check-dirty");
   const clean = results.find((result) => result.toolCallId === "check-clean");
+  const cleanAfterLayout = results.find(
+    (result) => result.toolCallId === "check-clean-after-layout",
+  );
   const dirtyBatch = results.find(
     (result) => result.toolCallId === "batch-dirty",
   );
@@ -362,10 +418,11 @@ try {
   assert(clean, "Flue history must carry the repaired compilation result");
   assert(dirtyBatch, "Dirty mutate_petrinet must land a client-tool-result");
   assert(repairBatch, "Repair mutate_petrinet must land a client-tool-result");
-  assert.equal(dirty.toolName, "getNetCompilationErrors");
-  assert.equal(clean.toolName, "getNetCompilationErrors");
-  assert.notEqual(dirty.output, cleanCompilation);
+  assert.equal(dirty.toolName, readPetrinautDiagnosticsToolName);
+  assert.equal(clean.toolName, readPetrinautDiagnosticsToolName);
+  assert.match(String(dirty.output), /definitelyNotDefined/u);
   assert.equal(clean.output, cleanCompilation);
+  assert.equal(cleanAfterLayout?.output, cleanCompilation);
   assert.equal(
     stored.document.sdcpn.differentialEquations[0]?.code,
     repairedCode,
