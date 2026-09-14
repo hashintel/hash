@@ -130,7 +130,7 @@ export const createOpenAITranscriptionSessionHandler =
               audio: {
                 input: {
                   transcription: { model: "gpt-4o-transcribe" },
-                  turn_detection: { type: "server_vad" },
+                  turn_detection: { type: "semantic_vad", eagerness: "medium" },
                 },
               },
             },

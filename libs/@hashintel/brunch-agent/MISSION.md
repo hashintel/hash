@@ -16,14 +16,15 @@ The separate authority commit is
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
 The semantic-VAD recut is implemented locally and provider-free checks pass.
-The medium probe is complete: first two cases were faster than low, but the
-final correction is inconclusive because the synthetic sender stopped its packets.
-That discovered harness defect also invalidates the low correction verdict.
-Next: run Kostandin's authorized corrected medium probe with continuous silent
-audio; physical speaker/headphone witnesses remain owner-held.
+The corrected medium probe completed all three synthetic transcripts, with the
+correction retained in one item and continuous silence verified. Earlier correction
+verdicts remain invalid because those harnesses stopped sending after the last clip.
+Next: Kostandin reviews medium's human conversational latency and the physical
+speaker/headphone witness; no additional automatic tuning or provider run.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
-The two earlier allocations are consumed; one corrected probe is authorized,
-with no further provider runs or publication beyond that allocation.
+All three provider allocations are consumed; no further provider run. Publication
+of the prepared work is authorized below. The parent has advanced beyond the pinned
+base and the draft currently conflicts; this push does not restack or change it.
 
 ## Imperative
 
@@ -108,10 +109,13 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
   microphone access, other providers, Brunch inference or publication.
 - **2026-09-14:** Kostandin authorizes one corrected medium session under the same
   three-minute cap, with continuous synthetic silence, no microphone and no retries.
+- **2026-09-14:** Kostandin authorizes pushing the prepared semantic-VAD change and
+  removing Amp thread-ID trailers from this child's commit messages. Preserve
+  authorship and parent commits; no merge, deployment or new provider allocation.
 
 ## Proof
 
-### Corrected medium probe — authorized, not yet run
+### Corrected medium probe — synthetic retention verified, human latency pending
 
 One `gpt-4o-transcribe` session, semantic VAD / medium, at most 180 seconds of
 synthetic audio and closed within 180 seconds after connection. No retries,
@@ -124,6 +128,28 @@ session identity, usage and verified cleanup in the local-only native record at
 `/tmp/fe1712-semantic-vad-medium-silence-T-01a09fe5/`. Remove temporary harness and
 audio after inspection. Stop after this allocation for owner review. This can
 adjudicate the three synthetic transcription cases, not human speech or echo.
+
+Observed 2026-09-14: session `sess_EO2X7U9GGGko3GvAOeQFU` confirmed semantic VAD
+with medium eagerness. Input WAV hashes matched the inspected medium fixtures.
+Exactly three committed items and three completed transcripts arrived in the
+same predecessor order, with no extra inputs or errors:
+
+- “The inventory should contain twelve items, not twenty.” — 6.04 seconds after
+  speech ended; the one-second mid-sentence pause did not split the input.
+- “Yes” — 5.42 seconds after speech ended, before the next case.
+- “Set it to twenty. Actually, twelve.” — one item, 1.29 seconds after the
+  correction ended, retaining both values in order.
+
+All eight final-silence samples showed increasing packet count and source duration:
+1698 → 2428 packets and 35.13 → 49.48 seconds. The corrected sender did not stall.
+An independent read of `events.jsonl` asserted exact transcripts, item order, one
+allocation, no provider errors, and closed peer/context/track with zero microphone
+calls. The session lasted about 48 seconds; 5.49 seconds were synthesized speech.
+Reported completed-item usage was 102 audio-input and 26 output tokens (128 total);
+invoice cost is not established. `events.jsonl` and `attempt.json` in the directory
+above are the local-only evidence. No product change, retry, push or deployment
+was made during this probe. Keep medium locally for owner review; the 5–6 second
+wait on the first two cases remains a usability concern, not an accepted latency.
 
 ### Medium-eagerness comparison — completed, correction oracle invalid
 
