@@ -246,7 +246,7 @@ libs/@hashintel/brunch-agent/
 ├── packages/plugin-sdcpn/src/skills/sdcpn-modelling/                 ~ repeat/change/retirement posture
 ├── packages/plugin-sdcpn/test/                                       ~ alignment and plan guards
 ├── packages/core/                                                    ~ epoch and change-account semantics if core-owned
-└── packages/binding-flue/                                            ? document-scoped owner only if cross-conversation access is admitted
+└── docs/reference/architecture/topology.md                           ~ choose a new document-scoped owner if cross-conversation access is admitted
 
 apps/brunch-agent/
 ├── src/agents/chat-agent/                                            ~ compose the projection capability
@@ -260,6 +260,10 @@ libs/@hashintel/petrinaut/
 ├── src/ui/views/Editor/panels/ai-assistant-panel*                    ~ generic host execution and visible failure only if needed
 └── docs/                                                             ~ affected user-facing guidance
 ```
+
+The former `packages/binding-flue/` archive/capture lane was retired during Mission 7d remediation;
+cross-conversation access must earn and name a new owner rather than restoring that package by
+default.
 
 Do not add a hand-copied Brunch schema catalog, graph database, generalized projection framework, automatic observer, capture fold, workflow engine, second agent or server, or full stock-modeller parity.
 
