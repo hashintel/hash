@@ -48,11 +48,11 @@ test("built app projects provider context without changing retained history", as
       expect(result.stdout).toContain(`A4_${phase.toUpperCase()}_PASS`);
     }
     if (process.env.A4_REPORT_METRICS === "1")
-      console.info(
+      process.stdout.write(
         readFileSync(
           join(directory, "projection-payload-metrics.json"),
           "utf8",
-        ).trim(),
+        ),
       );
   } finally {
     await rm(directory, { recursive: true, force: true });

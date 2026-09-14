@@ -33,7 +33,7 @@ import {
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 
-import type { FauxResponseStep } from "@earendil-works/pi-ai";
+import type { Context, FauxResponseStep } from "@earendil-works/pi-ai";
 import type { FlueObservation } from "@flue/runtime";
 import type {
   AgentSendResult,
@@ -99,13 +99,13 @@ const countExactString = (value: unknown, target: string): number => {
     }
   }
   if (Array.isArray(value))
-    return value.reduce(
-      (total, member) => total + countExactString(member, target),
+    return value.reduce<number>(
+      (total, member: unknown) => total + countExactString(member, target),
       0,
     );
   if (typeof value === "object" && value !== null)
-    return Object.values(value).reduce(
-      (total, member) => total + countExactString(member, target),
+    return Object.values(value).reduce<number>(
+      (total, member: unknown) => total + countExactString(member, target),
       0,
     );
   return 0;
@@ -325,13 +325,13 @@ const faux = fauxProvider({
 installFauxProvider(faux.provider);
 const contexts: {
   purpose: Extract<FlueObservation, { type: "turn_request" }>["purpose"];
-  context: unknown;
+  context: Context;
 }[] = [];
 const responses: ReturnType<typeof fauxAssistantMessage>[] = [];
 const nextResponse: FauxResponseStep = async (context, options) => {
   contexts.push({
     purpose,
-    context: JSON.parse(JSON.stringify(context)) as unknown,
+    context: JSON.parse(JSON.stringify(context)) as Context,
   });
   if (purpose === "compaction" || purpose === "compaction_prefix") {
     if (phase === "create" && cancelOverflow && !compactionAborted) {
@@ -758,8 +758,29 @@ try {
     const finalPayload = serialized.at(-1);
     assert(finalPayload);
     const encodedMarkdown = JSON.stringify(markdown).slice(1, -1);
+    const finalContext = agentContexts.at(-1)?.context;
+    assert(finalContext);
+    const authoredCalls = finalContext.messages.flatMap((message) =>
+      message.role === "assistant"
+        ? message.content.filter(
+            (part) =>
+              part.type === "toolCall" && part.id === "a4-workpiece-mutation",
+          )
+        : [],
+    );
+    assert.equal(authoredCalls.length, 1);
+    assert.deepEqual(
+      authoredCalls[0],
+      {
+        type: "toolCall",
+        id: "a4-workpiece-mutation",
+        name: "mutate_workpiece",
+        arguments: { markdown, baseRevisionId: null },
+      },
+      "The model sees the exact authored arguments, independently of settled readbacks",
+    );
     const markdownOccurrences = countExactString(
-      agentContexts.at(-1)?.context,
+      finalContext.messages.filter((message) => message.role === "toolResult"),
       markdown,
     );
     const compactionContexts = contexts.filter(
@@ -810,7 +831,6 @@ try {
       "Public history must retain every complete authoritative result",
     );
     const canonical = JSON.stringify(canonicalRecords());
-    const finalContext = agentContexts.at(-1)?.context;
     const finalContextJson = JSON.stringify(finalContext);
     assert(finalContextJson.includes('\\"status\\":\\"applied\\"'));
     assert(finalContextJson.includes('\\"status\\":\\"failed\\"'));
@@ -879,6 +899,7 @@ try {
       })),
       finalAgentCharacters: finalPayload.length,
       finalMarkdownOccurrences: markdownOccurrences,
+      authoredWorkpieceMarkdownCharacters: encodedMarkdown.length,
       canonicalCharacters: canonical.length,
       publicHistoryCharacters: JSON.stringify(snapshot).length,
       payloadClassCharacters,

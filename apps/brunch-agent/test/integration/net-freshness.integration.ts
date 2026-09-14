@@ -30,6 +30,7 @@ import {
   deriveNetFreshness,
   NET_STALE_SIGNAL,
 } from "../../src/conversation/net-freshness.ts";
+import { recordedBrowserObservation } from "../../src/conversation/net-ledger.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
@@ -315,29 +316,83 @@ try {
   await client.wait(await sendUser("No revision confirmation is supplied."));
   assert.equal(staleMarkersIn(contexts.at(-1)!), 6);
 
-  const otherHost = createHeadlessPetrinautClient(
-    "Equal content, other incarnation",
-    host.definition(),
-  );
-  try {
-    assert.deepEqual(otherHost.definition(), host.definition());
-    reportedRevisionId = otherHost.revisionId();
+  // Each submission and receipt must settle before testing the next binding.
+  /* eslint-disable no-await-in-loop */
+  for (const field of ["documentId", "incarnationId"] as const) {
+    const toolCallId = `foreign-${field}-read`;
+    reportedRevisionId = `foreign-${field}-revision`;
     client = createClient();
-    assert.notEqual(reportedRevisionId, host.revisionId());
     faux.setResponses([
       capturing(
-        fauxAssistantMessage([fauxText("OTHER_DOCUMENT_REVISION_IS_STALE")]),
+        fauxAssistantMessage(
+          [fauxToolCall(readPetrinautNetToolName, {}, { id: toolCallId })],
+          { stopReason: "toolUse" },
+        ),
       ),
     ]);
-    await client.wait(
-      await sendUser(
-        "Equal content from another document must not confirm this one.",
+    await client.wait(await sendUser(`Observe the net (${field} control).`));
+    const read = await executeRead(toolCallId);
+    const requestsBeforeForeignRead = faux.state.callCount;
+    faux.setResponses([]);
+    await assert.rejects(
+      client.wait(
+        await client.send({
+          message: clientToolResultSignal([
+            {
+              ...read,
+              metadata: {
+                observation: {
+                  toolCallId,
+                  binding: { ...binding, [field]: `foreign-${field}` },
+                  observed: {
+                    definition: host.definition(),
+                    sha256: createHash("sha256")
+                      .update(JSON.stringify(host.definition()))
+                      .digest("hex"),
+                    revisionId: reportedRevisionId,
+                  },
+                },
+              },
+            },
+          ]),
+        }),
       ),
+      /failed:.*internal error/u,
     );
-    assert.equal(staleMarkersIn(contexts.at(-1)!), 7);
-  } finally {
-    otherHost.dispose();
+    assert.equal(
+      faux.state.callCount,
+      requestsBeforeForeignRead,
+      "A foreign observation must be rejected before model continuation",
+    );
+    const rejectedSnapshot = await client.history();
+    await assert.rejects(
+      () =>
+        recordedBrowserObservation(rejectedSnapshot, { binding }, toolCallId),
+      /another conversation or document incarnation/u,
+    );
+    // Definition/hash and reported revision agree; only the binding is foreign.
+    assert.equal(
+      (
+        await deriveNetFreshness(
+          await client.history(),
+          { binding, construction: true },
+          reportedRevisionId,
+        )
+      ).kind,
+      "stale",
+    );
+    const before = staleMarkersIn(contexts.at(-1)!);
+    faux.setResponses([
+      capturing(
+        fauxAssistantMessage([
+          fauxText("FOREIGN_READ_CANNOT_ESTABLISH_FRESHNESS"),
+        ]),
+      ),
+    ]);
+    await client.wait(await sendUser("Rely on the current bound net."));
+    assert.equal(staleMarkersIn(contexts.at(-1)!), before + 1);
   }
+  /* eslint-enable no-await-in-loop */
   process.stdout.write(`NET_FRESHNESS_PASS ${directory}\n`);
 } finally {
   host.dispose();

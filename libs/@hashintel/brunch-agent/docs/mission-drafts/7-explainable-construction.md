@@ -40,7 +40,7 @@ Retain the genuine adversarial set: distinguishable passages and two declared-ba
 
 ### Lifecycle breadth
 
-Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. The live [tooling-context side quest](../../SIDE_QUEST.md) owns the observed payload amplification and bounded compaction/reopen remediation; consume its executed results rather than deferring that blocker to this campaign. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
+Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. Consume the completed [tooling-context remediation](../reference/architecture/flue-routing.md#model-context-projection) and [Mission 7d's live recovery disposition](../../MISSION.md#readiness-gate) rather than repeating the bounded synthetic proof. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
 
 For any claim including Voice/exact resume, retain a genuine two-tab scenario with typed-origin and Voice-origin messages and a durably stopped assistant entry. Verify attribution and stopped presentation after reopening, and distinguish Exit voice mode from durable Stop. Mission 6's waiver and Mission 6b's narrower accepted results are not passes for the deferred properties.
 
@@ -52,7 +52,7 @@ For any claim including Voice/exact resume, retain a genuine two-tab scenario wi
 - Mission 7b owns the ordinary structural batch/correction seam. [Mission 7d](../../MISSION.md) owns Inventory persona demo completion; [distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope.
 - Additional revision list/diff, broad source navigation and per-field intention mapping re-enter when the review task needs them; no new graph or UI is selected here.
 - Retire orphaned ask/sweep handlers and subset-era fixtures only after inspecting current consumers. The historical inventory named website ask mappings/interactive tools, sweep filters/output, Voice speech/coverage references and suspended core ask contracts. Some may already be removed; do not recreate or delete by stale path lists.
-- The disconnected capture/archive lane was removed during Mission 7d topology remediation. Do not restore it from historical consumer lists; canonical Flue retention is the current evidence source, and the model-context side quest introduces no second store.
+- The disconnected capture/archive lane was removed during Mission 7d topology remediation. Do not restore it from historical consumer lists; canonical Flue retention is the current evidence source, and model-context projection introduces no second store.
 - Preserve native `readPetrinautDoc`, skill activation and necessary checks; broader tool breadth or batching is a separate construction-design decision, not evaluation infrastructure.
 
 ## Successor joins

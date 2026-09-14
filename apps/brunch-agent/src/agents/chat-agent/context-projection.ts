@@ -37,11 +37,10 @@ const parseTextJson = (
 
 type AuthoritativeContent = {
   entryIndex: number;
+  entryId: string;
   revisionId: string;
   sha256: string;
-  markdown: string;
   target: "mutation" | "read";
-  toolCallId: string;
 };
 
 const authoritativeContent = (
@@ -68,11 +67,10 @@ const authoritativeContent = (
     return undefined;
   return {
     entryIndex,
+    entryId: entry.id,
     revisionId: candidate.revisionId,
     sha256: candidate.sha256,
-    markdown: candidate.markdown,
     target: message.toolName === "mutate_workpiece" ? "mutation" : "read",
-    toolCallId: message.toolCallId,
   };
 };
 
@@ -160,42 +158,6 @@ const markRetainedWorkpieceResult = (
         ...output.currentWorkpiece,
       },
     }),
-  };
-};
-
-const compactWorkpieceCall = (
-  entry: ContextProjectionEntry,
-  authoritiesByCallId: ReadonlyMap<string, AuthoritativeContent>,
-  retainedEntryIds: ReadonlyMap<string, string>,
-): ContextProjectionEntry => {
-  const message = entry.message;
-  if (message.role !== "assistant") return entry;
-  return {
-    ...entry,
-    message: {
-      ...message,
-      content: message.content.map((part) => {
-        if (
-          part.type !== "toolCall" ||
-          part.name !== "mutate_workpiece" ||
-          !isRecord(part.arguments) ||
-          typeof part.arguments.markdown !== "string"
-        )
-          return part;
-        const authority = authoritiesByCallId.get(part.id);
-        if (!authority || authority.markdown !== part.arguments.markdown)
-          return part;
-        const retainedEntryId = retainedEntryIds.get(contentKey(authority));
-        if (!retainedEntryId) return part;
-        return {
-          ...part,
-          arguments: {
-            ...part.arguments,
-            markdown: `[retained as authoritative content in ${retainedEntryId}; revision ${authority.revisionId}; sha256 ${authority.sha256}]`,
-          },
-        };
-      }),
-    },
   };
 };
 
@@ -298,14 +260,8 @@ export const projectBrunchContext: ContextProjection = (entries) => {
   const retainedEntryIds = new Map<string, string>();
   for (const content of authorities) {
     const key = contentKey(content);
-    if (!retainedEntryIds.has(key))
-      retainedEntryIds.set(key, entries[content.entryIndex]!.id);
+    if (!retainedEntryIds.has(key)) retainedEntryIds.set(key, content.entryId);
   }
-  const authoritiesByCallId = new Map(
-    authorities
-      .filter((content) => content.target === "mutation")
-      .map((content) => [content.toolCallId, content]),
-  );
 
   return entries.map((entry, entryIndex) => {
     const authority = authorities.find(
@@ -319,7 +275,7 @@ export const projectBrunchContext: ContextProjection = (entries) => {
         ? compactWorkpieceResult(entry, authority, retainedEntryId)
         : authority && retainedEntryId
           ? markRetainedWorkpieceResult(entry, authority)
-          : compactWorkpieceCall(entry, authoritiesByCallId, retainedEntryIds);
+          : entry;
     return compactClientToolSignal(projected);
   });
 };

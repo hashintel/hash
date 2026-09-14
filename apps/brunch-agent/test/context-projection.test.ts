@@ -4,7 +4,7 @@ import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-ais
 
 import { projectBrunchContext } from "../src/agents/chat-agent/context-projection";
 
-import type { ContextProjectionEntry } from "@flue/runtime";
+import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
 
 const markdown = "# Account\n\nAuthoritative content.";
 const sha256 = "a".repeat(64);
@@ -71,7 +71,7 @@ const entries = (): ContextProjectionEntry[] => [
   },
 ];
 
-test("retains one authoritative body without mutating input", () => {
+test("preserves authored calls and retains one authoritative result body", () => {
   const input = entries();
   const before = structuredClone(input);
   const first = projectBrunchContext(input);
@@ -79,27 +79,13 @@ test("retains one authoritative body without mutating input", () => {
 
   expect(input).toEqual(before);
   expect(first).toEqual(second);
+  expect(first[0]).toEqual(input[0]);
   const bodies = first.flatMap(({ message }) => {
-    if (message.role === "assistant")
-      return message.content.flatMap((part) =>
-        part.type === "toolCall" &&
-        typeof part.arguments === "object" &&
-        part.arguments !== null &&
-        "markdown" in part.arguments &&
-        part.arguments.markdown === markdown
-          ? [part.arguments.markdown]
-          : [],
-      );
-    const output =
-      message.role === "toolResult"
-        ? JSON.parse(
-            message.content[0]?.type === "text"
-              ? message.content[0].text
-              : "{}",
-          )
-        : {};
-    return output.markdown === markdown ||
-      output.currentWorkpiece?.markdown === markdown
+    return message.role === "toolResult" &&
+      message.content.some(
+        (part) =>
+          part.type === "text" && part.text.includes(JSON.stringify(markdown)),
+      )
       ? [markdown]
       : [];
   });
@@ -131,6 +117,35 @@ test("retains one authoritative body without mutating input", () => {
       ),
     ).toContain("Authoritative content.");
   }
+});
+
+test("the patched runtime leaves non-opted-in contexts unchanged", async () => {
+  // Exercise the pinned patch's boundary, not a substitute application wrapper.
+  const runtimeUrl = new URL(
+    "./dispatch-nU3cIlT-.mjs",
+    import.meta.resolve("@flue/runtime"),
+  );
+  type RuntimeEntry = {
+    message: ContextProjectionEntry["message"];
+    sourceEntry: { id: string };
+  };
+  const runtime = (await import(runtimeUrl.href)) as {
+    projectContextEntries: (
+      input: RuntimeEntry[],
+      project?: ContextProjection,
+    ) => RuntimeEntry[];
+  };
+  const input = entries().map(({ id, message }) => ({
+    message,
+    sourceEntry: { id },
+  }));
+  const before = structuredClone(input);
+  expect(runtime.projectContextEntries(input)).toEqual(before);
+  expect(
+    runtime.projectContextEntries(input, projectBrunchContext),
+  ).not.toEqual(before);
+  // An opted-in call must not change the default for a later agent.
+  expect(runtime.projectContextEntries(input)).toEqual(before);
 });
 
 test("leaves fake, malformed, and unknown records unprojected", () => {
