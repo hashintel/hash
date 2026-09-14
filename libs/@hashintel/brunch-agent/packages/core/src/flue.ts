@@ -76,19 +76,7 @@ export function useBrunchAgent(
     current: WorkpieceRevision | null,
   ) => ReturnType<WorkpieceEvidenceServices["readSources"]>,
 ): string {
-  const modelOptions =
-    options === undefined ||
-    (options.compaction === undefined && options.thinkingLevel === undefined)
-      ? undefined
-      : {
-          ...(options.compaction === undefined
-            ? {}
-            : { compaction: options.compaction }),
-          ...(options.thinkingLevel === undefined
-            ? {}
-            : { thinkingLevel: options.thinkingLevel }),
-        };
-  useModel(model, modelOptions);
+  useModel(model, options);
   useSkill(elicitationSkill);
   const writeQuestion = useDataWriter(BRUNCH_QUESTION_DATA_NAME, {
     schema: BrunchQuestionDataSchema,

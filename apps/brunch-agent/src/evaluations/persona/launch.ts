@@ -345,11 +345,14 @@ export const launchPersona = async (
       retry: { enabled: false, provider: { maxRetries: 0 } },
     });
   }
-  const key = checkPersonaConfiguration({
-    ...env,
-    PI_CODING_AGENT_DIR: join(run, "pi"),
-    PI_OFFLINE: "1",
-  });
+  const credentials = checkPersonaConfiguration(
+    {
+      ...env,
+      PI_CODING_AGENT_DIR: join(run, "pi"),
+      PI_OFFLINE: "1",
+    },
+    settings.personaModel,
+  );
   const record = {
     caseDirectory,
     brunchModel: settings.brunchModel,
@@ -615,7 +618,9 @@ export const launchPersona = async (
     // Credentials stay in a run-private env file, never in Herdr/process argv.
     await writeFile(
       join(run, "pane.env"),
-      [`export ANTHROPIC_API_KEY=${shellQuote(key)}`].join("\n") + "\n",
+      Object.entries(credentials)
+        .map(([variable, value]) => `export ${variable}=${shellQuote(value)}`)
+        .join("\n") + "\n",
       { mode: 0o600 },
     );
     await execute("herdr", [
@@ -698,7 +703,7 @@ if (
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT, OPENAI_API_KEY for the default Brunch model, and ANTHROPIC_API_KEY for the persona. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT, and each selected provider's API key (OPENAI_API_KEY or ANTHROPIC_API_KEY). Ctrl-C stops owned resources; run data is retained.",
     );
     report(
       "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database and Pi session. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
