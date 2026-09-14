@@ -21,7 +21,7 @@ The bottom toolbar stays centered on the editor when the docked assistant opens,
 
 Choose **Float AI assistant** in the header to detach it into a rounded panel over the canvas. The canvas expands smoothly to reclaim the sidebar's space, and the floating panel reserves no space at the right edge. Drag anywhere in the header outside the tabs and action buttons to move it, or focus **Move AI assistant** and use the arrow keys. Hold **Shift** with an arrow key to move farther. The floating panel stays within the editor when the window changes size.
 
-Choose **Dock AI assistant** to return it to the right sidebar. Switching between these layouts keeps your draft, conversation, and active response. Both layouts resize from the left edge. Closing and reopening the assistant keeps your layout choice for the editor session.
+Choose **Dock AI assistant** to return it to the right sidebar. Switching between these layouts keeps your draft, conversation, and active response. Resize the sidebar from its left edge. When floating, drag the left or right edge to change its width, or the top or bottom edge to change its height. The opposite edge stays fixed, and the panel stays inside the editor. Closing and reopening the assistant keeps your layout choice and floating height for the editor session.
 
 The header icons animate on hover and click, respecting your reduced-motion preference.
 

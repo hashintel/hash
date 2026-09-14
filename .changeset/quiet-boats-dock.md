@@ -3,4 +3,4 @@
 ---
 
 Dock the AI assistant on the right, detach it into a movable floating panel, and toggle it with Cmd/Ctrl+Shift+K across editor views while preserving the conversation and keeping the toolbar centered.
-Space out the header tabs, animate its icons, allow dragging outside its controls, and hide Clear AI while the conversation is empty.
+Space out the header tabs, animate its icons, resize the floating panel from any edge, and hide Clear AI while the conversation is empty.

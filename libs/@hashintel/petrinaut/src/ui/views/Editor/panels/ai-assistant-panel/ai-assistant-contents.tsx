@@ -37,6 +37,7 @@ import {
   ExperimentCard,
   type AiExperimentState,
 } from "./ai-assistant-contents/experiment-card";
+import { FloatingResizeHandle } from "./ai-assistant-contents/floating-resize-handle";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -714,11 +715,11 @@ export const AiAssistantContents = ({
   const iconMotionAllowed = useExperimentalIconMotionAllowed();
   const {
     panelRef,
-    anchorForResize,
-    isDragging,
+    isInteracting,
     handleProps,
+    getResizeHandleProps,
     style: floatingPositionStyle,
-  } = useFloatingPosition(assistantWidth);
+  } = useFloatingPosition(assistantWidth, setAssistantWidth);
   const panelWidth = `min(${assistantWidth}px, 100cqw)`;
   const placementLabel = isFloating
     ? "Dock AI assistant"
@@ -899,7 +900,7 @@ export const AiAssistantContents = ({
       <div
         aria-hidden="true"
         className={dockSpaceStyle}
-        data-animating={isPanelAnimating && !isDragging}
+        data-animating={isPanelAnimating && !isInteracting}
         style={{
           width:
             isOpen && !isFloating && !isVoiceDockCollapsed ? panelWidth : 0,
@@ -917,38 +918,43 @@ export const AiAssistantContents = ({
           floating: isFloating,
         })}
         data-placement={aiAssistantPlacement}
-        data-animating={isPanelAnimating && !isDragging}
+        data-animating={isPanelAnimating && !isInteracting}
         style={{
           width: panelWidth,
           ...(isFloating && !isVoiceDockCollapsed ? floatingPositionStyle : {}),
         }}
       >
-        <div
-          className={`${resizeAnchorStyle} ${panelContentStyle({
-            visible: !isVoiceDockCollapsed,
-          })}`}
-        >
-          <ResizeHandle
-            edge="left"
-            appearance="line"
-            size={assistantWidth}
-            onResize={(width) => {
-              if (isFloating) {
-                anchorForResize();
-              }
-              setAssistantWidth(width);
-            }}
-            minSize={320}
-            maxSize={720}
-            label="Resize AI assistant"
-          />
-        </div>
+        {isFloating && !isVoiceDockCollapsed ? (
+          (["top", "right", "bottom", "left"] as const).map((edge) => (
+            <FloatingResizeHandle
+              key={edge}
+              edge={edge}
+              {...getResizeHandleProps(edge)}
+            />
+          ))
+        ) : (
+          <div
+            className={`${resizeAnchorStyle} ${panelContentStyle({
+              visible: !isVoiceDockCollapsed,
+            })}`}
+          >
+            <ResizeHandle
+              edge="left"
+              appearance="line"
+              size={assistantWidth}
+              onResize={setAssistantWidth}
+              minSize={320}
+              maxSize={720}
+              label="Resize AI assistant"
+            />
+          </div>
+        )}
         <div
           className={cardStyle({
             floating: isFloating || isVoiceDockCollapsed,
             setupOverlay: isVoiceDockCollapsed && !isVoiceSessionLive,
           })}
-          data-animating={isPanelAnimating && !isDragging}
+          data-animating={isPanelAnimating && !isInteracting}
           data-input-mode={inputMode}
         >
           <div
