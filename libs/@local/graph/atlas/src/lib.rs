@@ -142,6 +142,7 @@
 #![allow(
     unused_crate_dependencies,
     unused_features,
+    unused_macros,
     dead_code,
     unreachable_pub,
     unused_imports,
