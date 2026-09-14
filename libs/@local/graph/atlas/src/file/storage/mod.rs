@@ -2,7 +2,11 @@
 //!
 //! Local paths use the filesystem. An S3 path requires a loaded [`s3::S3`] backend in [`Storage`].
 
+use std::io;
+
 use camino::Utf8PathBuf;
+use tokio::fs;
+use uuid::Uuid;
 
 use self::{error::StorageError, s3::S3};
 use crate::integrity::Sha256Digest;
@@ -58,6 +62,31 @@ impl WriteCondition {
     }
 }
 
+// cannot use `has_significant_drop` (even though it does), because it tracks through references.
+#[derive(Debug)]
+struct ScratchStorage {
+    directory: Utf8PathBuf,
+
+    delete_on_drop: bool,
+}
+
+impl Drop for ScratchStorage {
+    fn drop(&mut self) {
+        if !self.delete_on_drop {
+            return;
+        }
+
+        let directory = self.directory.clone();
+        tokio::task::spawn(async move {
+            if let Err(error) = tokio::fs::remove_dir_all(directory).await
+                && error.kind() != core::io::ErrorKind::NotFound
+            {
+                tracing::error!(%error, "failed to remove scratch directory");
+            }
+        });
+    }
+}
+
 /// The backends and the scratch directory a file path resolves against.
 ///
 /// [`Self::set_s3`] and [`Self::with_s3`] supply the client. Downloading an object writes into
@@ -66,7 +95,7 @@ impl WriteCondition {
 pub struct Storage {
     s3: Option<S3>,
 
-    scratch: Utf8PathBuf,
+    scratch: ScratchStorage,
 }
 
 impl Storage {
@@ -76,20 +105,35 @@ impl Storage {
     /// the value carries no S3 backend.
     #[must_use]
     pub const fn new(scratch: Utf8PathBuf) -> Self {
-        Self { s3: None, scratch }
+        Self {
+            s3: None,
+            scratch: ScratchStorage {
+                directory: scratch,
+                delete_on_drop: false,
+            },
+        }
     }
+}
 
+impl Storage {
     /// Create a new [`Storage`] with a temporary scratch directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the scratch directory could not be created.
     ///
     /// # Panics
     ///
     /// Panics if the scratch directory is not a valid UTF-8 path.
-    #[must_use]
-    pub fn in_temp_dir() -> Self {
+    pub async fn in_temp_dir() -> io::Result<Self> {
         let scratch = std::env::temp_dir();
         let scratch = Utf8PathBuf::from_path_buf(scratch).expect("paths should be utf-8");
+        let scratch = scratch.join(format!("atlas-{}", Uuid::now_v7()));
+        fs::create_dir_all(&scratch).await?;
 
-        Self::new(scratch)
+        let mut this = Self::new(scratch);
+        this.scratch.delete_on_drop = true;
+        Ok(this)
     }
 
     /// Set the S3 client for this [`Storage`].

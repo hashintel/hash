@@ -1,4 +1,4 @@
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, io};
 
 use aws_config::{BehaviorVersion, Region};
 use aws_credential_types::provider::error::CredentialsError;
@@ -16,6 +16,8 @@ pub enum S3ArgsError {
     MissingRegion,
     /// The configured credential provider failed to load credentials.
     Credentials(CredentialsError),
+    /// An I/O error occurred.
+    Io(io::Error),
 }
 
 impl fmt::Display for S3ArgsError {
@@ -25,6 +27,7 @@ impl fmt::Display for S3ArgsError {
                 fmt.write_str("neither the flags nor the AWS configuration name an S3 region")
             }
             Self::Credentials(_) => fmt.write_str("the S3 credentials did not load"),
+            Self::Io(_) => fmt.write_str("an I/O error occurred"),
         }
     }
 }
@@ -34,6 +37,7 @@ impl Error for S3ArgsError {
         match self {
             Self::MissingRegion => None,
             Self::Credentials(error) => Some(error),
+            Self::Io(error) => Some(error),
         }
     }
 }
@@ -41,6 +45,12 @@ impl Error for S3ArgsError {
 impl From<CredentialsError> for S3ArgsError {
     fn from(value: CredentialsError) -> Self {
         Self::Credentials(value)
+    }
+}
+
+impl From<io::Error> for S3ArgsError {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
     }
 }
 

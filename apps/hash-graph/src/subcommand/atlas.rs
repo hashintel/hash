@@ -246,7 +246,7 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     let serve_args = match args.command {
         AtlasCommand::Fit(fit_args) => {
-            let mut storage = Storage::in_temp_dir();
+            let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
             if let Some(s3) = fit_args.s3.client().await.change_context(GraphError)? {
                 storage.set_s3(s3);
             }

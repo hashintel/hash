@@ -233,7 +233,7 @@ impl FilePath {
 
         let backend = storage.s3()?;
 
-        let mut output = ScratchFile::new(&storage.scratch).await?;
+        let mut output = ScratchFile::new(&storage.scratch.directory).await?;
         let result = backend.download(path, &mut output.file).await;
 
         output.finish(result).await.map(Cow::Owned)

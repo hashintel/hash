@@ -21,11 +21,12 @@ use super::{
     error::UploadError,
 };
 use crate::{
+    cli::Storage,
     file::{
         repository::IntegrityVerificationError,
         salt::SaltRepository,
         storage::{
-            Storage, WriteCondition,
+            WriteCondition,
             error::StorageError,
             path::{FileContents, FilePath},
         },
@@ -173,7 +174,7 @@ struct Fixture {
 
 impl Fixture {
     /// Creates a destination directory holding no objects and no faults.
-    fn new() -> Self {
+    async fn new() -> Self {
         let root = Utf8PathBuf::from_path_buf(std::env::temp_dir())
             .expect("should have a UTF-8 path")
             .join(format!("atlas-upload-fixture-{}", Uuid::now_v7()));
@@ -187,7 +188,9 @@ impl Fixture {
             _scratch: ScratchDirectory::new(root.clone()),
             root,
             destination,
-            storage: Storage::in_temp_dir(),
+            storage: Storage::in_temp_dir()
+                .await
+                .expect("should create a storage"),
             faults: RefCell::new(HashMap::new()),
             events: RefCell::new(Vec::new()),
         }
@@ -352,7 +355,7 @@ fn assert_active_matches(
 #[tokio::test]
 async fn prepare_pointer_invalid_character() {
     let (_scratch, root) = root();
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(&current_path(&fixture.root), "z".repeat(64));
 
     let error = Upload::prepare(&fixture, &root, fixture.destination())
@@ -373,7 +376,7 @@ async fn prepare_pointer_invalid_character() {
 #[tokio::test]
 async fn prepare_pointer_short() {
     let (_scratch, root) = root();
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(&current_path(&fixture.root), "0011");
 
     let error = Upload::prepare(&fixture, &root, fixture.destination())
@@ -394,7 +397,7 @@ async fn prepare_pointer_short() {
 #[tokio::test]
 async fn prepare_pointer_over_length() {
     let (_scratch, root) = root();
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(&current_path(&fixture.root), "1".repeat(65));
 
     let error = Upload::prepare(&fixture, &root, fixture.destination())
@@ -417,7 +420,7 @@ async fn prepare_pointer_over_length() {
 #[tokio::test]
 async fn prepare_storage_failure() {
     let (_scratch, root) = root();
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     fixture.fault(&current_path(&fixture.root), Fault::Generic);
 
     let error = Upload::prepare(&fixture, &root, fixture.destination())
@@ -433,7 +436,7 @@ async fn prepare_storage_failure() {
 async fn upload_creates_repository() {
     let (_scratch, root) = root();
     let (repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -503,7 +506,7 @@ async fn upload_creates_repository() {
 async fn upload_artifact_failure() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     fixture.fault(
         &repository_path(&fixture.root, id, "representations.arr"),
         Fault::Generic,
@@ -533,7 +536,7 @@ async fn upload_missing_local_content() {
     let path = root.generation_path(id).join("representations.arr");
     fs::remove_file(&path).expect("should remove the fixture artifact");
 
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
@@ -564,7 +567,7 @@ async fn upload_corrupt_local_content() {
     make_writable(&path);
     fs::write(&path, b"tampered bytes").expect("should overwrite the fixture artifact");
 
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
         .expect("should prepare against an absent current pointer");
@@ -593,7 +596,7 @@ async fn upload_corrupt_local_content() {
 async fn upload_reuse_matching() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(
         &repository_path(&fixture.root, id, "representations.arr"),
         b"representations.arr",
@@ -629,7 +632,7 @@ async fn upload_reuse_matching() {
 async fn upload_checksum_mismatch_artifact() {
     let (_scratch, root) = root();
     let (repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(
         &repository_path(&fixture.root, id, "representations.arr"),
         b"wrong bytes",
@@ -661,7 +664,7 @@ async fn upload_checksum_mismatch_artifact() {
 async fn upload_checksum_mismatch_metadata() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     seed(
         &repository_metadata_path(&fixture.root, id),
         b"wrong metadata bytes",
@@ -687,7 +690,7 @@ async fn upload_checksum_mismatch_metadata() {
 async fn promote_current_absent() {
     let (_scratch, root) = root();
     let (repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -750,7 +753,7 @@ async fn promote_current_absent() {
 async fn promote_current_replaces_previous() {
     let (_scratch, root) = root();
     let (repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
@@ -823,7 +826,7 @@ async fn promote_current_replaces_previous() {
 async fn promote_active_copy_failure() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     fixture.fault(
         &active_path(&fixture.root, id, "representations.arr"),
         Fault::Generic,
@@ -851,7 +854,7 @@ async fn promote_active_copy_failure() {
 async fn promote_active_metadata_failure() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let current = current_path(&fixture.root);
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     seed(&current, old_id.to_string());
@@ -891,7 +894,7 @@ async fn promote_active_metadata_failure() {
 async fn promote_active_metadata_mismatch() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -920,7 +923,7 @@ async fn promote_active_metadata_mismatch() {
 async fn promote_repository_metadata_mismatch() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -958,7 +961,7 @@ async fn promote_repository_metadata_mismatch() {
 async fn promote_current_conflict_present() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
@@ -1019,7 +1022,7 @@ async fn promote_current_conflict_present() {
 async fn promote_current_conflict_absent() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
@@ -1078,7 +1081,7 @@ async fn promote_current_conflict_absent() {
 async fn promote_current_construction_failure() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let current_pointer = current_path(&fixture.root);
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
@@ -1131,7 +1134,7 @@ async fn promote_current_construction_failure() {
 async fn promote_previous_write_failure() {
     let (_scratch, root) = root();
     let (_repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
     let old_id = GenerationId::from_digest(Sha256Digest::of(b"previous-generation"));
     let current_pointer = current_path(&fixture.root);
     seed(&current_pointer, old_id.to_string());
@@ -1163,7 +1166,7 @@ async fn promote_previous_write_failure() {
 async fn promote_checksum_mismatch() {
     let (_scratch, root) = root();
     let (repository, id) = publish(&root);
-    let fixture = Fixture::new();
+    let fixture = Fixture::new().await;
 
     let upload = Upload::prepare(&fixture, &root, fixture.destination())
         .await
