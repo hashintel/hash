@@ -7,7 +7,11 @@ import {
   computePeriodCost,
   computePeriodMaterialValue,
 } from "../../../shared/cost";
-import { selectStat, type BaseMeasure } from "../../../shared/measure-context";
+import {
+  MEASURE_LABELS,
+  selectStat,
+  type BaseMeasure,
+} from "../../../shared/measure-context";
 import { combinedSampleTier } from "../../../shared/sample-confidence";
 import {
   STATUS_LABELS_IN_ORDER,
@@ -27,6 +31,7 @@ import {
   matchesSelectionOperator,
   matchesStringOperator,
   numberOperators,
+  numberOperatorsFor,
   pickMultiSelectOperators,
   pickOperators,
   pickSingleSelectOperators,
@@ -66,10 +71,18 @@ export interface StepFilterContext {
   suppliersByMaterial: Map<string, Set<string>>;
 }
 
+/**
+ * Data-derived select item lists plus the display context — currency,
+ * analysis window, active measure — that unit-aware labels and input
+ * placeholders resolve against.
+ */
 export interface StepFilterOptions {
   materialItems: MultiSelectItem[];
   productItems: MultiSelectItem[];
   supplierItems: MultiSelectItem[];
+  currency: string | null;
+  timeRange: TimeRange;
+  measure: BaseMeasure;
 }
 
 export interface StepFilterValue {
@@ -84,7 +97,8 @@ export interface ActiveStepFilter {
 
 interface StepFilterDefinition {
   key: string;
-  label: string;
+  /** Static, or resolved against the display context for unit-aware labels. */
+  label: string | ((options: StepFilterOptions) => string);
   group: string;
   operators: (options: StepFilterOptions) => StepFilterOperator[];
   matches: (
@@ -146,6 +160,7 @@ const sortedItems = (byValue: Map<string, string>): MultiSelectItem[] =>
 
 export const buildStepFilterOptions = (
   rows: FilterableStepRow[],
+  display: Pick<StepFilterOptions, "currency" | "timeRange" | "measure">,
 ): StepFilterOptions => {
   const materials = new Map<string, string>();
   const products = new Map<string, string>();
@@ -166,6 +181,7 @@ export const buildStepFilterOptions = (
     }
   }
   return {
+    ...display,
     materialItems: sortedItems(materials),
     productItems: sortedItems(products),
     supplierItems: sortedItems(suppliers),
@@ -417,8 +433,35 @@ const statusAgeDaysOf = (
 
 // ── Filter definitions ──────────────────────────────────────────────────────
 
+const NUMBER_OPERATOR_KEYS = ["gte", "lte", "between"] as const;
+
 const allNumberOperators = () =>
-  pickOperators(numberOperators, ["gte", "lte", "between"]);
+  pickOperators(numberOperators, NUMBER_OPERATOR_KEYS);
+
+/** Number operators whose empty inputs show "days". */
+const dayNumberOperators = () =>
+  pickOperators(numberOperatorsFor("days"), NUMBER_OPERATOR_KEYS);
+
+/** Number operators whose empty inputs show the active currency code. */
+const currencyNumberOperators = (options: StepFilterOptions) =>
+  pickOperators(
+    numberOperatorsFor(options.currency ?? undefined),
+    NUMBER_OPERATOR_KEYS,
+  );
+
+/** "(12m)" suffix for period-scoped metrics; the currency itself lives in
+ * the input placeholder rather than the label to avoid stating it twice. */
+const periodSuffix = (options: StepFilterOptions): string =>
+  ` (${options.timeRange})`;
+
+/** Resolve a definition's label against the display context. */
+export const stepFilterLabel = (
+  definition: Pick<StepFilterDefinition, "label">,
+  options: StepFilterOptions,
+): string =>
+  typeof definition.label === "function"
+    ? definition.label(options)
+    : definition.label;
 
 export const STEP_FILTER_DEFINITIONS = [
   // Scope
@@ -523,9 +566,9 @@ export const STEP_FILTER_DEFINITIONS = [
   // Magnitude
   {
     key: "measureValue",
-    label: "Observed days",
+    label: (options) => `Observed days (${MEASURE_LABELS[options.measure]})`,
     group: "Magnitude",
-    operators: allNumberOperators,
+    operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,
@@ -536,9 +579,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "materialValue",
-    label: "Material value",
+    label: (options) => `Material value${periodSuffix(options)}`,
     group: "Magnitude",
-    operators: allNumberOperators,
+    operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,
@@ -549,9 +592,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "carryingCost",
-    label: "Carrying cost",
+    label: (options) => `Carrying cost${periodSuffix(options)}`,
     group: "Magnitude",
-    operators: allNumberOperators,
+    operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,
@@ -562,9 +605,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "excessVsPolicy",
-    label: "Excess vs policy (days)",
+    label: "Excess vs policy",
     group: "Magnitude",
-    operators: allNumberOperators,
+    operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,
@@ -656,9 +699,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "bufferReleasable",
-    label: "Buffer releasable (days)",
+    label: "Buffer releasable",
     group: "Planning",
-    operators: allNumberOperators,
+    operators: dayNumberOperators,
     matches: (row, value) =>
       matchesNumberOperator(value.key, bufferReleasableOf(row), value.value),
     isApplicable: (row) => bufferReleasableOf(row) != null,
@@ -706,9 +749,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "changeDays",
-    label: "Change (days)",
+    label: "Change",
     group: "Change",
-    operators: allNumberOperators,
+    operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(value.key, changeDaysOf(row, context), value.value),
     isApplicable: (row, context) => changeDaysOf(row, context) != null,
@@ -717,7 +760,7 @@ export const STEP_FILTER_DEFINITIONS = [
     key: "valueWeightedChange",
     label: "Value-weighted change",
     group: "Change",
-    operators: allNumberOperators,
+    operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,
@@ -758,9 +801,9 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "statusAge",
-    label: "Status age (days)",
+    label: "Status age",
     group: "Workflow",
-    operators: allNumberOperators,
+    operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
         value.key,

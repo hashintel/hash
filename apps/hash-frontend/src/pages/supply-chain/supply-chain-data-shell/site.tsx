@@ -429,8 +429,13 @@ export const SiteOverview = ({
     [dwellRows, planningRows, trendRows],
   );
   const stepFilterOptions = useMemo(
-    () => buildStepFilterOptions(allStepRows),
-    [allStepRows],
+    () =>
+      buildStepFilterOptions(allStepRows, {
+        currency: siteCurrency,
+        timeRange,
+        measure,
+      }),
+    [allStepRows, siteCurrency, timeRange, measure],
   );
   const stepFilterContext = useMemo(
     () =>

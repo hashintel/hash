@@ -11,19 +11,26 @@ export type StepFilterOperator = FilterOperator<Record<string, unknown>>;
 
 type OperatorConfig = Omit<StepFilterOperator, "key">;
 
-const numberInput: FilterInput = { type: "float" };
-
 export const stringOperators = {
   contains: { label: "contains", input: { type: "string" } },
   notContains: { label: "does not contain", input: { type: "string" } },
   is: { label: "is", input: { type: "string" } },
 } satisfies Record<string, OperatorConfig>;
 
-export const numberOperators = {
-  gte: { label: "at least", input: numberInput },
-  lte: { label: "at most", input: numberInput },
-  between: { label: "between", input: [numberInput, "and", numberInput] },
-} satisfies Record<string, OperatorConfig>;
+/**
+ * Number operators; the optional placeholder puts the value's unit ("days",
+ * a currency code, …) inside the empty inputs.
+ */
+export const numberOperatorsFor = (placeholder?: string) => {
+  const numberInput: FilterInput = { type: "float", placeholder };
+  return {
+    gte: { label: "at least", input: numberInput },
+    lte: { label: "at most", input: numberInput },
+    between: { label: "between", input: [numberInput, "and", numberInput] },
+  } satisfies Record<string, OperatorConfig>;
+};
+
+export const numberOperators = numberOperatorsFor();
 
 type SingleSelectItems = FilterSingleSelectInput["items"];
 type MultiSelectItems = FilterMultiSelectInput["items"];
