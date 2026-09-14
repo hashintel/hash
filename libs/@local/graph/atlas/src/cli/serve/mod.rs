@@ -146,7 +146,7 @@ pub struct ServeCommand {
 }
 
 impl ServeCommand {
-    /// Constructs a local-only serving invocation with fixed integration-test parameters.
+    /// Constructs a local-only invocation with fixed integration-test parameters.
     #[cfg(feature = "test-utils")]
     pub(crate) fn for_integration(root: GenerationRoot, secret: ServeSecret) -> Self {
         Self::new(
@@ -164,7 +164,7 @@ impl ServeCommand {
         Self::from((root, args))
     }
 
-    /// Constructs HTTP routes and unstarted generation-maintenance and download tasks.
+    /// Constructs HTTP routes and unstarted maintenance and download tasks.
     ///
     /// The read API answers 503 until maintenance publishes a generation. The liveness route
     /// answers outside request budgets. [`VisibilityLimits::hard`] becomes the authority token

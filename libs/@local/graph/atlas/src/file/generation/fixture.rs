@@ -50,7 +50,7 @@ fn binding<A: Artifact>(seed: &str) -> Binding<A> {
 }
 
 /// Builds the reproducibility configuration a fixture repository records.
-fn config(seed: u64) -> FitConfig {
+const fn config(seed: u64) -> FitConfig {
     FitConfig {
         seed,
         selection: SelectionOptions {
@@ -138,7 +138,7 @@ fn evidence() -> Evidence {
     }
 }
 
-/// Builds the metadata document every generation fixture publishes.
+/// Builds metadata whose artifact digests hash each file's name.
 pub(super) fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V2,
@@ -194,6 +194,10 @@ pub(super) fn repository() -> SaltRepository {
 }
 
 /// Restores write permission for tampering with published bytes.
+///
+/// # Panics
+///
+/// Panics if the file's metadata cannot be read or its permissions cannot be changed.
 #[expect(
     clippy::permissions_set_readonly_false,
     reason = "the test tampers with its own scratch files"
@@ -210,6 +214,10 @@ pub(super) fn make_writable(path: &camino::Utf8Path) {
 ///
 /// The whitespace preserves valid JSON while distinguishing the original encoding from a
 /// reserialized document.
+///
+/// # Panics
+///
+/// Panics if staging or publication fails, or if any subsequent filesystem operation fails.
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the seal consumes the staging, and the suggested merge would skip staging the \
@@ -247,6 +255,10 @@ pub(super) fn publish_noncanonical(
 }
 
 /// Stages every manifest file, writing each file's name as its content.
+///
+/// # Panics
+///
+/// Panics if any manifest file cannot be created or written in `staging`.
 pub(super) fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let mut file = staging
@@ -258,6 +270,10 @@ pub(super) fn stage_all(staging: &StagedGeneration, repository: &SaltRepository)
 }
 
 /// Opens an empty generation root, returning the handle that removes its directory.
+///
+/// # Panics
+///
+/// Panics if the temporary directory path is not UTF-8 or the generation root cannot be opened.
 pub(super) fn root() -> (ScratchDirectory, GenerationRoot) {
     let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temporary directory should have a UTF-8 path")

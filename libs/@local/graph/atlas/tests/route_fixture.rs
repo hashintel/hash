@@ -24,7 +24,10 @@ use serde_json::{Value, json};
 use tokio::time::{sleep, timeout};
 use tower::ServiceExt as _;
 
+/// The response header carrying the issued authority token.
 const AUTHORITY_HEADER: &str = "atlas-authority";
+
+/// The route serving the OpenAPI document.
 const OPENAPI_PATH: &str = "/v1/atlas/openapi.json";
 
 /// Sends one request through the production router and consumes its body.
@@ -90,6 +93,7 @@ enum Cbor {
     Array(Vec<Self>),
     /// An integer-keyed map, major type 5, in encoded order.
     Map(Vec<(u64, Self)>),
+    /// A simple value or float, major type 7, decoded as a marker.
     Other,
 }
 

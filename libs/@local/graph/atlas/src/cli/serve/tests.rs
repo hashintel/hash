@@ -1,4 +1,4 @@
-//! Request-layer ordering and generation-task setup for serving.
+//! Request-layer ordering and background-task selection for the serving command.
 
 use alloc::{rc::Rc, sync::Arc};
 use core::{
@@ -178,7 +178,6 @@ async fn problem(response: Response) -> serde_json::Value {
     serde_json::from_slice(&bytes).expect("the problem body should be JSON")
 }
 
-/// Rejects an unavailable source backend before constructing serving tasks.
 #[tokio::test]
 async fn download_backend_unconfigured() {
     let (_scratch, serving) = serving(&["--download", "s3://generation-bucket/prefix"]).await;
@@ -216,7 +215,6 @@ async fn tasks_download_selection() {
     }
 }
 
-/// Authenticated requests consume the actor budget and receive the rate-limit problem.
 #[tokio::test]
 async fn layers_actor_budget() {
     let (_scratch, serving) = serving(&[]).await;
@@ -238,7 +236,6 @@ async fn layers_actor_budget() {
     assert_eq!(document["status"], 429);
 }
 
-/// A protected route refuses missing credentials before generation lookup.
 #[tokio::test]
 async fn layers_without_credentials() {
     let (_scratch, serving) = serving(&[]).await;
@@ -250,7 +247,6 @@ async fn layers_without_credentials() {
     assert_eq!(document["status"], 401);
 }
 
-/// Liveness remains available without credentials or a loaded generation.
 #[tokio::test]
 async fn liveness_without_credentials() {
     let (_scratch, serving) = serving(&[]).await;

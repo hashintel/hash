@@ -377,9 +377,15 @@ pub(crate) struct GenerationManagerTask {
 impl GenerationManagerTask {
     /// Maintains generations until shutdown, then joins all owned work.
     ///
+    /// Dropping this future before completion drops its owned manager. That requests feed shutdown
+    /// but cannot join it. Offloaded filesystem operations already submitted to Rayon also continue
+    /// without a result receiver.
+    ///
     /// # Panics
     ///
-    /// Panics when polled without a time-enabled Tokio runtime.
+    /// Panics when polled without a time-enabled Tokio runtime. A sufficiently late tick can also
+    /// panic when adding [`ManagerOptions::poll_interval`] to the current instant would exceed
+    /// Tokio's representable deadline.
     pub(crate) async fn run(mut self, shutdown: impl Future<Output = ()>) {
         self.manager.run(shutdown).await;
     }
