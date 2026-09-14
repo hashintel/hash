@@ -185,3 +185,9 @@ pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
+#[expect(
+    dead_code,
+    unreachable_pub,
+    reason = "the read API that consumes the serving layer lands above this PR in the stack"
+)]
+pub(crate) mod serve;
