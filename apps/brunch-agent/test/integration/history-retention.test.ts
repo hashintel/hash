@@ -30,6 +30,24 @@ const overflowContinuations = (directory: string) => {
   return trace.filter((event) => event.boundary === "continueRebuilt");
 };
 
+test("built app projects provider context without changing retained history", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "brunch-a4-projection-"));
+  try {
+    const result = await runNodeScript(
+      join(import.meta.dirname, "history-retention.integration.ts"),
+      join(import.meta.dirname, "../../../.."),
+      {
+        A4_OUTPUT_DIRECTORY: directory,
+        A4_PROJECTION_ORACLE: "1",
+      },
+    );
+    expect(result.exitCode, result.stderr + result.stdout).toBe(0);
+    expect(result.stdout).toContain("A4_CREATE_PASS");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 30000);
+
 test.each(["threshold", "silent", "explicit", "cancelled"])(
   "existing-tool history survives folding or active Stop (%s)",
   async (kind) => {
