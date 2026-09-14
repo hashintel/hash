@@ -21,7 +21,6 @@ import { loadEnv } from "vite";
 
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
-import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
@@ -35,6 +34,11 @@ import {
   readPersonaResume,
   reconcilePersonaResume,
 } from "./launch/resume.ts";
+import {
+  resolvePersonaRoleSettings,
+  roleSettingsFromRun,
+  type PersonaRoleSettings,
+} from "./launch/role-settings.ts";
 import {
   refreshProofManifest,
   writeProofArtifacts,
@@ -92,14 +96,14 @@ export const readPersonaCase = async (directory: string) => {
 
 export const personaArguments = (
   run: string,
-  model: string,
+  roles: PersonaRoleSettings,
   socketPath: string,
   piSession?: string,
 ) => [
   "--model",
-  `anthropic/${model}`,
+  roles.personaModel,
   "--thinking",
-  "medium",
+  roles.personaThinking,
   "--no-extensions",
   "--extension",
   join(appRoot, ".pi/extensions/brunch-persona-testing.ts"),
@@ -126,14 +130,17 @@ const save = (path: string, value: unknown) =>
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-export const personaEnvironment = () => {
+export const personaEnvironment = (
+  roles: PersonaRoleSettings = resolvePersonaRoleSettings(),
+) => {
   // Same loader and shell precedence as the normal development app.
   if (process.env.DEBUG)
     throw new Error(
       "Unset DEBUG before persona launch; environment values must not be logged",
     );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
-  loaded.BRUNCH_CHAT_MODEL = STEP_A_MODEL_ID;
+  loaded.BRUNCH_CHAT_MODEL = roles.brunchModel;
+  loaded.BRUNCH_CHAT_THINKING = roles.brunchThinking;
   // An explicit empty value also overrides Vite env files on backend startup.
   // Historical campaign ledgers must not gate persona requests or resumed runs.
   loaded.BRUNCH_STEP_A_ACCOUNTING = "";
@@ -158,21 +165,27 @@ export const paneIdFrom = (stdout: string) => {
 };
 
 const runPersona = async (run: string) => {
-  const config = JSON.parse(await readFile(join(run, "run.json"), "utf8")) as {
-    model: string;
-    socketPath: string;
-    piSession?: string;
-  };
-  if (config.model !== STEP_A_MODEL_ID)
-    throw new Error("Persona run must use the selected Sonnet model");
+  const config: unknown = JSON.parse(
+    await readFile(join(run, "run.json"), "utf8"),
+  );
+  const roles = roleSettingsFromRun(config);
+  const fields =
+    typeof config === "object" && config !== null && !Array.isArray(config)
+      ? (config as Record<string, unknown>)
+      : {};
+  const socketPath =
+    typeof fields.socketPath === "string" ? fields.socketPath : undefined;
+  const piSession =
+    typeof fields.piSession === "string" ? fields.piSession : undefined;
+  if (!socketPath) throw new Error("Persona run is missing its private socket");
   const child = spawn(
     "pi",
-    personaArguments(run, config.model, config.socketPath, config.piSession),
+    personaArguments(run, roles, socketPath, piSession),
     {
       cwd: appRoot,
       stdio: "inherit",
       env: {
-        ...personaEnvironment(),
+        ...personaEnvironment(roles),
         PI_CODING_AGENT_DIR: join(run, "pi"),
         PI_SUBAGENT_NAME: basename(run),
         PI_OFFLINE: "1",
@@ -283,6 +296,7 @@ export const launchPersona = async (
   route = "/",
   initialNetPath?: string,
   resume?: Awaited<ReturnType<typeof readPersonaResume>>,
+  roles: PersonaRoleSettings = resolvePersonaRoleSettings(),
 ) => {
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
@@ -297,8 +311,8 @@ export const launchPersona = async (
     throw new Error(
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
     );
-  const env = personaEnvironment();
-  const model = STEP_A_MODEL_ID;
+  const settings = resume ? roleSettingsFromRun(resume.config) : roles;
+  const env = personaEnvironment(settings);
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -338,7 +352,10 @@ export const launchPersona = async (
   });
   const record = {
     caseDirectory,
-    model,
+    brunchModel: settings.brunchModel,
+    brunchThinking: settings.brunchThinking,
+    personaModel: settings.personaModel,
+    personaThinking: settings.personaThinking,
     databasePath: env.BRUNCH_DEV_DB_PATH,
     browserProfile,
     panelOrigin,
@@ -386,7 +403,7 @@ export const launchPersona = async (
       { mode: 0o600 },
     );
     report(
-      "Sonnet configuration verified; credential validity untested. Pi verifies its native selection again on startup.",
+      `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested. Pi verifies ${settings.personaModel} (${settings.personaThinking}) on startup.`,
     );
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
@@ -489,7 +506,7 @@ export const launchPersona = async (
       }, title);
       await personaPage.bringToFront();
       report(
-        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
+        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch ${settings.brunchModel} (${settings.brunchThinking}) + Pi ${settings.personaModel} (${settings.personaThinking})\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
       );
       const terminal = createInterface({
         input: process.stdin,
@@ -598,10 +615,7 @@ export const launchPersona = async (
     // Credentials stay in a run-private env file, never in Herdr/process argv.
     await writeFile(
       join(run, "pane.env"),
-      [
-        `export ANTHROPIC_API_KEY=${shellQuote(key)}`,
-        `export BRUNCH_CHAT_MODEL=${shellQuote(model)}`,
-      ].join("\n") + "\n",
+      [`export ANTHROPIC_API_KEY=${shellQuote(key)}`].join("\n") + "\n",
       { mode: 0o600 },
     );
     await execute("herdr", [
@@ -673,6 +687,10 @@ if (
       objective: { type: "string" },
       "initial-net": { type: "string" },
       route: { type: "string" },
+      "brunch-model": { type: "string" },
+      "brunch-thinking": { type: "string" },
+      "persona-model": { type: "string" },
+      "persona-thinking": { type: "string" },
       resume: { type: "string" },
       "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
@@ -680,7 +698,7 @@ if (
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT, OPENAI_API_KEY for the default Brunch model, and ANTHROPIC_API_KEY for the persona. Ctrl-C stops owned resources; run data is retained.",
     );
     report(
       "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database and Pi session. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
@@ -704,6 +722,10 @@ if (
         values.objective ||
         values.route ||
         values["initial-net"] ||
+        values["brunch-model"] ||
+        values["brunch-thinking"] ||
+        values["persona-model"] ||
+        values["persona-thinking"] ||
         values["run-persona"]
       )
         throw new Error(
@@ -735,6 +757,13 @@ if (
                     values["initial-net"],
                   )
                 : undefined,
+              undefined,
+              resolvePersonaRoleSettings({
+                brunchModel: values["brunch-model"],
+                brunchThinking: values["brunch-thinking"],
+                personaModel: values["persona-model"],
+                personaThinking: values["persona-thinking"],
+              }),
             )
           : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {

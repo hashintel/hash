@@ -7,6 +7,12 @@ import { promisify } from "node:util";
 
 import { afterEach, expect, test, vi } from "vitest";
 
+import {
+  PERSONA_DEFAULT_BRUNCH_MODEL,
+  PERSONA_DEFAULT_BRUNCH_THINKING,
+  PERSONA_DEFAULT_PERSONA_MODEL,
+  PERSONA_DEFAULT_PERSONA_THINKING,
+} from "../../chat-model.ts";
 import { flueConversationIdFrom } from "../../conversation/identity.ts";
 import { createStepARequestAccounting } from "../../provider-accounting.ts";
 import {
@@ -18,6 +24,10 @@ import {
   responds,
 } from "./launch.ts";
 import { readPersonaResume } from "./launch/resume.ts";
+import {
+  resolvePersonaRoleSettings,
+  roleSettingsFromRun,
+} from "./launch/role-settings.ts";
 
 test("locates the bound Petrinaut document in supported persona modes", () => {
   expect(
@@ -60,6 +70,10 @@ test("both launcher children override inherited campaign accounting", () => {
   vi.stubEnv("BRUNCH_STEP_A_ACCOUNTING", "invalid inherited campaign");
   const environment = personaEnvironment();
   expect(environment.BRUNCH_STEP_A_ACCOUNTING).toBe("");
+  expect(environment.BRUNCH_CHAT_MODEL).toBe(PERSONA_DEFAULT_BRUNCH_MODEL);
+  expect(environment.BRUNCH_CHAT_THINKING).toBe(
+    PERSONA_DEFAULT_BRUNCH_THINKING,
+  );
   expect(
     createStepARequestAccounting(environment.BRUNCH_STEP_A_ACCOUNTING),
   ).toBeUndefined();
@@ -140,6 +154,10 @@ test.each([false, true])(
       const resumed = await readPersonaResume(run);
       expect(resumed.lastUtterance).toBe("Please continue.");
       expect(resumed.piSession).toBe(join(run, "pi/sessions/original.jsonl"));
+      expect(resumed.config.brunchModel).toBe("anthropic/claude-sonnet-4-6");
+      expect(resumed.config.personaModel).toBe("anthropic/claude-sonnet-4-6");
+      expect(resumed.config.brunchThinking).toBe("medium");
+      expect(resumed.config.personaThinking).toBe("medium");
       expect(await readFile(join(run, "usage-ledger.json"), "utf8")).toBe(
         "TEST unknown historical usage; not a valid ledger",
       );
@@ -201,10 +219,11 @@ test("root launch command resolves a caller-relative case before checking intera
 test("launches a fresh restricted persona using input files, not prior session or private content arguments", () => {
   const args = personaArguments(
     "/tmp/TEST-persona",
-    "claude-sonnet-4-6",
+    resolvePersonaRoleSettings(),
     "/tmp/TEST-socket",
   );
-  expect(args).toContain("anthropic/claude-sonnet-4-6");
+  expect(args).toContain(PERSONA_DEFAULT_PERSONA_MODEL);
+  expect(args).toContain(PERSONA_DEFAULT_PERSONA_THINKING);
   expect(args).toContain("brunch_turn");
   expect(args).toContain("--no-context-files");
   expect(args).toContain("--no-builtin-tools");
@@ -224,7 +243,7 @@ test("launches a fresh restricted persona using input files, not prior session o
 test("resumes an exact Pi session without replaying the opening input", () => {
   const args = personaArguments(
     "/tmp/TEST-persona",
-    "claude-sonnet-4-6",
+    resolvePersonaRoleSettings(),
     "/tmp/TEST-new-socket",
     "/tmp/TEST-persona/pi/sessions/original.jsonl",
   );
@@ -301,4 +320,55 @@ test("reads the pane id from herdr's split result", () => {
       '{"id":"cli:pane:split","result":{"pane":{"pane_id":"w0:p23"}},"type":"pane_split"}',
     ),
   ).toBe("w0:p23");
+});
+
+test("persona defaults are independently configured mixed providers at low effort", () => {
+  const roles = resolvePersonaRoleSettings();
+  expect(roles).toEqual({
+    brunchModel: PERSONA_DEFAULT_BRUNCH_MODEL,
+    brunchThinking: PERSONA_DEFAULT_BRUNCH_THINKING,
+    personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
+    personaThinking: PERSONA_DEFAULT_PERSONA_THINKING,
+  });
+  const args = personaArguments("/tmp/TEST-persona", roles, "/tmp/TEST-socket");
+  expect(
+    args.slice(args.indexOf("--model"), args.indexOf("--model") + 4),
+  ).toEqual([
+    "--model",
+    PERSONA_DEFAULT_PERSONA_MODEL,
+    "--thinking",
+    PERSONA_DEFAULT_PERSONA_THINKING,
+  ]);
+});
+
+test("persona thinking can be raised to medium without changing Brunch", () => {
+  const roles = resolvePersonaRoleSettings({ personaThinking: "medium" });
+  expect(roles.brunchModel).toBe(PERSONA_DEFAULT_BRUNCH_MODEL);
+  expect(roles.brunchThinking).toBe("low");
+  expect(roles.personaThinking).toBe("medium");
+  expect(
+    personaArguments("/tmp/TEST-persona", roles, "/tmp/TEST-socket"),
+  ).toContain("medium");
+});
+
+test("rejects an unsupported Sol thinking level", () => {
+  expect(() =>
+    resolvePersonaRoleSettings({ brunchThinking: "minimal" }),
+  ).toThrow(/Unsupported thinking minimal/);
+});
+
+test("retains mixed role settings from run metadata", () => {
+  expect(
+    roleSettingsFromRun({
+      brunchModel: "openai/gpt-5.6-sol",
+      brunchThinking: "low",
+      personaModel: "anthropic/claude-sonnet-4-6",
+      personaThinking: "medium",
+    }),
+  ).toEqual({
+    brunchModel: "openai/gpt-5.6-sol",
+    brunchThinking: "low",
+    personaModel: "anthropic/claude-sonnet-4-6",
+    personaThinking: "medium",
+  });
 });

@@ -24,11 +24,26 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: "synthetic" }],
 });
+const openaiFaux = fauxProvider({
+  provider: "openai",
+  models: [{ id: "synthetic-openai" }],
+});
 vi.mock("@earendil-works/pi-ai/providers/anthropic", () => ({
   anthropicProvider: () => faux.provider,
 }));
+vi.mock("@earendil-works/pi-ai/providers/openai", () => ({
+  openaiProvider: () => openaiFaux.provider,
+}));
 beforeAll(async () => {
   await import("../src/app");
+});
+
+test("app registration admits both Anthropic and OpenAI providers", () => {
+  const ids = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry.id)
+    .sort();
+  expect(ids).toEqual(["anthropic", "openai"]);
 });
 
 const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
@@ -45,7 +60,10 @@ test("app registration classifies mutate_petrinaut_net as a browser tool", async
       ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
     )?.[0];
   expect(registration).toBeDefined();
-  const provider = vi.mocked(setProvider).mock.calls.at(-1)![0];
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "anthropic")!;
   const model = provider.getModels()[0]!;
   faux.setResponses([
     fauxAssistantMessage(
@@ -77,7 +95,10 @@ test("app registration scopes admission to ChatAgent execution, isolating concur
       ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
     )?.[0];
   expect(registration).toBeDefined();
-  const provider = vi.mocked(setProvider).mock.calls.at(-1)![0];
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "anthropic")!;
   expect(provider.auth).toBe(faux.provider.auth);
   expect(provider.getModels()).toEqual(faux.provider.getModels());
   const model = provider.getModels()[0]!;
