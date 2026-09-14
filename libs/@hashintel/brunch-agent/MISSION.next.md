@@ -73,6 +73,15 @@ A flagship proves one accepted product path. It does not prove every operational
 
 **7d cut audit, 2026-09-14:** compared the parent contract with its archive and the affected future drafts. The archived owner decisions and contract are unchanged except relative-link rebasing; open example gates transfer without acceptance, while distribution/breadth and wider lifecycle obligations retain their planning homes. Checked all 220 relative file/heading links across the nine changed Markdown files, required mission sections and whitespace. This verifies the documentation cut, not product behavior or upstream API suitability.
 
+**7d topology remediation close audit, 2026-09-14:** the disconnected capture/archive lane and
+consumerless runbook files are removed; the still-consumed ask contract is active under core
+`conversation/`; the Linear graph utility is parked; package direction and source/test separation
+are mechanically checked; library externals follow their manifests. The architecture negative
+control, affected Brunch integration tests, library gates, bundle inspection, formatting, and
+targeted website ask consumers pass. The website's full unit gate remains independently red in the
+Voice browser-tools test because Monaco reads a missing `CSS.escape`; it fails unchanged outside
+this remediation's paths and is not treated as topology proof.
+
 ### Beyond the demo — distribution and portfolio breadth, unscheduled
 
 The [future draft](docs/mission-drafts/worked-example-distribution-and-breadth.md) consumes an accepted original example. It owns fixture extraction/distribution, connected-bundle copying and tiered portfolio breadth, including their carried capability gaps and proof obligations. These are deferred beyond the demo, not automatically next after Mission 7d. Numbering, priority, issue and branch assignment remain for an owner-authorized cut; collecting readable review artifacts does not activate this scope.
