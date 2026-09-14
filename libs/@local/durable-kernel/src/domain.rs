@@ -309,6 +309,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
 fn event_declaration<E: DomainEvent>() -> RecordDeclaration {
     RecordDeclaration {
         name: E::name(),
+        codec: core::any::TypeId::of::<E>(),
         owning_module: "kernel::domain",
         emitted_version: 1,
         supported_versions: &[1],
@@ -467,12 +468,10 @@ pub type ReadResult = Box<dyn Any + Send>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Never {}
 
-/// The record declaration for [`Hosted`] snapshots.
-///
-/// All application domains use the same snapshot format. Their separate shard logs allow them
-/// to share this record name.
+/// Metadata shared by application snapshot declarations.
 static DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     name: "domain_projection_snapshot",
+    codec: core::any::TypeId::of::<()>(),
     owning_module: "kernel::domain",
     emitted_version: 1,
     supported_versions: &[1],
@@ -480,6 +479,14 @@ static DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     durability: DurabilityClass::ImmutableJournal,
     migration: MigrationPolicy::NeverRetireWhileUntrimmed,
 };
+
+fn snapshot_declaration<S: SimpleDomain>() -> RecordDeclaration {
+    RecordDeclaration {
+        name: core::any::type_name::<ProjectionSnapshot<S>>(),
+        codec: core::any::TypeId::of::<S::Projection>(),
+        ..DOMAIN_SNAPSHOT_DECLARATION
+    }
+}
 
 const MAX_SNAPSHOT_BYTES: usize = 15 * 1024 * 1024;
 
@@ -558,7 +565,8 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
     fn declaration() -> &'static RecordDeclaration {
-        &DOMAIN_SNAPSHOT_DECLARATION
+        registry::intern_declaration(snapshot_declaration::<S>())
+            .unwrap_or_else(|error| panic!("hosted snapshot name should be usable: {error}"))
     }
 
     fn encode(&self) -> Result<Vec<u8>, CompatError> {
@@ -629,7 +637,7 @@ impl<S> Copy for Hosted<S> {}
 /// invalid.
 pub fn register<S: SimpleDomain>() -> Result<(), DeclarationError> {
     registry::intern_declaration(event_declaration::<S::Event>())?;
-    registry::intern_declaration(DOMAIN_SNAPSHOT_DECLARATION)?;
+    registry::intern_declaration(snapshot_declaration::<S>())?;
     Ok(())
 }
 
@@ -1536,6 +1544,77 @@ mod tests {
                 actual_bytes: MAX_PARTITION_KEY_BYTES + 1
             })
         );
+    }
+
+    #[derive(Clone, Serialize, Deserialize)]
+    struct OtherCounterEvent(CounterEvent);
+
+    impl DomainEvent for OtherCounterEvent {
+        fn name() -> &'static str {
+            CounterEvent::name()
+        }
+
+        fn partition(&self) -> PartitionKey {
+            self.0.partition()
+        }
+    }
+
+    #[test]
+    fn registration_conflicting_event_type() {
+        register::<ToyDomain>().expect("toy domain should register");
+        let error = registry::intern_declaration(super::event_declaration::<OtherCounterEvent>())
+            .expect_err("another event type with the same name should be rejected");
+        assert!(matches!(error, registry::DeclarationError::Invalid { .. }));
+    }
+
+    #[tokio::test]
+    async fn snapshot_failed_attempt_interval() {
+        register::<ToyDomain>().expect("toy domain should register");
+        let root = tempfile::tempdir().expect("object store root should be created");
+        let record = incremented("orders", 5);
+        let shard = shard_of(&record.partition);
+        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let (handle, started) = start(location).await;
+        handle
+            .propose(record)
+            .await
+            .expect("event should be applied");
+        let payload = handle
+            .capture_snapshot(1)
+            .await
+            .expect("capture should succeed")
+            .expect("snapshot should be due");
+        let snapshot = payload.into_record("x".repeat(MAX_SNAPSHOT_BYTES));
+        handle
+            .commit_snapshot(snapshot)
+            .await
+            .expect_err("oversized snapshot should fail");
+        assert!(
+            handle
+                .capture_snapshot(1)
+                .await
+                .expect("capture should succeed")
+                .is_none(),
+            "unchanged state should not be captured again after failure"
+        );
+        handle
+            .propose(incremented("orders", 7))
+            .await
+            .expect("next event should be applied");
+        assert!(
+            handle
+                .capture_snapshot(1)
+                .await
+                .expect("capture should succeed")
+                .is_some(),
+            "new journal progress should permit another snapshot attempt"
+        );
+        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .task
+            .await
+            .expect("loop task should join")
+            .expect("loop should stop cleanly");
     }
 
     #[test]

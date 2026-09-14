@@ -4,7 +4,8 @@
 //! format version, ID algorithm versions, and rules for upgrading stored records.
 //! Declarations are registered before reading or appending a shard log. The
 //! process-wide registry rejects conflicting declarations for the same name,
-//! preventing one codec from reading another codec's records.
+//! including their declared codec identities. Applications must keep stored formats compatible
+//! across builds.
 //!
 //! [`crate::domain`] supplies these declarations for application events and snapshots. Custom
 //! records implement [`DurableRecord`] and register through [`intern_declaration`].
@@ -46,6 +47,8 @@ pub struct AlgorithmVersion {
 /// codecs or version rules under an existing name fails.
 pub struct RecordDeclaration {
     pub name: &'static str,
+    /// Identifies the codec within this process. Use `TypeId::of::<RecordType>()`.
+    pub codec: core::any::TypeId,
     pub owning_module: &'static str,
     pub emitted_version: u32,
     pub supported_versions: &'static [u32],
@@ -249,6 +252,7 @@ mod tests {
     const fn declaration(name: &'static str) -> RecordDeclaration {
         RecordDeclaration {
             name,
+            codec: core::any::TypeId::of::<()>(),
             owning_module: "durable_kernel::registry::tests",
             emitted_version: 1,
             supported_versions: &[1],

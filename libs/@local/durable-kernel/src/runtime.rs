@@ -162,12 +162,15 @@ impl Kernel {
     ///
     /// # Errors
     ///
-    /// Returns an error when storage initialization or shard recovery fails.
+    /// Returns an error when domain registration, storage initialization, or shard recovery fails.
     pub async fn start<S, X>(&self, executor: X) -> Result<RunningKernel<S>, Report<KernelError>>
     where
         S: SimpleDomain,
         X: Executor<S>,
     {
+        domain::register::<S>().change_context_lazy(|| {
+            KernelError::Registration("conflicting record declarations".to_owned())
+        })?;
         let executor = Arc::new(executor);
         let shutdown = CancellationToken::new();
         let storage = LogStorageOptions {
@@ -455,6 +458,16 @@ where
     }
 }
 
+fn retain_planned_effects<E>(
+    effects: &[(String, E)],
+    executed: &mut BTreeSet<String>,
+    retries: &mut BTreeMap<String, tokio::time::Instant>,
+) {
+    let planned_ids: BTreeSet<_> = effects.iter().map(|(id, _)| id.as_str()).collect();
+    executed.retain(|id| planned_ids.contains(id.as_str()));
+    retries.retain(|id, _| planned_ids.contains(id.as_str()));
+}
+
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "tokio select uses modulo to choose its polling order"
@@ -484,14 +497,19 @@ where
             Ok(effects) => effects,
             Err(error) => return settle_driver_error(error, &shutdown),
         };
+        let effects = effects
+            .into_iter()
+            .map(|effect| effect_id(&effect).map(|id| (id, effect)))
+            .collect::<Result<Vec<_>, _>>()
+            .change_context_lazy(|| {
+                KernelError::Internal("effect identity serialization failed".to_owned())
+            })?;
+        retain_planned_effects(&effects, &mut executed, &mut retries);
         let mut progressed = false;
-        for effect in effects {
+        for (id, effect) in effects {
             if shutdown.is_cancelled() {
                 return Ok(());
             }
-            let id = effect_id(&effect).change_context_lazy(|| {
-                KernelError::Internal("effect identity serialization failed".to_owned())
-            })?;
             if executed.contains(&id) {
                 continue;
             }
@@ -774,6 +792,59 @@ mod tests {
     async fn kernel_end_to_end_executes_effects_once_and_recovers() {
         let blob = tempfile::tempdir().expect("blob root tempdir should be created");
         exercise_end_to_end(&format!("file://{}", blob.path().display())).await;
+    }
+
+    #[tokio::test]
+    async fn effect_reintroduced_after_completion() {
+        let blob = tempfile::tempdir().expect("blob root should be created");
+        let partition = PartitionKey::parse("orders").expect("partition should parse");
+        let external = Arc::new(Mutex::new(Vec::new()));
+        let kernel = Kernel::open(config(
+            &format!("file://{}", blob.path().display()),
+            domain::shard_of(&partition).get(),
+        ))
+        .expect("kernel should open")
+        .register::<RtDomain>()
+        .expect("domain should register");
+        let running = kernel
+            .start(ArchiveExecutor {
+                threshold: 10,
+                external: Arc::clone(&external),
+            })
+            .await
+            .expect("kernel should start");
+        running
+            .submit(increment("orders", 1, 10))
+            .await
+            .expect("first event should apply");
+        wait_until(async || {
+            running
+                .read(&partition, |state| state.archived.len())
+                .await
+                .expect("state should be readable")
+                == 1
+        })
+        .await;
+        // A different total makes the driver observe a plan without the first effect.
+        running
+            .submit(increment("orders", 2, 11))
+            .await
+            .expect("second event should apply");
+        wait_until(async || {
+            running
+                .read(&partition, |state| state.archived.len())
+                .await
+                .expect("state should be readable")
+                == 2
+        })
+        .await;
+        running
+            .submit(increment("orders", 3, 10))
+            .await
+            .expect("third event should apply");
+        wait_until(async || external.lock().expect("mutex should not be poisoned").len() == 3)
+            .await;
+        running.shutdown().await.expect("shutdown should succeed");
     }
 
     /// Checks recovery using an S3-compatible endpoint.

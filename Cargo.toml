@@ -139,6 +139,7 @@ camino                             = { version = "1.1.12", default-features = fa
 cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
 chacha20poly1305                   = { version = "0.10.1", default-features = false, features = ["alloc"] }
+chrono                             = { version = "0.4", default-features = false }
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
@@ -182,6 +183,7 @@ guppy                              = { version = "0.17.20", default-features = f
 hannoy                             = { version = "0.1.7-nested-rtxns" }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 heed                               = { version = "0.22.1" }
+hex                                = { version = "0.4", default-features = false }
 hifijson                           = { version = "0.4.0", default-features = false }
 hkdf                               = { version = "0.13.0", default-features = false }
 hmac                               = { version = "0.13.0", default-features = false }
@@ -226,6 +228,8 @@ napi-derive                        = { version = "3.5.6", default-features = fal
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
+opendata_common                    = { package = "opendata-common", version = "0.1.17" }
+opendata_log                       = { package = "opendata-log", version = "1.0.0" }
 opentelemetry                      = { version = "0.32.0", default-features = false }
 opentelemetry-appender-tracing     = { version = "0.32.0", default-features = false }
 opentelemetry-otlp                 = { version = "0.32.0", default-features = false }
@@ -279,6 +283,7 @@ sha2                               = { version = "0.11.0", default-features = fa
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 siphasher                          = { version = "1.0.3", default-features = false }
+slatedb                            = { version = "0.13.1" }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
@@ -293,6 +298,7 @@ supports-color                     = { version = "3.0.2", default-features = fal
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
+tempfile                           = { version = "3" }
 temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
 temporalio-common                  = { version = "0.5.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }

@@ -179,7 +179,7 @@ impl<D: Domain> ShardCommandHandle<D> {
     }
 
     /// Captures a snapshot after at least `minimum_sequence_span` journal positions have passed
-    /// since the last committed snapshot.
+    /// since the last capture attempt. Failed attempts also count toward this interval.
     ///
     /// Returns `None` if the span is too small or the domain skips capture.
     ///
@@ -574,7 +574,7 @@ impl<D: Domain> RecoveredShard<D> {
             location: self.location,
             writer: self.writer.take(),
             projection: self.projection,
-            last_snapshot_through_log_sequence: self.last_snapshot_through_log_sequence,
+            last_snapshot_attempt_through_log_sequence: self.last_snapshot_through_log_sequence,
             snapshot_context: self.snapshot_context,
             safe_append_retries: config.safe_append_retries,
             recovery_mode: config.recovery_mode,
@@ -636,7 +636,7 @@ struct CommandLoop<D: Domain> {
     location: ShardLogLocation,
     writer: Option<ShardLogWriter>,
     projection: D::Projection,
-    last_snapshot_through_log_sequence: Option<u64>,
+    last_snapshot_attempt_through_log_sequence: Option<u64>,
     snapshot_context: Option<D::SnapshotContext>,
     safe_append_retries: u32,
     recovery_mode: RecoveryMode,
@@ -732,13 +732,14 @@ impl<D: Domain> CommandLoop<D> {
                 } => {
                     let capture = D::through_sequence(&self.projection)
                         .filter(|through| {
-                            let span = self.last_snapshot_through_log_sequence.map_or_else(
+                            let span = self.last_snapshot_attempt_through_log_sequence.map_or_else(
                                 || through.saturating_add(1),
                                 |previous| through.saturating_sub(previous),
                             );
                             span >= minimum_sequence_span.max(1)
                         })
-                        .and_then(|_through| {
+                        .and_then(|through| {
+                            self.last_snapshot_attempt_through_log_sequence = Some(through);
                             D::capture_snapshot(self.location.shard, &self.projection)
                         });
                     let _: Result<_, _> = reply.send(Ok(capture));
@@ -956,6 +957,12 @@ impl<D: Domain> CommandLoop<D> {
             });
         }
 
+        crate::registry::require_interned::<D::Snapshot>()
+            .map_err(|error| recovery(error.to_string()))?;
+        let bytes = bytes::Bytes::from(snapshot.encode().map_err(|error| ShardCommandError {
+            kind: ShardCommandErrorKind::InvalidCandidate,
+            message: error.to_string(),
+        })?);
         let mut safe_failures = 0_u32;
         loop {
             #[cfg(any(test, feature = "test-util"))]
@@ -970,9 +977,18 @@ impl<D: Domain> CommandLoop<D> {
                 .writer
                 .as_ref()
                 .ok_or_else(|| recovery("shard writer is unavailable"))?;
-            match writer.append_projection_snapshot(&snapshot).await {
+            match writer
+                .append_encoded(
+                    super::PROJECTION_SNAPSHOTS_KEY,
+                    bytes.clone(),
+                    super::AppendFault::None,
+                )
+                .await
+            {
                 Ok(sequence) => {
-                    self.last_snapshot_through_log_sequence = Some(snapshot_through);
+                    self.last_snapshot_attempt_through_log_sequence = self
+                        .last_snapshot_attempt_through_log_sequence
+                        .max(Some(snapshot_through));
                     return Ok(sequence);
                 }
                 Err(error) if error.kind == AppendFailureKind::DefinitelyNotCommitted => {
@@ -1047,7 +1063,9 @@ impl<D: Domain> CommandLoop<D> {
         .await?;
         D::validate_recovered_prefix(&self.projection, &recovered.projection).map_err(recovery)?;
         self.projection = recovered.projection;
-        self.last_snapshot_through_log_sequence = recovered.snapshot_through_log_sequence;
+        self.last_snapshot_attempt_through_log_sequence = self
+            .last_snapshot_attempt_through_log_sequence
+            .max(recovered.snapshot_through_log_sequence);
         Ok(())
     }
 
