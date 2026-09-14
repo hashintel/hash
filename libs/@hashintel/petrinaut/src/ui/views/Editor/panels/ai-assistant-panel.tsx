@@ -614,9 +614,6 @@ const ConversationAiAssistantPanel = ({
     return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
   }, [instance, requestDiagnosticsRef]);
 
-  /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
-     above: the refs are only read when the wrapped transport runs, never during
-     render. The lint rule can't see that. */
   // The wrapper is render-derived from the host transport. Delaying this to an
   // effect leaves useChat on the previous host for one committed render.
   // Timing stays outside diagnostics so it tags receipt of the response chunks.
@@ -630,7 +627,6 @@ const ConversationAiAssistantPanel = ({
       ),
     [aiAssistant.transport, readDiagnosticsContext],
   );
-  /* eslint-enable react-hooks-js/refs */
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
   // are otherwise opaque to the user — `useChat` resets `status` to `"ready"`
