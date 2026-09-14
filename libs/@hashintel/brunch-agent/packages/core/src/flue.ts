@@ -246,7 +246,9 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
         lookup.sha256 !== services.currentRevision?.sha256
       )
         throw new Error("Current workpiece hash does not match its content.");
-      const eligible = (await services.readSources()).filter(
+      const sources =
+        data.includeSources === false ? [] : await services.readSources();
+      const eligible = sources.filter(
         (
           source,
         ): source is WorkpieceEvidenceSource & {
@@ -279,15 +281,12 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
           state: services.currentRevision
             ? ("current" as const)
             : ("unknown" as const),
-          sources:
-            data.includeSources === false
-              ? []
-              : eligible.map((source) => ({
-                  ...source,
-                  text: source.text.slice(0, 8192),
-                  textTruncated: source.text.length > 8192,
-                  untrusted: true,
-                })),
+          sources: eligible.map((source) => ({
+            ...source,
+            text: source.text.slice(0, 8192),
+            textTruncated: source.text.length > 8192,
+            untrusted: true,
+          })),
           quality:
             "Source identity and authorship only; relevance, template completeness and utility are unassessed.",
         },

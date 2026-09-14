@@ -470,16 +470,19 @@ test("focused reads return settled identity without retransmitting Markdown", as
     ordinal: 2,
     markdown,
   };
+  const readSources = vi.fn<
+    Parameters<typeof createWorkpieceReadTool>[0]["readSources"]
+  >(async () => [
+    {
+      id: "user-source",
+      role: "user",
+      purpose: "user",
+      text: "Reserve one crew.",
+    },
+  ]);
   const reader = createWorkpieceReadTool({
     currentRevision,
-    readSources: async () => [
-      {
-        id: "user-source",
-        role: "user",
-        purpose: "user",
-        text: "Reserve one crew.",
-      },
-    ],
+    readSources,
   });
   const context = {
     toolCallId: "focused-read",
@@ -500,6 +503,8 @@ test("focused reads return settled identity without retransmitting Markdown", as
     sources: [{ id: "user-source", text: "Reserve one crew." }],
   });
   expect(JSON.stringify(sources.output)).not.toContain(markdown);
+  expect(readSources).toHaveBeenCalledOnce();
+  readSources.mockRejectedValue(new Error("History is unavailable"));
 
   const locators = await reader.run({
     ...context,
@@ -509,6 +514,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
       locateTexts: ["Reserve one crew."],
     },
   });
+  expect(readSources).toHaveBeenCalledOnce();
   expect(locators.output.sources).toEqual([]);
   expect(locators.output.locatorLookup).toMatchObject({
     subject: {
@@ -527,4 +533,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
     ],
   });
   expect(JSON.stringify(locators.output)).not.toContain(markdown);
+  await expect(
+    reader.run({ ...context, data: { includeSources: true } }),
+  ).rejects.toThrow("History is unavailable");
 });
