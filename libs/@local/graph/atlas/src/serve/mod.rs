@@ -25,4 +25,5 @@ pub(crate) mod secret;
 #[cfg(test)]
 pub(crate) mod tests;
 pub(crate) mod visibility;
+mod walk;
 mod world;
