@@ -12,7 +12,7 @@ mission or grant its paid-run permissions to voice work.
 
 FE-1712 selects only explicit capture preferences and an owner-held acoustic
 comparison. The complete
-[FE-1664 contract](https://github.com/hashintel/hash/blob/3cf4ca6b1f75f78cb2e086463517c02affd6ce54/libs/%40hashintel/brunch-agent/MISSION.md)
+[FE-1664 contract](https://github.com/hashintel/hash/blob/cd8793cc45a14d243b7144657683ba4a2ad59c8f/libs/%40hashintel/brunch-agent/MISSION.md)
 is retained at the branch's pinned parent, not archived as accepted or replaced
 on that branch. Its input/delivery contracts, first no-tool exchange, later
 operation/correction/Stop and independent-tab provenance/withheld-work witnesses

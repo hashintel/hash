@@ -4,11 +4,14 @@
 
 Live constraints-only mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
-Base: local FE-1664 at
-[3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54),
-not `origin/main`. FE-1664 and its PR remain unchanged and unclosed.
+Publication base: restacked FE-1664 at
+[cd8793cc45](https://github.com/hashintel/hash/commit/cd8793cc45a14d243b7144657683ba4a2ad59c8f),
+not `origin/main`. The original comparison revision is
+[3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54).
+Only this child's unpublished commits were rebased; FE-1664 and its PR are not
+modified by this mission. All five touched files were unchanged on the new base.
 The separate authority commit is
-[f445301001](https://github.com/hashintel/hash/commit/f445301001e4545ac7d64db3159d6380cf572ec4).
+[1038a4a797](https://github.com/hashintel/hash/commit/1038a4a79716df484e2baa9d0def2f1c42f3898b).
 The capture-only implementation is prepared: its assertion failed before the
 change, and 312 targeted tests, website typechecking, lint and build now pass.
 Next: Kostandin's matched speaker/headphone witness below. Acoustic benefit and
@@ -62,14 +65,17 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 - **2026-09-14:** Kostandin approves the separate constraints-only implementation
   mission following the FE-1712 planning handoff. This permits its local branch,
   separate authority commit, minimal implementation and provider-free checks.
-  Delegation-driven invocation and filtering remain deferred. It grants no
-  publication, existing issue/PR changes, or agent microphone/provider sessions.
+  Delegation-driven invocation and filtering remain deferred.
+- **2026-09-14:** Kostandin authorizes pushing this branch and opening its draft PR
+  against FE-1664. This supersedes only the local-only publication restriction;
+  existing issues/PRs, parent branches, agent microphone/provider sessions, merge
+  and deployment remain outside scope.
 
 ## Proof
 
 ### Provider-free configuration and regressions
 
-Baseline: `live-conversation.test.ts` passes 40 tests on the pinned base under
+Baseline: `live-conversation.test.ts` passes 40 tests on the original comparison base under
 OS network denial. The new capture assertion failed specifically because the old
 call supplied `{ audio: true }`, then passed with the selected preferences.
 
@@ -94,6 +100,12 @@ Lint reports zero warnings/errors. Build reports unchanged React Compiler
 `try`/`finally` optimization and chunk-size warnings. Changed-file `oxfmt --check`
 and `git diff --check` pass; Brunch Markdown is excluded by repository formatter
 configuration and reviewed directly. No UI appearance or interaction controls change.
+
+Publication verification after restacking: the same seven suites pass all 312 tests
+again after refreshing generated dependencies. The initial direct typecheck found
+stale Petrinaut navigation declarations; the normal workspace task resolves them
+without source changes. `turbo run build lint:tsc lint:eslint --filter
+@apps/petrinaut-website --output-logs=errors-only` passes all 16 tasks (9 cached).
 
 ### Manual speaker and headphone witness — pending, owner-held
 
@@ -133,8 +145,9 @@ allocation, recording or agent-run audio session is granted.
   rejection. Local Exit and canonical Stop remain distinct from acoustic interruption
   and from canceling already-executed effects.
 - No changes to parent branches, existing issues/PRs, Brunch prompts, models, VAD,
-  services or infrastructure. No push, merge, deployment or agent microphone/provider
-  sessions. Prior FE-1664 publication permissions do not transfer to this mission.
+  services or infrastructure. Push and draft creation are authorized for this child
+  only; no merge, deployment or agent microphone/provider sessions. Prior FE-1664
+  publication permissions do not transfer to this mission.
 
 ## Fog-line
 
