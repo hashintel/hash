@@ -4,7 +4,7 @@
 //! connect). Each fit distills the map into a small encoder that places new entities on the
 //! existing map without refitting.
 //!
-//! For the HTTP request and response contracts, start with `api`. The graph binary serves the
+//! For the HTTP request and response contracts, start with [`api`]. The graph binary serves the
 //! interactive API reference at `/v1/atlas/openapi`.
 //!
 //! This HTTP sketch requires a running deployment with a published generation and valid actor
@@ -48,12 +48,12 @@
 //! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
 //!   evaluation, and materialization. `salt::runner::operator` holds the entry points the `cli`
 //!   commands drive, over the live store and over a dump directory.
-//! - `serve` - the serving read surface: opened generations answering tile reads as wire bytes.
+//! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Using the crate
 //!
 //! Use [`cli`] for the operator commands that fit a generation over the live store and serve the
-//! active one through the graph binary. The Rust items behind the `api` router are crate-internal
+//! active one through the graph binary. The Rust items behind the [`api`] router are crate-internal
 //! by design.
 //!
 //! # Crate features
@@ -79,7 +79,7 @@
 //!
 //! Serving and fitting never combine implicitly.
 //!
-//! `cli::ServeCommand` never fits a generation. Its maintenance task opens published artifacts
+//! [`cli::ServeCommand`] never fits a generation. Its maintenance task opens published artifacts
 //! and retries failures. The current-generation endpoint answers 503 before initial publication.
 //!
 //! ## Workspace dependencies
@@ -168,10 +168,6 @@
 extern crate alloc;
 
 mod allocator;
-#[expect(
-    dead_code,
-    reason = "the read API that consumes the serving layer lands above this PR in the stack"
-)]
 pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
@@ -190,8 +186,4 @@ pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
-#[expect(
-    dead_code,
-    reason = "the read API that consumes the serving layer lands above this PR in the stack"
-)]
 pub(crate) mod serve;

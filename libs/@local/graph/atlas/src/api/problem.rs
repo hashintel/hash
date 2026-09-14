@@ -3,7 +3,7 @@
 //! The `type` member carries Surface v1's stable root-relative URIs, the body serializes as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
 //! live here beside the document they produce. Requests that fail before a handler runs - malformed
-//! bodies, wrong content types, unparsable tile addresses - route through `super::extract`'s
+//! bodies, wrong content types, unparsable tile addresses - route through [`super::extract`]'s
 //! wrappers and answer problem documents too. The router's own rejections (an unmatched route, a
 //! wrong method) never reach this module: axum answers them with a bare status. A manifest body
 //! the server could not buffer answers plain text, because that route extracts its body as raw
