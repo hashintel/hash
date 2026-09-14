@@ -9,6 +9,7 @@ use tokio::fs;
 use uuid::Uuid;
 
 use self::{error::StorageError, s3::S3};
+use super::generation::ScratchDirectory;
 use crate::integrity::Sha256Digest;
 
 pub(crate) mod error;
@@ -62,31 +63,6 @@ impl WriteCondition {
     }
 }
 
-// cannot use `has_significant_drop` (even though it does), because it tracks through references.
-#[derive(Debug)]
-struct ScratchStorage {
-    directory: Utf8PathBuf,
-
-    delete_on_drop: bool,
-}
-
-impl Drop for ScratchStorage {
-    fn drop(&mut self) {
-        if !self.delete_on_drop {
-            return;
-        }
-
-        let directory = self.directory.clone();
-        tokio::task::spawn(async move {
-            if let Err(error) = tokio::fs::remove_dir_all(directory).await
-                && error.kind() != core::io::ErrorKind::NotFound
-            {
-                tracing::error!(%error, "failed to remove scratch directory");
-            }
-        });
-    }
-}
-
 /// The backends and the scratch directory a file path resolves against.
 ///
 /// [`Self::set_s3`] and [`Self::with_s3`] supply the client. Downloading an object writes into
@@ -95,7 +71,7 @@ impl Drop for ScratchStorage {
 pub struct Storage {
     s3: Option<S3>,
 
-    scratch: ScratchStorage,
+    scratch: ScratchDirectory,
 }
 
 impl Storage {
@@ -107,10 +83,7 @@ impl Storage {
     pub const fn new(scratch: Utf8PathBuf) -> Self {
         Self {
             s3: None,
-            scratch: ScratchStorage {
-                directory: scratch,
-                delete_on_drop: false,
-            },
+            scratch: ScratchDirectory::new(scratch),
         }
     }
 }
@@ -131,9 +104,7 @@ impl Storage {
         let scratch = scratch.join(format!("atlas-{}", Uuid::now_v7()));
         fs::create_dir_all(&scratch).await?;
 
-        let mut this = Self::new(scratch);
-        this.scratch.delete_on_drop = true;
-        Ok(this)
+        Ok(Self::new(scratch))
     }
 
     /// Set the S3 client for this [`Storage`].

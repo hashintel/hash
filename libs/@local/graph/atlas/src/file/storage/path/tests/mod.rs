@@ -1,3 +1,4 @@
+#![expect(clippy::significant_drop_tightening, reason = "false-psotive")]
 use alloc::borrow::Cow;
 use core::{assert_matches, pin::pin};
 use std::{fs, io};
