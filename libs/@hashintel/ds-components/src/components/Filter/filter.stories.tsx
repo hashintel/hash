@@ -661,7 +661,7 @@ export const Group: Story = () => (
       dismissAbandoned: every chip below sets `removeable.dismissAbandoned`.
       Leave a chip incomplete — no operator, or any input empty (including
       emptying an input of one of the pre-filled chips) — then click or focus
-      elsewhere: after 3s it fades out over 3s and removes itself. Interacting
+      elsewhere: after 1s it fades out over 2s and removes itself. Interacting
       with it — including its dropdowns — rescues it. Complete chips and
       input-less ones (&quot;is true&quot;) are never dismissed.
     </span>

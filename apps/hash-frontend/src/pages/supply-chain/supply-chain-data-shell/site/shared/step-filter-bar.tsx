@@ -28,14 +28,6 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
-/**
- * The shared filter row rendered above each site table. Chips are added from
- * a grouped dropdown behind the "+" button (labelled "Add filter" while the
- * bar is empty) and hold both operator and value; the parent owns the
- * `ActiveStepFilter[]` state so the set survives tab switches. Filters in
- * `skippedKeys` (not applicable to the adjacent table) render disabled with
- * an explanatory tooltip but stay editable via removal.
- */
 export const StepFilterBar = ({
   filters,
   onFiltersChange,
@@ -101,9 +93,6 @@ export const StepFilterBar = ({
     );
   };
 
-  // With no chips there is no group to show: just a stock icon-only button
-  // (regular Button styling, unlike the chip-scale FilterGroup.AddFilter used
-  // below) opening the add-filter dropdown, pushed to the right of its host row.
   if (filters.length === 0) {
     if (addMenuItems.length === 0) {
       return null;
@@ -153,8 +142,6 @@ export const StepFilterBar = ({
                     (candidate) => candidate.filterKey !== filter.filterKey,
                   ),
                 ),
-              // Chips left unconfigured (or emptied) fade out and remove
-              // themselves once the user moves on.
               dismissAbandoned: true,
             }}
           />

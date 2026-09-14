@@ -38,27 +38,14 @@ import type { SiteNode, VendorOtifStats } from "../../../shared/types";
 import type { MultiSelectItem } from "@hashintel/ds-components";
 
 /**
- * One merged filter vocabulary shared by the opportunities, dwell, planning,
+ * A single filter vocabulary shared by the opportunities, dwell, planning,
  * trend, and supplier tables, so a filter set applied on one table carries to
  * the others unchanged.
- *
- * Applicability is decided per table: a filter is applied only when at least
- * one of the table's rows carries the property it tests (`isApplicable`);
- * otherwise it is skipped there and reported via `skippedKeys` so the UI can
- * mark its chip as disabled. Within an applicable table, rows that lack the
- * property (e.g. plan deviation on an unplanned step) are excluded while the
- * filter is active — except for presence-style filters (planning warnings,
- * crossed plan), which are total and treat absence as "no".
  *
  * The supplier table's rows are vendors, not step nodes, so only filters that
  * define a `vendor` predicate (supplier, material) apply there.
  */
 
-/**
- * Union row shape the filters evaluate against: a site node plus whichever
- * precomputed fields the dwell/planning/trend row variants carry. Anything
- * missing is derived on demand (see the *Of helpers below).
- */
 export type FilterableStepRow = SiteNode & {
   periodCost?: number;
   costTrendPct?: number | null;
@@ -74,25 +61,17 @@ export interface StepFilterContext {
   timeRange: TimeRange;
   waccRate: number;
   storageCost: number;
-  /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   statusHistory: StatusStore;
-  /**
-   * material -> supplier labels across every step row. Procurement rows carry
-   * their supplier directly; dwell/trend rows for the same material match
-   * through this map so the supplier filter is meaningful on every tab.
-   */
   suppliersByMaterial: Map<string, Set<string>>;
 }
 
-/** Data-derived select item lists, built once from the union of table rows. */
 export interface StepFilterOptions {
   materialItems: MultiSelectItem[];
   productItems: MultiSelectItem[];
   supplierItems: MultiSelectItem[];
 }
 
-/** A committed (operator, value) pair; `value` is null for input-less operators. */
 export interface StepFilterValue {
   key: string;
   value: unknown;
@@ -100,14 +79,12 @@ export interface StepFilterValue {
 
 export interface ActiveStepFilter {
   filterKey: StepFilterKey;
-  /** Null while the chip has been added but no operator/value committed yet. */
   value: StepFilterValue | null;
 }
 
 interface StepFilterDefinition {
   key: string;
   label: string;
-  /** Add-filter menu group. */
   group: string;
   operators: (options: StepFilterOptions) => StepFilterOperator[];
   matches: (
@@ -175,7 +152,6 @@ export const buildStepFilterOptions = (
   const suppliers = new Map<string, string>();
   for (const row of rows) {
     if (row.material) {
-      // Keep a named entry once seen; later rows may only carry the bare code.
       const existing = materials.get(row.material);
       if (!existing || existing === row.material) {
         materials.set(row.material, row.material_name ?? row.material);
@@ -691,7 +667,6 @@ export const STEP_FILTER_DEFINITIONS = [
     key: "planningWarnings",
     label: "Planning warnings",
     group: "Planning",
-    // Presence check with total semantics: rows without the property are "none".
     operators: () => [
       { key: "has", label: "present", input: null },
       { key: "none", label: "none", input: null },
@@ -700,8 +675,7 @@ export const STEP_FILTER_DEFINITIONS = [
       const hasWarnings = (row.planning_warnings?.length ?? 0) > 0;
       return value.key === "has" ? hasWarnings : !hasWarnings;
     },
-    // Only procurement steps can carry warnings, so the filter is meaningless
-    // on tables without any.
+    // Only procurement steps can carry warnings, so the filter is meaningless on tables without any.
     isApplicable: (row) => row.type === "procurement",
   },
   // Change
@@ -756,7 +730,7 @@ export const STEP_FILTER_DEFINITIONS = [
     key: "crossedPlan",
     label: "Crossed plan this period",
     group: "Change",
-    // Total semantics: "no" includes rows without a plan or previous period.
+    // "no" includes rows without a plan or previous period.
     operators: () => [
       { key: "yes", label: "yes", input: null },
       { key: "no", label: "no", input: null },
@@ -805,10 +779,6 @@ const definitionByKey = new Map<string, StepFilterDefinition>(
 
 export interface StepFilterApplication<Item> {
   rows: Item[];
-  /**
-   * Active filters skipped because no row of this table carries the property
-   * they test. The UI shows these chips as disabled.
-   */
   skippedKeys: StepFilterKey[];
 }
 
@@ -821,12 +791,6 @@ const resolveActiveFilters = (filters: ActiveStepFilter[]) =>
     return definition ? [{ definition, value: filter.value }] : [];
   });
 
-/**
- * Apply the active filters to items whose step row is reached via `rowOf`
- * (identity for the step tables, `opportunity.node` for opportunities). A
- * filter no row is applicable to is skipped and reported instead of applied;
- * an empty table skips nothing.
- */
 export const applyStepFiltersBy = <Item>(
   items: Item[],
   rowOf: (item: Item) => FilterableStepRow,

@@ -14,9 +14,6 @@ export const tableContainer = css({
   bg: "bgSolid.min",
   overflow: "auto",
 });
-// Card variant hosting a pinned filter band above the scrolling table,
-// matching the Opportunities card: the band keeps the card's white background
-// and the table scrolls beneath it in its own pane.
 export const tableCard = css({
   display: "flex",
   flexDirection: "column",
@@ -27,10 +24,9 @@ export const tableCard = css({
   bg: "bgSolid.min",
   overflow: "hidden",
 });
-// Padding lives on the rows, not this container, for two reasons: the filter
+// Padding lives on the rows, not this container because the filter
 // row's top border must reach the card edges, and the tab row's own height
-// (top padding included via `tabButtons`) is what the filter/sort controls
-// centre against — container padding would visually unbalance them.
+// is what the filter/sort controls centre against
 export const filterHeader = css({
   flexShrink: "0",
   borderBottomWidth: "1px",
@@ -38,11 +34,6 @@ export const filterHeader = css({
   display: "flex",
   flexDirection: "column",
 });
-/**
- * Leading tab cluster left, filter/sort controls right, centre-aligned. The
- * tab cluster opts out via `alignSelf: stretch` (see `tabButtons`) so its
- * underline still anchors to the border beneath the row.
- */
 export const filterHeaderRow = css({
   display: "flex",
   alignItems: "center",
@@ -56,7 +47,6 @@ export const filterHeaderActions = css({
   gap: "1",
   flexShrink: "0",
 });
-/** Active-filter row: a full-width top border keeps a rule under the tabs. */
 export const filterChipsRow = css({
   px: "4",
   py: "3",
