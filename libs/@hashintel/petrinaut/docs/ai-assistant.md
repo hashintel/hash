@@ -56,7 +56,9 @@ action appears in the first-run prompt and the assistant panel; if voice is unav
 composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
 opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
 disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
-AI header, transcript, and composer stay hidden. Select **Expand voice setup** to restore the full
+AI header, transcript, and composer stay hidden. The card opens without shifting the dock or viewport
+controls, and scrolls within the available screen height. Setup does not show **Connecting** before
+you start. Select **Expand voice setup** to restore the full
 panel. Voice started from the composer keeps that full panel visible. Review that OpenAI processes
 live audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the
 conversation rather than the audio. You can check your microphone before confirming that you
@@ -86,6 +88,14 @@ voice and settle back between phrases, so an ordinary speaking level is plainly 
 flicker above the line. While the assistant speaks the ribbon takes on a restrained self-driven
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
+
+Voice failures and session notices, including unconfirmed submissions and input that was not
+retained, join the Voice warning indicator rather than appearing below the controls or as global
+notifications. Hover to preview or click to read the complete details, including while the panel is
+collapsed. Distinct issues share one icon with a count; long details wrap and scroll in the popover,
+where they can be copied or dismissed with **Dismiss Voice issues**. Issues stay in the list until
+dismissed or the chat is cleared; dismissing them does not trigger a retry or mean that unsent input
+was retained.
 
 Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
 stays current while the session runs and tools that edit the net remain visible. Select **Collapse
@@ -141,9 +151,9 @@ reopen the panel. The same mounted session stays paused; choose **Resume voice m
 ready. **Clear AI chat** is unavailable while a Voice
 session is active.
 
-If voice cannot continue, the status reads **Voice interrupted** and the actionable error arrives as
-a persistent toast that names the microphone, connection, or Voice failure in one sentence, followed
-by any diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
+If voice cannot continue, the status reads **Voice interrupted** and the warning icon contains
+the microphone, connection, or Voice failure, followed by any diagnostic reference in parentheses.
+**Reconnect voice mode** replaces the microphone action until
 the session recovers. For microphone permission or device errors, allow access or connect/select a
 microphone before reconnecting. For an interrupted request, network error, or timeout, check the
 connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid

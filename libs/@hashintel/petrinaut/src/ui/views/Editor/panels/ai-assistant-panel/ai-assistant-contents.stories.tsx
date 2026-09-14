@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -348,6 +348,24 @@ export const VoiceModeAwaitingConsentCompact: Story = {
       voiceModeAvailable
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const consent = canvas.getByTestId("ai-voice-mode");
+    const dock = canvas.getByRole("region", { name: "Voice setup" });
+    const shell = dock.closest("aside")!;
+    const initialShellHeight = shell.getBoundingClientRect().height;
+    const initialDockTop = dock.getBoundingClientRect().top;
+
+    // Host content can grow or disappear; neither should move the controls
+    // whose position is derived from the compact shell's reported height.
+    consent.style.minHeight = "320px";
+    await expect(shell.getBoundingClientRect().height).toBe(initialShellHeight);
+    await expect(dock.getBoundingClientRect().top).toBe(initialDockTop);
+    consent.style.display = "none";
+    await expect(shell.getBoundingClientRect().height).toBe(initialShellHeight);
+    consent.style.removeProperty("min-height");
+    consent.style.removeProperty("display");
+  },
 };
 
 export const VoiceSessionListening: Story = {
@@ -358,6 +376,38 @@ export const VoiceSessionListening: Story = {
       voiceModeAvailable
       voiceSession={liveSession({
         microphoneLevel: 0.6,
+      })}
+    />
+  ),
+};
+
+export const VoiceSessionLongNotice: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        phase: "connected",
+        notice:
+          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+      })}
+    />
+  ),
+};
+
+export const VoiceSessionInputNotRetained: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        phase: "connected",
+        notice:
+          "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       })}
     />
   ),
@@ -529,6 +579,65 @@ export const ToolError: Story = {
 
 export const NetworkError: Story = {
   render: () => <Frame error={errorMessage} messages={[userMessage]} />,
+};
+
+export const MultipleVoiceIssues: Story = {
+  render: () => (
+    <Frame
+      messages={[userMessage]}
+      voiceSession={liveSession({
+        phase: "error",
+        errorMessage:
+          "Voice connection interrupted. Check your connection before reconnecting.",
+        notice:
+          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+      })}
+    />
+  ),
+};
+
+export const CollapsedVoiceIssues: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
+      messages={[userMessage]}
+      voiceSession={liveSession({
+        phase: "error",
+        errorMessage:
+          "Voice connection interrupted. Check your connection before reconnecting.",
+        notice:
+          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const indicator = canvas.getByRole("button", {
+      name: "Show 2 Voice issues",
+    });
+    const { x, y, width, height } = indicator.getBoundingClientRect();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Expand voice session" }),
+    );
+    await expect(
+      canvas.getByRole("button", { name: "Show 2 Voice issues" }),
+    ).toBe(indicator);
+    await expect(indicator.getBoundingClientRect()).toMatchObject({
+      x,
+      y,
+      width,
+      height,
+    });
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Collapse voice session" }),
+    );
+    await expect(indicator.getBoundingClientRect()).toMatchObject({
+      x,
+      y,
+      width,
+      height,
+    });
+  },
 };
 
 export const StoppedResponse: Story = {

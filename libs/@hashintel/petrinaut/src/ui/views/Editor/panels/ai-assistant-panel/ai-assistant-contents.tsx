@@ -22,13 +22,13 @@ import {
 import { EditorContext } from "../../../../../react/state/editor-context";
 import {
   useVoiceSessionErrorMessage,
+  useVoiceSessionNotice,
   useVoiceSessionPhase,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
-import { voiceSetupLabels } from "../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -41,6 +41,7 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
+import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
@@ -161,6 +162,9 @@ const cardStyle = cva({
     flexDirection: "column",
   },
   variants: {
+    setupOverlay: {
+      true: {},
+    },
     open: {
       true: {
         height: "full",
@@ -178,6 +182,9 @@ const cardStyle = cva({
       },
     },
   },
+  compoundVariants: [
+    { open: true, setupOverlay: true, css: { overflow: "visible" } },
+  ],
 });
 
 const panelContentStyle = cva({
@@ -188,12 +195,26 @@ const panelContentStyle = cva({
   },
 });
 
-const voiceModeStyle = css({
-  position: "relative",
-  zIndex: "[2]",
-  flexShrink: "0",
-  overflow: "visible",
-  pointerEvents: "auto",
+const voiceModeStyle = cva({
+  base: {
+    position: "relative",
+    zIndex: "[2]",
+    flexShrink: "0",
+    overflow: "visible",
+    pointerEvents: "auto",
+  },
+  variants: {
+    setupOverlay: {
+      true: {
+        position: "absolute",
+        bottom: "[calc(100% + 8px)]",
+        width: "full",
+        maxHeight: "[calc(100dvh - 120px)]",
+        overflowY: "auto",
+        borderRadius: "[12px]",
+      },
+    },
+  },
 });
 
 const headerStyle = css({
@@ -545,6 +566,7 @@ export const AiAssistantContents = ({
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
+  const voiceSessionNotice = useVoiceSessionNotice();
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
@@ -613,6 +635,7 @@ export const AiAssistantContents = ({
   } = use(EditorContext);
 
   const shellRef = useRef<HTMLElement>(null);
+  const voiceDockRef = useRef<HTMLDivElement>(null);
   const reportDockHeight = useEffectEvent((height: number | null) => {
     setAiAssistantDockHeight(height);
   });
@@ -634,6 +657,12 @@ export const AiAssistantContents = ({
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
+  const [voiceAlerts, setVoiceAlerts] = useState<string[]>([]);
+  const recordVoiceAlert = useEffectEvent((message: string) => {
+    setVoiceAlerts((previous) =>
+      previous.includes(message) ? previous : [...previous, message],
+    );
+  });
   const notifiedErrorRef = useRef<Error | undefined>(undefined);
   useEffect(() => {
     if (!error) {
@@ -647,9 +676,8 @@ export const AiAssistantContents = ({
     addNotification(errorNotification("AI assistant error", error.message));
   }, [addNotification, error]);
 
-  // Voice failures (microphone denied, connection dropped) are reported by the
-  // host rather than thrown, and get the same treatment: a toast, with the
-  // recovery action left on the session's own controls.
+  // Keep host-reported Voice failures and recovery notices on the session
+  // controls; unrelated Petrinaut notifications are untouched.
   const notifiedVoiceErrorRef = useRef<string | null>(null);
   useEffect(() => {
     if (voiceSessionPhase !== "error") {
@@ -664,8 +692,26 @@ export const AiAssistantContents = ({
     }
 
     notifiedVoiceErrorRef.current = voiceSessionErrorMessage;
-    addNotification(errorNotification(voiceSessionErrorMessage));
-  }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
+    recordVoiceAlert(voiceSessionErrorMessage);
+  }, [voiceSessionErrorMessage, voiceSessionPhase]);
+
+  // Admission uncertainty and unretained input need the same on-demand recovery
+  // details even while Voice remains connected or listening.
+  useEffect(() => {
+    if (voiceSessionNotice) {
+      recordVoiceAlert(voiceSessionNotice);
+    }
+  }, [voiceSessionNotice]);
+
+  const voiceAlertIndicator =
+    isOpen && voiceAlerts.length > 0 ? (
+      <VoiceAlerts
+        alerts={voiceAlerts}
+        onDismiss={() => setVoiceAlerts([])}
+        docked={isVoiceDockCollapsed || isVoiceSessionLive}
+        dockRef={voiceDockRef}
+      />
+    ) : null;
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -790,7 +836,13 @@ export const AiAssistantContents = ({
           label="Resize AI assistant"
         />
       </div>
-      <div className={cardStyle({ open: isOpen })} data-input-mode={inputMode}>
+      <div
+        className={cardStyle({
+          open: isOpen,
+          setupOverlay: isVoiceDockCollapsed && !isVoiceSessionLive,
+        })}
+        data-input-mode={inputMode}
+      >
         <div
           className={`${headerStyle} ${panelContentStyle({
             visible: isOpen && !isVoiceDockCollapsed,
@@ -809,6 +861,7 @@ export const AiAssistantContents = ({
             <div className={headerLabelStyle}>AI</div>
           )}
           <div style={{ flex: 1 }} />
+          {!isVoiceDockCollapsed && !isVoiceSessionLive && voiceAlertIndicator}
           <Button
             size="xs"
             variant="ghost"
@@ -816,7 +869,10 @@ export const AiAssistantContents = ({
             className={headerButtonStyle}
             aria-label="Clear AI chat"
             disabled={clearMessagesDisabled || messages.length === 0}
-            onClick={onClearMessages}
+            onClick={() => {
+              setVoiceAlerts([]);
+              onClearMessages?.();
+            }}
             iconName="trash"
             tooltip="Clear AI chat"
           />
@@ -880,7 +936,9 @@ export const AiAssistantContents = ({
 
         {voiceMode && (
           <div
-            className={`${voiceModeStyle} ${panelContentStyle({
+            className={`${voiceModeStyle({
+              setupOverlay: isVoiceDockCollapsed && !isVoiceSessionLive,
+            })} ${panelContentStyle({
               visible: isOpen && (!isVoiceDockCollapsed || !isVoiceSessionLive),
             })}`}
             data-testid="ai-voice-mode"
@@ -890,9 +948,13 @@ export const AiAssistantContents = ({
         )}
 
         {isVoiceSessionLive ? (
-          <div className={panelContentStyle({ visible: isOpen })}>
+          <div
+            ref={voiceDockRef}
+            className={panelContentStyle({ visible: isOpen })}
+          >
             <LiveVoiceDock
               collapsed={isVoiceDockCollapsed}
+              errorIndicator={voiceAlertIndicator}
               onCollapsedEnd={onCollapsedVoiceEnd}
               onCollapsedToggle={() =>
                 onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
@@ -902,16 +964,19 @@ export const AiAssistantContents = ({
         ) : (
           <>
             {isVoiceDockCollapsed && (
-              <div className={panelContentStyle({ visible: isOpen })}>
+              <div
+                ref={voiceDockRef}
+                className={`${css({ borderRadius: "[inherit]", overflow: "hidden" })} ${panelContentStyle({ visible: isOpen })}`}
+              >
                 <VoiceDock
                   actions={null}
                   canReadFullResponse={false}
                   canRepeatQuestion={false}
                   canTakeTurn={false}
                   collapsed
+                  errorIndicator={voiceAlertIndicator}
                   indicator={<AiVoiceModeIcon size={16} />}
                   microphoneMuted={false}
-                  notice={voiceSetupLabels.status}
                   onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
                   phase="connecting"
                   purpose="setup"
