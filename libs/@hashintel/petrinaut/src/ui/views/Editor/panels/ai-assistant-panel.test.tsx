@@ -18,6 +18,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   getLatestNetDefinitionToolName,
+  setNetTitleToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -229,6 +230,7 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
   strictMode = false,
+  titleEditable,
   requestDiagnostics = async () => ({
     byUri: new Map(),
     total: 0,
@@ -243,6 +245,7 @@ const renderTestPanel = ({
   onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
   strictMode?: boolean;
+  titleEditable?: boolean;
   requestDiagnostics?: LanguageClientContextValue["requestDiagnostics"];
 }) => {
   const handle = createJsonDocHandle({
@@ -261,6 +264,7 @@ const renderTestPanel = ({
     extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     setTitle: () => {},
     title: "AI assistant panel test",
+    titleEditable,
     getItemType: () => null,
   };
 
@@ -330,6 +334,50 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("declines setNetTitle when the host omits title editing", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "set-title-1",
+                    toolName: setNetTitleToolName,
+                    input: { title: "Renamed" },
+                  },
+                ]
+              : [...textChunks("done", "Title was not changed.")],
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Rename the net",
+    });
+
+    await waitFor(() =>
+      expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        toolCallId: "set-title-1",
+        output: {
+          applied: false,
+          reason: "The host application does not provide title editing.",
+        },
+      }),
+    );
+  });
   test("normalizes current and legacy voice tool origins", () => {
     expect(
       getVoiceToolCallIds({

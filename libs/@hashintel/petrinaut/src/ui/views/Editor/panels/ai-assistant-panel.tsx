@@ -517,7 +517,8 @@ const ConversationAiAssistantPanel = ({
     setAiAssistantOpen,
   } = use(EditorContext);
 
-  const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
+  const { petriNetDefinition, setTitle, title, titleEditable } =
+    use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
   const errorTracker = use(ErrorTrackerContext);
   const errorTrackerRef = useLatest(errorTracker);
@@ -913,6 +914,18 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
+      if (titleEditable !== true) {
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            reason: "The host application does not provide title editing.",
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({

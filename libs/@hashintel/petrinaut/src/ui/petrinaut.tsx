@@ -198,7 +198,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 
   const netManagement: NetManagement = {
     title,
-    setTitle: setTitle ?? noop,
+    setTitle,
     existingNets,
     createNewNet,
     loadPetriNet,

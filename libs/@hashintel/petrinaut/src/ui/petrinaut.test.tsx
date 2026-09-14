@@ -13,19 +13,28 @@ vi.mock("./views/Editor/editor-view", async () => {
 
   return {
     EditorView: ({ titleEditable }: { titleEditable: boolean }) => {
-      const { setTitle, title } = use(SDCPNContext);
+      const {
+        setTitle,
+        title,
+        titleEditable: contextTitleEditable,
+      } = use(SDCPNContext);
 
       return (
-        <TopBar
-          actualModeAvailable={false}
-          notebookViewAvailable={false}
-          menuItems={[]}
-          title={title}
-          onTitleChange={setTitle}
-          titleEditable={titleEditable}
-          mode="edit"
-          onModeChange={() => {}}
-        />
+        <div
+          data-testid="title-capability"
+          data-available={contextTitleEditable}
+        >
+          <TopBar
+            actualModeAvailable={false}
+            notebookViewAvailable={false}
+            menuItems={[]}
+            title={title}
+            onTitleChange={setTitle}
+            titleEditable={titleEditable}
+            mode="edit"
+            onModeChange={() => {}}
+          />
+        </div>
       );
     },
   };
@@ -72,6 +81,9 @@ describe("Petrinaut title editing", () => {
 
     expect(screen.getByText("Remote model")).not.toBeNull();
     expect(screen.queryByRole("textbox")).toBeNull();
+    expect(
+      screen.getByTestId("title-capability").getAttribute("data-available"),
+    ).toBe("false");
   });
 
   test("edits the title through the supplied setTitle callback", () => {
@@ -86,6 +98,9 @@ describe("Petrinaut title editing", () => {
 
     const titleInput = screen.getByDisplayValue("Local model");
     expect(titleInput).toHaveProperty("readOnly", false);
+    expect(
+      screen.getByTestId("title-capability").getAttribute("data-available"),
+    ).toBe("true");
 
     fireEvent.change(titleInput, { target: { value: "Renamed model" } });
 

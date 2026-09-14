@@ -162,7 +162,7 @@ An embedding application can check its live document immediately before and afte
 
 ### Document titles
 
-Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. The host also controls the assistant's tool manifest: `setNetTitle` is useful only alongside `setTitle` and should be omitted for a read-only title.
+Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. The host also controls the assistant's tool manifest: `setNetTitle` is useful only alongside `setTitle` and should be omitted for a read-only title. If it is nevertheless called, Petrinaut reports that no change was applied because the host does not provide title editing.
 
 For example, the Petrinaut website's worked-model route displays its template title as read-only and its Brunch tool manifest exposes no title mutation while still allowing permitted net edits. Ordinary local documents on that website supply title editing.
 
