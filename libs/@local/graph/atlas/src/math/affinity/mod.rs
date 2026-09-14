@@ -1,30 +1,28 @@
-//! The affinity curve of force-directed layouts and its gradient steps.
+//! UMAP-style affinity and clipped attraction/repulsion updates.
 //!
-//! A UMAP-style layout keeps a low-dimensional affinity curve
+//! For a point difference Δ = from − to ∈ ℝ² and squared distance ρ = ‖Δ‖² ≥ 0, the affinity model
+//! is q(ρ) = 1 / (1 + aρᵇ), with a, b > 0. Equivalently, at Euclidean distance d it is 1 / (1 + a ·
+//! d^(2b)). [`AffinityCurve`] holds these parameters and evaluates scalar or four-pair SIMD
+//! updates.
 //!
-//! ```text
-//! q(d) = 1 / (1 + a · d^(2b))
-//! ```
+//! An edge contributes loss −ln q. Differentiating with respect to `from` and negating gives the
+//! attraction update −2abρ^(b−1)Δ / (1 + aρᵇ). A non-edge with weight γ ≥ 0 contributes −γ ln(1 −
+//! q), whose negative gradient is 2γbΔ / (ρ(1 + aρᵇ)) for ρ > 0. Repulsion replaces the leading
+//! denominator ρ with ρ + ε, where ε = 0.001, to regularize close pairs.
 //!
-//! over the 2D distance `d` between points, and descends its cross-entropy against the
-//! high-dimensional neighbour graph by stochastic gradient steps. Sampled edges pull their
-//! endpoints together (attraction), and sampled non-edges push them apart (repulsion).
-//! [`AffinityCurve`] holds the fitted `a` and `b` parameters and evaluates both gradient families
-//! for four point pairs at a time over [`Vec2x4T`] batches.
+//! Each update is clamped componentwise to ±[`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP). A
+//! finite clipped update has Euclidean norm at most 4√2 before multiplication by a learning rate.
+//! Componentwise clipping preserves each component's sign but can change the direction from a
+//! scalar multiple of Δ. These functions return updates without moving either endpoint.
 //!
-//! [`AffinityCurve`] clamps every per-axis gradient component to
-//! [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP) before the caller applies the learning rate,
-//! which bounds the step a single sample can take and stops one sample from flinging an early,
-//! badly-placed point across the layout.
+//! Finite coincident points receive zero updates because their difference supplies no direction.
+//! Distinct points whose computed squared distance underflows to zero also receive zero. Gradient
+//! arithmetic uses `f32`, with explicit fused multiply-adds. SIMD powers use [`pow_f32x4`], while
+//! scalar powers use [`f32::powf`]. Their approximations and distance grouping can differ. Finite
+//! input coordinates and positive parameters alone do not prevent intermediate overflow or NaNs,
+//! and clipping does not establish a universally finite result.
 //!
-//! Exactly coincident points receive no gradient in either direction. Their difference vector gives
-//! no direction for a descent step, so layouts rely on distinct initial placement to separate
-//! identical points.
-//!
-//! All gradient arithmetic is `f32` with FMA contraction where the target provides it, and the
-//! kernels are fully vectorized, including the `d^(2b)` power. The one exception is
-//! [`AffinityCurve::fit`], the one-shot least-squares parameter fit at initialization, which runs
-//! in double precision and narrows its result to `f32`.
+//! [`AffinityCurve::fit`] estimates the parameters in `f64` and narrows the result to `f32`.
 #![expect(
     clippy::min_ident_chars,
     reason = "`a` and `b` are the canonical names of the UMAP curve parameters throughout the \
@@ -47,20 +45,24 @@ pub(crate) use self::fit::AffinityFitConfig;
 #[cfg(test)]
 mod tests;
 
-/// The affinity curve `1 / (1 + a · d^(2b))` mapping layout distance to edge probability.
+/// A positive-parameter affinity curve for layout distances.
 ///
-/// The parameters come from fitting the curve against the desired membership falloff (spread and
-/// minimum distance) with [`fit`](Self::fit), as UMAP's `a` and `b`; `a` scales the curve and `b`
-/// shapes its tail. Both are strictly positive and finite by construction.
+/// The model is q(ρ) = 1 / (1 + aρᵇ) for squared distance ρ ≥ 0. Parameter a sets the distance
+/// scale and b shapes the decay. Both are finite and strictly positive by construction.
+/// [`fit`](Self::fit) estimates them from a desired membership falloff.
 ///
-/// # Examples
+/// # Example
+///
+/// This example is ignored because [`AffinityCurve`] is crate-private.
 ///
 /// ```ignore
-/// let curve = AffinityCurve::new(1.577, 0.895).expect("parameters are positive and finite");
+/// use crate::math::{AffinityCurve, NonNegative, Vec2, non_negative, positive};
+///
+/// let curve = AffinityCurve::new(positive!(1.577), positive!(0.895));
 ///
 /// // Affinity is 1 at zero distance and falls off monotonically.
-/// assert_eq!(curve.affinity(0.0), 1.0);
-/// assert!(curve.affinity(1.0) > curve.affinity(4.0));
+/// assert_eq!(curve.affinity(NonNegative::ZERO), 1.0);
+/// assert!(curve.affinity(non_negative!(1.0)) > curve.affinity(non_negative!(4.0)));
 ///
 /// // Attraction pulls the endpoint toward the anchor.
 /// let gradient = curve.attraction(Vec2::new(2.0, 0.0), Vec2::ZERO);
@@ -74,47 +76,44 @@ pub(crate) struct AffinityCurve {
 }
 
 impl AffinityCurve {
-    /// The symmetric per-axis bound on every gradient component.
+    /// The symmetric per-axis clip for finite gradient components.
     ///
-    /// Coefficients diverge as distances approach zero; the clamp bounds the displacement a single
-    /// sampled pair can cause, before the learning rate scales it. A displacement bound takes its
-    /// scale from the frame it moves in: the clip and the caller's layout extent fix one ratio, so
-    /// a caller sizing its initial frame sizes it against this constant.
+    /// Clipping limits each component to [−4, 4] before a learning rate is applied. Compare this
+    /// scale with the coordinate extent when choosing update magnitudes.
     pub(crate) const GRADIENT_CLIP: f32 = 4.0;
     /// Additive guard in the repulsion denominator.
     ///
-    /// Keeps the coefficient finite as the squared distance approaches zero, bounding the repulsion
-    /// between near-coincident points.
+    /// Replaces ρ with ρ + ε in the repulsion denominator, with ε = 0.001. In real arithmetic this
+    /// bounds its nonnegative coefficient by 2γb/ε near zero. It does not prevent `f32` overflow
+    /// for arbitrary parameter magnitudes.
     const REPULSION_GUARD: NonNegative = non_negative!(0.001);
 
     /// Creates a curve from its fitted parameters.
-    ///
-    /// Returns [`None`] unless both parameters are finite and strictly positive; the gradient
-    /// expressions divide by `a`-scaled powers and multiply by `b`, so zero, negative, or
-    /// non-finite parameters produce meaningless layouts.
     #[must_use]
     pub(crate) fn new(a: f32, b: f32) -> Option<Self> {
         (a.is_finite() && a > 0.0 && b.is_finite() && b > 0.0).then_some(Self { a, b })
     }
 
-    /// Returns the `a` parameter.
+    /// Returns the coefficient controlling the affinity's distance scale.
     #[inline]
     #[must_use]
     pub(crate) const fn a(self) -> f32 {
         self.a
     }
 
-    /// Returns the `b` parameter.
+    /// Returns the exponent shaping the affinity's decay.
     #[inline]
     #[must_use]
     pub(crate) const fn b(self) -> f32 {
         self.b
     }
 
-    /// Evaluates the affinity `1 / (1 + a · d^(2b))` at a squared distance.
+    /// Evaluates q(ρ) = 1 / (1 + aρᵇ) at a squared distance.
     ///
-    /// The affinity is `1` at distance zero and falls monotonically toward zero; it is the
-    /// low-dimensional edge probability the layout optimizes toward.
+    /// A zero `distance_squared` returns one. For positive inputs, this evaluates the model
+    /// with [`f32::powf`] and a fused denominator. The real curve decreases monotonically, but no
+    /// strict monotonicity or ULP guarantee is made for the approximation. Overflow in the positive
+    /// denominator can produce a zero affinity.
     #[must_use]
     pub(crate) fn affinity(self, distance_squared: f32) -> f32 {
         if distance_squared <= 0.0 {
@@ -126,11 +125,13 @@ impl AffinityCurve {
 
     /// Computes the clipped attraction gradients of four point pairs.
     ///
-    /// Entry `i` is the gradient acting on `from[i]` for the edge toward `to[i]`. It is a negative
-    /// multiple of the difference vector, clamped per axis, so it points from `from` toward `to`.
-    /// The symmetric update applies `+lr · gradient` to `from` and `-lr · gradient` to `to`.
+    /// Lane i acts on `from[i]` toward `to[i]`, following the module's attraction formula and
+    /// componentwise clip. For a symmetric update with learning rate η, add ηg to `from` and
+    /// subtract ηg from `to`.
     ///
-    /// Coincident pairs receive a zero gradient.
+    /// Both endpoint batches must be finite. To obtain finite updates, the computed coefficient and
+    /// scaled differences must avoid NaNs. Finite coincident pairs, including computed-zero squared
+    /// distances, receive zero.
     #[must_use]
     pub(crate) fn attraction_x4(self, from: Vec2x4T, to: Vec2x4T) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
@@ -154,11 +155,13 @@ impl AffinityCurve {
 
     /// Computes the clipped repulsion gradients of four point pairs.
     ///
-    /// Entry `i` is the gradient acting on `from[i]` away from the negative sample `to[i]`: a
-    /// positive multiple of the difference vector, clamped per axis. Only `from` moves; negative
-    /// samples stay in place. `repulsion_strength` is the `gamma` weight of the repulsive term.
+    /// Lane i acts on `from[i]` away from `to[i]`, following the module's regularized repulsion
+    /// formula and componentwise clip. `repulsion_strength` is γ. The function moves neither
+    /// endpoint.
     ///
-    /// Coincident pairs receive a zero gradient.
+    /// Both endpoint batches must be finite. To obtain finite updates, the computed coefficient and
+    /// scaled differences must avoid NaNs. Finite coincident pairs, including computed-zero squared
+    /// distances, receive zero.
     #[must_use]
     pub(crate) fn repulsion_x4(
         self,
@@ -183,8 +186,10 @@ impl AffinityCurve {
 
     /// Computes the clipped attraction gradient of a single point pair.
     ///
-    /// Scalar twin of [`attraction_x4`](Self::attraction_x4) for loop remainders; the semantics are
-    /// identical.
+    /// This uses [`attraction_x4`](Self::attraction_x4)'s model with scalar powers and distance
+    /// arithmetic. Both points and the computed squared distance must be finite. Computed-zero
+    /// squared distance returns zero. The coefficient and scaled differences must avoid NaNs
+    /// for a finite clipped result. Scalar and SIMD values can differ.
     #[must_use]
     pub(crate) fn attraction(self, from: Vec2, to: Vec2) -> Vec2 {
         let distance_squared = from.distance_squared(to);
@@ -201,8 +206,10 @@ impl AffinityCurve {
 
     /// Computes the clipped repulsion gradient of a single point pair.
     ///
-    /// Scalar twin of [`repulsion_x4`](Self::repulsion_x4) for loop remainders; the semantics are
-    /// identical.
+    /// This uses [`repulsion_x4`](Self::repulsion_x4)'s model with scalar powers and distance
+    /// arithmetic. Both points and the computed squared distance must be finite. Computed-zero
+    /// squared distance returns zero. The coefficient and scaled differences must avoid NaNs for a
+    /// finite clipped result. Scalar and SIMD values can differ.
     #[must_use]
     pub(crate) fn repulsion(self, from: Vec2, to: Vec2, repulsion_strength: f32) -> Vec2 {
         let distance_squared = from.distance_squared(to);

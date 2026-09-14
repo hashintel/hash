@@ -1,27 +1,27 @@
 //! Near-duplicate clumps over the 512-component neighbour table.
 //!
-//! A clump is a connected component of the k-nearest-neighbour graph restricted to edges at cosine
-//! distance at most ε: rows whose representations chain through near-identical neighbours share a
-//! component label. Collapsing neighbour orderings onto clump ids relabels recall at component
-//! granularity - a triage diagnostic and nothing stronger: ε chains can reach arbitrary diameter,
-//! so a shared label certifies neither component compactness nor within-component placement, and
-//! the collapsed readings never affect admission.
+//! A [`Clumps`] label identifies a connected component formed by stored neighbour edges at cosine
+//! distance at most ε. Collapsing recall onto these component labels relaxes row identity for
+//! diagnostic comparison. Single-linkage chains can span distances much larger than ε. A shared
+//! label certifies neither component compactness nor within-component placement, and collapsed
+//! readings never affect admission.
 //!
-//! The kNN restriction reads a subgraph of the full ε graph: a group larger than the table's k
-//! connects only through chains of stored edges, so a true ε-ball component can split but never
-//! spuriously merge - a split clump makes clump-granularity readings stricter, never looser.
+//! When stored distances agree with the full ε graph, restricting to stored k-NN edges yields a
+//! subgraph of that graph. Removing edges can split a connected component but cannot join different
+//! components. Therefore the stored-edge labels refine the full-graph labels. For fixed
+//! neighbourhood lists, this refinement can only reduce their collapsed overlap. A checked table
+//! validates distance ranges and structure, not correspondence to the embedding matrix.
 //!
-//! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it was
-//! pinned on, and the grouping is judged against measured corpus structure (group count, coverage,
-//! size distribution) and against the flagged subgroups it is expected to resolve. The
-//! [`calibration`](super::report::calibration) instrument re-derives the readings against any
-//! published k-NN table.
+//! [`DEFAULT_EPSILON`] records development-corpus calibration readings and their generation
+//! dependence. [`calibration`](super::report::calibration) measures grouping shape
+//! over a published k-NN table. Compare that shape and the subgroup readings before choosing a
+//! threshold for another generation.
 //!
 //! [`ClumpAggregate`] is the collapsed counterpart of the plain recall reading: both neighbour
-//! lists relabel onto clump ids and overlap as multisets, so same-component siblings satisfy each
-//! other under the relabeling while a clump the map underrepresents earns only the credit it shows.
-//! Under singleton labels the multiset overlap is exactly the shared-row count, so clump recall is
-//! always at least plain recall and equals it when nothing clumps.
+//! lists relabel onto clump ids and overlap as multisets. Each shared row still matches its own
+//! label after relabeling, and additional same-label matches may appear. Therefore clump recall is
+//! always at least plain recall over those same lists, with equality for singleton labels. A clump
+//! the map underrepresents earns only the credit its observed multiplicity supplies.
 #![expect(
     clippy::min_ident_chars,
     reason = "k is the canonical neighbourhood-size name across the metric literature"
@@ -34,34 +34,30 @@ use hashql_core::id::{Id, IdUnionFind, IdVec};
 use super::super::knn::table::KnnView;
 use crate::math::UnitFraction;
 
-/// The default clump threshold, as cosine distance over the 512-component representation.
+/// The default cosine-distance threshold over the 512-component representation.
 ///
-/// The value is calibrated, not derived, and the calibration is per generation rather than
-/// universal. On two fits of the development corpus (985,932 rows, 30 stored neighbours per row) it
-/// sits on a plateau: `2ea9cb45…` reads 131,773, 131,760, and 131,147 multi-row groups at ε =
-/// 0.0012, 0.002, and 0.0028 - a 0.48% spread - while coverage grows from 48.7% to 60.9%, and
-/// `c1d00be7…` reproduces every one of those readings within 0.02%. At 0.002, cosine similarity
-/// 0.998, the first reads 131,760 groups covering 55.9% of the corpus at mean size 4.18. Below the
-/// plateau exact duplicates stay split; above roughly 0.0045 the components percolate, the group
-/// count falling while sizes grow without bound.
+/// The value 0.002 corresponds to cosine similarity 0.998. Calibration depends on the generation,
+/// including its stored neighbour graph.
 ///
-/// The plateau belongs to those fits and not to the construction: generation `bfc67cbc…` has none.
-/// It reads 85,794, 91,162, and 95,179 groups over the same three thresholds - a 10.9% rise across
-/// the interval - with the curve 34.9%, 30.8%, and 27.4% below the others at those three thresholds
-/// and coverage 39.0% to 53.3%, so there ε = 0.002 sits on a slope and neighbouring thresholds do
-/// not produce the same grouping structure. A clump-granularity reading is therefore comparable
-/// within one generation and not across generations; `report clumps` re-reads the curve for a new
-/// fit in seconds.
+/// Recorded sweeps over development-corpus fits with 985,932 rows and 30 stored neighbours per row
+/// motivate this value. One fit (generation prefix `2ea9cb45`) records 131,773, 131,760 and 131,147
+/// multi-row groups at ε = 0.0012, 0.002 and 0.0028: about 0.48% variation while coverage grows
+/// from 48.7% to 60.9%. At 0.002 it records 55.9% coverage and mean group size 4.18. A second fit
+/// (generation prefix `c1d00be7`) has recorded readings differing by less than 0.02%.
 ///
-/// An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a different
-/// grouping construction and is not reproducible by ε-connected components over the k-NN table at
-/// any threshold; it anchors the scale of this value, not the value itself.
+/// A third fit (generation prefix `bfc67cbc`) records 85,794, 91,162 and 95,179 groups over those
+/// thresholds, a 10.9% rise, with coverage from 39.0% to 53.3%. Its group counts are respectively
+/// 34.9%, 30.8% and 27.4% below the first fit's. This generation has no comparable plateau over
+/// that interval. A fixed ε does not establish comparable component structure across generations.
+/// Use [`calibration`](super::report::calibration) to measure the grouping curve for a new table,
+/// and compare subgroup readings before adopting the threshold.
 pub(crate) const DEFAULT_EPSILON: f32 = 0.002;
 
-/// A dense clump labelling of the node-row domain.
+/// Connected-component labels for rows joined by stored edges within a distance threshold.
 ///
-/// Every row carries a clump id in `0..clumps`; ids are assigned in ascending order of each clump's
-/// first row, so equal tables and thresholds label equally. A singleton row is its own clump.
+/// Every row carries a dense clump id in `0..clumps`, ordered by each component's first row. A
+/// singleton row is its own clump. For equal tables and thresholds, the partition and labels are
+/// deterministic.
 #[derive(Debug, Clone)]
 pub(crate) struct Clumps<N> {
     labels: IdVec<N, u32>,
@@ -77,9 +73,15 @@ where
 {
     /// Groups the table's rows at the `epsilon` distance threshold.
     ///
-    /// An edge joins two rows when either row stores the other at cosine distance at most
-    /// `epsilon`; exact-duplicate embeddings (distance 0) group at every threshold. A non-finite
-    /// `epsilon` admits no edges.
+    /// An edge joins two rows when either row stores the other at distance at most `epsilon`. A
+    /// stored zero-distance edge joins at every non-negative threshold. NaN and negative thresholds
+    /// admit no edges, while positive infinity admits every stored edge. The row count must fit
+    /// u32, and the table must support row access over its complete domain.
+    ///
+    /// # Complexity
+    ///
+    /// For n rows and e stored edges, grouping takes O((n + e) · α(n)) time with union-find and
+    /// O(n) additional storage. Labels retain O(n) storage.
     pub(crate) fn from_knn(table: &KnnView<'_, N>, epsilon: f32) -> Self {
         let rows = table.rows();
         let mut components = IdUnionFind::<N>::new(rows);
@@ -94,8 +96,7 @@ where
             }
         }
 
-        // Dense relabelling by first row: deterministic in the
-        // partition alone.
+        // first-row relabeling makes labels depend on the partition, not the union-find roots
         let mut labels = IdVec::from_elem(0_u32, rows);
         let mut label_of = IdVec::from_elem(u32::MAX, rows);
         let mut clumps = 0_u32;
@@ -114,10 +115,14 @@ where
         Self::from_dense_labels(labels, clumps as usize, epsilon)
     }
 
-    /// Wraps a labelling that is already dense in first-row order.
+    /// Computes grouping counts from labels already dense in first-row order.
     ///
-    /// The caller promises every label lies in `0..count` and that labels first appear in ascending
-    /// order; the fixture paths that use this assert both.
+    /// Every label must lie in `0..count`, first appearances must ascend, and each component's row
+    /// count must fit u32.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a label lies outside `0..count`.
     fn from_dense_labels(labels: IdVec<N, u32>, count: usize, epsilon: f32) -> Self {
         let mut sizes = vec![0_u32; count];
         for &clump in &labels {
@@ -140,7 +145,7 @@ where
         }
     }
 
-    /// Wraps a hand-built labelling for kernel and report tests.
+    /// Validates first-row label order and computes grouping counts for a fixture.
     ///
     /// # Panics
     ///
@@ -199,8 +204,6 @@ where
     }
 
     /// Returns the count of clumps holding at least two rows.
-    ///
-    /// The calibration reading compared against measured corpus structure.
     #[inline]
     #[must_use]
     pub(crate) const fn groups(&self) -> usize {
@@ -208,8 +211,6 @@ where
     }
 
     /// Returns the count of rows inside multi-row clumps.
-    ///
-    /// The coverage side of the calibration reading.
     #[inline]
     #[must_use]
     pub(crate) const fn grouped_rows(&self) -> usize {
@@ -219,12 +220,14 @@ where
 
 /// Accumulated clump-granularity neighbourhood overlap.
 ///
-/// One aggregate fixes a neighbourhood size at construction; queries accumulate through
-/// [`observe`](Self::observe) and the recall reading divides the totals on demand. A query's
-/// overlap is the multiset intersection of its two neighbourhoods' clump ids: each reference
-/// neighbour is matched by a distinct map neighbour from the same clump, so siblings reshuffling
-/// inside one clump keep full credit while a clump the map shows fewer members of earns exactly the
-/// members shown.
+/// One aggregate fixes a neighbourhood size k. A query's overlap is Σ min(r(c), m(c)) over
+/// component labels c, where r(c) and m(c) count that label's occurrences in the reference and map
+/// neighbourhoods. Each reference neighbour matches a distinct map neighbour from the same clump.
+/// Reshuffling siblings keeps full credit, while a clump the map underrepresents earns only its
+/// observed multiplicity.
+///
+/// Observations and merges must keep the query count and query-times-k product within usize and the
+/// matched total within u64.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ClumpAggregate {
     k: usize,
@@ -246,8 +249,8 @@ impl ClumpAggregate {
 
     /// Accumulates one query's pair of collapsed neighbourhoods.
     ///
-    /// Each slice holds the clump ids of the query's `k` nearest points in its space; both are
-    /// sorted in place, since the overlap is order-free.
+    /// Each slice holds the clump ids of the query's k nearest points in its space. Both slices are
+    /// sorted in place because overlap ignores order.
     ///
     /// # Panics
     ///

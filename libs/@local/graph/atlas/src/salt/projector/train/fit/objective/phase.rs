@@ -174,11 +174,12 @@ where
         })
     }
 
-    /// Projects the pass's zero readbacks in place under the frozen constraint, collecting
-    /// each row's applied clip derivative.
+    /// Projects the pass's zero readbacks in place under the frozen constraint.
+    ///
+    /// It collects each row's applied clip derivative on the way.
     ///
     /// The pass's zero values are subject to the same frozen constraint as the constitutive
-    /// field, so each row's readback projects under the identical clip law before any reading
+    /// field, and each row's readback projects under the identical clip law before any reading
     /// derives from it. The whole-field application stays the record's one writer: this
     /// per-row projection records nothing, and each applied derivative arrives typed in the
     /// pass's own row domain for the deposit's composition.
@@ -206,8 +207,8 @@ where
     /// the live gauge alignment on those coordinates. The batch estimator folds over the
     /// priced units. The scale pull fans into the anchors. The zero side composes through the
     /// pass's own applied clip derivatives, and both gradient fields deposit through the
-    /// surrogate, so the estimand's value and both of its Jacobians belong to the pass's one
-    /// graph realization.
+    /// surrogate. The estimand's value and both of its Jacobians therefore belong to the pass's
+    /// one graph realization.
     ///
     /// # Errors
     ///
@@ -242,8 +243,8 @@ where
         let units = context.units(&self.ruler, draws);
         let pass = LocalPass::new(&units, self.gauge.rows());
 
-        // The padded forwards prove their whole readback finite, so the pass fields arrive as
-        // proven prefixes. Alignment padding trails the pass rows, so a padded point diverging
+        // The padded forwards prove their whole readback finite, and the pass fields arrive as
+        // proven prefixes. Alignment padding trails the pass rows: a padded point diverging
         // names the last participating row.
         let diverged = |offender: NonFinitePoint<TargetRowId>| {
             let local = TargetRowId::from_usize(offender.id.as_usize().min(pass.rows.len() - 1));
@@ -252,7 +253,7 @@ where
             })
         };
 
-        // The two-step forwards. Each step's values read back from its own tensor, so every
+        // The two-step forwards. Each step's values read back from its own tensor, and every
         // reading the estimator takes shares a graph with the tensor its gradient deposits
         // through.
         let canonical_tensor = forward.model.forward(forward.columns.input_gather(
@@ -325,7 +326,7 @@ where
             }
         }
 
-        // Both deposits ride one scalar.
+        // Both deposits sum into one scalar.
         let surrogate = deposit(canonical_tensor, &canonical_field, forward.device)
             + deposit(zero_tensor, &zero_gradient_field, forward.device);
 
@@ -376,11 +377,11 @@ where
 
     /// Reads the final model's zero field into the enforcement record.
     ///
-    /// The loop's last optimizer update lands after its own step's enforcement application, so
-    /// this closing application reads the returned model's field once more: the record then
-    /// covers every update of the interval, with `steps` - one past the last step index - as
-    /// the closing enforcement point. Without it, the final update could leave the returned
-    /// field outside the radius while the record reads clean.
+    /// The loop's last optimizer update comes after its own step's enforcement application.
+    /// This closing application therefore reads the returned model's field once more: the
+    /// record then covers every update of the interval, with `steps` - one past the last step
+    /// index - as the closing enforcement point. Without it, the final update could leave the
+    /// returned field outside the radius while the record reads clean.
     ///
     /// # Errors
     ///

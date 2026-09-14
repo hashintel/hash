@@ -1,4 +1,4 @@
-//! Construction of both relation indexes from one admitted instance set.
+//! Joint attraction and protection construction with shared instance ordering.
 
 use core::ops::Range;
 
@@ -20,21 +20,27 @@ use crate::math::{DNonNegative, NonNegative, PositiveUnitFraction, narrow_f32};
 
 /// Instances per parallel emission chunk within one relation group.
 ///
-/// Relation volume is heavily skewed - a handful of types own most links - so the group pass cannot
-/// lean on group-level parallelism alone: one dominant relation would serialize it. Within a group,
-/// instances therefore emit over chunks of this size. Boundaries are fixed positions of the sorted
-/// slice and the chunk partials combine in chunk order, so the double-precision mass sums associate
-/// identically on every run: the build stays a function of the instance set, whatever the thread
-/// count or scheduling. The size is a granularity, not a tuned number - large enough that per-chunk
-/// task and buffer overhead vanishes behind tens of thousands of column searches, small enough that
-/// a million-instance relation splits into dozens of stealable pieces; any nearby power of two
-/// serves equally.
+/// Chunking exposes parallel work within a dominant relation instead of relying on group-level
+/// parallelism alone. With a unique sorted instance order, fixed chunk boundaries and ordered
+/// combination of partials fix the association of the double-precision mass sums independently of
+/// thread scheduling. Changing the chunk size can change the final bits.
+///
+/// The 16,384-instance chunk size is an unvalidated choice. Sweep nearby powers of two on
+/// representative skewed corpora to compare task and buffer overhead against available parallelism.
 pub(super) const EMISSION_CHUNK: usize = 1 << 14;
 
 /// Builds the attraction and protection indexes together.
 ///
-/// See [`RelationIndexes::build`] for the contract; this is its implementation, composed from the
-/// named stages below so each stage stays measurable on its own.
+/// Reorders instances and derives both indexes under [`RelationIndexes::build`]'s input contract.
+///
+/// # Errors
+///
+/// Returns [`RelationIndexError`] for an oversized row domain or an uncovered non-self relation, in
+/// that order.
+///
+/// # Panics
+///
+/// Panics for out-of-domain non-self endpoints or row positions that `N` cannot represent.
 pub(super) fn build<N, E>(
     rows: usize,
     policies: Policies<'_>,
@@ -45,7 +51,7 @@ where
     N: Id,
     E: Id,
 {
-    // The check precedes every allocation sized by `rows`.
+    // check before every allocation sized by `rows`.
     if u32::try_from(rows).is_err() {
         return Err(RelationIndexError::TooManyRows { rows });
     }
@@ -87,9 +93,8 @@ where
         retained_mass,
         pruned_mass,
         self_references,
-        // Starts empty: the histogram counts readings per edge, which only the fit's relation stage
-        // sees while draining the edge stream. That stage writes the counts here after the build
-        // returns.
+        // the histogram counts source edges, including readings outside this build's non-self
+        // partition. The edge drain supplies it separately.
         multi_typed_edges: Vec::new(),
     };
 
@@ -104,9 +109,10 @@ where
 
 /// Sorts instances by relation group and returns the proper count.
 ///
-/// Self-references sort behind every proper instance, so the returned partition point drops them
-/// without moving memory. The remainder of the key is total under the edge stream's uniqueness
-/// contract, making the unstable parallel sort deterministic.
+/// Self-references follow every proper instance. The returned boundary selects the non-self prefix
+/// without a second compaction pass. Unique `(edge, relation)` readings make the complete key
+/// distinct, fixing the sorted order. Duplicate keys with different scores or multiplicities do not
+/// have that guarantee.
 pub(super) fn sort_by_group<N, E>(instances: &mut [RelationInstance<N, E>]) -> usize
 where
     N: Id,
@@ -127,12 +133,12 @@ where
 
 /// Resolves every group's range and policy over group-sorted instances.
 ///
-/// The resolution precedes any parallel work: the emission pass is infallible, and the first
-/// uncovered relation in ascending order is the deterministic error.
+/// `proper` must be sorted by relation with self-references removed. Resolution precedes group
+/// emission, returning the first uncovered relation in ascending order.
 ///
 /// # Errors
 ///
-/// Returns an error when an instance references a relation the policy table does not cover.
+/// Returns [`RelationIndexError::MissingPolicy`] for an uncovered relation.
 pub(super) fn resolve_groups<'policy, N, E>(
     proper: &[RelationInstance<N, E>],
     policies: Policies<'policy>,
@@ -152,11 +158,10 @@ pub(super) fn resolve_groups<'policy, N, E>(
     Ok(group_ranges)
 }
 
-/// One proper instance's protection contribution: its canonical pair and class evidence.
+/// A canonical endpoint pair and the evidence from one non-self instance.
 ///
-/// The group emission writes one record per instance - pruning-exempt, since protection evidence
-/// covers the complete admitted set - and the protection assembly orders and aggregates the records
-/// without revisiting instances or policies.
+/// Group emission writes one record per non-self instance regardless of attraction pruning.
+/// Assembly can then aggregate pair evidence without revisiting policies.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct ProtectionRecord<N> {
     pair: NodePair<N>,
@@ -165,7 +170,11 @@ pub(super) struct ProtectionRecord<N> {
 }
 
 impl<N> ProtectionRecord<N> {
-    /// The zero record the build's scratch starts from; emission overwrites every slot.
+    /// Returns a zero scratch record for emission to overwrite.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `N` cannot represent zero.
     pub(crate) const fn empty() -> Self
     where
         N: [const] Id,
@@ -190,8 +199,15 @@ pub(super) struct GroupMeasurements {
 ///
 /// Each group also emits its instances' protection records into its slice of `records`,
 /// positionally: the record at a group-relative offset describes the instance at that offset.
-/// `chunk` is the emission batch size. The index build passes [`EMISSION_CHUNK`], and benchmarking
-/// other values through this parameter verifies the batch-size claim on that constant.
+/// `group_ranges` must partition `proper` contiguously from zero into nonempty relation runs in
+/// correct order, each paired with its policy. `records` must have the same length as `proper`.
+/// `chunk` is the positive emission batch size. Use [`EMISSION_CHUNK`] to retain the production
+/// summation order.
+///
+/// # Panics
+///
+/// Panics for an out-of-bounds or empty group range, insufficient record storage, or zero `chunk`
+/// when a group emits.
 pub(super) fn build_groups<N, E>(
     proper: &[RelationInstance<N, E>],
     group_ranges: Vec<(Range<usize>, &RelationPolicy)>,
@@ -203,8 +219,7 @@ where
     N: Id,
     E: Id,
 {
-    // The resolved ranges are contiguous and ascending from zero, so the
-    // record buffer carves into the groups' disjoint slices by length.
+    // contiguous ranges partition the records into disjoint group slices.
     let mut slices = Vec::with_capacity(group_ranges.len());
     let mut rest = records;
     for (range, _) in &group_ranges {
@@ -224,20 +239,21 @@ where
 
 /// Assembles the symmetric evidence matrix from the emitted protection records.
 ///
-/// The records order by canonical pair first: one pair's records may have emitted at any positions,
-/// and the aggregation's per-component maximum is order-independent, so the assembled index is a
-/// function of the instance set. Two passes over the pair runs then build the matrix: counting
-/// fills the row pointers, the scatter writes each pair's aggregated evidence into both of its
-/// rows. Canonical pair order makes the scatter emit every row's partners ascending without a sort:
-/// a row's smaller partners arrive while the row is some pair's second endpoint (ascending by the
-/// pairs' first components), its larger partners afterwards while it is the first (ascending by
-/// second components). The scatter is sequential, the assembly's serial floor; the index validation
-/// behind it re-checks the constructed invariants in parallel.
+/// Records must have distinct endpoints in the `rows` domain, finite non-negative components and
+/// `discounted ≤ undiscounted`. `rows` must fit the column encoding, and `N` must represent the row
+/// positions and end fencepost.
+///
+/// Sorting groups equal pairs for component-wise maximum aggregation. Counting each pair into both
+/// rows determines the row pointers, then a sequential scatter copies the aggregate into both
+/// directions. For a fixed row, lexicographic pair order lists smaller partners first, ordered by
+/// the pair's first component, followed by larger partners ordered by the second. Therefore the
+/// scatter emits strictly ascending partners without a per-row sort. Validation rechecks the
+/// resulting matrix in parallel.
 ///
 /// # Panics
 ///
-/// This panics when a record endpoint lies outside the `rows` domain, which the dataset row
-/// contract excludes.
+/// Panics for out-of-domain endpoints, unrepresentable row positions or entry counts, or a matrix
+/// that fails [`ProtectionIndex::new`]'s validation. `rows + 1` must fit `usize`.
 pub(super) fn assemble_protection<N>(
     rows: usize,
     records: &mut [ProtectionRecord<N>],
@@ -268,9 +284,7 @@ where
         let pair = run[0].pair;
         let value = pair_evidence(run);
         for (row, partner) in [(pair.lhs(), pair.rhs()), (pair.rhs(), pair.lhs())] {
-            // `columns` and `evidence` are the CSR entry arrays: their
-            // positions are storage offsets in the matrix encoding, not
-            // ids of any domain, so they stay raw.
+            // positions in the CSR entry arrays are storage offsets, not node ids.
             let slot =
                 usize::try_from(cursor[row]).expect("resident entries fit the address space");
             #[expect(
@@ -320,11 +334,14 @@ struct GroupFactors {
 
 /// Builds one relation's attraction group from its contiguous instances.
 ///
-/// The slice is one relation's run of the `(source, target, edge)` sort. Degrees count over two
-/// compact endpoint columns in one scratch allocation: the source column inherits the run's order,
-/// the target column sorts here, and a row's degree is the share sum over its run in each column,
-/// read as a prefix difference. Emission then parallelizes over `chunk`-sized chunks reading those
-/// shared columns.
+/// `instances` must be a nonempty `(source, target, edge)`-sorted run for `policy.relation`, with
+/// equally long `records`. Source and target columns each sort by `(row, share)` and build separate
+/// share prefixes. Their prefix differences give each endpoint's share-weighted degree over the
+/// complete run. Emission reads those columns in parallel.
+///
+/// # Panics
+///
+/// Panics when `instances` is empty or `chunk` is zero.
 fn build_group<N, E>(
     instances: &[RelationInstance<N, E>],
     policy: &RelationPolicy,
@@ -338,8 +355,7 @@ where
 {
     let relation = instances[0].relation;
     let weights = AttractionWeights {
-        // A fraction of a widened f32 stays at or below that f32, so the narrowing cannot
-        // overflow.
+        // A fraction of a widened finite f32 is at most that f32. Narrowing cannot overflow.
         coincident: (policy.attraction.coincident * attraction.coincident_coefficient().widen())
             .narrow_lossy(),
         proximal: NonNegative::new(
@@ -374,8 +390,7 @@ where
         .map(|(chunk, records)| emit_chunk(chunk, records, &sources, &targets, factors, attraction))
         .collect();
 
-    // Combined in chunk order; see EMISSION_CHUNK for why that keeps
-    // the sums deterministic.
+    // combine in chunk order to preserve the association fixed by EMISSION_CHUNK.
     let (edges, measurements) = if yielded.len() == 1 {
         yielded.pop().expect("one chunk was just checked")
     } else {
@@ -397,7 +412,8 @@ where
 /// One group column of endpoint rows.
 ///
 /// The rows ascend, with the running share total ahead of every position. A row's degree is the
-/// share sum over its run, read as a prefix difference. Lookups stay binary searches.
+/// share sum over its run, read as a prefix difference. Floating-point prefix subtraction can lose
+/// small shares after a large prefix. Lookups use binary searches.
 struct DegreeColumn {
     rows: Vec<u64>,
     prefix: Vec<f64>,
@@ -406,8 +422,8 @@ struct DegreeColumn {
 impl DegreeColumn {
     /// Sorts the entries and accumulates the share prefix.
     ///
-    /// The sort key includes the share bits, so equal rows order their shares deterministically and
-    /// the prefix sums are reproducible.
+    /// Entries must carry finite positive shares. Total ordering by `(row, share)` fixes their
+    /// summation order, including when equal rows have different shares.
     fn new(mut entries: Vec<(u64, f64)>) -> Self {
         entries.par_sort_unstable_by(|left, right| {
             left.0.cmp(&right.0).then(left.1.total_cmp(&right.1))
@@ -437,8 +453,15 @@ impl DegreeColumn {
 
 /// Emits one fixed chunk of a group's instances against its columns.
 ///
-/// Every instance writes its protection record - pruning-exempt - and the instances the pruning
-/// predicate retains emit attraction edges.
+/// `records` must have the same length as `chunk`, and both degree columns must describe the
+/// complete relation run. `factors` must contain the policy's in-domain scale, selected class sum
+/// and applicability. Every instance writes a protection record regardless of pruning. Instances at
+/// or above the mass threshold emit attraction edges.
+///
+/// # Panics
+///
+/// Panics if invalid factors produce non-finite or negative masses, or the computed normalization
+/// leaves `(0, 1]`.
 fn emit_chunk<N, E>(
     chunk: &[RelationInstance<N, E>],
     records: &mut [ProtectionRecord<N>],
@@ -481,8 +504,7 @@ where
         }
 
         let normalization = {
-            // A row's degree spans both columns: it may source some
-            // edges and receive others.
+            // a row can source some instances and receive others.
             let degree = |row: u64| sources.degree(row) + targets.degree(row);
             let source = degree(instance.source.as_u64());
             let target = degree(instance.target.as_u64());

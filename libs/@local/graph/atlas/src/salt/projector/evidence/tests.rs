@@ -1,9 +1,9 @@
 //! Certificates for the per-evaluation evidence reading.
 //!
-//! Dyadic fixtures land every asserted reading on an exactly representable value, from the
-//! fitted scales through the displacement quantiles, so each assert is an exact contract. The
-//! clip-then-read certificate exercises the one place production arithmetic rounds - a clipped
-//! row's landing coordinate - and asserts the boolean the floor was sized for.
+//! Dyadic fixtures make every asserted reading exactly representable, from the fitted scales
+//! through the displacement quantiles, and each assert is therefore an exact contract. The
+//! clip-then-read certificate exercises the one place production arithmetic rounds, a clipped
+//! row's landing coordinate, and asserts the boolean the saturation floor was sized for.
 
 #![expect(
     clippy::float_cmp,
@@ -23,13 +23,15 @@ use crate::{
     },
 };
 
+/// Builds a [`Positive`] from a literal test value.
 fn positive(value: f32) -> Positive {
     Positive::new(value).expect("test value is positive")
 }
 
-/// The frame bridge, gauge frame to corpus frame: undoing the gauge fit and applying the corpus
-/// fit. Composition can leave the representable coefficient range, in which case the two recorded
-/// ends remain the complete evidence.
+/// Composes the frame bridge from the gauge frame to the corpus frame.
+///
+/// It undoes the gauge fit and applies the corpus fit. Composition can leave the representable
+/// coefficient range, in which case the two recorded ends remain the complete evidence.
 fn bridge(evidence: &EvaluationEvidence) -> Option<Similarity> {
     evidence
         .gauge_similarity
@@ -37,9 +39,10 @@ fn bridge(evidence: &EvaluationEvidence) -> Option<Similarity> {
         .then(evidence.corpus_similarity)
 }
 
-/// The boundary snapshot is an exact square of gauge anchors at rows 1, 2, 4, 5 with two far
-/// fillers, centred so every fitted translation vanishes. The anchors' frozen spread is exactly
-/// 1, so normalized residuals read unscaled.
+/// The boundary snapshot is an exact square of gauge anchors with two far fillers.
+///
+/// The anchors are at rows 1, 2, 4, 5, centred so every fitted translation vanishes. The anchors'
+/// frozen spread is exactly 1: normalized residuals read unscaled.
 const SNAPSHOT: [Vec2; 6] = [
     Vec2::new(8.0, 8.0),
     Vec2::new(1.0, 0.0),
@@ -49,8 +52,9 @@ const SNAPSHOT: [Vec2; 6] = [
     Vec2::new(0.0, -1.0),
 ];
 
-/// Rows 0 through 2 sit in stratum 0 and rows 3 through 5 in stratum 1, so each stratum holds
-/// one filler and two anchors.
+/// Rows 0 through 2 form stratum 0 and rows 3 through 5 stratum 1.
+///
+/// Each stratum holds one filler (rows 0 and 3) and two anchors.
 const STRATA: [StratumId; 6] = [
     StratumId::new(0),
     StratumId::new(0),
@@ -65,6 +69,7 @@ fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
+/// The gauge anchors frozen over the square fixture's rows 1, 2, 4 and 5 with one class each.
 fn gauge() -> GaugeAnchors<NodeRowId> {
     GaugeAnchors::freeze(
         Box::new([1, 2, 4, 5].map(NodeRowId::new)),
@@ -86,6 +91,7 @@ fn projection(dimensionless_radius: f32) -> BandProjection<NodeRowId> {
     .expect("the fixture is a valid constraint")
 }
 
+/// Fits the gauge live over the anchor rows of the canonical and zero fields.
 fn live_fit(
     anchors: &GaugeAnchors<NodeRowId>,
     canonical: &[Vec2; 6],
@@ -100,10 +106,13 @@ fn live_fit(
         .expect("the fixture fits")
 }
 
+/// The field with every point scaled by `factor`.
 fn scaled(field: &[Vec2; 6], factor: f32) -> [Vec2; 6] {
     field.map(|point| Vec2::new(point.x() * factor, point.y() * factor))
 }
 
+/// Separates a uniform shrink of the zero field exactly in every reading.
+///
 /// A uniform shrink of the whole zero field is per-row legal away from the fillers, and every
 /// reading separates it exactly: the live scale leaves the reference-configuration scale, the
 /// common-mode fit reads the shrink as `s_z = 2`, the anchors' displacement family reads the
@@ -136,8 +145,8 @@ fn a_common_shrink_separates_every_reading() {
     assert_eq!(evidence.effective_count, DNonNegative::from_usize(4));
 
     // The whole-field gauge fit reads current against current: canonical 2x onto zero 0.5x.
-    // The objective-shape fit read the same constellations in this fixture, so its own
-    // recorded reading agrees.
+    // The objective-shape fit read the same constellations in this fixture as the whole-field
+    // fit.
     assert_eq!(evidence.scale.get(), 0.25);
     assert_eq!(evidence.residual, 0.0);
     assert_eq!(evidence.objective_scale.get(), 0.25);
@@ -146,7 +155,7 @@ fn a_common_shrink_separates_every_reading() {
     assert_eq!(evidence.reference_scale.get(), 0.5);
     assert_eq!(evidence.reference_residual, 0.0);
 
-    // The whole corpus moved as one similarity, so both bridge ends agree and the bridge is
+    // The whole corpus moved as one similarity: both bridge ends agree and the bridge is
     // exactly the identity.
     assert_eq!(evidence.corpus_similarity, evidence.gauge_similarity);
     assert_eq!(bridge(&evidence), Some(Similarity::IDENTITY));
@@ -156,7 +165,7 @@ fn a_common_shrink_separates_every_reading() {
     assert_eq!(evidence.zero_similarity.scale().get(), 2.0);
     assert_eq!(evidence.zero_similarity.translation(), Vec2::new(0.0, 0.0));
 
-    // The gauge constellation stayed similar, so the affine component is the plain scale.
+    // The gauge constellation stayed similar, and the affine component is the plain scale.
     assert_eq!(
         evidence.affine,
         Transform::from_scale(Vec2::new(0.25, 0.25))
@@ -175,7 +184,7 @@ fn a_common_shrink_separates_every_reading() {
     }
 
     // The anchors stay far inside the radius 2 band. Each stratum's far filler moved by the
-    // illegal 4·sqrt(2) and reads saturated. The per-row constraint sees the fillers alone,
+    // illegal 4√2 and reads saturated. The per-row constraint sees the fillers alone,
     // while the common-mode scale above reads the shrink itself.
     assert_eq!(evidence.saturation.len(), 2);
     for (tally, stratum) in evidence.saturation.iter().zip([0, 1]) {
@@ -192,6 +201,8 @@ fn a_common_shrink_separates_every_reading() {
     assert_eq!(evidence.enforcement.last_application, None);
 }
 
+/// Splits an anisotropic gauge deformation exactly between the similarity and affine fits.
+///
 /// An anisotropic gauge deformation splits the decomposition exactly: the similarity residual
 /// prices the deformation at `r = 0.75` while the affine fit absorbs it whole, and the
 /// reference-configuration fit stays at the frozen identity.
@@ -240,9 +251,11 @@ fn the_affine_component_absorbs_what_the_similarity_prices() {
     }
 }
 
-/// A non-finite coordinate anywhere in either field dies at the whole-corpus fit before any
-/// per-row reading, and a collinear canonical gauge constellation admits a similarity fit
-/// while refusing the affine one. Production data reaches both arms.
+/// Refuses a non-finite coordinate at the field's proof and a collinear gauge's affine fit alone.
+///
+/// A non-finite coordinate is refused at the field's own proof, naming its row, and never reaches
+/// the reading. A collinear canonical gauge constellation admits a similarity fit while refusing
+/// the affine one.
 #[test]
 fn refusals_name_the_fit_that_could_not_be_made() {
     let anchors = gauge();
@@ -251,7 +264,8 @@ fn refusals_name_the_fit_that_could_not_be_made() {
     let zero = SNAPSHOT;
 
     // A non-finite coordinate never reaches the reading: the readback boundary's proof
-    // refuses it naming the row, so the reading's own refusals cover fit degeneracy alone.
+    // refuses it naming the row. The reading's own refusals therefore cover fit degeneracy
+    // alone.
     let mut poisoned = scaled(&SNAPSHOT, 2.0);
     poisoned[0] = Vec2::new(f32::NAN, 16.0);
     assert_eq!(
@@ -286,9 +300,11 @@ fn refusals_name_the_fit_that_could_not_be_made() {
     );
 }
 
-/// A row the projection actually clipped reads as saturated through the stored `f32` bytes:
-/// the landing coordinate rounds, the floor sits a full margin below the landing radius, and
-/// the enforcement summary copies the record's cumulative story at the evaluation point.
+/// Reads a clipped row as saturated through the stored `f32` bytes.
+///
+/// A row the projection actually clipped reads as saturated through the stored `f32` bytes: the
+/// landing coordinate rounds, the saturation floor lies a full margin below the landing radius, and
+/// the enforcement summary copies the record's cumulative readings at the evaluation point.
 #[test]
 fn a_clipped_row_reads_saturated_with_its_record() {
     let anchors = gauge();
@@ -328,7 +344,7 @@ fn a_clipped_row_reads_saturated_with_its_record() {
     assert_eq!(evidence.saturation[0].saturated, 1);
     assert_eq!(evidence.saturation[1].saturated, 0);
 
-    // The anchors never moved, so the gauge displacement family stays at zero.
+    // The anchors never moved, and the gauge displacement family reads zero.
     for family in &evidence.displacement {
         assert_eq!(family.displacement.q50.get(), 0.0);
         assert_eq!(family.displacement.mean.get(), 0.0);
@@ -342,8 +358,10 @@ fn a_clipped_row_reads_saturated_with_its_record() {
     assert_eq!(evidence.enforcement.last_application, Some(9));
 }
 
-/// An objective-shape fit disagreeing with the whole-field realization stands as its own
-/// reading and enters no bridge end: both recorded ends derive from the fields alone.
+/// Keeps an objective-shape fit out of the bridge, whose ends derive from the fields alone.
+///
+/// An objective-shape fit disagreeing with the whole-field realization stands as its own reading
+/// and enters no bridge end: both recorded ends derive from the fields alone.
 #[test]
 fn the_objective_reading_enters_no_bridge_end() {
     let anchors = gauge();
@@ -377,8 +395,10 @@ fn the_objective_reading_enters_no_bridge_end() {
     assert_eq!(bridge(&evidence), Some(Similarity::IDENTITY));
 }
 
-/// The bridge converts a gauge-frame reading into the corpus frame by recorded arithmetic
-/// alone: undoing a pure gauge scale of 2 against a corpus identity halves the reading.
+/// Converts a gauge-frame reading into the corpus frame by recorded arithmetic alone.
+///
+/// The bridge converts a gauge-frame reading into the corpus frame by recorded arithmetic alone:
+/// undoing a pure gauge scale of 2 against a corpus identity halves the reading.
 #[test]
 fn the_bridge_composes_the_two_recorded_ends() {
     let gauge_similarity = Similarity::new(

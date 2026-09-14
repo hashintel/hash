@@ -1,25 +1,26 @@
-//! The candidate census and the draw.
+//! Candidate populations and bounded, repeatable paired-movement samples.
 //!
 //! [`Draw::over`] samples one generation's attraction index. The census walks two candidate
 //! domains. The pair domain holds every distinct oriented `(source, target)` pair among the
-//! force-bearing Proximal instances: the edges of the groups whose Proximal class weight is
-//! positive, deduplicated across groups with orientation kept. The control domain holds every
-//! nonparticipant corpus row: a row that no retained instance of any force class names as an
-//! endpoint.
+//! [force-bearing Proximal instances](crate::salt::relation::attraction::AttractionEdge): the edges
+//! of the groups whose Proximal class weight is positive, deduplicated across groups with
+//! orientation kept. The control domain holds every nonparticipant corpus row: a row that no
+//! retained instance of any force class names as an endpoint.
 //!
 //! The draw orders each domain ascending by `(order key, subject)` and keeps a bounded prefix:
 //! `n = min(P, SAMPLE_CAP)` of the `P` candidate pairs and `m = min(Q, n)` of the `Q` candidate
-//! rows. The subject tie-break keeps the order total without assuming the keyed hash never
-//! collides, so the draw is a function of the rule and the salt over the index bytes alone. An
-//! empty pair domain short-circuits into the `P = 0` outcome: zero counts on both domains
-//! and no control population at all.
+//! rows. The subject tie-break keeps the order total even when digests collide. The draw is a
+//! function of the rule, salt, corpus row count and index regions. An empty pair domain
+//! short-circuits into the `P = 0` outcome: zero counts on both domains and no control population
+//! at all.
 //!
 //! Scratch stays bounded by the index and the draw. The deduplication buffer holds the Proximal
 //! instances and the participant set spends one bit per corpus row, while each selection works
 //! in a heap of at most its own sample size. The census refuses an index whose group ranges or edge
 //! endpoints contradict its own geometry ([`CensusError`]) instead of reading around the
-//! contradiction; every other domain rule stays `salt::relation`'s artifact contract, validated
-//! where the domain types live.
+//! contradiction. Supply regions satisfying the [attraction
+//! index](crate::salt::relation::attraction::AttractionIndex)'s remaining invariants. The census
+//! checks neither complete group coverage of the edge region nor each edge's force factor.
 
 #[cfg(test)]
 mod tests;
@@ -36,17 +37,19 @@ use crate::{
     identity::{EdgeRowId, NodeRowId},
 };
 
-/// The pair-sample cap.
+/// The maximum number of sampled pairs.
 ///
-/// The Dvoretzky-Kiefer-Wolfowitz bound `2 · exp(−2 · n · ε²) ≤ δ` at `ε = 0.01` and `δ = 10⁻⁶`
-/// has the exact integer minimum 72,544, and the cap adds an eleven-row margin above it. A capped
-/// draw therefore holds the sample's whole empirical distribution within one percentile point of
-/// its population's, with failure probability at most one in a million, and a smaller pair domain
-/// draws whole.
-// `pub(super)`: the evidence body documents its `pairs_selected` bound by naming this cap.
+/// The cap uses the Dvoretzky-Kiefer-Wolfowitz calibration for an independent random sample: 2 ·
+/// exp(−2nε²) ≤ δ, where n is the sample count, ε is the maximum empirical-CDF error and δ is the
+/// failure-probability bound. At ε = 0.01 and δ = 10⁻⁶, n ≥ ⌈ln(2/δ)/(2ε²)⌉ = 72,544. The cap adds
+/// eleven rows.
+///
+/// This deterministic digest-ordered, without-replacement draw does not itself establish that
+/// random-sampling model or its probability guarantee. A pair domain at or below the cap is
+/// measured in full. The calibration supplies no per-stratum control guarantee.
 pub(super) const SAMPLE_CAP: usize = 72_555;
 
-/// The index contradiction the census refused.
+/// An invalid group range or endpoint encountered during the census.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum CensusError<I> {
     /// A group's edge range contradicts the edge region.
@@ -55,8 +58,9 @@ pub(crate) enum CensusError<I> {
         group: u64,
         /// The range's first edge position.
         start: u64,
-        /// The range's one-past-last edge position, the next group's start or the edge count
-        /// for the final group.
+        /// The range's one-past-last edge position.
+        ///
+        /// The next group's start, or the edge count for the final group.
         end: u64,
         /// The edge count the range must stay within.
         edges: u64,
@@ -97,7 +101,7 @@ where
 
 impl<I> Error for CensusError<I> where I: Id {}
 
-/// One oriented candidate pair, the source row and then the target row.
+/// An oriented source-target pair eligible for sampling.
 ///
 /// The derived order is the draw's subject tie-break: ascending `(source, target)`. The subject
 /// encoding behind the primary key is the rule's ([`DrawRule::pair_order_key`]).
@@ -111,16 +115,16 @@ pub(crate) struct Pair {
 
 /// One completed draw over a generation's attraction index.
 ///
-/// The selections keep draw order, ascending `(order key, subject)`, the order every downstream
-/// fold consumes. The candidate counts census the whole domains, so evidence records candidates
-/// beside selections without retaining an identity.
+/// The selections keep draw order, ascending `(order key, subject)`. Candidate counts cover the
+/// whole corresponding domains when the pair population is nonempty. An empty pair population
+/// records zero controls without counting nonparticipants.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Draw {
     /// The distinct force-bearing Proximal pair count `P`.
     pair_candidates: u64,
     /// The `n = min(P, SAMPLE_CAP)` drawn pairs, in draw order.
     pairs: Vec<Pair>,
-    /// The nonparticipant corpus row count `Q`.
+    /// The nonparticipant corpus row count `Q`, or zero when no pairs were eligible.
     control_candidates: u64,
     /// The `m = min(Q, n)` drawn control rows, in draw order.
     controls: Vec<NodeRowId>,
@@ -130,9 +134,19 @@ impl Draw {
     /// Takes one generation's draw over its attraction index.
     ///
     /// `rows` is the corpus row count the endpoints index into, and `groups` and `edges` are the
-    /// index's regions in file order. [`AttractionFile`] hands out all three. One rule and salt
-    /// over one index always produce one draw, so a replay that re-derives the salt re-derives
-    /// the selections.
+    /// index's regions in file order, obtainable from [`AttractionFile`]. The same rule, salt, row
+    /// count and regions always produce the same selections. A positive Proximal group weight
+    /// admits all its edges, including self-pairs, without rechecking their confidence or strength.
+    ///
+    /// # Complexity
+    ///
+    /// For G groups, E edges, L Proximal-group edges, N rows and quotas n and m, work is O(G + E +
+    /// L log(L + 1) + P log(n + 2) + N log(m + 2)). Scratch is O(G + L + N/8 + n + m) bytes up to
+    /// record-size factors. When P = 0, the participant allocation and row sweep are skipped.
+    ///
+    /// # Panics
+    ///
+    /// Panics for a nonempty pair domain when `rows` exceeds [`usize::MAX`].
     ///
     /// # Errors
     ///
@@ -265,14 +279,11 @@ impl Draw {
 
 /// Marks every corpus row a retained instance names as an endpoint.
 ///
-/// The complement is the control candidate domain. [`Draw::over`] censuses its control pool from
-/// this set, and the evidence writer re-derives it for the collateral strata's candidate sweep,
-/// so both walks share one participant definition.
+/// The complement defines control eligibility for sampling and for the collateral-stratum census.
 ///
 /// # Panics
 ///
-/// This panics when an edge names an endpoint at or beyond `rows`. The census's endpoint sweep
-/// establishes the bound before either caller arrives here.
+/// Panics when `rows` exceeds [`usize::MAX`] or an endpoint is outside `0..rows`.
 pub(super) fn participants(
     rows: u64,
     edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
@@ -291,8 +302,12 @@ pub(super) fn participants(
 /// Resolves each group's edge range, refusing boundaries the edge region contradicts.
 ///
 /// Group `i` spans `first_edge[i] .. first_edge[i + 1]`, with the final group ending at the edge
-/// count. A backwards boundary or one past the region has no consistent reading, so the census
-/// refuses it rather than walking a range the file cannot hold.
+/// count. The first range need not start at zero, and an empty group slice returns no ranges even
+/// when edges exist.
+///
+/// # Errors
+///
+/// Returns [`CensusError`] for a backwards boundary or a boundary past the edge count.
 fn edge_ranges(
     groups: &[GroupRecord],
     edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
@@ -323,8 +338,9 @@ fn edge_ranges(
 
 /// Selects the `quota` least candidates, ascending.
 ///
-/// A bounded max-heap carries the running selection: a candidate below the current worst
-/// replaces it, so the walk streams its domain while scratch stays proportional to the quota.
+/// Streams the candidates through a bounded max-heap, replacing the current largest selected value
+/// when a smaller candidate appears. Returns at most `quota` entries, or an empty vector at quota
+/// zero. Storage is O(quota), and each candidate takes O(log(quota + 2)) work.
 fn select<T: Ord>(candidates: impl Iterator<Item = T>, quota: usize) -> Vec<T> {
     let mut selected = BinaryHeap::with_capacity(quota);
     for candidate in candidates {

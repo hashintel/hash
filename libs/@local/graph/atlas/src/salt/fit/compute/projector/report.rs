@@ -1,5 +1,7 @@
-//! Measurements over the staged placement: the ladder readings, loss regressions, and
-//! paired-movement evidence.
+//! Measurements over the staged placement.
+//!
+//! They are the ladder readings and loss regressions, with the paired-movement evidence beside
+//! them.
 
 use core::num::NonZero;
 use std::{fs::File, io::Write as _};
@@ -71,9 +73,18 @@ impl<'fit> LadderPass<'fit> {
 
     /// Projects, measures, and publishes the condition ladder, returning its evidence.
     ///
-    /// Every step projects into the scratch directory and maps back. The canonical step's field
-    /// aligns into the baseline frame and stages as the coordinate column, and the relation loss
-    /// re-measures over the persisted bytes.
+    /// Every step projects once. Its relation loss measures over the owned frame, and the frame
+    /// then persists into the scratch directory and maps back for the alignment fits. The
+    /// canonical step's mapped field aligns into the baseline frame and stages as the coordinate
+    /// column, and the relation loss re-measures over the persisted column.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectorError`] when the scratch directory or a step file fails to write, a
+    /// projection or local-scale pass fails, the ladder measurement or the canonical selection
+    /// refuses, the aligned frame has a non-finite point, staging fails, the persisted column
+    /// fails to map back, or the paired-movement readout fails to open the staged index or to
+    /// serialize its salt preimage.
     #[tracing::instrument(skip_all)]
     pub(super) fn measure_conditions(
         &self,
@@ -93,8 +104,8 @@ impl<'fit> LadderPass<'fit> {
             let frame = refresh::forward(model, columns, eta, options.forward_rows, self.device)?;
 
             // The loss population is the training domain: the full frame gathers at the quotient's
-            // first rows - identical representations project identically, so the gather is the
-            // distinct rows' own frame.
+            // first rows. Identical representations project identically, and the gather is
+            // therefore the distinct rows' own frame.
             let distinct_frame = inputs.quotient.training_frame(&frame);
             let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
                 .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
@@ -189,8 +200,14 @@ impl<'fit> LadderPass<'fit> {
 
     /// Re-measures the relation loss over the persisted aligned column.
     ///
-    /// The narrowing to `f32` and the alignment application are inside the measurement, ahead of
-    /// the same distinct gather the step losses used, so the reading guards both.
+    /// The column carries the alignment's narrowed `f32` coefficients applied row by row. The
+    /// reading maps the column back, gathers the distinct rows as the step losses did, and
+    /// measures the result. It therefore covers the alignment and the narrowing together.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectorError`] when the column fails to map back, holds a non-finite point, or
+    /// its local-scale pass fails.
     fn measure_persisted_loss(
         &self,
         inputs: &PublishInputs<'_>,
@@ -219,25 +236,27 @@ impl<'fit> LadderPass<'fit> {
 
     /// Measures the paired-movement readout over the staged attraction index.
     ///
-    /// The index maps back from its staged bytes rather than riding in from the stage that built
-    /// it, so the readout replays from exactly what the published generation carries.
+    /// The readout opens the index from its staged bytes rather than taking the in-memory index
+    /// of the stage that built it. It therefore replays from exactly what the published
+    /// generation carries.
     ///
-    /// The readings run over the ladder's aligned frames: `zero` is the baseline step's field
-    /// and `canonical` the published step's field in the baseline basis. [`paired::measure`]
-    /// runs the whole readout, and every readout resolution is an evidence body, so the
-    /// generation publishes around a vacuous or failed reading.
+    /// The readings run over two frames in the baseline basis: `zero` is the baseline step's
+    /// field and `canonical` the published step's aligned field. [`paired::measure`] runs the
+    /// whole readout. Every readout resolution is an evidence body, and the generation publishes
+    /// around a vacuous or failed reading.
     ///
     /// # Errors
     ///
     /// - [`ProjectorError::SaltPreimage`] when the salt preimage does not serialize. The preimage
-    ///   is a strict subset of the metadata document, so the seal shares the failure.
+    ///   is a strict subset of the metadata document, and the seal would refuse the same
+    ///   generation.
     /// - [`ProjectorError::OpenAttraction`] when the staged attraction index does not map back.
     ///
     /// # Panics
     ///
     /// This panics when the staged index and the ladder frames disagree on the corpus row count.
-    /// One fit stages both over one corpus, so the disagreement is a pipeline defect rather than
-    /// a data condition, and no persisted refusal names it.
+    /// One fit stages both over one corpus. The disagreement is therefore a pipeline defect
+    /// rather than a data condition, and no persisted refusal names it.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries fit-level failures; a row-count contradiction between two \
@@ -271,9 +290,11 @@ impl<'fit> LadderPass<'fit> {
 
 /// One step's frame, persisted in the ladder's scratch directory.
 ///
-/// The handle is the step's persisted-bytes contract: the alignment fits and the loss readings
-/// map the written file back rather than reading the owned frame, so every downstream reading
-/// measures exactly what the scratch file carries.
+/// The handle is the step's persisted-bytes contract. The alignment fits, the canonical field's
+/// alignment and the paired-movement baseline map the written file back rather than reading the
+/// owned frame, and each of those readings therefore measures exactly what the scratch file
+/// carries. The step's relation loss is the one reading taken from the owned frame, ahead of the
+/// write.
 struct StepFrame<N>(FinitePointFile<N>);
 
 impl<N> StepFrame<N>
@@ -281,6 +302,17 @@ where
     N: Id,
 {
     /// Persists one step's frame as a scratch array file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectorError::Io`] when creating, writing, flushing or syncing the file fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the flushed file does not open, or opens as something other than a finite
+    /// `f32` point file. The write that just completed is the file's only author: a shape or
+    /// finiteness mismatch is a mapping defect rather than a data condition, while the open itself
+    /// can fail on the scratch file system after a complete write.
     fn make(
         ladder: &Utf8Path,
         index: usize,
@@ -310,6 +342,7 @@ where
         Ok(Self(file))
     }
 
+    /// Returns the frame's coordinates as a finite point field.
     fn field(&self) -> &FinitePointField<N> {
         &self.0
     }
@@ -345,10 +378,15 @@ pub(super) struct LossSeries<'schedule> {
 impl<'schedule> LossSeries<'schedule> {
     /// Pairs the schedule's conditions with their measured losses.
     ///
+    /// The constructor checks the two lengths and nothing else: it accepts empty slices and a
+    /// first condition other than zero. [`baseline`](Self::baseline) reads the first loss as the
+    /// zero-condition reading, and the caller supplies a nonempty schedule whose first condition
+    /// is zero.
+    ///
     /// # Panics
     ///
-    /// This panics when the condition and loss counts disagree: one fit measures one loss per
-    /// condition, so a mismatch is a pipeline defect rather than a data condition.
+    /// This panics when the condition and loss counts disagree. One fit measures one loss per
+    /// condition, and a mismatch is therefore a pipeline defect rather than a data condition.
     pub(super) fn new(conditions: &'schedule [NonNegative], losses: Vec<DNonNegative>) -> Self {
         assert_eq!(
             conditions.len(),
@@ -411,10 +449,16 @@ impl<'schedule> LossSeries<'schedule> {
         }
     }
 
-    /// The zero-condition raw loss.
+    /// Returns the first loss as the zero-condition raw loss.
     ///
-    /// The schedule's first step is bit-exactly `0.0` by construction, so the first loss is the
-    /// zero-condition reading.
+    /// The reading is the zero-condition one when the series came from a ladder schedule, whose
+    /// first step is bit-exactly `0.0` by construction
+    /// ([`Conditions::new`](crate::salt::ladder::Conditions::new)). The constructor does not
+    /// check that.
+    ///
+    /// # Panics
+    ///
+    /// This panics on an empty series.
     const fn baseline(&self) -> DNonNegative {
         self.losses[0]
     }
@@ -429,8 +473,9 @@ impl<'schedule> LossSeries<'schedule> {
             return;
         }
 
-        // In domain with no check: the guard proves the difference non-negative, and the
-        // difference of two finite values is finite.
+        // The difference of two non-negative finite values has magnitude at most the larger value.
+        // The guard establishes `persisted` ≥ `baseline`, making this difference non-negative.
+        // Therefore the difference is finite and in domain without another check.
         let delta = DNonNegative::new_unchecked((persisted - baseline).get());
         let relative = baseline
             .positive()
@@ -464,13 +509,13 @@ pub(super) struct RelationLossReadout {
     /// The capped trained estimand.
     ///
     /// Each group's share enters scaled by `min(cap, n) / n` and folds in its own accumulation
-    /// chain, so the reading is the exact expectation of the trainer's capped-sampling batch
+    /// chain. The reading is the exact expectation of the trainer's capped-sampling batch
     /// estimator.
     pub capped_total: DNonNegative,
     /// Each group's own accumulated share, in the index's group order (ascending by relation).
     ///
-    /// The shares carry their own accumulation chains, so their sum matches the uncapped total
-    /// to rounding rather than bit-exactly. The uncapped total's own chain is the persisted
+    /// The shares carry their own accumulation chains. Their sum therefore matches the uncapped
+    /// total to rounding rather than bit-exactly. The uncapped total's own chain is the persisted
     /// contract.
     pub per_type: Vec<(OntologyRowId, DNonNegative)>,
 }
@@ -482,8 +527,8 @@ impl RelationLossReadout {
     /// distance, accumulated in double precision - one accumulator for the corpus, one per group,
     /// and one for the capped estimand, all in the same walk. The capped accumulator scales each
     /// group's finished share by `min(cap, n) / n`, the probability that one of the group's `n`
-    /// edges enters the trainer's per-type draw, so the reading is the exact expectation of the
-    /// capped-sampling batch estimator the trainer optimizes.
+    /// edges enters the trainer's per-type draw. The reading is therefore the exact expectation
+    /// of the capped-sampling batch estimator the trainer optimizes.
     ///
     /// The per-instance formula is the batch relation term's with the estimator scale at one, and
     /// the twin lives at [`relation_term`](crate::salt::projector::loss::relation_term).
@@ -500,8 +545,8 @@ impl RelationLossReadout {
         let (frame, scales) = (frame.coordinates(), frame.scales());
         let epsilon = energy.epsilon();
 
-        // The mixture readings are raw and can carry an f32 overflow, so every accumulation chain
-        // runs as a derivation and makes its one claim at the readout's construction.
+        // The mixture returns unclaimed derivations. Every accumulation chain runs as a derivation
+        // too and makes its one claim at the readout's construction.
         let mut uncapped_total = Derivation::<DNonNegative>::ZERO;
         let mut capped_total = Derivation::<DNonNegative>::ZERO;
         let mut per_type = Vec::with_capacity(index.groups().len());
@@ -532,8 +577,8 @@ impl RelationLossReadout {
                 clippy::cast_precision_loss,
                 reason = "group sizes and the cap stay far below f64's exact-integer range"
             )]
-            // `min(cap, n) / n` with `n ≥ 1`: the index never stores an empty group, so the
-            // quotient is finite and in `(0, 1]`.
+            // `min(cap, n) / n` with `n ≥ 1`. The index never stores an empty group, and the
+            // quotient is therefore finite and in `(0, 1]`.
             let clip =
                 DNonNegative::new_unchecked(cap.get().min(edges.len()) as f64 / edges.len() as f64);
             capped_total = share.mul_add(clip, capped_total);
@@ -543,8 +588,9 @@ impl RelationLossReadout {
             ));
         }
 
-        // The folds run over validated weights and clips in (0, 1], so a non-finite finish marks
-        // a defect upstream of this readout.
+        // The folds run over validated f32-born weights and clips in (0, 1], and their double-width
+        // products lie far inside the f64 range. A non-finite finish therefore marks a defect
+        // upstream of this readout.
         Self {
             uncapped_total: uncapped_total
                 .finish()

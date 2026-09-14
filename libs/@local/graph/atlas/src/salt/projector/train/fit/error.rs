@@ -21,20 +21,24 @@ use crate::{
 /// [`TargetRefusal`] states the one consequence they share.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TargetRefusalCause<N> {
-    /// The ruler could not freeze over the boundary frame, so the estimand's denominator does
-    /// not exist.
+    /// The ruler could not freeze over the boundary frame.
+    ///
+    /// The estimand's denominator does not exist.
     Ruler(InvalidRuler<N>),
-    /// The band constraint refused to freeze: the declared radius does not exist over the
-    /// stored coordinates.
+    /// The band constraint refused to freeze.
+    ///
+    /// The declared radius does not exist over the stored coordinates.
     Band(BandRefusal),
     /// The gauge refused, at the boundary freeze or inside a step's live fit.
     Gauge(GaugeRefusal),
-    /// A step's accumulated target reading diverged: an unbounded data-dependent fold left
-    /// double precision, or the finished estimand overflowed its narrowing to working
-    /// precision, so the step publishes no reading.
+    /// A step's accumulated target reading diverged.
+    ///
+    /// An unbounded data-dependent fold left double precision, or the finished estimand overflowed
+    /// its narrowing to working precision. The step publishes no reading.
     Reading(Diverged<f64>),
-    /// A per-evaluation evidence reading refused, and an evaluation that cannot state its
-    /// declared evidence publishes nothing.
+    /// A per-evaluation evidence reading refused.
+    ///
+    /// An evaluation that cannot state its declared evidence publishes nothing.
     Evidence(EvidenceRefusal),
 }
 
@@ -59,12 +63,13 @@ where
 
 /// The failed reading beside everything a refused run measured before it.
 ///
-/// A refusal ends the run with no activation candidate and no target claim, so the prior active
-/// generation stays the serving one. The refusal is an
-/// outcome rather than an error, so the run record cannot die with an unwinding call. What the
-/// record holds at each refusal stage is fixed. The boundary record is present exactly when
-/// the radius freeze completed, and the target record exactly when the phase froze. The
-/// preserved interval ends at the last completed reading before the failed one.
+/// A refusal ends the run with no activation candidate and no target claim, and the prior active
+/// generation stays the serving one. The refusal is an outcome rather than an error: the run
+/// returns it as a value, and the record reaches the caller on that return path instead of being
+/// dropped by an error conversion. What the record holds at each refusal stage is fixed. The
+/// boundary record is present exactly when the radius freeze completed, and the target record
+/// exactly when the phase froze. The preserved interval ends at the last completed reading before
+/// the failed one.
 #[derive(Debug)]
 pub(crate) struct TargetRefusal<N> {
     /// The training step the refusal fired at.
@@ -75,7 +80,7 @@ pub(crate) struct TargetRefusal<N> {
     ///
     /// The run record as accumulated at the refusal, with the boundary record and the target
     /// record sealed into it. Rows in the record name the trainer's own row domain: the record
-    /// is a reading of the run that refused, so no later boundary re-labels it.
+    /// is a reading of the run that refused, and no later boundary re-labels it.
     #[cfg_attr(
         not(test),
         expect(
@@ -135,11 +140,13 @@ pub(crate) enum TrainError<N> {
         opening: TrainingSchedule,
         resumed: TrainingSchedule,
     },
-    /// The target configuration's ruler refused at admission: the schedule leaves the ruler no
-    /// reference to freeze.
+    /// The target configuration's ruler refused at admission.
+    ///
+    /// The schedule leaves the ruler no reference to freeze.
     Ruler(InvalidRuler<N>),
-    /// The target configuration's gauge refused at admission: the declared draw cannot support
-    /// the run's evidence obligation.
+    /// The target configuration's gauge refused at admission.
+    ///
+    /// The declared draw cannot support the run's evidence obligation.
     Gauge(GaugeRefusal),
     /// A step's accumulated target reading diverged, and the target pass owns the refusal.
     TargetReading(Diverged<f64>),
@@ -147,16 +154,15 @@ pub(crate) enum TrainError<N> {
     CanonicalStepOutOfSchedule { step: usize },
     /// The target estimand's declared unit population carries no mass.
     ///
-    /// A forceless attraction index and an index whose every instance weighs zero resolve the
-    /// same way: the run belongs to the vacuous-record taxonomy, decided at split time, before
-    /// any fit exists to evaluate.
+    /// A forceless attraction index and an index whose every instance weighs zero both resolve to a
+    /// vacuous run, which is decided at split time, before any fit exists to evaluate.
     EmptyTargetPopulation,
     /// The target objective needs relation-type draws, and the plan draws none.
     TargetWithoutUnitDraws,
     /// The declared penalty's slope dies at a zero violation while the margin is zero.
     ///
-    /// Distance equality would then carry no corrective force, which the ruled subgradient
-    /// constraint forbids: such a penalty pairs only with a positive margin.
+    /// Distance equality would then carry no corrective force, which the objective forbids: such
+    /// a penalty pairs only with a positive margin.
     PenaltyWithoutForceAtEquality,
     /// A row belongs to more than one declared split population.
     ///

@@ -2,7 +2,6 @@
 //!
 //! Deterministic seeded draws, estimator scales, batch-local re-indexing, hand-computed objective
 //! fields verified through autodiff, budget-clip wiring, and the reporting buckets.
-
 #![expect(
     clippy::float_cmp,
     reason = "dyadic fixture values compute exactly in f32 and bit-exact assertions are the \
@@ -63,20 +62,26 @@ use crate::{
     },
 };
 
+/// The CPU device every tensor fixture in this file lives on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
+/// Builds a [`NodeRowId`] from a literal, keeping the pair fixtures short.
 macro_rules! node {
     ($id:expr) => {
         NodeRowId::new($id)
     };
 }
 
+/// Builds a [`BatchRowId`](crate::salt::projector::loss::BatchRowId) from a literal.
+///
+/// The expected local-domain pairs use it.
 macro_rules! batch {
     ($id:expr) => {
         crate::salt::projector::loss::BatchRowId::new($id)
     };
 }
 
+/// Seeds a [`Xoshiro256PlusPlus`] generator from `seed`.
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
@@ -140,6 +145,9 @@ fn instance(
     }
 }
 
+/// Builds the relation indexes over `rows` corpus rows from certified `policies` and instances.
+///
+/// The attraction options are the defaults, whose fixture values satisfy every contract.
 fn relation_indexes(
     rows: usize,
     policies: &[RelationPolicy],
@@ -156,8 +164,8 @@ fn relation_indexes(
 
 /// The affinity energy of the dyadic fixtures.
 ///
-/// `a = 1, b = 1, ε = 0.5`, so at squared distance one both logarithm arguments are exactly one
-/// (zero value) and the derivative mass is exactly `0.25`.
+/// `a = 1, b = 1, ε = 0.5`: at squared distance one both logarithm arguments are exactly one
+/// (zero value), and the derivative mass is exactly `0.25`.
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
         AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
@@ -168,8 +176,8 @@ fn affinity() -> AffinityEnergy {
 
 /// The relation energy of the dyadic fixtures: Proximal radius one at temperature one half.
 ///
-/// `z = 1` therefore sits exactly on the radius with derivative `sigmoid(0) = 0.5`. The scale guard
-/// is `0.5`, so unit normalization comes from local scales of `0.5`.
+/// `z = 1` therefore lies exactly on the radius with derivative `sigmoid(0) = 0.5`. The scale guard
+/// is `0.5`: unit normalization comes from local scales of `0.5`.
 fn relation_energy() -> RelationEnergy {
     RelationEnergy::new(
         CoincidentEnergy::new(non_negative!(0.25), positive!(1.0)),
@@ -179,14 +187,15 @@ fn relation_energy() -> RelationEnergy {
     .expect("the fixture radii are ordered")
 }
 
+/// Support options with a unit Huber threshold and a `0.5` radius floor.
 fn support_options() -> SupportOptions {
     SupportOptions::new(positive!(1.0), positive!(0.5))
 }
 
 /// Coefficients used by the objective fixtures.
 ///
-/// `lambda_S = 0.5` pairs with a semantic scale of two for a unit semantic factor, and `lambda_N =
-/// 2` doubles the ordinary term so the two families are distinguishable in the combined field.
+/// `λ_S = 0.5` pairs with a semantic scale of two for a unit semantic factor, and `λ_N = 2`
+/// doubles the ordinary term, which keeps the two families distinguishable in the combined field.
 fn coefficients() -> Coefficients {
     Coefficients::new(
         positive!(0.5),
@@ -198,6 +207,9 @@ fn coefficients() -> Coefficients {
     )
 }
 
+/// Assembles the objective options with the given relation energy and budget.
+///
+/// The affinity, coefficients and support come from the shared fixtures.
 fn options(relation: Option<RelationEnergy>, budget: Budget) -> ObjectiveOptions {
     ObjectiveOptions {
         affinity: affinity(),
@@ -208,6 +220,7 @@ fn options(relation: Option<RelationEnergy>, budget: Budget) -> ObjectiveOptions
     }
 }
 
+/// A budget with a `0.25` floor, high enough that no fixture evaluation clips.
 fn fixture_budget() -> Budget {
     Budget {
         floor: positive!(0.25),
@@ -266,7 +279,7 @@ fn unused_deciles() -> DegreeDeciles<NodeRowId> {
 
 /// A run context for driving [`Evaluation::evaluate`] with a hand-built frame.
 ///
-/// The columns are empty because `evaluate` never reads them; only [`Evaluation::objective`]
+/// The columns are empty because `evaluate` never reads them. Only [`Evaluation::objective`]
 /// projects through them.
 fn frame_evaluation(
     options: ObjectiveOptions,
@@ -285,9 +298,9 @@ fn frame_evaluation(
 #[test]
 fn degree_deciles_rank_participating_rows() {
     // One relation with edges (0,1), (0,2), (0,3), (4,5) over seven rows. Row 0 has degree three,
-    // rows 1-5 degree one, and row 6 none. Participating degrees sorted: [1, 1, 1, 1, 1, 3], n
-    // = 6. Rank of degree 1 is 5 (entries at or below), so its decile is
-    // (5-1)*10/6 = 6; rank of degree 3 is 6, decile (6-1)*10/6 = 8.
+    // rows 1-5 degree one, and row 6 none. Participating degrees sorted: [1, 1, 1, 1, 1, 3],
+    // n = 6. Rank of degree 1 is 5 (entries at or below): its decile is (5 − 1)·10/6 = 6. Rank of
+    // degree 3 is 6, decile (6 − 1)·10/6 = 8.
     let indexes = relation_indexes(
         7,
         &[proximal_policy(11)],
@@ -372,8 +385,9 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     );
 }
 
-/// The allocator choice is bit-inert: `_in` through a different allocator draws and assembles
-/// identically.
+/// Draws and assembles identically through a different allocator.
+///
+/// The allocator choice is bit-inert for `_in`.
 ///
 /// Equal seeds through `draw`/`assemble` (global) and `draw_in`/`assemble_in` (system) produce
 /// equal populations and batches, family by family - the allocator parameter places storage and
@@ -479,6 +493,10 @@ fn allocator_seam_draws_and_assembles_identically() {
     assert_eq!(assembled.eta, assembled_in.eta);
 }
 
+/// Draws no relation edges at `eta = 0` and the one relation group at `eta = 1`.
+///
+/// At `eta = 0` the sampler draws no relation edges and reports a zero relation scale, and at
+/// `eta = 1` the same seed draws the one relation group.
 #[test]
 fn draw_skips_the_relation_family_at_a_zero_step() {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
@@ -597,7 +615,7 @@ fn draw_computes_the_estimator_scales() {
     assert_eq!(populations.relation.len(), 1);
     assert_eq!(populations.relation_scale, 2.0);
 
-    // Two of three landmarks drawn, so 3 / 2 = 1.5.
+    // the inverse sampling fraction gives 3 / 2 = 1.5.
     assert_eq!(populations.landmarks.len(), 2);
     assert_eq!(populations.landmark_scale, 1.5);
 
@@ -681,6 +699,10 @@ fn draw_collects_pooled_mined_pairs() {
     assert_eq!(populations.hard_scale, 1.0);
 }
 
+/// Maps corpus rows `{2, 5, 9}` to locals `{0, 1, 2}` in every family with their scales.
+///
+/// Assembling populations over corpus rows `{2, 5, 9}` maps them in ascending order to locals
+/// `{0, 1, 2}` in every family and gathers the matching entries of the local-scale table.
 #[test]
 fn assemble_reindexes_into_the_local_domain() {
     // Corpus rows {2, 5, 9} participate; ascending order maps them to
@@ -730,6 +752,10 @@ fn assemble_reindexes_into_the_local_domain() {
     );
 }
 
+/// Panics with the documented message on relation edges without a local-scale table.
+///
+/// Assembling a batch that carries relation edges but no local-scale table panics with the
+/// documented message.
 #[test]
 #[should_panic(expected = "relation edges need the step's local scales")]
 fn assemble_rejects_relation_edges_without_scales() {
@@ -746,18 +772,22 @@ fn assemble_rejects_relation_edges_without_scales() {
     drop(Batch::assemble(populations, None));
 }
 
+/// Reads exactly zero losses and a `-0.5` surrogate on unit-distance dyadic pairs.
+///
+/// On a semantic pair and an ordinary pair at unit distance under the dyadic affinity, the loss
+/// values are exactly zero, the surrogate is exactly `-0.5`, the coordinate gradient equals the
+/// hand-derived field, and the budget pass records no nodes because no relation edges exist.
 #[test]
 fn objective_matches_the_hand_computed_semantic_field() {
     // Rows {0..3}: a semantic pair (0, 1) and an ordinary pair (2, 3),
     // both at unit distance. With the dyadic affinity the values are
     // exactly zero and the derivative mass is exactly 0.25 per pair.
     //
-    // Semantic factor: λ_S · scale = 0.5 · 2 = 1, so the pair
-    // gradient is difference · (2 · 1 · 0.25) = (-0.5, 0) at row 0.
-    // Ordinary factor: λ_N · scale = 2 · 1 = 2, so the pair
-    // gradient is (0, -1) · (2 · 2 · -0.25) = (0, 1) at row 2.
+    // Semantic factor: λ_S · scale = 0.5 · 2 = 1: the pair gradient is
+    // difference · (2 · 1 · 0.25) = (-0.5, 0) at row 0. Ordinary factor: λ_N · scale = 2 · 1 = 2:
+    // the pair gradient is (0, -1) · (2 · 2 · -0.25) = (0, 1) at row 2.
     //
-    // Surrogate: <y1, g1> + <y3, g3> = 0.5 - 1 = -0.5 exactly.
+    // Surrogate: ⟨y₁, g₁⟩ + ⟨y₃, g₃⟩ = 0.5 - 1 = -0.5 exactly.
     let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
@@ -800,6 +830,9 @@ fn relation_fixture() -> (
     (indexes, scales)
 }
 
+/// Assembles the two-row relation batch of `relation_fixture` at step `eta`.
+///
+/// It first pins the group weights and edge confidence the hand derivations assume.
 fn relation_batch(
     indexes: &RelationIndexes<NodeRowId, EdgeRowId>,
     scales: &LocalScales<NodeRowId>,
@@ -827,11 +860,11 @@ fn relation_batch(
     Batch::assemble(populations, Some(scales))
 }
 
-/// The relation field rides whole and every bucket records its measurement.
+/// The relation field is applied whole and every bucket records its measurement.
 #[test]
 fn objective_applies_the_relation_field_and_records_the_buckets() {
-    // Coordinates (0,0), (1,0) give d = 1. Local scales 0.5 with guard 0.5 give unit normalization,
-    // so z = 1 on the Proximal radius.
+    // Coordinates (0,0), (1,0) give d = 1. Local scales 0.5 with guard 0.5 give unit
+    // normalization: z = 1 on the Proximal radius.
     //
     // Semantic gradient at row 0: (-0.5, 0), norm 0.5 = baseline.
     // Relation factor: η · λ_R · scale · c · ν · strength
@@ -862,11 +895,16 @@ fn objective_applies_the_relation_field_and_records_the_buckets() {
     assert_eq!(types[0].1.nodes(), 2);
     assert_eq!(types[0].1.mean_ratio(), Some(1.0));
 
-    // Both endpoints have attraction degree one: rank 2 of 2
-    // participating rows, decile (2-1)*10/2 = 5.
+    // Both endpoints have attraction degree one: rank 2 of 2 participating rows, decile
+    // (2 − 1)·10/2 = 5.
     assert_eq!(metrics.deciles()[5].nodes(), 2);
 }
 
+/// Reads the two-row relation loss as `0.5 · ln 2` within `1e-6` with zero semantic loss.
+///
+/// The relation loss of the two-row fixture equals
+/// `factor · proximal · temperature · softplus(0) = 0.5 · ln 2` within `1e-6`, while the semantic
+/// loss stays zero.
 #[test]
 fn objective_reports_the_relation_loss_value() {
     // The relation value is factor · proximal weight · temperature ·
@@ -916,11 +954,10 @@ fn relation_gradients_are_linear_in_the_lens() {
 
 #[test]
 fn support_terms_ride_autodiff_outside_the_budget() {
-    // One landmark holding row 1 at (2, 0) while it sits at (1, 0):
-    // residual d = 1 smoothed to √(1.25) - 0.5, normalized by
-    // radius 0.5 + ε 0.5 = 1, inside the unit Huber threshold.
-    // Its gradient flows through autodiff; row 0 keeps exactly its
-    // semantic gradient, certifying the two terms stay separate.
+    // One landmark holding row 1 at (2, 0) while it lies at (1, 0): residual d = 1 smoothed to
+    // √1.25 - 0.5, normalized by radius 0.5 + ε 0.5 = 1, inside the unit Huber threshold. Its
+    // gradient flows through autodiff. Row 0 keeps exactly its semantic gradient, certifying the
+    // two terms stay separate.
     let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
@@ -957,6 +994,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     );
 }
 
+/// A NaN coordinate in the frame makes `evaluate` return `StepError::Diverged` naming that row.
 #[test]
 fn evaluate_rejects_non_finite_coordinates() {
     let mut populations = empty_populations(non_negative!(0.0));
@@ -976,6 +1014,11 @@ fn evaluate_rejects_non_finite_coordinates() {
     );
 }
 
+/// Fills the biased-exponent buckets and exact moments for five recorded displacements.
+///
+/// Recording displacements `0, 0.5, 1, 1.5, 2` fills the biased-exponent buckets
+/// `0, 126, 127, 127, 128` and the moments report count 5, sum 5, sum of squares 7.5 and maximum 2
+/// exactly.
 #[test]
 fn displacement_histogram_buckets_by_exponent() {
     // Buckets are f32 biased exponents: 0.5 → 126, 1.0 and 1.5 →
@@ -1005,6 +1048,10 @@ fn displacement_histogram_buckets_by_exponent() {
     assert_eq!(moments.maximum(), 2.0);
 }
 
+/// Lists each relation type once, ascending, with deduplicated ascending participants.
+///
+/// `TypeParticipants` lists each relation type once in ascending ontology-row order with its
+/// participating rows deduplicated and ascending.
 #[test]
 fn type_participants_deduplicate_and_order_rows() {
     let indexes = relation_indexes(
@@ -1035,11 +1082,16 @@ fn type_participants_deduplicate_and_order_rows() {
     );
 }
 
+/// Fills the overall, decile and type buckets from three rows moving by `1`, `0` and `5`.
+///
+/// Measuring three rows moving by `1`, `0` and `5` fills the overall histogram and moments, the
+/// decile bucket only with the two participating rows, and the type bucket with its participants'
+/// displacements.
 #[test]
 fn displacement_summary_reports_every_axis() {
-    // Rows 0 and 1 participate in relation 11 (degree one each, upper
-    // rank two of two participants: decile (2-1)*10/2 = 5); row 2 has
-    // no attraction evidence and enters the overall bucket only.
+    // Rows 0 and 1 participate in relation 11 (degree one each, upper rank two of two
+    // participants: decile (2 − 1)·10/2 = 5). Row 2 has no attraction evidence and enters the
+    // overall bucket only.
     // Displacements: row 0 moves by exactly 1, row 1 not at all, and
     // row 2 by exactly 5 (a 3-4-5 triangle).
     let indexes = relation_indexes(3, &[proximal_policy(11)], vec![instance(0, 11, 0, 1)]);
@@ -1092,11 +1144,12 @@ fn displacement_summary_reports_every_axis() {
 /// Corpus rows of the padding fixtures.
 ///
 /// Exactly 32 rows participate in the gradient certificate's batch. At 32 every tensor of both the
-/// padded and the unpadded graph reaches the CPU backend's SIMD dispatch threshold, so both graphs
-/// compute with the same element-wise kernels. Below it the backend mixes dispatch paths, and the
-/// comparison then measures the backend's reciprocal estimate (the SIMD reciprocal is a hardware
-/// approximation that the autodiff division backward consumes) rather than the padding.
+/// padded and the unpadded graph reaches the CPU backend's SIMD dispatch threshold, and both graphs
+/// therefore compute with the same element-wise kernels. Below it the backend mixes dispatch paths,
+/// and the comparison then measures the backend's reciprocal estimate (the SIMD reciprocal is a
+/// hardware approximation that the autodiff division backward consumes) rather than the padding.
 const PADDING_ROWS: usize = 32;
+/// Component count of the padding fixture's representation storage.
 const PADDING_CAPACITY: usize = PADDING_ROWS * PROJECTOR_DIMENSIONS;
 
 /// Builds the padding fixtures' input columns.
@@ -1141,7 +1194,7 @@ fn padding_column_view<'corpus>(
 /// Nudges every parameter off its initialization.
 ///
 /// The identity-contract layers initialize to zero and would block gradient flow into the deep
-/// block parameters, leaving the padding certificate comparing zeros with zeros; a deterministic
+/// block parameters, leaving the padding certificate comparing zeros with zeros. A deterministic
 /// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
@@ -1165,13 +1218,17 @@ impl ModuleMapper<Training> for Perturb {
         let shape = tensor.shape();
         let device = tensor.device();
         let ramp = Tensor::from_data(TensorData::new(ramp, shape), &device);
-        // The sum is an interior autodiff node; re-rooting it as a
-        // required-gradient leaf is what lets gradients accumulate at
-        // the perturbed parameter.
+        // The sum is an interior autodiff node. Re-rooting it as a required-gradient leaf is
+        // what lets gradients accumulate at the perturbed parameter.
         Param::from_mapped_value(id, (tensor + ramp).detach().require_grad(), mapper)
     }
 }
 
+/// Pads four rows to the alignment by replicating the last row and fills the condition column.
+///
+/// `input` pads four participating rows up to the row alignment by replicating the last row's
+/// representation and role, fills the condition column with the step, and `input_aligned` at
+/// alignment one returns the unpadded four-row frame.
 #[test]
 fn input_pads_the_gathered_rows_to_the_alignment() {
     // Rows {0, 1, 2, 5} participate: four rows pad to the alignment,
@@ -1226,6 +1283,10 @@ fn input_pads_the_gathered_rows_to_the_alignment() {
     assert!(condition.iter().all(|&eta| eta == 0.5));
 }
 
+/// Evaluates a padded frame to the exact-cover loss with zero gradient on the padded rows.
+///
+/// A two-row semantic batch evaluated on a four-row frame whose tail twins the last row yields the
+/// same loss as the exact-cover frame and deposits exactly zero gradient on the padded rows.
 #[test]
 fn padded_frame_adds_zero_force() {
     // The two-row semantic batch against a four-row frame whose tail
@@ -1259,6 +1320,7 @@ fn padded_frame_adds_zero_force() {
     assert_eq!(gradient, [-0.5, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]);
 }
 
+/// Evaluating a two-row batch against a one-row frame panics with the documented cover message.
 #[test]
 #[should_panic(expected = "cover the batch rows")]
 fn evaluate_rejects_a_frame_smaller_than_the_batch() {
@@ -1274,8 +1336,8 @@ fn evaluate_rejects_a_frame_smaller_than_the_batch() {
 
 /// The coordinate leaf's gradient under the surrogate's backward pass, as flat values.
 ///
-/// Unlike [`leaf_gradient`], the leaf arrives already built, so a padded shape wider than the
-/// batch keeps its padded rows in the reading.
+/// Unlike [`leaf_gradient`], the leaf arrives already built, and a padded shape wider than the
+/// batch therefore keeps its padded rows in the reading.
 fn frame_gradient(leaf: &Tensor<Training, 2>, surrogate: &Tensor<Training, 1>) -> Vec<f32> {
     leaf.grad(&surrogate.backward())
         .expect("the surrogate reaches the coordinate leaf")
@@ -1294,21 +1356,16 @@ fn frame_values(frame: &Tensor<Training, 2>) -> Vec<f32> {
         .expect("coordinates are f32")
 }
 
+/// Projects and evaluates bit-equal results across padded and unpadded materializations.
+///
+/// With every loss family active over enough rows to clear the CPU backend's SIMD threshold, the
+/// padded and unpadded materializations project bit-equal coordinates for participating rows,
+/// evaluate to bit-equal losses, and a leaf at the padded shape carries exactly zero force on every
+/// padded row while the participating rows carry force.
 #[test]
 fn padding_zero_force_at_simd_scale() {
-    // Semantic, ordinary, relation, and landmark families all
-    // participate, so every loss path crosses the padded frame. The
-    // padded and unpadded materializations of the same batch project
-    // bit-equal coordinates for the participating rows and evaluate
-    // to bit-equal loss values, and the padded rows carry exactly
-    // zero force: a coordinate leaf of the padded shape deposits an
-    // exactly-zero gradient on every padded row, read from the one
-    // graph that computes it.
-    //
-    // The batch covers all [`PADDING_ROWS`] corpus rows so the
-    // tensors clear the CPU backend's SIMD dispatch threshold
-    // (see the constant's documentation) - the certificate compares
-    // the padding, not the backend's kernel election.
+    // PADDING_ROWS keeps both shapes above the CPU backend's SIMD dispatch threshold. Using the
+    // same kernel for each keeps the comparison specific to padding.
     let indexes = relation_indexes(
         PADDING_ROWS,
         &[proximal_policy(7)],
@@ -1399,7 +1456,7 @@ fn padding_zero_force_at_simd_scale() {
     );
 
     // A coordinate leaf at the padded materialization's own values: the padded tail deposits
-    // an exactly-zero gradient, so padding adds no force at SIMD-dispatch scale.
+    // an exactly-zero gradient, and padding therefore adds no force at SIMD-dispatch scale.
     let padded_rows = PADDING_ROWS.next_multiple_of(ROW_ALIGNMENT.get());
     let leaf_frame = leaf(&padded_values, padded_rows);
     let mut leaf_metrics = BudgetBreakdown::new();
@@ -1427,6 +1484,7 @@ struct RecordingSnapshots {
 }
 
 impl RecordingSnapshots {
+    /// A recorder whose `projector_sample_size` answers `appetite`.
     fn new(appetite: usize) -> Self {
         Self {
             appetite,
@@ -1434,6 +1492,7 @@ impl RecordingSnapshots {
         }
     }
 
+    /// The snapshots recorded so far, each as its sampled coordinates and landmark count.
     fn snapshots(&self) -> Vec<(Vec<Vec2>, usize)> {
         self.snapshots
             .lock()
@@ -1443,7 +1502,6 @@ impl RecordingSnapshots {
 }
 
 impl Progress for RecordingSnapshots {
-    /// The fixture watches snapshots, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -1462,7 +1520,7 @@ impl Progress for RecordingSnapshots {
     }
 }
 
-/// A frame whose every row sits at its own row index, so a report names the rows it sampled.
+/// A frame whose every row lies at its own row index: a report names the rows it sampled.
 fn identity_frame(rows: usize) -> Vec<Vec2> {
     (0..rows)
         .map(|row| {
@@ -1512,6 +1570,10 @@ fn landmark(row: usize) -> SupportAnchor<NodeRowId> {
     }
 }
 
+/// Lists both landmarks first and then an even stride under a budget of four over eight rows.
+///
+/// A budget of four over eight rows with two landmarks lists both landmarks first and then an even
+/// stride over the remaining rows.
 #[test]
 fn a_snapshot_sample_leads_with_landmarks_and_strides_the_rest() {
     let landmarks = [landmark(4), landmark(0)];
@@ -1535,19 +1597,24 @@ fn a_snapshot_sample_never_repeats_a_landmark_row() {
     assert_eq!(landmarks, 2);
 }
 
+/// Fills only five of ten slots from sixty landmarks and the rest from the interior.
+///
+/// Sixty landmarks against a budget of ten fill only five slots, and the other five come from the
+/// non-landmark interior.
 #[test]
 fn landmarks_take_at_most_half_a_snapshot_budget() {
     let landmarks: Vec<SupportAnchor<NodeRowId>> = (0..60).map(landmark).collect();
     let sample = SnapshotSample::select(100, &landmarks, 10);
     let (rows, landmarks) = sampled_rows(&sample, 100, 10);
 
-    // Half the budget holds the skeleton; the interior keeps the rest,
-    // so a landmark-rich corpus still shows more than its anchors.
+    // Half the budget holds the skeleton and the interior keeps the rest: a landmark-rich corpus
+    // still shows more than its anchors.
     assert_eq!(landmarks, 5);
     assert_eq!(rows.len(), 10);
     assert!(rows[5..].iter().all(|&row| row >= 60), "{rows:?}");
 }
 
+/// A budget larger than the corpus samples every row exactly once, landmark first.
 #[test]
 fn a_budget_beyond_the_corpus_reports_every_row_once() {
     let sample = SnapshotSample::select(5, &[landmark(2)], 4_096);

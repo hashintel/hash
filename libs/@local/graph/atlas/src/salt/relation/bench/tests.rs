@@ -10,9 +10,12 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{Corpus, Profile};
 use crate::identity::{EdgeRowId, NodeRowId};
 
+/// Link count of the synthesised bench corpora.
 const LINKS: usize = 4_096;
+/// Seed every synthesised corpus and probe draw in this file uses.
 const SEED: u64 = 42;
 
+/// Synthesizes a corpus from the fixed [`LINKS`] and [`SEED`] settings.
 fn corpus(profile: Profile) -> Corpus<NodeRowId, EdgeRowId> {
     Corpus::synthesize::<Xoshiro256PlusPlus>(profile, LINKS, SEED)
 }
@@ -65,7 +68,7 @@ fn mega_concentrates_and_uniform_spreads() {
     }
     let smallest = volumes.iter().min().expect("the table is non-empty");
     let largest = volumes.iter().max().expect("the table is non-empty");
-    // Round-robin assignment leaves at most one extra pair per type.
+    // round-robin assignment leaves at most one extra reading per type.
     assert!(largest - smallest <= 2, "{volumes:?}");
 }
 
@@ -82,10 +85,10 @@ fn targets_are_hubbed_and_sources_are_not() {
     }
 
     let top = target_volume.values().max().expect("links exist");
-    // The Zipf head gathers a few percent of all instances; a uniform
-    // target draw over 2048 rows would put ~4 instances on each.
+    // a uniform target draw over 2,048 rows would give 8,192 / 2,048 = 4 instances per row in
+    // expectation. The hub model concentrates more mass near its lowest ranks.
     assert!(*top > live.instance_count() / 50, "top hub owns {top}");
-    // Sources are uniform over the domain: most rows appear.
+    // uniform source draws cover more than half the rows in this seeded fixture.
     assert!(sources.len() > live.rows() / 2, "{} sources", sources.len());
 }
 
@@ -98,8 +101,6 @@ fn full_build_matches_composed_stages() {
     assert_eq!(summary.pruned_edges, 0);
     assert_eq!(summary.omitted_mass_fraction.to_bits(), 0.0_f64.to_bits());
 
-    // The isolated stages run over the same corpus without panicking
-    // and the sorts agree with the full build's proper split.
     let mut sorting = live.scratch();
     let proper = sorting.sort_by_group();
     assert_eq!(proper, live.grouped().len());
@@ -129,7 +130,8 @@ fn pruning_sweep_is_monotone() {
         previous_omitted = summary.omitted_mass_fraction;
     }
 
-    // Above every policy mass the sweep prunes everything.
+    // confidence and shares are one, and every policy scale is at most one. Threshold 1.5 prunes
+    // all non-self instances.
     let mut scratch = live.scratch();
     let ceiling = live.build_in(&mut scratch, 0.0, 1.5);
     assert_eq!(ceiling.retained_edges, 0);
@@ -150,8 +152,7 @@ fn judge_layouts_agree() {
     let live = corpus(Profile::Live);
     let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
 
-    // Hit-poor and hit-rich sweeps: both layouts must count the same
-    // protected pairs at every hit rate.
+    // include both hit-poor and hit-rich probe sets in the access-layout comparison.
     for fraction in [0.0, 0.25, 0.9] {
         let probes = live.judge_probes::<Xoshiro256PlusPlus>(per_row, fraction, SEED);
         assert_eq!(probes.pairs(), live.rows() * per_row.get());
@@ -167,8 +168,7 @@ fn judge_hit_rate_follows_partner_fraction() {
     let live = corpus(Profile::Live);
     let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
 
-    // Zero thresholds protect every linked pair, so drawing candidates from the partner lists must
-    // raise the protected count.
+    // partner draws increase the expected hit rate under zero thresholds.
     let uniform = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.0, SEED);
     let linked = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.9, SEED);
     assert!(live.judge_pointwise(&linked) > live.judge_pointwise(&uniform) * 4);

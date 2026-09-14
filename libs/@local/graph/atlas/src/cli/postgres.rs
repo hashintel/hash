@@ -10,15 +10,20 @@ use crate::integrity::SecretString;
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
-/// [`connect`](Self::connect) dials what the flags name; one deployment configuration drives the
+/// [`connect`](Self::connect) dials what the flags name. One deployment configuration drives the
 /// graph binary and the standalone binary alike.
 #[derive(Debug, Args)]
 pub struct PostgresArgs {
     /// The store username.
+    ///
+    /// Defaults to `postgres` when neither the flag nor `HASH_GRAPH_PG_USER` supplies one.
     #[arg(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")]
     user: String,
 
     /// The store password.
+    ///
+    /// Defaults to `postgres` when neither the flag nor `HASH_GRAPH_PG_PASSWORD` supplies one.
+    /// The environment value stays out of `--help`.
     #[arg(
         long,
         default_value = "postgres",
@@ -28,14 +33,20 @@ pub struct PostgresArgs {
     password: SecretString,
 
     /// The store host.
+    ///
+    /// Defaults to `localhost` when neither the flag nor `HASH_GRAPH_PG_HOST` supplies one.
     #[arg(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")]
     host: String,
 
     /// The store port.
+    ///
+    /// Defaults to `5432` when neither the flag nor `HASH_GRAPH_PG_PORT` supplies one.
     #[arg(long, default_value_t = 5432, env = "HASH_GRAPH_PG_PORT")]
     port: u16,
 
     /// The database name.
+    ///
+    /// Defaults to `graph` when neither the flag nor `HASH_GRAPH_PG_DATABASE` supplies one.
     #[arg(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")]
     database: String,
 }
@@ -43,7 +54,7 @@ pub struct PostgresArgs {
 impl PostgresArgs {
     /// Dials the store the flags name and drives the connection on a background task.
     ///
-    /// The flags configure the connection field by field, so the password never rides a rendered
+    /// The flags configure the connection field by field. The password never rides a rendered
     /// connection string and one containing URL-reserved characters needs no escaping.
     ///
     /// # Errors
@@ -51,7 +62,7 @@ impl PostgresArgs {
     /// Returns a [`ConnectError`] when the store refuses the connection or handshake.
     pub async fn connect(self) -> Result<Client, ConnectError> {
         // The guard owns the password buffer and zeroizes it when this scope ends. The store
-        // config copies the bytes it is shown, and that copy is the library's own.
+        // config copies the bytes it receives, and that copy is the library's own.
         let password = self.password.expose();
         let mut config = Config::new();
         config
@@ -112,6 +123,11 @@ pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
 }
 
 /// Dials the store the configuration names and drives the connection on a background task.
+///
+/// # Errors
+///
+/// Returns a [`ConnectError`] when the configuration names no TCP host, when the socket refuses
+/// the connection, or when the store rejects the handshake.
 async fn dial(config: Config) -> Result<Client, ConnectError> {
     let host = config
         .get_hosts()

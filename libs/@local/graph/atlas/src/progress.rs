@@ -1,24 +1,12 @@
-//! Observation of a running fit.
+//! Progress reports for fitting and generation admission.
 //!
-//! [`Progress`] is the seam operator surfaces render from. It carries the pipeline's observations
-//! to whatever the operator is watching, whether that is nothing, a log stream, or a live
-//! dashboard. The observations are stage boundaries, batch counters, convergence readouts, and
-//! quality probes. The trait observes and never steers. Every value flows outward, and a run
-//! behaves identically under any observer. Each method has an empty default body, so an observer
-//! implements exactly the observations it renders and the rest monomorphize to no-ops that cost
-//! nothing.
+//! [`Progress`] receives observations during a run: [`Stage`] completion, [`Batch`] counters,
+//! neighbour-list update rates and fit or quality measurements. Implement callbacks for the
+//! observations your log or display needs, or use [`NoProgress`] to ignore them.
 //!
-//! Observations travel as the pipeline's own types wherever one exists - [`CardEmbeddingStats`],
-//! [`RecallSpotCheck`], [`LossBreakdown`], [`QualityMetric`], re-exported here - and as this
-//! module's observation vocabulary ([`Stage`], [`Batch`], [`DescentIteration`]) where the pipeline
-//! reports something no artifact records.
-//!
-//! An observer crosses the run's thread seams - the async ingest half and the rayon compute half -
-//! so implementations are cloneable and shareable by construction; a renderer typically holds the
-//! sending half of a channel and does its drawing elsewhere. Hot loops report at batch cadence,
-//! never per row.
-//!
-//! [`NoProgress`] is the silent observer, for runs nothing watches.
+//! Callbacks execute in the task reporting the observation. A display can enqueue observations for
+//! another task to render, keeping its I/O off the fitting path. [`Progress::Detached`] provides an
+//! owned observer for reporting work that cannot borrow the original observer.
 
 use crate::{
     math::Vec2,
@@ -59,25 +47,19 @@ pub enum Stage {
 }
 
 impl Stage {
-    /// Every stage, in the order the runner drives them.
-    ///
-    /// A renderer showing the run's remaining work needs the order before the run reaches it, so
-    /// this constant states the sequence once instead of leaving a renderer to infer it from
-    /// arrival.
+    /// Every stage, in pipeline order.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the index runs over the variant count, an order of magnitude inside u8"
     )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
-        // SAFETY: every variant is a unit variant of a `repr(u8)` enum. The discriminants are
-        // therefore exactly `0..variant_count`, and `from_fn` calls the closure once per index of
-        // that range.
+        // SAFETY: A fieldless `repr(u8)` enum has u8 layout and admits its declared discriminants.
+        // These variants use consecutive implicit discriminants starting at zero, and `from_fn`
+        // supplies exactly those indices. Therefore every converted index is a valid `Stage`
+        // value.
         core::array::from_fn(const |index| unsafe { core::mem::transmute(index as u8) });
 
-    /// The stage's name, in the vocabulary a run reports it under.
-    ///
-    /// One lowercase word per stage, so a log line, a rail row, and a report name the same stage
-    /// the same way.
+    /// Returns the lowercase name used in progress output.
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
@@ -106,109 +88,127 @@ pub struct Batch {
     pub total: usize,
 }
 
-/// One NN-Descent iteration's convergence reading.
+/// One NN-Descent iteration's update-rate observation.
 ///
-/// The construction stops when `accepted_per_entry` falls to `threshold`.
+/// The constructor rounds the configured rate's count threshold up before comparing accepted
+/// updates. It can also stop at its iteration limit. The reported `threshold` is the configured
+/// rate before count rounding.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct DescentIteration {
     /// One-based index of the completed iteration.
     pub iteration: usize,
     /// Neighbour updates the iteration accepted, per stored list entry.
     ///
-    /// Not a share of anything: a local join offers a pair to both sides and one iteration can
-    /// displace the same entry more than once, so an early reading stands above `1`. The reading
-    /// measures convergence. It falls as the lists stop changing.
+    /// A local join offers a pair to both neighbour lists, and an entry can change more than once
+    /// in an iteration. The rate can exceed `1` and need not decrease between iterations.
     pub accepted_per_entry: f64,
-    /// The convergence threshold the reading is falling toward.
+    /// The configured update rate for the stopping criterion.
     pub threshold: f64,
 }
 
-/// The observer of one run's progress.
+/// An observer of stage completion and fit measurements.
 ///
-/// Every method is an observation the pipeline reports as it happens; none returns anything the run
-/// acts on, with one deliberate exception: [`projector_sample_size`](Self::projector_sample_size)
-/// is a capability probe whose value is the observer's own appetite. The placement the run
-/// publishes is identical under every observer.
+/// Observation callbacks have no-op defaults. Override the callbacks your output needs and
+/// implement [`detach`](Self::detach) to supply an owned observer. Callbacks return no fitting
+/// decisions. [`projector_sample_size`](Self::projector_sample_size) controls snapshot gathering.
+///
+/// Reporting is synchronous. A callback's blocking work delays the reporting task, and a panic can
+/// interrupt it. Some operations report from parallel workers, requiring a shared observer to
+/// support concurrent callbacks.
 #[expect(
     unused_variables,
     reason = "the default bodies observe nothing; the parameter names document each observation \
               for implementors"
 )]
 pub trait Progress {
-    /// The observer a stage hands to machinery that owns its reporter.
+    /// An owned observer for work that cannot borrow this observer.
     ///
-    /// A backend that reports through a foreign builder cannot lend this observer. The builder
-    /// takes its reporter by value and keeps it for the call. Each observer answers with whatever
-    /// it can give away: [`NoProgress`] when nothing crosses, or a handle onto its own sink. What
-    /// crosses observes exactly what that answer observes.
+    /// Use [`NoProgress`] when detached work needs no reporting. A reporting implementation can
+    /// return an owned handle to the original observation destination.
     type Detached: Progress + Send + Sync + 'static;
 
-    /// Hands out this observer's detached half.
+    /// Returns an owned observer for independently reported work.
     fn detach(&self) -> Self::Detached;
 
-    /// The card-embedding stage resolved its reuse split: `stats.reused` unique texts serve from
-    /// the prior generation, `stats.embedded` go to the provider.
+    /// Reports the split between reusable and new card embeddings.
+    ///
+    /// `stats.reused` counts unique texts copied from the prior generation, and `stats.embedded`
+    /// counts unique texts requiring the provider. This precedes provider work, including when no
+    /// text needs embedding.
     fn embedding_started(&self, stats: &CardEmbeddingStats) {}
 
-    /// The provider finished another embedding chunk.
+    /// Reports progress after an embedding chunk completes.
     fn embedding_batch(&self, batch: Batch) {}
 
-    /// The corpus assembly derived its near-duplicate boundary.
+    /// Reports the near-duplicate boundary derived during corpus assembly.
     fn assembly_boundary_derived(&self, epsilon: f64) {}
 
-    /// The neighbour-table construction entered a named backend phase.
+    /// Reports the start of a neighbour-index backend phase.
     ///
-    /// The names are the backend's own open vocabulary (the HNSW backend reports its build steps),
-    /// passed through verbatim.
+    /// Phase names use the backend's vocabulary without translation.
     fn knn_build_phase(&self, phase: &str) {}
 
-    /// The neighbour-table construction inserted another batch of rows.
+    /// Reports progress through the index's input rows.
+    ///
+    /// The count tracks rows requested by the backend, not a committed transaction.
     fn knn_insert(&self, batch: Batch) {}
 
-    /// An NN-Descent iteration completed with its convergence reading.
+    /// Reports the update rate after an NN-Descent iteration.
     fn descent_iteration(&self, iteration: DescentIteration) {}
 
-    /// The neighbour-table readback covered another batch of rows.
+    /// Reports completed rows of the neighbour-table readback.
+    ///
+    /// Parallel workers can invoke this callback out of count order. `batch.done` counts completed
+    /// rows rather than identifying a row.
     fn knn_readback(&self, batch: Batch) {}
 
-    /// The construction's measured recall against the exact reference sample.
+    /// Reports measured neighbour recall against an exact reference sample.
     fn knn_recall(&self, check: &RecallSpotCheck) {}
 
-    /// The projector finished training step `step` of `steps` at the reported loss.
+    /// Reports the loss before a training step's optimizer update.
+    ///
+    /// `step` is zero-based within the full schedule, including during a resumed segment. `steps`
+    /// is the schedule's total step count.
     fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {}
 
-    /// How many placement rows the observer wants sampled into
-    /// [`projector_snapshot`](Self::projector_snapshot) calls.
+    /// Requests the maximum number of placement rows in a snapshot.
     ///
-    /// The capability probe: `0`, the default, means the run never gathers a snapshot. The run
-    /// chooses the rows once at stage start, taking the landmark skeleton first and then an even
-    /// stride over the corpus, and every snapshot reports those same rows moving. The choice draws
-    /// no randomness, so an observer's appetite cannot move what the run publishes.
+    /// Returns `0` by default, disabling [`projector_snapshot`](Self::projector_snapshot) calls. A
+    /// positive budget selects at most that many rows at the start of each training segment.
+    /// Snapshots within that segment report positions for the same rows, with sampled landmarks
+    /// first and non-landmark rows after them.
+    ///
+    /// Selection uses an even spread within each group and consumes no training randomness. The
+    /// budget controls snapshot allocation and copying, not the rows used for training. Training
+    /// still performs its refresh computations when the budget is zero.
     fn projector_sample_size(&self) -> usize {
         0
     }
 
-    /// The sampled placement positions at a training refresh.
+    /// Reports sampled placement coordinates at a training refresh.
     ///
-    /// The landmark rows are `positions[..landmarks]`.
+    /// `positions[..landmarks]` contains the sampled landmark positions. The remaining positions
+    /// belong to non-landmark rows.
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {}
 
-    /// The retrospective arrival replay projected another batch of sampled arrivals.
+    /// Reports progress through the sampled arrivals of a retrospective replay.
     fn replay_projection(&self, batch: Batch) {}
 
-    /// The classifier fit started over `folds` cross-validation folds.
+    /// Reports the start of classifier fitting over `folds` cross-validation folds.
     fn classifier_started(&self, folds: usize) {}
 
-    /// One classifier cross-validation fold completed.
+    /// Reports completion of the candidate fits for one cross-validation fold.
+    ///
+    /// `fold` is a zero-based index. Folds can complete out of index order.
     fn classifier_fold_completed(&self, fold: usize) {}
 
-    /// The classifier fit selected its regularization strength.
+    /// Reports the regularization strength selected by classifier fitting.
     fn classifier_regularization_selected(&self, regularization: f64) {}
 
-    /// The admission probe measured one quality metric.
+    /// Reports an admission metric's aggregate reading across the probe steps.
     fn quality_probe(&self, metric: QualityMetric, value: f64) {}
 
-    /// A pipeline stage completed.
+    /// Reports completion of a pipeline stage.
     fn stage_completed(&self, stage: Stage) {}
 }
 
@@ -291,7 +291,7 @@ where
     }
 }
 
-/// The silent observer, whose observations are all no-ops.
+/// An observer that ignores progress and requests no snapshots.
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct NoProgress;
 

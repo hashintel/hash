@@ -1,15 +1,14 @@
-//! Orientation-preserving similarities: uniform scale, rotation, and translation.
+//! Uniform scale, rotation and translation for shape-preserving alignment.
 //!
-//! A similarity is the transform family produced by Procrustes alignment: it changes size,
-//! orientation, and position while preserving every angle and every length ratio, so aligned
-//! layouts keep their shape. [`Similarity`] restricts [`Transform`] to exactly this family, which
-//! buys a guarantee the general type gives up, a total inverse. An affine map can collapse an
-//! axis and lose its inverse. A similarity's scale is positive by construction, so every
-//! similarity inverts.
+//! In real arithmetic an orientation-preserving similarity preserves every angle and length ratio.
+//! [`Similarity`] represents this model with `f32` coefficients and a checked positive scale.
+//! Reciprocation preserves its scale range. Construction validates finite translation and an
+//! approximately unit rotation, and composition and inversion reject invalid coefficients.
+//! Transformed coordinates can still overflow. [`Similarity::fit`] estimates coefficients from
+//! weighted point correspondences.
 //!
-//! Use [`Similarity`] for a value that is a rigid motion plus uniform scaling (such as aligning one
-//! generation's layout onto the previous one). Widen to [`Transform`] (via [`From`]) only when
-//! composing with general affine maps.
+//! Use [`Similarity`] for rigid motion with uniform scaling. Convert to [`Transform`] via [`From`]
+//! when composing with general affine maps.
 
 use core::simd::Simd;
 
@@ -28,29 +27,33 @@ mod residual;
 #[cfg(test)]
 mod tests;
 
-/// An orientation-preserving similarity of 2D space: uniform scale, rotation, and translation.
+/// An approximate orientation-preserving similarity of 2D space.
 ///
-/// A similarity maps a vector `p` to `scale · R · p + translation`, where `R` is the rotation's
-/// matrix. It scales lengths uniformly and preserves every angle, so shapes keep their proportions
-/// and their winding direction.
+/// The model maps p ∈ ℝ² to aRp + t, where a is the positive scale, R is the [`Rotation`] matrix
+/// and t is the translation. With a unit rotation pair this scales all lengths by a and preserves
+/// angles and winding direction in real arithmetic. The `f32` evaluation rounds and can overflow.
 ///
-/// The scale of every value and its reciprocal are both strictly positive normal numbers:
-/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else.
-/// Reciprocals of accepted scales are themselves accepted, so every similarity's inverse is
-/// again a lawful similarity.
+/// [`new`](Self::new) and [`from_array`](Self::from_array) validate that the scale and its
+/// reciprocal are both positive normal numbers. The rotation must satisfy |cos² + sin² − 1| ≤ 10⁻⁶,
+/// evaluated in `f64`, and the translation must be finite. Construction enforces these conditions.
+/// [`then`](Self::then) and [`inverse`](Self::inverse) reject results outside this domain.
 ///
-/// Obtain one from weighted point correspondences with [`fit`](Self::fit), the closed-form
-/// Procrustes alignment, or with [`fit_par`](Self::fit_par) when the pairs number in the hundreds
-/// of thousands. Apply one to a single vector with [`apply`](Self::apply). A similarity widens
-/// losslessly into a [`Transform`] via [`From`], so it composes with general affine transforms
-/// through [`Transform::then`].
+/// Obtain a least-squares estimate from weighted point correspondences with [`fit`](Self::fit), or
+/// use [`fit_par`](Self::fit_par) for parallel accumulation. Apply one to a single vector with
+/// [`apply`](Self::apply). Conversion to [`Transform`] folds the scale into the rotation columns
+/// with `f32` multiplication. It preserves the real-arithmetic model up to coefficient rounding,
+/// and its application can differ from [`apply`](Self::apply).
 ///
 /// The coefficients persist in the order `[scale, cos, sin, x, y]`, the layout
 /// [`from_array`](Self::from_array) reads.
 ///
-/// # Examples
+/// # Example
+///
+/// This example is ignored because [`Similarity`] is crate-private.
 ///
 /// ```ignore
+/// use crate::math::{Similarity, Rotation, Vec2, positive};
+///
 /// // Double the size, quarter-turn counterclockwise, then move right.
 /// let similarity =
 ///     Similarity::new(positive!(2.0), Rotation::from_cos_sin(0.0, 1.0), Vec2::new(10.0, 0.0))
@@ -58,9 +61,7 @@ mod tests;
 ///
 /// assert_eq!(similarity.apply(Vec2::new(3.0, 4.0)), Vec2::new(2.0, 6.0));
 /// ```
-// No `FromBytes` and no `FromZeros`: byte-level construction could mint a
-// zero, negative, subnormal, or non-finite scale in safe code, bypassing
-// the validating constructors that keep `inverse` total.
+// byte construction would bypass validation of the scale and its reciprocal
 #[derive(
     Debug,
     Copy,
@@ -78,7 +79,7 @@ pub(crate) struct Similarity {
 }
 
 impl Similarity {
-    /// The similarity that maps every vector to itself.
+    /// Unit scale, identity rotation and zero translation.
     pub(crate) const IDENTITY: Self = Self {
         scale: positive!(1.0),
         rotation: Rotation::IDENTITY,
@@ -89,8 +90,9 @@ impl Similarity {
     ///
     /// Returns [`None`] unless `scale` and its reciprocal are both strictly positive normal
     /// numbers, which accepts magnitudes from [`f32::MIN_POSITIVE`] up to about `8.5e37`. The
-    /// reciprocal bound keeps inversion closed, because reciprocals of accepted scales are
-    /// themselves accepted.
+    /// reciprocal bound keeps the scale range closed under reciprocation. The rotation must satisfy
+    /// |cos² + sin² − 1| ≤ 10⁻⁶, evaluated in `f64`, and the translation must be finite. Construction
+    /// retains accepted coefficients without normalization.
     #[inline]
     #[must_use]
     pub(crate) const fn new(
@@ -130,14 +132,14 @@ impl Similarity {
         self.translation
     }
 
-    /// Returns the similarity equivalent to applying `self` first, then `next`.
+    /// Composes `self` followed by `next`, validating the resulting coefficients.
     ///
-    /// This reads in application order. The scales multiply, the rotations compose via
-    /// [`Rotation::then`], and `next` transforms `self`'s translation.
+    /// In real arithmetic the parameters are a₂a₁, R₂R₁ and a₂R₂t₁ + t₂. [`Rotation::then`]
+    /// composes the rotation pair. Coefficient rounding can make the result differ from sequential
+    /// application.
     ///
-    /// Returns [`None`] when the product of the scales leaves the range [`new`](Self::new) accepts.
-    /// Two accepted f32 scales can overflow to infinity or underflow past the normal range, so
-    /// composition is not closed and the revalidation is what upholds the type's invariant.
+    /// Returns [`None`] when the rounded coefficients fail [`new`](Self::new), including scale
+    /// overflow or underflow, rotation drift beyond the norm tolerance, or non-finite translation.
     #[inline]
     #[must_use]
     pub(crate) const fn then(self, next: Self) -> Option<Self> {
@@ -154,11 +156,14 @@ impl Similarity {
         )
     }
 
-    /// Returns the similarity that undoes `self`.
+    /// Forms the inverse parameters using a reciprocal scale and conjugate rotation.
     ///
-    /// [`new`](Self::new) admits only scales whose reciprocal is also normal, so the inverse's
-    /// scale satisfies the same invariant and inversion is total: applying a similarity and then
-    /// its inverse reproduces the input up to floating-point rounding.
+    /// For an exact unit rotation, the inverse model is a⁻¹Rᵀp − a⁻¹Rᵀt. The reciprocal scale
+    /// remains in the accepted range. The rotation retains any norm drift described by
+    /// [`Rotation::inverse`]. Inversion has no finite round-trip error guarantee.
+    ///
+    /// Returns [`None`] when the computed coefficients fail [`new`](Self::new), including overflow
+    /// while rotating or scaling the inverse translation.
     #[inline]
     #[must_use]
     pub(crate) const fn inverse(self) -> Self {
@@ -189,13 +194,13 @@ impl Similarity {
         )
     }
 
-    /// Transforms four vectors at once, entirely in SIMD registers.
+    /// Applies the similarity to four vectors with SIMD arithmetic.
     ///
-    /// This folds the scale into the rotation coefficients, so each axis is two fused multiply-adds
-    /// over the batch's lane groups with no shuffles. On targets with native FMA those fused
-    /// operations round once where [`apply`](Self::apply) rounds after each multiply and each add.
-    /// Results differ by at most a few units in the last place of the intermediate terms, and by
-    /// many units in the last place of the result itself where the terms cancel.
+    /// This folds the scale into the rotation coefficients before using two fused multiply-adds per
+    /// axis. Each fused operation rounds its product and addition once, independently of native FMA
+    /// availability. The coefficient products, grouping and fusion differ from
+    /// [`apply`](Self::apply), with no uniform result-relative ULP bound between paths, especially
+    /// near cancellation or overflow.
     #[inline]
     #[must_use]
     pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
@@ -228,8 +233,8 @@ impl Similarity {
     /// Decomposes the similarity into its five coefficients.
     ///
     /// The order is `[scale, cos, sin, x, y]`: the uniform scale, the rotation's cosine and sine,
-    /// and the translation's components. The array round-trips through
-    /// [`from_array`](Self::from_array) bit for bit.
+    /// and the translation's components. [`from_array`](Self::from_array) accepts an array returned
+    /// from any similarity and preserves every component value.
     #[inline]
     #[must_use]
     pub(crate) const fn to_array(self) -> [f32; 5] {
@@ -245,10 +250,10 @@ impl Similarity {
     /// Creates a similarity from its five coefficients.
     ///
     /// This reads the array as `[scale, cos, sin, x, y]`, the persisted coefficient layout. The
-    /// caller keeps the cosine and sine on the unit circle up to rounding, matching
-    /// the contract of [`Rotation::from_cos_sin`].
+    /// cosine and sine must satisfy the squared-norm tolerance in [`new`](Self::new), and the
+    /// translation must be finite.
     ///
-    /// Returns [`None`] unless the scale lies in the range [`new`](Self::new) accepts.
+    /// Returns [`None`] unless every coefficient satisfies [`new`](Self::new).
     #[inline]
     #[must_use]
     pub(crate) const fn from_array(

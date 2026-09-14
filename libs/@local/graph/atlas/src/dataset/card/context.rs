@@ -1,3 +1,5 @@
+//! The corpus-level settings shared by every card build.
+
 /// The corpus-level settings one card build runs under.
 ///
 /// The language, segmenter, and tokenizer are properties of the corpus and its embedding model,

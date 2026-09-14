@@ -30,21 +30,25 @@ pub(crate) use d_non_negative;
 
 /// A finite, non-negative `f64`, valid by construction.
 ///
-/// The double-precision twin of [`NonNegative`]. Zero passes, so the type carries tolerances and
-/// floors that may legitimately switch a check off, and measured magnitudes such as distances.
+/// The double-precision twin of [`NonNegative`] admits zero. It represents measured magnitudes such
+/// as distances and tolerances or floors that may use zero to switch a check off.
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value,
 /// with `-0.0` and `+0.0` the same value: construction canonicalizes the sign of zero. Values
 /// sort and key ordered maps like the numbers they hold, with no NaN case.
 ///
-/// Arithmetic whose result provably stays in the domain stays in the type. The square root of a
-/// non-negative value is non-negative ([`sqrt`](Self::sqrt)), while subtracting one non-negative
-/// value from another leaves the domain yet provably stays finite, so `-` outputs [`DFinite`].
-/// Serialization writes plain numbers and deserialization re-validates.
+/// Arithmetic preserves the type when its result provably remains in the domain. The square root of
+/// a nonnegative value is nonnegative ([`sqrt`](Self::sqrt)). Subtraction returns [`DFinite`] to
+/// admit negative differences while preserving finiteness. Serialization writes plain numbers and
+/// deserialization re-validates.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{DNonNegative};
+///
 /// assert_eq!(
 ///     DNonNegative::new(0.0)
 ///         .expect("zero disables the floor")
@@ -66,8 +70,8 @@ impl DNonNegative {
 
     /// Views a slice of readings as raw `f64`s.
     ///
-    /// The view is zero-cost: the type is `repr(transparent)` over `f64`, so the slices share one
-    /// layout. It serves a boundary whose vocabulary is the raw primitive.
+    /// The `repr(transparent)` representation over `f64` gives both slices the same layout,
+    /// permitting a zero-copy view.
     #[inline]
     pub(crate) fn slice_as_raw(values: &[Self]) -> &[f64] {
         zerocopy::FromBytes::ref_from_bytes(zerocopy::IntoBytes::as_bytes(values))
@@ -156,10 +160,10 @@ impl DNonNegative {
         Self(self.0.sqrt())
     }
 
-    /// Squares into a derivation, claiming nothing.
+    /// Squares with deferred validation.
     ///
-    /// Squaring doubles an unbounded exponent, a fat exit, so the product enters the fold raw
-    /// and the claim waits for the finish.
+    /// Squaring can overflow the finite range. The product enters the derivation for validation at
+    /// the finish.
     #[inline]
     pub(crate) const fn square(self) -> Derivation<Self> {
         Derivation::raw(self.0 * self.0)
@@ -167,8 +171,8 @@ impl DNonNegative {
 
     /// Narrows to working precision with round-to-nearest.
     ///
-    /// A value beyond the `f32` range overflows to `+∞` and asserts in debug builds through the
-    /// constructor.
+    /// The rounded result must be finite. Values that round to positive infinity lie outside
+    /// the result type's domain.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the rounding cast is the operation itself"
@@ -181,8 +185,8 @@ impl DNonNegative {
 
     /// Converts a count, exactly.
     ///
-    /// Every `u16` is non-negative and far inside `f64`'s exact-integer range, so the conversion
-    /// is total and no re-validation happens.
+    /// Every `u16` is nonnegative and exactly representable in `f64`. The conversion is total and
+    /// requires no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn from_u16(value: u16) -> Self {
@@ -191,8 +195,7 @@ impl DNonNegative {
 
     /// Narrows to the strictly positive domain.
     ///
-    /// Returns [`None`] exactly at zero, so an `if let` on the result is the zero guard and the
-    /// positivity witness in one move.
+    /// Returns [`None`] exactly at zero.
     #[inline]
     #[must_use]
     pub(crate) const fn positive(self) -> Option<DPositive> {
@@ -213,14 +216,9 @@ impl DNonNegative {
         self.0.is_subnormal()
     }
 
-    /// Returns whether the value stayed in domain.
+    /// Returns whether the stored reading is finite.
     ///
-    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
-    /// non-finite reading is exactly an escaped one.
-    ///
-    /// The one caller shape is a validation point that rejects escaped readings before acting on
-    /// a computed value. Anywhere else the query re-checks what construction already proved, and
-    /// the check itself is the defect.
+    /// Detects a non-finite result after arithmetic whose range requirements were not met.
     #[inline]
     #[must_use]
     pub(crate) const fn is_finite(self) -> bool {
@@ -238,13 +236,10 @@ impl DNonNegative {
         Self::new(self.0 / rhs.get())
     }
 
-    /// Raises to a raw power, staying non-negative.
+    /// Raises to a real power with deferred validation.
     ///
-    /// A non-negative base admits no NaN from `powf`. Zero raised to a positive exponent is
-    /// zero, and zero raised to the zero exponent is one. A positive base stays positive under
-    /// any exponent. Zero to a negative power and an overflowing result escape to `+∞` - wrong
-    /// readings rather than soundness breaks, since no unsafe code trusts the domain - and
-    /// assert in debug builds through the constructor.
+    /// Overflow and zero raised to a negative exponent produce infinity in the [`Derivation`]. Zero
+    /// raised to zero is one. Underflow to zero remains nonnegative.
     #[inline]
     #[must_use]
     pub(crate) fn powf(self, exponent: f64) -> Self {
@@ -279,7 +274,7 @@ impl fmt::LowerExp for DNonNegative {
 const impl PartialEq for DNonNegative {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -305,7 +300,7 @@ const impl Ord for DNonNegative {
 impl Hash for DNonNegative {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // canonical bits: equal values share one bit pattern, so `Hash` agrees with `Eq`
+        // hashing each value's canonical bit pattern preserves agreement with `Eq`
         state.write_u64(self.0.to_bits());
     }
 }
@@ -315,8 +310,8 @@ const impl core::ops::Sub for DNonNegative {
 
     /// Subtracts, into the finite domain.
     ///
-    /// The difference of two non-negative finite values is finite, with no re-validation: its
-    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
+    /// The difference of two nonnegative finite values has a magnitude that never exceeds the
+    /// larger operand. The subtraction cannot overflow and requires no re-validation. Equal
     /// operands give `+0.0`.
     #[inline]
     fn sub(self, rhs: Self) -> DFinite {
@@ -339,10 +334,6 @@ const impl core::ops::Neg for DNonNegative {
 const impl core::ops::Add<f64> for DNonNegative {
     type Output = f64;
 
-    /// Adds a raw offset.
-    ///
-    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
-    /// float.
     #[inline]
     fn add(self, rhs: f64) -> f64 {
         self.0 + rhs
@@ -352,10 +343,6 @@ const impl core::ops::Add<f64> for DNonNegative {
 const impl core::ops::Sub<f64> for DNonNegative {
     type Output = f64;
 
-    /// Subtracts a raw offset.
-    ///
-    /// The raw operand is arbitrary, so the difference can leave any bounded domain and returns
-    /// a raw float.
     #[inline]
     fn sub(self, rhs: f64) -> f64 {
         self.0 - rhs
@@ -365,10 +352,6 @@ const impl core::ops::Sub<f64> for DNonNegative {
 const impl core::ops::Add<DNonNegative> for f64 {
     type Output = f64;
 
-    /// Adds a non-negative offset to a raw `f64`.
-    ///
-    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
-    /// float.
     #[inline]
     fn add(self, rhs: DNonNegative) -> f64 {
         self + rhs.0
@@ -378,10 +361,6 @@ const impl core::ops::Add<DNonNegative> for f64 {
 const impl core::ops::Sub<DNonNegative> for f64 {
     type Output = f64;
 
-    /// Subtracts a non-negative offset from a raw `f64`.
-    ///
-    /// The raw operand is arbitrary, so the difference can leave any bounded domain and returns
-    /// a raw float.
     #[inline]
     fn sub(self, rhs: DNonNegative) -> f64 {
         self - rhs.0
@@ -393,9 +372,9 @@ const impl core::ops::Sub<DPositive> for DNonNegative {
 
     /// Subtracts a positive value, into the finite domain.
     ///
-    /// The difference of two finite values of one sign is finite, with no re-validation: its
-    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. The
-    /// sign is the reading, negative whenever the positive operand exceeds the value.
+    /// The difference of two finite values of one sign has a magnitude that never exceeds the
+    /// larger operand. The subtraction cannot overflow and requires no re-validation. The result is
+    /// negative whenever the positive operand exceeds `self`.
     #[inline]
     fn sub(self, rhs: DPositive) -> DFinite {
         DFinite::new_unchecked(self.0 - rhs.get())
@@ -405,8 +384,11 @@ const impl core::ops::Sub<DPositive> for DNonNegative {
 const impl core::ops::Add<OpenUnitFraction> for DNonNegative {
     type Output = Self;
 
-    /// Accumulates a fraction: an open unit fraction is a finite non-negative value, and a sum
-    /// with a value below one cannot overflow.
+    /// Adds a fraction without overflowing the finite domain.
+    ///
+    /// Binary64 addition is monotone and round(MAX + 1) = MAX, where MAX is [`f64::MAX`]. The
+    /// operands are bounded by MAX and one, and their rounded sum is at most MAX. Therefore
+    /// adding an in-domain fraction remains finite and non-negative.
     #[inline]
     fn add(self, rhs: OpenUnitFraction) -> Self {
         Self(self.0 + rhs.get())
@@ -425,10 +407,8 @@ const impl core::ops::Add for DNonNegative {
 
     /// Adds.
     ///
-    /// A sum of non-negatives is never NaN and never `-0.0`. Overflow escapes to `+∞` - a
-    /// wrong reading rather than a soundness break, since no unsafe code trusts the domain and
-    /// a persisted value re-validates at construction - and asserts in debug builds, mirroring
-    /// integer `+`.
+    /// The rounded sum must remain finite. A sum of in-domain values is never NaN or `-0.0`,
+    /// but it can overflow to positive infinity.
     #[inline]
     fn add(self, rhs: Self) -> Self {
         let sum = self.0 + rhs.0;
@@ -446,8 +426,10 @@ const impl core::ops::AddAssign for DNonNegative {
 }
 
 const impl core::ops::AddAssign<PositiveUnitFraction> for DNonNegative {
-    /// Accumulates a fraction: a positive unit fraction is a finite non-negative value, and a
-    /// sum with a value at most one cannot overflow.
+    /// Accumulates a positive unit fraction without overflowing.
+    ///
+    /// Monotone rounding bounds the sum by round(MAX + 1) = MAX, as for addition of an open unit
+    /// fraction.
     #[inline]
     fn add_assign(&mut self, rhs: PositiveUnitFraction) {
         *self = *self + Self(rhs.get());
@@ -459,8 +441,8 @@ const impl core::ops::Add<DPositive> for DNonNegative {
 
     /// Adds a positive value, into the positive domain.
     ///
-    /// Rounding is monotone, so the sum is at least the positive operand and never reaches
-    /// zero. Overflow escapes to `+∞` and asserts in debug builds through the constructor.
+    /// The rounded sum must remain finite. Monotone rounding keeps it at least as large as the
+    /// positive operand, but does not prevent overflow.
     #[inline]
     fn add(self, rhs: DPositive) -> DPositive {
         DPositive::new_unchecked(self.0 + rhs.get())
@@ -470,12 +452,11 @@ const impl core::ops::Add<DPositive> for DNonNegative {
 const impl core::ops::Mul for DNonNegative {
     type Output = Derivation<Self>;
 
-    /// Multiplies.
+    /// Multiplies with deferred validation of overflow.
     ///
-    /// A product of finite non-negatives is never NaN and never negative. Overflow escapes to
-    /// `+∞` - a wrong reading rather than a soundness break, since no unsafe code trusts the
-    /// domain - and asserts in debug builds through the constructor. Underflow rounds to zero,
-    /// inside the domain.
+    /// For finite non-negative operands the product is never NaN or negative. The derivation
+    /// carries overflow to positive infinity until its finish. Underflow rounds to zero, inside
+    /// the target domain.
     #[inline]
     fn mul(self, rhs: Self) -> Derivation<Self> {
         Derivation::raw(self.0 * rhs.0)
@@ -485,9 +466,10 @@ const impl core::ops::Mul for DNonNegative {
 const impl core::ops::Mul<DPositive> for DNonNegative {
     type Output = Derivation<Self>;
 
-    /// Multiplies by a positive factor, staying non-negative.
+    /// Multiplies by a positive factor with deferred validation.
     ///
-    /// Zero stays exactly zero, and overflow escapes to `+∞` as the in-family product does.
+    /// A zero operand gives zero. Finite products are non-negative, while overflow produces
+    /// positive infinity in the derivation.
     #[inline]
     fn mul(self, rhs: DPositive) -> Derivation<Self> {
         Derivation::raw(self.0 * rhs.get())
@@ -497,11 +479,11 @@ const impl core::ops::Mul<DPositive> for DNonNegative {
 const impl core::ops::Div<DPositive> for DNonNegative {
     type Output = Derivation<Self>;
 
-    /// Divides by a positive divisor, staying non-negative.
+    /// Divides by a nonzero divisor with deferred validation of overflow.
     ///
-    /// The divisor is never zero and never NaN, so the sign is closed and no NaN can arise. The
-    /// exponents compose: a large numerator over a small divisor overflows to `+∞`, the fat
-    /// exit the derivation carries to its finish. Underflow rounds to zero, inside the domain.
+    /// The divisor is never zero or NaN, and the numerator is finite and non-negative. Their
+    /// quotient cannot be NaN or negative. A large numerator over a small divisor can overflow to
+    /// positive infinity. Underflow rounds to zero, inside the target domain.
     #[inline]
     fn div(self, rhs: DPositive) -> Derivation<Self> {
         Derivation::raw(self.0 / rhs.get())
@@ -511,11 +493,11 @@ const impl core::ops::Div<DPositive> for DNonNegative {
 const impl core::ops::Div for DNonNegative {
     type Output = Derivation<Self>;
 
-    /// Divides within the family, staying non-negative where the quotient exists.
+    /// Divides with deferred validation of zero division and overflow.
     ///
-    /// A zero divisor sends a positive numerator to `+∞` and zero to NaN, both upward exits
-    /// the derivation carries to its finish. Overflow escapes the same way as the divisor
-    /// shrinks, and underflow rounds to zero, inside the domain.
+    /// A zero divisor gives positive infinity for a positive numerator and NaN for zero. A positive
+    /// divisor follows the range behavior of division by [`DPositive`]: overflow can produce
+    /// infinity, while underflow produces an in-domain zero.
     #[inline]
     fn div(self, rhs: Self) -> Derivation<Self> {
         Derivation::raw(self.0 / rhs.0)
@@ -523,7 +505,6 @@ const impl core::ops::Div for DNonNegative {
 }
 
 const impl PartialEq<DPositive> for DNonNegative {
-    /// Compares across the scalar family, in one precision with no widening.
     #[inline]
     fn eq(&self, other: &DPositive) -> bool {
         self.0 == other.get()
@@ -531,7 +512,6 @@ const impl PartialEq<DPositive> for DNonNegative {
 }
 
 const impl PartialOrd<DPositive> for DNonNegative {
-    /// Orders across the scalar family, in one precision with no widening.
     #[inline]
     fn partial_cmp(&self, other: &DPositive) -> Option<Ordering> {
         self.0.partial_cmp(&other.get())
@@ -543,7 +523,6 @@ impl proptest::arbitrary::Arbitrary for DNonNegative {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, zero and subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -554,14 +533,12 @@ impl proptest::arbitrary::Arbitrary for DNonNegative {
 }
 
 impl serde::Serialize for DNonNegative {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for DNonNegative {
-    /// Deserializes a plain number, refusing values outside the finite non-negative range.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f64::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {
@@ -574,7 +551,6 @@ impl<'de> serde::Deserialize<'de> for DNonNegative {
 }
 
 const impl From<DPositive> for DNonNegative {
-    /// Widens into the enclosing domain: every positive value is non-negative.
     #[inline]
     fn from(value: DPositive) -> Self {
         Self(value.get())
@@ -582,7 +558,6 @@ const impl From<DPositive> for DNonNegative {
 }
 
 const impl From<NonNegative> for DNonNegative {
-    /// Widens into double precision, exactly: the canonical zero and the domain both survive.
     #[inline]
     fn from(value: NonNegative) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -591,8 +566,6 @@ const impl From<NonNegative> for DNonNegative {
 }
 
 const impl From<Positive> for DNonNegative {
-    /// Widens into double precision and the enclosing domain, exactly: every positive value
-    /// is non-negative.
     #[inline]
     fn from(value: Positive) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -601,7 +574,6 @@ const impl From<Positive> for DNonNegative {
 }
 
 const impl From<UnitFraction> for DNonNegative {
-    /// [0, 1] is non-negative.
     #[inline]
     fn from(value: UnitFraction) -> Self {
         Self(value.get())
@@ -620,8 +592,9 @@ const impl core::ops::Mul<DNonNegative> for UnitFraction {
 
     #[inline]
     fn mul(self, rhs: DNonNegative) -> DNonNegative {
-        // In domain with no check: a fraction in [0, 1] scales the magnitude toward zero, so the
-        // product stays finite and non-negative, and a zero product keeps the canonical +0.0.
+        // A fraction in [0, 1] cannot increase the magnitude of a nonnegative finite value. The
+        // product remains finite and nonnegative without a check, with canonical +0.0 for a zero
+        // product.
         DNonNegative(self.get() * rhs.0)
     }
 }
@@ -631,8 +604,9 @@ const impl core::ops::Mul<DNonNegative> for OpenUnitFraction {
 
     #[inline]
     fn mul(self, rhs: DNonNegative) -> DNonNegative {
-        // In domain with no check: a fraction in (0, 1) scales the magnitude toward zero, so the
-        // product stays finite and non-negative, and a zero product keeps the canonical +0.0.
+        // A fraction in (0, 1) cannot increase the magnitude of a nonnegative finite value. The
+        // product remains finite and nonnegative without a check, with canonical +0.0 for a zero
+        // product.
         DNonNegative(self.get() * rhs.0)
     }
 }

@@ -1,31 +1,34 @@
-//! The bounded landmark skeleton.
+//! Bounded nonlinear layout over selected landmark rows.
 //!
-//! The skeleton caps the nonlinear layout problem at a configured landmark count `M` independent of
-//! the corpus size `N`:
+//! A [`LandmarkSkeleton`](artifact::LandmarkSkeleton) combines selected rows, an assignment of
+//! every input row to a selected landmark, and the landmarks' 2D coordinates. A capacity `M` bounds
+//! the nonlinear layout independently of the input row count `N`:
 //!
-//! 1. [`select_landmarks`](select::select_landmarks) draws `M` representative node rows by weighted
-//!    sampling without replacement, honoring subgroup minimums and a retained fraction of the prior
-//!    generation's landmarks.
-//! 2. [`LandmarkSelection::assign`](select::LandmarkSelection::assign) maps every corpus row to its
-//!    nearest selected landmark through the generation's search backend, and a landmark assigns to
-//!    itself.
+//! 1. [`select_landmarks`](select::select_landmarks) selects at most `M` rows by weighted
+//!    priorities. Subgroup minimums take precedence over a retention target for prior landmarks,
+//!    followed by a fill to capacity. Minimums use a greedy procedure that can reject jointly
+//!    feasible overlapping requirements.
+//! 2. [`LandmarkSelection::assign`](select::LandmarkSelection::assign) maps every input row to a
+//!    selected landmark through a nearest-neighbour backend. Landmarks assign to themselves. Other
+//!    assignments inherit the backend's approximation quality.
 //! 3. [`LandmarkAssignment::quotient`](assignment::LandmarkAssignment::quotient) contracts the
-//!    corpus [`SemanticGraph`](super::semantic::SemanticGraph) through the assignment into a
-//!    semantic graph over the landmark domain: the structure the nonlinear layout optimizes over,
-//!    `M x M` instead of `N x N`.
-//! 4. [`layout_landmarks`](layout::layout_landmarks) places the landmarks in 2D by stochastic
-//!    gradient descent of the UMAP objective over the quotient graph, on the
-//!    [`AffinityCurve`](crate::math::AffinityCurve) gradient kernels.
+//!    input [`SemanticGraph`](super::semantic::SemanticGraph) through this assignment. The quotient
+//!    has the same fuzzy-weight semantics over at most `M` rows, keeping the layout graph bounded
+//!    while assignment still covers all `N` rows.
+//! 4. [`layout_landmarks`](layout::layout_landmarks) places landmarks by UMAP-style
+//!    negative-sampling updates using [`AffinityCurve`](crate::math::AffinityCurve) kernels. Its
+//!    asymmetric negative updates do not generally descend one scalar objective for the whole
+//!    graph.
 //!
-//! A fitted skeleton publishes as one combined landmark file ([`artifact`]): selection, assignment,
-//! and coordinates share the ordinal vocabulary, so they live in one artifact and cannot fall out
-//! of sync.
+//! Selection, assignment and coordinates share [`LandmarkOrdinal`](select::LandmarkOrdinal)
+//! positions and publish in one combined landmark file ([`artifact`]). Assembly checks their
+//! landmark counts and coordinate finiteness. Supply parts derived from the same selection, since
+//! equal counts alone do not establish that relationship.
 //!
-//! The quotient is a [`SemanticGraph`] like the corpus graph it contracts, so the layout consumes
-//! one graph type at either scale. Every stage draws its randomness from a caller-seeded generator;
-//! rerunning with equal inputs, options, and seed reproduces the skeleton exactly.
-//!
-//! [`SemanticGraph`]: super::semantic::SemanticGraph
+//! Selection and contraction preserve their operation order across thread counts. Assignment
+//! requires a deterministic backend for reproducible results. The serial layout repeats under equal
+//! inputs and random streams with the same floating-point behavior, without a cross-platform
+//! bit-equality guarantee.
 pub(crate) mod artifact;
 pub(crate) mod assignment;
 pub(crate) mod layout;

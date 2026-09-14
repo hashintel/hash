@@ -19,6 +19,8 @@ pub(crate) struct ClassifierArgs {
     generation: GenerationId,
 
     /// Where the report bundle JSON lands.
+    ///
+    /// Defaults to `classifier-report.json` in the working directory.
     #[arg(long, default_value = "classifier-report.json", value_hint = ValueHint::FilePath)]
     output: Utf8PathBuf,
 }
@@ -54,9 +56,10 @@ impl Display for ClassifierVerdict {
 }
 
 impl ClassifierArgs {
-    /// Refits the generation's classifier from its staged corpus and certifies the bytes against
-    /// the deployed artifact, then writes the report bundle. A digest mismatch is the bundle's
-    /// content, so it lands in the report and the verdict instead of failing the run.
+    /// Refits the generation's classifier from its staged corpus and writes the report bundle.
+    ///
+    /// The refit certifies the bytes against the deployed artifact. A digest mismatch is the
+    /// bundle's content. The bundle and the verdict carry it instead of the run failing.
     ///
     /// # Errors
     ///

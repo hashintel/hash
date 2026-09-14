@@ -1,4 +1,4 @@
-//! The first-occupant cascade, which gives every point a minimum-zoom bucket.
+//! First-occupant depth assignments for progressive spatial coverage.
 //!
 //! [`buckets`] assigns by scanning the grids coarse to fine, one rank-ordered pass per depth.
 //! [`separation_buckets`] computes the same assignment at [`Depth::MAX`] in one pass over the
@@ -18,25 +18,30 @@ use crate::{
     morton::{Depth, MortonKey},
 };
 
-/// Assigns every point its bucket.
-///
-/// The bucket is the shallowest grid depth at which the point first occupies its cell.
+/// Assigns each point its first unclaimed grid cell's depth, capped at `deepest`.
 ///
 /// The cascade scans depths coarse to fine. At each depth, every occupied cell that no
-/// earlier-assigned point lies in receives its first still-unassigned point in rank order; the rest
-/// continue deeper. Points never claiming a cell - co-located within one deepest-grid cell - take
-/// `deepest`, the catch-all bucket, so `deepest` is the one bucket holding more than one point per
-/// cell.
+/// earlier-assigned point lies in receives its first still-unassigned point in rank order. The rest
+/// continue deeper. Points never claiming a cell take `deepest`, the catch-all bucket. Only the
+/// catch-all can hold more than one point per cell.
 ///
-/// Delivering every point with a bucket at or below a cut depth therefore covers every occupied
-/// cell of the cut's grid. [`verify_coverage`] rechecks that claim for one generation.
+/// The assignment is a pure function of the keys, the ranking, and `deepest`. `ranking` must be a
+/// valid permutation of the rows in `keys`.
 ///
-/// The assignment is a pure function of the keys, the ranking, and `deepest`, over whatever row
-/// domain `R` the two agree on.
+/// # Properties
+///
+/// For every cut d ≤ `deepest`, points with bucket at or below d cover every occupied depth-d cell.
+/// Before the catch-all cut, exactly one delivered point represents each such cell.
+///
+/// # Complexity
+///
+/// For N points and D = `deepest`, the cascade makes D + 1 rank-ordered passes and uses O(N)
+/// storage. With expected constant-time hash-set operations, its time is O(N · (D + 1)).
 ///
 /// # Panics
 ///
-/// This panics when `keys` and `ranking` disagree on the row count.
+/// Panics when `keys` and `ranking.row_of_rank` disagree on the row count, or when the ranking
+/// contains a row outside `keys`.
 #[must_use]
 pub(crate) fn buckets<R: Id>(
     keys: &IdSlice<R, MortonKey>,
@@ -49,21 +54,21 @@ pub(crate) fn buckets<R: Id>(
         "the keys and the ranking must cover the same rows",
     );
 
-    // Rows that no pass assigns keep `deepest`, the catch-all bucket.
+    // rows that no pass assigns keep `deepest`, the catch-all bucket
     let mut buckets = IdVec::<R, Depth>::from_elem(deepest, keys.len());
     let mut assigned = DenseBitSet::<R>::new_empty(keys.len());
 
-    // A hash set holds the cells. Its elements are `prefix(depth)` keys, and their `4^depth`-cell
-    // domain outgrows the row count from depth ~10 on while the populated cells stay bounded by the
-    // rows, so the hash set pays only for the cells the cascade touches. The row set fills a linear
-    // domain, which a dense bit set fits.
+    // The occupied cells number at most one per row, while the cell domain grows as 4ᵈ at depth d.
+    // A hash set allocates for occupied cells. The row set has a linear domain and uses a dense bit
+    // set.
     let mut seen = fast_hash_set();
 
-    // One rank-ordered pass per depth suffices with a single cell set. Within any cell an
-    // assigned point always outranks every still-unassigned point, because every point of the
-    // current cell sat inside the shallower cell it claimed and lost that claim on rank. An
-    // assigned point therefore marks its cell before any unassigned visitor arrives. The first
-    // unassigned visitor of an unmarked cell holds the cell's best still-unassigned rank.
+    // Every depth-d cell lies inside exactly one cell at each shallower depth. Inductively, a point
+    // assigned in a shallower cell outranks every still-unassigned point there, including those in
+    // its depth-d cell. Scanning in rank order marks that cell before any unassigned point can
+    // claim it. In an unmarked cell, the first visitor has its best remaining rank and establishes
+    // the same invariant. Therefore one pass per depth suffices to preserve coverage and one
+    // delivered representative per cell below the catch-all.
     for depth in 0..=deepest.get() {
         let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
 
@@ -76,8 +81,7 @@ pub(crate) fn buckets<R: Id>(
                 buckets[row] = depth;
                 assigned.insert(row);
             } else {
-                // The cell is already claimed at this depth; the row
-                // stays unassigned for a deeper pass.
+                // the occupied cell leaves this row unassigned for a deeper pass
             }
         }
     }
@@ -87,20 +91,29 @@ pub(crate) fn buckets<R: Id>(
 
 /// Assigns every point its natural bucket by neighbour separation.
 ///
-/// The closed form of [`buckets`] at [`Depth::MAX`], over points sorted ascending by
-/// `(key, rank)`: both assign the same bucket to every point. A point's bucket is one past the
-/// deepest grid it shares with any better-ranked point, because that is the first depth at which
-/// its cell holds no better-ranked occupant. The best-ranked point takes [`Depth::MIN`], and a
-/// point sharing its key with a better-ranked point shares every grid and takes [`Depth::MAX`],
-/// the catch-all.
+/// Computes the closed form of [`buckets`] at [`Depth::MAX`]. `points` must ascend by `(key, rank)`
+/// under the accessors, ranks must be pairwise distinct, and the accessors must return consistent
+/// values throughout the call. Smaller ranks have higher precedence. The output follows `points`
+/// order, using `alloc` for the result and `scratch` for temporary storage.
 ///
-/// The keys ascend, so the deepest grid a point shares with any better-ranked point is the
-/// deepest it shares with the key-nearest better-ranked point on either side. One
-/// monotonic-stack pass finds both neighbours, and the assignment costs `O(points)` after the
-/// sort that ordered them.
+/// # Properties
 ///
-/// Caller requirement: `points` ascends by `(key, rank)` under the given accessors, and the
-/// ranks are pairwise distinct.
+/// For point i, let Dᵢ be the deepest shared grid with any better-ranked point, as measured by
+/// [`MortonKey::shared_depth`]. Its bucket is min(Dᵢ + 1, 32), the first depth with no
+/// better-ranked occupant, capped at the catch-all. The best-ranked point takes [`Depth::MIN`].
+/// Equal keys share every grid, putting the worse-ranked point in [`Depth::MAX`]. Both this formula
+/// and [`buckets`] assign every point the same bucket at the full key width.
+///
+/// A Morton prefix occupies a contiguous key interval. If a better-ranked point shares a prefix
+/// with i, every intervening key shares it too. The nearest better-ranked point on either side
+/// therefore attains the deepest shared grid on that side. It is sufficient to compare these two
+/// neighbours.
+///
+/// # Complexity
+///
+/// The monotonic-stack pass takes O(N) accessor calls and comparisons for N points, plus O(N)
+/// result and scratch storage. Each point enters and leaves the stack at most once. Sorting the
+/// input is a separate cost.
 #[must_use]
 pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
     points: &[T],
@@ -152,7 +165,8 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
 
 /// Assigns every point its natural bucket by neighbour separation.
 ///
-/// See: [`separation_buckets_in`].
+/// Uses the global allocator for both output and scratch storage. Input requirements and the bucket
+/// formula are those of [`separation_buckets_in`].
 #[must_use]
 pub(crate) fn separation_buckets<T>(
     points: &[T],
@@ -174,14 +188,18 @@ pub(crate) struct CoverageGap {
 
 /// Checks the cascade's coverage contract over one assignment.
 ///
-/// For every depth up to `deepest` and every occupied cell of that depth's grid, at least one point
-/// of the cell carries a bucket at or below the depth; delivering the buckets-at-or-below-cut
-/// prefix then shows every occupied cell. The cascade guarantees this by construction - the check
-/// is the publishable evidence, not a consumer's obligation.
+/// Checks that every occupied cell at every depth up to `deepest` has at least one point with a
+/// bucket at or below that depth. This checks coverage alone, not the rank choice or representative
+/// uniqueness.
+///
+/// # Errors
+///
+/// Returns a [`CoverageGap`] at the shallowest failing depth, for the first uncovered cell
+/// encountered in key-column order.
 ///
 /// # Panics
 ///
-/// This panics when `keys` and `buckets` disagree on the row count.
+/// Panics when `keys` and `buckets` disagree on the row count.
 #[cfg(any(test, feature = "bench"))]
 #[expect(
     clippy::panic_in_result_fn,

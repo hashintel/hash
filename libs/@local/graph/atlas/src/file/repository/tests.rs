@@ -1,3 +1,5 @@
+//! Certificates for the repository layout version's serialized form.
+
 use super::RepositoryVersion;
 
 #[test]

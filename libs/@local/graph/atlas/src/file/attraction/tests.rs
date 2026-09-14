@@ -20,6 +20,9 @@ use crate::{
     math::{NonNegative, PositiveUnitFraction, UnitFraction},
 };
 
+/// The header's leading bytes sit where the format's table says: magic, little-endian version 2,
+/// this machine's information, both row-kind slots (zero for the founding domains), and the
+/// group, edge and row counts as little-endian `u64`s.
 #[test]
 fn header_bytes_lead_with_magic_and_version() {
     let header = FileHeader::new(NodeKind::NodeRowId, EdgeKind::EdgeRowId, 3, 17, 100);
@@ -83,6 +86,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// A group record for `relation`, with the three class weights given in wire order.
 fn group(relation: u64, edge_offset: u64, weights: [f32; 3]) -> GroupRecord {
     let weight = |value: f32| NonNegative::new(value).expect("the fixture weights are in domain");
     GroupRecord::new(
@@ -94,6 +98,7 @@ fn group(relation: u64, edge_offset: u64, weights: [f32; 3]) -> GroupRecord {
     )
 }
 
+/// An edge record between two node rows, scored with all three provenance bits but the middle.
 fn edge(
     edge: u64,
     source: u64,
@@ -111,6 +116,7 @@ fn edge(
     )
 }
 
+/// Builds an attraction file with two groups over three edges.
 fn fixture_bytes() -> Vec<u8> {
     let groups = [group(3, 0, [0.5, 0.5, 1.0]), group(9, 2, [0.0, 1.0, 1.0])];
     let edges = [
@@ -153,6 +159,8 @@ fn written_records_reopen_verbatim() {
     assert_eq!(edges[0].scored(), 0b101);
 }
 
+/// Zero groups and zero edges are valid geometry: the file writes, reopens, reports no rows, and
+/// hands out two empty record regions rather than failing the open.
 #[test]
 fn empty_index_reopens() {
     // Zero counts are valid geometry: two empty regions.
@@ -174,6 +182,8 @@ fn empty_index_reopens() {
     assert!(file.edges().is_empty());
 }
 
+/// A writer told to expect two edges and handed one panics rather than sealing a file whose
+/// header promises records the data region does not hold.
 #[test]
 #[should_panic(expected = "the edge stream's length promise holds")]
 fn writer_rejects_a_broken_edge_count_promise() {

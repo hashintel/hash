@@ -31,6 +31,7 @@ fn entity(ordinal: u128) -> crate::postgres::id::ArchivedEntityId {
     }
 }
 
+/// A generation id whose 64 hex digits spell `ordinal`.
 fn generation(ordinal: u8) -> GenerationId {
     format!("{ordinal:064x}")
         .parse()
@@ -42,6 +43,7 @@ const fn row(value: u64) -> NodeRowId {
     NodeRowId::new(value)
 }
 
+/// Temporal axes with both transaction and decision time at `seconds` past the Unix epoch.
 fn axes(seconds: i64) -> TemporalAxes {
     TemporalAxes {
         transaction_time: hash_graph_temporal_versioning::Timestamp::from_unix_timestamp(seconds),
@@ -51,10 +53,10 @@ fn axes(seconds: i64) -> TemporalAxes {
 
 /// One fabricated corpus of rows on the unit circle of the representation's leading 2-plane.
 ///
-/// Each row's representation points at its angle and its wire coordinate is the same point,
-/// so representation-space and wire-space orderings agree exactly for angles within one
-/// half-turn of each other - the geometry every faithful-projector certificate leans on. Equal
-/// angles produce byte-equal representations.
+/// Each row's representation points at its angle and its wire coordinate is the same point:
+/// representation-space and wire-space orderings agree exactly for angles within one half-turn
+/// of each other, the geometry every faithful-projector certificate leans on. Equal angles
+/// produce byte-equal representations.
 struct Corpus {
     ids: Vec<crate::postgres::id::ArchivedEntityId>,
     representations: MatrixN<PROJECTOR_DIMENSIONS>,
@@ -62,6 +64,10 @@ struct Corpus {
 }
 
 impl Corpus {
+    /// Builds a corpus whose wire coordinates are unit-circle points.
+    ///
+    /// Each `(id, angle)` row places at the unit-circle point at that angle, coupled to the
+    /// representation.
     fn new(rows: &[(u128, f32)]) -> Self {
         let mut corpus = Self::decoupled(
             rows,
@@ -88,6 +94,7 @@ impl Corpus {
         }
     }
 
+    /// The corpus as generation columns under `id`, recorded at `at` (or unrecorded when `None`).
     fn columns(&self, id: GenerationId, at: Option<TemporalAxes>) -> GenerationColumns<'_> {
         GenerationColumns::new(
             id,
@@ -102,10 +109,9 @@ impl Corpus {
 
 /// The standing pair holds five stable rows, one revised row, one departure, and two arrivals.
 ///
-/// The later generation's arrivals sit at rows 6 (entity 8, novel) and 7 (entity 9, whose
+/// The later generation's arrivals are at rows 6 (entity 8, novel) and 7 (entity 9, whose
 /// bytes equal the departed entity 7's, hence seen). Entity 6 revises its bytes between the
-/// generations. Every stable row is byte-distinct, so stable classes and stable rows
-/// coincide.
+/// generations. Every stable row is byte-distinct: stable classes and stable rows coincide.
 fn standing_pair() -> (Corpus, Corpus) {
     let earlier = Corpus::new(&[
         (1, 0.1),
@@ -144,6 +150,9 @@ const STANDING_EDGES: &IdSlice<EdgeRowId, [NodeRowId; 2]> =
 /// An edgeless later generation.
 const NO_EDGES: &IdSlice<EdgeRowId, [NodeRowId; 2]> = IdSlice::from_raw(&[]);
 
+/// Replay sizes for the standing pair.
+///
+/// The replay runs four queries and comparisons with one control and one neighbourhood of size one.
 fn one_neighbourhood() -> ReplaySizes {
     ReplaySizes {
         queries: NonZero::new(4).expect("the fixture query cap is nonzero"),
@@ -156,6 +165,9 @@ fn one_neighbourhood() -> ReplaySizes {
     }
 }
 
+/// Runs the arrival replay over the standing pair at `seed`.
+///
+/// The edges draw at `seed` under the one-neighbourhood sizes.
 fn standing_replay(seed: u64) -> Result<ArrivalReplay, ReplayError> {
     let (earlier, later) = standing_pair();
     ArrivalReplay::from_columns(
@@ -172,7 +184,7 @@ fn standing_replay(seed: u64) -> Result<ArrivalReplay, ReplayError> {
 /// The faithful projector, projecting each row to the wire point its own leading components name.
 ///
 /// On the aligned fixture geometry this reproduces every universe member's published wire
-/// coordinate exactly, so the deployed ordering equals the reference ordering.
+/// coordinate exactly: the deployed ordering equals the reference ordering.
 struct PlanarProjector;
 
 impl PublishedProjector for PlanarProjector {
@@ -207,6 +219,10 @@ impl PublishedProjector for ScriptedProjector {
     }
 }
 
+/// Partitions the standing pair into five stable rows, one revised row and two arrivals.
+///
+/// Partitioning the standing pair finds five stable rows on matching positions, one revised row,
+/// and two arrivals at later rows 6 and 7, one of them seen before.
 #[test]
 fn partition_standing_pair() {
     let (earlier, later) = standing_pair();
@@ -238,6 +254,10 @@ fn partition_standing_pair() {
     assert_eq!(populations.arrivals_seen, 1);
 }
 
+/// Groups byte-equal representations into three stable classes and two arrival classes.
+///
+/// Byte-equal representations group into classes: three stable classes with member counts `2, 2, 1`
+/// at their lowest rows, and two arrival classes, a duplicated novel one and a seen singleton.
 #[test]
 fn class_formation() {
     // Stable rows pair up at angles 0.2 and 0.9 beside a singleton at
@@ -280,6 +300,10 @@ fn class_formation() {
     assert_eq!(arrivals[arrival_class(1)].novelty, Novelty::Seen);
 }
 
+/// An earlier generation without temporal axes fails with `UnrecordedTemporalAxes`.
+///
+/// A pair whose earlier generation has no recorded temporal axes fails with
+/// `UnrecordedTemporalAxes` naming that generation.
 #[test]
 fn axes_unrecorded() {
     let (earlier, later) = standing_pair();
@@ -320,6 +344,7 @@ fn pair_unordered() {
     }
 }
 
+/// A later generation with no new identities fails with `EmptyArrivals`.
 #[test]
 fn arrivals_empty() {
     let (earlier, _) = standing_pair();
@@ -406,6 +431,7 @@ fn stable_classes_insufficient() {
     ));
 }
 
+/// A neighbourhood size of three over a universe of four fails with `NeighbourhoodDesign`.
 #[test]
 fn neighbourhood_oversized() {
     let (earlier, later) = standing_pair();
@@ -430,6 +456,11 @@ fn neighbourhood_oversized() {
     ));
 }
 
+/// Reads every designed count, optimum and identity under the faithful planar projector.
+///
+/// Under the faithful planar projector every population count is as designed, both arrivals place,
+/// every refit and deployed reading lies at its optimum, every paired difference is exactly zero,
+/// and the per-query, class and control rows carry the expected identities and member counts.
 #[test]
 #[expect(
     clippy::float_cmp,
@@ -464,8 +495,8 @@ fn faithful_path_optimum() {
     assert_eq!(report.outcomes, placed_pair);
     assert_eq!(report.class_outcomes, placed_pair);
 
-    // The fixture geometry makes every ordering agree, so each reading
-    // sits at its optimum and every paired difference is exactly zero.
+    // The fixture geometry makes every ordering agree: each reading lies at its optimum, and
+    // every paired difference is exactly zero.
     let block = &report.neighbourhoods[0];
     let class_block = &report.class_neighbourhoods[0];
     for (name, row) in [
@@ -498,10 +529,9 @@ fn faithful_path_optimum() {
     assert_eq!(class_paired.queries, 2);
     assert_eq!(class_paired.mean.recall, 0.0);
 
-    // Per-query rows ride ascending by later row. The novel arrival
-    // comes first and the seen one second, each placed with zero
-    // difference. The arrival classes are singletons on the same rows,
-    // so the class rows mirror them with member count one.
+    // Per-query rows are ordered ascending by later row. The novel arrival comes first and the
+    // seen one second, each placed with zero difference. The arrival classes are singletons on
+    // the same rows: the class rows mirror them with member count one.
     assert_eq!(report.queries.len(), 2);
     assert_eq!(report.queries[0].novelty, Novelty::Novel);
     assert_eq!(report.queries[0].entity, entity(8).into());
@@ -559,12 +589,17 @@ fn incident_edges_once() {
     );
 }
 
+/// Records out-of-frame outcomes with refit readings kept and no deployed or paired ones.
+///
+/// A projector placing every arrival out of frame yields out-of-frame outcomes with refit readings
+/// kept and no deployed or paired readings.
 #[test]
 #[expect(
     clippy::float_cmp,
     reason = "the fixture geometry makes the refit readings exactly one"
 )]
 fn out_of_frame_keeps_refit() {
+    /// A projector that places every embedding out of frame at world `(9, 9)`.
     struct Outside;
     impl PublishedProjector for Outside {
         fn project(
@@ -603,14 +638,17 @@ fn out_of_frame_keeps_refit() {
     }
 }
 
+/// Asks the projector again for the remaining row after a non-finite placement.
+///
+/// A non-finite placement in a two-row batch makes the replay ask the projector again for the
+/// remaining row alone, recording one non-finite and one placed outcome in both estimands.
 #[test]
 fn non_finite_retry() {
     let replay = standing_replay(7).expect("the standing pair carries the design");
 
-    // Both estimands sample the same two arrival rows, so the plan
-    // projects two distinct rows in one batch whose first row fails
-    // non-finitely, and the projector is asked again for the remainder
-    // alone.
+    // Both estimands sample the same two arrival rows: the plan projects two distinct rows in
+    // one batch whose first row fails non-finitely, and the projector is asked again for the
+    // remainder alone.
     let placed = ArrivalPlacement::Placed {
         wire: Vec2::new(0.5, 0.5),
     };
@@ -638,8 +676,8 @@ fn non_finite_retry() {
         1,
     );
 
-    // The class estimand's representatives are the same rows, so each
-    // class row reads the one projection its row received.
+    // The class estimand's representatives are the same rows: each class row reads the one
+    // projection its row received.
     assert_eq!(report.class_outcomes, split);
     assert_eq!(report.class_queries[0].outcome, PlacementOutcome::NonFinite);
     assert_eq!(report.class_queries[1].outcome, PlacementOutcome::Placed);
@@ -647,8 +685,8 @@ fn non_finite_retry() {
 
 #[test]
 fn non_finite_mid_batch_split() {
-    // A third arrival widens the plan to three rows so the failure can
-    // sit strictly inside the batch.
+    // A third arrival widens the plan to three rows, which lets the failure fall strictly
+    // inside the batch.
     let earlier = Corpus::new(&[(1, 0.1), (2, 0.5), (3, 0.9), (4, 1.3), (5, 1.7)]);
     let later = Corpus::new(&[
         (1, 0.1),
@@ -700,10 +738,9 @@ fn non_finite_mid_batch_split() {
 
 #[test]
 fn duplicate_rows_dedup() {
-    // The stable population spreads eight rows over six byte-classes
-    // (two duplicate pairs, four singletons), so the sampled entity
-    // universe of four rows deduplicates to between two and four
-    // representatives while both estimands' joint draws still fit.
+    // The stable population spreads eight rows over six byte-classes (two duplicate pairs, four
+    // singletons): the sampled entity universe of four rows deduplicates to between two and
+    // four representatives while both estimands' joint draws still fit.
     let earlier = Corpus::new(&[
         (1, 0.2),
         (2, 0.2),
@@ -762,6 +799,7 @@ fn seed_replay() {
     assert_eq!(one, two);
 }
 
+/// A replay report round-trips through JSON to an equal report.
 #[test]
 fn report_roundtrip() {
     let report = standing_replay(7)
@@ -809,6 +847,10 @@ fn joint_sample_overflow() {
     ));
 }
 
+/// Admits a neighbourhood of size one over a universe of two and refuses it over one.
+///
+/// `NeighbourhoodDesign::new` accepts size one over a universe of two and refuses it over a
+/// universe of one with `NeighbourhoodDesign`.
 #[test]
 fn horizon_design_refusal() {
     let size = NonZero::new(1).expect("the neighbourhood size is nonzero");
@@ -821,11 +863,12 @@ fn horizon_design_refusal() {
     ));
 }
 
+/// A comparison count of `2³²` fails with `UniverseBeyondRankDomain` before any sampling refusal.
 #[cfg(target_pointer_width = "64")]
 #[test]
 fn universe_beyond_rank_domain_refusal() {
-    // The standing pair could never host this draw, so reaching the
-    // sampling refusals instead would prove the domain check ran late.
+    // The standing pair could never host this draw: reaching the sampling refusals instead
+    // would prove the domain check ran late.
     let (earlier, later) = standing_pair();
 
     let result = ArrivalReplay::from_columns(
@@ -847,7 +890,7 @@ fn universe_beyond_rank_domain_refusal() {
     ));
 }
 
-/// Both derivation fixtures pin the metric wiring numerically, so their sizes ride together.
+/// Both derivation fixtures pin the metric wiring numerically and share these sizes.
 fn derivation_sizes() -> ReplaySizes {
     ReplaySizes {
         queries: NonZero::new(1).expect("the fixture query cap is nonzero"),
@@ -984,14 +1027,11 @@ fn weighting_pair() -> (Corpus, Corpus) {
               tie is exact in f32"
 )]
 fn metric_orientation() {
-    // The stable rows are entities 1..=6 with rows 1 and 2 byte-equal,
-    // leaving five stable classes, and one novel arrival sits at row
-    // 6. Wire columns are
-    // decoupled from the representations to make trustworthiness and
-    // continuity read different values: a swapped by_reference/by_map
-    // argument pair anywhere in the wiring exchanges them and fails
-    // here. Every expected value is hand-derived from the rank-kernel
-    // definitions at k = 1, horizon 2.
+    // The stable rows are entities 1..=6 with rows 1 and 2 byte-equal, leaving five stable
+    // classes, and one novel arrival is at row 6. Wire columns are decoupled from the
+    // representations to make trustworthiness and continuity read different values: a swapped
+    // by_reference/by_map argument pair anywhere in the wiring exchanges them and fails here.
+    // Every expected value is hand-derived from the rank-kernel definitions at k = 1, horizon 2.
     //
     // Seed 12345 realizes these draws (pinned by the seeded sampler):
     //   entity universe = rows {1, 2, 3, 4} (positions p0..p3),
@@ -1008,28 +1048,24 @@ fn metric_orientation() {
     //
     // Refit wires put the reference-farthest nearest: entity refit
     // ordering [p0, p1, p2, p3], class refit [cp1, cp2, cp0, cp3].
-    // Entity refit at k=1, m=4 (worst = 3): the refit-nearest p0 sits
-    // at reference rank 2, and that penalty of 2 passes horizon 2, so
-    // trust = 1 - 2/3 with intrusion = 1. The reference-nearest p3 has
-    // refit rank 3 (penalty 3), giving continuity = 0 with extrusion
-    // = 1.
-    // Trust and continuity read different values, which is the
-    // orientation witness. Dedup refit at m' = 3 (worst = 2): the same
-    // penalties normalize to trust 1 - 2/2 = 0, the normalizer split
-    // made numeric. Class refit at m = 4: nearest cp1 has reference
-    // rank 2 (trust 1/3, intrusion), reference-nearest cp3 sits last
+    // Entity refit at k = 1, m = 4 (worst = 3): the refit-nearest p0 has reference rank 2, and
+    // that penalty of 2 passes horizon 2: trust = 1 - 2/3 with intrusion = 1. The
+    // reference-nearest p3 has refit rank 3 (penalty 3), giving continuity = 0 with
+    // extrusion = 1. Trust and continuity read different values, which is the orientation
+    // witness. Dedup refit at m' = 3 (worst = 2): the same penalties normalize to
+    // trust 1 - 2/2 = 0, the normalizer split made numeric. Class refit at m = 4: nearest cp1
+    // has reference rank 2 (trust 1/3, intrusion), and the reference-nearest cp3 is last
     // (continuity 0, extrusion).
     //
-    // The scripted projector places the arrival at the earlier-frame origin,
-    // where the earlier wire column mirrors the reference order, so
-    // every deployed reading is optimal and the paired differences are
-    // recall +1, trust +2/3, continuity +1, intrusion -1, extrusion -1.
+    // The scripted projector places the arrival at the earlier-frame origin, where the earlier
+    // wire column mirrors the reference order: every deployed reading is optimal, and the
+    // paired differences are recall +1, trust +2/3, continuity +1, intrusion -1, extrusion -1.
     //
     // The entity control (row 0) reads from earlier wire (2.5, 4)
     // against members at x = 3, 4, 2, 1 on the axis: two designed exact
     // ties (16.25 against p0/p2 and 18.25 against p1/p3) break by
     // ascending position, and the byte-equal pair ties exactly in
-    // reference space, so the control reads optimal through three real
+    // reference space: the control reads optimal through three real
     // ties. The class control (row 4) reference-ranks row 3
     // nearest (0.3 against row 5's 0.4) while its map ordering leads
     // with cp3, penalty 1 on each side: trust = continuity = 1 - 1/3.
@@ -1087,8 +1123,8 @@ fn metric_orientation() {
     assert_eq!(class_refit.intrusion_rate.get(), 1.0);
     assert_eq!(class_refit.extrusion_rate.get(), 1.0);
 
-    // The deployed placement mirrors the reference order in every
-    // family, so each deployed row is optimal.
+    // The deployed placement mirrors the reference order in every family: each deployed row is
+    // optimal.
     for (name, deployed) in [
         ("entity", &report.neighbourhoods[0].deployed),
         ("class", &report.class_neighbourhoods[0].deployed),
@@ -1113,8 +1149,8 @@ fn metric_orientation() {
     assert_eq!(paired.mean.intrusion_rate, -1.0);
     assert_eq!(paired.mean.extrusion_rate, -1.0);
 
-    // The one query is novel, so the novel split repeats the whole
-    // reading and the seen split is empty.
+    // The one query is novel: the novel split repeats the whole reading, and the seen split is
+    // empty.
     assert!(report.neighbourhoods[0].refit_seen.is_none());
     assert_eq!(
         report.neighbourhoods[0]
@@ -1156,7 +1192,7 @@ fn metric_orientation() {
 fn class_weighting() {
     // The stable population spreads seven rows over five classes: rows
     // 0..=2 share one representation (class A) and rows 3..=6 are
-    // singletons. One novel arrival sits at row 7. Each reading family
+    // singletons. One novel arrival is at row 7. Each reading family
     // weighs the duplicated class its own way, and the fixture
     // separates every family numerically at k = 1, horizon 2.
     //
@@ -1167,10 +1203,9 @@ fn class_weighting() {
     //   class universe  = representative rows {0, 3, 4, 6} (A, B, C, E),
     //   class control   = class D (row 5).
     //
-    // Entity refit, m = 4 (worst = 3): refit order [p0, p1, p2, p3]
-    // leads with an A copy whose reference rank is 2 (the pair ties in
-    // reference space and breaks by position), so trust = 1 - 2/3;
-    // reference-nearest D sits last, continuity = 0. The duplicate pair
+    // Entity refit, m = 4 (worst = 3): refit order [p0, p1, p2, p3] leads with an A copy whose
+    // reference rank is 2 (the pair ties in reference space and breaks by position):
+    // trust = 1 - 2/3, and the reference-nearest D is last, continuity = 0. The duplicate pair
     // holds two of four universe slots: entity weighting.
     //
     // Dedup diagnostic, m' = 3 (worst = 2): one A survives and the
@@ -1178,11 +1213,10 @@ fn class_weighting() {
     // entity reading. Its membership still follows the entity draw.
     //
     // Class estimand, m = 4 classes at their lowest-row representatives
-    // (worst = 3): refit order [cp2, cp0, cp1, cp3] leads with C whose
-    // reference rank is 1 (penalty 1, inside the horizon), so trust =
-    // 1 - 1/3 and intrusion = 0; reference-nearest E sits last,
-    // continuity = 0, extrusion = 1. All three trust values differ:
-    // entity 1/3, dedup 0, class 2/3.
+    // (worst = 3): refit order [cp2, cp0, cp1, cp3] leads with C whose reference rank is 1
+    // (penalty 1, inside the horizon): trust = 1 - 1/3 and intrusion = 0, and the
+    // reference-nearest E is last, continuity = 0, extrusion = 1. All three trust values
+    // differ: entity 1/3, dedup 0, class 2/3.
     let report = derivation_report(
         weighting_pair(),
         ArrivalPlacement::OutOfFrame {

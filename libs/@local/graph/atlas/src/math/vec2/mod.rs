@@ -3,23 +3,22 @@
 //! The scalar type is [`Vec2`]. Vectorized code packs four vectors into one of two batch types,
 //! both 32 bytes and both aligned for [`Simd<f32, 8>`](core::simd::Simd):
 //!
-//! - [`Vec2x4`] stores the vectors interleaved as `x0 y0 x1 y1 ...`, the natural memory order of
-//!   `[Vec2; 4]`, so packing needs no shuffle and [`Vec2x4::get`] reads an individual vector.
+//! - [`Vec2x4`] interleaves vectors as `x0 y0 x1 y1 ...`. Matching `[Vec2; 4]`'s natural memory
+//!   order permits packing without a shuffle and direct vector access through [`Vec2x4::get`].
 //! - [`Vec2x4T`] is the transposed layout: all four `x` components followed by all four `y`
-//!   components. Use this when an operation treats the axes independently, such as distances,
-//!   bounding boxes, or axis-wise clamping: [`Vec2x4T::xs`] and [`Vec2x4T::ys`] each yield a full
-//!   [`Simd<f32, 4>`](core::simd::Simd) lane group, so per-axis arithmetic runs without shuffles.
+//!   components. [`Vec2x4T::xs`] and [`Vec2x4T::ys`] each yield a full [`Simd<f32,
+//!   4>`](core::simd::Simd) lane group for per-axis arithmetic without shuffles. Use this for
+//!   axis-independent operations such as distances, bounding boxes or axis-wise clamping.
 //!
 //! Converting `[Vec2; 4]` into [`Vec2x4T`] performs the deinterleave at that boundary, which is the
 //! usual tradeoff: pay the shuffle once on entry and keep the hot loop axis-parallel.
 //!
-//! A borrowed point slice splits in place into batches via [`Vec2x4::from_slice`]: a bulk pass then
-//! walks the aligned middle four vectors at a time and the unaligned edges one vector at a time, so
-//! bulk passes over `&[Vec2]` vectorize without copying.
+//! [`Vec2x4::from_slice`] borrows batches from a point slice without copying. Process the aligned
+//! middle four vectors at a time and the unaligned edges one vector at a time.
 //!
-//! Because both batch types match [`Simd<f32, 8>`](core::simd::Simd) in size and meet its
-//! alignment, [`to_simd`](Vec2x4T::to_simd) and the [`From`] conversions compile to a single
-//! full-width vector load or store, with no intermediate copy and no split-load penalty.
+//! Both batch types convert to eight SIMD lanes in their respective component order. Their size and
+//! alignment checks support representation casts, without guaranteeing a particular load width or
+//! instruction count.
 
 mod interleaved;
 #[cfg(test)]
@@ -39,12 +38,19 @@ use super::{DVec2x4T, NonNegative, dvec2::DVec2, scalar::DNonNegative};
 /// `[Vec2; N]` bit-compatible with a flat component buffer in interleaved order, and the zerocopy
 /// derives expose that reinterpretation without unsafe code.
 ///
-/// Note that [`Hash`] hashes the raw bytes while equality follows `f32` semantics, so `-0.0` and
-/// `0.0` compare equal but hash differently.
+/// Multiplication of two vectors is component-wise. Use [`Self::dot`] for the scalar product.
+/// Indexing selects `x` at zero and `y` at one, and panics for any other index.
 ///
-/// # Examples
+/// [`Hash`](core::hash::Hash) supplies the raw bytes to the hasher while equality follows `f32`
+/// semantics. Signed zeros compare equal but supply different bytes to hashing.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::Vec2;
+///
 /// let vec = Vec2::new(1.0, 2.0);
 /// assert_eq!(vec.x(), 1.0);
 /// assert_eq!(vec.y(), 2.0);
@@ -83,16 +89,20 @@ impl Vec2 {
         Self([value, value])
     }
 
-    /// Wraps a borrowed slice in place as consecutive vectors.
+    /// Views consecutive component pairs as vectors without copying.
     ///
-    /// Vector `i` of the returned slice occupies components `2 · i` and `2 · i + 1`, so a row-major
-    /// `f32[T, 2]` matrix reads as its `T` points without copying.
+    /// A row-major `f32[T, 2]` matrix becomes a view of its `T` points. Vector `i` occupies
+    /// components `2 · i` and `2 · i + 1`.
     ///
     /// Returns [`None`] unless the length is a whole number of vectors.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::Vec2;
+    ///
     /// let components = [1.0, 2.0, 3.0, 4.0];
     /// let points = Vec2::from_slice(&components).expect("two whole vectors");
     /// assert_eq!(points, [Vec2::new(1.0, 2.0), Vec2::new(3.0, 4.0)]);
@@ -100,24 +110,17 @@ impl Vec2 {
     /// ```
     #[must_use]
     pub fn from_slice(components: &[f32]) -> Option<&[Self]> {
-        // The cast is checked: `Self` is `FromBytes`, `IntoBytes`, and `KnownLayout` over
-        // `[f32; 2]`, so the byte view reinterprets element-wise with identical layout, and
-        // an odd component count fails the conversion's size check.
         <[Self]>::ref_from_bytes(components.as_bytes()).ok()
     }
 
-    /// Wraps a mutable borrowed slice in place as consecutive vectors.
+    /// Mutably views consecutive component pairs as vectors without copying.
     ///
-    /// The mutable counterpart of [`Vec2::from_slice`], with the same component layout. A
-    /// write through a returned vector rewrites its two components where they stand, so a
-    /// row-major `f32[T, 2]` matrix mutates as its `T` points without copying.
+    /// The mutable counterpart of [`Vec2::from_slice`], with the same component layout. Writes
+    /// through the returned vectors update the original components.
     ///
     /// Returns [`None`] unless the length is a whole number of vectors.
     #[must_use]
     pub fn from_slice_mut(components: &mut [f32]) -> Option<&mut [Self]> {
-        // The cast is checked: `Self` is `FromBytes`, `IntoBytes`, and `KnownLayout` over
-        // `[f32; 2]`, so the byte view reinterprets element-wise with identical layout, and
-        // the returned borrow inherits the input's exclusive lifetime.
         <[Self]>::mut_from_bytes(components.as_mut_bytes()).ok()
     }
 
@@ -150,9 +153,9 @@ impl Vec2 {
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
     ///
-    /// The sign tells which side of `self` the other vector lies on. The result is positive when
-    /// `other` is counterclockwise from `self`, negative when clockwise, and zero when the vectors
-    /// are parallel.
+    /// The real determinant x₁y₂ − y₁x₂ is positive for counterclockwise orientation, negative for
+    /// clockwise orientation and zero for parallel vectors. The returned `f32` approximation can
+    /// lose this distinction through rounding, underflow or overflow.
     #[inline]
     #[must_use]
     pub const fn perp_dot(self, other: Self) -> f32 {
@@ -164,7 +167,7 @@ impl Vec2 {
     /// Prefer this over [`length`](Self::length) when comparing magnitudes or feeding a squared
     /// metric. This avoids the square root.
     ///
-    /// Overflow escapes to `+∞` and asserts in debug builds, mirroring integer `+`.
+    /// Both components and the rounded sum of their squares must be finite.
     #[inline]
     #[must_use]
     pub(crate) const fn length_squared(self) -> NonNegative {
@@ -172,6 +175,9 @@ impl Vec2 {
     }
 
     /// Returns the length of the vector.
+    ///
+    /// The squared length must satisfy [`Self::length_squared`]'s finite-result requirement, even
+    /// when the final length would fit in `f32`.
     #[inline]
     #[must_use]
     pub(crate) fn length(self) -> NonNegative {
@@ -180,8 +186,8 @@ impl Vec2 {
 
     /// Returns the squared Euclidean distance to `other`.
     ///
-    /// Never NaN and never negative for finite points. Overflow escapes to `+∞` and asserts in
-    /// debug builds, mirroring integer `+`.
+    /// Both points and the rounded sum of squared coordinate differences must be finite. Use
+    /// [`Self::distance_squared_wide`] to cover the full finite `f32` coordinate range.
     #[inline]
     #[must_use]
     pub(crate) const fn distance_squared(self, other: Self) -> NonNegative {
@@ -193,8 +199,8 @@ impl Vec2 {
 
     /// Returns the Euclidean distance to `other`.
     ///
-    /// The square root of [`distance_squared`](Self::distance_squared), and it carries the same
-    /// escape contract: an escaped `+∞` survives the root.
+    /// The squared distance must satisfy [`Self::distance_squared`]'s finite-result requirement,
+    /// even when the final distance would fit in `f32`.
     #[inline]
     #[must_use]
     pub(crate) fn distance(self, other: Self) -> NonNegative {
@@ -203,27 +209,25 @@ impl Vec2 {
 
     /// Returns the squared Euclidean distance to `other`, accumulated in `f64`.
     ///
-    /// Both points widen exactly before the subtraction, so the reading carries no `f32`
-    /// arithmetic, and every operation rounds separately. This is the one metric of the
-    /// k-nearest-neighbour readouts: a consumer that compares its own readings against a
-    /// readout's computes them here, so tie sets never depend on the call site.
-    ///
-    /// A squared distance of finite points is finite and non-negative, so the reading returns
-    /// as [`DNonNegative`]. Finite inputs are the caller's contract.
+    /// Both points must be finite. Their components widen exactly before subtraction, with every
+    /// arithmetic operation rounded separately in `f64`. Coordinate differences need not be exact,
+    /// but the squared distance remains finite and non-negative throughout the finite `f32` input
+    /// range.
     #[inline]
     #[must_use]
     pub(crate) const fn distance_squared_wide(self, other: Self) -> DNonNegative {
-        // In domain with no check: each widened coordinate difference of finite `f32` points
-        // stays below 2¹³⁰ and the sum of their squares below 2²⁶¹, far from `f64` overflow. A
-        // sum of squares is non-negative. The `new_unchecked` debug assert catches a non-finite
-        // input.
+        // Finite f32 coordinates have magnitude below 2¹²⁸. Widened differences have magnitude at
+        // most 2¹²⁹ and their squared sum at most 2²⁵⁹, far below f64 overflow. Each nonzero
+        // difference is at least 2⁻¹⁴⁹ in magnitude, also keeping its square in the normal f64
+        // range. Therefore the separately rounded sum satisfies DNonNegative's domain.
         DNonNegative::new_unchecked(DVec2::from(self).distance_squared(DVec2::from(other)))
     }
 
     /// Linearly interpolates from `self` toward `other`.
     ///
-    /// At `factor == 0.0` the result is `self`, at `factor == 1.0` it is `other`; values outside
-    /// `[0, 1]` extrapolate along the same line.
+    /// Evaluates self + (other − self) · factor component-wise. Factors outside [0, 1] extrapolate.
+    /// Floating-point rounding can miss the endpoint at factor one, and an overflowing difference
+    /// can produce a non-finite result even at factors zero or one.
     #[inline]
     #[must_use]
     pub const fn lerp(self, other: Self, factor: f32) -> Self {
@@ -232,8 +236,8 @@ impl Vec2 {
 
     /// Returns the component-wise minimum of the two vectors.
     ///
-    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
-    /// other operand's component, following [`f32::min`].
+    /// When exactly one operand is NaN in a component, the result takes the other operand's
+    /// component, following [`f32::min`].
     #[inline]
     #[must_use]
     pub const fn min(self, other: Self) -> Self {
@@ -242,8 +246,8 @@ impl Vec2 {
 
     /// Returns the component-wise maximum of the two vectors.
     ///
-    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
-    /// other operand's component, following [`f32::max`].
+    /// When exactly one operand is NaN in a component, the result takes the other operand's
+    /// component, following [`f32::max`].
     #[inline]
     #[must_use]
     pub const fn max(self, other: Self) -> Self {
@@ -262,7 +266,7 @@ impl Vec2 {
     /// # Panics
     ///
     /// This panics when a component of `low` exceeds the matching component of `high`, or when a
-    /// bound is NaN, following [`f32::clamp`]. The check runs in every build profile.
+    /// bound is NaN, following [`f32::clamp`].
     #[inline]
     #[must_use]
     pub const fn clamp(self, low: Self, high: Self) -> Self {
@@ -321,9 +325,6 @@ const impl Neg for Vec2 {
     }
 }
 
-/// Component-wise (Hadamard) product.
-///
-/// For the scalar product, use [`Vec2::dot`].
 const impl Mul for Vec2 {
     type Output = Self;
 
@@ -407,18 +408,13 @@ const impl From<Vec2> for [f32; 2] {
 const impl Index<usize> for Vec2 {
     type Output = f32;
 
-    /// Returns the component at `index`, where `0` is `x` and `1` is `y`.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `index ≥ 2`.
     #[inline]
     fn index(&self, index: usize) -> &f32 {
         &self.0[index]
     }
 }
 
-/// The SIMD views of a point slice, each splitting the batches from the scalar rest.
+/// Batch views and iterators over a point slice.
 pub(crate) trait Vec2SliceExt {
     /// Views the slice as aligned interleaved batches between a prefix and a suffix.
     ///
@@ -437,11 +433,10 @@ pub(crate) trait Vec2SliceExt {
         &[Vec2],
     );
 
-    /// Iterates transposed four-point batches widened to double precision, beside the widened
-    /// scalar remainder.
+    /// Iterates double-precision batches and the widened scalar remainder.
     ///
-    /// The widening is exact for every finite `f32` component, so a double-precision
-    /// accumulation over the batches reads the same points the slice stores.
+    /// Each batch transposes four consecutive points. Widening is exact for every finite `f32`
+    /// component.
     fn iter_transposed_wide(
         &self,
     ) -> (

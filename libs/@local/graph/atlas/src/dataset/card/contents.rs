@@ -1,3 +1,5 @@
+//! The structured card body and the truncation passes that shrink it toward a token budget.
+
 use alloc::{
     alloc::{Allocator, Global},
     borrow::Cow,
@@ -19,13 +21,21 @@ use super::{
 /// One structural removal applied while satisfying a token budget.
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum TruncationPass {
+    /// Removes the last example of the largest multi-example group.
     DropExampleSlot,
+    /// Removes the removable detail from every ancestor phrase.
     StripAncestorDetails,
+    /// Removes the removable detail from every endpoint-constraint phrase.
     StripEndpointTypeDetails,
+    /// Removes the removable detail from every source-type phrase.
     StripSourceTypeDetails,
+    /// Removes the removable detail from every target-type phrase.
     StripTargetTypeDetails,
+    /// Removes the last whole example group, or one example while a single group remains.
     DropExampleGroup,
+    /// Removes every example.
     DropExamplesSection,
+    /// Removes every ancestor.
     DropAncestorsSection,
 }
 
@@ -37,6 +47,7 @@ struct IndentationWriter<W> {
 }
 
 impl<W> IndentationWriter<W> {
+    /// Wraps `writer`, indenting each forwarded line by `indent` spaces.
     const fn new(writer: W, indent: usize) -> Self {
         Self {
             writer,
@@ -98,16 +109,24 @@ fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Dis
 /// [`Phrase::new`] normalizes labelled prose, and [`format::build_card`](super::format::build_card)
 /// budgets, renders, and lints the result.
 pub(crate) struct CardContents<'text, A: Allocator = Global> {
+    /// The untruncatable head block.
     pub prelude: Prelude<'text, A>,
+    /// The relation's ancestor relations.
     pub ancestors: Vec<Phrase<'text>, A>,
 
+    /// The domain of types a source may have.
     pub source_types: Vec<Phrase<'text>, A>,
+    /// The range of types a target may have.
     pub target_types: Vec<Phrase<'text>, A>,
 
+    /// The paired per-source constraints.
     pub endpoint_constraints: Vec<EndpointConstraint<'text, A>, A>,
+    /// The shared constraint vocabulary.
     pub constraints: Constraints,
 
+    /// The selected examples, each under its optional group label.
     pub examples: Vec<GroupItem<'text, Example<'text>>, A>,
+    /// The closing line.
     pub epilogue: Epilogue<'text>,
 }
 
@@ -118,10 +137,14 @@ impl<A: Allocator> CardContents<'_, A> {
         self.examples.len()
     }
 
-    /// Collapses a lone at-most-one-target endpoint constraint.
+    /// Collapses a lone endpoint constraint whose cardinality admits the independent sections.
     ///
-    /// The constraint folds into the independent source and target sections, replacing any
-    /// adapter-supplied summaries.
+    /// This collapses only a card holding exactly one endpoint constraint. That constraint must
+    /// also satisfy [`EndpointConstraint::is_simple_pair`]: no minimum, and a maximum absent or
+    /// equal to one. A card with a second constraint keeps its paired blocks.
+    ///
+    /// The card then holds one association. Its source and targets read as the independent
+    /// sections, replacing any adapter-supplied summaries, and a maximum of one no longer prints.
     pub(super) fn hoist_simple_pair(&mut self) {
         let [only] = &*self.endpoint_constraints else {
             return;
@@ -198,7 +221,11 @@ impl<A: Allocator> CardContents<'_, A> {
         Some(Cow::Owned(format!("example[{index}]")))
     }
 
-    /// Removes the last whole group while more than one example remains.
+    /// Removes the last example group, or a single example when that group is the only one.
+    ///
+    /// This pass never empties the examples section. A card down to one group drops that group's
+    /// last example, under that example's own label rather than the group's. With one example
+    /// left, the pass reports nothing to remove.
     fn drop_example_group(&mut self) -> Option<Cow<'static, str>> {
         if self.examples.len() <= 1 {
             return None;
@@ -228,6 +255,9 @@ impl<A: Allocator> CardContents<'_, A> {
         )))
     }
 
+    /// Removes the removable detail from every endpoint-constraint phrase.
+    ///
+    /// `None` reports that no source or target phrase carried detail to remove.
     fn strip_endpoint_type_details(&mut self) -> Option<Cow<'static, str>> {
         let mut stripped = false;
         for constraint in &mut self.endpoint_constraints {

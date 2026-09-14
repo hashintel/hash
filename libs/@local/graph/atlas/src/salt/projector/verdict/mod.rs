@@ -6,11 +6,11 @@
 //! by content hash, never derived by the pipeline.
 //!
 //! A type verdict for a store-native type names the exact type version whose rendered card the
-//! reviewer saw, and resolution is version-precise, so the verdict binds only that version's
-//! ontology row. No review covers the other versions of the same type, and they take their policy
+//! reviewer saw. Resolution is version-precise: the verdict binds only that version's ontology
+//! row. No review covers the other versions of the same type, and they take their policy
 //! from lower-precedence sources. A reviewed version absent from the corpus snapshot resolves to no
-//! row at all, which resolution reports as evidence rather than an error, because snapshots
-//! legitimately move past reviewed versions. Verdicts for foreign-corpus types carry no store
+//! row at all. Resolution reports that outcome as evidence rather than an error: snapshots move
+//! past reviewed versions in ordinary operation. Verdicts for foreign-corpus types carry no store
 //! identity and are likewise evidence. The record keeps the review, and nothing in this corpus
 //! answers to it.
 //!
@@ -19,10 +19,9 @@
 //! ontology row. The primary consumer is the training loop's phase boundary, which calibrates the
 //! Proximal radius from the reviewed-Proximal types' attraction pairs.
 //!
-//! The reader parses and validates pair-level verdicts (a placement class for one concrete entity
-//! pair) but does not yet resolve them. No exporter emits them, so nothing has pinned the wire form
-//! of their entity references against real bytes. Their resolution lands with the first exporter
-//! that produces one.
+//! The reader parses, validates, and retains pair-level verdicts (a placement class for one
+//! concrete entity pair) without resolving them. Their entity references have no pinned wire form,
+//! because no exporter emits them.
 
 pub(crate) mod calibrate;
 
@@ -53,7 +52,7 @@ pub enum InvalidReviewedVerdicts {
     Schema { found: Box<str> },
     /// A type verdict is not strictly after its predecessor in relation order.
     ///
-    /// Which also covers duplicated relations.
+    /// This also covers duplicated relations.
     UnorderedTypeVerdicts { index: usize },
     /// A type verdict repeats an earlier verdict's versioned URL.
     DuplicateVersion { index: usize },
@@ -61,7 +60,7 @@ pub enum InvalidReviewedVerdicts {
     EmptyTypeVerdictField { index: usize, field: &'static str },
     /// A pair verdict is not strictly after its predecessor in `(left, right)` order.
     ///
-    /// Which also covers duplicated pairs.
+    /// This also covers duplicated pairs.
     UnorderedPairVerdicts { index: usize },
     /// A pair verdict carries an empty string field.
     EmptyPairVerdictField { index: usize, field: &'static str },
@@ -114,7 +113,7 @@ impl Error for InvalidReviewedVerdicts {
 /// A human-confirmed placement class.
 ///
 /// An `excluded` review records a supervised exclusion rather than a placement. The exporter omits
-/// those reviews, so no fourth variant exists here.
+/// those reviews, and no fourth variant exists here.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum PlacementClass {
@@ -141,7 +140,7 @@ pub(crate) struct TypeVerdict {
     pub reviewer: String,
     /// The exact type version whose card the reviewer saw - the resolution key.
     ///
-    /// Only types with a store identity record one; a verdict for a foreign-corpus type carries
+    /// Only types with a store identity record one. A verdict for a foreign-corpus type carries
     /// [`None`], can never resolve to an ontology row, and enters the unresolved evidence.
     pub versioned_url: Option<VersionedUrl>,
 }
@@ -177,7 +176,7 @@ struct Document {
 ///
 /// Construction checks the whole wire contract (declared schema, type verdicts strictly ascending
 /// by relation with unique versioned URLs, pair verdicts strictly ascending by `(left, right)`, and
-/// no empty identity fields), so consumers read verdicts without re-checking.
+/// no empty identity fields), and consumers read verdicts without re-checking.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReviewedVerdicts {
     // Construction validates the wire document into owned, normalized verdicts once per fit, and
@@ -204,7 +203,6 @@ impl ReviewedVerdicts {
         }
 
         for (index, verdict) in document.type_verdicts.iter().enumerate() {
-            // This silly validation would collapse
             for (field, value) in [
                 ("relation", &verdict.relation),
                 ("reviewer", &verdict.reviewer),
@@ -279,15 +277,15 @@ impl ReviewedVerdicts {
     /// `ontology` is the type table in ontology row order, keyed by the corpus's own id type. Each
     /// verdict's versioned URL derives the id naming it in that id space, and a matching table
     /// position resolves the verdict to that row. Verdicts naming no id - an unreviewed version, a
-    /// foreign identity form, or a positional id space - land in
+    /// foreign identity form, or a positional id space - are reported in
     /// [`unresolved`](ResolvedVerdicts::unresolved).
     #[must_use]
     pub(crate) fn resolve<O>(&self, ontology: &IdSlice<OntologyRowId, O>) -> ResolvedVerdicts<'_>
     where
         O: OntologyIdentity + Eq + Hash,
     {
-        // Validation rejected duplicate versioned URLs, so every
-        // verdict owns its map entry.
+        // Validation rejected duplicate versioned URLs, and every
+        // verdict therefore owns its map entry.
         let targets: HashMap<O, usize> = self
             .type_verdicts
             .iter()

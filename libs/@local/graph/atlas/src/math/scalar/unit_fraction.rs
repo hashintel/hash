@@ -14,8 +14,7 @@ use super::{
 
 /// Validates a unit-fraction literal at compile time.
 ///
-/// The expansion is a `const` block over [`UnitFraction::new`], so a literal outside the domain
-/// fails the build instead of a test run. Runtime values keep the checked constructor.
+/// A literal outside the domain fails the build. Use [`UnitFraction::new`] to check runtime values.
 macro_rules! unit_fraction {
     ($value:expr) => {
         const { $crate::math::UnitFraction::new($value).expect("the literal lies in [0, 1]") }
@@ -23,6 +22,7 @@ macro_rules! unit_fraction {
 }
 pub(crate) use unit_fraction;
 
+/// The rejected value of a failed [`UnitFraction`] conversion.
 ///
 /// [`TryFrom`] returns this error where [`UnitFraction::new`] returns [`None`] - the value lies
 /// outside `[0, 1]` or is NaN. The error carries the rejected value and displays it together with
@@ -40,23 +40,28 @@ impl Error for NotInUnitInterval {}
 
 /// A finite fraction in `[0, 1]`, valid by construction.
 ///
-/// A fraction that exists is valid, so the domain check lives at the constructor and nowhere else:
-/// configuration knobs (thresholds, retained shares, rate fractions) and measured quantities
-/// (recalls, admitted shares) both travel as this type, and the consuming site trusts the domain
-/// instead of re-checking it.
+/// Use [`Self::new`] to validate a raw value or [`Self::ratio`] to compute a fraction from counts.
+/// Arithmetic whose rounded result remains in the interval returns a fraction without repeating
+/// validation.
+///
+/// Serializes as a number. Deserialization rejects NaN and values outside `[0, 1]`, and [`TryFrom`]
+/// returns [`NotInUnitInterval`] for the same rejected values.
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value, with
 /// `-0.0` and `+0.0` the same fraction. Fractions sort and key ordered maps with no NaN case.
 ///
-/// Arithmetic that stays in `[0, 1]` stays in the type: [`complement`](Self::complement),
-/// fraction-by-fraction `*` (with [`Product`](core::iter::Product) over iterators), and
-/// [`ratio`](Self::ratio) construct valid fractions with no run-time re-check. Multiplying by a raw
-/// `f64` returns a raw `f64`, and comparisons against raw floats follow IEEE semantics, so a
-/// fraction never equals NaN.
+/// [`complement`](Self::complement), fraction-by-fraction `*` (with
+/// [`Product`](core::iter::Product) over iterators), and [`ratio`](Self::ratio) construct valid
+/// fractions with no run-time re-check. Multiplying by a raw `f64` returns a raw `f64`. Comparisons
+/// against raw floats follow IEEE semantics: a fraction never equals NaN.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{UnitFraction};
+///
 /// let quarter = UnitFraction::new(0.25).expect("0.25 lies inside [0, 1]");
 /// assert_eq!(quarter.get(), 0.25);
 ///
@@ -72,8 +77,8 @@ impl Error for NotInUnitInterval {}
 ///     UnitFraction::new(0.1875).expect("the product is exact")
 /// );
 /// ```
-// No `FromBytes` and no `FromZeros`: byte-level construction could produce NaN or a value
-// outside the interval in safe code, bypassing the validating constructors.
+// `FromBytes` would admit NaN and out-of-interval values without validation. An all-zero
+// representation is valid, although this type does not implement `FromZeros`.
 #[derive(
     Debug,
     Copy,
@@ -99,7 +104,7 @@ impl UnitFraction {
     ///
     /// Returns [`None`] unless the value lies in `[0, 1]`. NaN fails both bounds. For a computed
     /// value whose rounding may drift just past an endpoint, use
-    /// [`new_clamped`](Self::new_clamped); for a quotient of integer counts, use
+    /// [`new_clamped`](Self::new_clamped). For a quotient of integer counts, use
     /// [`ratio`](Self::ratio).
     #[inline]
     #[must_use]
@@ -116,13 +121,16 @@ impl UnitFraction {
     /// A promised `-0.0` is stored as `+0.0`. Where the proof is not immediate, [`new`](Self::new)
     /// checks instead.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{UnitFraction, unit_fraction};
+    ///
     /// let low = unit_fraction!(0.5);
     /// let high = UnitFraction::new(0.75).expect("0.75 lies inside [0, 1]");
-    /// // A midpoint of two fractions cannot leave [0, 1]: the sum rounds within
-    /// // [0, 2] because both endpoints are representable, and halving is exact.
+    /// // Rounding a sum within [0, 2] and halving keeps the midpoint in [0, 1].
     /// let mid = UnitFraction::new_unchecked((low.get() + high.get()) / 2.0);
     /// assert_eq!(mid.get(), 0.625);
     /// ```
@@ -152,9 +160,13 @@ impl UnitFraction {
     /// landing at `1.0 + 2ε`. A value that is supposed to already be in range keeps
     /// [`new`](Self::new), which turns the drift into a visible refusal instead of absorbing it.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{UnitFraction};
+    ///
     /// // Rounding drift saturates instead of failing.
     /// let similarity = UnitFraction::new_clamped(1.0 + f64::EPSILON).expect("only NaN is refused");
     /// assert_eq!(similarity, UnitFraction::ONE);
@@ -186,9 +198,13 @@ impl UnitFraction {
     /// The result is the correctly rounded quotient for counts up to 2⁵³. For larger counts it is
     /// approximate, within a relative error of `2⁻⁵¹` of the exact ratio.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{UnitFraction};
+    ///
     /// let admitted = UnitFraction::ratio(34_317, 34_400).expect("the part is within its total");
     /// assert!(admitted > 0.99);
     ///
@@ -208,11 +224,14 @@ impl UnitFraction {
             return None;
         }
 
-        // Monotone casts keep the converted part at or below the converted total, a quotient of
-        // non-negatives carries a positive sign, and a real quotient ≤ 1 rounds to at most the
-        // representable 1.0: in range with no check, canonical with no normalization. Counts up to
-        // 2⁵³ cast exactly, so one rounding remains and the quotient is correctly rounded; above,
-        // three roundings compose to below 2⁻⁵¹ relative error.
+        // Monotone conversion preserves 0 ≤ part ≤ total and a positive total. Division of these
+        // finite values gives a real quotient in [0, 1], and rounding cannot leave this interval,
+        // whose endpoints are representable. A zero part gives canonical +0.0. The result is
+        // in-domain without re-validation or normalization.
+        //
+        // Counts up to 2⁵³ convert exactly, leaving only the division's rounding. For larger
+        // counts, the two conversions and division compose to less than 2⁻⁵¹ relative error for a
+        // nonzero part.
         Some(Self(part as f64 / total as f64))
     }
 
@@ -243,9 +262,8 @@ impl UnitFraction {
 
     /// Returns the canonical bit pattern.
     ///
-    /// Construction canonicalizes the sign of zero, so equal fractions share one bit pattern
-    /// and the bits identify the fraction exactly: fit for reproducibility records and
-    /// bit-exact pins.
+    /// Equal fractions share one bit pattern, including the canonical `+0.0`. These bits identify
+    /// the fraction exactly.
     #[inline]
     #[must_use]
     pub(crate) const fn to_bits(self) -> u64 {
@@ -273,7 +291,7 @@ impl UnitFraction {
     /// on `[0.5, 1]`, and the only zero result is the complement of one.
     ///
     /// Complementing twice reproduces fractions in `[0.5, 1]` exactly and elsewhere returns to
-    /// within `2⁻⁵⁴` of the start, so a fraction below `2⁻⁵⁴` can come back as zero.
+    /// within `2⁻⁵⁴` of the start. A fraction below `2⁻⁵⁴` can return as zero.
     #[inline]
     #[must_use]
     pub(crate) const fn complement(self) -> Self {
@@ -285,9 +303,8 @@ impl UnitFraction {
 
     /// Returns the square root.
     ///
-    /// The root of a fraction is a fraction, with no re-validation: the square root is monotone
-    /// on `[0, 1]` with `√0 = 0` and `√1 = 1` exact. A correctly rounded root of a value just
-    /// below one can round to exactly one, which the closed interval admits.
+    /// The square root is monotone on `[0, 1]`, with √0 = 0 and √1 = 1 exact. Rounding
+    /// cannot leave this interval, whose endpoints are representable.
     #[inline]
     #[must_use]
     pub(crate) fn sqrt(self) -> Self {
@@ -300,7 +317,7 @@ impl UnitFraction {
 const impl PartialEq for UnitFraction {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -326,7 +343,7 @@ const impl Ord for UnitFraction {
 const impl PartialEq<PositiveUnitFraction> for UnitFraction {
     #[inline]
     fn eq(&self, other: &PositiveUnitFraction) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // both domains use the same unique representation for each shared value
         self.get().to_bits() == other.get().to_bits()
     }
 }
@@ -342,7 +359,7 @@ const impl PartialOrd<PositiveUnitFraction> for UnitFraction {
 impl Hash for UnitFraction {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // canonical bits: equal fractions share one bit pattern, so `Hash` agrees with `Eq`
+        // hashing the canonical representation agrees with numeric equality
         state.write_u64(self.0.to_bits());
     }
 }
@@ -358,10 +375,8 @@ const impl Sub for UnitFraction {
 
     /// The difference of two unit fractions.
     ///
-    /// Both operands lie in [0, 1], so the difference lies in [−1, 1] and is always finite:
-    /// the landing is total and the unchecked constructor rides that theorem. The typed
-    /// carrier for the [−1, 1] landing itself does not exist yet, so the output claims
-    /// finiteness alone.
+    /// The rounded difference lies in [−1, 1] for every pair of unit fractions. It can be negative,
+    /// and [`DFinite`] preserves its finiteness without constraining its sign.
     #[inline]
     fn sub(self, rhs: Self) -> DFinite {
         DFinite::new_unchecked(self.0 - rhs.0)
@@ -377,10 +392,9 @@ const impl Mul for UnitFraction {
     /// to [`UnitFraction::ZERO`].
     #[inline]
     fn mul(self, rhs: Self) -> Self {
-        // In range with no check: the real product of values in [0, 1] stays in [0, 1] and
-        // rounding cannot escape an interval whose endpoints are representable. A product of
-        // non-negatives keeps the positive sign even at underflow, so zero arrives as the
-        // canonical +0.0.
+        // Rounding cannot leave an interval with representable endpoints. The real product lies in
+        // [0, 1], and both operands have sign bit zero, which multiplication preserves even on
+        // underflow to +0.0. The rounded product is in-domain and canonical without normalization.
         Self(self.0 * rhs.0)
     }
 }
@@ -411,7 +425,6 @@ const impl From<UnitFraction> for f64 {
 const impl TryFrom<f64> for UnitFraction {
     type Error = NotInUnitInterval;
 
-    /// Validates as [`UnitFraction::new`] does, carrying the rejected value in the error.
     #[inline]
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         Self::new(value).ok_or(NotInUnitInterval(value))
@@ -423,7 +436,6 @@ impl proptest::arbitrary::Arbitrary for UnitFraction {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole closed interval, both endpoints included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -434,14 +446,12 @@ impl proptest::arbitrary::Arbitrary for UnitFraction {
 }
 
 impl serde::Serialize for UnitFraction {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for UnitFraction {
-    /// Deserializes a plain number, refusing values outside the closed unit interval.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f64::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {
@@ -453,6 +463,10 @@ impl<'de> serde::Deserialize<'de> for UnitFraction {
     }
 }
 
+/// Decodes a database float, clamping out-of-range values into the unit interval.
+///
+/// Values below zero become zero, values above one become one, and NaN becomes zero. Each
+/// out-of-domain value emits a warning. Decoding errors from the database float are preserved.
 impl<'row> tokio_postgres::types::FromSql<'row> for UnitFraction {
     fn from_sql(
         ty: &tokio_postgres::types::Type,
@@ -479,20 +493,17 @@ impl<'row> tokio_postgres::types::FromSql<'row> for UnitFraction {
 }
 
 const impl From<OpenUnitFraction> for UnitFraction {
-    /// Widens into the enclosing closed interval.
     #[inline]
     fn from(value: OpenUnitFraction) -> Self {
-        // No normalization: the open domain contains no -0.0, so the value is already canonical.
+        // excluding -0.0 makes the open-domain value canonical without normalization
         Self(value.get())
     }
 }
 
 const impl From<PositiveUnitFraction> for UnitFraction {
-    /// Widens into the enclosing closed interval.
     #[inline]
     fn from(value: PositiveUnitFraction) -> Self {
-        // No normalization: the half-open domain contains no -0.0, so the value is already
-        // canonical.
+        // excluding -0.0 makes the half-open-domain value canonical without normalization
         Self(value.get())
     }
 }
@@ -500,10 +511,6 @@ const impl From<PositiveUnitFraction> for UnitFraction {
 const impl Sub<UnitFraction> for f64 {
     type Output = f64;
 
-    /// Subtracts a fraction from a raw `f64`.
-    ///
-    /// The raw operand is arbitrary, so the difference can leave any bounded domain and returns
-    /// a raw float.
     #[inline]
     fn sub(self, rhs: UnitFraction) -> f64 {
         self - rhs.0
@@ -520,10 +527,9 @@ const impl Mul<PositiveUnitFraction> for UnitFraction {
     /// [`UnitFraction::ZERO`], which is why the half-open type cannot hold the result.
     #[inline]
     fn mul(self, rhs: PositiveUnitFraction) -> Self {
-        // In range with no check: the real product of values in [0, 1] stays in [0, 1] and
-        // rounding cannot escape an interval whose endpoints are representable. A product of
-        // non-negatives keeps the positive sign even at underflow, so zero arrives as the
-        // canonical +0.0.
+        // Rounding cannot leave an interval with representable endpoints. The real product lies in
+        // [0, 1], and both operands have sign bit zero, which multiplication preserves even on
+        // underflow to +0.0. The rounded product is in-domain and canonical without normalization.
         Self(self.0 * rhs.get())
     }
 }
@@ -531,18 +537,16 @@ const impl Mul<PositiveUnitFraction> for UnitFraction {
 raw_interop!(UnitFraction[f64]);
 unsafe_impl_try_from_bytes!(UnitFraction[f64]);
 
-// SAFETY: `repr(transparent)` over `f64` gives one stable layout - size 8, alignment 8, no
-// padding - on every target, and the type has no interior mutability. The stored bits are the
-// writer's native `f64`, so a reader on the other byte order computes a different value from
-// the same bytes: every format that maps this type stamps its writer's byte order and refuses
-// the other order at open, before any archived value is reached. This is also why `Archive`
-// below is hand-written as the identity: the derive would route the field through the
-// endian-tagged `Archived<f64>`, and native bits under a stamped manifest are the contract.
+// SAFETY: repr(transparent) preserves the native f64 layout, and this type has no interior
+// mutability.
 unsafe impl rkyv::Portable for UnitFraction {}
 
-// SAFETY: `repr(transparent)` over `f64`, so every byte of a value is initialized.
+// SAFETY: An f64 has no padding or uninitialized bytes. The transparent representation adds no
+// bytes. Every byte of UnitFraction is therefore defined.
 unsafe impl rkyv::traits::NoUndef for UnitFraction {}
 
+// identity archiving retains native f64 storage instead of converting to rkyv's endian-tagged
+// Archived<f64>
 impl rkyv::Archive for UnitFraction {
     type Archived = Self;
     type Resolver = ();
@@ -558,10 +562,10 @@ impl<S: rkyv::rancor::Fallible + ?Sized> rkyv::Serialize<S> for UnitFraction {
     }
 }
 
-// SAFETY: a unit fraction imposes no bit-validity condition, since every `f64` bit pattern is
-// constructible. Its domain is instead a value condition, checked here after construction for the
-// same reason `unchecked` construction is safe. Running the check through `&self` is therefore
-// sound, and `verify` returning `Ok` is exactly [`UnitFraction::is_canonical`].
+// SAFETY: Verify guarantees valid fields, but not the enclosing type's invariants. This check reads
+// only the raw f64 field, which accepts every initialized bit pattern, and tests its range and
+// canonical zero through is_canonical. Returning Ok therefore establishes the complete UnitFraction
+// invariant without assuming it beforehand.
 unsafe impl<C> rkyv::bytecheck::Verify<C> for UnitFraction
 where
     C: rkyv::rancor::Fallible<Error: rkyv::rancor::Source> + ?Sized,

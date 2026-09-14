@@ -1,8 +1,5 @@
 //! The lod stage, which derives the served columns from canonical coordinates.
 //!
-//! The result is a pure function of the coordinates, the rank inputs, the seed, and the
-//! configuration, so equal generations produce byte-equal columns.
-//!
 //! [`Lod::build`] runs the whole level-of-detail derivation for one generation:
 //!
 //! 1. Fit the world frame.
@@ -38,8 +35,8 @@ use crate::{
 
 /// The fixed frame every wire coordinate lives in.
 ///
-/// The world frame normalizes onto it at publish, and the online placement path re-derives the
-/// identical map from the recorded world frame and this constant.
+/// [`Bounds2::normalize_into`] maps the fitted world frame onto this `[-1, 1]` square. The world
+/// frame and this constant specify the same map for later point placement.
 pub(crate) const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
     .expect("the wire frame corners are finite and ordered");
 
@@ -54,10 +51,9 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
-    /// A tile at zoom `z` delivers buckets at or below `z + span`, sampling a `2^span` by `2^span`
-    /// grid per tile. Regular buckets deliver at most `4^span` points per incremental tile, and the
-    /// deepest catch-all may exceed that cap by its co-located residue, measured as
-    /// [`LodMeasurements::co_location_excess`].
+    /// At zoom z, the cumulative cut includes buckets at or below z + m, where m is this span. Each tile contains a 2ᵐ by 2ᵐ cut grid. Before the catch-all, one representative per occupied cut cell bounds both cumulative and incremental delivery by 4ᵐ points per tile. The catch-all includes every remaining point and can exceed that cap.
+    ///
+    /// By default m = 6, or 64 cells per axis.
     pub span: Log2 = DEFAULT_SPAN,
     /// The deepest tile zoom the schedule serves.
     ///
@@ -78,9 +74,8 @@ impl LodConfig {
     ///
     /// `max_tile_depth + span`, the catch-all bucket of the cut schedule.
     ///
-    /// Returns [`None`] when the sum exceeds the 32 subdivisions a 64-bit Morton key resolves - the
-    /// key-width inequality `z_max + m ≤ 32` - in which case the configuration matches no
-    /// buildable schedule.
+    /// Returns [`None`] when the sum exceeds the 32 subdivisions a 64-bit Morton key resolves. For
+    /// maximum tile zoom zₘₐₓ and span m, a buildable schedule requires zₘₐₓ + m ≤ 32.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {
         let Some(sum) = self.span.get().checked_add(self.max_tile_depth) else {
@@ -91,7 +86,7 @@ impl LodConfig {
     }
 }
 
-/// Building the lod structure failed.
+/// A schedule or input-column condition that prevents LOD construction.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum LodError {
     /// The configuration names a schedule no 64-bit key resolves.
@@ -101,7 +96,7 @@ pub(crate) enum LodError {
     /// Columns disagreeing among themselves cannot reach here: [`RankInputs`] admits only
     /// equal-length columns.
     Columns { coordinates: usize },
-    /// The coordinates hold no rows, so no world frame exists.
+    /// The coordinates hold no rows to fit a world frame from.
     Frame,
 }
 
@@ -148,31 +143,30 @@ pub(crate) struct LodMeasurements {
     pub catch_all_population: u64,
     /// Catch-all points beyond one per distinct deepest-grid cell.
     ///
-    /// The population no cut depth can thin.
+    /// C − G, where C is the catch-all population and G counts the deepest-grid cells represented
+    /// within that bucket. Lower-bucket occupants of those cells contribute to neither count.
     pub co_location_excess: u64,
-    /// The largest own-bucket delta any tile of the schedule delivers.
+    /// The largest single-bucket population within a tile at that bucket's first zoom.
     ///
-    /// Verified against the geometric cap `4^span`; co-location can exceed the cap only in
-    /// the catch-all bucket.
+    /// Each bucket b uses tile depth max(b − m, 0), where m is the configured span. Buckets at or
+    /// below m are measured separately, although the root delivers their sum. This statistic can
+    /// therefore undercount the root's delivered delta.
     pub max_tile_delta: u64,
 }
 
-/// The level-of-detail structure of one generation, every column in base delivery order.
+/// Aligned spatial serving columns and row permutations for one generation.
 ///
-/// The serving artifacts are the wire coordinate column, the Morton code column with its bucket
-/// fenceposts, the rank column, and the row permutations. [`measurements`](Self::measurements)
-/// reads the finished columns and yields the numbers that belong in the generation's metadata
-/// document.
+/// Coordinates, Morton codes, and importance ranks follow the [`BaseOrder`] permutation. The
+/// fenceposts delimit the same bucket segments in each column. The inverse permutations translate
+/// rows, ranks, and base positions without searching.
 #[derive(Debug, PartialEq)]
 pub(crate) struct Lod {
     /// The world frame the normalization mapped onto the wire frame.
     ///
-    /// Together with the fixed `[-1, 1]` wire frame this is the frame transform: the manifest
-    /// records it, clients and the placement path re-derive the identical map from it.
+    /// Together with [`WIRE_FRAME`], this specifies the per-axis normalization for subsequent
+    /// point placement.
     pub world: Bounds2,
     /// Wire coordinates in base order: the canonical coordinates normalized into the wire frame.
-    ///
-    /// This column is the wire.
     pub coordinates: Box<IdSlice<BasePosition, Vec2>>,
     /// Morton codes in base order, segmented by [`Self::fenceposts`].
     pub codes: Box<IdSlice<BasePosition, MortonKey>>,
@@ -180,9 +174,9 @@ pub(crate) struct Lod {
     pub fenceposts: Fenceposts<BasePosition>,
     /// Each base position's importance rank.
     pub rank_of_position: Box<IdSlice<BasePosition, ImportanceRank>>,
-    /// Each rank's base position: the traversal order of filter registration.
+    /// Each rank's base position, for traversing the columns in importance order.
     pub position_of_rank: Box<IdSlice<ImportanceRank, BasePosition>>,
-    /// Each row's base position: the permutation the filter contract maps entity bitmaps through.
+    /// Each row's base position, the inverse of [`Self::row_of_position`].
     pub position_of_row: Box<IdSlice<NodeRowId, BasePosition>>,
     /// Each base position's row.
     ///
@@ -196,16 +190,21 @@ impl Lod {
     /// `coordinates` is the canonical column in row order, proven finite by its type. `inputs`
     /// holds the per-row rank columns and `seed` the generation's reproducibility seed.
     ///
-    /// The build fits the world frame from the coordinates and normalizes each axis onto `[-1, 1]`
-    /// in `f64` with one final rounding, so the wire column is within `2^-23` of exact everywhere
-    /// and reproducible across targets. Keys quantize the normalized column, not the input, so wire
-    /// coordinates and tile cells can never disagree.
+    /// The build fits a tight world frame and maps each axis onto `[-1, 1]` with
+    /// [`Bounds2::normalize_into`]. For an axis with minimum a and positive extent e, the exact map
+    /// is 2 · (x − a) / e − 1. A zero-extent axis maps to zero. The computation uses `f64`
+    /// intermediates and a final narrowing to `f32`, giving an absolute coordinate error at most
+    /// 2⁻²³ within the fitted frame. The bound is absolute, and near zero it amounts to many ULPs
+    /// of the result.
+    ///
+    /// Morton keys quantize the resulting wire coordinates, keeping the spatial index tied to the
+    /// published column. [`Ranking::new`] specifies the byte-encoding and equal-key conditions for
+    /// ranking replay.
     ///
     /// # Errors
     ///
-    /// Returns [`LodError::Schedule`] when the configuration exceeds the key width,
-    /// [`LodError::Columns`] when the rank columns disagree with the coordinates, and
-    /// [`LodError::Frame`] when the coordinates hold no rows.
+    /// Returns a [`LodError`] for an invalid schedule, mismatched coordinate and rank counts, or an
+    /// empty coordinate column.
     pub(crate) fn build<I>(
         coordinates: &FinitePointField<NodeRowId>,
         inputs: RankInputs<'_, I>,
@@ -222,7 +221,7 @@ impl Lod {
             });
         }
 
-        // Finite input leaves emptiness as the one way no frame exists.
+        // finite input leaves emptiness as the only reason no frame exists
         let world =
             Bounds2::from_slice_par(coordinates.as_slice().as_raw()).ok_or(LodError::Frame)?;
         let normalized = world.normalize_into(WIRE_FRAME, coordinates.as_slice().as_raw());
@@ -236,10 +235,9 @@ impl Lod {
         let buckets = cascade::buckets(keyed, &ranking, deepest);
         let order = BaseOrder::new(keyed, &buckets, &ranking);
 
-        // row_of_position is the gather order. Walking it assembles any row-ordered column into
-        // base delivery order. Each gather is an index swizzle whose element work is one copy, so
-        // parallelism pays per column, not per element. position_of_rank composes the permutations
-        // by taking a rank's row and then that row's base position.
+        // row_of_position gathers each row-ordered column into base order. Parallelizing by column
+        // keeps each task a sequential gather of copied values. position_of_rank composes
+        // rank-to-row with row-to-position to preserve importance traversal.
         let mut coordinates = IdVec::<BasePosition, Vec2>::new();
         let mut codes = IdVec::<BasePosition, MortonKey>::new();
 
@@ -297,30 +295,32 @@ impl Lod {
 
     /// Measures the finished columns for the generation metadata.
     ///
-    /// The manifest records the bucket histogram (whose tail calibrates `max_tile_depth`), the
-    /// catch-all population and its co-location excess, and the observed per-tile own-bucket
-    /// maximum against the geometric cap.
+    /// `config` must be the configuration used by [`Self::build`]. A different valid schedule
+    /// changes the catch-all and tile-depth choices without detecting the mismatch.
+    /// [`LodMeasurements`] defines each statistic, including the separate treatment of the root's
+    /// buckets.
+    ///
+    /// # Complexity
+    ///
+    /// The scans take O(N + D) time for N points and deepest grid D, using constant additional
+    /// storage.
     ///
     /// # Panics
     ///
-    /// This panics when `config` is not the configuration the structure ran under, which shows up
-    /// as an unbuildable schedule.
+    /// Panics when `config.deepest()` is [`None`], or when the fenceposts address codes outside the
+    /// column.
     #[must_use]
     pub(crate) fn measurements(&self, config: LodConfig) -> LodMeasurements {
         let deepest = config
             .deepest()
             .expect("the structure was built under this configuration");
 
-        // Codes sort within every segment, so cell populations are consecutive equal-prefix groups.
-        // One linear scan per measurement suffices.
+        // sorted segment codes put each cell's population in one consecutive equal-prefix group
         let catch_all = self.segment_codes(deepest);
         let catch_all_population = catch_all.len() as u64;
         let co_location_excess = catch_all_population - distinct_prefixes(catch_all, deepest);
 
-        // Per bucket, the largest number of its points sharing one
-        // tile of the bucket's own zoom; the tile grid sits span
-        // above the bucket's grid, and buckets at or below span
-        // belong to the zoom-0 root tile.
+        // each bucket uses its first tile zoom; the root's buckets are scanned separately
         let mut max_tile_delta = 0;
         for bucket in 0..=deepest.get() {
             let tile = Depth::new(bucket.saturating_sub(config.span.get()))
@@ -341,17 +341,24 @@ impl Lod {
 
     /// Borrows one bucket's slice of the code column.
     ///
-    /// The returned slice re-bases at the segment, so its indices are bucket offsets rather than
-    /// base positions. The helpers scanning it consume values alone.
+    /// Indices in the returned slice are bucket offsets rather than base positions.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the fenceposts address codes outside the column.
     fn segment_codes(&self, bucket: Depth) -> &[MortonKey] {
         &self.codes[self.fenceposts.segment(bucket)]
     }
 }
 
-/// The morton artifact of a built lod: the index, fencepost, and code regions.
+/// Borrowed bucket segments and Morton codes for writing a spatial index.
 ///
-/// Borrows the finished columns; writing streams them as one morton file under the production
-/// page-filling index stride.
+/// Writing emits a Morton file with one index key per [`PAGE_STRIDE`] codes.
+///
+/// # Panics
+///
+/// Writing panics if the code count differs from the fencepost count or if codes decrease within
+/// any bucket segment.
 pub(crate) struct MortonColumn<'lod> {
     /// The bucket segmentation of the code column.
     pub fenceposts: &'lod Fenceposts<BasePosition>,
@@ -364,14 +371,6 @@ impl WriteAs<crate::file::salt::artifact::Morton> for MortonColumn<'_> {}
 impl WriteInto for MortonColumn<'_> {
     type Error = io::Error;
 
-    /// Writes the columns as a morton file.
-    ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),

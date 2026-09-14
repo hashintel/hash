@@ -1,13 +1,10 @@
 //! The clump-threshold calibration over a published k-NN table.
 //!
-//! ε is a calibrated configuration value, so its default must carry measured corpus structure
-//! rather than a guess: the calibration opens a published table and reads the grouping's shape -
-//! clump count, multi-row group count, covered rows - at every candidate threshold. A candidate
-//! qualifies by how well it reproduces the audited corpus shape and by whether the flagged
-//! subgroups it should resolve actually restore.
-//!
-//! The calibration observes a published artifact and never participates in a fit: it reads the
-//! stored table, so a reading describes the grouping a run at that threshold would have built.
+//! [`calibrate`] measures clump count, multi-row group count and covered rows at each candidate ε.
+//! Reusing one published table isolates the effect of the threshold on connected-component
+//! grouping. Compare these counts and their trends before choosing ε for that generation, then
+//! assess subgroup recall to judge its diagnostic effect. This sweep measures grouping shape alone
+//! and selects no threshold.
 
 use core::{
     error::Error,
@@ -24,9 +21,11 @@ use crate::{
     },
 };
 
-/// The candidate thresholds swept by default cover one value below the calibrated plateau, both
-/// plateau edges, the deployed value, and the percolation boundary above it, so a bare invocation
-/// re-derives the evidence behind [`DEFAULT_EPSILON`].
+/// Default sweep thresholds around [`DEFAULT_EPSILON`].
+///
+/// The interval 0.0012 to 0.0028 spans the plateau in some recorded development-corpus fits. The
+/// outer points 0.0005 and 0.0045 sample below and above it. Another generation may have no plateau
+/// over this interval.
 pub(crate) const DEFAULT_EPSILONS: &[f32] = &[0.0005, 0.0012, DEFAULT_EPSILON, 0.0028, 0.0045];
 
 /// The grouping's shape at one candidate threshold.
@@ -43,7 +42,7 @@ pub(crate) struct Reading {
 }
 
 impl Reading {
-    /// The share of the corpus that sits inside a multi-row clump.
+    /// Returns the grouped-row fraction, or zero for an empty corpus.
     #[expect(
         clippy::cast_precision_loss,
         reason = "row counts stay far inside the f64 mantissa"
@@ -56,7 +55,7 @@ impl Reading {
         self.grouped_rows as f64 / rows as f64
     }
 
-    /// The mean size of a multi-row clump.
+    /// Returns the mean multi-row clump size, or zero when no such clump exists.
     #[expect(
         clippy::cast_precision_loss,
         reason = "row counts stay far inside the f64 mantissa"
@@ -108,14 +107,13 @@ impl Display for Calibration {
     }
 }
 
-/// The path does not hold a readable k-NN table.
+/// A failure to open a k-NN table for threshold calibration.
 ///
-/// Splices into the chain transparently: the display text and the sources are the wrapped
-/// crate-internal fault's, unchanged.
+/// Display text and error sources match the underlying artifact error.
 #[derive(Debug)]
 pub(crate) struct CalibrationError(CalibrationFault);
 
-/// The ways the table fails to open.
+/// The artifact failure exposed by a calibration error.
 #[derive(Debug)]
 enum CalibrationFault {
     /// The sparse file did not open.
@@ -142,7 +140,11 @@ impl Error for CalibrationError {
     }
 }
 
-/// Reads the grouping shape of the k-NN table at `path` for every candidate threshold.
+/// Measures a published table's grouping shape at each candidate threshold.
+///
+/// Results preserve `epsilons` order. Threshold comparisons follow [`Clumps::from_knn`], including
+/// its NaN and infinity behavior. Backing file bytes must remain immutable throughout the mapping's
+/// lifetime.
 ///
 /// # Errors
 ///

@@ -48,7 +48,7 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     }
 }
 
-/// An unscored instance of `relation` between `source` and `target`.
+/// Creates an unscored instance of `relation` between `source` and `target`.
 fn instance(
     edge: u64,
     relation: u64,
@@ -65,7 +65,7 @@ fn instance(
     }
 }
 
-/// The instance with its link score set.
+/// Sets the instance's link score.
 fn scored(
     mut base: RelationInstance<NodeRowId, EdgeRowId>,
     link: UnitFraction,
@@ -74,6 +74,11 @@ fn scored(
     base
 }
 
+/// Builds fixture indexes after certifying policy order.
+///
+/// # Panics
+///
+/// Panics when policies are unordered or the build rejects the fixture's row domain or instances.
 fn build(
     rows: usize,
     policies: &[RelationPolicy],
@@ -89,6 +94,11 @@ fn build(
     .expect("the fixture instances satisfy the input contract")
 }
 
+/// Builds fixture indexes over [`ROWS`] with default attraction options.
+///
+/// # Panics
+///
+/// Panics when [`build`] rejects the fixture.
 fn build_default(
     policies: &[RelationPolicy],
     instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
@@ -96,11 +106,16 @@ fn build_default(
     build(ROWS, policies, instances, AttractionOptions::default())
 }
 
+/// Creates a canonical node pair from literal row numbers.
 fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
-/// Builds a protection configuration from each channel's floor and threshold pair.
+/// Builds a protection configuration with both channels enabled.
+///
+/// # Panics
+///
+/// Panics for out-of-domain settings or incorrectly ordered channels.
 fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
     ProtectionConfig::new(
         ChannelConfig::new(hard.0, hard.1).expect("the fixture channel is in domain"),
@@ -112,8 +127,8 @@ fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
 
 #[test]
 fn degree_normalization_counts_the_relations_complete_instance_set() {
-    // Node 0 sources three instances and node 1 receives three, so the
-    // 0 → 1 edge sees (1 + 3)(1 + 3) = 16 and ν = 0.25 exactly.
+    // node 0 sources three instances and node 1 receives three. For 0 → 1, (1 + 3) · (1 + 3) = 16
+    // and ν = 0.25 exactly.
     let indexes = build_default(
         &[proximal_policy(0)],
         vec![
@@ -138,9 +153,7 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
 
 #[test]
 fn degrees_are_per_relation() {
-    // The same endpoints under a second relation contribute nothing to
-    // the first relation's degrees: each relation's 0 → 1 edge sees
-    // (1 + 1)(1 + 1) = 4.
+    // degrees are relation-local: each relation's 0 → 1 edge sees (1 + 1) · (1 + 1) = 4.
     let indexes = build_default(
         &[proximal_policy(0), proximal_policy(1)],
         vec![instance(0, 0, 0, 1), instance(1, 1, 0, 1)],
@@ -174,6 +187,9 @@ fn group_weights_carry_the_policy_and_coefficient() {
         AttractionOptions::new(non_negative!(2.0), non_negative!(0.0)),
     );
 
+    // the Coincident coefficient 2 multiplies attraction probability 0.25 to give 0.5.
+    // The Proximal weight is attraction probability 0.5. Their sum gives scale 1, while
+    // strength remains the separate multiplier 2.
     let weights = indexes.attraction.groups()[0].weights();
     assert_eq!(weights.coincident, non_negative!(0.5));
     assert_eq!(weights.proximal, non_negative!(0.5));
@@ -262,8 +278,8 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
 
 #[test]
 fn pruned_instances_keep_their_degree_contributions() {
-    // Every instance but the first prunes at zero confidence, yet the
-    // retained 0 → 1 edge still sees both endpoints at degree 3.
+    // every instance but the first prunes at zero confidence. The retained 0 → 1 edge still sees
+    // both endpoints at degree 3.
     let indexes = build(
         ROWS,
         &[proximal_policy(0)],
@@ -285,7 +301,7 @@ fn pruned_instances_keep_their_degree_contributions() {
 
 #[test]
 fn pruning_never_reaches_protection() {
-    // An instance pruned from attraction still protects its pair.
+    // the pruning predicate excludes attraction without discounting the pair evidence.
     let indexes = build(
         ROWS,
         &[proximal_policy(0)],
@@ -468,9 +484,6 @@ fn empty_instances_build_empty_indexes() {
 
 #[test]
 fn policy_tables_certify_order() {
-    // Every value domain rides in the policy's field types, so ordering is the one contract
-    // left for certification to check; the domain assertion died when the last raw field
-    // (strength) took its type.
     assert_eq!(
         Policies::new(&[proximal_policy(1), proximal_policy(0)])
             .expect_err("descending policies violate the order contract"),
@@ -529,9 +542,8 @@ fn option_constructors_reject_out_of_domain_settings() {
 
 #[test]
 fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
-    // A chain 0 → 1 → ... → n under one relation forces the group
-    // through multiple fixed emission chunks: source runs cross chunk
-    // boundaries, and every degree must still count the whole group.
+    // this chain spans four emission chunks. Interior degrees require both the source and target
+    // columns, including where adjacent edges occupy different chunks.
     let nodes = 3 * build::EMISSION_CHUNK + 7;
     let instances: Vec<RelationInstance<NodeRowId, EdgeRowId>> = (0..nodes - 1)
         .map(|link| instance(link as u64, 0, link as u64, link as u64 + 1))
@@ -559,8 +571,8 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
         assert_eq!(edge.normalization.get(), expected, "edge {position}");
     }
 
-    // Every unscored instance carries mass exactly 1.0, so the chunked
-    // double-precision partial sums are exact whatever the chunking.
+    // every unscored instance carries mass exactly 1.0. At this fixture size every partial sum is
+    // an exactly representable integer, independent of chunking.
     #[expect(
         clippy::cast_precision_loss,
         reason = "the fixture size sits far below f64 integer precision"
@@ -570,7 +582,11 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
     assert_eq!(indexes.measurements.retained_edges, nodes - 1);
 }
 
-/// Asserts two builds produced identical indexes, component by component.
+/// Compares every stored index component and build measurement.
+///
+/// # Panics
+///
+/// Panics on unequal measurements, sparse storage, groups, weights or edges.
 #[track_caller]
 fn assert_indexes_equal(
     one: &RelationIndexes<NodeRowId, EdgeRowId>,
@@ -601,7 +617,7 @@ fn assert_indexes_equal(
 }
 
 prop_compose! {
-    /// Instances over three relations and eight rows.
+    /// Generates instances over three relations and eight rows.
     ///
     /// Edge rows are unique, and optional scores are arbitrary.
     fn arbitrary_instances()(
@@ -637,9 +653,6 @@ prop_compose! {
     }
 }
 
-/// The build is a function of the instance set, not its order.
-///
-/// The output orders are the documented invariants.
 #[property_test]
 fn build_is_order_independent_and_sorted(
     #[strategy = arbitrary_instances()] instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
@@ -730,6 +743,7 @@ fn build_is_order_independent_and_sorted(
                     NodePair::new(NodeRowId::new(row), entry.partner),
                     floor,
                 );
+
                 prop_assert_eq!(entry.evidence.mass(floor), expected);
             }
         }
@@ -805,8 +819,8 @@ fn published_attraction_index_reopens_mapped() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
-    // The fixture uses two relations with distinct weights and one scored instance, so the
-    // provenance bits round-trip a non-default value.
+    // distinct relation weights and a scored instance exercise non-default factors and provenance
+    // bits.
     let policies = [
         RelationPolicy {
             attraction: ClassProbabilities {
@@ -936,10 +950,9 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
         InvalidAttractionIndex::RowOutOfDomain { edge: 0 },
     );
 
-    // A confidence above one refuses at the file parse itself: the
-    // record's field type admits only [0, 1], so the corruption never
-    // reaches the index validation. The confidence field sits 24
-    // bytes into the record.
+    // the typed file parse rejects confidence above one before index validation. The field starts
+    // 24 bytes into the record. Its native-f64 encoding makes this little-endian fixture
+    // host-specific.
     let mut confident = bytes.clone();
     confident[8192 + 24..8192 + 32].copy_from_slice(&2.0_f64.to_le_bytes());
     let refused = dir.join("confidence.atrc");
@@ -986,9 +999,13 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 
-/// The floored pair mass computed instance by instance.
+/// Computes floored pair mass before maximum factorization.
 ///
-/// The pre-factorization form of the protection evidence.
+/// Uses the build's f32 evidence and applicability rounding boundaries.
+///
+/// # Panics
+///
+/// Panics when a non-self instance matching `pair` has no policy.
 fn forward_reference_mass(
     instances: &[RelationInstance<NodeRowId, EdgeRowId>],
     policies: &[RelationPolicy],
@@ -1008,8 +1025,7 @@ fn forward_reference_mass(
             .expect("the fixture policies cover every relation");
         let confidence = instance.confidence.effective().value();
         let positive = f64::from(policy.selected.coincident) + f64::from(policy.selected.proximal);
-        // The mirror narrows where the build narrows: one narrow derives the undiscounted
-        // evidence, and the floored discount scales that shared f32 value.
+        // share the build's narrowed undiscounted value before applying the floor.
         let undiscounted = narrow_f32(confidence * positive)
             .expect("a fraction of a finite f32 factor narrows finitely");
         let applicability =
@@ -1019,7 +1035,7 @@ fn forward_reference_mass(
     mass
 }
 
-/// The instance carrying `multiplicity` readings of its edge.
+/// Sets the instance's reading count.
 fn multi(
     mut base: RelationInstance<NodeRowId, EdgeRowId>,
     multiplicity: u32,
@@ -1030,9 +1046,8 @@ fn multi(
 
 #[test]
 fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
-    // One edge read under two relations at multiplicity 2 versus the same two readings as
-    // independent single-typed edges. The mixture halves each reading's mass, so the total is the
-    // mean. Every factor is a power of two, so the arithmetic is exact.
+    // one edge read twice at multiplicity 2 has shares 0.5. Against two independent single-typed
+    // edges, the pre-normalization mass is exactly half for these unit weights and confidences.
     let policies = [proximal_policy(0), proximal_policy(1)];
     let mixed = build_default(
         &policies,
@@ -1048,9 +1063,8 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
         separate.measurements.retained_mass.get() / 2.0,
     );
 
-    // Each group holds the reading at half a link's force: share 0.5
-    // on the mass and share-weighted degrees 0.5 at both endpoints,
-    // so the persisted factor is 0.5 / √(1.5 · 1.5).
+    // each endpoint has share-weighted degree 0.5. The persisted factor is the rounded value of 0.5
+    // / √(1.5 · 1.5), not half the single-reading normalization.
     let expected = PositiveUnitFraction::new(0.5 / (1.5_f64 * 1.5).sqrt())
         .expect("the reference factor lies in (0, 1]");
     for group in mixed.attraction.groups() {
@@ -1062,13 +1076,13 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
 
 #[test]
 fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
-    // Under the narrowed conservation law, shares conserve the pre-ν mass
-    // exactly, while the realized coefficients (ν · s) of an unpruned
-    // k-typed edge sum to T with M ≤ T < 2M against the mean M of its
-    // single-typed counterfactuals. The isolated 2-typed edge realizes
-    // exactly 4/3 · M: each reading's ν is 1/(1 + 1/2) = 2/3 against
-    // the counterfactual 1/2, so T = 2 · (1/2 · 2/3) = 2/3 over
-    // M = 1/2.
+    // For fixed non-negative background endpoint degrees B and share s ∈ (0, 1], each ratio (2 +
+    // B)/(1 + B + s) lies in [1, 2). Taking the geometric mean at the two endpoints gives the ratio
+    // of shared to single-reading degree normalizations. Therefore, in real arithmetic and without
+    // pruning, the sum T of a k-typed edge's ν · s coefficients satisfies M ≤ T < 2M, where M is
+    // the mean of its single-reading counterfactual coefficients with all other degrees fixed.
+    // This isolated two-typed fixture has s = 0.5 and B = 0: T = 2/3 versus M = 1/2, a ratio of
+    // 4/3. The stored thirds round in f64.
     let policies = [proximal_policy(0), proximal_policy(1)];
     let mixed = build_default(
         &policies,
@@ -1095,16 +1109,15 @@ fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
     assert!(total >= mean);
     assert!(total < 2.0 * mean);
 
-    // The exact fixture ratio, at the double precision the build keeps per reading.
+    // compare the same rounded per-reading expression used by the build.
     let per_reading = 0.5 / (1.5_f64 * 1.5).sqrt();
     assert_eq!(total, 2.0 * per_reading);
 }
 
 #[test]
 fn protection_evidence_ignores_multiplicity() {
-    // The same pair under one relation, single-typed versus 4-typed:
-    // protection aggregates by maximum over undivided evidence, so a
-    // fractional reading still fully vetoes.
+    // varying multiplicity on one supplied reading isolates the evidence computation from the
+    // share. This fixture does not supply a complete four-type edge.
     let policies = [proximal_policy(0)];
     let single = build_default(&policies, vec![instance(0, 0, 1, 2)]);
     let quartered = build_default(&policies, vec![multi(instance(0, 0, 1, 2), 4)]);
@@ -1121,10 +1134,9 @@ fn protection_evidence_ignores_multiplicity() {
 
 #[test]
 fn single_typed_builds_are_unchanged_by_the_share_machinery() {
-    // Shares of 1.0 sum to exact integer degrees and multiply masses
-    // by exactly 1: the k = 1 path is bit-identical to the pre-share
-    // arithmetic. Both edges meet at row 1, so the shared endpoint's
-    // degree is 2 and the far endpoints' degrees are 1.
+    // unit shares give exact integer degrees at this fixture size. Row 1 has degree 2 and each far
+    // endpoint has degree 1, giving the rounded normalization 1 / √(3 · 2) and total mass exactly
+    // 2.
     let policies = [proximal_policy(0)];
     let indexes = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 0, 1, 3)]);
 

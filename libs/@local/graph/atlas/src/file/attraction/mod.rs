@@ -25,23 +25,21 @@
 //! ```
 //!
 //! Group `i` owns the edge rows `edge_offset[i] .. edge_offset[i + 1]`, with the final group
-//! ending at `E`. Edge records within one group keep the order the index defines; consumers
-//! address edges by `(group, offset)` and never re-sort. Records store the crate's row ids in
-//! their persisted little-endian form and their float quantities in the writer's native order
-//! behind validated scalar types, so a mapped region reads back typed rows with no conversion on
-//! either side. The header pins who may read those records. Its machine information ([`Machine`])
-//! records the writer's byte order, which opening verifies against the reader's, and its kind
-//! fields persist
-//! the [`NodeRow`] and [`EdgeRow`] implementations that wrote the file, which opening validates
-//! against the requested types: a file reopens only on the byte order and under the row types
-//! that wrote it. A row domain's kind value is zero exactly when it is its slot's founding
-//! domain, so zero is each slot's default. All region offsets derive from `G` and `E` with
-//! checked arithmetic ([`FileHeader::expected_file_len`]), and a header whose geometry overflows
-//! matches no real file.
+//! ending at `E`. Edge records within one group keep the order the index defines. Edge addressing
+//! uses `(group, offset)` and never re-sorts. Records store the crate's row ids in their persisted
+//! little-endian form and their float quantities in the writer's native order behind validated
+//! scalar types. A mapped region reads back typed rows with no conversion on either side. The
+//! header pins who may read those records. Its machine information ([`Machine`]) records the
+//! writer's byte order, and opening verifies it against the reader's. Its kind fields persist the
+//! [`NodeRow`] and [`EdgeRow`] implementations that wrote the file, and opening validates them
+//! against the requested types. A file reopens only on the byte order and under the row types that
+//! wrote it. A row domain's kind value is zero exactly when it is its slot's founding domain. Zero
+//! is each slot's default. All region offsets derive from `G` and `E` with checked arithmetic
+//! ([`FileHeader::expected_file_len`]), and a header whose geometry overflows matches no real file.
 //! Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of
 //! the array format applies unchanged. Map the whole file and slice, never mmap at a file offset.
 //!
-//! [`read::AttractionFile`] opens a file under these rules and hands out the raw typed regions;
+//! [`read::AttractionFile`] opens a file under these rules and hands out the raw typed regions.
 //! [`write::write_records`] streams them into place. The records' field domains validate as the
 //! bytes parse, so an open file never serves a weight, confidence or normalization outside its
 //! type's range. The index's ordering invariants (ascending relations, contiguous non-empty
@@ -73,8 +71,10 @@ use crate::{
     math::{NonNegative, PositiveUnitFraction, UnitFraction},
 };
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -328,11 +328,17 @@ impl GroupRecord {
 )]
 #[repr(C)]
 pub(crate) struct EdgeRecord<N, E> {
+    /// The edge row the instance came from.
     edge: E,
+    /// The endpoint row the link points from.
     source: N,
+    /// The endpoint row the link points to.
     target: N,
+    /// The effective confidence `c`.
     confidence: Unalign<UnitFraction>,
+    /// The degree normalization `ν`.
     normalization: Unalign<PositiveUnitFraction>,
+    /// Score provenance from link, source, and target presence in the three lowest bits.
     scored: u8,
     /// Alignment filler; writers emit zero, readers ignore.
     reserved: [u8; 7],

@@ -1,8 +1,8 @@
-//! The placement's composite objective against the schedule it is descending.
+//! The placement's composite objective against its training steps.
 //!
-//! The chart is the shape of the descent rather than a table of it - braille resolution, no step
-//! labels, and the exact current value on the frame's own title. The chart reads its axes off the
-//! same points it plots, so the frame cannot claim a range the curve does not occupy.
+//! Braille resolution shows the shape of the retained loss curve without step labels. The frame
+//! title gives the current total at four decimal places. The value axis begins at zero and ends at
+//! the greatest positive finite retained loss, or at one when none exists.
 
 use ratatui::{
     Frame,
@@ -18,13 +18,13 @@ use crate::cli::tui::state::ProjectorTraining;
 
 /// Draws the placement's descent: the composite objective against the schedule's step axis.
 ///
-/// The chart draws the curve at braille resolution: two steps per column of the plotting area,
-/// which is the pane inside its border and padding, less the gutter of the value labels. A schedule
-/// is normally longer than that, so the chart is the shape of the descent, and the frame's title
-/// shows the exact current value.
+/// The chart draws the curve at braille resolution: two horizontal dot positions per character
+/// column of the plotting area, inside the border and padding and beside the value labels. A
+/// schedule can contain more steps than the plot has horizontal dot positions. The curve shows the
+/// loss trend, while the frame title reports the current total at four decimal places.
 pub(super) fn render_loss(frame: &mut Frame, area: Rect, training: &ProjectorTraining) {
-    // `Dataset::data` borrows a slice, so this builds the curve once per frame and reads it twice:
-    // for the plot, and for its value axis.
+    // `Dataset::data` borrows a slice. This builds the curve once per frame and reads it twice: for
+    // the plot, and for its value axis.
     let points: Vec<(f64, f64)> = curve(training).into_iter().collect();
     let [low, high] = value_bounds(points.iter().map(|&(_, loss)| loss));
     let [first, last] = step_bounds(training);
@@ -58,7 +58,7 @@ pub(super) fn render_loss(frame: &mut Frame, area: Rect, training: &ProjectorTra
     frame.render_widget(chart, area);
 }
 
-/// The retained losses as the chart's own coordinates.
+/// Returns the retained losses as the chart's own coordinates.
 ///
 /// A point is `(step, loss)` in the widget's coordinate type. The step axis counts offsets into the
 /// retained window, which the axis draws unlabelled. The loss is the `f32` the run reported,
@@ -69,12 +69,10 @@ pub(super) fn curve(training: &ProjectorTraining) -> impl IntoIterator<Item = (f
         .map(|(offset, &loss)| (f64::from(offset), f64::from(loss)))
 }
 
-/// The chart's value axis, from the objective's floor up to the highest loss observed.
+/// Returns a zero-based value axis with a finite upper bound.
 ///
-/// Every loss family is non-negative, so zero is where the composite objective is heading and the
-/// curve's height on the frame reads as the distance still to go. The top label is a loss the run
-/// actually reached, never a padded bound above it; a window with nothing positive in it yet gets a
-/// unit axis to sit in.
+/// The upper bound is the greatest positive finite input, defaulting to one when no such input
+/// exists.
 pub(super) fn value_bounds(values: impl IntoIterator<Item = f64>) -> [f64; 2] {
     let high = values
         .into_iter()
@@ -84,10 +82,10 @@ pub(super) fn value_bounds(values: impl IntoIterator<Item = f64>) -> [f64; 2] {
     if high > 0.0 { [0.0, high] } else { [0.0, 1.0] }
 }
 
-/// The chart's step axis, which spans the retained window and is never narrower than one step.
+/// Returns the chart's step axis, spanning the retained window and never narrower than one step.
 ///
-/// The right edge is the last point's own coordinate, so the axis and the curve cannot disagree
-/// about where the descent ends.
+/// For two or more retained points, the right edge is the last point's coordinate. An empty or
+/// single-point window uses the unit interval `[0, 1]`.
 pub(super) fn step_bounds(training: &ProjectorTraining) -> [f64; 2] {
     let last = curve(training)
         .into_iter()
@@ -98,10 +96,16 @@ pub(super) fn step_bounds(training: &ProjectorTraining) -> [f64; 2] {
     [0.0, last.max(1.0)]
 }
 
-/// The last step's objective, family by family, for the chart's footer.
+/// Formats the last step's objective by family for the chart's footer.
 ///
-/// The footer is all or nothing. The widget draws a title wider than its frame over the corner, so
-/// a pane too narrow for the whole breakdown shows the plot and its total alone.
+/// Semantic attraction, ordinary repulsion, mined hard-negative repulsion and relation attraction
+/// read as themselves. The footer adds the temporal anchors to the landmarks under one support
+/// heading, the term they are both evaluations of. It shows those five at three decimal places,
+/// while the title shows the total at four. The target objective is not among the five, and the
+/// title's total covers it along with them at that different precision.
+///
+/// The footer is all or nothing. The widget draws a title wider than its frame over the corner. A
+/// pane too narrow for the whole breakdown shows the plot and its total alone.
 fn breakdown(training: &ProjectorTraining, width: u16) -> String {
     let loss = training.last;
 

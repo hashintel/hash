@@ -1,3 +1,5 @@
+//! Sentence segmentation of normalized prose.
+
 use unicode_segmentation::UnicodeSegmentation as _;
 
 /// Splits normalized prose into borrowed sentences.

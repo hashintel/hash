@@ -57,10 +57,10 @@ use crate::{
     },
 };
 
-/// A six-row, two-neighbour table.
+/// Builds a six-row table with two stored neighbours per row.
 ///
-/// A chained near-duplicate triple {0, 1, 2}, an exact-duplicate pair {3, 4}, and a far singleton
-/// 5.
+/// Rows {0, 1, 2} connect at ε = 0.05 through a chain, {3, 4} share a zero-distance edge, and row 5
+/// is distant.
 fn clump_fixture() -> Knn<NodeRowId> {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
@@ -144,16 +144,12 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
         exact.clump(NodeRowId::new(1))
     );
 
-    // A non-finite threshold admits no edges.
+    // comparisons against NaN admit no edges
     let none = Clumps::from_knn(&table.view(), f32::NAN);
     assert_eq!(none.clumps(), 6);
     assert_eq!(none.groups(), 0);
 }
 
-/// The default threshold groups at duplicate scale.
-///
-/// The fixture's coincident pair joins while its 0.05-distant chain - twenty-five defaults wide -
-/// stays apart.
 #[test]
 fn default_epsilon_groups_duplicates_not_neighbours() {
     let table = clump_fixture();
@@ -184,9 +180,7 @@ fn hand_built_labels_read_like_a_grouping() {
     assert_eq!(clumps.clump(NodeRowId::new(3)), 2);
 }
 
-/// Hand-computed multiset overlap.
-///
-/// The duplicated label 1 matches twice, 0 once, and the unmatched 2 and 3 earn nothing.
+// label 1 matches twice, label 0 once, and unmatched labels 2 and 3 earn no credit
 #[test]
 fn clump_aggregate_counts_multiset_overlap() {
     let mut aggregate = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
@@ -209,7 +203,6 @@ fn clump_aggregate_counts_multiset_overlap() {
     );
 }
 
-/// Both spaces order the universe alike.
 #[test]
 fn identical_orderings_are_perfect() {
     let ordering: Vec<u32> = (0..10).collect();
@@ -227,7 +220,6 @@ fn identical_orderings_are_perfect() {
     assert_eq!(aggregate.extrusion_rate(), 0.0);
 }
 
-/// A reversed ordering is the worst permutation at every valid k.
 #[test]
 fn reversed_ordering_is_worst() {
     let reference: Vec<u32> = (0..8).collect();
@@ -240,8 +232,9 @@ fn reversed_ordering_is_worst() {
 
     // Map top-2 = {7, 6}: reference positions 7 and 6, both false.
     assert_eq!(aggregate.recall(), 0.0);
-    // Penalties (7-2+1) + (6-2+1) = 11 = the worst case 2*(16-6+1)/2,
-    // so both normalized readings sit at the floor exactly.
+    // The penalty is (7 − 2 + 1) + (6 − 2 + 1) = 11, equal to the worst case 2 · (16 − 6 + 1)/2.
+    // Dividing equal integers gives exactly one. Therefore both normalized readings are exactly
+    // zero.
     assert_eq!(aggregate.trustworthiness(), 0.0);
     assert_eq!(aggregate.continuity(), 0.0);
     // Both false neighbours lie past the horizon in both directions.
@@ -249,7 +242,6 @@ fn reversed_ordering_is_worst() {
     assert_eq!(aggregate.extrusion_rate(), 1.0);
 }
 
-/// Hand-computed mixed case: one shared neighbour, one mild swap.
 #[test]
 fn hand_computed_partial_agreement() {
     // Universe of 6. Reference: 0,1,2,3,4,5. Map: 0,2,1,3,4,5.
@@ -274,7 +266,6 @@ fn hand_computed_partial_agreement() {
     assert_eq!(aggregate.extrusion_rate(), 0.0);
 }
 
-/// The horizon separates near-boundary reshuffles from intruders.
 #[test]
 fn horizon_splits_reshuffles_from_intruders() {
     // Map top-2 = {0, 5}. Point 5 sits at reference position 5, past the horizon 4, and the swap
@@ -295,7 +286,6 @@ fn horizon_splits_reshuffles_from_intruders() {
     assert_eq!(aggregate.continuity(), 1.0 - 4.0 / 7.0);
 }
 
-/// Aggregation over queries averages penalties, not readings.
 #[test]
 fn aggregate_pools_queries() {
     let reference: Vec<u32> = (0..6).collect();
@@ -313,7 +303,6 @@ fn aggregate_pools_queries() {
     assert_eq!(aggregate.trustworthiness(), 1.0 - 1.0 / 14.0);
 }
 
-/// The constructor rejects the domains the normalizer excludes.
 #[test]
 fn aggregate_rejects_invalid_shapes() {
     let k = |value: usize| NonZero::new(value).expect("nonzero");
@@ -324,11 +313,10 @@ fn aggregate_rejects_invalid_shapes() {
     assert!(NeighbourhoodAggregate::new(10, k(5), 10).is_some());
 }
 
-/// The clamped constructor caps an overflowing horizon at the universe.
 #[test]
 fn clamped_horizon_overflow() {
-    // A factor-times-k product beyond `usize` exceeds every universe, so
-    // the mathematical horizon min(factor · k, universe) is the universe.
+    // the overflowing product 2 · usize::MAX exceeds the universe 4. Saturating before clamping
+    // preserves the mathematical horizon min(factor · k, universe) = 4.
     let k = |value: usize| NonZero::new(value).expect("nonzero");
     let factor = k(usize::MAX);
 
@@ -338,7 +326,6 @@ fn clamped_horizon_overflow() {
     );
 }
 
-/// The capacity proof refuses a load whose worst-case penalties overflow the carriers.
 #[test]
 fn capacity_refusal() {
     // A valid aggregate whose total worst-case penalty q·k·(2m − 3k + 1)/2
@@ -351,7 +338,6 @@ fn capacity_refusal() {
     assert!(!aggregate.supports(1_200_000));
 }
 
-/// The capacity proof admits exactly the loads whose products fit.
 #[test]
 #[expect(
     clippy::integer_division,
@@ -359,9 +345,8 @@ fn capacity_refusal() {
     reason = "the boundary load is the largest whose product with the worst-case penalty fits"
 )]
 fn capacity_boundary() {
-    // At universe size m = 100 and neighbourhood size k = 50 the worst
-    // per-query penalty is 50·(200 − 150 + 1)/2 = 1275, so the boundary
-    // is the largest load q whose normalizer product still fits.
+    // at m = 100 and k = 50 the worst per-query penalty is 50 · (200 − 150 + 1)/2 = 1,275.
+    // The largest supported load is ⌊usize::MAX/1,275⌋.
     let k = |value: usize| NonZero::new(value).expect("nonzero");
     let aggregate =
         NeighbourhoodAggregate::new(100, k(50), 100).expect("50 <= 100 / 2 and 50 <= 100 <= 100");
@@ -371,12 +356,8 @@ fn capacity_boundary() {
     assert!(!aggregate.supports(heaviest + 1));
 }
 
-/// Sampled pairs are distinct and in bounds over every small universe.
 #[test]
 fn sampled_pairs_are_distinct_and_in_bounds() {
-    // A one-point universe holds no pairs, and an empty one holds no
-    // point to draw first - the second draw's universe is one smaller
-    // than the first's, so neither may reach for it.
     assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(3), 1, 64).is_empty());
     assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(4), 0, 1).is_empty());
 
@@ -397,13 +378,12 @@ fn sampled_pairs_are_distinct_and_in_bounds() {
             seen.insert([first, second]);
         }
 
-        // 512 seeded draws over at most 30 ordered pairs cover the whole
-        // support, pinning uniformity's reach alongside its bounds.
+        // these seeded draws cover all possible ordered pairs; coverage alone does not test uniform
+        // frequencies
         assert_eq!(seen.len(), comparisons * (comparisons - 1));
     }
 }
 
-/// Rank-vector observation agrees with full-ordering observation.
 #[test]
 fn observe_ranks_matches_observe() {
     // Universe of 8, k = 3, horizon 5, with tangled orderings.
@@ -426,7 +406,6 @@ fn observe_ranks_matches_observe() {
     assert_eq!(through_orderings, through_ranks);
 }
 
-/// Merging per-query aggregates equals one joint observation.
 #[test]
 fn merged_aggregates_match_joint_observation() {
     let reference: Vec<u32> = (0..6).collect();
@@ -448,16 +427,15 @@ fn merged_aggregates_match_joint_observation() {
     assert_eq!(first, joint);
 }
 
-/// Rows the probe fixture's aligned backing store can hold.
+/// Component capacity for 48 projector rows in the aligned fixture store.
 const FIXTURE_CAPACITY: usize = 48 * PROJECTOR_DIMENSIONS;
 
-/// A probe corpus whose three spaces share one deterministic geometry.
+/// A probe corpus with independently chosen embedding and map angles.
 ///
-/// Row `i` sits at an angle on the unit circle in every space: the representation is `(cos, sin)`
-/// in the leading two components, the canonical embedding extends it with zeros, and the
-/// coordinates are the circle point itself. Chord length and cosine distance are both monotone in
-/// the angular gap, so equal embedding and map angles make all three spaces order every universe
-/// identically - a perfect map.
+/// Representations and canonical embeddings store `(cos, sin)` in their leading components
+/// and zeros elsewhere. Coordinates use the map angles. With identical angles, chord length
+/// and cosine distance increase together with the angular gap in `[0, π]` in exact arithmetic.
+/// This motivates the shared-angle fixtures without guaranteeing identical floating-point ranks.
 pub(crate) struct ProbeFixture {
     node_ids: Vec<MemoryNodeId>,
     storage: BoxedVecN<FIXTURE_CAPACITY>,
@@ -467,11 +445,24 @@ pub(crate) struct ProbeFixture {
 }
 
 impl ProbeFixture {
+    /// Builds a fixture with identical embedding and map angles.
+    ///
+    /// Angles must be finite.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `angles` contains more than 48 rows.
     pub(crate) fn on_circle(angles: &[f32]) -> Self {
         Self::new(angles, angles)
     }
 
     /// Places the embeddings at `angles` and the map at `map_angles`.
+    ///
+    /// Both angle slices must be finite.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the slices differ in length or contain more than 48 rows.
     fn new(angles: &[f32], map_angles: &[f32]) -> Self {
         assert_eq!(angles.len(), map_angles.len());
         assert!(angles.len() * PROJECTOR_DIMENSIONS <= FIXTURE_CAPACITY);
@@ -500,6 +491,7 @@ impl ProbeFixture {
         }
     }
 
+    /// Copies the fixture's canonical embeddings into an in-memory dataset.
     pub(crate) fn dataset(&self) -> MemoryDataset {
         MemoryDataset::new(
             Vec::new(),
@@ -510,11 +502,13 @@ impl ProbeFixture {
         )
     }
 
+    /// Borrows the populated projector rows from aligned fixture storage.
     fn representations(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
         AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
             .expect("boxed storage is aligned")
     }
 
+    /// Borrows the row-aligned fixture inputs as a probe corpus.
     pub(crate) fn corpus(&self) -> ProbeCorpus<'_, MemoryNodeId> {
         ProbeCorpus::new(
             IdSlice::from_raw(&self.node_ids),
@@ -524,9 +518,10 @@ impl ProbeFixture {
     }
 }
 
-/// Irregularly spaced angles inside a quarter circle.
+/// Generates mildly warped angles inside a quarter circle.
 ///
-/// No two gaps coincide, so no space carries distance ties.
+/// The quadratic spacing reduces symmetry in small fixtures. It does not guarantee distinct gaps or
+/// floating-point distances for every row count.
 pub(crate) fn irregular_angles(rows: usize) -> Vec<f32> {
     #[expect(
         clippy::cast_precision_loss,
@@ -588,7 +583,6 @@ fn indices_of(rows: &[NodeRowId]) -> Vec<usize> {
     rows.iter().map(|row| row.as_usize()).collect()
 }
 
-/// The corpus pass's counted ranks agree with sorted full orderings.
 #[tokio::test]
 async fn corpus_readings_match_a_sorting_reference() {
     // Embeddings on the circle, coordinates scrambled by reversing the
@@ -712,8 +706,11 @@ async fn corpus_readings_match_a_sorting_reference() {
 
 /// Asserts the collapsed reading reproduces plain recall for the first `anchors` anchors.
 ///
-/// Under singleton labels the collapse is the identity, so any disagreement is a defect in the
-/// collapse itself rather than in the grouping.
+/// Singleton labels preserve row identity.
+///
+/// # Panics
+///
+/// Panics on a recall mismatch, an out-of-domain anchor, or a missing first step.
 #[track_caller]
 fn assert_singleton_collapse_matches_plain_recall(
     clumps: &ClumpReadings,
@@ -735,14 +732,10 @@ fn assert_singleton_collapse_matches_plain_recall(
     }
 }
 
-/// The probe's clump collapse.
-///
-/// Singleton labels reproduce plain recall exactly, and a grouped labelling agrees with a sorting
-/// reference collapsed the same way while never reading below plain recall.
 #[tokio::test]
 async fn clump_readings_match_a_sorting_reference() {
-    // The scrambled fixture from the corpus reference test: map and
-    // representation disagree, so the collapse has work to do.
+    // reversing and rescaling the map angles introduces disagreement with the representation.
+    // Separate coincident pairs exercise distance ties in each space.
     let angles = irregular_angles(40);
     let mut map_angles: Vec<f32> = angles
         .iter()
@@ -762,8 +755,8 @@ async fn clump_readings_match_a_sorting_reference() {
         ..ProbeOptions::default()
     };
 
-    // Singleton labels: the multiset overlap is the shared-row count,
-    // so the collapsed reading equals plain recall anchor by anchor.
+    // singleton labels preserve row identity: multiset overlap equals the shared-row count for
+    // each anchor
     let singletons = Clumps::<NodeRowId>::from_labels((0..40).collect(), 0.0);
     let readings = probe(
         &fixture.dataset(),
@@ -848,10 +841,10 @@ async fn clump_readings_match_a_sorting_reference() {
     }
 }
 
-/// Hand-built readings.
+/// Builds one hit-or-miss cell per supplied anchor for report fixtures.
 ///
-/// Six single-query anchors at k = 1 over a universe of 8, each a plain hit (rank 0) or a horizon
-/// miss (rank 7), reused for all four grids.
+/// Each anchor observes k = 1 over a universe of 8, with rank 0 for a hit or rank 7 for a horizon
+/// miss. All four grids reuse those cells.
 fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     let cells: Vec<Vec<NeighbourhoodAggregate>> = hits
         .iter()
@@ -888,21 +881,27 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     }
 }
 
-/// One preserved triplet observation.
-///
-/// The verdict demands present triplet evidence, so the fixture carries the minimum.
+/// Creates the single preserved triplet needed for present fixture evidence.
 fn agreed() -> TripletAggregate {
     let mut aggregate = TripletAggregate::default();
     aggregate.observe(true);
     aggregate
 }
 
-/// A `[0, 1]` control value.
+/// Validates a fixture threshold fraction.
+///
+/// # Panics
+///
+/// Panics when `value` is outside `[0, 1]` or NaN.
 fn fraction(value: f64) -> UnitFraction {
     UnitFraction::new(value).expect("test fractions lie inside [0, 1]")
 }
 
-/// A density-spread ceiling.
+/// Narrows a fixture density ceiling to f32 and validates it.
+///
+/// # Panics
+///
+/// Panics when the narrowed value is negative or non-finite.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "test ceilings are small round values the f32 range carries exactly enough"
@@ -911,15 +910,13 @@ fn ceiling(value: f64) -> NonNegative {
     NonNegative::new(value as f32).expect("test ceilings are finite and non-negative")
 }
 
+/// Builds per-anchor type lists from literal ontology row numbers.
 fn types_of(rows: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
     rows.iter()
         .map(|types| types.iter().map(|&row| OntologyRowId::new(row)).collect())
         .collect()
 }
 
-/// Hand-computed subgroup rule.
-///
-/// Degradations, the 2x factor, the anchor floor, and multi-typed anchors counting in every group.
 #[test]
 fn assess_flags_degraded_subgroups() {
     // Anchors 0-3 hit, 4-5 miss: overall recall 2/3, degradation 1/3.
@@ -995,9 +992,9 @@ fn assess_flags_degraded_subgroups() {
     assert!(floored.passes());
 }
 
-/// A clump readings block over the flag fixture.
+/// Builds collapsed fixture cells from per-anchor match flags.
 ///
-/// One k = 1 cell per anchor, its collapsed neighbourhood matched or not.
+/// Each flag supplies one k = 1 cell.
 fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     let cells: Vec<Vec<ClumpAggregate>> = matches
         .iter()
@@ -1018,10 +1015,6 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     }
 }
 
-/// The clump-resolution triage rule.
-///
-/// A flag whose collapsed reading satisfies the factor counts as clump-resolved and stops failing
-/// the verdict. One that stays degraded keeps failing.
 #[test]
 fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
@@ -1030,8 +1023,8 @@ fn clump_resolution_triages_flags() {
         ..
     };
 
-    // Restored: the misses were clump siblings, so every collapsed
-    // neighbourhood matches and both degradations read zero.
+    // the collapsed cells model every miss replaced by a same-clump sibling. All six match,
+    // giving zero subgroup and whole-probe degradation.
     let mut readings = flag_fixture(&[true, true, true, true, false, false]);
     readings.clumps = Some(clump_readings_of(&[true; 6]));
     let report = assess(readings.with_anchor_types(&anchor_types), &thresholds);
@@ -1054,8 +1047,8 @@ fn clump_resolution_triages_flags() {
     assert_eq!(clumps.map_representation[0].neighbourhood.get(), 1);
     assert_eq!(clumps.map_representation[0].queries, 6);
     assert_eq!(clumps.map_representation[0].recall, 1.0);
-    // The fixture reuses the collapsed cells for the baseline grid, so
-    // its rendered rows and the subgroup stratification read the same.
+    // reusing the collapsed cells in the baseline grid gives equal whole-probe and per-type
+    // readings
     assert_eq!(clumps.representation_canonical, clumps.map_representation);
     assert_eq!(report.baseline_subgroups.len(), 2);
     assert_eq!(
@@ -1068,8 +1061,8 @@ fn clump_resolution_triages_flags() {
         serde_json::from_str(&serialized).expect("the report deserializes");
     assert_eq!(roundtrip, report);
 
-    // Unresolved: the collapse restores nothing, so the flag keeps
-    // its breach - 1 against twice the overall 1 - 4/6.
+    // leaving the collapsed cells unchanged preserves the breach: subgroup degradation 1
+    // exceeds 2 · (1 − 4/6) = 2/3
     let mut readings = flag_fixture(&[true, true, true, true, false, false]);
     readings.clumps = Some(clump_readings_of(&[true, true, true, true, false, false]));
     let report = assess(readings.with_anchor_types(&anchor_types), &thresholds);
@@ -1091,9 +1084,6 @@ fn clump_resolution_triages_flags() {
     assert!(report.passes());
 }
 
-/// Hand-computed density rows.
-///
-/// The rows cover log ratios, the median/MAD spread, and degenerate-radius exclusion.
 #[test]
 fn assess_reads_density_from_radii() {
     let mut readings = flag_fixture(&[true, true, true]);
@@ -1153,7 +1143,6 @@ fn assess_reads_density_from_radii() {
     assert!(!strict.passes());
 }
 
-/// Pinned thresholds on absent evidence fail closed.
 #[test]
 fn assess_fails_pinned_thresholds_without_evidence() {
     // Every radius degenerate: the density reading is absent.
@@ -1192,13 +1181,8 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     assert!(!report.passes());
 }
 
-/// The neighbourhood controls demand a nonempty grid.
-///
-/// `all` over an empty grid is vacuously true. The verdict must not be. `assess` cannot emit an
-/// empty grid (it reads step 0 unconditionally and panics), but the report is a serializable value
-/// whose verdict must hold under every construction - persisted reports get read back, and a
-/// control over zero steps is the same evidence absence as a density ceiling over absent readings,
-/// failing the same way.
+// reports may be constructed or deserialized independently of assess, including with an empty
+// primary grid
 #[test]
 fn neighbourhood_controls_demand_a_nonempty_grid() {
     let readings = flag_fixture(&[true, true]);
@@ -1217,10 +1201,6 @@ fn neighbourhood_controls_demand_a_nonempty_grid() {
     );
 }
 
-/// Override documents validate at the boundary.
-///
-/// A present field overrides its default after domain validation, an absent field keeps the
-/// default, an out-of-domain value names its field, and an unknown field refuses the document.
 #[test]
 fn threshold_overrides_validate_at_the_boundary() {
     let overrides: ThresholdOverrides =
@@ -1297,7 +1277,6 @@ fn threshold_overrides_validate_at_the_boundary() {
     );
 }
 
-/// Floors bind the overall corpus readings.
 #[test]
 fn assess_applies_pinned_floors() {
     let readings = flag_fixture(&[true, true, false]);
@@ -1324,7 +1303,6 @@ fn assess_applies_pinned_floors() {
     assert!(lenient.passes());
 }
 
-/// The report wires from a live probe and survives serialization.
 #[tokio::test]
 async fn assess_reads_a_probed_fixture() {
     let fixture = ProbeFixture::on_circle(&irregular_angles(48));
@@ -1364,9 +1342,8 @@ async fn assess_reads_a_probed_fixture() {
     assert_eq!(report.subgroups.len(), 1);
     assert_eq!(report.subgroups[0].anchors, 5);
     assert_eq!(report.subgroups[0].rows[0].recall, 1.0);
-    // Every space orders the circle identically, so all triplet pairs
-    // agree; the metric warp between chord and cosine distance keeps
-    // the density reading present and finite.
+    // on this sampled circle, chord and cosine distances give equal neighbour orderings. The
+    // distinct points give positive finite radii, with varying ratios between the two metrics.
     assert_eq!(
         report.triplet_map_representation.agreement,
         UnitFraction::ONE
@@ -1453,8 +1430,16 @@ async fn probe_rejects_impossible_designs() {
     );
 }
 
+/// Row count of the runner fixture corpus.
 const RUNNER_NODES: usize = 48;
 
+/// Returns a per-process fixture path after attempting to remove prior contents.
+///
+/// Removal errors are ignored, and the directory is not created here.
+///
+/// # Panics
+///
+/// Panics when the system temporary directory has no UTF-8 path.
 fn runner_scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -1466,7 +1451,7 @@ fn runner_scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A probe-scale corpus for publishing through the real fit.
+/// Builds a 48-node corpus for publishing through the real fit.
 ///
 /// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
 /// node type alternating between two ontology rows, and one link type.
@@ -1577,12 +1562,15 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus.
+/// Fits a supplied classifier from a synthetic training corpus.
 ///
-/// The supplied model input of the fixture fit.
+/// # Panics
+///
+/// Panics if the training set or classifier fit fails.
 fn runner_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
+    // The 13-component pattern and 3,072-component row width are coprime. Successive rows begin at
+    // distinct pattern offsets for these four rows. Therefore no two fixture rows repeat.
     const PATTERN: [f32; 13] = [
         -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
     ];
@@ -1630,9 +1618,7 @@ fn runner_classifier() -> ClassifierInput {
     }
 }
 
-/// The runner fixture's probe design.
-///
-/// A handful of anchors and comparisons sized to the 48-row corpus.
+/// Chooses probe counts and neighbourhoods that fit the 48-row runner corpus.
 fn runner_probe_options() -> QualityRunOptions {
     QualityRunOptions {
         probe: ProbeOptions {
@@ -1649,10 +1635,6 @@ fn runner_probe_options() -> QualityRunOptions {
     }
 }
 
-/// The runner end to end.
-///
-/// The real fit publishes a generation. The runner reopens its artifacts and probes them against
-/// the same dataset, then resolves anchor types and reports.
 #[tokio::test]
 async fn runner_reports_a_published_generation() {
     let path = runner_scratch("runner");
@@ -1702,7 +1684,7 @@ async fn runner_reports_a_published_generation() {
     .await
     .expect("the run should produce a report");
 
-    // The probe design landed as configured.
+    // the report records the requested probe design
     assert_eq!(report.anchors, 8);
     assert_eq!(report.corpus_universe, RUNNER_NODES - 8);
     assert_eq!(report.comparisons, 16);
@@ -1726,8 +1708,8 @@ async fn runner_reports_a_published_generation() {
         "only the two node types carry anchors",
     );
 
-    // Zero-extended canonical embeddings rank identically to the
-    // representation, so the baseline reads as perfect.
+    // appending zero components preserves the dot products and norms for these vectors, giving
+    // equal canonical and representation distance orderings
     for row in &report.sampled_representation_canonical {
         assert_eq!(row.recall, 1.0);
     }
@@ -1764,9 +1746,8 @@ async fn runner_reports_a_published_generation() {
         }
     }
 
-    // Subgroups below the default anchor floor never flag, and the verdict still refuses. Step 2 of
-    // this landmark-baseline fixture reads all-degenerate radii, so the density evidence is absent
-    // there and the control fails closed on absence, permissive ceilings included.
+    // the k=2 step has no density spread when every anchor has a zero radius in at least one space.
+    // Missing density evidence rejects even under the permissive ceiling.
     assert!(report.flags.is_empty());
     assert!(
         report.density[0].spread.is_none(),
@@ -1777,9 +1758,6 @@ async fn runner_reports_a_published_generation() {
 
 #[test]
 fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
-    // `ALL` transmutes the discriminants of a `repr(u8)` enum, so this test has to catch a variant
-    // added anywhere but the end, or a representation that stops being `u8`, before a renderer
-    // draws one metric twice.
     assert_eq!(QualityMetric::ALL.first(), Some(&QualityMetric::Recall));
     assert_eq!(
         QualityMetric::ALL.last(),
@@ -1794,9 +1772,7 @@ fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
     labels.dedup();
     assert_eq!(labels.len(), QualityMetric::ALL.len(), "{labels:?}");
 
-    // The report checks each metric under a threshold key whose noun is the label, so an operator
-    // reading a rendered reading knows which key moves it. The keys are this test's own copy of
-    // that wire vocabulary: renaming one is a deliberate edit here as well as there.
+    // these literal threshold keys check the labels' relationship to the override vocabulary
     for (metric, key) in QualityMetric::ALL.into_iter().zip([
         "minimum_recall",
         "minimum_trustworthiness",
@@ -1828,9 +1804,7 @@ async fn a_delivery_stream_must_cover_every_request_exactly_once() {
     .expect("both requested rows were delivered");
     assert_eq!(matched, ['a', 'z']);
 
-    // A repeat refuses instead of replacing the payload a reading would
-    // have used: nothing here can tell an echo of the same bytes from a
-    // second, different answer under one id.
+    // duplicate ids fail the stream even when a later delivery would complete coverage
     let repeated = match_deliveries(
         node_ids,
         &rows,

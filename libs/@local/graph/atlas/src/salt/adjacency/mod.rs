@@ -1,16 +1,12 @@
-//! An incident-edge adjacency lists the edge rows touching each node row.
+//! Incident-edge lookup with separate outgoing and incoming runs.
 //!
-//! [`Adjacency`] is the serving contract's topology artifact. For every node row it records the
-//! edge rows leaving it and the edge rows arriving at it as two adjacent runs of one shared entry
-//! array.
+//! [`Adjacency`] records the edge rows leaving each node and arriving at it as adjacent runs of one
+//! shared entry array. Naming edge rows preserves parallel edges between the same node pair. The
+//! adjacency depends only on the endpoint column and node domain, allowing attribute columns to
+//! change independently.
 //!
-//! Every entry names an edge row rather than a node pair. The same node pair admits more than one
-//! edge row, and attributes resolve through edge-row-indexed columns. Naming the edge keeps
-//! parallel edges distinct and keeps the artifact stable, and the adjacency never re-publishes when
-//! an attribute column changes.
-//!
-//! A node pair joined both ways draws the incidence picture the file compresses, with edge row `0`
-//! the `0 → 1` edge and edge row `1` the `1 → 0` edge:
+//! A node pair joined both ways has the following incidence matrix, with edge row `0` the `0 → 1`
+//! edge and edge row `1` the `1 → 0` edge:
 //!
 //! ```text
 //!                    edge 0   edge 1
@@ -23,27 +19,28 @@
 //! Each matrix row stores its `x` marks as one ascending run of edge row ids, and each edge column
 //! holds exactly two marks: one outgoing at its source, one incoming at its target.
 //!
-//! The artifact derives from the endpoint column in one counting pass and publishes as one
-//! structure-only [`crate::file::sprs`] matrix: `2N` compressed rows over the fencepost column,
-//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so no value
-//! bytes exist on disk.
+//! Construction fills the runs in edge-row order after counting degrees and computing prefix sums.
+//! The artifact writes as one structure-only [`crate::file::sprs`] CSR matrix: `2N` compressed rows
+//! for `N` nodes, edge row ids as indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values.
+//! No value bytes exist on disk.
 //!
-//! [`AdjacencyArchive`] reopens the file over a whole-file mapping and validates the list
-//! invariants once, so lookups read from the page cache without holding the lists on the heap.
+//! [`AdjacencyArchive`] borrows lists from a whole-file mapping. For CSR input it validates the
+//! list invariants at construction, using temporary per-direction bitsets. Lookups borrow the
+//! mapped runs without allocating.
 //!
 //! # List contract
 //!
-//! - Matrix row `2i` is node row `i`'s outgoing run and row `2i + 1` its incoming run, so one
-//!   fencepost column serves both directions and the whole incident slice is contiguous for free.
+//! - Matrix row `2i` is node row `i`'s outgoing run and row `2i + 1` its incoming run. One
+//!   fencepost column serves both directions. The incident slice is contiguous.
 //! - Every edge row occupies exactly one outgoing slot (at its source) and one incoming slot (at
-//!   its target). A self-loop occupies both slots of its one endpoint, so a consumer merging the
-//!   directions has to dedupe.
+//!   its target). A self-loop occupies both slots of its one endpoint. Merging the directions
+//!   requires deduplication.
 //! - Within each run the edge row ids are strictly ascending: runs are binary-searchable, and
 //!   filtered merges walk them linearly.
 //! - Zero-degree nodes hold two empty runs.
 //! - The column dimension records the edge-domain bound `max(E, 1)`. The shape encoding terminates
-//!   on zero extents, so an edgeless adjacency records the smallest bound and zero entries, and the
-//!   edge count reads from the entry count alone.
+//!   on zero extents. An edgeless adjacency records the smallest bound and zero entries. The edge
+//!   count reads from the entry count alone.
 
 mod artifact;
 
@@ -70,8 +67,13 @@ use crate::{
 
 /// Places edge row `edge` into its source's outgoing and its target's incoming slot.
 ///
-/// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling in
-/// edge-row order lands ascending edge rows ascending in place.
+/// `cursors` holds each run's next free slot. Filling slots in edge-row order keeps each run
+/// ascending.
+///
+/// # Panics
+///
+/// Panics if an endpoint's computed run is outside `cursors`, or its next slot is outside `values`
+/// or the address space.
 fn insert_edge<I: Copy>(
     cursors: &mut [u64],
     values: &mut [I],
@@ -93,9 +95,8 @@ fn insert_edge<I: Copy>(
 
 /// A unit-value array carried as its length alone.
 ///
-/// Sparse-matrix storage wants one value slot per structural entry, and a structure-only matrix's
-/// entries are units. A unit occupies no bytes, so the length is the whole value: `n` of them are
-/// recoverable from `n`, and holding the count costs what holding the array would have cost.
+/// Sparse-matrix storage requires one value slot per structural entry. A unit occupies no bytes,
+/// and `n` units are recoverable from the length `n`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct UnitSlice {
     length: usize,
@@ -105,9 +106,11 @@ impl Deref for UnitSlice {
     type Target = [()];
 
     fn deref(&self) -> &[()] {
-        // SAFETY: `()` is zero-sized, so the slice covers no bytes at any length. The pointer
-        // to `self` is non-null and trivially aligned for `()`, zero bytes are valid for reads
-        // at any address, and no element count of a zero-sized type overflows `isize` in bytes.
+        // SAFETY: a slice of `()` occupies zero bytes for every element count, and `()` has
+        // alignment one and no initialization bytes. The pointer comes from the shared borrow of
+        // `self`, is non-null and aligned, and the returned slice borrows no longer than `self`.
+        // Its byte range is empty and cannot exceed `isize::MAX` or wrap the address space.
+        // Therefore `from_raw_parts` may construct this shared unit slice.
         unsafe { core::slice::from_raw_parts(core::ptr::from_ref(self).cast::<()>(), self.length) }
     }
 }
@@ -128,30 +131,39 @@ enum AdjacencyGraph {
 
 /// The incident-edge adjacency of one generation, in writable form.
 ///
-/// Construction orders every run; the fencepost and value columns are exactly the file's pointer
-/// and index regions.
+/// Construction orders every run. The fencepost and edge-row columns become the file's pointer and
+/// index regions. Writing uses the narrowest unsigned index width covering `max(E, 1)`, where `E`
+/// is the edge count.
+///
+/// Writing a zero-node adjacency returns [`WriteSprsError::ZeroDimension`]. A nonempty node domain
+/// with no edges has a file representation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Adjacency(AdjacencyGraph);
 
 impl Adjacency {
     /// Builds the adjacency over the endpoint column.
     ///
-    /// `endpoints[e]` is edge row `e`'s `[source, target]` node rows; `rows` is the node-row domain
-    /// they index into. Time and memory are `O(N + E)` over one counting pass, one prefix sum, and
-    /// one fill in edge-row order, which is what makes every run strictly ascending by
-    /// construction.
+    /// `endpoints[e]` is edge row `e`'s `[source, target]` node rows. Every endpoint must lie in
+    /// the `rows` node domain, and the `2 · rows + 1` fenceposts must fit an addressable
+    /// allocation. The result has one outgoing and one incoming slot per edge, including
+    /// self-loops.
+    ///
+    /// # Complexity
+    ///
+    /// Time and memory are O(N + E), for N node rows and E edges. A counting pass and prefix sum
+    /// delimit the runs. Filling each run in ascending edge-row order establishes its strict
+    /// ordering.
     ///
     /// # Panics
     ///
-    /// This panics when an endpoint lies outside the `rows` domain, which the dataset row contract
-    /// excludes.
+    /// Panics if the run-column allocation exceeds the address space or a computed endpoint slot
+    /// lies outside it.
     #[must_use]
     pub(crate) fn build(rows: usize, endpoints: &[[NodeRowId; 2]]) -> Self {
         let mut fenceposts = vec![0_u64; 2 * rows + 1];
 
-        // Degrees first: slot 2i + 1 counts node i's outgoing edges and
-        // slot 2i + 2 its incoming, so the prefix sum below turns the
-        // counts into the run fenceposts directly.
+        // slot 2i + 1 counts node i's outgoing edges and slot 2i + 2 its incoming edges. Placing
+        // degrees one slot after each run's start makes the prefix sum produce its fenceposts.
         for &[source, target] in endpoints {
             let source = source.as_usize();
             let target = target.as_usize();
@@ -162,13 +174,13 @@ impl Adjacency {
             fenceposts[position] += fenceposts[position - 1];
         }
 
-        // Fill in edge-row order: each run's cursor starts at its
-        // fencepost, and ascending edge rows land ascending in place.
+        // each run's cursor starts at its fencepost. The fill visits edge rows in ascending order
+        // and appends within each run.
         let mut cursors = fenceposts[..fenceposts.len() - 1].to_vec();
 
-        // The narrowest covering width shrinks the value column and the
-        // on-disk index region alike; `bound` stands in for the column
-        // dimension so an edgeless adjacency keeps a nonzero domain.
+        // sprs requires the column dimension itself to fit the index type. The narrowest covering
+        // width shrinks both the resident edge-row column and its file region. A nonzero bound
+        // preserves the shape of an edgeless adjacency.
         let bound = endpoints.len().max(1);
         if u16::try_from(bound).is_ok() {
             Self(AdjacencyGraph::U16(assemble(
@@ -202,16 +214,25 @@ impl Adjacency {
             AdjacencyGraph::U32(graph) => graph.rows(),
             AdjacencyGraph::U64(graph) => graph.rows(),
         };
-        // The list contract stores two runs per node, so the halving is exact.
+        // the list contract stores exactly two runs per node.
         runs.div_euclid(2)
     }
 
     /// Returns a node's incident-edge degree: its outgoing plus incoming slots.
     ///
-    /// A self-loop counts twice, once per direction, matching the slot contract above. Returns
-    /// [`None`] when the row lies outside the node domain.
+    /// A self-loop counts twice, once per direction. Returns [`None`] when the platform-sized row
+    /// index lies outside the node domain.
+    ///
+    /// # Warning
+    ///
+    /// On targets narrower than 64 bits, row conversion retains only the low `usize::BITS` bits. An
+    /// out-of-domain row can then alias an in-domain node.
     #[must_use]
     pub(crate) fn degree(&self, node: NodeRowId) -> Option<usize> {
+        /// Counts the slots incident to `node` in `graph`.
+        ///
+        /// Sums the outgoing and incoming slots, and returns [`None`] when the node's slot pair
+        /// lies outside `graph`.
         fn incident<I>(graph: &AdjacencySparseGraph<I, u64>, node: NodeRowId) -> Option<usize>
         where
             I: SpIndex,
@@ -233,10 +254,16 @@ impl Adjacency {
     }
 }
 
-/// Fills the value column at index width `I` and assembles the CSR adjacency.
+/// Fills the edge-row column at index width `I` and assembles the CSR adjacency.
 ///
-/// `fenceposts` are the finished prefix sums over the `2N` runs; `cursors` start at each run's
-/// fencepost. The matrix's row dimension is the run count, not the node count.
+/// `fenceposts` must be the finished degree prefix sums over the `2N` runs of `endpoints`, starting
+/// at zero. `cursors` must start at each run's fencepost. `bound` must equal `max(endpoints.len(),
+/// 1)` and fit `I`. The matrix's row dimension is the run count, not the node count.
+///
+/// # Panics
+///
+/// Panics if `fenceposts` is empty, an edge row cannot fit `I`, the entry allocation exceeds the
+/// address space, or [`insert_edge`] encounters an out-of-range run or slot.
 fn assemble<I>(
     bound: usize,
     fenceposts: Vec<u64>,
@@ -257,10 +284,14 @@ where
     let runs = fenceposts.len() - 1;
     let length = values.len();
 
-    // SAFETY: the counting build establishes the compressed structure: the fenceposts are a
-    // prefix sum starting at zero and ending at the slot count, one entry past the run count,
-    // the fill placed ascending edge rows ascending within each run, every value lies below
-    // `bound`, and the unit storage length equals the value count.
+    // SAFETY: sprs requires matching entry/value lengths, monotone representable pointers, strictly
+    // ascending bounded indices per run, and representable dimensions. `build` supplies zero-based
+    // degree prefix sums ending at `2E`, with `runs + 1` pointers. The successful non-ZST
+    // allocations bound pointers by `isize::MAX`, and their lengths fit `u64`. Each edge is
+    // appended once to each endpoint direction in ascending order, including separate self-loop
+    // slots. The selected index width covers `bound`, every edge index is below it, and `UnitSlice`
+    // has exactly the index count. Therefore these columns satisfy `new_unchecked`'s
+    // compressed-structure contract.
     unsafe {
         CsMatBase::new_unchecked(
             sprs::CompressedStorage::CSR,
@@ -277,17 +308,6 @@ impl WriteAs<crate::file::salt::artifact::Adjacency> for Adjacency {}
 impl WriteInto for Adjacency {
     type Error = WriteSprsError;
 
-    /// Writes the adjacency as a structure-only sparse matrix file.
-    ///
-    /// At the narrowest index width covering the edge count.
-    ///
-    /// Returns the SHA-256 of the written bytes, which is the identity the repository records for
-    /// the published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails, or when the adjacency spans no node rows.
-    /// The corpus contract places at least one node, and an empty row domain has no on-disk form.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),

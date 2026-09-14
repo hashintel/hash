@@ -51,18 +51,15 @@ pub(crate) struct SupportAnchor<N> {
 /// Computes one landmark's median layout distance to its nearest skeleton neighbours.
 ///
 /// The neighbour count and median convention are the corpus local-scale kernel's
-/// ([`insert_nearest`] and [`sorted_median`]); the skeleton is capacity-bounded, so the nearest set
-/// comes from a plain pass over the layout.
-// PERF: this runs once per landmark and is an all-nearest-neighbours
-// scan. The cost is O(S^2) distance evaluations over the
-// capacity-bounded skeleton and tens of milliseconds once per fit. If
+/// ([`insert_nearest`] and [`sorted_median`]). The skeleton is capacity-bounded, and the nearest
+/// set comes from a plain pass over the layout.
+// PERF: this runs once per landmark and is an all-nearest-neighbours scan. The cost is O(S²)
+// distance evaluations over the capacity-bounded skeleton and tens of milliseconds once per fit. If
 // skeleton capacity ever rises enough to matter, the fix is algorithmic
-// before it is SIMD. Build one kd-tree over the layout (kiddo is
-// already in-tree for serving) and take the fifteen nearest per
-// landmark in O(S log S) total. The median consumes distances only, so
-// tied neighbour choices cannot change the result. An exact index
-// reproduces the brute-force output bit for bit. Measure at a raised
-// capacity before acting.
+// before it is SIMD. Build one kd-tree over the layout (the crate's `math::KdTree` already wraps
+// kiddo) and take the fifteen nearest per landmark in O(S log S) total. The median consumes
+// distances only, so tied neighbour choices cannot change the result. An exact index reproduces the
+// brute-force output bit for bit. Measure at a raised capacity before acting.
 fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> NonNegative
 where
     N: Id,
@@ -87,7 +84,7 @@ impl<N> SupportAnchor<N> {
     /// Anchors every skeleton landmark at its laid-out coordinate.
     ///
     /// With the skeleton's own local ruler as its radius, and each anchor's row translated
-    /// through `class_of`, the door from the skeleton's corpus rows into the trainer's own row
+    /// through `class_of`, the map from the skeleton's corpus rows into the trainer's own row
     /// domain.
     ///
     /// The radius is the median layout distance to the landmark's nearest skeleton neighbours.
@@ -118,9 +115,9 @@ impl<N> SupportAnchor<N> {
 /// One step's drawn populations, in corpus row space.
 ///
 /// Each family carries its estimator scale, the factor that makes the family's batch sum an
-/// unbiased estimate of the family objective that [`super`] documents. For the relation family that
-/// objective is the capped-sampling one, a per-type clipped total. An empty family carries a zero
-/// scale, and its term contributes nothing.
+/// unbiased estimate of the family objective that [`super`] documents, under the sampler's stated
+/// draw distribution. For the relation family that objective is the capped-sampling one, a
+/// per-type clipped total. An empty family carries a zero scale, and its term contributes nothing.
 ///
 /// The population vectors live in the draw's allocator. The relation draws' nested edge vectors
 /// stay global (see the module documentation).
@@ -155,22 +152,22 @@ pub(crate) struct Populations<'index, N, E, A: Allocator = Global> {
     /// The target objective's unit draws, per-type capped like the relation family.
     ///
     /// Drawn exactly when the caller says the target estimand exists - every step from the
-    /// boundary on a target-configured run - independent of the step's step and of the
-    /// activation, so a zero-activation reference replicate consumes the identical stream. The
-    /// batch assembly never touches this family: the target term forwards its own row set at
-    /// the estimand's two steps instead of riding the batch frame.
+    /// boundary on a target-configured run - independent of the training step's lens step and of
+    /// the activation, and a zero-activation reference replicate consumes the identical stream.
+    /// The batch assembly never touches this family: the target term forwards its own row set at
+    /// the estimand's two steps instead of reusing the batch frame.
     pub target: Vec<SampledRelationEdges<'index, N, E>, A>,
-    /// The step's relation-lens step.
+    /// The training step's lens step.
     pub eta: NonNegative,
 }
 
 /// The per-step inputs the sampler combines with its frozen plan.
 ///
-/// The plan's counts are frozen for the run, while these facts change step by step, so a draw
+/// The plan's counts are frozen for the run, while these facts change step by step, and a draw
 /// call names them once as one value.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct DrawContext<'frame, N> {
-    /// `η`: the step step's relation activation.
+    /// `η`: the training step's lens step, the relation activation.
     pub eta: NonNegative,
     /// The pooled hard-negative frame, absent before the first refresh tick.
     pub mined: Option<&'frame MinedFrame<N>>,
@@ -180,7 +177,7 @@ pub(crate) struct DrawContext<'frame, N> {
     pub anchors: &'frame [SupportAnchor<N>],
     /// Whether the target estimand exists at this step.
     ///
-    /// A fact of the schedule and the run configuration, never of the activation value, so the
+    /// A fact of the schedule and the run configuration, never of the activation value: the
     /// target family's stream consumption is identical between a zero-activation reference
     /// replicate and a live target run.
     pub target: bool,
@@ -210,7 +207,8 @@ where
     /// # Panics
     ///
     /// This panics when the semantic graph and the protection evidence disagree about the row
-    /// domain. Both artifacts come from one generation, so a mismatch is a wiring defect.
+    /// domain. Both artifacts come from one generation, and a mismatch is therefore a wiring
+    /// defect.
     #[must_use]
     pub(crate) fn new(
         semantic: SemanticGraphView<'view, N>,
@@ -243,7 +241,7 @@ where
     /// # Panics
     ///
     /// This panics when the mined frame's row domain disagrees with the artifacts'. Both come from
-    /// one training run, so a mismatch is a wiring defect.
+    /// one training run, and a mismatch is therefore a wiring defect.
     pub(crate) fn draw(
         &self,
         context: DrawContext<'_, N>,
@@ -313,8 +311,8 @@ where
             alloc.clone(),
         );
 
-        // The target family draws last, so a run without it consumes the exact stream the
-        // released trainer consumes today.
+        // The target family draws last, and a run without it consumes the exact stream the released
+        // trainer consumes.
         let target = if context.target {
             self.relation.sample_in(
                 self.plan.relation_types,

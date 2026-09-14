@@ -1,15 +1,18 @@
-//! SIMD-native math primitives for fitting and serving 2D maps of embeddings.
+//! Geometry and numerical kernels for fitting and querying 2D maps of embeddings.
 //!
-//! Everything here serves one pipeline that has to be fast and correct. The pipeline places
-//! high-dimensional embedding vectors on a 2D map and goes on transforming, aligning, and verifying
-//! that map. The types are `f32` throughout, batch four-wide where hot loops iterate, and every
-//! performance claim in their docs traces to emitted assembly or a hardware-counter measurement.
+//! The module provides vector arithmetic, coordinate transformations and fitting operations.
+//! Single-precision storage keeps point and embedding arrays compact. Double-precision arithmetic
+//! supplies wider accumulation and range where individual kernels need it. Validated fields and
+//! scalar domains make input conditions explicit.
 //!
-//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
-//! caller writes it.
+//! # Example
+//!
+//! This in-crate example is ignored because the math API is crate-private. It maps a layout's
+//! extent onto a viewport.
 //!
 //! ```ignore
-//! // Gather a layout's extent and map its points onto a viewport.
+//! use crate::math::{Bounds2, Vec2};
+//!
 //! let points = [
 //!     Vec2::new(-2.0, 0.0),
 //!     Vec2::new(6.0, 4.0),
@@ -22,61 +25,65 @@
 //! assert_eq!(mapped[2], Vec2::new(5.0, 5.0));
 //! ```
 //!
-//! # The types, by role
+//! # Types by role
 //!
-//! 2D geometry: [`Vec2`] is the scalar point/vector. [`Vec2x4`](vec2::Vec2x4) (natural order)
-//! and
-//! [`Vec2x4T`] (transposed order) batch four of them for SIMD, staging and computing respectively.
-//! [`Bounds2`] is the validated bounding box, with serial, SIMD, and parallel construction.
+//! Geometry: [`Vec2`] is a single-precision point or vector. [`Vec2x4`](vec2::Vec2x4) keeps four
+//! points in natural order, while [`Vec2x4T`] groups their x and y components for axis-parallel
+//! arithmetic. [`DVec2`] and [`DVec2x4T`] provide double-precision counterparts.
+//! [`FinitePointField`] validates a row-indexed slice's coordinates, and [`Bounds2`] describes a
+//! finite ordered bounding box.
 //!
-//! Transforms, most constrained first: [`Rotation`] (angle only, exact inverse),
-//! [`Translation`](translation::Translation) (offset only, exact inverse), [`Similarity`]
-//! (uniform scale + rotation + translation, total inverse, fitted from weighted point
-//! correspondences), [`Transform`] (general affine, fallible inverse).
-//! Prefer the most constrained type that models the job; each widens into
-//! [`Transform`] via [`From`], and composition is always `a.then(b)`,
-//! reading in application order.
+//! Transformations: [`Rotation`] models an angle, [`Translation`](translation::Translation) an
+//! offset, [`Similarity`] a positive uniform scale with rotation and translation, and [`Transform`]
+//! a general affine map. Prefer the most constrained type that models the operation. Each converts
+//! into [`Transform`] through [`From`], and `a.then(b)` composes in application order. Inverse
+//! methods compute floating-point approximations subject to their documented range conditions.
+//! [`Similarity::fit`] and [`Transform::fit_uniform`] estimate maps from corresponding points.
 //!
-//! Embeddings: [`VecN`] is the `N`-dimensional `f32` vector with the distance kernels;
-//! [`BoxedVecN`] owns SIMD-aligned heap storage and hands out [`AlignedVecN`] references. [`DVecN`]
-//! is the double-precision twin for the few consumers whose algorithms need it.
+//! Embeddings: [`VecN`] provides fixed-width single-precision vectors and distance kernels.
+//! [`BoxedVecN`] owns aligned heap storage exposed through [`AlignedVecN`]. [`DVecN`],
+//! [`BoxedDVecN`] and [`AlignedDVecN`] provide double-precision storage and reductions. [`MatrixN`]
+//! stores rows with a fixed embedding width.
 //!
-//! Dense solves: [`DSquareMatrix`] is the runtime-order square `f64` matrix;
-//! [`DSquareMatrix::cholesky`] factors it deterministically into the
-//! [`DCholeskyFactor`](dsquare::DCholeskyFactor) that answers symmetric positive-definite
-//! linear systems.
+//! Dense solves: [`DSquareMatrix`] is a runtime-order double-precision square matrix.
+//! [`DSquareMatrix::cholesky`] computes a Cholesky factor for symmetric positive-definite systems,
+//! rejecting nonpositive or non-finite computed pivots. Its
+//! [`DCholeskyFactor`](dsquare::DCholeskyFactor) performs triangular solves. Rounding can make a
+//! mathematically positive-definite input fail factorization.
 //!
-//! Exact neighbours: [`KdTree`] indexes a placed 2D frame and answers exact k-nearest-neighbour
-//! readouts equal to a full scan, with `f64` squared-distance readings and ties resolved by row.
+//! Neighbours: [`KdTree`] indexes a finite point field and orders selected neighbours by
+//! double-precision squared distance, breaking ties by row. Its [selection model](kdtree) explains
+//! the two walks and the precision limits of radius pruning.
 //!
-//! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
-//! attraction/repulsion gradients over batches. Its parameters come from [`AffinityCurve::fit`].
+//! Affinities: [`AffinityCurve`] evaluates a distance-based affinity and attractive/repulsive
+//! gradients. [`AffinityCurve::fit`] fits its parameters to a sampled target curve. Clipping,
+//! regularization and numerical stopping conditions are part of those operations' contracts.
 //!
-//! Scalar helpers: [`softplus`] and the checked narrowing [`narrow_f32`]. The Huber penalty and
-//! the logistic function live on [`NonNegative`] as [`huber`](NonNegative::huber) and
-//! [`sigmoid`](NonNegative::sigmoid).
+//! Scalar domains: [`Finite`], [`Positive`] and related types express value ranges. [`softplus`],
+//! [`NonNegative::huber`] and [`NonNegative::sigmoid`] provide common scalar functions.
+//! [`narrow_f32`] checks the result of a double-to-single-precision conversion. [`Derivation`]
+//! carries raw intermediate arithmetic toward a destination [`Domain`](derivation::Domain), and
+//! [`Derivation::finish`] validates the final value or returns [`Diverged`].
 //!
-//! Unclaimed folds: [`Derivation`] is a data-dependent fold's raw value bound for its
-//! validated [`Domain`](derivation::Domain), claiming nothing until
-//! [`finish`](Derivation::finish). [`Diverged`] returns the raw evidence
-//! of a refused claim.
+//! # Precision
 //!
-//! # Precision policy
+//! Single-precision storage does not imply single-precision arithmetic throughout. Wide distance
+//! methods return `f64`, and fitting and reductions often accumulate in `f64` before any final
+//! narrowing. Each arithmetic step can round at its working precision. Widening does not make a sum
+//! exact, recover distinctions already lost from stored coordinates, or prevent cancellation.
 //!
-//! `f32` is the working precision: coordinates, transforms, gradients, and distances take and
-//! return `f32`. Long reductions accumulate in `f64` internally and round once at the end, which
-//! the kernel docs state as an accuracy guarantee rather than exposing in signatures. A signature
-//! takes `f64` only where a consumer's algorithm demands it, such as classifier logits on
-//! [`DVecN`].
+//! Individual kernels state their input domains, handling of special-case results and reduction
+//! order. Parallel grouping can change acceptance decisions or final bits. An inverse or algebraic
+//! identity in the real-valued model does not by itself promise an exact floating-point round trip.
 //!
 //! # Batching
 //!
-//! Hot loops work in [`Vec2x4T`]. Convert `[Vec2; 4]` once at the loop boundary (paying one
-//! shuffle), then run axis-parallel arithmetic inside and write back with [`Vec2x4T::from_lanes`].
-//! Batch types align for full-width vector loads, and conversions to [`Simd`] compile to single
-//! load and store instructions.
-//!
-//! [`Simd`]: core::simd::Simd
+//! Convert an array of four [`Vec2`] points into [`Vec2x4T`] for a sequence of axis-parallel
+//! operations. [`Vec2x4T::into_lanes`] exposes separate x and y vectors, and
+//! [`Vec2x4T::from_lanes`] combines them. [`Vec2x4T::transpose`] returns natural point order for
+//! access through [`Vec2x4::as_array`](vec2::Vec2x4::as_array). Alignment and lane layout support
+//! SIMD access, while instruction selection and conversion cost depend on the target and
+//! optimization context.
 #![expect(unsafe_code)]
 #![expect(
     dead_code,

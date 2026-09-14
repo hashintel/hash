@@ -1,4 +1,6 @@
-//! Rotations about the origin, stored in decomposed form.
+//! Rotations about the origin with arithmetic composition.
+//!
+//! [`Rotation`] retains cosine and sine to compose rotations without recovering their angles.
 
 use core::simd::Simd;
 
@@ -10,24 +12,32 @@ use super::{
 #[cfg(test)]
 mod tests;
 
-/// A rotation about the origin, stored as the unit vector `(cos, sin)`.
+/// A rotation about the origin represented by approximate cosine and sine.
 ///
-/// The decomposed representation is the contract of this type. It computes the angle's cosine and
-/// sine once, or accepts them directly, and every later operation is plain arithmetic on them:
-/// composing two rotations multiplies the unit vectors, which adds the angles without any
-/// trigonometric calls, and inverting negates the sine, which is exact.
+/// For stored components c and s, application uses the matrix R = [[c, −s], [s, c]]. A rotation
+/// requires finite components with c² + s² ≈ 1. [`from_radians`](Self::from_radians) computes them
+/// from a finite angle, and [`from_cos_sin`](Self::from_cos_sin) accepts a caller-established pair.
+/// Byte construction does not validate this numerical condition.
+///
+/// Composition multiplies the represented complex numbers, adding their angles in real arithmetic
+/// without trigonometric calls. [`inverse`](Self::inverse) conjugates the pair by exactly negating
+/// its finite sine. Application and composition still round in `f32`.
 ///
 /// Angles follow the mathematical convention: radians, counterclockwise, with `x` growing right and
 /// `y` growing up. In a `y`-down space (such as screen coordinates) the visual direction of
 /// rotation reverses.
 ///
-/// Note that long composition chains accumulate rounding in the stored vector, letting it drift
-/// off the unit circle by about one unit in the last place per composition. Renormalizing
-/// periodically corrects the vector's length and leaves the angle alone.
+/// Composition can accumulate error in both length and angle. [`renormalize`](Self::renormalize)
+/// corrects length drift up to rounding, but cannot recover an angle lost through earlier rounding.
+/// The stored pair's length scales every applied vector in the real-arithmetic model.
 ///
-/// # Examples
+/// # Example
+///
+/// This example is ignored because [`Rotation`] is crate-private.
 ///
 /// ```ignore
+/// use crate::math::{Rotation, Vec2};
+///
 /// let quarter = Rotation::from_radians(core::f32::consts::FRAC_PI_2);
 ///
 /// let rotated = quarter.apply(Vec2::new(1.0, 0.0));
@@ -54,8 +64,8 @@ impl Rotation {
 
     /// Creates a rotation from an angle in radians.
     ///
-    /// This is the only constructor that calls into trigonometry. Every later operation reuses the
-    /// resulting cosine and sine.
+    /// `radians` must be finite. The stored components are the approximations returned by
+    /// [`f32::sin_cos`].
     #[inline]
     #[must_use]
     pub(crate) fn from_radians(radians: f32) -> Self {
@@ -66,41 +76,45 @@ impl Rotation {
 
     /// Creates a rotation directly from its cosine and sine.
     ///
-    /// The pair must lie on the unit circle: `cos · cos + sin · sin = 1` up to rounding. This is
-    /// useful when the pair is already available, for example from normalizing a direction vector,
-    /// and avoids round-tripping through an angle.
+    /// For a rotation, `cos` and `sin` must be finite with cos² + sin² ≈ 1. This avoids recovering
+    /// an angle when a normalized direction is already available. A finite non-unit pair can
+    /// instead be rescaled with [`renormalize`](Self::renormalize), subject to that method's
+    /// numerical conditions.
     #[inline]
     #[must_use]
     pub(crate) const fn from_cos_sin(cos: f32, sin: f32) -> Self {
         Self(Vec2::new(cos, sin))
     }
 
-    /// Returns the cosine of the rotation angle.
+    /// Returns the stored cosine component.
     #[inline]
     #[must_use]
     pub(crate) const fn cos(self) -> f32 {
         self.0.x()
     }
 
-    /// Returns the sine of the rotation angle.
+    /// Returns the stored sine component.
     #[inline]
     #[must_use]
     pub(crate) const fn sin(self) -> f32 {
         self.0.y()
     }
 
-    /// Returns the rotation angle in radians, in `(-pi, pi]`.
+    /// Returns the angle of the stored pair in radians.
+    ///
+    /// For a finite nonzero pair, [`f32::atan2`] returns an approximation in [−π, π], with either
+    /// endpoint possible according to the sine's sign, including signed zero.
     #[inline]
     #[must_use]
     pub(crate) fn radians(self) -> f32 {
         self.sin().atan2(self.cos())
     }
 
-    /// Returns the rotation equivalent to applying `self` first, then `next`.
+    /// Composes `self` followed by `next`.
     ///
-    /// Rotations commute, so the order only matters for consistency with the other transform types.
-    /// The composition adds the two angles by multiplying the stored unit vectors; no trigonometric
-    /// calls occur.
+    /// In real arithmetic the pair is (c₁c₂ − s₁s₂, s₁c₂ + c₁s₂), and rotations commute. Rounding
+    /// these products and sums in `f32` can make application of the composed pair differ from
+    /// sequential application.
     #[inline]
     #[must_use]
     pub(crate) const fn then(self, next: Self) -> Self {
@@ -110,13 +124,15 @@ impl Rotation {
         ))
     }
 
-    /// Rescales the stored vector back onto the unit circle.
+    /// Rescales the stored pair to approximately unit length.
     ///
-    /// Composition accumulates rounding in the vector's length at about one unit in the last place
-    /// per [`then`](Self::then); a drifted length scales every vector passed to
-    /// [`apply`](Self::apply) by that factor. Renormalizing divides the drift out at the cost of
-    /// one square root, leaving the angle unchanged up to rounding. Calling it once every few
-    /// hundred compositions keeps the error invisible in `f32`.
+    /// This multiplies both components by an approximation to 1 / √(c² + s²), using one square root
+    /// and reciprocal. A positive common factor preserves the pair's direction in real arithmetic.
+    /// The final products round separately.
+    ///
+    /// The components must be finite, and the computed squared length and reciprocal length must be
+    /// finite and positive. Pairs near unit length satisfy these conditions. A zero pair or an
+    /// extreme non-unit pair can produce NaNs or infinities instead of a normalized rotation.
     #[inline]
     #[must_use]
     pub(crate) fn renormalize(self) -> Self {
@@ -129,18 +145,20 @@ impl Rotation {
         Self(Vec2::new(self.cos() * scale, self.sin() * scale))
     }
 
-    /// Returns the rotation by the negated angle.
+    /// Conjugates the stored pair to represent the negated angle.
     ///
-    /// This negates the stored sine, which is exact: applying a rotation and then its inverse
-    /// reproduces the rounding of the forward and backward applications only, never of the
-    /// inversion itself.
+    /// Negating a finite sine introduces no rounding.
+    ///
+    /// The represented matrices satisfy `RᵀR = (c² + s²)I` in real arithmetic: any length drift
+    /// remains in an inverse round trip, in addition to application rounding. This is an
+    /// approximate inverse for a near-unit pair.
     #[inline]
     #[must_use]
     pub(crate) const fn inverse(self) -> Self {
         Self(Vec2::new(self.cos(), -self.sin()))
     }
 
-    /// Rotates a single vector about the origin.
+    /// Applies the stored rotation matrix with separate `f32` products and sums.
     #[inline]
     #[must_use]
     pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
@@ -150,12 +168,12 @@ impl Rotation {
         )
     }
 
-    /// Rotates four vectors at once, entirely in SIMD registers.
+    /// Applies the stored rotation matrix to four vectors with SIMD arithmetic.
     ///
-    /// On targets with native FMA the fused multiply-adds round once where [`apply`](Self::apply)
-    /// rounds after each multiply and each add. Results differ by at most a few units in the last
-    /// place of the intermediate products; where the products cancel, that absolute difference
-    /// spans many units in the last place of the small result.
+    /// Each axis uses one rounded product and one fused multiply-add. Fusion rounds its product and
+    /// addition once, independently of native FMA availability. This differs from
+    /// [`apply`](Self::apply)'s separate operations, especially near cancellation or overflow. No
+    /// uniform result-relative ULP bound relates the two paths.
     #[inline]
     #[must_use]
     pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {

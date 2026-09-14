@@ -5,8 +5,8 @@
 //! one stable log-sum-exp over the reference differences and zero in class order, and finally
 //! probabilities from the same shifted exponentials. The objective, the gradient residual `p − q`,
 //! the Hessian curvature `diag(p) − ppᵀ`, and the per-row contrast curvature blocks of the exact
-//! Newton assembly all read these shared bytes, so no evaluation can disagree with another about a
-//! row's logits.
+//! Newton assembly all read these shared bytes. No evaluation can therefore disagree with another
+//! about a row's logits.
 //!
 //! Every evaluation normalizes its result by the total weight `S`:
 //!
@@ -44,15 +44,17 @@ pub(super) struct JointEvaluation {
 pub(super) struct CurvatureEvaluation {
     /// The unweighted contrast curvature `Cᵢ` per row, packed as `(c11, c21, c22)`.
     pub blocks: Vec<[f64; 3]>,
-    /// The normalized Hessian columns `H[0|e_k]` of the intercept unit directions: coefficient
-    /// coupling in the coefficient rows, intercept curvature in the intercepts.
+    /// The normalized Hessian columns `H[0|e_k]` of the intercept unit directions.
+    ///
+    /// Coefficient coupling sits in the coefficient rows, intercept curvature in the intercepts.
     pub intercept_columns: [ContrastVector; CONTRAST_ROWS],
 }
 
 /// One shared per-row logits evaluation.
 struct RowPrelude {
-    /// Reference differences `δ_c` of the leading classes. The reference's own is zero by
-    /// construction.
+    /// Reference differences `δ_c` of the leading classes.
+    ///
+    /// The reference's own is zero by construction.
     delta: [f64; LEADING_CLASSES],
     /// `logsumexp(δ, 0)`, stable under the class-order shifted fold.
     log_normalizer: f64,
@@ -67,8 +69,8 @@ impl RowPrelude {
         let reference = logits[GeometryClass::COUNT - 1];
         let delta: [f64; LEADING_CLASSES] = core::array::from_fn(|class| logits[class] - reference);
 
-        // Stable shifted fold over the reference differences and zero in class order; the shift
-        // keeps every exponential in [0, 1] and a NaN input propagates through the exponentials
+        // Stable shifted fold over the reference differences and zero in class order. The shift
+        // keeps every exponential in [0, 1], and a NaN input propagates through the exponentials
         // into every output.
         let shift = delta.into_iter().reduce(f64::max).unwrap_or(0.0).max(0.0);
         let exponentials: [f64; GeometryClass::COUNT] = core::array::from_fn(|class| {
@@ -91,7 +93,9 @@ impl RowPrelude {
         }
     }
 
-    /// The reference-difference data loss `logsumexp(δ, 0) − Σ_c u_cδ_c`, folded in class order.
+    /// Computes the reference-difference data loss, folded in class order.
+    ///
+    /// The loss is `logsumexp(δ, 0) − Σ_c u_cδ_c`.
     fn loss(&self, leading: [f64; LEADING_CLASSES]) -> f64 {
         let mut value = self.log_normalizer;
         for (target, delta) in leading.into_iter().zip(self.delta) {
@@ -140,8 +144,8 @@ pub(super) struct CurvatureReading {
 /// Every row's curvature reading at one parameter point.
 ///
 /// The readings pair each scale with its weight at the source, and the total is the
-/// preparation-validated `S`, so a weight share computed from the census divides by a positive
-/// and finite total.
+/// preparation-validated `S`. A weight share computed from the census therefore divides by a
+/// positive and finite total.
 #[derive(Debug)]
 pub(super) struct CurvatureCensus {
     /// The per-row readings, in ascending original row order.
@@ -326,7 +330,7 @@ impl Prepared<'_> {
     /// normalized Hessian columns of the intercept unit directions,
     /// `H[0|e_k] = (1/S)·Σᵢ wᵢ·(Cᵢe_k)·[x̄ᵢᵀ | 1]` - the coefficient coupling block and the
     /// intercept curvature block of the Newton system in one pass. Intercepts carry no
-    /// regularization, so the columns are complete as accumulated.
+    /// regularization, and the columns are complete as accumulated.
     ///
     /// Rows accumulate in ascending original index and classes fold in discriminant order, as
     /// every other evaluation here. Returns [`None`] for a non-finite request, which visits no
@@ -401,15 +405,15 @@ impl Prepared<'_> {
 
     /// Takes the census of every row's data-Hessian curvature scale `max_c p_c(1−p_c)`.
     ///
-    /// One traversal pairs each row's scale with that row's training weight, so the pairing
-    /// cannot drift, and the census carries the preparation-validated total weight for its weight
+    /// One traversal pairs each row's scale with that row's training weight, and the pairing
+    /// cannot drift. The census carries the preparation-validated total weight for its weight
     /// shares. The scale reads the same shared logits path as the objective, gradient, and
-    /// Hessian-vector product, so the census cannot disagree with them about a row's
+    /// Hessian-vector product, and the census cannot disagree with them about a row's
     /// probabilities. A diagnostic observer for the solver's report probe: it visits every row
     /// but charges no work counters, because it participates in no solve.
     pub(super) fn curvature_census(&self, parameters: &ContrastVector) -> CurvatureCensus {
         // The zip is total: preparation refuses a corpus whose embedding and row counts differ,
-        // so the two slices share one validated row domain.
+        // and the two slices share one validated row domain.
         let readings = self
             .embeddings
             .iter()
@@ -438,9 +442,9 @@ impl Prepared<'_> {
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.
     fn finish_objective(&self, data_loss: f64, parameters: &ContrastVector) -> f64 {
         // ‖A‖² through the house striped kernel, one row at a time in contrast order. The
-        // derivation rides raw to one exit because the parameters are unbounded solver state:
+        // derivation stays raw to one exit because the parameters are unbounded solver state:
         // initialization deliberately admits a non-finite origin objective, and resolution and
-        // final certification refuse it by name where the design says so.
+        // final certification refuse it by name.
         let mut coefficient_norm = Derivation::<DNonNegative>::ZERO;
         for row in &parameters.coefficients {
             coefficient_norm += row.norm_squared();

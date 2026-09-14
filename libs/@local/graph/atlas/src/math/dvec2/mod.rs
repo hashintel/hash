@@ -18,18 +18,20 @@ mod tests;
 
 /// A 2D vector of `f64` components, for accumulating over [`Vec2`] data.
 ///
-/// A [`DVec2`] is the double-precision accumulator twin of [`Vec2`]: sums of weighted points,
-/// centroids, and moment corrections live here while a reduction runs, then narrow back to the
-/// working precision once at the end via [`narrow`](Self::narrow). Widening a [`Vec2`] through
-/// [`From`] is exact for every value, so per-component products of widened inputs carry no `f32`
-/// rounding.
+/// Accumulate weighted points and moment corrections in double precision, then convert to [`Vec2`]
+/// through [`Self::narrow`]. Widening finite `f32` components is exact. The accumulation still
+/// rounds in `f64`, but it avoids rounding each update to `f32`.
 ///
-/// The surface is the accumulator's own: arithmetic, the two products, and the exact widening and
-/// checked narrowing conversions. Geometry (interpolation, clamping, bounds) belongs to [`Vec2`].
+/// Components may be non-finite. The product methods return a [`Derivation`] whose final value can
+/// be validated before use.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{DVec2, Vec2};
+///
 /// // Accumulate a weighted centroid in double precision.
 /// let points = [Vec2::new(1.0, 2.0), Vec2::new(3.0, -2.0)];
 /// let mut sum = DVec2::ZERO;
@@ -81,7 +83,7 @@ impl DVec2 {
         self.0[1]
     }
 
-    /// The shared raw dot fold under [`dot`](Self::dot) and [`norm_squared`](Self::norm_squared).
+    /// Computes the dot product with one rounded product and one fused multiply-add.
     #[inline]
     fn dot_impl(self, other: Self) -> f64 {
         self.x().mul_add(other.x(), self.y() * other.y())
@@ -89,8 +91,8 @@ impl DVec2 {
 
     /// Returns the dot product of the two vectors.
     ///
-    /// The exponents compose, so the fold rides as an unclaimed derivation to its consumer's
-    /// own finish.
+    /// Returns an unvalidated [`Derivation`]. Products and sums of arbitrary `f64` components can
+    /// be non-finite.
     #[inline]
     pub(crate) fn dot(self, other: Self) -> Derivation<DFinite> {
         Derivation::raw(self.dot_impl(other))
@@ -98,7 +100,9 @@ impl DVec2 {
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
     ///
-    /// The sign semantics match [`Vec2::perp_dot`].
+    /// Approximates x₁y₂ − y₁x₂ with a rounded y₁x₂ product followed by a fused multiply-add.
+    /// Cancellation can change the sign near zero or leave a nonzero value for parallel inputs. Use
+    /// a predicate with a guaranteed orientation sign when orientation decides topology.
     #[inline]
     pub(crate) fn perp_dot(self, other: Self) -> Derivation<DFinite> {
         Derivation::raw(self.x().mul_add(other.y(), -(self.y() * other.x())))
@@ -132,7 +136,7 @@ impl DVec2 {
 
     /// Narrows both components to the working precision.
     ///
-    /// Returns [`None`] when either component leaves the finite `f32` range, following
+    /// Returns [`None`] when either component is NaN or rounds to an infinity, following
     /// [`narrow_f32`].
     #[inline]
     #[must_use]
@@ -147,8 +151,7 @@ impl DVec2 {
         Some(Vec2::new(x, y))
     }
 
-    /// Narrows both components to the working precision, with round-to-nearest and no
-    /// finiteness check.
+    /// Narrows both components with round-to-nearest, allowing non-finite results.
     ///
     /// A component beyond the finite `f32` range overflows to `±∞` rather than refusing. A
     /// caller that must reject an out-of-range component calls [`narrow`](Self::narrow) instead,
@@ -164,9 +167,6 @@ impl DVec2 {
     }
 }
 
-/// Widens both components.
-///
-/// The conversion is exact for every [`Vec2`].
 const impl From<Vec2> for DVec2 {
     #[inline]
     fn from(vec: Vec2) -> Self {
@@ -246,17 +246,18 @@ const impl Neg for DVec2 {
 
 /// Four double-precision 2D vectors packed in transposed (structure-of-arrays) order.
 ///
-/// The `f64` twin of [`Vec2x4T`]: all four `x` values followed by all four `y` values, aligned for
-/// [`Simd<f64, 8>`](Simd). The surface is fold-shaped - widen a [`Vec2x4T`] batch through [`From`]
-/// (exact for every component), form lane-wise products, accumulate with
-/// [`mul_add`](Self::mul_add), and terminally [`reduce_sum`](Self::reduce_sum) to a [`DVec2`] -
-/// because the
-/// type exists for double-precision moment accumulation over batches of working-precision points.
+/// All four x values precede all four y values, in storage aligned for [`Simd<f64, 8>`](Simd).
+/// Widen a [`Vec2x4T`] batch, accumulate weighted moments through [`Self::mul_add`], then combine
+/// the lanes through [`Self::reduce_sum`]. Widening finite `f32` components is exact.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private and uses nightly portable SIMD.
 ///
 /// ```ignore
 /// # #![feature(portable_simd)]
+/// use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
+///
 /// # use core::simd::Simd;
 ///
 /// let batch = DVec2x4T::from(Vec2x4T::from([
@@ -268,7 +269,7 @@ const impl Neg for DVec2 {
 ///
 /// // Accumulate the weighted sum per lane, then reduce once.
 /// let weighted = batch.mul_add(Simd::splat(0.5), DVec2x4T::ZERO);
-/// assert_eq!(weighted.reduce(), DVec2::new(5.0, 13.0));
+/// assert_eq!(weighted.reduce_sum(), DVec2::new(5.0, 13.0));
 /// ```
 #[derive(
     Debug,
@@ -290,8 +291,7 @@ impl DVec2x4T {
 
     /// Creates a batch holding four copies of `vec`.
     ///
-    /// Every lane of the `x` group holds `vec.x()` and every lane of the `y` group holds
-    /// `vec.y()`, so one point compares against a whole batch lane-wise.
+    /// Repeating the point supports lane-wise comparison against four distinct points.
     #[inline]
     #[must_use]
     pub const fn splat(vec: DVec2) -> Self {
@@ -315,10 +315,11 @@ impl DVec2x4T {
         let this = &raw const *self;
         let this = this.cast::<f64>();
 
-        // SAFETY: `Self` is `repr(C)` over `[f64; 8]` whose first four elements are the `x`
-        // lane group, `Simd<f64, 4>` is layout-compatible with `[f64; 4]`, and `Self`'s
-        // 64-byte alignment satisfies `Simd<f64, 4>`'s (const-asserted below); the borrow
-        // covers bytes owned by `self` and inherits its lifetime.
+        // SAFETY: The cast relies on Simd's contiguous array-element layout. Self's repr(C) storage
+        // has four initialized x components at offset zero. Its 64-byte alignment and the
+        // assertions below cover SIMD alignment, and the pointer retains the shared borrow's
+        // provenance and lifetime. Under that layout contract, this group may be borrowed as
+        // Simd<f64, 4>.
         unsafe { &*this.cast::<Simd<f64, 4>>() }
     }
 
@@ -336,10 +337,11 @@ impl DVec2x4T {
         let this = &raw const *self;
         let this = this.cast::<f64>();
 
-        // SAFETY: elements `4..8` of `Self`'s `repr(C)` `[f64; 8]` storage are the `y` lane
-        // group; the 32-byte offset from the 64-byte-aligned base satisfies `Simd<f64, 4>`'s
-        // alignment (const-asserted below), and the borrow covers bytes owned by `self` and
-        // inherits its lifetime.
+        // SAFETY: The cast relies on Simd's contiguous array-element layout. Self's repr(C) storage
+        // has four initialized y components at byte offset 32. The asserted SIMD alignment divides
+        // that offset and the 64-byte base alignment. Pointer addition remains within Self,
+        // preserving the shared borrow's provenance and lifetime. Under that layout contract, this
+        // group may be borrowed as Simd<f64, 4>.
         unsafe { &*this.add(4).cast::<Simd<f64, 4>>() }
     }
 
@@ -355,9 +357,10 @@ impl DVec2x4T {
         reason = "the suggested `From` conversion is not const-callable"
     )]
     pub const fn into_lanes(self) -> (Simd<f64, 4>, Simd<f64, 4>) {
-        // SAFETY: `Self` is `repr(C)` over `[f64; 8]`, the `x` lane group followed by the `y`
-        // lane group, exactly `[Simd<f64, 4>; 2]`'s memory order; sizes match and every bit
-        // pattern is a valid `f64`.
+        // SAFETY: This transmute relies on each SIMD vector having its array's element layout
+        // without padding. Self contains initialized x then y groups in repr(C) storage, and
+        // transmute checks equality of the complete sizes. Every component bit pattern is valid as
+        // f64. Under that SIMD layout contract, both destination groups are initialized and valid.
         let [xs, ys] = unsafe { core::mem::transmute::<Self, [Simd<f64, 4>; 2]>(self) };
 
         (xs, ys)
@@ -370,30 +373,33 @@ impl DVec2x4T {
     #[must_use]
     pub const fn from_lanes(xs: Simd<f64, 4>, ys: Simd<f64, 4>) -> Self {
         let this = [xs, ys];
-        // SAFETY: `[Simd<f64, 4>; 2]` lays out the `x` lane group followed by the `y` lane
-        // group, exactly `Self`'s `repr(C)` `[f64; 8]` memory order; sizes match and every
-        // bit pattern is a valid `f64`.
+        // SAFETY: This transmute relies on each SIMD vector having its array's element layout
+        // without padding. The source array places the initialized x group before y, matching
+        // Self's repr(C) component order, and transmute checks equal sizes. Under that layout
+        // contract, all destination components are initialized and valid.
         unsafe { core::mem::transmute::<[Simd<f64, 4>; 2], Self>(this) }
     }
 
     /// Returns all eight components as a single SIMD vector.
     ///
-    /// The lane order is the memory order: `x0 x1 x2 x3 y0 y1 y2 y3`. This compiles to a single
-    /// full-width vector load.
+    /// The lane order is `x0 x1 x2 x3 y0 y1 y2 y3`.
     #[inline]
     #[must_use]
     pub const fn to_simd(self) -> Simd<f64, 8> {
-        // SAFETY: `Self` is `repr(C)` over `[f64; 8]`, which is layout-compatible with
-        // `Simd<f64, 8>` (sizes const-asserted below); every bit pattern is a valid `f64`, so
-        // the reinterpretation is total.
+        // SAFETY: This transmute relies on Simd's contiguous array-element layout. Self has eight
+        // initialized f64 components in lane order, and the assertion below checks equal size.
+        // Under that layout contract, those components form a valid SIMD value.
         unsafe { core::mem::transmute::<Self, Simd<f64, 8>>(self) }
     }
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add fuses. For
-    /// components widened from `f32` both lane products are exact, so the fused and separate forms
-    /// agree bit for bit and the result carries a single rounding either way.
+    /// Lane i computes aₓbₓ + aᵧbᵧ for the corresponding pair of vectors. The y product rounds
+    /// first, followed by a fused multiply-add for the x product and sum.
+    ///
+    /// Products of finite `f32` values need at most 48 significand bits and remain within the `f64`
+    /// exponent range. When both vectors are widened from finite `f32` components, both products
+    /// are therefore exact and only the final addition rounds.
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f64, 4> {
@@ -402,8 +408,8 @@ impl DVec2x4T {
 
     /// Returns the four pairwise perpendicular dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign semantics of [`Vec2::perp_dot`].
-    /// The rounding behaviour is [`dot`](Self::dot)'s.
+    /// Each lane uses [`DVec2::perp_dot`]'s expression and numerical limits. For arbitrary `f64`
+    /// components, cancellation can leave a nonzero result even for parallel inputs.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f64, 4> {
@@ -419,12 +425,10 @@ impl DVec2x4T {
 
     /// Returns the four pairwise squared Euclidean distances.
     ///
-    /// Component `i` holds `self[i].distance_squared(other[i])`. The subtraction and squaring run
-    /// at full batch width, and only the final add combines the axis halves. Every operation
-    /// rounds separately, exactly as the scalar form does, so each component agrees with
-    /// [`DVec2::distance_squared`] bit for bit on every input. Fusing the multiply-add would
-    /// change roundings and break that equality, so this kernel deliberately stays unfused,
-    /// unlike [`dot`](Self::dot).
+    /// Component `i` holds `self[i].distance_squared(other[i])`. Separate subtraction, squaring and
+    /// addition preserve the rounding sequence of [`DVec2::distance_squared`]. Fusing the final
+    /// multiply-add can change the result even for coordinates widened from `f32`. NaN payload
+    /// equality is not guaranteed.
     #[inline]
     #[must_use]
     pub fn distance_squared(self, other: Self) -> DVecN<4> {
@@ -457,7 +461,9 @@ impl DVec2x4T {
         )
     }
 
-    /// Sums the four vectors into one [`DVec2`]: the terminal reduction of an accumulation.
+    /// Sums the four vectors into one [`DVec2`].
+    ///
+    /// The final bits can depend on the SIMD reduction's summation order.
     #[inline]
     #[must_use]
     pub fn reduce_sum(self) -> DVec2 {
@@ -465,9 +471,6 @@ impl DVec2x4T {
     }
 }
 
-/// Widens every component.
-///
-/// The conversion is exact for every [`Vec2x4T`].
 impl From<Vec2x4T> for DVec2x4T {
     #[inline]
     fn from(batch: Vec2x4T) -> Self {
@@ -475,7 +478,6 @@ impl From<Vec2x4T> for DVec2x4T {
     }
 }
 
-/// Widens four whole vectors: one interleave shuffle, then the exact per-component widening.
 impl From<[Vec2; 4]> for DVec2x4T {
     #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
@@ -483,7 +485,6 @@ impl From<[Vec2; 4]> for DVec2x4T {
     }
 }
 
-/// Adds the batches vector by vector: the unweighted accumulation step.
 impl Add for DVec2x4T {
     type Output = Self;
 
@@ -500,7 +501,6 @@ impl AddAssign for DVec2x4T {
     }
 }
 
-/// Subtracts the batches vector by vector: the deviation-from-centre step.
 impl Sub for DVec2x4T {
     type Output = Self;
 
@@ -511,12 +511,12 @@ impl Sub for DVec2x4T {
 }
 
 const impl From<Simd<f64, 8>> for DVec2x4T {
-    /// Reinterprets eight lanes in `x0 x1 x2 x3 y0 y1 y2 y3` order.
     #[inline]
     fn from(lanes: Simd<f64, 8>) -> Self {
-        // SAFETY: `Simd<f64, 8>` is layout-compatible with `[f64; 8]`, `Self`'s `repr(C)`
-        // storage (sizes const-asserted below); every bit pattern is a valid `f64`, so the
-        // reinterpretation is total.
+        // SAFETY: This transmute relies on Simd's contiguous array-element layout without padding.
+        // Self stores eight f64 components in the same order, with no additional validity
+        // conditions, and equal sizes are asserted below. Under that layout contract, the
+        // initialized lanes form a valid batch.
         unsafe { core::mem::transmute::<Simd<f64, 8>, DVec2x4T>(lanes) }
     }
 }
@@ -528,9 +528,9 @@ const impl From<DVec2x4T> for Simd<f64, 8> {
     }
 }
 
-// The batch must back `Simd<f64, 8>` (identical size, at least its alignment), and the lane
-// views borrow `Simd<f64, 4>` groups at offsets 0 and 32, so the half-width alignment must
-// not exceed the offset.
+// The batch must match `Simd<f64, 8>`'s size and meet its alignment. Borrowed `Simd<f64, 4>` groups
+// begin at byte offsets 0 and 32. Their alignment must not exceed 32 bytes to keep both group
+// addresses aligned.
 const _: () = assert!(size_of::<DVec2x4T>() == size_of::<Simd<f64, 8>>());
 const _: () = assert!(align_of::<DVec2x4T>() >= align_of::<Simd<f64, 8>>());
 const _: () = assert!(align_of::<Simd<f64, 4>>() <= 32);

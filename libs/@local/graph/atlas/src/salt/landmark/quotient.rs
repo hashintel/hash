@@ -1,28 +1,29 @@
 //! Quotient contraction of the semantic graph.
 //!
-//! The corpus semantic graph contracts through the nearest-landmark assignment. Every corpus edge
-//! whose endpoints map to distinct landmarks contributes its weight to the directed landmark pair,
-//! in double precision. Each landmark row then normalizes by its largest inflow and keeps its
-//! strongest [`maximum_neighbours`](QuotientOptions::maximum_neighbours). Both directions of a pair
-//! combine by the probabilistic union `a + b - a · b`, the same symmetrization the corpus-scale
-//! [`SemanticGraph`](crate::salt::semantic) uses. The result is a symmetric graph over the landmark
-//! domain with weights in `(0, 1]` and optimization memory proportional to the landmark count.
+//! Let A(i) assign input row i to one of M landmarks, and let wᵢⱼ ∈ (0, 1] be a stored input edge
+//! weight. For distinct landmarks a and b, the directed flow is F(a, b) = Σ_{i: A(i) = a} Σ_{j:
+//! A(j) = b} wᵢⱼ, summing only stored edges. Edges inside one landmark contribute nothing. Each row
+//! normalizes by its largest flow, `p(a, b) = F(a, b) / max_c F(a, c)`, and keeps its strongest
+//! [`maximum_neighbours`](QuotientOptions::maximum_neighbours) entries, breaking ties by ordinal.
+//! Missing and discarded directions have p = 0.
 //!
-//! The union treats the two directions as fuzzy memberships rather than as two measurements of one
-//! quantity. Each direction is the pair's flow normalized by a *different* denominator (its own
-//! row's largest inflow), so the two values carry mismatched scales. A plain sum double-counts the
-//! shared corpus edges and a difference reports asymmetry instead of affinity. The probabilistic
-//! union keeps a one-sided edge at its directed value (a hub's weak judgement of a satellite never
-//! erases the satellite's strong judgement of the hub) and reinforces edges both sides claim.
-//! Corpus scale behaves the same way, so the layout optimizer sees one weight semantics at either
-//! scale.
+//! The quotient weight is q(a, b) = p(a, b) + p(b, a) − p(a, b) · p(b, a), the probabilistic union
+//! also used by [`SemanticGraph`]. Row-specific maxima put
+//! the directions on different scales. Union preserves either direction's support and never lowers
+//! its real-arithmetic membership. In particular, a landmark's weak normalized flow to another
+//! never erases that other's strong flow back. This preserves fuzzy-membership semantics at both
+//! graph scales instead of summing the shared corpus edges twice.
 //!
-//! The corpus graph stores every edge in both rows, so each undirected corpus edge feeds both
-//! directions of its landmark pair; the per-row normalization is what keeps the contraction from
-//! being a plain doubling.
+//! A successful quotient is symmetric with weights in (0, 1]. Mirroring retained directions can
+//! give one row more neighbours than its directed cap. With cap K, the result has at most 2 · M · K
+//! stored directed entries. Contraction also needs the corpus-to-landmark grouping and dense
+//! landmark-domain scratch columns.
 //!
-//! The contraction accumulates in parallel, one task per landmark over that landmark's corpus rows
-//! in ascending order, so the sums are bit-equal to a serial pass at any thread count.
+//! Accumulation uses `f64`. Every landmark's task visits its assigned corpus rows and their edges
+//! in ascending order, preserving the per-pair addition order of a serial pass at any thread count.
+//! Normalized weights narrow to `f32`, and equal-weight ordering makes both mirrored unions
+//! bit-equal under the same floating-point behavior. Extreme flow ratios can underflow to zero on
+//! narrowing, in which case final graph validation fails.
 
 use core::{error::Error, fmt, num::NonZero};
 
@@ -34,13 +35,14 @@ use crate::salt::semantic::{
     SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError,
 };
 
+/// The default per-landmark directed-edge cap.
 const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
 
 /// Contraction settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuotientOptions {
-    /// Strongest directed edges each landmark row keeps before the symmetric union.
-    // The default is an unvalidated starting point (legacy required the value as config, setting no precedent). It bounds quotient memory at about `M · 64` directed edges before the union, and the layout quality criteria (trustworthiness, landmark rank correlation) revise it from evidence.
+    /// Strongest directed edges each landmark row keeps before union, 64 by default.
+    // the unvalidated default bounds retained directions at M · 64 before union. Trustworthiness and landmark rank correlation supply the measurements for revising it.
     pub maximum_neighbours: NonZero<usize> = MAXIMUM_NEIGHBOURS,
 }
 
@@ -97,11 +99,15 @@ where
 {
     /// Accumulates each landmark's directed inflows and keeps its strongest normalized neighbours.
     ///
-    /// One task per landmark accumulates into a dense per-thread scratch column - the touched list
-    /// records which slots to read and reset, so a task costs its own edges, not the landmark
-    /// domain. Rows ascend within each task ([`runs`](Self::runs) yields ascending runs), so the
-    /// per-pair addition order (and the sum, bit for bit) matches a serial pass at any thread
-    /// count.
+    /// Each task state has a dense landmark-domain scratch column. The touched list limits
+    /// extraction and reset to nonzero flows after allocation. [`runs`](Self::runs) preserves
+    /// ascending corpus-row order within each landmark, matching a serial pass's per-pair
+    /// additions.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a visited row lies outside the graph or a neighbour lies outside the
+    /// assignment.
     fn strongest_neighbours(
         &self,
         semantic: &SemanticGraphView<'_, N>,
@@ -177,8 +183,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when this assignment does not cover the graph's rows or when no edge
-    /// crosses landmark boundaries.
+    /// Returns [`QuotientError`] for inconsistent row domains, an edgeless quotient, or a
+    /// contracted matrix that fails graph validation.
     #[tracing::instrument(skip_all)]
     pub(crate) fn quotient(
         &self,
@@ -211,10 +217,10 @@ where
             return Err(QuotientError::EmptyQuotient);
         }
 
-        // Weight-descending within a key, so a pair's two mirror
-        // positions fold in one order and compute bit-equal unions. Each
-        // key folds at most two memberships in (0, 1], whose union is ≤ 1,
-        // and the clamp is the unit fraction's ceiling.
+        // A pair has at most one retained membership from each direction. Descending weight order
+        // makes its two mirrored positions fold those same operands in the same order. Their unions
+        // are bit-equal, and the clamp enforces the upper bound of one. Final validation rejects a
+        // zero from earlier underflow.
         edges.sort_unstable_by(
             |&(row_a, column_a, weight_a), &(row_b, column_b, weight_b)| {
                 (row_a, column_a)
@@ -248,10 +254,8 @@ where
             indptr.push(indices.len() as u64);
         }
 
-        // The sort, dedup and fill above give the pairs their compressed-sparse-row shape:
-        // ascending and unique by (row, column), every column a landmark ordinal, `indptr`
-        // monotone through the entry count. Dropping any one of the three breaks that
-        // shape.
+        // the sorted, deduplicated pairs give ascending unique columns in every row. The fill
+        // starts indptr at zero and closes it at the entry count, including empty landmark rows.
         let matrix = SemanticMatrix::try_new((landmarks, landmarks), indptr, indices, weights)
             .map_err(|(_, _, _, error)| error)
             .expect("mirrored sorted pairs form a compressed sparse row structure");

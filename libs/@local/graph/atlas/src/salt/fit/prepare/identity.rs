@@ -10,14 +10,14 @@
 //! opaque to the pipeline, ordered by its bytes since source identifiers carry no other order.
 //! The payload is the row's display bytes, a legend for node and edge rows and an icon for
 //! ontology rows, its type's empty value when the row displays nothing. The file format is
-//! [`file::identity`](crate::file::identity)'s, and the row domain a file covers travels in
-//! its header, so a file reopens only under the row type that wrote it.
+//! [`file::identity`](crate::file::identity)'s, and its header records the row domain. A file
+//! reopens only under the row type that wrote it.
 //!
 //! This module owns the table's domain invariants. The index holds exactly one entry per row and
 //! every entry agrees with the id column, which makes the index and the column two views of one
 //! bijection, every span lies inside the payload region, and every span's bytes cast as the id
-//! type's payload. One `O(N)` pass validates all of that on open, so a lookup afterwards never
-//! reports a malformed file.
+//! type's payload. One `O(N)` pass validates all of that on open. A lookup afterwards never reports
+//! a malformed file.
 //!
 //! [`Dataset::NodeId`]: crate::dataset::Dataset::NodeId
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
@@ -168,11 +168,8 @@ impl Error for InvalidIdentityFile {}
 
 /// A written identity table reopened as its mapped lookup surface.
 ///
-/// Construction validates the domain invariants in one pass, so the lookups skip validation
-/// afterwards: [`id`](Self::id) indexes the id column, [`row_of`](Self::row_of) resolves one
-/// index lookup, and [`payload_of`](Self::payload_of) slices the payload region through the span
-/// table. The table translates between one id domain and one row domain: `K` is the source id
-/// type and `R` the row identity its lookups answer.
+/// Construction validates the identity bijection and payload spans. The source identity type is
+/// `K`, and `R` is the row domain.
 #[derive(Debug)]
 pub(crate) struct IdentityTableArchive<K, R> {
     file: IdentityFile,
@@ -224,7 +221,7 @@ where
         }
 
         // One entry per row plus column agreement makes the index a bijection: the map's keys
-        // are pairwise distinct, so two entries agreeing with one row's column bytes would be
+        // are pairwise distinct. Two entries agreeing with one row's column bytes would be
         // one key twice.
         let mut entries = index.stream();
         while let Some((id, row)) = entries.next() {
@@ -290,9 +287,6 @@ where
         self.file.index().get(id.as_bytes()).map(R::from_u64)
     }
 
-    /// Returns the display payload of `row`, or [`None`] beyond the domain.
-    ///
-    /// A row without a display value returns its payload type's empty value.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
@@ -305,8 +299,8 @@ where
 
         let bytes = &self.file.payload()[offset..offset + length];
         // SAFETY: `Self::new` cast every span's bytes as `K::Payload` and rejected the file
-        // otherwise, and the mapped file is immutable under the `crate::file` publish contract,
-        // so the bytes validated there are the bytes sliced here.
+        // otherwise, and the mapped file is immutable under the `crate::file` publish contract.
+        // Therefore the bytes validated there are the bytes sliced here.
         Some(unsafe { <K::Payload>::try_ref_from_bytes(bytes).unwrap_unchecked() })
     }
 
@@ -321,6 +315,7 @@ where
 
 #[cfg(test)]
 mod tests {
+
     use core::assert_matches;
     use std::{fs, path::PathBuf};
 
@@ -357,7 +352,7 @@ mod tests {
         OwnedLegend::new(OntologyRowId::new(0), Label::new(text))
     }
 
-    // Ids in row order; ascending id-byte order is rows 2, 0, 1.
+    /// Ids in row order whose little-endian bytes sort as rows 2, 0, 1.
     #[expect(
         clippy::little_endian_bytes,
         reason = "the fixture pins ids whose little-endian bytes sort unlike their values"
@@ -387,6 +382,11 @@ mod tests {
         (path, digest)
     }
 
+    /// Round-trips every fixture row through `key_of`, `row_of` and `payload_of_row`.
+    ///
+    /// The written fixture's digest hashes its bytes, every row round-trips through `key_of` and
+    /// `row_of` with misses answering `None`, and `payload_of_row` slices the interned region
+    /// including the empty label.
     #[test]
     fn written_table_reopens_with_all_three_translations() {
         let (path, digest) = written_fixture("roundtrip.idnt");
@@ -427,6 +427,7 @@ mod tests {
         assert_eq!(table.payload_of(NodeRowId::new(3)), None);
     }
 
+    /// An empty table writes, reopens with zero rows, and answers `None` for any lookup.
     #[test]
     fn empty_table_round_trips() {
         let table = IdentityTable::<OntologyRowId, MemoryOntologyId>::new();
@@ -446,6 +447,7 @@ mod tests {
         assert_eq!(table.row_of(MemoryOntologyId::new(0)), None);
     }
 
+    /// Writing a table in which two rows carry one key panics with the documented message.
     #[test]
     #[should_panic(expected = "two rows carry one key")]
     fn table_refuses_duplicate_ids_at_write() {
@@ -457,6 +459,10 @@ mod tests {
         let _result = table.write_into(core::iter::repeat_n(empty.as_ref(), 2), &mut Vec::new());
     }
 
+    /// Looks up six hundred ids whose byte order differs from their value order in both directions.
+    ///
+    /// Six hundred ids whose byte order differs from their value order write and look up correctly
+    /// in both directions, with a miss beyond the domain answering `None`.
     #[test]
     fn lookups_hold_at_six_hundred_rows() {
         // Little-endian bytes of 0..600 sort unlike the values, so the write path's ordering
@@ -490,6 +496,7 @@ mod tests {
         assert_eq!(table.row_of(MemoryNodeId::new(600)), None);
     }
 
+    /// Opening a node table as an ontology table fails with `Domain` naming both kinds.
     #[test]
     fn archive_refuses_a_foreign_row_domain() {
         let (path, _digest) = written_fixture("foreign-domain.idnt");
@@ -505,6 +512,7 @@ mod tests {
         );
     }
 
+    /// Opening a `u64` keyed table under a UUID key type fails with `KeyKind` naming both kinds.
     #[test]
     fn archive_refuses_a_foreign_id_type() {
         let (path, _digest) = written_fixture("foreign-id.idnt");
@@ -520,6 +528,10 @@ mod tests {
         );
     }
 
+    /// The open fails with `ColumnDisagreement` when a byte of the id column moves.
+    ///
+    /// Moving a byte of the id column under an intact index fails the open with
+    /// `ColumnDisagreement` naming the row.
     #[test]
     fn archive_refuses_a_disagreeing_id_column() {
         let (path, _digest) = written_fixture("disagreeing-column.idnt");
@@ -538,11 +550,15 @@ mod tests {
         );
     }
 
+    /// The open fails with `SpanOutOfBounds` when a span overreaches the payload region.
+    ///
+    /// A span whose length overreaches the payload region fails the open with `SpanOutOfBounds`
+    /// naming the row.
     #[test]
     fn archive_refuses_a_span_beyond_the_payload() {
         let (path, _digest) = written_fixture("overreaching-span.idnt");
 
-        // Three eight-byte ids pad to one region unit each for column and index, so the span
+        // Three eight-byte ids pad to one region unit each for column and index. The span
         // table starts at 12288. Row 0's length field is its second eight-byte word.
         let mut bytes = fs::read(&path).expect("the scratch file reads back");
         bytes[12296..12304].fill(0xFF);
@@ -556,13 +572,14 @@ mod tests {
         );
     }
 
+    /// A label byte no UTF-8 sequence contains fails the typed open with `Payload` naming the row.
     #[test]
     fn archive_refuses_a_payload_that_is_not_utf8() {
         let (path, _digest) = written_fixture("invalid-payload.idnt");
 
         // The payload region starts at 0x4000 and row 0's span selects its first twelve bytes:
-        // the eight-byte representative, then the label. No UTF-8 sequence contains 0xFF, so
-        // corrupting the label's first byte makes the typed cast refuse.
+        // the eight-byte representative, then the label. No UTF-8 sequence contains 0xFF.
+        // Corrupting the label's first byte makes the typed cast refuse.
         let mut bytes = fs::read(&path).expect("the scratch file reads back");
         bytes[0x4000 + 8] = 0xFF;
         fs::write(&path, &bytes).expect("the scratch file is writable");
@@ -575,6 +592,10 @@ mod tests {
         );
     }
 
+    /// The typed open fails with `IndexSize` when the index holds fewer entries than rows.
+    ///
+    /// A hand-built file whose index holds fewer entries than its rows fails the typed open with
+    /// `IndexSize` carrying both counts.
     #[test]
     fn archive_refuses_an_index_missing_a_row() {
         // Hand-crafted geometry the writer refuses to produce: two rows whose index carries one

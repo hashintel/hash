@@ -1,8 +1,4 @@
-//! Unit tests of the report's aggregation core.
-//!
-//! The compile path needs a published generation and stays with the integration suites; the
-//! aggregates, the displacement summaries, the argmax rule, and the certificate bound are pure and
-//! verify here on hand-derived values.
+//! Hand-derived contraction, displacement and certificate fixtures.
 
 use hashql_core::id::{Id as _, IdSlice};
 
@@ -12,7 +8,9 @@ use crate::{
     math::{FinitePointField, Vec2, d_finite, d_non_negative},
 };
 
-/// Wraps fixture points every test states as finite literals.
+/// Interprets fixture points as a corpus-row field.
+///
+/// Every coordinate must be finite.
 fn field(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
@@ -63,7 +61,6 @@ fn contraction_weighs_the_trainer_mass() {
     assert!((f64::from(reading.contracted_fraction) - 0.5).abs() < 1e-12);
 }
 
-/// An unchanged distance is not a contraction: ties stay out of the contracted count.
 #[test]
 fn contraction_ties_do_not_count() {
     let baseline = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
@@ -82,7 +79,6 @@ fn contraction_ties_do_not_count() {
     assert!(f64::from(reading.unweighted_mean).abs() < 1e-12);
 }
 
-/// An empty population reads as zeros, never as a division artifact.
 #[test]
 fn contraction_of_nothing_is_zero() {
     let baseline = [Vec2::new(0.0, 0.0)];
@@ -103,8 +99,8 @@ fn contraction_of_nothing_is_zero() {
 
 /// The participant mask splits the displacement populations exactly.
 ///
-/// Hand-derived: rows move by 0, 1, and 5; participants are rows 0 and 2, so the engaged side
-/// reads mean 2.5 and RMS `sqrt(12.5)`, and the other side reads exactly 1 everywhere.
+/// Rows move by 0, 1 and 5. Participants are rows 0 and 2, with mean (0 + 5)/2 = 2.5 and RMS √((0²
+/// + 5²)/2) = √12.5. The nonparticipant row has mean, RMS and maximum displacement 1.
 #[test]
 fn displacement_splits_on_the_participant_mask() {
     let baseline = [
@@ -132,8 +128,6 @@ fn displacement_splits_on_the_participant_mask() {
     assert!((f64::from(bystanders.max) - 1.0).abs() < 1e-12);
 }
 
-/// Ties keep the first index, an empty series reads the baseline, and an all-negative series
-/// names the baseline as well: index zero states that no step beats doing nothing.
 #[test]
 fn argmax_keeps_the_first_and_defaults_to_the_baseline() {
     assert_eq!(
@@ -167,7 +161,7 @@ fn certificate_reports_the_measured_residual() {
     assert!((f64::from(certificate.max_point_distance) - expected).abs() < 1e-12);
 }
 
-/// A residual at the bound refuses: the frames would describe a lookalike.
+/// Rejects a 0.002 component residual, above the 0.001 certificate bound.
 #[test]
 #[should_panic(expected = "does not reproduce the published coordinate column")]
 fn certificate_refuses_at_the_bound() {

@@ -2,11 +2,11 @@
 //!
 //! An offline fit runs where the graph's store does not: [`OfflineDataset`] opens the directory a
 //! dump wrote and serves the frozen view inside it through the same [`Dataset`] window the live
-//! store serves, so the pipeline cannot tell the difference. Each stream file is one rkyv
-//! archive read in place out of the mapped file. A stream call borrows the archived records as it
-//! yields each item, so an item's embedding is a borrow of the mapped bytes rather than a copy;
-//! nothing decodes ahead of use. The [`dump`] module writes these directories from a live
-//! dataset and its embedding provider.
+//! store serves. The pipeline cannot tell the difference. Each stream file is one rkyv archive read
+//! in place out of the mapped file. A stream call borrows the archived records as it yields each
+//! item. An item's embedding is a borrow of the mapped bytes rather than a copy. Nothing decodes
+//! ahead of use. The [`dump`] module writes these directories from a live dataset and its embedding
+//! provider.
 //!
 //! # Acceptance
 //!
@@ -17,10 +17,11 @@
 //! root's two columns agree on the row count, and every edge embedding position lands inside
 //! its column. Each refusal names its stream through [`OpenDumpError`].
 //!
-//! Validation at open covers every structural claim a stream call later relies on, so
-//! materializing records cannot fail structurally. What remains fallible afterwards is named by
-//! [`OfflineDatasetError`]: a display payload that does not parse as its type, and a request
-//! for rows the dump does not cover.
+//! Validation at open covers every structural claim a stream call later relies on, and the
+//! mapping requires the directory's files to hold still while the dataset is open, so under that
+//! condition materializing records cannot fail structurally. [`OfflineDatasetError`] names what
+//! remains fallible afterwards: an unparsable display payload, and a request for rows outside the
+//! dump's coverage. Its archive variant covers a root that refuses the validation open performed.
 
 pub(crate) mod dump;
 pub(crate) mod embedder;
@@ -62,7 +63,7 @@ use crate::{
 /// Opening a dump directory failed.
 ///
 /// Every variant that names a stream carries the [`StreamKind`] whose file refused, and the kind
-/// displays as the file's name inside the directory, so the report points at one path.
+/// displays as the file's name inside the directory. The report points at one path.
 #[derive(Debug)]
 pub(crate) enum OpenDumpError {
     /// Reading the manifest failed.
@@ -196,8 +197,8 @@ impl Error for OpenDumpError {
 pub(crate) enum OfflineDatasetError {
     /// A stream file's archived root refused byte-level validation.
     ///
-    /// The open validated the same bytes, so reaching this error means the file changed beneath
-    /// the mapping after acceptance.
+    /// The open validated the same bytes under a mapping that requires them to hold still. This
+    /// repeats a check that passed at acceptance.
     Archive {
         /// The stream that refused.
         kind: StreamKind,
@@ -206,8 +207,9 @@ pub(crate) enum OfflineDatasetError {
     },
     /// A display payload does not parse as its payload type.
     ///
-    /// The manifest digest already vouched for the bytes at open, so this error means the dump
-    /// was written by a defective writer rather than damaged in transit.
+    /// The stream's bytes agreed with the manifest's digest at open. This is the payload's own
+    /// parse failing rather than the archive validation that precedes it. The digest agreement
+    /// places no origin or time on the invalid payload.
     Payload {
         /// The stream that refused.
         kind: StreamKind,
@@ -217,9 +219,10 @@ pub(crate) enum OfflineDatasetError {
     /// Requested canonical embeddings lie outside the dump's coverage.
     ///
     /// A dump covers either the probe sample its recorded parameters derive or every node, and
-    /// equal parameters replay the same sample. This error therefore means the fit's seed, anchor
-    /// count, or comparison count differs from the dump's, or the fit requests nodes the dump
-    /// never held, and the message names the dump's parameters so the caller can align.
+    /// equal parameters over the same rows derive the same sample. This error therefore means the
+    /// fit's seed, anchor count, or comparison count differs from the dump's, or the fit requests
+    /// nodes the dump never held, and the message names the dump's parameters so the caller can
+    /// align.
     MissingCanonicals {
         /// The coverage the dump declared.
         coverage: CanonicalCoverage,
@@ -279,6 +282,12 @@ impl Error for OfflineDatasetError {
 }
 
 /// Validates and borrows one stream file's archived root.
+///
+/// # Errors
+///
+/// Returns rkyv's validation error when the mapped bytes do not hold a `T` the reader may borrow.
+/// Validation refuses a root position the file's length does not admit, and it refuses a record the
+/// type's own `CheckBytes` rejects. The callers name the stream the bytes came from.
 fn root<T>(map: &PageMap) -> Result<&T, rancor::Error>
 where
     T: rkyv::Portable
@@ -289,8 +298,8 @@ where
 
 /// Chains a fallible root access into one record iterator.
 ///
-/// A successful access yields its records, and a failed one yields the failure as the only
-/// item, so a stream opened over a refused root reports the refusal at its first poll.
+/// A successful access yields its records, and a failed one yields the failure as the only item. A
+/// stream opened over a refused root reports the refusal at its first poll.
 fn results<I: Iterator, E>(access: Result<I, E>) -> impl Iterator<Item = Result<I::Item, E>> {
     let (records, error) = match access {
         Ok(records) => (Some(records), None),
@@ -382,6 +391,17 @@ impl OfflineDataset {
     }
 
     /// Validates every archived root and the invariants that reach across archived fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpenDumpError::Archive`] for the first root that refuses validation, naming its
+    /// stream. Between the roots it checks the two cross-field invariants: [`Columns`] when the
+    /// node root's record and embedding columns disagree on their length, and
+    /// [`EmbeddingPosition`] for the first edge record naming a position past the packed
+    /// embedding column.
+    ///
+    /// [`Columns`]: OpenDumpError::Columns
+    /// [`EmbeddingPosition`]: OpenDumpError::EmbeddingPosition
     fn validate_roots(&self) -> Result<(), OpenDumpError> {
         let archive = |kind| move |source| OpenDumpError::Archive { kind, source };
 
@@ -427,6 +447,12 @@ impl OfflineDataset {
     }
 
     /// Borrows the node root out of the mapped file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OfflineDatasetError::Archive`] when the node root refuses validation, the check
+    /// [`open`](Self::open) already passed over these bytes, which the mapping requires to hold
+    /// still.
     fn nodes_root(&self) -> Result<&ArchivedNodesRoot, OfflineDatasetError> {
         root(&self.nodes).map_err(|source| OfflineDatasetError::Archive {
             kind: StreamKind::Nodes,
@@ -459,6 +485,14 @@ where
 }
 
 /// Opens one stream file and checks its length and digest against the manifest.
+///
+/// # Errors
+///
+/// Returns [`OpenDumpError::Io`] when the file does not open or map, then
+/// [`OpenDumpError::Length`] when its length disagrees with the manifest row, then
+/// [`OpenDumpError::Digest`] when its bytes do not hash to the recorded digest. A truncated file
+/// refuses as a length mismatch rather than as a digest mismatch, because the length check runs
+/// first.
 fn open_stream(
     directory: &Utf8Path,
     manifest: &Manifest,
@@ -612,11 +646,11 @@ impl Dataset for OfflineDataset {
 
     /// Opens a stream of direct-type lists for the given nodes.
     ///
-    /// Request handling matches [`canonical_node_embeddings`](Self::canonical_node_embeddings):
-    /// the requests form a set, and yields follow the dump's stream order, so a node requested
-    /// twice yields once. When the scan ends with requests the node stream never held, the
-    /// stream closes with one [`OfflineDatasetError::MissingNodeTypes`]. The scan walks the
-    /// record column alone and never touches the embedding column.
+    /// Request handling matches [`canonical_node_embeddings`](Self::canonical_node_embeddings): the
+    /// requests form a set, and yields follow the dump's stream order. A node requested twice
+    /// yields once. When the scan ends with requests the node stream never held, the stream closes
+    /// with one [`OfflineDatasetError::MissingNodeTypes`]. The scan walks the record column alone
+    /// and never touches the embedding column.
     fn node_types<I: Iterator<Item = ArchivedEntityId>>(
         &self,
         nodes: I,
@@ -651,9 +685,8 @@ impl Dataset for OfflineDataset {
 
     /// Opens the stream of dumped cards, in ontology row order.
     ///
-    /// The cards were finished at dump time, so this materializes rather than renders, and
-    /// failures surface as [`io::Error`] values of kind `Other` per the trait's card-stream
-    /// contract.
+    /// The cards were finished at dump time. This materializes rather than renders, and failures
+    /// surface as [`io::Error`] values of kind `Other` per the trait's card-stream contract.
     fn render_cards(&self) -> Self::CardStream<'_> {
         let access = root::<rkyv::Archived<Vec<CardRecord>>>(&self.cards)
             .map_err(|source| OfflineDatasetError::Archive {

@@ -1,9 +1,10 @@
 //! One live assessment of a root's active generation.
 //!
-//! The assessment runs the whole suite against the store at the snapshot the generation's metadata
-//! records, so artifact rows and store identities describe one corpus, and returns the verdict
-//! together with the serialized evidence record. Probe sizing is the instrument's own: a live run
-//! over a million rows affords sharper subgroup cells than the suite's own default sample.
+//! The assessment reads the root's current-generation id once and returns that generation's report
+//! and verdict under default quality thresholds. It queries the store using the recorded temporal
+//! axes in a new repeatable-read transaction, whose snapshot can differ from the fit's earlier one
+//! even under equal axes. The larger default anchor sample improves expected subgroup coverage,
+//! without guaranteeing a count for any type.
 
 use core::{
     error::Error,
@@ -31,14 +32,13 @@ use crate::{
 pub(crate) struct Options {
     /// The probe seed.
     ///
-    /// Equal seeds replay the sampling.
+    /// Uses zero by default. Equal seeds replay sampling when corpus row order and probe settings also match.
     pub seed: u64 = 0,
     /// Sampled anchor rows.
     ///
-    /// The suite default is 256; a live run over a million rows affords more for sharper subgroup
-    /// cells.
+    /// Uses 1,024 by default, increasing expected subgroup sample counts relative to the suite's 256-anchor default.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
-    /// Sampled comparison rows.
+    /// Sampled comparison rows, using 4,096 by default.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
 }
 
@@ -80,9 +80,9 @@ pub(crate) enum AssessError {
     Inactive,
     /// Opening the active generation failed.
     Generation(OpenError),
-    /// The generation records no snapshot axes, so no store state reproduces its corpus.
+    /// The generation records no temporal axes for the store query.
     Snapshot,
-    /// The store could not serve the recorded snapshot.
+    /// Opening the store's read-only repeatable-read transaction failed.
     Dataset(PostgresDatasetError),
     /// The quality run failed.
     Run(QualityRunError<PostgresDatasetError>),
@@ -121,12 +121,21 @@ impl Error for AssessError {
     }
 }
 
-/// Assesses the root's active generation against the live store.
+/// Assesses the generation selected by the root's current pointer.
+///
+/// The assessment uses default quality thresholds and changes no activation state. Concurrent
+/// activation can select another generation before the assessment returns. Dataset values must
+/// still describe the fitted corpus for the readings to measure that generation's map fidelity.
 ///
 /// # Errors
 ///
-/// Returns an [`AssessError`] when the generation fails to open, the store cannot serve its
-/// snapshot, the run fails, or serializing the report fails.
+/// Returns [`AssessError`] when the selected generation or its temporal axes are unavailable, the
+/// dataset or quality run fails, or report serialization fails.
+///
+/// # Panics
+///
+/// Unchecked design or aggregate arithmetic can panic with integer overflow checks enabled, as
+/// described by [`run`].
 pub(crate) async fn assess(
     client: &mut Client,
     root: &GenerationRoot,

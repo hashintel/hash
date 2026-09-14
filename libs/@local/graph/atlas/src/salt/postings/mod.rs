@@ -1,42 +1,35 @@
-//! The type postings.
+//! Direct type memberships and the parent graph that defines their inheritance.
 //!
-//! Per-type membership over the base delivery order, and the type graph it expands through.
-//!
-//! [`Postings`](build::Postings) is the filter contract's membership artifact. For every ontology
-//! row it records which base delivery positions carry that type **directly**. A type filter ORs
-//! requested rows' membership into one dense position bitmap, and the wire's `TYPE_MASK` column
-//! slices membership over a tile's delivered runs. Inheritance never rides the membership. Requests
-//! expand to descendant rows first through the [`ClosureMap`](closure::ClosureMap) derived from the
-//! published parent edges, so the type graph stays the one authority for inheritance and no closure
-//! is ever materialized on disk.
+//! [`Postings`](build::Postings) records which base delivery positions carry each ontology row
+//! **directly**. The published parent edges remain the authority for inheritance.
+//! [`ClosureMap`](closure::ClosureMap) derives inherited memberships at open for types with
+//! descendants beyond themselves. Requests borrow that derived membership when present and the
+//! direct postings otherwise. Inheritance never changes the stored direct membership, and no
+//! closure is materialized on disk.
 //!
 //! The file stores each type's membership in the cheaper of two representations. The writer chooses
 //! which one and the flags region records the choice:
 //!
-//! - a **list**: the positions sorted ascending, `4` bytes each - the shape a run slice reads
-//!   linearly;
-//! - a **dense set** over all `N` positions, one self-describing bit set frame - the shape the mega
-//!   types demand. Type volume is structurally skewed (one base type owns half of all instances in
-//!   the measured store), so an all-list format degenerates exactly on the types most worth
-//!   coloring by.
+//! - a **list**: the positions sorted ascending, `4` bytes each, readable linearly;
+//! - a **dense set** over all `N` positions, one self-describing bit set frame. Its size depends on
+//!   the point domain rather than the type's population. This bounds storage for heavily populated
+//!   types when membership volumes are skewed.
 //!
 //! Readers honor whichever representation the file records. The writer picks the cheaper one by
-//! comparing byte costs - the frame against four bytes per member. The split therefore carries no
+//! comparing byte costs - the frame against four bytes per member. The split carries no
 //! tuning knob and follows the data alone.
 //!
 //! Beside the membership the file stores its transpose, the **direct map** - each base position's
 //! direct type rows as one fencepost-delimited run per position. That is the position-scoped
 //! lookup - which types does this delivered position carry - answered from one run read. The
 //! build gathers the direct map from the row-order type column first and derives the membership
-//! regions from it by inversion. Both directions therefore carry one relation and agree by
-//! construction.
+//! regions from it by inversion. Every gathered position-type pair is inserted into its type's
+//! membership. Therefore both directions carry exactly the same relation.
 //!
-//! It derives from the same row-order type column the quadtree consumes
-//! ([`crate::salt::lod::quad::QuadTree::build`]'s `types` parameter), gathered through the lod's
-//! permutation, and publishes as one [`crate::file::postings`] file;
-//! [`PostingsArchive`](artifact::PostingsArchive) reopens the file over a whole-file mapping and
-//! validates the artifact contract once, so lookups read from the page cache without holding
-//! anything on the heap.
+//! The postings publish as one [`crate::file::postings`] file.
+//! [`PostingsArchive`](artifact::PostingsArchive) validates the artifact contract over a whole-file
+//! mapping. Lookups borrow the mapped regions instead of copying the membership arrays onto the
+//! heap.
 //!
 //! # Artifact contract
 //!

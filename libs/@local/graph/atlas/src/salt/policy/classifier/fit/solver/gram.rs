@@ -1,12 +1,12 @@
 //! The data Gram matrix `K` and the fold views the inner solves read it through.
 //!
 //! The exact Newton engine's capacitance blocks read pairwise embedding products `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`.
-//! Embeddings never change across outer iterations, regularization candidates, or folds, so the fit
-//! assembles [`Gram`] once over the full training corpus and every fold solve reads its subset
-//! through a [`GramView`] carrying the fold's member indices. Entries accumulate in `f64` through
-//! the exact-product kernel [`AlignedVecN::dot_accumulated`], one independent dot per entry, so the
-//! assembled bytes are deterministic and a view's entries equal a direct assembly over the subset
-//! bit for bit.
+//! Embeddings never change across outer iterations, regularization candidates, or folds. The fit
+//! therefore assembles [`Gram`] once over the full training corpus and every fold solve reads its
+//! subset through a [`GramView`] carrying the fold's member indices. Entries accumulate in `f64`
+//! through the exact-product kernel [`AlignedVecN::dot_accumulated`], one independent dot per
+//! entry. The assembled bytes are therefore deterministic, and a view's entries equal a direct
+//! assembly over the subset bit for bit.
 //!
 //! Storage is the packed lower triangle - `n(n+1)/2` components for `n` rows - and lookups are
 //! symmetric: `entry(i, j)` and `entry(j, i)` read the same component.
@@ -26,7 +26,7 @@ pub(crate) struct Gram {
 impl Gram {
     /// Assembles the Gram matrix over the corpus embeddings in one charged pass.
     ///
-    /// Each entry is one independent double-accumulated dot, so the assembly is deterministic at
+    /// Each entry is one independent double-accumulated dot, and the assembly is deterministic at
     /// any traversal order. Rows fill in ascending index. The work is `n(n+1)/2` wide dots, once
     /// per fit.
     pub(crate) fn assemble(
@@ -50,7 +50,7 @@ impl Gram {
         }
     }
 
-    /// Corpus rows covered by the matrix.
+    /// Returns the corpus rows covered by the matrix.
     pub(crate) const fn order(&self) -> usize {
         self.order
     }
@@ -92,7 +92,7 @@ const fn packed_length(order: usize) -> usize {
 ///
 /// A full-corpus solve reads the matrix directly. A fold solve carries the ascending original
 /// indices of its member rows and reads the full matrix through them. Either way, `entry(i, j)`
-/// speaks the solve's own row indices.
+/// takes the solve's own row indices.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct GramView<'fit> {
     /// The fit-level matrix.
@@ -104,7 +104,7 @@ pub(crate) struct GramView<'fit> {
 }
 
 impl<'fit> GramView<'fit> {
-    /// The identity view of a full-corpus solve.
+    /// Creates the identity view of a full-corpus solve.
     pub(crate) const fn full(gram: &'fit Gram) -> Self {
         Self {
             gram,
@@ -112,7 +112,7 @@ impl<'fit> GramView<'fit> {
         }
     }
 
-    /// A fold view reading the member rows of the full matrix.
+    /// Creates a fold view reading the member rows of the full matrix.
     ///
     /// # Panics
     ///
@@ -129,7 +129,7 @@ impl<'fit> GramView<'fit> {
         }
     }
 
-    /// Rows covered by the view.
+    /// Returns the rows covered by the view.
     pub(crate) fn order(&self) -> usize {
         self.members
             .map_or_else(|| self.gram.order(), <[usize]>::len)

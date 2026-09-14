@@ -1,10 +1,10 @@
 //! The per-evaluation evidence the target objective must emit.
 //!
-//! The estimand reads through frozen references, so every published claim about a fit rests on
-//! readings that let a later audit rebuild the frame arithmetic. Each evaluation assembles one
-//! [`EvaluationEvidence`]. The record holds the live alignment beside the
+//! The estimand reads through frozen references. Every published claim about a fit therefore
+//! rests on readings that let a later audit rebuild the frame arithmetic. Each evaluation
+//! assembles one [`EvaluationEvidence`]. The record holds the live alignment beside the
 //! reference-configuration pair `s_K`/`r_K` - the same closed-form fit with the boundary
-//! snapshot `Z_K` in the zero slot. The whole-corpus alignment rides beside them, since its
+//! snapshot `Z_K` in the zero slot. The record also holds the whole-corpus alignment, since its
 //! composition with the gauge fit is the frame bridge, and the zero-field common-mode
 //! similarity onto `Z_K` reads the uniform mode the per-row band admits. The affine component
 //! on the gauge population follows with its normalized residual. The gauge displacement
@@ -14,7 +14,7 @@
 //! corpus is the alignment channel's signature, and it is readable exactly because the sequence
 //! survives.
 //!
-//! The generation-level constants ride once in a [`RulerIdentity`], so every reading stays
+//! The generation-level constants appear once in a [`RulerIdentity`], and every reading stays
 //! reproducible against the exact ruler that produced it. Everything here is aggregate, and no
 //! pair or row identity persists in any record.
 
@@ -47,27 +47,30 @@ hashql_core::id::newtype! {
     pub(crate) struct StratumId(u32)
 }
 
-/// A refused evidence reading names the fit that could not be made.
+/// The fit a refused evidence reading could not make.
 ///
 /// Every variant leaves the evaluation without its declared evidence, and an evaluation that
 /// cannot state its evidence publishes nothing. Nothing branches on the variants and there is no
 /// partial record.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EvidenceRefusal {
-    /// The whole-corpus alignment fit refused, over coincident canonical rows or an exactly
-    /// cancelling covariance. Non-finite coordinates never reach the reading: the readback
-    /// boundary refuses them naming the row.
+    /// The whole-corpus alignment fit refused.
+    ///
+    /// The cause is coincident canonical rows or an exactly cancelling covariance. Non-finite
+    /// coordinates never reach the reading: the readback boundary refuses them naming the row.
     CorpusAlignment,
     /// The zero-field common-mode fit onto the boundary snapshot refused.
     ZeroCommonMode,
     /// The gauge similarity fit over the whole-field anchor constellations refused.
     Gauge,
-    /// The reference-configuration fit of the canonical gauge rows onto the frozen `Z_K`
-    /// anchors refused.
+    /// The reference-configuration fit refused.
+    ///
+    /// The fit places the canonical gauge rows onto the frozen `Z_K` anchors.
     ReferenceConfiguration,
-    /// The affine fit over the gauge population refused: the anchors' canonical scatter is
-    /// degenerate beyond what the similarity fit tolerates, since an affine solve needs both
-    /// axes of its source.
+    /// The affine fit over the gauge population refused.
+    ///
+    /// The anchors' canonical scatter is degenerate beyond what the similarity fit tolerates, since
+    /// an affine solve needs both axes of its source.
     Affine,
 }
 
@@ -92,7 +95,7 @@ impl Error for EvidenceRefusal {}
 
 /// The declared and measured scalar constants of one ruler freeze.
 ///
-/// The fields are the scalar constants every per-evaluation reading normalizes against, so a
+/// The fields are the scalar constants every per-evaluation reading normalizes against, and a
 /// reading replayed later resolves against the exact ruler that produced it. The trainer fills
 /// the record at the freeze, where each source object is in hand. The boundary field and the
 /// ruler's two tables travel beside this record as typed run evidence, and the writer that
@@ -103,8 +106,9 @@ pub(crate) struct RulerIdentity {
     pub boundary_step: usize,
     /// `s_ref(Z_K)`: the boundary field's frozen spread, the frame's unit carrier.
     pub reference_spread: Positive,
-    /// `spread_G(Z_K)`: the gauge anchors' frozen spread, the denominator of every normalized
-    /// residual.
+    /// `spread_G(Z_K)`: the gauge anchors' frozen spread.
+    ///
+    /// The denominator of every normalized residual.
     pub gauge_spread: Positive,
     /// `ε_rel`: the declared dimensionless regularizer.
     pub epsilon_rel: Positive,
@@ -112,8 +116,9 @@ pub(crate) struct RulerIdentity {
     pub epsilon_abs: Positive,
     /// `β_proj`: the declared dimensionless projection radius.
     pub dimensionless_radius: Positive,
-    /// `band_proj = β_proj · s_ref(Z_K)`: the enforced world-unit radius, recorded beside its
-    /// dimensionless source so the freeze-time domain check stays auditable.
+    /// `band_proj = β_proj · s_ref(Z_K)`: the enforced world-unit radius.
+    ///
+    /// Recorded beside its dimensionless source so the freeze-time domain check stays auditable.
     pub radius: Positive,
 }
 
@@ -156,7 +161,7 @@ impl EnforcementSummary {
 /// The gauge displacement family of one covariate stratum.
 ///
 /// The displacement is each anchor's world-unit zero-field distance from its frozen `Z_K`
-/// position. The family keeps the control evidence's exact aggregate shape, so the two collateral
+/// position. The family keeps the control evidence's exact aggregate shape, and the two collateral
 /// readings compare like for like.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct DisplacementStratum {
@@ -195,38 +200,46 @@ pub(crate) struct EvaluationEvidence {
     /// The objective-shape fitted scale, the `s` the step's estimand actually descended.
     ///
     /// Its forwards run in the pass's own padded shape, which an autotuned backend may realize
-    /// differently from the whole fields, so this reading stands alone and bridges nothing.
+    /// differently from the whole fields. This reading therefore stands alone and bridges nothing.
     pub objective_scale: Positive,
     /// The objective-shape fit's normalized residual.
     pub objective_residual: DNonNegative,
     /// `n_eff_G`: the effective anchor count over duplicate classes.
     pub effective_count: DNonNegative,
-    /// The gauge similarity, canonical onto zero over the whole-field realization: one end of
-    /// the frame bridge.
+    /// The gauge similarity, canonical onto zero over the whole-field realization.
+    ///
+    /// One end of the frame bridge.
     pub gauge_similarity: Similarity,
-    /// `s_K`: the scale of the canonical gauge rows fitted onto the frozen `Z_K` anchors, the
-    /// gauge-path envelope's first input. The live `s` need not equal it once the zero field
-    /// has moved, because the live fit reads current against current and this fit reads
-    /// current against frozen.
+    /// `s_K`: the scale of the canonical gauge rows fitted onto the frozen `Z_K` anchors.
+    ///
+    /// The gauge-path envelope's first input. The live `s` need not equal it once the zero field
+    /// has moved, because the live fit reads current against current and this fit reads current
+    /// against frozen.
     pub reference_scale: Positive,
-    /// `r_K`: the reference-configuration fit's normalized residual, the envelope's second
-    /// input.
+    /// `r_K`: the reference-configuration fit's normalized residual.
+    ///
+    /// The envelope's second input.
     pub reference_residual: DNonNegative,
-    /// The whole-corpus similarity, canonical onto zero: the published field's alignment and
-    /// the frame bridge's other end.
+    /// The whole-corpus similarity, canonical onto zero.
+    ///
+    /// The published field's alignment and the frame bridge's other end.
     pub corpus_similarity: Similarity,
-    /// `s_z` with its rotation and translation: the similarity fit of the live zero field onto
-    /// `Z_K`. A uniform shrink of every row is per-row legal and invisible to the band, and
-    /// `|log s_z|` reads exactly that common mode.
+    /// `s_z` with its rotation and translation: the live zero field's similarity fit onto `Z_K`.
+    ///
+    /// A uniform shrink of every row is per-row legal and invisible to the band, and `|log s_z|`
+    /// reads exactly that common mode.
     pub zero_similarity: Similarity,
-    /// The fitted affine component on the gauge population, canonical onto zero. Its
-    /// non-similarity part carries the anisotropic deformation the residual `r` prices.
+    /// The fitted affine component on the gauge population, canonical onto zero.
+    ///
+    /// Its non-similarity part carries the anisotropic deformation the residual `r` prices.
     pub affine: Transform,
-    /// The affine fit's root-mean-square residual, normalized against the frozen gauge spread:
-    /// the movement no affine map explains.
+    /// The affine fit's root-mean-square residual, normalized against the frozen gauge spread.
+    ///
+    /// The movement no affine map explains.
     pub affine_residual: DNonNegative,
-    /// The gauge displacement families, one per populated covariate stratum in ascending
-    /// stratum order.
+    /// The gauge displacement families.
+    ///
+    /// One per populated covariate stratum in ascending stratum order.
     pub displacement: Vec<DisplacementStratum>,
     /// The saturation tallies, one per populated covariate stratum in ascending stratum order.
     pub saturation: Vec<SaturationStratum>,
@@ -238,7 +251,8 @@ pub(crate) struct EvaluationEvidence {
 ///
 /// The gauge constellation and the band constraint are frozen at the boundary, the strata ride
 /// the admitted inputs, and the enforcement record accumulates through the run. A reading
-/// borrows them as one value, so the reference set the evidence derives from is named once.
+/// borrows them as one value, and the reference set the evidence derives from is therefore named
+/// once.
 pub(crate) struct EvidenceReferences<'run, N> {
     /// The frozen gauge constellation.
     pub anchors: &'run GaugeAnchors<N>,
@@ -253,11 +267,11 @@ pub(crate) struct EvidenceReferences<'run, N> {
 impl EvaluationEvidence {
     /// Assembles one evaluation's evidence reading.
     ///
-    /// The live fields arrive proven from their readback boundaries, so every reading -
-    /// the whole-field fits and each per-row family - derives from proven-finite
+    /// The live fields arrive proven from their readback boundaries. Every reading - the
+    /// whole-field fits and each per-row family - therefore derives from proven-finite
     /// coordinates. The gauge, reference-configuration, and affine fits read the anchor
-    /// constellations gathered from those same fields, so every end of the recorded frame
-    /// bridge derives from one field realization and the composition is exact on it. The
+    /// constellations gathered from those same fields. Every end of the recorded frame bridge
+    /// therefore derives from one field realization, and the composition is exact on it. The
     /// objective-shape fit arrives as its own recorded reading and enters no bridge. The
     /// displacement and saturation families fold per row in one serial pass each - the reading
     /// runs per evaluation, far off the per-step enforcement path.
@@ -307,8 +321,8 @@ impl EvaluationEvidence {
         let gauge_spread = anchors.frozen_spread().widen();
 
         // Total: an rms residual over f32-born fields stays below ~1.2e87 by its own totality
-        // theorem, and the smallest positive f32 spread is 2⁻¹⁴⁹, so a normalized residual
-        // sits more than five hundred exponent shells inside the f64 range.
+        // theorem, and the smallest positive f32 spread is 2⁻¹⁴⁹. A normalized residual
+        // therefore lies more than five hundred exponent shells inside the f64 range.
         let normalized = |rms: DNonNegative| (rms / gauge_spread).finish_unchecked();
 
         let gauge = Similarity::fit_uniform_par(&canonical_anchors, &zero_anchors)
@@ -332,8 +346,8 @@ impl EvaluationEvidence {
                 - DVec2::from(references.projection.centre()[row]))
             .norm_squared();
             // Finite with no check. The field proofs above certified every coordinate
-            // finite, and a widened f32 difference squares within the f64 range, so the root
-            // is finite too.
+            // finite, and a widened f32 difference squares within the f64 range. The root is
+            // therefore finite too.
             families
                 .entry(references.strata[row])
                 .or_default()

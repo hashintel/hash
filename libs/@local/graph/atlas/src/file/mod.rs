@@ -230,10 +230,9 @@ where
     }
 }
 
-/// Marks a value as an admitted writer of the artifact `A`.
+/// A writer for the file format of artifact `A`.
 ///
-/// A staged write for `A` accepts exactly the values marked here, so which container may produce
-/// which published file is a compile-time fact rather than a convention at the call sites.
+/// See [`OpenAs`] for the corresponding reader marker.
 pub(crate) trait WriteAs<A>: WriteInto {}
 
 impl<T, A> WriteAs<A> for &T where T: WriteAs<A> + ?Sized {}

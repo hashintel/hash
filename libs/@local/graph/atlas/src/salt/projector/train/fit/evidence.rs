@@ -1,8 +1,8 @@
 //! The record a training run keeps about itself.
 //!
-//! Training measures itself as it runs, and the measurements return with the trained model, so
-//! a reader judges a run from its published record alone. Step-indexed readings append in step
-//! order, and the boundary's record carries the full measurement it froze from.
+//! Training measures itself as it runs, and the measurements return with the trained model. A
+//! reader therefore judges a run from its published record alone. Step-indexed readings append in
+//! step order, and the boundary's record carries the full measurement it froze from.
 
 use super::{objective::TargetEvidence, options::RelationLens};
 use crate::{
@@ -34,8 +34,9 @@ impl FrozenRadius {
     /// # Panics
     ///
     /// This panics when a measured radius fails the lens's radius ordering. The trainer composed
-    /// this exact energy at the boundary before freezing the radius, so the failure is a defect
-    /// of the freeze rather than a data condition.
+    /// this exact energy at the boundary before freezing the radius, and under the lens the radius
+    /// froze under the failure is a defect of the freeze rather than a data condition. A different
+    /// lens can fail the ordering as a data condition.
     #[must_use]
     pub(crate) fn energy(self, lens: &RelationLens) -> Option<RelationEnergy> {
         match self {
@@ -70,8 +71,8 @@ pub(crate) struct RefreshFraction {
     /// The weighted fraction of reviewed-Proximal mass at or below the frozen radius.
     ///
     /// Measured over the tick's low-step frame and its low-step scale table, the same
-    /// step/frame-scale pair the freeze measured on, so the series reads calibration drift and
-    /// never answers a movement question. The boundary tick contributes the first entry, and
+    /// step/frame-scale pair the freeze measured on. The series therefore reads calibration drift
+    /// and never answers a movement question. The boundary tick contributes the first entry, and
     /// later entries drift against it.
     pub fraction: DNonNegative,
 }
@@ -102,7 +103,7 @@ pub(crate) struct TrainingEvidence<N> {
     /// Per-tick boundary-drift readings, in step order.
     ///
     /// Empty until the boundary froze a measured radius: the fraction is defined against the
-    /// frozen radius, so pre-boundary and vacuous ticks have nothing to read.
+    /// frozen radius, and pre-boundary and vacuous ticks have nothing to read.
     pub fractions: Vec<RefreshFraction>,
     /// The target objective's run evidence.
     ///

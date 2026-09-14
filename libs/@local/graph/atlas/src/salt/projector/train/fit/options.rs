@@ -1,7 +1,7 @@
 //! The validated constants a training run is declared with.
 //!
 //! A run's configuration settles before its first step and stays fixed across the whole run.
-//! The types here validate that configuration at construction, so the run consumes plain
+//! The types here validate that configuration at construction, and the run consumes plain
 //! values and re-checks nothing step to step.
 
 use core::num::NonZero;

@@ -18,11 +18,13 @@ use crate::progress::Progress;
 
 /// One estimand's metric pass with its population cells.
 ///
-/// `I` is the estimand universe's position domain, so the entity and class runs cannot consume
-/// each other's representatives, and each estimand's row builder below is bound to its own
-/// domain.
+/// `I` is the estimand universe's position domain. The entity and class runs therefore cannot
+/// consume each other's representatives, and each estimand's row builder below is bound to its
+/// own domain.
 struct EstimandRun<'run, I> {
+    /// The population cells, one per design.
     cells: Vec<PopulationCells>,
+    /// The rank readings over the estimand's universe.
     pass: MetricPass<'run, I>,
 }
 
@@ -33,8 +35,8 @@ impl<'run, I: Id> EstimandRun<'run, I> {
         data: &'run EstimandData,
         dedup: Option<&'run IdSlice<DedupPosition, I>>,
     ) -> Self {
-        // The designs were validated against the drawn universe cardinalities, so the data
-        // arriving here must carry exactly those cardinalities.
+        // The designs were validated against the drawn universe cardinalities, and the data
+        // handed over here must therefore carry exactly those cardinalities.
         debug_assert!(
             designs
                 .iter()
@@ -192,8 +194,8 @@ impl ArrivalReplay {
     ///
     /// Projects each distinct sampled row once in bounded batches, recording placed,
     /// out-of-frame, and non-finite outcomes before computing any conditional metric. A
-    /// non-finite row is recorded and the surrounding rows retried, so one bad row costs one
-    /// reading, not the batch. Every rank reading then comes from its estimand's fixed
+    /// non-finite row is recorded and the surrounding rows retried, and one bad row therefore
+    /// costs one reading, not the batch. Every rank reading then comes from its estimand's fixed
     /// comparison universe. Projection failures are outcomes the report records, not errors.
     ///
     /// # Panics

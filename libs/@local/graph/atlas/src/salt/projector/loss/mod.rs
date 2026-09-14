@@ -1,26 +1,37 @@
 //! The composite training objective over a prepared batch.
 //!
-//! The objective splits along the hand-gradient seam. The hand-gradient terms - semantic
-//! attraction, ordinary and hard-negative repulsion, and relation attraction - evaluate value and
-//! coordinate gradient in one fused pass over their edge lists, with every derivative hand-derived
-//! in [`energy`] and certified against finite differences; their gradients accumulate into
-//! [`GradientField`]s the budget measures per node before the combined field reaches shared
-//! parameters. The support term rides ordinary autodiff on the coordinate tensor, so nothing needs
-//! its gradient ahead of the backward pass.
+//! The objective splits into hand-gradient terms and an autodiff term. The hand-gradient terms -
+//! semantic attraction, ordinary and hard-negative repulsion, and relation attraction - evaluate
+//! value and coordinate gradient in one fused pass over their edge lists, with every derivative
+//! hand-derived in [`energy`] and certified against finite differences. Their gradients accumulate
+//! into [`GradientField`]s the budget measures per node before the combined field reaches shared
+//! parameters. The support term takes its gradient from ordinary autodiff on the coordinate
+//! tensor, because no consumer reads that gradient ahead of the backward pass.
 //!
 //! Every term takes a premultiplied `scale`: the term's loss coefficient times any estimator
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens
-//! factor). The terms speak the batch-local row domain: pairs, edges, and anchors carry
+//! factor). The terms index the batch-local row domain: pairs, edges, and anchors carry
 //! [`BatchRowId`] positions into the coordinate slice each term evaluates. That key is distinct
 //! from the corpus's [`NodeRowId`](crate::identity::NodeRowId) by design. The assembly that
 //! re-indexes corpus draws into a batch owns the conversion, and the type system keeps the two
 //! domains apart.
 //!
 //! Pairs at exactly zero distance contribute their value but no gradient: a coincident pair has no
-//! direction to move along. Coincidence is the attraction and relation energies' minimum and the
-//! repulsion energy's maximum - a stationary point whose coordinate gradient vanishes as `d^(2b -
-//! 1)` under the curve's `b ≥ 1/2` construction bound, so the zero is the continuous limit and any
-//! separation restores the outward push.
+//! direction to move along. For the affinity terms (semantic attraction and both repulsions)
+//! coincidence is the energy's minimum or maximum in the distance, and the coordinate gradient's
+//! magnitude scales as `d^(2b - 1)`. [`AffinityEnergy::new`]'s bound `b ≥ 1/2` keeps that magnitude
+//! bounded at coincidence. Every `b > 1/2` sends it to zero, which makes the zero contribution the
+//! continuous limit there. At the admitted endpoint `b = 1/2` the magnitude has a finite nonzero
+//! limit (with `a = 1` and offset one, `q(d) = 1 / (1 + d)`, the attraction energy's right-hand
+//! radial derivative at zero is `1/2` and the repulsion energy's is `-1`), the direction has no
+//! limit, and the energy's explicit zero branch selects the zero vector. The relation energies
+//! split the same way.
+//! [`CoincidentEnergy`]'s radial derivative has limit zero at coincidence, also at a zero radius
+//! under its Huber branch, and the zero contribution is its limit. [`ProximalEnergy`]'s radial
+//! slope at zero distance is `sigmoid(-radius / temperature)`, positive in the real model, and its
+//! coordinate gradient has no unique direction at that point. The relation fold's zero contribution
+//! is an explicit rule for that case, the symmetric choice among the directions, rather than a
+//! limit. Any separation restores the term's push or pull.
 
 mod contrast;
 mod energy;
@@ -54,7 +65,7 @@ use crate::{
 hashql_core::id::newtype! {
     /// A batch-local row position.
     ///
-    /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain. This key names positions in that domain and nothing else. It is distinct by design from the corpus's `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is the wiring defect this type exists to prevent. The `u32` width is a representation bound because a batch indexes one step's participating rows.
+    /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain. This key names positions in that domain and nothing else. It is distinct by design from the corpus's [`NodeRowId`](crate::identity::NodeRowId): a corpus row and its batch-local position are different keys, and confusing them is the wiring defect this type exists to prevent. The `u32` width is a representation bound because a batch indexes one step's participating rows.
     pub(crate) struct BatchRowId(u32)
 }
 
@@ -91,11 +102,11 @@ pub(crate) struct RelationEdge<N> {
 
 /// A per-node coordinate gradient accumulator.
 ///
-/// One field accumulates every term on one side of the budget boundary; the budget then clips the
-/// relation field against the semantic field node by node. Contributions arrive in either
-/// precision and accumulate in double precision; consumers narrow once where a total leaves the
-/// field for the working precision. Reset and reuse the field across steps rather than
-/// reallocating.
+/// One field accumulates every term on one side of the budget boundary. The budget then measures
+/// the relation field against the semantic field node by node, and the two apply whole.
+/// Contributions arrive in either precision and accumulate in double precision. Consumers narrow
+/// once where a total leaves the field for the working precision. [`take`](Self::take) zeroes the
+/// entry it reads, which lets one scratch field serve several passes within a step.
 #[derive(Debug)]
 pub(crate) struct GradientField<N>(Box<IdSlice<N, DVec2>>);
 
@@ -139,13 +150,13 @@ where
 /// Evaluates the semantic attraction term over weighted positive pairs.
 ///
 /// Adds `scale · weight · -ln(q(d^2) + ε)` per pair to the returned value and the matching
-/// hand-derived gradients to `field`. Weight-proportional sampling emits unit weights; the weight
+/// hand-derived gradients to `field`. Weight-proportional sampling emits unit weights. The weight
 /// slot exists for capped explicit weights.
 ///
 /// # Panics
 ///
 /// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
-/// come from one batch assembly, so a mismatch is a wiring defect.
+/// come from one batch assembly, and a mismatch is therefore a wiring defect.
 pub(crate) fn attraction_term<N>(
     coordinates: &FinitePointField<N>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
@@ -164,13 +175,13 @@ where
 /// Evaluates a repulsion term over weighted negative pairs.
 ///
 /// Adds `scale · weight · -ln(1 - q(d^2) + ε)` per pair to the returned value and the matching
-/// hand-derived gradients to `field`. Ordinary negatives carry unit weights; mined hard negatives
+/// hand-derived gradients to `field`. Ordinary negatives carry unit weights. Mined hard negatives
 /// carry their bounded rank weights.
 ///
 /// # Panics
 ///
 /// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
-/// come from one batch assembly, so a mismatch is a wiring defect.
+/// come from one batch assembly, and a mismatch is therefore a wiring defect.
 pub(crate) fn repulsion_term<N>(
     coordinates: &FinitePointField<N>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
@@ -209,8 +220,8 @@ where
 
         total = f64::from(factor).mul_add(f64::from(value), total);
 
-        // d(d^2)/dy_left = 2 · (y_left - y_right). The pair energy supplies its derivative in the
-        // squared distance, so no division by the distance occurs and coincident pairs need no
+        // d(d²)/dy_left = 2 · (y_left - y_right). The pair energy supplies its derivative in the
+        // squared distance. No division by the distance occurs, and coincident pairs need no
         // branch beyond the energy's own zero-derivative contract.
         let gradient = difference * (2.0 * factor * derivative);
         field.accumulate(left, gradient);
@@ -229,13 +240,13 @@ where
 ///
 /// Per instance the contribution is `scale · confidence · normalization · strength` times the
 /// weighted class mixture at the locally normalized distance `z = d / √((ρ_i + ε)(ρ_j + ε))`. The
-/// local scales enter as detached measurements. The gradient flows through `d` only, so `dz/dd` is
-/// a per-pair constant.
+/// local scales enter as detached measurements, and the gradient flows through `d` only:
+/// `dz/dd = 1 / √((ρ_i + ε)(ρ_j + ε))` is a per-pair constant.
 ///
 /// # Panics
 ///
 /// This panics when an edge references a row outside the frame. The batch and the frame come
-/// from one assembly, so a mismatch is a wiring defect.
+/// from one assembly, and a mismatch is therefore a wiring defect.
 pub(crate) fn relation_term<N>(
     frame: ScaledFrame<'_, N>,
     batch: &[RelationEdges<N>],
@@ -305,7 +316,7 @@ pub(crate) struct BatchAnchor {
 
 /// Validated support-term constants.
 ///
-/// `threshold` is the Huber threshold on the normalized residual; `epsilon` both guards the radius
+/// `threshold` is the Huber threshold on the normalized residual. `epsilon` both guards the radius
 /// division and smooths the distance at coincidence.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct SupportOptions {
@@ -387,6 +398,7 @@ impl<B: Backend> SupportTargets<B> {
             .iter()
             .map(|anchor| anchor.weight)
             .collect::<Vec<_>>();
+
         Some(Self {
             rows: Tensor::from_data(TensorData::new(rows, [count]), device),
             targets: Tensor::from_data(TensorData::new(targets, [count, 2]), device),
@@ -401,13 +413,13 @@ impl<B: Backend> SupportTargets<B> {
 /// The value is `scale · Σ_i weight_i · huber(‖y_i - target_i‖ / (radius_i + ε), threshold)`,
 /// differentiable through `coordinates`.
 ///
-/// Smoothing replaces the Euclidean distance with `√(d^2 + ε^2) - ε`. The smoothed form is exact at
+/// Smoothing replaces the Euclidean distance with `√(d² + ε²) - ε`. The smoothed form is exact at
 /// zero and stays within `ε` of the true distance everywhere. Its gradient is well defined and zero
-/// at coincidence. Anchored nodes start exactly on their targets, so the unsmoothed square root
-/// would differentiate at its singular point on the first step.
+/// at coincidence. Anchored nodes start exactly on their targets, where the unsmoothed square root
+/// is singular, and the first step would differentiate it there.
 ///
-/// Every anchor row must index into `coordinates`; anchors and coordinates come from one batch
-/// assembly, so an out-of-range row is a wiring defect the backend's row selection rejects.
+/// Every anchor row must index into `coordinates`. Anchors and coordinates come from one batch
+/// assembly, and an out-of-range row is a wiring defect.
 pub(crate) fn support_term<B: Backend>(
     coordinates: &Tensor<B, 2>,
     targets: &SupportTargets<B>,

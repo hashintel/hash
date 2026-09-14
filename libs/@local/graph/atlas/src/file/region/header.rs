@@ -71,7 +71,6 @@ pub(crate) trait PaddedHeader:
 macro_rules! header {
     ($header:ident, $magic:ident, $version:expr) => {
         /// The full header page of this format.
-        ///
         #[doc = concat!("[`", stringify!($header), "`] followed by zero padding to the page")]
         /// boundary. This is the form that persists and that a mapped page parses as, and a
         /// dereference reaches the fields themselves.

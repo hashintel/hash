@@ -92,9 +92,6 @@ impl Error for OpenQuadError {
 /// index stays inside the table and points deeper in the pre-order. Traversals and set slices
 /// therefore never re-check. Within-set ascending order is the writer's contract, assumed the way
 /// every merge assumes its sorted inputs.
-///
-/// [`locate`](Self::locate) is the serving query: the node owning one tile cell, found by walking
-/// the two-bit digits of the cell's key prefix from the root.
 #[derive(Debug)]
 pub(crate) struct QuadFile {
     map: HeaderMap<FileHeader>,

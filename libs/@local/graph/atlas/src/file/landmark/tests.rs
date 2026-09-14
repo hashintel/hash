@@ -1,3 +1,4 @@
+//! Certificates for the landmark file's format.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -18,6 +19,9 @@ use crate::{
     math::Vec2,
 };
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 1, this
+/// machine's information, the landmark and corpus row counts as little-endian `u64`s, and zero
+/// padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(3, 7));
@@ -70,6 +74,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// Builds a landmark file with three landmarks over seven assigned rows.
 fn fixture_bytes() -> Vec<u8> {
     let rows = [U64::<LE>::new(2), U64::new(5), U64::new(9)];
     let assignment = [0, 0, 1, 1, 2, 2, 0].map(U32::<LE>::new);
@@ -118,6 +123,8 @@ fn written_regions_reopen_verbatim() {
     );
 }
 
+/// Zero landmarks and zero rows are valid geometry: the file writes, reopens, reports no
+/// landmarks, and hands out three empty regions rather than failing the open.
 #[test]
 fn empty_skeleton_reopens() {
     // Zero counts are valid geometry: three empty regions.
@@ -195,6 +202,8 @@ fn open_rejects_foreign_and_torn_bytes() {
     let _file = LandmarkFile::open(&reserved_bits).expect("unknown machine bits still open");
 }
 
+/// A writer handed two landmark rows and one coordinate panics rather than sealing a file whose
+/// header describes a skeleton its regions do not hold.
 #[test]
 #[should_panic(expected = "one coordinate per landmark")]
 fn writer_rejects_disagreeing_regions() {

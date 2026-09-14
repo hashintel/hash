@@ -1,3 +1,7 @@
+//! Card rendering under a token budget.
+//!
+//! Rendering runs a pass schedule, a measurement loop, and a final identifier lint.
+
 use alloc::{alloc::Allocator, borrow::Cow};
 use core::{error::Error, fmt, fmt::Write as _};
 
@@ -9,8 +13,9 @@ use super::{
     token::Tokenizer,
 };
 
-// Pass order is normative: diagnostics recorded on persisted cards name
-// these passes, so reordering changes observable behaviour.
+/// The passes run, in order, while the card exceeds its target budget.
+// Pass order is normative: diagnostics recorded on persisted cards name these passes. Reordering
+// changes observable behaviour.
 const BUDGET_PASSES: [TruncationPass; 6] = [
     TruncationPass::DropExampleSlot,
     TruncationPass::StripAncestorDetails,
@@ -19,6 +24,7 @@ const BUDGET_PASSES: [TruncationPass; 6] = [
     TruncationPass::StripTargetTypeDetails,
     TruncationPass::DropExampleGroup,
 ];
+/// The passes run, in order, only while the card still exceeds its hard budget.
 const HARD_BUDGET_PASSES: [TruncationPass; 2] = [
     TruncationPass::DropExamplesSection,
     TruncationPass::DropAncestorsSection,
@@ -27,7 +33,14 @@ const HARD_BUDGET_PASSES: [TruncationPass; 2] = [
 /// Target and hard token limits for structural truncation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) struct CardsConfig {
+    /// The token count the budget passes truncate toward.
+    ///
+    /// Defaults to 6000 tokens.
     pub token_budget: usize = 6_000,
+    /// The token count the hard-budget passes truncate toward.
+    ///
+    /// Defaults to 7500 tokens, above [`token_budget`](Self::token_budget). The hard-budget
+    /// passes run only for a card the budget passes left oversized.
     pub hard_token_budget: usize = 7_500,
 }
 
@@ -92,7 +105,7 @@ impl Card {
 
     /// Reassembles a card from its persisted fields.
     ///
-    /// Every field is adopted unchanged, with nothing recomputed, so a card restored from
+    /// The restore adopts every field unchanged rather than recomputing any. A card restored from
     /// storage compares equal to the card that was stored, diagnostics included.
     #[must_use]
     pub(crate) const fn from_parts(
@@ -205,6 +218,15 @@ where
     })
 }
 
+/// Applies `passes` in order until the rendered card fits `budget` or nothing remains to remove.
+///
+/// Each removal re-renders and re-counts, and its diagnostic label joins `truncations`. Returns the
+/// token count of the final rendering. The result can still exceed `budget`, but only when the
+/// supplied passes cannot reduce it further.
+///
+/// # Errors
+///
+/// Returns [`CardError::Token`] when the tokenizer rejects a rendering.
 fn run_passes<T, A>(
     contents: &mut CardContents<'_, A>,
     passes: &[TruncationPass],
@@ -232,6 +254,11 @@ where
     Ok(token_count)
 }
 
+/// Renders `contents` into `rendered` and counts its tokens.
+///
+/// # Errors
+///
+/// Returns [`CardError::Token`] when the tokenizer rejects the rendered text.
 fn measure<T, A>(
     contents: &CardContents<'_, A>,
     tokenizer: &T,
@@ -245,6 +272,7 @@ where
     tokenizer.count_tokens(rendered).map_err(CardError::Token)
 }
 
+/// Replaces `rendered` with the canonical text of `contents`.
 fn render<A: Allocator>(contents: &CardContents<'_, A>, rendered: &mut String) {
     rendered.clear();
     write!(rendered, "{contents}").expect("writing to a String cannot fail");

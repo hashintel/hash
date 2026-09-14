@@ -4,12 +4,12 @@
 //! renders each admitted card through the canonical card template and embeds the rendered text.
 //! Each row then carries a smoothed soft target and a vote weight, and it joins the indivisible
 //! validation group its leakage axes and near-duplicate neighbours imply. The output is
-//! deterministic in the corpus bytes, the embedding provider, and the [`AssemblyConfig`], so one
+//! deterministic in the corpus bytes, the embedding provider, and the [`AssemblyConfig`], and one
 //! corpus always yields the same training set.
 //!
 //! Rendering goes through the same template, budgets, and lint as generation-time production cards,
-//! so classifier-time and generation-time card text cannot drift from each other. The adapters live
-//! in [`render`], and the grouping and subdivision machinery lives in [`groups`].
+//! and classifier-time and generation-time card text cannot drift from each other. The adapters
+//! live in [`render`], and the grouping and subdivision machinery lives in [`groups`].
 //!
 //! # Card policy
 //!
@@ -21,7 +21,7 @@
 //! - holdout cards stay out of training and keep their human verdict as the answer. The assembly
 //!   still renders and embeds them, and [`AssembledCorpus::holdouts`] carries them beside their
 //!   verdicts as the fitted model's evaluation set;
-//! - cards whose votes assert no geometry class (all unclear or abstain) drop with zero weight, so
+//! - cards whose votes assert no geometry class (all unclear or abstain) drop with zero weight, and
 //!   uncertainty discounts a card without distorting its target;
 //! - `prescreen_stratum` is a stratification fact and has no effect here.
 //!
@@ -38,7 +38,7 @@
 //!
 //! the Jeffreys prior. A card's target stays a proper distribution at any vote count, and few-vote
 //! cards shrink toward uniform instead of asserting certainty their evidence does not carry. The
-//! row weight is `m`, so the fit's cross-entropy counts each geometry vote once.
+//! row weight is `m`, and the fit's cross-entropy counts each geometry vote once.
 //!
 //! # Validation groups
 //!
@@ -52,21 +52,21 @@
 //! The boundary is the geometric midpoint of the widest multiplicative void among the sorted
 //! pairwise distances within `(0, median · NEAR_DUPLICATE_CEILING_FRACTION]`, with the trailing
 //! void ending at the ceiling included and the leading gap from zero excluded. A duplicate cluster
-//! sits decades below the corpus bulk, and the void between them is the boundary's evidence. A
+//! lies decades below the corpus bulk, and the void between them is the boundary's evidence. A
 //! corpus without such structure takes the trailing void and joins the bulk's whole low tail: every
 //! pair below the boundary, whose count the corpus decides and the ceiling alone bounds.
-//! Subdivision cuts far near-duplicate edges first, so the failure direction stays toward more
+//! Subdivision cuts far near-duplicate edges first, and the failure direction stays toward more
 //! conservative validation. The evidence records the derived boundary with its void and its
 //! ceiling. The group label is the SHA-256 over the component's member identity URLs in trained-row
-//! order, which is the corpus's ascending identity order, so it is stable under any traversal
+//! order, which is the corpus's ascending identity order, and it is stable under any traversal
 //! order.
 //!
 //! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows is too
-//! large for grouped validation, so subdivision relaxes its axes in information order, and the axis
-//! whose one edge says least about leakage goes first. Family edges drop inside the component, then
-//! base-URL edges, then near-duplicate edges cut farthest-first (the kept cut is the largest
-//! distance under which every part fits the budget). Identity and inverse edges never relax, so a
-//! part they alone hold over budget stays one group, and the evidence records it. Relaxation is
+//! large for grouped validation. Subdivision then relaxes its axes in information order, and the
+//! axis whose one edge says least about leakage goes first. Family edges drop inside the component,
+//! then base-URL edges, then near-duplicate edges cut farthest-first (the kept cut is the largest
+//! distance under which every part fits the budget). Identity and inverse edges never relax: a part
+//! they alone hold over budget stays one group, and the evidence records it. Relaxation is
 //! per-component, and groups already within budget keep every axis.
 //!
 //! Publisher is not a union axis. On the live corpus it collapses the 1,684 cards into 5 components
@@ -105,19 +105,18 @@ const DIRICHLET_ALPHA: f64 = 0.5;
 /// The boundary derivation looks for a duplicate/bulk void strictly below the corpus's typical
 /// inter-card distance. The median is that typical distance by construction, and the quarter stands
 /// the region off from the bulk's lower tail. The derivation picks the widest void within the
-/// region, so the fraction only bounds the search: any value materially below one and above the
+/// region, and the fraction only bounds the search: any value materially below one and above the
 /// duplicate scale finds the same void on a corpus with duplicate structure.
 const NEAR_DUPLICATE_CEILING_FRACTION: f64 = 0.25;
 
 /// The prose language every corpus card must declare.
 ///
 /// This is a constant rather than a configuration field. The template renders exactly one language,
-/// and its sentence segmentation, token budgets, and connective phrases all follow that language,
-/// so a knob offering languages the template cannot render would be a lever wired to nothing.
+/// and its sentence segmentation, token budgets, and connective phrases all follow that language.
+/// A knob offering languages the template cannot render would be a lever wired to nothing.
 ///
 /// The per-card `language` field exists on the wire so a corpus declares what it holds and a
-/// mismatch fails here instead of rendering garbage. When a second template arrives, the tag
-/// becomes that template's property.
+/// mismatch fails here instead of rendering garbage.
 const CARD_LANGUAGE: &str = "en";
 
 /// Assembly settings.
@@ -188,8 +187,8 @@ impl<E: core::error::Error + 'static> core::error::Error for AssemblyError<E> {
 
 /// What one assembly admitted, dropped, and derived.
 ///
-/// Destined for the generation metadata beside the fit evidence, so a published classifier names
-/// the corpus policy outcomes its training ran under.
+/// Destined for the generation metadata beside the fit evidence, and a published classifier
+/// therefore names the corpus policy outcomes its training ran under.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AssemblyEvidence {
     /// Cards the corpus supplied.
@@ -204,8 +203,9 @@ pub(crate) struct AssemblyEvidence {
     pub trained: usize,
     /// Distinct card texts embedded.
     pub unique_texts: usize,
-    /// Rows whose rendering exceeded the `hard_token_budget` or dropped more than half their
-    /// examples.
+    /// Rows whose rendering exceeded the budget or dropped over half their examples.
+    ///
+    /// The budget is `hard_token_budget`.
     pub severely_truncated: usize,
     /// Indivisible validation groups over the trained rows, after subdivision.
     pub fold_groups: usize,
@@ -217,19 +217,22 @@ pub(crate) struct AssemblyEvidence {
     ///
     /// Zeros when the derivation found no void.
     pub near_duplicate_void: [f64; 2],
-    /// The derivation's search ceiling, which is the median pairwise distance scaled by the
-    /// fraction.
+    /// The derivation's search ceiling.
+    ///
+    /// It is the median pairwise distance scaled by the fraction.
     pub near_duplicate_ceiling: f64,
     /// Over-budget components subdivision split.
     pub subdivided_groups: usize,
     /// Groups accepted over budget because identity edges alone hold them together.
     pub oversized_accepted: usize,
-    /// Components whose subdivision found no fitting near-duplicate cut and severed every
-    /// near-duplicate edge under the empty cut.
+    /// Components whose subdivision found no fitting near-duplicate cut.
+    ///
+    /// Their subdivision severed every near-duplicate edge under the empty cut.
     ///
     /// Each counted component scattered rows the boundary judged interchangeable across smaller
-    /// groups, so a train/validation split may separate near-duplicates. `None` when the document
-    /// predates the counter: the event was possible and uncounted, which is not a zero.
+    /// groups, and a train/validation split may therefore separate near-duplicates. `None` when
+    /// the document predates the counter: the event was possible and uncounted, which is not a
+    /// zero.
     pub empty_cut_components: Option<usize>,
     /// The weakest axis rank subdivision engaged.
     pub deepest_relaxation: Relaxation,
@@ -277,8 +280,8 @@ pub(crate) struct HoldoutCard {
 /// One assembled training set and its provenance.
 ///
 /// Row `i` of the embedding table, the training rows, and the identities all describe the same
-/// card; holdout cards occupy the table rows after the trained rows, addressed through
-/// [`holdouts`](Self::holdouts). The table is the artifact shape the fit stages and maps; the
+/// card. Holdout cards occupy the table rows after the trained rows, addressed through
+/// [`holdouts`](Self::holdouts). The table is the artifact shape the fit stages and maps, and the
 /// mapped embedding matrix's leading trained rows and [`rows`](Self::rows) together satisfy the
 /// classifier's training-set contract.
 #[derive(Debug)]
@@ -398,10 +401,10 @@ where
         .filter(|finished| finished.severely_truncated())
         .count();
 
-    // Holdout rows render and embed after every trained row, so the
-    // trained rows keep their positions and the group derivation's
-    // trained-row scan bound holds. Each push hands back the holdout
-    // card's assigned row in the table.
+    // Holdout rows render and embed after every trained row. The
+    // trained rows therefore keep their positions, and the group
+    // derivation's trained-row scan bound holds. Each push hands back
+    // the holdout card's assigned row in the table.
     let mut holdout_rows = Vec::with_capacity(held_out.len());
     for &(index, corpus_card, _) in &held_out {
         holdout_rows.push(rendered.push(render_card(index, corpus_card)?));

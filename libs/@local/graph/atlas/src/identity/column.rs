@@ -9,14 +9,16 @@ use crate::file::array::{ArrayFile, ColumnScalar};
 
 /// One array artifact proven to hold elements of type `T`, indexed by the id domain `I`.
 ///
-/// Construction validates the recorded element stamp once through [`ArrayFile::column`], so views
-/// are infallible for the value's lifetime: the file is immutable after open and the shape cannot
-/// change under it. The index domain is the column's position vocabulary, the id a caller must
-/// hold to read an element. A call site therefore cannot mix a column over one domain with a
-/// column over another.
+/// Construction validates the recorded element stamp once through [`ArrayFile::column`]. Views
+/// are then infallible for the value's lifetime: the file is immutable after open and the shape
+/// cannot change under it. The index domain is the column's position vocabulary, the id a caller
+/// must hold to read an element. A call site cannot mix a column over one domain with a column
+/// over another.
 #[derive(Debug)]
 pub(crate) struct Column<I, T> {
+    /// The opened array, its element stamp proven to be `T`'s.
     file: ArrayFile,
+    /// The index domain and element type, carried without owning either.
     domain: PhantomData<fn(I) -> T>,
 }
 
