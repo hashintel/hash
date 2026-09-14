@@ -33,7 +33,7 @@ export const createStepARequestAccounting = (
   configuration: string | undefined,
   resolveIdentity?: () => RequestIdentity,
 ) => {
-  if (configuration === undefined) return undefined;
+  if (configuration === undefined || configuration === "") return undefined;
   // Do not print an invalid configuration: it is an untrusted environment boundary.
   let config: v.InferOutput<typeof configSchema>;
   try {

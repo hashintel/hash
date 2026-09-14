@@ -243,6 +243,7 @@ test("completed native usage survives cancellation after approval without publis
 
 test("no opt-in means no instrument, invalid configuration fails without printing input", () => {
   expect(createStepARequestAccounting(undefined)).toBeUndefined();
+  expect(createStepARequestAccounting("")).toBeUndefined();
   expect(() => createStepARequestAccounting("SECRET-invalid")).toThrow(
     "Invalid Step A accounting configuration.",
   );

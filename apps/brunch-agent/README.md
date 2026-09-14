@@ -14,10 +14,10 @@ For browser-visible persona testing, use the [persona launcher and operator guid
 
 ```sh
 yarn brunch:persona --list-cases
-yarn brunch:persona --case inventory-purchasing --budget-usd 100
+yarn brunch:persona --case inventory-purchasing
 ```
 
-The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Brunch's own tool calls update the visible net and workpiece. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. The guide owns prerequisites, allocation, stop/resume and evidence instructions; consult it before paid execution.
+The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Brunch's own tool calls update the visible net and workpiece. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. There is no automatic budget cutoff; native usage is retained. The guide owns prerequisites, stop/resume and evidence instructions; consult it before paid execution.
 
 The independent headless runbook construction probe is not a persona launch method:
 

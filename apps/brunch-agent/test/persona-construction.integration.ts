@@ -162,9 +162,6 @@ try {
   let persona: BrunchTurnTool | undefined;
   const hooks: (() => void | Promise<void>)[] = [];
   brunchPersonaTestingExtension({
-    registerProvider: () => {
-      throw new Error("Must not register a live provider");
-    },
     registerFlag: () => {},
     getFlag: (name) =>
       name === "brunch-browser-bridge" ? bridge?.socketPath : undefined,
@@ -172,14 +169,7 @@ try {
       persona = tool;
     },
     on: (event, handler) => {
-      if (event === "session_start")
-        hooks.push(() =>
-          handler(undefined, {
-            model: undefined,
-            sessionManager: { getSessionId: () => "TEST-browser-construction" },
-            modelRegistry: { getProviderAuth: async () => undefined },
-          }),
-        );
+      if (event === "session_start") hooks.push(handler);
     },
   });
   for (const hook of hooks) await hook();

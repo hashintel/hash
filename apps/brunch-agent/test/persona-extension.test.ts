@@ -3,11 +3,6 @@ import { afterEach, expect, test, vi } from "vitest";
 import entry from "../.pi/extensions/brunch-persona-testing";
 
 import type { BrunchTurnTool } from "../src/evaluations/persona/brunch-turn";
-import type { PersonaAccountingContext } from "../src/evaluations/persona/request-accounting";
-
-vi.mock("../src/evaluations/persona/request-accounting.ts", () => ({
-  registerPersonaAccounting: () => {},
-}));
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -18,12 +13,8 @@ const fixture = () => {
   vi.stubEnv("PI_SUBAGENT_NAME", "TEST-default");
   const flags = new Map<string, string>();
   const tools: BrunchTurnTool[] = [];
-  const handlers = new Map<
-    string,
-    (event: unknown, context: PersonaAccountingContext) => void | Promise<void>
-  >();
+  const handlers = new Map<string, () => void | Promise<void>>();
   entry({
-    registerProvider: () => {},
     registerFlag: () => {},
     getFlag: (name) => flags.get(name),
     registerTool: (tool) => {
@@ -33,15 +24,7 @@ const fixture = () => {
       handlers.set(event, handler);
     },
   });
-  const emit = async (event: string) =>
-    handlers.get(event)?.(
-      {},
-      {
-        model: undefined,
-        sessionManager: { getSessionId: () => "TEST" },
-        modelRegistry: { getProviderAuth: async () => undefined },
-      },
-    );
+  const emit = async (event: string) => handlers.get(event)?.();
   return { flags, tools, emit };
 };
 

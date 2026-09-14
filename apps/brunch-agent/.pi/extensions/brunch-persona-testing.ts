@@ -4,15 +4,8 @@ import {
   type BrunchTurnExtensionApi,
   createBrunchTurnTool,
 } from "../../src/evaluations/persona/brunch-turn.ts";
-import {
-  registerPersonaAccounting,
-  type PersonaAccountingContext,
-} from "../../src/evaluations/persona/request-accounting.ts";
-
-import type { Provider } from "@earendil-works/pi-ai";
 
 interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
-  registerProvider(provider: Provider): void;
   registerFlag(
     name: string,
     options: { readonly description: string; readonly type: "string" },
@@ -20,10 +13,7 @@ interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
   getFlag(name: string): boolean | string | undefined;
   on(
     event: "session_start" | "session_shutdown",
-    handler: (
-      event: unknown,
-      context: PersonaAccountingContext,
-    ) => void | Promise<void>,
+    handler: () => void | Promise<void>,
   ): void;
 }
 
@@ -33,7 +23,6 @@ const browserBridgeFlag = "brunch-browser-bridge";
 export default function brunchPersonaTestingExtension(
   pi: BrunchPersonaExtensionApi,
 ): void {
-  registerPersonaAccounting(pi);
   pi.registerFlag(browserBridgeFlag, {
     type: "string",
     description:
@@ -52,7 +41,7 @@ export default function brunchPersonaTestingExtension(
     const socketPath = typeof value === "string" ? value.trim() : "";
     if (!socketPath)
       throw new Error(
-        "Persona requires the browser launcher. Run yarn brunch:persona --case <name-or-directory> --budget-usd <allocation>; it supplies --brunch-browser-bridge.",
+        "Persona requires the browser launcher. Run yarn brunch:persona --case <name-or-directory>; it supplies --brunch-browser-bridge.",
       );
     const tool = createBrunchTurnTool((message, signal) =>
       sendPersonaBrowserTurn(socketPath, message, signal),

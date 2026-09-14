@@ -16,7 +16,6 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
-import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
@@ -27,12 +26,9 @@ import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
-import {
-  initializeRequestLedger,
-  RequestLedger,
-} from "../../provider-accounting/request-ledger.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import { submitPersonaBrowserTurn } from "./browser-turn.ts";
+import { checkPersonaConfiguration } from "./configuration.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
 import {
   openRetainedPersonaBrowser,
@@ -43,7 +39,6 @@ import {
   refreshProofManifest,
   writeProofArtifacts,
 } from "./proof-artifacts.ts";
-import { checkPersonaConfiguration } from "./request-accounting.ts";
 
 export { openPersonaConversation } from "./launch/browser.ts";
 
@@ -131,7 +126,7 @@ const save = (path: string, value: unknown) =>
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const environment = () => {
+export const personaEnvironment = () => {
   // Same loader and shell precedence as the normal development app.
   if (process.env.DEBUG)
     throw new Error(
@@ -139,6 +134,9 @@ const environment = () => {
     );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
   loaded.BRUNCH_CHAT_MODEL = STEP_A_MODEL_ID;
+  // An explicit empty value also overrides Vite env files on backend startup.
+  // Historical campaign ledgers must not gate persona requests or resumed runs.
+  loaded.BRUNCH_STEP_A_ACCOUNTING = "";
   return loaded;
 };
 export const paneIdFrom = (stdout: string) => {
@@ -164,10 +162,9 @@ const runPersona = async (run: string) => {
     model: string;
     socketPath: string;
     piSession?: string;
-    accounting?: ReturnType<typeof initializeRequestLedger>;
   };
-  if (!config.accounting || config.model !== STEP_A_MODEL_ID)
-    throw new Error("Persona run is missing its shared Sonnet allocation");
+  if (config.model !== STEP_A_MODEL_ID)
+    throw new Error("Persona run must use the selected Sonnet model");
   const child = spawn(
     "pi",
     personaArguments(run, config.model, config.socketPath, config.piSession),
@@ -175,8 +172,7 @@ const runPersona = async (run: string) => {
       cwd: appRoot,
       stdio: "inherit",
       env: {
-        ...environment(),
-        BRUNCH_STEP_A_ACCOUNTING: JSON.stringify(config.accounting),
+        ...personaEnvironment(),
         PI_CODING_AGENT_DIR: join(run, "pi"),
         PI_SUBAGENT_NAME: basename(run),
         PI_OFFLINE: "1",
@@ -283,12 +279,10 @@ export const responds = async (
 /** One local operator command; run directories contain data, never launch scripts. */
 export const launchPersona = async (
   caseDirectory: string,
-  budgetUsd: number,
   objective?: string,
   route = "/",
   initialNetPath?: string,
   resume?: Awaited<ReturnType<typeof readPersonaResume>>,
-  acceptedUnknown?: number,
 ) => {
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
@@ -303,13 +297,8 @@ export const launchPersona = async (
     throw new Error(
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
     );
-  const env = environment();
+  const env = personaEnvironment();
   const model = STEP_A_MODEL_ID;
-  const nativeModel = anthropicProvider()
-    .getModels()
-    .find((entry) => entry.id === model);
-  if (!nativeModel)
-    throw new Error("Sonnet is absent from the native provider catalogue");
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -330,15 +319,6 @@ export const launchPersona = async (
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
   const run = resume?.run ?? (await mkdtemp(join(runs, "run-")));
-  const accounting =
-    resume?.config.accounting ??
-    initializeRequestLedger(
-      join(run, "usage-ledger.json"),
-      basename(run),
-      budgetUsd,
-      nativeModel,
-    );
-  env.BRUNCH_STEP_A_ACCOUNTING = JSON.stringify(accounting);
   env.BRUNCH_DEV_DB_PATH = join(run, "conversation.db");
   env.BRUNCH_DB_KIND = "sqlite";
   delete env.BRUNCH_CHAT_DB_PATH;
@@ -359,8 +339,6 @@ export const launchPersona = async (
   const record = {
     caseDirectory,
     model,
-    budgetUsd,
-    accounting,
     databasePath: env.BRUNCH_DEV_DB_PATH,
     browserProfile,
     panelOrigin,
@@ -419,7 +397,7 @@ export const launchPersona = async (
     );
     if (available.includes(true))
       throw new Error(
-        "Persona needs its own metered services. Leave existing services running and choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
+        "Persona needs its own services. Leave existing services running and choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
       );
     report("Building local app dependencies…");
     await execute(
@@ -511,7 +489,7 @@ export const launchPersona = async (
       }, title);
       await personaPage.bringToFront();
       report(
-        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nCombined catalogue budget: USD ${budgetUsd}\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
+        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
       );
       const terminal = createInterface({
         input: process.stdin,
@@ -535,13 +513,6 @@ export const launchPersona = async (
         retained.session,
       );
       await recordingPause();
-      if (acceptedUnknown !== undefined) {
-        new RequestLedger(
-          accounting.ledgerPath,
-          join(run, "attempt-ledger.md"),
-          accounting.runId,
-        ).acceptUnknown(acceptedUnknown);
-      }
       for (const service of services)
         if (service.script === "dev:brunch:server") await startService(service);
       const reconciled = await reconcilePersonaResume(
@@ -630,7 +601,6 @@ export const launchPersona = async (
       [
         `export ANTHROPIC_API_KEY=${shellQuote(key)}`,
         `export BRUNCH_CHAT_MODEL=${shellQuote(model)}`,
-        `export BRUNCH_STEP_A_ACCOUNTING=${shellQuote(JSON.stringify(accounting))}`,
       ].join("\n") + "\n",
       { mode: 0o600 },
     );
@@ -700,22 +670,20 @@ if (
     options: {
       case: { type: "string" },
       "list-cases": { type: "boolean" },
-      "budget-usd": { type: "string" },
       objective: { type: "string" },
       "initial-net": { type: "string" },
       route: { type: "string" },
       resume: { type: "string" },
-      "accept-unknown": { type: "string" },
       "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> --budget-usd <allocation> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned metered services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6 and share the supplied budget (at most USD 100). Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
     );
     report(
-      "Resume: yarn brunch:persona --resume <run-directory> [--accept-unknown <request-sequence>]\nReuses the original profile, database, Pi session and allocation. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Unknown usage keeps its full hold.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
+      "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database and Pi session. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
@@ -733,7 +701,6 @@ if (
       if (
         !values.resume ||
         values.case ||
-        values["budget-usd"] ||
         values.objective ||
         values.route ||
         values["initial-net"] ||
@@ -742,50 +709,34 @@ if (
         throw new Error(
           "--resume cannot be combined with fresh-run options or --run-persona",
         );
-      const accepted =
-        values["accept-unknown"] === undefined
-          ? undefined
-          : Number(values["accept-unknown"]);
-      if (
-        accepted !== undefined &&
-        (!Number.isSafeInteger(accepted) || accepted < 1)
-      )
-        throw new Error(
-          "--accept-unknown requires a positive request sequence",
-        );
       const retained = await readPersonaResume(
         resolve(process.env.INIT_CWD ?? process.cwd(), values.resume),
       );
       await launchPersona(
         retained.config.caseDirectory,
-        retained.config.budgetUsd,
         undefined,
         retained.config.route,
         undefined,
         retained,
-        accepted,
       );
     };
     const task = values.resume
       ? resumeRun()
-      : values["accept-unknown"] !== undefined
-        ? Promise.reject(new Error("--accept-unknown requires --resume"))
-        : values["run-persona"]
-          ? runPersona(resolve(values["run-persona"]))
-          : directory
-            ? launchPersona(
-                directory,
-                Number(values["budget-usd"]),
-                values.objective,
-                values.route,
-                values["initial-net"]
-                  ? resolve(
-                      process.env.INIT_CWD ?? process.cwd(),
-                      values["initial-net"],
-                    )
-                  : undefined,
-              )
-            : Promise.reject(new Error("Supply --case <name-or-directory>"));
+      : values["run-persona"]
+        ? runPersona(resolve(values["run-persona"]))
+        : directory
+          ? launchPersona(
+              directory,
+              values.objective,
+              values.route,
+              values["initial-net"]
+                ? resolve(
+                    process.env.INIT_CWD ?? process.cwd(),
+                    values["initial-net"],
+                  )
+                : undefined,
+            )
+          : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {
       process.stderr.write(
         `${error instanceof Error ? error.message : "Persona launch failed"}\n`,

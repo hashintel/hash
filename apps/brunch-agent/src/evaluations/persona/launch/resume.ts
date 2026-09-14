@@ -1,7 +1,7 @@
 /** Reattach original stores; never import a fixture, rewrite history, or resend an admitted turn. */
 import assert from "node:assert/strict";
 import { readFile, readdir, stat } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
@@ -23,12 +23,10 @@ const text = v.pipe(v.string(), v.minLength(1));
 const runSchema = v.looseObject({
   caseDirectory: text,
   model: v.literal(STEP_A_MODEL_ID),
-  budgetUsd: v.pipe(v.number(), v.minValue(0), v.maxValue(100)),
   databasePath: text,
   browserProfile: text,
   panelOrigin: text,
   route: text,
-  accounting: v.object({ ledgerPath: text, runId: text }),
 });
 const sessionSchema = v.object({
   url: text,
@@ -61,11 +59,6 @@ export const readPersonaResume = async (directory: string) => {
     JSON.parse(await readFile(join(run, "session.json"), "utf8")),
   );
   assert.equal(resolve(config.databasePath), join(run, "conversation.db"));
-  assert.equal(
-    resolve(config.accounting.ledgerPath),
-    join(run, "usage-ledger.json"),
-  );
-  assert.equal(config.accounting.runId, basename(run));
   assert.equal(
     session.url,
     `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(session)}`,

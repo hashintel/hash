@@ -2,9 +2,10 @@
 /* eslint-disable no-await-in-loop -- One synthetic provider queue, exercised serially. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import {
   createAssistantMessageEventStream,
@@ -20,11 +21,8 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import {
-  registerPersonaAccounting,
-  type PersonaAccountingContext,
-} from "../src/evaluations/persona/request-accounting.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { createStepARequestAccounting } from "../src/provider-accounting.ts";
 import { initializeRequestLedger } from "../src/provider-accounting/request-ledger.ts";
 
 const childMode = process.argv[2];
@@ -37,7 +35,7 @@ process.env.BRUNCH_DEV_DB_PATH = join(
   directory,
   `conversation-${childMode ?? "parent"}.db`,
 );
-if (childMode === "--disabled") delete process.env.BRUNCH_STEP_A_ACCOUNTING;
+if (childMode === "--disabled") process.env.BRUNCH_STEP_A_ACCOUNTING = "";
 else
   process.env.BRUNCH_STEP_A_ACCOUNTING = JSON.stringify({
     ledgerPath,
@@ -314,50 +312,55 @@ const submit = async () => {
 };
 const observations: unknown[] = [];
 try {
+  if (childMode === "--disabled" && process.argv[3] === undefined)
+    writeFileSync(
+      ledgerPath,
+      "TEST invalid historical ledger: must remain untouched",
+    );
   if (childMode && childMode !== "--shared") {
     const before = readFileSync(ledgerPath, "utf8");
     const outcome = await submit();
     assert.equal(starts, childMode === "--disabled" ? 1 : 0);
     assert.equal(outcome.failure, childMode !== "--disabled");
     assert.equal(readFileSync(ledgerPath, "utf8"), before);
+    if (childMode === "--disabled") {
+      assert.equal((await submit()).failure, false);
+      assert.equal(readFileSync(ledgerPath, "utf8"), before);
+      const db = new DatabaseSync(process.env.BRUNCH_DEV_DB_PATH, {
+        readOnly: true,
+      });
+      try {
+        const usage = db
+          .prepare(`
+          SELECT count(*) AS responses, sum(json_extract(record.value, '$.usage.totalTokens')) AS tokens
+          FROM flue_conversation_stream_batches AS batch, json_each(batch.data) AS record
+          WHERE json_extract(record.value, '$.type') = 'assistant_message_completed'
+        `)
+          .get();
+        assert.equal(usage?.responses, 2);
+        assert.equal(usage.tokens, 320);
+      } finally {
+        db.close();
+      }
+      assert.equal(forbiddenFetches, 0);
+      process.stdout.write(
+        "PASS: two native Brunch requests without accounting; usage retained; old ledger unchanged.\n",
+      );
+    }
   } else if (childMode === "--shared") {
-    // The launcher's fresh allocation, the built ChatAgent and Pi's native
-    // registration all share one authority. Only the SDK fetch is synthetic.
+    // Explicit campaign accounting can still share a ledger across callers.
+    // Persona runs no longer opt into this instrument.
     scenario = "shared";
-    const piDirectory = join(directory, "pi");
-    mkdirSync(piDirectory);
-    writeFileSync(
-      join(piDirectory, "settings.json"),
-      JSON.stringify({
-        retry: { enabled: false, provider: { maxRetries: 0 } },
+    const accounting = createStepARequestAccounting(
+      process.env.BRUNCH_STEP_A_ACCOUNTING,
+      () => ({
+        kind: "pi",
+        sessionId: "TEST-live-pi-identity",
+        requestId: "TEST-request",
       }),
     );
-    process.env.PI_CODING_AGENT_DIR = piDirectory;
-    process.env.PI_OFFLINE = "1";
-    process.env.ANTHROPIC_API_KEY = "TEST-accounting-key";
-    let piProvider: Provider | undefined;
-    let piStart:
-      | ((event: unknown, context: PersonaAccountingContext) => Promise<void>)
-      | undefined;
-    registerPersonaAccounting({
-      registerProvider(registered) {
-        piProvider = registered;
-      },
-      on(_event, handler) {
-        piStart = handler;
-      },
-    });
-    assert(piProvider && piStart);
-    await piStart(undefined, {
-      model,
-      sessionManager: { getSessionId: () => "TEST-live-pi-identity" },
-      modelRegistry: {
-        getProviderAuth: async () => ({
-          source: "ANTHROPIC_API_KEY",
-          auth: { apiKey: "TEST-accounting-key" },
-        }),
-      },
-    });
+    assert(accounting);
+    const piProvider = accounting.wrap(native, () => true);
     assert.equal(
       (
         await piProvider
