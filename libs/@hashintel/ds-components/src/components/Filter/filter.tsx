@@ -222,7 +222,7 @@ const FilterSelectInput = ({
  *
  * With `removeable.dismissAbandoned`, a chip left with an incomplete draft
  * (no operator, or any empty input) after the user focuses or clicks
- * elsewhere waits 3s, fades over 3s, then removes itself; returning to it at
+ * elsewhere waits 1s, fades over 2s, then removes itself; returning to it at
  * any point (including via its portaled dropdowns) rescues it.
  */
 export const Filter = <
@@ -260,7 +260,7 @@ export const Filter = <
          * Auto-dismiss an abandoned chip: once the user focuses or clicks
          * outside the filter while its draft is incomplete — no operator
          * chosen, or any input empty, even if a value was committed before —
-         * wait 3s, fade out over another 3s, then call `onRemove`. Any
+         * wait 1s, fade out over another 2s, then call `onRemove`. Any
          * interaction with the chip — including its portaled dropdowns —
          * rescues it. Chips whose selected operator takes no input are never
          * abandoned.

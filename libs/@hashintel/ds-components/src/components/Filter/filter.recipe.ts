@@ -387,16 +387,11 @@ export const filterRecipe = sva({
       // Optically centers the icon on the first line of a wrapped message
       marginTop: "[0.2em]",
     },
-    // The tooltip-trigger wrapper a number input is nested in: layout-neutral
-    // (no line-height or font of its own — the input's `font: inherit` reads
-    // through it), stretching the input as if it were the slot's direct child.
     hintTrigger: {
       display: "flex",
       alignItems: "stretch",
       minWidth: "0",
     },
-    // The rejected-characters hint bubble. Portaled like errorTooltip, so it
-    // styles itself with direct tokens rather than the `--filter-*` levers.
     hintTooltip: {
       background: "white",
       color: "neutral.s110",

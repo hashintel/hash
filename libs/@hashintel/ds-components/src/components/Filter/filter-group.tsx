@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { Button, type ButtonElementProps } from "../Button/button";
@@ -61,10 +63,23 @@ const ClearFilters = ({
   </Button>
 );
 
+/** A `Filter` chip's root element, as rendered anywhere inside the group. */
+const chipSelector = '[role="group"][data-property]';
+
+/** A chip's first interactive segment (operator trigger or input) — never its remove button. */
+const firstSegmentOf = (chip: HTMLElement) =>
+  chip.querySelector<HTMLElement>(
+    'button:enabled:not([data-part="remove"]), input:enabled',
+  );
+
 /**
  * Lays out a collection of `Filter` chips — and any interleaved controls
- * (buttons, dropdowns, ...) — as a wrapping flex row. Purely presentational:
- * the children manage their own state.
+ * (buttons, dropdowns, ...) — as a wrapping flex row. The children manage
+ * their own state; the group's one behaviour is moving focus into any chip
+ * added after mount. Without this, closing the add-filter menu restores
+ * focus to its trigger, which strands keyboard users on the button and —
+ * for `dismissAbandoned` chips — counts as focusing outside the fresh chip,
+ * starting its abandonment countdown the moment it appears.
  *
  * `FilterGroup.AddFilter` and `FilterGroup.ClearFilters` are pre-styled
  * buttons for the group's two standard actions; wiring them up (and any
@@ -77,8 +92,49 @@ const FilterGroupRoot = ({
   className?: string;
   children?: React.ReactNode;
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  // Chip properties present on the previous render; null until first observed.
+  const seenPropertiesRef = useRef<ReadonlySet<string> | null>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    const chips = Array.from(root.querySelectorAll<HTMLElement>(chipSelector));
+    const seenProperties = seenPropertiesRef.current;
+    seenPropertiesRef.current = new Set(
+      chips.map((chip) => chip.getAttribute("data-property") ?? ""),
+    );
+    // The initial render's chips are restored state, not a user addition.
+    if (seenProperties === null) {
+      return;
+    }
+    const freshChip = chips.find(
+      (chip) => !seenProperties.has(chip.getAttribute("data-property") ?? ""),
+    );
+    if (!freshChip) {
+      return;
+    }
+    // Double rAF so the focus lands after ark-ui restores focus to the
+    // add-menu trigger when the menu closes (mirrors Filter's focusFirstInput).
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!freshChip.isConnected) {
+          return;
+        }
+        const active = document.activeElement;
+        // The user already moved into a chip; don't yank focus from them.
+        if (active instanceof Element && active.closest(chipSelector)) {
+          return;
+        }
+        firstSegmentOf(freshChip)?.focus();
+      });
+    });
+  });
+
   return (
-    <div role="group" className={cx(styles, className)}>
+    <div role="group" ref={rootRef} className={cx(styles, className)}>
       {children}
     </div>
   );

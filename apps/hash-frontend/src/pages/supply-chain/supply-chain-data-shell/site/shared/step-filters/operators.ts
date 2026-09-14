@@ -5,23 +5,8 @@ import type {
   FilterSingleSelectInput,
 } from "@hashintel/ds-components";
 
-/**
- * Generic operator vocabulary for the step-table filters: reusable operator
- * configs grouped by value type, `pick*` helpers to materialise a subset into
- * the keyed list the `Filter` component takes, and the matching evaluators.
- *
- * Evaluation semantics shared by every operator: a row that lacks the filtered
- * property (a null/absent derived value) fails the filter, so "not applicable"
- * rows drop out while the filter is active instead of silently passing.
- * Filters wanting total semantics (e.g. yes/no presence checks) define custom
- * operators with their own predicates instead.
- */
+/** Generic operator vocabulary for the step-table filters */
 
-/**
- * Operator shape shared by every step filter. The heterogeneous filter set is
- * managed generically, so the per-operator value types are `unknown` and the
- * evaluators narrow at the boundary (mirroring the Filter component itself).
- */
 export type StepFilterOperator = FilterOperator<Record<string, unknown>>;
 
 type OperatorConfig = Omit<StepFilterOperator, "key">;
@@ -168,10 +153,6 @@ export const matchesNumberOperator = (
   }
 };
 
-/**
- * Membership test for select operators. `isNot`/`isNoneOf` invert the match;
- * rows with no values fail either way (strict not-applicable semantics).
- */
 export const matchesSelectionOperator = (
   operatorKey: string,
   rowValues: ReadonlyArray<string> | null | undefined,
