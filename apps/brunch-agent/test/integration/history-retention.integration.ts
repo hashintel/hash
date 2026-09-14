@@ -13,7 +13,6 @@ import {
 import { observe } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { projectFlueHistoryForSweep } from "@hashintel/brunch-agent-binding-flue";
 import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolHistoryFrom,
@@ -746,8 +745,6 @@ try {
         afterIds: after.messages.map((message) => message.id),
         lost,
         changed,
-        beforeKinds: projectFlueHistoryForSweep(before),
-        afterKinds: projectFlueHistoryForSweep(after),
         clientResultsBefore: clientResults,
         clientResultsAfter: clientToolHistoryFrom(after.messages).results,
       });

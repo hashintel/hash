@@ -26,7 +26,6 @@ import {
 } from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
-import { applyCaptureSweep } from "../../src/capture/apply-sweep.ts";
 import {
   clientToolNames,
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -364,16 +363,6 @@ try {
         message.purpose === "dispatch" &&
         message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
     ).length;
-    const firstSweep = await applyCaptureSweep(
-      identity,
-      userEntryIds,
-      appTransport,
-    );
-    const secondSweep = await applyCaptureSweep(
-      identity,
-      userEntryIds,
-      appTransport,
-    );
     const interviewerToolNames = [
       ...new Set(
         snapshot.messages.flatMap((message) =>
@@ -475,12 +464,6 @@ try {
       activateSkillCall,
       readSkillResourceCall,
       interviewerToolNames,
-      captureUserText: userTextFromHistory(historyMessages),
-      captureIds: firstSweep.captures.map((capture) => capture.id),
-      recaptureIds: secondSweep.captures.map((capture) => capture.id),
-      skippedDedupKeys: secondSweep.skippedDedupKeys,
-      capturePayloads: firstSweep.captures.map((capture) => capture.payload),
-      captureExcerpts: firstSweep.captures.map((capture) => capture.excerpt),
     };
     process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
   }
