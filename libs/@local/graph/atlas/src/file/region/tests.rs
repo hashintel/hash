@@ -1,3 +1,6 @@
+//! Certificates for the region layer every artifact format shares.
+
+use core::assert_matches;
 use std::fs;
 
 use super::{PAGE, PageMap, padded_size, write_padding, write_region};
@@ -90,8 +93,9 @@ fn live_map_excludes_exclusive_lockers() {
     let map = PageMap::open(&path).expect("the fixture file should map");
 
     let writer = fs::File::open(&path).expect("the fixture file should reopen");
-    assert!(
-        matches!(writer.try_lock(), Err(fs::TryLockError::WouldBlock)),
+    assert_matches!(
+        writer.try_lock(),
+        Err(fs::TryLockError::WouldBlock),
         "an exclusive lock must contend with a live mapping"
     );
 

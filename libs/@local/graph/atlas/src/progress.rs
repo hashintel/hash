@@ -50,7 +50,7 @@ impl Stage {
     /// Every stage, in pipeline order.
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the index runs over the variant count, an order of magnitude inside u8"
+        reason = "the repr(u8) enum bounds its implicit discriminants to the u8 range"
     )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
         // SAFETY: A fieldless `repr(u8)` enum has u8 layout and admits its declared discriminants.
@@ -117,8 +117,7 @@ pub struct DescentIteration {
 /// support concurrent callbacks.
 #[expect(
     unused_variables,
-    reason = "the default bodies observe nothing; the parameter names document each observation \
-              for implementors"
+    reason = "the no-op defaults keep descriptive parameter names for implementors"
 )]
 pub trait Progress {
     /// An owned observer for work that cannot borrow this observer.

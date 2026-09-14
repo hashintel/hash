@@ -139,8 +139,8 @@ where
 
         #[expect(
             clippy::cast_possible_truncation,
-            reason = "the frozen constant lives in the working f32 precision; the domain check \
-                      reads the narrowed value"
+            reason = "the frozen constant lives in the working f32 precision, and the domain \
+                      check reads the narrowed value"
         )]
         let frozen_spread =
             Positive::new(spread as f32).ok_or(GaugeRefusal::DegenerateSpread { spread })?;

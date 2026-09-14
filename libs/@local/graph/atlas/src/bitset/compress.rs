@@ -79,13 +79,7 @@ impl<T> CompressedBitSet<T> {
         self.rows.len()
     }
 
-    /// Returns whether the set admits no rows.
-    #[must_use]
-    pub(crate) fn is_empty(&self) -> bool {
-        self.rows.is_empty()
-    }
-
-    /// Returns the set's retained container bytes.
+    /// Estimates the set's heap usage from its occupied containers.
     ///
     /// The figure sums the array, run and bitmap byte counts reported by
     /// [`RoaringBitmap::statistics`] plus [`Self::CONTAINER_ALLOWANCE`] per container. It is an
@@ -99,21 +93,6 @@ impl<T> CompressedBitSet<T> {
             + statistics.n_bytes_run_containers
             + statistics.n_bytes_bitset_containers
             + u64::from(statistics.n_containers) * Self::CONTAINER_ALLOWANCE
-    }
-
-    /// Returns whether the set admits every row of `[0, n)`.
-    ///
-    /// Rows at or above `n` never count against the answer: a set may admit them and still cover
-    /// the range below. `n = 0` asks for no rows and answers `true`, and a range wider than the
-    /// representable domain answers `false`. The check runs on the set's compressed runs rather
-    /// than its rows, so a covered million-row range costs what a handful of rows cost.
-    #[must_use]
-    pub(crate) fn contains_below(&self, n: u64) -> bool {
-        let Some(last) = n.checked_sub(1) else {
-            return true;
-        };
-
-        u32::try_from(last).is_ok_and(|last| self.rows.contains_range(0..=last))
     }
 }
 
@@ -144,11 +123,6 @@ impl<T: Id> CompressedBitSet<T> {
     pub(crate) fn insert(&mut self, row: T) -> bool {
         let row = u32::try_from(row.as_u64()).expect("the row lies in the representable domain");
         self.rows.insert(row)
-    }
-
-    /// Removes `row`, returning whether the set changed.
-    pub(crate) fn remove(&mut self, row: T) -> bool {
-        u32::try_from(row.as_u64()).is_ok_and(|row| self.rows.remove(row))
     }
 
     /// Returns whether the set admits `row`.

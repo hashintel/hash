@@ -7,7 +7,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "the exact fixtures produce exactly representable readings, so the asserted \
+    reason = "the exact fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"
 )]
 

@@ -178,6 +178,19 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
     }
 }
 
+/// A value that can report the heap bytes it holds.
+///
+/// Implementations report the bytes that would be released by dropping the value and leave out
+/// the bytes the value occupies inline in its owner. Composite values sum their parts. A value that
+/// holds nothing on the heap reports zero.
+///
+/// An implementation using [`MemoryUsage`] reports its allocator's current tally rather than a
+/// figure derived from the value's contents.
+pub(crate) trait HeapMemoryUsage {
+    /// Returns the bytes this value holds on the heap.
+    fn heap_memory_usage(&self) -> u64;
+}
+
 #[cfg(test)]
 mod tests {
     mod miri {
@@ -186,7 +199,7 @@ mod tests {
         use crate::allocator::MemoryUsageAllocator;
 
         #[test]
-        fn allocate_rises_the_counter_by_layout_size() {
+        fn allocation_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
             assert_eq!(usage.get(), 0);
@@ -206,7 +219,7 @@ mod tests {
         }
 
         #[test]
-        fn allocate_zeroed_rises_and_reads_zero() {
+        fn zeroed_allocation_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
 
@@ -230,7 +243,7 @@ mod tests {
         }
 
         #[test]
-        fn grow_tracks_the_size_delta() {
+        fn growth_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
 
@@ -260,7 +273,7 @@ mod tests {
         }
 
         #[test]
-        fn grow_zeroed_tracks_the_delta_and_zeroes_the_tail() {
+        fn zeroed_growth_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
 
@@ -302,7 +315,7 @@ mod tests {
         }
 
         #[test]
-        fn shrink_tracks_the_size_delta() {
+        fn shrink_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
 
@@ -332,7 +345,7 @@ mod tests {
         }
 
         #[test]
-        fn vec_growth_through_the_allocator_tracks_pushes_and_returns_to_zero() {
+        fn vec_growth_tally() {
             let allocator = MemoryUsageAllocator::global();
             let usage = allocator.memory_usage();
             assert_eq!(usage.get(), 0);

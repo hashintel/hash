@@ -170,7 +170,7 @@ impl Pair<GenerationContract<'_>> {
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
+    use core::assert_matches;
     use std::fs;
 
     use camino::Utf8PathBuf;
@@ -201,7 +201,7 @@ mod tests {
         FitConfig {
             seed,
             selection: SelectionOptions {
-                maximum_count: NonZero::new(2).expect("the fixture capacity is nonzero"),
+                maximum_count: nz!(2),
                 ..
             },
             curve: AffinityCurve::new(positive!(1.577), positive!(0.895)),
@@ -248,13 +248,13 @@ mod tests {
         }
         .agreed();
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::NotProjectorPlaced {
                 generation: named,
                 placement: Placement::LandmarkBaseline,
             }) if named == generation(1),
-        ));
+        );
     }
 
     /// A pair whose embedder fingerprints differ fails with `EmbedderMismatch`.
@@ -276,7 +276,7 @@ mod tests {
         }
         .agreed();
 
-        assert!(matches!(result, Err(ReplayError::EmbedderMismatch { .. })));
+        assert_matches!(result, Err(ReplayError::EmbedderMismatch { .. }));
     }
 
     /// A pair differing only in the config seed fails with `ConfigMismatch`.
@@ -300,7 +300,7 @@ mod tests {
         }
         .agreed();
 
-        assert!(matches!(result, Err(ReplayError::ConfigMismatch { .. })));
+        assert_matches!(result, Err(ReplayError::ConfigMismatch { .. }));
     }
 
     /// Accepts a pair differing only in the prior lineage, which the contract excludes.
@@ -392,7 +392,7 @@ mod tests {
         let mut hasher = Sha256::new();
         hasher.update(b"other bytes");
         let observed = hasher.finalize();
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::ArtifactIntegrity {
                 generation: named,
@@ -403,7 +403,7 @@ mod tests {
                 && role == tampered.name
                 && expected == tampered.hash
                 && actual == observed,
-        ));
+        );
     }
 
     /// A recorded artifact missing from the directory fails with `ReadArtifact` naming the role.
@@ -417,9 +417,9 @@ mod tests {
 
         let result = VerifiedPair::verified_artifacts(generation(1), &directory, [missing]);
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::ReadArtifact { role, .. }) if role == file_name("gone.arr"),
-        ));
+        );
     }
 }

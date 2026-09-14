@@ -183,7 +183,7 @@ mod tests {
     /// Computes the violation in `f64` from its defining expression, for finite differences.
     #[expect(
         clippy::suboptimal_flops,
-        reason = "the mirror states the defining expression verbatim"
+        reason = "the reference states the defining expression verbatim"
     )]
     fn violation(scale: f64, margin: f64, ruler: f64, canonical: f64, zero: f64) -> f64 {
         (scale * canonical - zero) / ruler + margin
@@ -224,7 +224,8 @@ mod tests {
     #[test]
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the fixture constants are exactly representable in f32"
+        reason = "the fixture constants round to f32 at the cast, and the tolerance exceeds the \
+                  slope error that rounding induces"
     )]
     fn partials_match_finite_differences() {
         let (scale, margin, ruler, canonical, zero) =

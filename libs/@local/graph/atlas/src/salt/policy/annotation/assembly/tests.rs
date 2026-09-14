@@ -11,10 +11,10 @@ use serde_json::{Value, json};
 use super::{AssemblyConfig, AssemblyError, HoldoutClass, assemble};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    file::array::ArrayFile,
+    file::{ArtifactFile as _, array::ArrayFile},
     identity::CardRow,
     integrity::{Sha256, Update as _},
-    math::BoxedVecN,
+    math::{BoxedVecN, PositiveUnitFraction, positive_unit_fraction},
     progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -419,7 +419,7 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
         &corpus,
         &ProgrammedEmbedder,
         AssemblyConfig {
-            maximum_group_fraction: 1.0,
+            maximum_group_fraction: positive_unit_fraction!(1.0),
             ..
         },
         &NoProgress,
@@ -587,9 +587,7 @@ async fn language_the_template_does_not_render_is_rejected() {
     )
     .await
     .expect_err("the template renders English corpora");
-    assert!(
-        matches!(error, AssemblyError::Language { card: 0, ref language } if &**language == "de"),
-    );
+    assert_matches!(error, AssemblyError::Language { card: 0, ref language } if &**language == "de");
 }
 
 /// Assembles a document's cards under the given group budget.
@@ -600,7 +598,8 @@ async fn assemble_under(cards: &[Value], maximum_group_fraction: f64) -> super::
         &corpus,
         &ProgrammedEmbedder,
         AssemblyConfig {
-            maximum_group_fraction,
+            maximum_group_fraction: PositiveUnitFraction::new(maximum_group_fraction)
+                .expect("maximum_group_fraction must be in (0, 1]"),
             ..
         },
         &NoProgress,

@@ -69,12 +69,8 @@ const DEFAULT_REPULSION_STRENGTH: NonNegative = non_negative!(1.0);
 /// The default number of vertices repelled per sampled edge.
 const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwrap() };
 
-/// Schedule settings for one layout, valid by construction.
-// The defaults are the UMAP reference defaults, carried as unvalidated
-// starting points; the release evaluation's layout criteria
-// (trustworthiness, landmark rank correlation) revise them from
-// evidence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// Epoch, learning-rate and negative-sampling settings for one layout.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LayoutOptions {
     /// Optimization epochs, 500 by default.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,

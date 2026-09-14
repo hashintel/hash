@@ -7,8 +7,6 @@
     reason = "dyadic fixture values compute exactly in f32 and bit-exact assertions are the \
               contract"
 )]
-
-use core::num::NonZero;
 use std::sync::{LazyLock, Mutex};
 
 use burn::{
@@ -180,8 +178,14 @@ fn affinity() -> AffinityEnergy {
 /// is `0.5`: unit normalization comes from local scales of `0.5`.
 fn relation_energy() -> RelationEnergy {
     RelationEnergy::new(
-        CoincidentEnergy::new(non_negative!(0.25), positive!(1.0)),
-        ProximalEnergy::new(non_negative!(1.0), positive!(0.5)),
+        CoincidentEnergy {
+            radius: non_negative!(0.25),
+            threshold: positive!(1.0),
+        },
+        ProximalEnergy {
+            radius: non_negative!(1.0),
+            temperature: positive!(0.5),
+        },
         positive!(0.5),
     )
     .expect("the fixture radii are ordered")
@@ -189,7 +193,10 @@ fn relation_energy() -> RelationEnergy {
 
 /// Support options with a unit Huber threshold and a `0.5` radius floor.
 fn support_options() -> SupportOptions {
-    SupportOptions::new(positive!(1.0), positive!(0.5))
+    SupportOptions {
+        threshold: positive!(1.0),
+        epsilon: positive!(0.5),
+    }
 }
 
 /// Coefficients used by the objective fixtures.
@@ -197,14 +204,14 @@ fn support_options() -> SupportOptions {
 /// `λ_S = 0.5` pairs with a semantic scale of two for a unit semantic factor, and `λ_N = 2`
 /// doubles the ordinary term, which keeps the two families distinguishable in the combined field.
 fn coefficients() -> Coefficients {
-    Coefficients::new(
-        positive!(0.5),
-        non_negative!(2.0),
-        NonNegative::ONE,
-        NonNegative::ONE,
-        NonNegative::ONE,
-        NonNegative::ONE,
-    )
+    Coefficients {
+        semantic: positive!(0.5),
+        ordinary: non_negative!(2.0),
+        hard: NonNegative::ONE,
+        relation: NonNegative::ONE,
+        anchor: NonNegative::ONE,
+        landmark: NonNegative::ONE,
+    }
 }
 
 /// Assembles the objective options with the given relation energy and budget.
@@ -333,10 +340,10 @@ fn draws_are_deterministic_at_a_fixed_seed() {
         vec![instance(0, 7, 0, 1), instance(1, 9, 4, 5)],
     );
     let plan = BatchPlan {
-        semantic_pairs: NonZero::new(8).expect("eight is non-zero"),
+        semantic_pairs: nz!(8),
         ordinary_pairs: 4,
         relation_types: 1,
-        relation_cap: NonZero::new(4).expect("four is non-zero"),
+        relation_cap: nz!(4),
         hard_queries: 0,
         landmark_anchors: 0,
         temporal_anchors: 0,
@@ -401,10 +408,10 @@ fn allocator_seam_draws_and_assembles_identically() {
         vec![instance(0, 7, 0, 1), instance(1, 9, 4, 5)],
     );
     let plan = BatchPlan {
-        semantic_pairs: NonZero::new(8).expect("eight is non-zero"),
+        semantic_pairs: nz!(8),
         ordinary_pairs: 4,
         relation_types: 1,
-        relation_cap: NonZero::new(4).expect("four is non-zero"),
+        relation_cap: nz!(4),
         hard_queries: 0,
         landmark_anchors: 1,
         temporal_anchors: 1,
@@ -422,13 +429,13 @@ fn allocator_seam_draws_and_assembles_identically() {
             row: NodeRowId::new(3),
             target: Vec2::new(0.5, -0.25),
             radius: non_negative!(1.0),
-            weight: 1.0,
+            weight: positive!(1.0),
         },
         SupportAnchor {
             row: NodeRowId::new(1),
             target: Vec2::new(-0.5, 0.75),
             radius: non_negative!(2.0),
-            weight: 0.5,
+            weight: positive!(0.5),
         },
     ];
 
@@ -502,10 +509,10 @@ fn draw_skips_the_relation_family_at_a_zero_step() {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
     let indexes = relation_indexes(4, &[proximal_policy(7)], vec![instance(0, 7, 2, 3)]);
     let plan = BatchPlan {
-        semantic_pairs: NonZero::new(4).expect("four is non-zero"),
+        semantic_pairs: nz!(4),
         ordinary_pairs: 0,
         relation_types: 1,
-        relation_cap: NonZero::new(4).expect("four is non-zero"),
+        relation_cap: nz!(4),
         hard_queries: 0,
         landmark_anchors: 0,
         temporal_anchors: 0,
@@ -551,10 +558,10 @@ fn draw_computes_the_estimator_scales() {
         vec![instance(0, 7, 0, 1), instance(1, 9, 2, 3)],
     );
     let plan = BatchPlan {
-        semantic_pairs: NonZero::new(8).expect("eight is non-zero"),
+        semantic_pairs: nz!(8),
         ordinary_pairs: 4,
         relation_types: 1,
-        relation_cap: NonZero::new(4).expect("four is non-zero"),
+        relation_cap: nz!(4),
         hard_queries: 0,
         landmark_anchors: 2,
         temporal_anchors: 0,
@@ -573,19 +580,19 @@ fn draw_computes_the_estimator_scales() {
             row: NodeRowId::new(0),
             target: Vec2::new(0.0, 0.0),
             radius: non_negative!(1.0),
-            weight: 1.0,
+            weight: positive!(1.0),
         },
         SupportAnchor {
             row: NodeRowId::new(1),
             target: Vec2::new(1.0, 0.0),
             radius: non_negative!(1.0),
-            weight: 1.0,
+            weight: positive!(1.0),
         },
         SupportAnchor {
             row: NodeRowId::new(2),
             target: Vec2::new(2.0, 0.0),
             radius: non_negative!(1.0),
-            weight: 1.0,
+            weight: positive!(1.0),
         },
     ];
     let populations = sampler.draw(
@@ -644,20 +651,20 @@ fn draw_collects_pooled_mined_pairs() {
         graph.view(),
         indexes.protection.view(),
         ProtectionConfig::default(),
-        MinerOptions::new(
-            NonZero::new(2).expect("two is non-zero"),
-            NonZero::new(2).expect("two is non-zero"),
-            Positive::ONE,
-            Positive::ONE,
-        ),
+        MinerOptions {
+            neighbours: nz!(2),
+            search_margin: nz!(2),
+            maximum_weight: Positive::ONE,
+            rank_exponent: Positive::ONE,
+        },
     );
     let frame = miner.mine(&field);
 
     let plan = BatchPlan {
-        semantic_pairs: NonZero::new(4).expect("four is non-zero"),
+        semantic_pairs: nz!(4),
         ordinary_pairs: 0,
         relation_types: 0,
-        relation_cap: NonZero::new(1).expect("one is non-zero"),
+        relation_cap: nz!(1),
         hard_queries: 4,
         landmark_anchors: 0,
         temporal_anchors: 0,
@@ -716,7 +723,7 @@ fn assemble_reindexes_into_the_local_domain() {
         row: NodeRowId::new(5),
         target: Vec2::new(0.25, -0.5),
         radius: non_negative!(1.0),
-        weight: 1.0,
+        weight: positive!(1.0),
     }];
     populations.landmark_scale = 1.0;
 
@@ -965,7 +972,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
         row: NodeRowId::new(1),
         target: Vec2::new(2.0, 0.0),
         radius: non_negative!(0.5),
-        weight: 1.0,
+        weight: positive!(1.0),
     }];
     populations.landmark_scale = 1.0;
     let batch = Batch::assemble(populations, None);
@@ -1396,7 +1403,7 @@ fn padding_zero_force_at_simd_scale() {
         row: NodeRowId::new(4),
         target: Vec2::new(1.0, 0.0),
         radius: non_negative!(1.0),
-        weight: 1.0,
+        weight: positive!(1.0),
     }];
     populations.landmark_scale = 1.0;
     let batch = Batch::assemble(populations, Some(&scales));
@@ -1566,7 +1573,7 @@ fn landmark(row: usize) -> SupportAnchor<NodeRowId> {
         row: NodeRowId::from_usize(row),
         target: Vec2::ZERO,
         radius: non_negative!(1.0),
-        weight: 1.0,
+        weight: positive!(1.0),
     }
 }
 

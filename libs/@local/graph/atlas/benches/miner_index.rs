@@ -54,7 +54,7 @@
     clippy::integer_division,
     clippy::integer_division_remainder_used,
     reason = "fixture synthesis and grid geometry cast, divide, and index between counts and \
-              coordinates in domains the fixture construction bounds; the crate-level \
+              coordinates in domains the fixture construction bounds. The crate-level \
               expectations in lib.rs do not extend to bench targets"
 )]
 #![expect(

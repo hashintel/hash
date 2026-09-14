@@ -14,7 +14,7 @@ hashql_core::id::newtype! {
         serde::Serialize,
         serde::Deserialize,
     )]
-    #[id(endian = little, unaligned, const)]
+    #[id(endian = little, unaligned, const, derive(Step))]
     #[serde(into = "u64", try_from = "u64")]
     pub struct NodeRowId(u64)
 }

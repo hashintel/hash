@@ -137,10 +137,17 @@ fn count(membership: &Membership<'_>) -> u64 {
 
 /// Collects member positions inside `range` in ascending order over either encoding.
 fn collect(membership: &Membership<'_>, range: core::ops::Range<u32>) -> Vec<u32> {
-    let range = BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end);
-    membership
-        .positions_in(range)
-        .map(BasePosition::as_u32)
+    let positions: Vec<u32> = match membership {
+        Membership::List(positions) => positions
+            .iter()
+            .copied()
+            .map(BasePosition::as_u32)
+            .collect(),
+        Membership::Dense(set) => set.iter().map(BasePosition::as_u32).collect(),
+    };
+    positions
+        .into_iter()
+        .filter(|position| range.contains(position))
         .collect()
 }
 
@@ -243,49 +250,6 @@ fn membership_lookups_agree_across_representations() {
     assert_eq!(collect(&type0, 4..4), [] as [u32; 0]);
     assert_eq!(collect(&type1, 6..8), [7]);
     assert_eq!(collect(&type1, 0..5), [] as [u32; 0]);
-}
-
-/// The membership contract demands ascending ranges from every caller, so an inverted range
-/// panics at the list representation.
-#[test]
-#[should_panic(expected = "an inverted position range matches no delivered run")]
-fn inverted_list_ranges_are_a_caller_bug() {
-    let dir = scratch("inverted-list");
-    let postings = Postings::build(
-        &fixture_types(),
-        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
-        &fixture_parents(),
-    )
-    .expect("the fixture stays in domain");
-    let mapped = mapped(&dir, "fixture.post", &postings);
-
-    let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
-    #[expect(
-        clippy::reversed_empty_ranges,
-        reason = "the inverted range IS the case under test"
-    )]
-    let _positions = collect(&type1, 6..2);
-}
-
-/// The dense representation delegates the same contract to the set's own cursor.
-#[test]
-#[should_panic(expected = "an inverted row range admits no iteration order")]
-fn inverted_dense_ranges_are_a_caller_bug() {
-    let dir = scratch("inverted-dense");
-    let postings = Postings::build(
-        &fixture_types(),
-        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
-        &fixture_parents(),
-    )
-    .expect("the fixture stays in domain");
-    let mapped = mapped(&dir, "fixture.post", &postings);
-
-    let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
-    #[expect(
-        clippy::reversed_empty_ranges,
-        reason = "the inverted range IS the case under test"
-    )]
-    let _positions = collect(&type0, 6..2);
 }
 
 #[test]
@@ -803,7 +767,7 @@ fn closure_expands_the_fixture_graph() {
 }
 
 #[test]
-fn closure_rejects_parent_cycles() {
+fn closure_parent_cycles() {
     let dir = scratch("cycle");
 
     // exactly types 0 and 1 form the cycle. Type 2 has no parent or child.
@@ -821,7 +785,7 @@ fn closure_rejects_parent_cycles() {
 
 /// Each type resolves its own nearest icon regardless of other types' traversal paths.
 #[test]
-fn icon_memo_resolves_the_nearest_ancestor_icon() {
+fn icon_memo_nearest_ancestor() {
     let dir = scratch("icon-memo");
 
     // types 6 and 7 form a separate icon-free chain.
@@ -846,6 +810,8 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
     // An icon-free cone records no source, at any height.
     assert_eq!(closure.icon_source(id(6)), None);
     assert_eq!(closure.icon_source(id(7)), None);
+    assert_eq!(closure.icon_source(id(8)), None);
+    assert_eq!(closure.icon_source(id(u64::MAX)), None);
 }
 
 /// Depth beats run order, and run order breaks equal-depth ties.
@@ -854,7 +820,7 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
 /// reaches icon 0 at depth two. Type 4 reaches both icons at depth one and selects the earlier
 /// parent in the ascending run, row 0.
 #[test]
-fn icon_memo_ties_resolve_by_depth_then_run_order() {
+fn icon_memo_depth_and_run_order() {
     let dir = scratch("icon-ties");
     let postings = Postings::build(
         &types(&[&[3, 4]]),
@@ -1076,10 +1042,7 @@ fn built_postings_uphold_the_membership_contract(
                 reference_contains(rows.as_raw(), &row_of_position, position, type_row)
             })
             .collect();
-        let full: Vec<u32> = membership
-            .positions_in(BasePosition::from_u32(0)..BasePosition::from_u32(points))
-            .map(BasePosition::as_u32)
-            .collect();
+        let full = collect(&membership, 0..points);
         prop_assert_eq!(&full, &expected, "type {}'s member positions", type_row);
         prop_assert_eq!(count(&membership), expected.len() as u64);
 

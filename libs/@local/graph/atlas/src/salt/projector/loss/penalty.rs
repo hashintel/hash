@@ -23,8 +23,7 @@ pub(crate) enum Penalty {
         not(test),
         expect(
             dead_code,
-            reason = "the selected penalty for the planned calibration; consumed when the band \
-                      trainer is wired"
+            reason = "no production path constructs this penalty, and the tests select it"
         )
     )]
     Identity,
@@ -36,8 +35,7 @@ pub(crate) enum Penalty {
         not(test),
         expect(
             dead_code,
-            reason = "the unselected product-target alternative; the planned calibration selects \
-                      Identity"
+            reason = "no production path constructs this penalty, and the tests select it"
         )
     )]
     QuadraticHinge,

@@ -138,7 +138,7 @@ where
                 "the boundary field's spread {spread} is not a strictly positive f32",
             ),
             Self::NoPositiveScale => fmt.write_str(
-                "every frozen local scale is zero, so the epsilon window has no upper bound to \
+                "every frozen local scale is zero, and the epsilon window has no upper bound to \
                  read",
             ),
             Self::EmptyWindow { floor, ceiling } => write!(

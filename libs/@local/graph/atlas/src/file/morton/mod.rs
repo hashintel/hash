@@ -46,7 +46,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::{fmt, marker::PhantomData, ops::Range};
@@ -66,7 +66,7 @@ use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
 /// A fencepost breaks a structural rule of the segmentation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum FencepostError {
+pub(crate) enum FencepostError {
     /// The first post is not zero.
     Anchor,
     /// The post at this index is smaller than its predecessor.
@@ -227,6 +227,7 @@ impl<I: Id> Fenceposts<I> {
     /// Returns the exclusive upper bound of the position domain: one past the last position.
     #[inline]
     #[must_use]
+    #[cfg(test)] // used in `salt::lod` to verify coverage
     pub(crate) fn bound(&self) -> I {
         self.post(POSTS - 1)
     }

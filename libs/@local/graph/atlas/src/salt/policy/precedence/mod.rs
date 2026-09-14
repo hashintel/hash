@@ -97,7 +97,9 @@ pub(crate) enum Classification {
 /// A higher-precedence policy record, declared in descending precedence.
 ///
 /// The lowest variant present wins.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub(crate) enum PolicySource {
     /// An explicit human override.
     Human,
@@ -118,7 +120,7 @@ impl fmt::Display for PolicySource {
 }
 
 /// One supplied policy record above the classifier in precedence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolicyOverride {
     /// The relation type the record covers.
     pub relation: OntologyRowId,
@@ -134,7 +136,7 @@ pub(crate) struct PolicyOverride {
 /// distribution passes through the mix unchanged and the Coincident force coefficient governs
 /// downstream. The default thresholds are maximally conservative placeholders: a generation
 /// enforcing admission configures them from its precision release evidence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CoincidentAdmission {
     /// Whether the generation enforces admission.
     pub enforced: bool = false,

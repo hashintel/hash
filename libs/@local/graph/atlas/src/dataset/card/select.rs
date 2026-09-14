@@ -21,9 +21,10 @@ use alloc::{
 use core::num::NonZero;
 use std::collections::HashSet;
 
+use crate::math::nz;
+
 /// Per-group slot ceiling applied before cap relaxation.
-pub(crate) const DEFAULT_GROUP_SLOT_CAP: NonZero<usize> =
-    NonZero::new(3).expect("the default slot cap is non-zero");
+pub(crate) const DEFAULT_GROUP_SLOT_CAP: NonZero<usize> = nz!(3);
 
 /// One adapter-owned candidate annotated for common selection.
 pub(crate) struct Candidate<'text, P, S, A: Allocator = Global> {

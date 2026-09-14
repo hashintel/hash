@@ -172,7 +172,7 @@ impl RowSolver {
 /// `values` must be nonempty for a defined mean. Both the sum and the length conversion can round.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "neighbour counts stay far below exact f32 integer precision"
+    reason = "the row scale uses f32 arithmetic, including the rounded neighbour count"
 )]
 fn mean(values: &[f32]) -> f32 {
     values.iter().sum::<f32>() / values.len() as f32

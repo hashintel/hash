@@ -102,17 +102,22 @@ fn preimage_round_trips_through_the_document_serde_paths() {
 /// The fixture includes [`FitConfig`](crate::salt::fit::FitConfig) defaults in its serialized
 /// inputs.
 #[test]
-fn identity_one_preimage_bytes_stay_frozen() {
+fn preimage_fixture() {
     let preimage = preimage();
 
-    assert_eq!(preimage.len(), 4488);
     assert_eq!(
-        Sha256Digest::of(&preimage).to_string(),
-        "e8dac83a09203656b0a2ab5ca24582b20b9b63fe35038652d19ec5833f7af35b"
-    );
-    assert_eq!(
-        serde_json::to_value(salt()).expect("a derived salt serializes"),
-        serde_json::json!("37fe1e70c11a4ed8775051d119e1d45661500bea76f8f458098719c26a3e8804")
+        (
+            preimage.len(),
+            Sha256Digest::of(&preimage).to_string(),
+            serde_json::to_value(salt()).expect("the derived salt should serialize"),
+        ),
+        (
+            4727,
+            "7916d61de311b48094806264dbef20801589be00af1d0e4bec8471d17b728c33".to_owned(),
+            serde_json::json!("75035875102aa50ef6f9d11bd0d0cf417a5291ea146be40363d72e1c83f9e4d1"),
+        ),
+        "the fixture's preimage and salt should match their fixed expectations:\n{}",
+        str::from_utf8(&preimage).expect("the JSON preimage should be UTF-8"),
     );
 }
 

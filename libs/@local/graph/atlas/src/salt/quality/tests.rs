@@ -43,7 +43,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, UnitFraction, Vec2,
-        VecN, non_negative, positive,
+        VecN, non_negative, nz, positive,
     },
     progress::NoProgress,
     salt::{
@@ -52,7 +52,8 @@ use crate::{
         knn::table::Knn,
         landmark::select::SelectionOptions,
         policy::classifier::{
-            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, FitOptions as ClassifierFitOptions, TrainingRow,
+            TrainingSet, fit as fit_classifier,
         },
     },
 };
@@ -65,18 +66,24 @@ fn clump_fixture() -> Knn<NodeRowId> {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
     let distances: Vec<NonNegative> = vec![
+        // 0 → 1, 2
         non_negative!(0.05),
-        non_negative!(0.08), // 0 → 1, 2
-        non_negative!(0.05),
-        non_negative!(0.05), // 1 → 0, 2
         non_negative!(0.08),
-        non_negative!(0.05), // 2 → 0, 1
+        // 1 → 0, 2
+        non_negative!(0.05),
+        non_negative!(0.05),
+        // 2 → 0, 1
+        non_negative!(0.08),
+        non_negative!(0.05),
+        // 3 → 4, 5
         non_negative!(0.0),
-        non_negative!(1.5), // 3 → 4, 5
-        non_negative!(0.0),
-        non_negative!(1.4), // 4 → 3, 5
         non_negative!(1.5),
-        non_negative!(1.4), // 5 → 3, 4
+        // 4 → 3, 5
+        non_negative!(0.0),
+        non_negative!(1.4),
+        // 5 → 3, 4
+        non_negative!(1.5),
+        non_negative!(1.4),
     ];
     let matrix = sprs::CsMatI::new((6, 6), indptr, indices, distances);
     Knn::new(matrix).expect("the fixture satisfies every table invariant")
@@ -183,31 +190,27 @@ fn hand_built_labels_read_like_a_grouping() {
 // label 1 matches twice, label 0 once, and unmatched labels 2 and 3 earn no credit
 #[test]
 fn clump_aggregate_counts_multiset_overlap() {
-    let mut aggregate = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
+    let mut aggregate = ClumpAggregate::new(nz!(4));
     aggregate.observe(&mut [0, 1, 1, 2], &mut [1, 1, 3, 0]);
 
     assert_eq!(aggregate.queries(), 1);
     assert_eq!(aggregate.recall(), 3.0 / 4.0);
 
     // A second query merges into the running totals: 1 of 4 matched.
-    let mut second = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
+    let mut second = ClumpAggregate::new(nz!(4));
     second.observe(&mut [5, 5, 5, 5], &mut [5, 6, 7, 8]);
     aggregate.merge(&second);
     assert_eq!(aggregate.queries(), 2);
     assert_eq!(aggregate.recall(), 4.0 / 8.0);
 
     // An empty aggregate reads 1, like the rank kernel's recall.
-    assert_eq!(
-        ClumpAggregate::new(NonZero::new(4).expect("nonzero")).recall(),
-        1.0,
-    );
+    assert_eq!(ClumpAggregate::new(nz!(4)).recall(), 1.0,);
 }
 
 #[test]
 fn identical_orderings_are_perfect() {
     let ordering: Vec<u32> = (0..10).collect();
-    let mut aggregate = NeighbourhoodAggregate::new(10, NonZero::new(3).expect("nonzero"), 6)
-        .expect("3 <= 10 / 2 and 3 <= 6");
+    let mut aggregate = NeighbourhoodAggregate::new(10, nz!(3), 6).expect("3 <= 10 / 2 and 3 <= 6");
     let mut scratch = RankScratch::new(10);
 
     aggregate.observe(&ordering, &ordering, &mut scratch);
@@ -224,8 +227,7 @@ fn identical_orderings_are_perfect() {
 fn reversed_ordering_is_worst() {
     let reference: Vec<u32> = (0..8).collect();
     let map: Vec<u32> = (0..8).rev().collect();
-    let mut aggregate = NeighbourhoodAggregate::new(8, NonZero::new(2).expect("nonzero"), 4)
-        .expect("2 <= 8 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(8, nz!(2), 4).expect("2 <= 8 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(8);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -248,8 +250,7 @@ fn hand_computed_partial_agreement() {
     // k = 2: map top-2 = {0, 2}, reference top-2 = {0, 1}.
     let reference: Vec<u32> = (0..6).collect();
     let map = [0, 2, 1, 3, 4, 5];
-    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
-        .expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, nz!(2), 4).expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -272,8 +273,7 @@ fn horizon_splits_reshuffles_from_intruders() {
     // banishes point 1 to map position 5 in return.
     let reference: Vec<u32> = (0..6).collect();
     let map = [0, 5, 2, 3, 4, 1];
-    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
-        .expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, nz!(2), 4).expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -289,8 +289,7 @@ fn horizon_splits_reshuffles_from_intruders() {
 #[test]
 fn aggregate_pools_queries() {
     let reference: Vec<u32> = (0..6).collect();
-    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
-        .expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, nz!(2), 4).expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &reference, &mut scratch);
@@ -391,16 +390,15 @@ fn observe_ranks_matches_observe() {
     let by_map = [2_u32, 4, 1, 5, 0, 6, 7, 3];
 
     let mut through_orderings =
-        NeighbourhoodAggregate::new(8, NonZero::new(3).expect("nonzero"), 5)
-            .expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+        NeighbourhoodAggregate::new(8, nz!(3), 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
     let mut scratch = RankScratch::new(8);
     through_orderings.observe(&by_reference, &by_map, &mut scratch);
 
     // The same query as opposite-rank vectors, read off by hand: map
     // top-3 = {2, 4, 1} at reference positions 3, 0, 5; reference
     // top-3 = {4, 0, 6} at map positions 1, 4, 5.
-    let mut through_ranks = NeighbourhoodAggregate::new(8, NonZero::new(3).expect("nonzero"), 5)
-        .expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+    let mut through_ranks =
+        NeighbourhoodAggregate::new(8, nz!(3), 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
     through_ranks.observe_ranks(&[3, 0, 5], &[1, 4, 5]);
 
     assert_eq!(through_orderings, through_ranks);
@@ -413,7 +411,7 @@ fn merged_aggregates_match_joint_observation() {
     let reversed: Vec<u32> = (0..6).rev().collect();
     let mut scratch = RankScratch::new(6);
 
-    let two = NonZero::new(2).expect("nonzero");
+    let two = nz!(2);
     let mut joint = NeighbourhoodAggregate::new(6, two, 4).expect("2 <= 6 / 2 and 2 <= 4");
     joint.observe(&reference, &swapped, &mut scratch);
     joint.observe(&reference, &reversed, &mut scratch);
@@ -850,8 +848,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
         .iter()
         .map(|&hit| {
             let mut aggregate =
-                NeighbourhoodAggregate::new(8, NonZero::new(1).expect("nonzero"), 2)
-                    .expect("1 <= 8 / 2 and 1 <= 2 <= 8");
+                NeighbourhoodAggregate::new(8, nz!(1), 2).expect("1 <= 8 / 2 and 1 <= 2 <= 8");
             let rank = if hit { [0] } else { [7] };
             aggregate.observe_ranks(&rank, &rank);
             vec![aggregate]
@@ -861,7 +858,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     ProbeReadings {
         anchors: (0..hits.len()).map(NodeRowId::from_usize).collect(),
         comparisons: Box::new([]),
-        neighbourhoods: IdSlice::from_boxed_slice(Box::new([NonZero::new(1).expect("nonzero")])),
+        neighbourhoods: IdSlice::from_boxed_slice(Box::new([nz!(1)])),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
         clumps: None,
         sampled_map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
@@ -999,7 +996,7 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     let cells: Vec<Vec<ClumpAggregate>> = matches
         .iter()
         .map(|&matched| {
-            let mut aggregate = ClumpAggregate::new(NonZero::new(1).expect("nonzero"));
+            let mut aggregate = ClumpAggregate::new(nz!(1));
             aggregate.observe(&mut [0], &mut [u32::from(!matched)]);
             vec![aggregate]
         })
@@ -1227,8 +1224,8 @@ fn threshold_overrides_validate_at_the_boundary() {
         ),
     ];
     for (document, field) in refusals {
-        let overrides: ThresholdOverrides =
-            serde_json::from_str(document).expect("the shape parses; the domain refuses");
+        let overrides: ThresholdOverrides = serde_json::from_str(document)
+            .expect("should parse the JSON shape before domain validation rejects its value");
         let error = QualityThresholds::default()
             .with_overrides(&overrides)
             .expect_err("an out-of-domain override refuses");
@@ -1606,9 +1603,14 @@ fn runner_classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
-        .expect("the fixture classifier fits")
-        .classifier;
+    let classifier = fit_classifier(
+        training,
+        ClassifierFitConfig::new(ClassifierFitOptions { folds: 2, .. })
+            .expect("the fixture classifier fit config is valid"),
+        &NoProgress,
+    )
+    .expect("the fixture classifier fits")
+    .classifier;
 
     let mut hasher = Sha256::new();
     hasher.update(b"fixture classifier artifact");
@@ -1622,12 +1624,9 @@ fn runner_classifier() -> ClassifierInput {
 fn runner_probe_options() -> QualityRunOptions {
     QualityRunOptions {
         probe: ProbeOptions {
-            anchors: NonZero::new(8).expect("nonzero"),
-            comparisons: NonZero::new(16).expect("nonzero"),
-            neighbourhoods: Cow::Owned(vec![
-                NonZero::new(2).expect("nonzero"),
-                NonZero::new(4).expect("nonzero"),
-            ]),
+            anchors: nz!(8),
+            comparisons: nz!(16),
+            neighbourhoods: Cow::Owned(vec![nz!(2), nz!(4)]),
             triplet_pairs: 8,
             ..
         },
@@ -1644,12 +1643,12 @@ async fn runner_reports_a_published_generation() {
     let config = FitConfig {
         seed: 7,
         selection: SelectionOptions {
-            maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
+            maximum_count: nz!(8),
             ..
         },
         curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
             .expect("the reference falloff is well-conditioned"),
-        neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+        neighbours: nz!(4),
         // The quality fixture probes the metric suite, not the
         // placement: it opts out of the default's training run.
         placement: PlacementOptions::LandmarkBaseline,

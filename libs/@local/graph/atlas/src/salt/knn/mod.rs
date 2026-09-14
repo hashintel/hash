@@ -39,7 +39,7 @@ use rand::{Rng, SeedableRng};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::{AlignedVecN, NonNegative},
+    math::{AlignedVecN, NonNegative, nz},
     progress::Progress,
 };
 
@@ -56,8 +56,7 @@ pub(crate) mod table;
 mod tests;
 
 /// Stored neighbours per row of the persisted table.
-pub(crate) const DEFAULT_NEIGHBOURS: NonZero<usize> =
-    NonZero::new(30).expect("the default neighbour count is nonzero");
+pub(crate) const DEFAULT_NEIGHBOURS: NonZero<usize> = nz!(30);
 
 /// One node row's projector representation, keyed for insertion.
 #[derive(Debug, Copy, Clone)]

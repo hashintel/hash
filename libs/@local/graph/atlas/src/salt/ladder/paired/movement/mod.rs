@@ -40,17 +40,16 @@ use hashql_core::heap::Scratch;
 
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, FinitePointField, KdTree, Vec2x4T},
+    math::{DNonNegative, FinitePointField, KdTree, Vec2x4T, nz},
 };
 
 /// The rank-readout window `k`, the size of one row's local neighbourhood.
 ///
-/// A rank reading counts within the union of both steps' `k`-sets, so the readout resolves rank
-/// movement inside the window and saturates beyond it, and no rank exceeds `1 + 2k`. The window
-/// is a readout resolution rather than a derived quantity, and the evidence body records it
-/// beside every generation's readings, so a persisted reading stays interpretable if the window
-/// moves.
-pub(super) const RANK_WINDOW: NonZero<usize> = NonZero::new(256).expect("256 is not zero");
+/// The window is 256 rows per step. A union-domain rank never exceeds 1 + 2k, and partners beyond
+/// the union's distances saturate at 1 + |U|. The evidence records this resolution to keep readings
+/// interpretable if the window changes. Revisit it using the frequency of saturated ranks and the
+/// readout cost.
+pub(super) const RANK_WINDOW: NonZero<usize> = nz!(256);
 
 /// The reading of one drawn pair, its distance and local rank at both steps.
 ///
@@ -297,7 +296,7 @@ impl<'frame> Movement<'frame> {
         let readout = anchors.nearest_point_in(self.zero[row], NonZero::<usize>::MIN, scratch);
         let nearest = readout
             .first()
-            .expect("readings run only under a nonempty draw, so an anchor exists");
+            .expect("the nearest-anchor query should return a candidate");
         nearest.distance_squared.sqrt()
     }
 }

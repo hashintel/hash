@@ -313,8 +313,7 @@ impl ClumpAggregate {
     /// An empty aggregate reads 1.
     #[expect(
         clippy::cast_precision_loss,
-        reason = "probe neighbourhood sizes and query counts are bounded orders of magnitude \
-                  below the f64 mantissa"
+        reason = "supported integer totals may round when converted to f64"
     )]
     #[must_use]
     pub(crate) fn recall(&self) -> UnitFraction {

@@ -78,18 +78,18 @@ fn affinity_energy(a: f32, b: f32, epsilon: f32) -> AffinityEnergy {
 
 /// A proximal energy with the given radius and temperature.
 fn proximal(radius: f32, temperature: f32) -> ProximalEnergy {
-    ProximalEnergy::new(
-        NonNegative::new(radius).expect("the test radius is non-negative"),
-        Positive::new(temperature).expect("the test temperature is positive"),
-    )
+    ProximalEnergy {
+        radius: NonNegative::new(radius).expect("the test radius is non-negative"),
+        temperature: Positive::new(temperature).expect("the test temperature is positive"),
+    }
 }
 
 /// A coincident energy with the given radius and Huber threshold.
 fn coincident(radius: f32, threshold: f32) -> CoincidentEnergy {
-    CoincidentEnergy::new(
-        NonNegative::new(radius).expect("the test radius is non-negative"),
-        Positive::new(threshold).expect("the test threshold is positive"),
-    )
+    CoincidentEnergy {
+        radius: NonNegative::new(radius).expect("the test radius is non-negative"),
+        threshold: Positive::new(threshold).expect("the test threshold is positive"),
+    }
 }
 
 /// Builds the relation mixture with scale guard `epsilon`.
@@ -366,6 +366,34 @@ fn coincident_derivative_matches_finite_differences() {
             &format!("coincident at {at}"),
         );
     }
+}
+
+#[test]
+fn relation_energy_serde_requires_ordered_radii() {
+    for radius in [1.0, 2.0] {
+        let json = serde_json::json!({
+            "coincident": {"radius": radius, "threshold": 1.0},
+            "proximal": {"radius": 1.0, "temperature": 0.5},
+            "epsilon": 0.25,
+        });
+        serde_json::from_value::<RelationEnergy>(json)
+            .expect_err("unordered radii should not deserialize");
+    }
+    let json = serde_json::json!({
+        "coincident": {"radius": 0.0, "threshold": 1.0},
+        "proximal": {"radius": 1.0, "temperature": 0.5},
+        "epsilon": 0.25,
+    });
+    let energy: RelationEnergy =
+        serde_json::from_value(json.clone()).expect("strictly ordered radii");
+    assert_eq!(
+        Some(energy),
+        RelationEnergy::new(coincident(0.0, 1.0), proximal(1.0, 0.5), positive!(0.25))
+    );
+    assert_eq!(
+        serde_json::to_value(energy).expect("finite coefficients"),
+        json
+    );
 }
 
 #[test]
@@ -824,7 +852,7 @@ fn support_targets_reject_invalid_anchors() {
         row: BatchRowId::new(0),
         target: Vec2::new(1.0, -1.0),
         radius: non_negative!(0.5),
-        weight: 1.0,
+        weight: positive!(1.0),
     };
 
     assert!(SupportTargets::<Training>::new(&[], &*DEVICE).is_none());
@@ -832,16 +860,6 @@ fn support_targets_reject_invalid_anchors() {
         SupportTargets::<Training>::new(
             &[BatchAnchor {
                 target: Vec2::new(f32::NAN, 0.0),
-                ..valid
-            }],
-            &*DEVICE
-        )
-        .is_none()
-    );
-    assert!(
-        SupportTargets::<Training>::new(
-            &[BatchAnchor {
-                weight: -0.5,
                 ..valid
             }],
             &*DEVICE
@@ -869,17 +887,20 @@ fn support_fixture() -> (
             row: BatchRowId::new(0),
             target: Vec2::new(0.25, 0.5),
             radius: non_negative!(0.75),
-            weight: 1.5,
+            weight: positive!(1.5),
         },
         BatchAnchor {
             row: BatchRowId::new(2),
             target: Vec2::new(-2.0, 1.25),
             radius: non_negative!(1.5),
-            weight: 0.5,
+            weight: positive!(0.5),
         },
     ];
     let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
+    let options = SupportOptions {
+        threshold: positive!(1.0),
+        epsilon: positive!(0.25),
+    };
     (coordinates, targets, options)
 }
 
@@ -952,10 +973,13 @@ fn support_term_is_finite_at_exact_coincidence() {
         row: BatchRowId::new(0),
         target: Vec2::new(0.5, -0.25),
         radius: non_negative!(0.75),
-        weight: 1.0,
+        weight: positive!(1.0),
     }];
     let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
+    let options = SupportOptions {
+        threshold: positive!(1.0),
+        epsilon: positive!(0.25),
+    };
 
     let value = support_term(&coordinates, &targets, options, 1.0);
     let scalar = value

@@ -12,7 +12,7 @@
 
 use std::io;
 
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use super::{
     cascade, key,
@@ -30,7 +30,7 @@ use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{Bounds2, FinitePointField, Log2, Vec2},
-    morton::{Depth, MortonKey},
+    morton::{Depth, MortonKey, Zoom},
 };
 
 /// The fixed frame every wire coordinate lives in.
@@ -42,12 +42,16 @@ pub(crate) const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2:
 
 /// The default [`LodConfig::span`].
 const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
+/// The default [`LodConfig::max_tile_depth`].
+const DEFAULT_ZOOM: Zoom = Zoom::new(18).expect("18 lies within the key width");
 
 /// Configuration of the level-of-detail schedule.
 ///
-/// Both values are starting points that no measurement has validated. The [`LodMeasurements`] of
-/// real generations revise them, and the manifest records the configuration a generation used.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// By default the cut spans 64 cells per tile axis and serves tile zooms through 18, placing the
+/// catch-all grid at depth 24. These are unvalidated starting values. Compare [`LodMeasurements`]
+/// across real generations when revising them, retaining each generation's configuration with its
+/// measurements.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
@@ -57,10 +61,8 @@ pub(crate) struct LodConfig {
     pub span: Log2 = DEFAULT_SPAN,
     /// The deepest tile zoom the schedule serves.
     ///
-    /// The deepest cascade grid sits at `max_tile_depth + span`, which the configured defaults put
-    /// at depth 24 - the resolution where `f32` coordinates in the wire frame stop separating
-    /// points.
-    pub max_tile_depth: u8 = 18,
+    /// By default this is 18. The deepest cascade grid is `max_tile_depth + span`, depth 24 with both defaults. Its cells have axis width 2⁻²³ in the wire frame. Distinct `f32` coordinates can still share a cell at this or any supported grid depth.
+    pub max_tile_depth: Zoom = DEFAULT_ZOOM,
 }
 
 const impl Default for LodConfig {
@@ -78,11 +80,11 @@ impl LodConfig {
     /// maximum tile zoom zₘₐₓ and span m, a buildable schedule requires zₘₐₓ + m ≤ 32.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {
-        let Some(sum) = self.span.get().checked_add(self.max_tile_depth) else {
+        let Some(sum) = self.span.get().checked_add(self.max_tile_depth.get()) else {
             return None;
         };
 
-        Depth::new(sum)
+        Depth::try_new(sum)
     }
 }
 
@@ -106,7 +108,7 @@ impl core::fmt::Display for LodError {
             Self::Schedule { config } => write!(
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
-                config.max_tile_depth,
+                config.max_tile_depth.get(),
                 config.span.get(),
                 Depth::MAX.get(),
             ),
@@ -116,7 +118,7 @@ impl core::fmt::Display for LodError {
             ),
             Self::Frame => write!(
                 fmt,
-                "the coordinates hold no rows, so no world frame exists",
+                "the coordinates hold no rows to fit a world frame from",
             ),
         }
     }
@@ -124,18 +126,47 @@ impl core::fmt::Display for LodError {
 
 impl core::error::Error for LodError {}
 
-/// The measurements of one lod build.
+mod serde_bucket_histogram {
+
+    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer, de::Error as _};
+
+    use crate::file::morton::SEGMENTS;
+
+    pub(super) fn serialize<S>(
+        histogram: &[u64; SEGMENTS],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        histogram.as_slice().serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<[u64; SEGMENTS], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // we could use an `[MaybeUninit; SEGMENTS]` here instead, but it's not worth the effort.
+        let histogram = Vec::<u64>::deserialize(deserializer)?;
+
+        <[u64; SEGMENTS]>::try_from(histogram).map_err(|histogram| {
+            D::Error::invalid_length(histogram.len(), &"one bucket per segment")
+        })
+    }
+}
+
+/// Bucket populations and spatial counts for calibrating an LOD schedule.
 ///
-/// What the manifest records so that data rather than taste drives a revision of the configuration.
-/// These are build census numbers rather than evidence, and the metadata's `Evidence` section holds
-/// the admission checks.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// These statistics describe the finished columns. They do not independently verify coverage or the
+/// tile-delivery cap.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LodMeasurements {
     /// The world frame the normalization mapped onto the wire frame.
     pub world: Bounds2,
     /// Points per bucket.
     ///
     /// The tail calibrates `max_tile_depth`.
+    #[serde(with = "serde_bucket_histogram")]
     pub bucket_histogram: [u64; SEGMENTS],
     /// Points in the deepest bucket.
     ///
@@ -313,7 +344,7 @@ impl Lod {
     pub(crate) fn measurements(&self, config: LodConfig) -> LodMeasurements {
         let deepest = config
             .deepest()
-            .expect("the structure was built under this configuration");
+            .expect("the structure's build used this configuration");
 
         // sorted segment codes put each cell's population in one consecutive equal-prefix group
         let catch_all = self.segment_codes(deepest);
@@ -323,9 +354,9 @@ impl Lod {
         // each bucket uses its first tile zoom; the root's buckets are scanned separately
         let mut max_tile_delta = 0;
         for bucket in 0..=deepest.get() {
-            let tile = Depth::new(bucket.saturating_sub(config.span.get()))
+            let tile = Depth::try_new(bucket.saturating_sub(config.span.get()))
                 .expect("a tile depth never exceeds its bucket's own depth");
-            let bucket = Depth::new(bucket).expect("buckets never exceed the deepest grid");
+            let bucket = Depth::try_new(bucket).expect("buckets never exceed the deepest grid");
             let delta = largest_prefix_group(self.segment_codes(bucket), tile);
             max_tile_delta = max_tile_delta.max(delta);
         }

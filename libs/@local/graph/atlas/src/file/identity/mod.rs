@@ -54,7 +54,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -157,7 +157,7 @@ pub(crate) enum Version {
     zerocopy::KnownLayout,
 )]
 #[repr(u16)]
-pub enum Kind {
+pub(crate) enum Kind {
     /// Ontology types: the payload holds icons.
     Ontology = 0,
     /// Nodes: the payload holds labels.
@@ -198,16 +198,40 @@ impl fmt::Display for Kind {
     zerocopy::KnownLayout,
 )]
 #[repr(u16)]
-pub enum KeyKind {
+pub(crate) enum KeyKind {
     /// An [`ArchivedOntologyTypeUuid`].
     OntologyTypeUuid = 0x00_00,
     /// An [`ArchivedEntityId`].
     EntityId = 0x00_01,
     /// A `u8`.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format, which a reader accepts from a \
+                      header and no writer in this crate produces yet"
+        )
+    )]
     U8Le = 0x01_00,
     /// A [`U16<LE>`].
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format, which a reader accepts from a \
+                      header and no writer in this crate produces yet"
+        )
+    )]
     U16Le = 0x01_01,
     /// A [`U64<LE>`].
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format; the only dataset writing u64 \
+                      keys is `dataset::memory`, which is test-only"
+        )
+    )]
     U64Le = 0x01_02,
 }
 

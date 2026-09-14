@@ -61,7 +61,7 @@ impl<W: fmt::Write> fmt::Write for IndentationWriter<W> {
     #[expect(
         clippy::string_slice,
         reason = "bytes below 0x80 are complete characters in UTF-8, never the interior of a \
-                  multi-byte sequence, so every 0x0A offset is a character boundary"
+                  multi-byte sequence: every 0x0A offset is a character boundary"
     )]
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let mut previous = 0;

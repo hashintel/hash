@@ -13,7 +13,10 @@ pub(crate) enum IdentifierLeakError {
     /// The text embeds a UUID.
     Uuid,
     /// The text embeds a caller-supplied source identifier.
-    SourceIdentifier { identifier: String },
+    SourceIdentifier {
+        /// The identifier found in the text.
+        identifier: String,
+    },
 }
 
 impl fmt::Display for IdentifierLeakError {
@@ -114,8 +117,8 @@ fn find_with_boundaries(
 /// Returns whether `identifier` occurs in `text` as a whole alphanumeric token.
 #[expect(
     clippy::string_slice,
-    reason = "offsets advance by whole characters from match starts, so slicing stays on \
-              character boundaries"
+    reason = "offsets advance by whole characters from match starts, keeping slices on character \
+              boundaries"
 )]
 fn contains_identifier(text: &str, identifier: &str) -> bool {
     let mut offset = 0;

@@ -3,10 +3,7 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::{
-    assert_matches,
-    num::{NonZeroU32, NonZeroU64},
-};
+use core::{assert_matches, num::NonZeroU32};
 
 use super::{
     super::{
@@ -16,7 +13,7 @@ use super::{
     AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
     basis::{self, HELMERT_V1},
     boundary::{GROSS_DEFECT_GUARD, boundary_step},
-    config::{SolverConfig, SolverConfigError},
+    config::{SolverConfig, SolverConfigError, SolverOptions},
     flat as flat_vectors,
     gram::{Gram, GramView},
     newton::{NewtonOutcome, NewtonTag, factor_block, newton_step},
@@ -37,14 +34,14 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
         AlignedVecN, BoxedDVecN, BoxedVecN, DNonNegative, DPositive, DVecN, OpenUnitFraction,
-        d_finite, d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+        d_finite, d_non_negative, d_positive, greater_than_one, nz, open_unit_fraction,
     },
     salt::policy::GeometryClass,
 };
 
 /// One ulp of unit-sum tolerance.
 fn one_ulp() -> NonZeroU32 {
-    NonZeroU32::new(1).expect("one is nonzero")
+    nz!(1)
 }
 
 /// A flat solver vector with the given components set.
@@ -365,7 +362,7 @@ fn closed_target_tolerance_boundary_is_inclusive() {
     );
 
     // A wider tolerance accepts the same triple.
-    let two_ulps = NonZeroU32::new(2).expect("two is nonzero");
+    let two_ulps = nz!(2);
     ClosedTarget::new(beyond, two_ulps).expect("two ulps cover the deviation");
 }
 
@@ -663,7 +660,7 @@ fn closed_target_records_the_derived_adjustment() {
     assert_eq!(
         evidence.adjustment,
         (u_2 - raw[2] / evidence.sum).abs(),
-        "the stored components are the quotients themselves, so only the derived component adjusts",
+        "the stored components are the quotients themselves: only the derived component adjusts",
     );
 }
 
@@ -995,7 +992,7 @@ fn non_finite_requests_start_no_traversal() {
 /// Every special spacing case of the objective resolution holds exactly.
 #[test]
 fn objective_resolution_pins_the_ulp_exceptional_cases() {
-    let four = NonZeroU32::new(4).expect("four is nonzero");
+    let four = nz!(4);
 
     // Zero and subnormal magnitudes resolve at the smallest positive subnormal spacing.
     assert_eq!(
@@ -1047,9 +1044,8 @@ fn objective_resolution_pins_the_ulp_exceptional_cases() {
     assert_eq!(objective_resolution(f64::NEG_INFINITY, one_ulp()), None);
 }
 
-/// A fully in-domain solver configuration.
-fn solver_config() -> SolverConfig {
-    SolverConfig {
+fn solver_options() -> SolverOptions {
+    SolverOptions {
         preparation: settings(),
         radius_minimum: d_positive!(1.0e-8),
         radius_initial: DPositive::ONE,
@@ -1060,10 +1056,20 @@ fn solver_config() -> SolverConfig {
         eta_expand: open_unit_fraction!(0.75),
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
         absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-10),
-        objective_resolution_ulps: NonZeroU32::new(4).expect("four is nonzero"),
-        curvature_guard_ulps: NonZeroU32::new(16).expect("sixteen is nonzero"),
-        maximum_outer_iterations: NonZeroU64::new(100).expect("one hundred is nonzero"),
+        objective_resolution_ulps: nz!(4),
+        curvature_guard_ulps: nz!(16),
+        maximum_outer_iterations: nz!(100),
     }
+}
+
+/// Admits a fixture's raw solver options.
+fn validated_solver(options: SolverOptions) -> SolverConfig {
+    SolverConfig::new(options).expect("the solver config is valid")
+}
+
+/// A fully in-domain solver configuration.
+fn solver_config() -> SolverConfig {
+    validated_solver(solver_options())
 }
 
 /// The in-domain fixture and the cross-field boundaries validate.
@@ -1072,36 +1078,29 @@ fn solver_config() -> SolverConfig {
 /// constructor to accept.
 #[test]
 fn config_accepts_the_domain_boundaries() {
-    solver_config()
-        .validate()
-        .expect("the fixture is in-domain");
-
     // Equalities inside the radius chain are inclusive.
-    SolverConfig {
+    validated_solver(SolverOptions {
         radius_minimum: DPositive::ONE,
         radius_initial: DPositive::ONE,
         radius_maximum: DPositive::ONE,
-        ..solver_config()
-    }
-    .validate()
-    .expect("a degenerate radius chain is in-domain");
+        ..solver_options()
+    });
 }
 
 /// Validation rejects every violated cross-field ordering by name.
 #[test]
 fn config_rejects_misordered_fields() {
-    let base = solver_config();
+    let base = solver_options();
 
     // Every radius is individually in-domain, and only the ordering fails.
     for (minimum, initial, maximum) in [(2.0, 1.0, 3.0), (1.0, 3.0, 2.0), (2.0, 2.0, 1.0)] {
         assert_matches!(
-            SolverConfig {
+            SolverConfig::try_from(SolverOptions {
                 radius_minimum: DPositive::new(minimum).expect("the case radius is positive"),
                 radius_initial: DPositive::new(initial).expect("the case radius is positive"),
                 radius_maximum: DPositive::new(maximum).expect("the case radius is positive"),
                 ..base
-            }
-            .validate(),
+            }),
             Err(SolverConfigError::RadiusDomain { .. }),
         );
     }
@@ -1109,12 +1108,11 @@ fn config_rejects_misordered_fields() {
     // Both thresholds are individually interior, leaving equality and inversion as the violations.
     for (accept, expand) in [(0.5, 0.5), (0.5, 0.1)] {
         assert_matches!(
-            SolverConfig {
+            SolverConfig::try_from(SolverOptions {
                 eta_accept: OpenUnitFraction::new(accept).expect("the case threshold is interior"),
                 eta_expand: OpenUnitFraction::new(expand).expect("the case threshold is interior"),
                 ..base
-            }
-            .validate(),
+            }),
             Err(SolverConfigError::AcceptanceThresholds { .. }),
         );
     }
@@ -1126,11 +1124,13 @@ fn config_rejects_misordered_fields() {
 /// away.
 #[test]
 fn gradient_threshold_follows_the_ruled_domain() {
-    let config = SolverConfig {
+    let config: SolverConfig = SolverOptions {
         absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
-        ..solver_config()
-    };
+        ..solver_options()
+    }
+    .try_into()
+    .expect("the solver config is valid");
 
     // With the absolute floor at zero the threshold is the pure relative term.
     assert_eq!(
@@ -1144,10 +1144,11 @@ fn gradient_threshold_follows_the_ruled_domain() {
     assert_eq!(zero_threshold, 0.0);
 
     // A positive absolute floor dominates small initial norms.
-    let floored = SolverConfig {
+    let floored = validated_solver(SolverOptions {
         absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-4),
-        ..config
-    };
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
+        ..solver_options()
+    });
     assert_eq!(
         floored.gradient_threshold(d_non_negative!(1.0)),
         d_non_negative!(1.0e-4)
@@ -1231,7 +1232,7 @@ fn boundary_step_survives_an_irrational_crossing() {
         &hessian_direction,
         d_positive!(3.0),
     )
-    .expect("the crossing passes both norm gates");
+    .expect("the crossing passes both norm checks");
 
     // τ = 1.875/√0.9375: the untouched coordinate stays exact, the advanced ones carry only
     // rounding-level error against the closed forms 1.5·τ and 0.5·τ.
@@ -1686,7 +1687,7 @@ fn solve_converges_on_the_fixture_corpus() {
     );
     let first = &run.receipts[0];
     assert_eq!(first.outer_iteration, 1);
-    assert_eq!(first.radius, config.radius_initial.get());
+    assert_eq!(first.radius, config.radius_initial().get());
     assert_eq!(
         first.digests.zeta,
         vector_digest(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero())
@@ -1751,7 +1752,7 @@ fn solve_converges_on_the_fixture_corpus() {
             Some(CurvatureDiagnostic::Value { along, normalized })
                 if along > 0.0 && normalized > 0.0,
         );
-        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio >= config.eta_accept.get());
+        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio >= config.eta_accept().get());
         curvatures += 1;
     }
     assert_eq!(curvatures, counters.candidate_acceptances);
@@ -1769,11 +1770,11 @@ fn solve_certificate_tie_returns_at_equality() {
 
     let tie = run_solver(
         &corpus,
-        SolverConfig {
+        validated_solver(SolverOptions {
             absolute_scaled_gradient_tolerance: initial_norm,
             relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     tie.outcome.expect("equality with the threshold certifies");
@@ -1790,12 +1791,12 @@ fn solve_fails_the_outer_iteration_budget() {
     let corpus = valid_corpus();
     let run = run_solver(
         &corpus,
-        SolverConfig {
-            maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+        validated_solver(SolverOptions {
+            maximum_outer_iterations: nz!(1),
             absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
             relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     assert_matches!(run.outcome, Err(SolverFailure::OuterIterationBudget));
@@ -1806,7 +1807,7 @@ fn solve_fails_the_outer_iteration_budget() {
 #[test]
 fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
     let corpus = valid_corpus();
-    let strict = SolverConfig {
+    let strict = validated_solver(SolverOptions {
         radius_minimum: d_positive!(2.0),
         radius_initial: d_positive!(2.0),
         radius_maximum: d_positive!(1.0e4),
@@ -1814,8 +1815,8 @@ fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
         eta_expand: open_unit_fraction!(0.999),
         absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-        ..solver_config()
-    };
+        ..solver_options()
+    });
 
     // the strict acceptance threshold 0.995 rejects this candidate. With the initial radius
     // already at the minimum, rejection returns `RadiusUnderflow`.
@@ -1842,12 +1843,12 @@ fn solve_stalls_at_the_objective_resolution() {
     let corpus = valid_corpus();
     let run = run_solver(
         &corpus,
-        SolverConfig {
+        validated_solver(SolverOptions {
             objective_resolution_ulps: NonZeroU32::new(u32::MAX).expect("nonzero"),
             absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
             relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     assert_matches!(run.outcome, Err(SolverFailure::ResolutionStall));
@@ -1859,13 +1860,13 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
     let corpus = valid_corpus();
     let run = run_solver(
         &corpus,
-        SolverConfig {
+        validated_solver(SolverOptions {
             radius_initial: d_positive!(1.0e-3),
-            maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            maximum_outer_iterations: nz!(1),
             absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
             relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     // The `1e-3` radius forces a boundary step whose small-step ratio expands the radius once, the
@@ -1898,15 +1899,15 @@ fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
 
     let run = run_solver(
         &corpus,
-        SolverConfig {
+        validated_solver(SolverOptions {
             preparation: PreparationSettings {
                 regularization: DPositive::new(subnormal).expect("the subnormal is positive"),
                 curvature_relative_floor: d_positive!(1.0e-310),
                 ..settings()
             },
             absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     assert_matches!(
@@ -1945,15 +1946,15 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
 
     let run = run_solver(
         &corpus,
-        SolverConfig {
+        validated_solver(SolverOptions {
             preparation: PreparationSettings {
                 regularization: DPositive::ONE,
                 curvature_relative_floor: DPositive::ONE,
                 ..settings()
             },
             absolute_scaled_gradient_tolerance: d_non_negative!(4.0),
-            ..solver_config()
-        },
+            ..solver_options()
+        }),
     );
 
     assert_matches!(run.outcome, Err(SolverFailure::FinalCertificationNonFinite));
@@ -1975,7 +1976,7 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
 #[test]
 #[expect(
     clippy::host_endian_bytes,
-    reason = "the digest preimage is native in-memory bytes; the component walk proves the \
+    reason = "the digest preimage is native in-memory bytes, and the component walk proves the \
               preimage layout on every environment"
 )]
 fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
@@ -2108,11 +2109,11 @@ fn certify_reproves_the_certificate_freshly() {
 /// Rejection clips the shrink to the minimum, permits one attempt there, then underflows.
 #[test]
 fn rejected_clips_to_the_minimum_then_underflows_with_one_clipped_attempt() {
-    let config = SolverConfig {
+    let config = validated_solver(SolverOptions {
         radius_minimum: d_positive!(0.5),
         shrink_factor: open_unit_fraction!(0.25),
-        ..solver_config()
-    };
+        ..solver_options()
+    });
     let mut control = SolverControl {
         radius: d_positive!(1.0),
         consecutive_rejections: 0,
@@ -2248,9 +2249,6 @@ fn newton_at_origin(
     WorkCounters,
     WorkCounters,
 ) {
-    config
-        .validate()
-        .expect("the witness configuration is valid");
     let mut counters = WorkCounters::default();
     let prepared = prepare(
         corpus.embeddings(),
@@ -2260,7 +2258,7 @@ fn newton_at_origin(
     )
     .expect("the witness corpus prepares");
     let gram = Gram::assemble(corpus.embeddings(), &mut counters);
-    let radius = config.radius_initial;
+    let radius = config.radius_initial();
     let problem = ScaledProblem {
         prepared,
         gram: GramView::full(&gram),
@@ -2292,17 +2290,19 @@ fn newton_at_origin(
 #[test]
 fn newton_step_inverts_the_oracle_within_its_residual() {
     let corpus = valid_corpus();
-    let config = SolverConfig {
+    let config = validated_solver(SolverOptions {
         radius_initial: d_positive!(1.0e4),
-        ..solver_config()
-    };
+        ..solver_options()
+    });
 
     let (outcome, baseline, counters) = newton_at_origin(&corpus, config);
     let outcome = outcome.expect("the wide radius keeps the Newton point interior");
     assert_eq!(outcome.tag(), NewtonTag::NewtonInterior);
     assert!(!outcome.is_boundary());
 
-    let residual = outcome.residual().expect("the interior point is priced");
+    let residual = outcome
+        .residual()
+        .expect("the interior point has a residual estimate");
     assert!(
         residual <= 1.0e-12,
         "the near-identity fixture keeps the oracle residual at rounding scale, got {residual:e}",
@@ -2339,11 +2339,11 @@ fn newton_step_inverts_the_oracle_within_its_residual() {
 #[test]
 fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
     let corpus = valid_corpus();
-    let config = SolverConfig {
+    let config = validated_solver(SolverOptions {
         radius_initial: d_positive!(1.0e-4),
-        ..solver_config()
-    };
-    let radius = config.radius_initial.get();
+        ..solver_options()
+    });
+    let radius = config.radius_initial().get();
 
     let (outcome, baseline, counters) = newton_at_origin(&corpus, config);
     let outcome = outcome.expect("the small-radius solve exits through the boundary");
@@ -2376,10 +2376,10 @@ fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
 #[test]
 fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     let corpus = valid_corpus();
-    let wide = SolverConfig {
+    let wide = validated_solver(SolverOptions {
         radius_initial: d_positive!(1.0e4),
-        ..solver_config()
-    };
+        ..solver_options()
+    });
 
     let (outcome, _, _) = newton_at_origin(&corpus, wide);
     let newton_norm = outcome
@@ -2431,11 +2431,11 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     );
 
     let radius = f64::midpoint(cauchy_norm, newton_norm.get());
-    let between = SolverConfig {
+    let between = validated_solver(SolverOptions {
         radius_initial: DPositive::new(radius).expect("the measured radius is positive"),
         radius_maximum: d_positive!(1.0e4),
-        ..solver_config()
-    };
+        ..solver_options()
+    });
 
     let (outcome, baseline, counters) = newton_at_origin(&corpus, between);
     let outcome = outcome.expect("the between radius exits through the dogleg leg");
@@ -2464,14 +2464,11 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
 #[test]
 fn newton_step_survives_saturated_rows() {
     let corpus = valid_corpus();
-    let config = SolverConfig {
+    let config = validated_solver(SolverOptions {
         radius_initial: d_positive!(1.0e8),
         radius_maximum: d_positive!(1.0e8),
-        ..solver_config()
-    };
-    config
-        .validate()
-        .expect("the witness configuration is valid");
+        ..solver_options()
+    });
 
     let mut counters = WorkCounters::default();
     let prepared = prepare(
@@ -2497,7 +2494,7 @@ fn newton_step_survives_saturated_rows() {
         .expect("the saturated point evaluates finitely");
 
     let mut control = SolverControl {
-        radius: config.radius_initial,
+        radius: config.radius_initial(),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,

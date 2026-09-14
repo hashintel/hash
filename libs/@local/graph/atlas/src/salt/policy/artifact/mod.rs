@@ -9,8 +9,8 @@
     not(test),
     expect(
         dead_code,
-        reason = "the mapped policy-table re-read is the designed reader, the consumer is work in \
-                  progress"
+        reason = "the archive is the policy file's designed reader, and nothing outside the tests \
+                  opens it"
     )
 )]
 use core::{error::Error, fmt, mem::offset_of};

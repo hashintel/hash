@@ -1,10 +1,9 @@
 #![expect(
     clippy::float_cmp,
-    reason = "fixture vectors use exactly representable components, so ordering and conversion \
-              must reproduce them bit-identically"
+    reason = "ordering and conversion must preserve the fixture's exactly representable components"
 )]
 use alloc::sync::Arc;
-use core::{assert_matches, future::ready, num::NonZero};
+use core::{assert_matches, future::ready};
 use std::sync::Mutex;
 
 use error_stack::Report;
@@ -20,6 +19,7 @@ use crate::{
         CANONICAL_DIMENSIONS,
         card::{Cl100kTokenizer, Tokenizer as _},
     },
+    math::nz,
     progress::{Batch, NoProgress, Progress},
     salt::embedding::CardEmbedder as _,
 };
@@ -218,7 +218,7 @@ async fn splits_requests_at_the_document_ceiling() {
         generator,
         &contract(),
         RequestLimits {
-            documents: NonZero::new(2).expect("two is nonzero"),
+            documents: nz!(2),
             ..
         },
         NoProgress,
@@ -248,7 +248,7 @@ async fn every_completed_request_reports_its_position_in_the_workload() {
         RecordingGenerator::default(),
         &contract(),
         RequestLimits {
-            documents: NonZero::new(2).expect("two is nonzero"),
+            documents: nz!(2),
             ..
         },
         progress.clone(),
@@ -295,10 +295,7 @@ async fn splits_requests_at_the_token_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         generator,
         &contract(),
-        RequestLimits {
-            tokens: NonZero::new(2).expect("two is nonzero"),
-            ..
-        },
+        RequestLimits { tokens: nz!(2), .. },
         NoProgress,
     );
 
@@ -336,10 +333,7 @@ async fn splits_requests_at_the_byte_estimate_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         generator,
         &contract(),
-        RequestLimits {
-            tokens: NonZero::new(6).expect("six is nonzero"),
-            ..
-        },
+        RequestLimits { tokens: nz!(6), .. },
         NoProgress,
     );
 
@@ -362,10 +356,7 @@ async fn rejects_a_text_above_the_token_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         RecordingGenerator::default(),
         &contract(),
-        RequestLimits {
-            tokens: NonZero::new(1).expect("one is nonzero"),
-            ..
-        },
+        RequestLimits { tokens: nz!(1), .. },
         NoProgress,
     );
 
@@ -385,10 +376,7 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         RecordingGenerator::default(),
         &contract(),
-        RequestLimits {
-            tokens: NonZero::new(3).expect("three is nonzero"),
-            ..
-        },
+        RequestLimits { tokens: nz!(3), .. },
         NoProgress,
     );
 

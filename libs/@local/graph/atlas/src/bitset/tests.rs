@@ -14,7 +14,6 @@ use crate::identity::{EdgeRowId, NodeRowId};
 fn starts_empty() {
     let set = CompressedBitSet::<NodeRowId>::new();
 
-    assert!(set.is_empty());
     assert_eq!(set.count(), 0);
     assert_eq!(set.iter().next(), None);
     assert!(!set.contains(NodeRowId::new(0)));
@@ -56,68 +55,13 @@ fn from_rows_admits_every_row_and_iterates_in_order() {
     );
 }
 
-/// Range coverage demands exactly the rows below `n`.
-///
-/// Rows above `n` never count against the answer, and `n = 0` holds vacuously. The fixture rows
-/// straddle roaring's container boundary at 2^16, so a covered range crosses containers as well
-/// as words, and no set covers a domain wider than the representable rows.
-#[test]
-fn contains_below_demands_every_row_of_the_range() {
-    let empty = CompressedBitSet::<NodeRowId>::new();
-    assert!(
-        empty.contains_below(0),
-        "an empty range is covered vacuously"
-    );
-    assert!(!empty.contains_below(1));
-
-    let hole = 0x1_0040_u64;
-    let mut set =
-        CompressedBitSet::from_rows((0..0x1_0100).filter(|&row| row != hole).map(NodeRowId::new));
-    assert!(
-        set.contains_below(hole),
-        "the range below the hole is covered"
-    );
-    assert!(
-        !set.contains_below(hole + 1),
-        "the hole breaks coverage at its own row"
-    );
-    assert!(
-        !set.contains_below(0x1_0100),
-        "a row above the hole cannot repair the range below it"
-    );
-
-    set.insert(NodeRowId::new(hole));
-    assert!(
-        set.contains_below(0x1_0100),
-        "filling the hole covers the range"
-    );
-    assert!(
-        !set.contains_below(0x1_0101),
-        "coverage ends at the last admitted row"
-    );
-    assert!(
-        !set.contains_below(u64::from(u32::MAX) + 2),
-        "a range wider than the representable domain is never covered"
-    );
-}
-
-#[test]
-fn removal_reports_whether_the_set_changed() {
-    let mut set = CompressedBitSet::from_rows([1, 2].map(EdgeRowId::new));
-
-    assert!(set.remove(EdgeRowId::new(2)));
-    assert!(!set.remove(EdgeRowId::new(2)));
-    assert_eq!(set.iter().collect::<Vec<_>>(), [EdgeRowId::new(1)]);
-}
-
 /// A row above the representable domain is not admitted, and the query answers rather than panics.
 #[test]
 fn rows_above_the_representable_domain_read_absent() {
-    let mut set = CompressedBitSet::from_rows([NodeRowId::new(1)]);
+    let set = CompressedBitSet::from_rows([NodeRowId::new(1)]);
     let beyond = NodeRowId::new(u64::from(u32::MAX) + 1);
 
     assert!(!set.contains(beyond));
-    assert!(!set.remove(beyond));
     assert_eq!(set.count(), 1);
 }
 
@@ -407,36 +351,8 @@ fn dense_bit_slice_total_byte_len_counts_the_header_and_the_words() {
     );
 }
 
-#[test]
-fn dense_bit_slice_iterates_ranges_across_word_boundaries() {
-    let mut set = DenseBitSlice::<NodeRowId>::new_empty(130);
-    for row in [0, 63, 64, 100, 129] {
-        set.insert(NodeRowId::new(row));
-    }
-
-    let rows_in = |start: u64, end: u64| {
-        set.iter_in(NodeRowId::new(start)..NodeRowId::new(end))
-            .map(NodeRowId::as_u32)
-            .collect::<Vec<_>>()
-    };
-
-    assert_eq!(rows_in(0, 130), [0, 63, 64, 100, 129]);
-    assert_eq!(rows_in(1, 129), [63, 64, 100]);
-    assert_eq!(rows_in(63, 65), [63, 64]);
-    assert_eq!(rows_in(64, 64), [] as [u32; 0]);
-    assert_eq!(rows_in(101, 130), [129]);
-
-    // The end clamps to the domain, so a longer range names no extra rows.
-    assert_eq!(rows_in(101, 4_000), [129]);
-}
-
-#[test]
-#[should_panic(expected = "an inverted row range admits no iteration order")]
-fn dense_bit_slice_range_iteration_rejects_inverted_ranges() {
-    let set = DenseBitSlice::<NodeRowId>::new_empty(100);
-    let _rows = set.iter_in(NodeRowId::new(60)..NodeRowId::new(2));
-}
-
+/// Union, intersection, and subtraction between two frames mutate the target and report change,
+/// with a repeated union reporting none.
 #[test]
 fn dense_bit_slice_relations_apply_between_slices() {
     let mut target = DenseBitSlice::<NodeRowId>::new_empty(130);

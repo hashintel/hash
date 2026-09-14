@@ -82,6 +82,7 @@ use super::{AnnotationCorpus, CardIdentity, HoldoutClass};
 use crate::{
     dataset::card,
     identity::CardRow,
+    math::{PositiveUnitFraction, positive_unit_fraction},
     progress::Progress,
     salt::{
         embedding::{
@@ -120,12 +121,12 @@ const NEAR_DUPLICATE_CEILING_FRACTION: f64 = 0.25;
 const CARD_LANGUAGE: &str = "en";
 
 /// Assembly settings.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AssemblyConfig {
     /// The largest fraction of the trained rows one validation group may hold, in `(0, 1]`.
     ///
-    /// Beyond it, subdivision relaxes the group's weakest axes.
-    pub maximum_group_fraction: f64 = 0.1,
+    /// Beyond it, subdivision relaxes the group's weakest axes. By default, the fraction is `0.1`.
+    pub maximum_group_fraction: PositiveUnitFraction = positive_unit_fraction!(0.1),
 }
 
 /// Assembling the corpus into a training set failed.

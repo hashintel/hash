@@ -1,8 +1,6 @@
 //! Certificates for the minibatch samplers.
 //!
 //! Distribution laws, per-type limits under skew, veto admission, and seeded reproducibility.
-
-use core::num::NonZero;
 use std::alloc::Global;
 
 use hashql_core::id::Id as _;
@@ -12,7 +10,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{OrdinaryNegativeSampler, RelationEdgeSampler, SemanticEdgeSampler};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{NonNegative, unit_fraction},
+    math::{NonNegative, nz, unit_fraction},
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -223,7 +221,7 @@ fn relation_caps_bind_per_type_under_skew() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let cap = NonZero::new(3).expect("the cap is nonzero");
+    let cap = nz!(3);
     let draws = sampler.sample_in(2, cap, rng(11), Global);
 
     assert_eq!(draws.len(), 2, "both types should participate");
@@ -258,7 +256,7 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let draws = sampler.sample_in(64, NonZero::new(4).expect("nonzero"), rng(13), Global);
+    let draws = sampler.sample_in(64, nz!(4), rng(13), Global);
 
     let relations: Vec<u64> = draws
         .iter()
@@ -278,7 +276,7 @@ fn relation_sampling_is_seeded() {
         .collect();
     let indexes = relation_indexes(8, &policies, instances);
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
-    let cap = NonZero::new(5).expect("nonzero");
+    let cap = nz!(5);
 
     let draws = |seed: u64| {
         sampler

@@ -11,7 +11,7 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    RelationLens, TrainOptions, TrainerInputs, TrainingSchedule,
+    RelationLens, TrainOptions, TrainerInputs, TrainingSchedule, TrainingScheduleOptions,
     objective::{GaugeDraw, TargetInputs, TargetOptions, TargetSplit},
 };
 use crate::{
@@ -253,31 +253,38 @@ pub(super) fn corpus_with(
                 row: NodeRowId::new(0),
                 target: Vec2::new(-1.0, 0.0),
                 radius: non_negative!(1.0),
-                weight: 1.0,
+                weight: positive!(1.0),
             },
             SupportAnchor {
                 row: NodeRowId::from_usize(HALF),
                 target: Vec2::new(1.0, 0.0),
                 radius: non_negative!(1.0),
-                weight: 1.0,
+                weight: positive!(1.0),
             },
         ],
         verdicts,
     }
 }
 
+/// A schedule of `steps` with the fixture's learning rates.
+///
+/// # Panics
+///
+/// Panics when the arguments do not form a valid schedule.
+#[expect(clippy::ok_expect, reason = "Result::expect is not const")]
 pub(super) const fn schedule(
     steps: NonZero<usize>,
     boundary: usize,
     refresh_interval: NonZero<usize>,
 ) -> TrainingSchedule {
-    TrainingSchedule::new(
+    TrainingSchedule::new(TrainingScheduleOptions {
         steps,
         boundary,
         refresh_interval,
-        positive_unit_fraction!(0.05),
-        unit_fraction!(0.001),
-    )
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.001),
+    })
+    .ok()
     .expect("the fixture schedule is valid")
 }
 
@@ -301,24 +308,35 @@ pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
             positive!(0.5),
         )
         .expect("the fixture exponent satisfies the objective bound"),
-        support: SupportOptions::new(positive!(1.0), positive!(0.5)),
+        support: SupportOptions {
+            threshold: positive!(1.0),
+            epsilon: positive!(0.5),
+        },
         budget: Budget {
             floor: positive!(0.25),
         },
-        coefficients: Coefficients::new(
-            Positive::ONE,
-            non_negative!(0.5),
-            non_negative!(0.5),
-            NonNegative::ONE,
-            NonNegative::ZERO,
-            NonNegative::ONE,
-        ),
-        miner: MinerOptions::new(nz!(2), nz!(2), positive!(1.0), positive!(1.0)),
-        lens: RelationLens::new(
-            CoincidentEnergy::new(non_negative!(0.0), positive!(1.0)),
-            positive!(0.25),
-            positive!(0.5),
-        ),
+        coefficients: Coefficients {
+            semantic: Positive::ONE,
+            ordinary: non_negative!(0.5),
+            hard: non_negative!(0.5),
+            relation: NonNegative::ONE,
+            anchor: NonNegative::ZERO,
+            landmark: NonNegative::ONE,
+        },
+        miner: MinerOptions {
+            neighbours: nz!(2),
+            search_margin: nz!(2),
+            maximum_weight: positive!(1.0),
+            rank_exponent: positive!(1.0),
+        },
+        lens: RelationLens {
+            coincident: CoincidentEnergy {
+                radius: non_negative!(0.0),
+                threshold: positive!(1.0),
+            },
+            temperature: positive!(0.25),
+            epsilon: positive!(0.5),
+        },
         forward_rows: nz!(3),
     }
 }

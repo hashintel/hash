@@ -1,7 +1,7 @@
 //! Unit suite over the data-level constructor, fakes only.
 
 use alloc::{borrow::Cow, collections::VecDeque};
-use core::num::NonZero;
+use core::{assert_matches, num::NonZero};
 
 use hashql_core::id::IdSlice;
 
@@ -19,7 +19,7 @@ use crate::{
     dataset::{PROJECTOR_DIMENSIONS, TemporalAxes},
     file::generation::GenerationId,
     identity::{EdgeRowId, NodeRowId},
-    math::{AlignedVecN, MatrixN, Vec2},
+    math::{AlignedVecN, MatrixN, Vec2, nz},
     progress::NoProgress,
 };
 
@@ -155,12 +155,10 @@ const NO_EDGES: &IdSlice<EdgeRowId, [NodeRowId; 2]> = IdSlice::from_raw(&[]);
 /// The replay runs four queries and comparisons with one control and one neighbourhood of size one.
 fn one_neighbourhood() -> ReplaySizes {
     ReplaySizes {
-        queries: NonZero::new(4).expect("the fixture query cap is nonzero"),
-        comparisons: NonZero::new(4).expect("the fixture universe is nonzero"),
-        controls: NonZero::new(1).expect("the fixture control count is nonzero"),
-        neighbourhoods: Cow::Owned(vec![
-            NonZero::new(1).expect("the fixture neighbourhood size is nonzero"),
-        ]),
+        queries: nz!(4),
+        comparisons: nz!(4),
+        controls: nz!(1),
+        neighbourhoods: Cow::Owned(vec![nz!(1)]),
         ..
     }
 }
@@ -237,7 +235,7 @@ fn partition_standing_pair() {
             .stable
             .iter()
             .all(|pair| pair.earlier_row == pair.later_row && pair.later_row < row(5)),
-        "the five shared byte-equal identities sit on matching rows",
+        "the five shared byte-equal identities lie on matching rows",
     );
     assert_eq!(populations.revised, 1);
     assert_eq!(populations.arrivals.len(), 2);
@@ -317,10 +315,10 @@ fn axes_unrecorded() {
         &one_neighbourhood(),
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::UnrecordedTemporalAxes { generation: named }) if named == generation(1),
-    ));
+    );
 }
 
 #[test]
@@ -337,9 +335,10 @@ fn pair_unordered() {
             &one_neighbourhood(),
         );
 
-        assert!(
-            matches!(result, Err(ReplayError::OrderViolation { .. })),
-            "transaction times {earlier_at} and {later_at} must refuse",
+        assert_matches!(
+            result,
+            Err(ReplayError::OrderViolation { .. }),
+            "transaction times {earlier_at} and {later_at} must refuse"
         );
     }
 }
@@ -367,7 +366,7 @@ fn arrivals_empty() {
         &one_neighbourhood(),
     );
 
-    assert!(matches!(result, Err(ReplayError::EmptyArrivals)));
+    assert_matches!(result, Err(ReplayError::EmptyArrivals));
 }
 
 #[test]
@@ -381,19 +380,19 @@ fn stable_insufficient() {
         STANDING_EDGES,
         0,
         &ReplaySizes {
-            comparisons: NonZero::new(5).expect("the fixture universe is nonzero"),
+            comparisons: nz!(5),
             ..one_neighbourhood()
         },
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::InsufficientStableRows {
             stable: 5,
             comparisons: 5,
             controls: 1,
         }),
-    ));
+    );
 }
 
 #[test]
@@ -421,14 +420,14 @@ fn stable_classes_insufficient() {
         &one_neighbourhood(),
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::InsufficientStableClasses {
             classes: 3,
             comparisons: 4,
             controls: 1,
         }),
-    ));
+    );
 }
 
 /// A neighbourhood size of three over a universe of four fails with `NeighbourhoodDesign`.
@@ -443,17 +442,15 @@ fn neighbourhood_oversized() {
         STANDING_EDGES,
         0,
         &ReplaySizes {
-            neighbourhoods: Cow::Owned(vec![
-                NonZero::new(3).expect("the fixture neighbourhood size is nonzero"),
-            ]),
+            neighbourhoods: Cow::Owned(vec![nz!(3)]),
             ..one_neighbourhood()
         },
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::NeighbourhoodDesign { universe: 4, .. }),
-    ));
+    );
 }
 
 /// Reads every designed count, optimum and identity under the faithful planar projector.
@@ -837,14 +834,14 @@ fn joint_sample_overflow() {
         },
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::InsufficientStableRows {
             stable: 5,
             comparisons: usize::MAX,
             controls: usize::MAX,
         }),
-    ));
+    );
 }
 
 /// Admits a neighbourhood of size one over a universe of two and refuses it over one.
@@ -853,14 +850,14 @@ fn joint_sample_overflow() {
 /// universe of one with `NeighbourhoodDesign`.
 #[test]
 fn horizon_design_refusal() {
-    let size = NonZero::new(1).expect("the neighbourhood size is nonzero");
-    let factor = NonZero::new(2).expect("the factor is nonzero");
+    let size = nz!(1);
+    let factor = nz!(2);
 
     NeighbourhoodDesign::new(size, 2, 2, factor).expect("a universe of two hosts a size of one");
-    assert!(matches!(
+    assert_matches!(
         NeighbourhoodDesign::new(size, 1, 1, factor),
         Err(ReplayError::NeighbourhoodDesign { universe: 1, .. }),
-    ));
+    );
 }
 
 /// A comparison count of `2³²` fails with `UniverseBeyondRankDomain` before any sampling refusal.
@@ -884,21 +881,19 @@ fn universe_beyond_rank_domain_refusal() {
         },
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ReplayError::UniverseBeyondRankDomain { comparisons }) if comparisons == 1_usize << 32,
-    ));
+    );
 }
 
 /// Both derivation fixtures pin the metric wiring numerically and share these sizes.
 fn derivation_sizes() -> ReplaySizes {
     ReplaySizes {
-        queries: NonZero::new(1).expect("the fixture query cap is nonzero"),
-        comparisons: NonZero::new(4).expect("the fixture universe is nonzero"),
-        controls: NonZero::new(1).expect("the fixture control count is nonzero"),
-        neighbourhoods: Cow::Owned(vec![
-            NonZero::new(1).expect("the fixture neighbourhood size is nonzero"),
-        ]),
+        queries: nz!(1),
+        comparisons: nz!(4),
+        controls: nz!(1),
+        neighbourhoods: Cow::Owned(vec![nz!(1)]),
         ..
     }
 }
@@ -1022,9 +1017,9 @@ fn weighting_pair() -> (Corpus, Corpus) {
 #[expect(
     clippy::float_cmp,
     reason = "the comparisons are deliberately exact: each expected value either repeats the \
-              kernel's own f64 operations, so both sides round identically, or reaches the same \
-              bits through individually exact f64 steps, and every wire coordinate and designed \
-              tie is exact in f32"
+              kernel's own f64 operations, and both sides then round identically, or reaches the \
+              same bits through individually exact f64 steps, and every wire coordinate and \
+              designed tie is exact in f32"
 )]
 fn metric_orientation() {
     // The stable rows are entities 1..=6 with rows 1 and 2 byte-equal, leaving five stable
@@ -1187,7 +1182,7 @@ fn metric_orientation() {
 #[expect(
     clippy::float_cmp,
     reason = "the comparisons are deliberately exact: each expected expression repeats the \
-              kernel's own f64 operations, so both sides round identically"
+              kernel's own f64 operations, and both sides therefore round identically"
 )]
 fn class_weighting() {
     // The stable population spreads seven rows over five classes: rows

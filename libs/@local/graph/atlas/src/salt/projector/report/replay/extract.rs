@@ -6,6 +6,7 @@ use super::error::ReplayError;
 use crate::{
     dataset::{PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{Generation, GenerationId},
         identity::read::IdentityFile,
@@ -18,8 +19,9 @@ use crate::{
 
 /// One generation's data columns, in the shape the partition consumes.
 ///
-/// The wire coordinates arrive gathered per node row, so the columns share one indexing and a
-/// fabricated corpus needs no base-order permutation.
+/// The wire coordinates are gathered per node row before they enter. The columns therefore share
+/// one indexing, and a fabricated corpus needs no base-order permutation.
+#[derive(Debug)]
 pub(super) struct GenerationColumns<'run> {
     /// The generation's identity.
     id: GenerationId,
@@ -194,7 +196,7 @@ impl GenerationArtifacts {
         GenerationColumns::new(
             id,
             generation.repository().metadata.snapshot.axes,
-            self.identities.ids(),
+            self.identities.keys(),
             IdSlice::from_raw(representations),
             wire_of_row,
         )
@@ -234,11 +236,11 @@ impl WireArtifacts<'_> {
         let positions = self
             .positions
             .column::<NodeRowId, BasePosition>()
-            .ok_or(ReplayError::InvalidPositions { generation })?;
+            .map_err(|_invalid| ReplayError::InvalidPositions { generation })?;
         let wire = self
             .wire
             .column::<BasePosition, Vec2>()
-            .ok_or(ReplayError::InvalidWireCoordinates { generation })?;
+            .map_err(|_invalid| ReplayError::InvalidWireCoordinates { generation })?;
 
         Ok(positions.iter().map(|&position| wire[position]).collect())
     }
@@ -283,12 +285,13 @@ impl EndpointArtifact {
     ) -> Result<&IdSlice<EdgeRowId, [NodeRowId; 2]>, ReplayError> {
         self.file
             .column::<EdgeRowId, [NodeRowId; 2]>()
-            .ok_or(ReplayError::InvalidEndpoints { generation })
+            .map_err(|_invalid| ReplayError::InvalidEndpoints { generation })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
     use std::fs::File;
 
     use camino::Utf8PathBuf;
@@ -300,7 +303,7 @@ mod tests {
     };
     use crate::{
         file::{
-            WriteInto as _,
+            ArtifactFile as _, WriteInto as _,
             array::{ArrayVariant, ArrayWriter, Dim, SizedColumn},
         },
         identity::{BasePosition, NodeRowId},
@@ -386,7 +389,7 @@ mod tests {
             IdSlice::from_raw(&wire),
         );
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::Rows {
                 identities: 0,
@@ -394,7 +397,7 @@ mod tests {
                 wire: 1,
                 ..
             }),
-        ));
+        );
     }
 
     /// Gathers each row's wire coordinate through a staged position permutation.
@@ -459,10 +462,10 @@ mod tests {
         }
         .gathered(generation(1));
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::InvalidPositions { generation: named }) if named == generation(1),
-        ));
+        );
     }
 
     /// Panics with the standard out-of-bounds message on a position beyond the wire column.
@@ -514,9 +517,9 @@ mod tests {
         let artifact = EndpointArtifact { file: staged };
         let result = artifact.pairs(generation(2));
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ReplayError::InvalidEndpoints { generation: named }) if named == generation(2),
-        ));
+        );
     }
 }

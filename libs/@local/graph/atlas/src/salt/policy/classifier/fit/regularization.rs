@@ -22,31 +22,27 @@ use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use super::{FitConfig, FitError, FoldedTraining, calibration, objective, solver::WorkCounters};
 use crate::{
     identity::CardRow,
-    math::{DNonNegative, DPositive},
+    math::{DNonNegative, DPositive, d_positive},
     progress::Progress,
     salt::policy::GeometryClass,
 };
 
 /// The candidate strengths, ascending.
 pub(super) const CANDIDATES: [DPositive; 13] = {
-    const fn strength(value: f64) -> DPositive {
-        DPositive::new(value).expect("the candidate is finite and positive")
-    }
-
     [
-        strength(1.0e-3),
-        strength(3.0e-3),
-        strength(1.0e-2),
-        strength(3.0e-2),
-        strength(0.1),
-        strength(0.3),
-        strength(1.0),
-        strength(3.0),
-        strength(10.0),
-        strength(30.0),
-        strength(100.0),
-        strength(300.0),
-        strength(1.0e3),
+        d_positive!(1.0e-3),
+        d_positive!(3.0e-3),
+        d_positive!(1.0e-2),
+        d_positive!(3.0e-2),
+        d_positive!(0.1),
+        d_positive!(0.3),
+        d_positive!(1.0),
+        d_positive!(3.0),
+        d_positive!(10.0),
+        d_positive!(30.0),
+        d_positive!(100.0),
+        d_positive!(300.0),
+        d_positive!(1.0e3),
     ]
 };
 
@@ -107,10 +103,12 @@ impl FoldedTraining<'_> {
             .flat_map(|candidate| (0..config.folds).map(move |fold| (candidate, fold)))
             .collect();
 
+        let span = tracing::Span::current();
         // Rayon's collect preserves input order: candidate-major, fold-minor.
         let models: Vec<_> = pairs
             .into_par_iter()
             .map(|(candidate, fold)| {
+                let _entered = span.enter();
                 let mut candidate_config = config;
                 candidate_config.solver.preparation.regularization = CANDIDATES[candidate];
                 let (parameters, _) =
@@ -120,7 +118,7 @@ impl FoldedTraining<'_> {
                     progress.classifier_fold_completed(fold);
                 }
 
-                Ok(parameters)
+                Ok::<_, FitError>(parameters)
             })
             .collect::<Result<_, _>>()?;
 

@@ -29,7 +29,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{WriteInto as _, landmark::read::LandmarkFile},
     identity::NodeRowId,
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, DPositive, NonNegative, Vec2, positive},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, DPositive, NonNegative, Vec2, nz, positive},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
         semantic::{SemanticGraph, SemanticMatrix},
@@ -150,7 +150,7 @@ fn selection_honors_subgroup_minimums() {
         &candidates,
         &[SubgroupMinimum {
             subgroup,
-            count: NonZero::new(5).expect("five is nonzero"),
+            count: nz!(5),
         }],
         options(8),
         rng(),
@@ -240,7 +240,7 @@ fn selection_rejects_malformed_inputs() {
     };
     let minimum = SubgroupMinimum {
         subgroup,
-        count: NonZero::new(1).expect("one is nonzero"),
+        count: nz!(1),
     };
     assert_eq!(
         select(&candidates(4), &[minimum, minimum], options(10), rng()),
@@ -261,7 +261,7 @@ fn selection_rejects_unsatisfiable_minimums() {
             &candidates(10),
             &[SubgroupMinimum {
                 subgroup,
-                count: NonZero::new(2).expect("two is nonzero"),
+                count: nz!(2),
             }],
             options(5),
             rng(),
@@ -283,7 +283,7 @@ fn selection_rejects_unsatisfiable_minimums() {
             &tagged,
             &[SubgroupMinimum {
                 subgroup,
-                count: NonZero::new(6).expect("six is nonzero"),
+                count: nz!(6),
             }],
             options(5),
             rng(),
@@ -311,14 +311,14 @@ fn selection_counts_rows_toward_every_minimum_they_satisfy() {
                 dimension: SubgroupDimension::Language,
                 value: 7,
             },
-            count: NonZero::new(3).expect("three is nonzero"),
+            count: nz!(3),
         },
         SubgroupMinimum {
             subgroup: Subgroup {
                 dimension: SubgroupDimension::Community,
                 value: 3,
             },
-            count: NonZero::new(3).expect("three is nonzero"),
+            count: nz!(3),
         },
     ];
 
@@ -349,7 +349,7 @@ fn selection_is_invariant_across_thread_counts() {
             dimension: SubgroupDimension::Language,
             value: 2,
         },
-        count: NonZero::new(40).expect("forty is nonzero"),
+        count: nz!(40),
     }];
 
     let single = in_pool(1, || select(&candidates, &minimums, options(128), rng()))
@@ -653,9 +653,12 @@ fn quotient_keeps_only_the_strongest_neighbours() {
     let graph = semantic_from_edges(
         8,
         &[
-            (0, 2, 1.0),  // L0 - L1, strongest
-            (1, 4, 0.5),  // L0 - L2
-            (1, 6, 0.25), // L0 - L3
+            // L0 - L1, strongest
+            (0, 2, 1.0),
+            // L0 - L2
+            (1, 4, 0.5),
+            // L0 - L3
+            (1, 6, 0.25),
         ],
     );
     let assignment = assignment_of(&[0, 0, 1, 1, 2, 2, 3, 3], 4);
@@ -664,7 +667,7 @@ fn quotient_keeps_only_the_strongest_neighbours() {
         .quotient(
             &graph.view(),
             QuotientOptions {
-                maximum_neighbours: NonZero::new(1).expect("one is nonzero"),
+                maximum_neighbours: nz!(1),
             },
         )
         .expect("the fixture quotient has edges");
@@ -880,7 +883,7 @@ fn repulsion_widens_the_gap_between_disconnected_components() {
         &graph.view(),
         curve(),
         LayoutOptions {
-            epochs: NonZero::new(200).expect("test epoch budgets are nonzero"),
+            epochs: nz!(200),
             repulsion_strength: NonNegative::ZERO,
             ..
         },

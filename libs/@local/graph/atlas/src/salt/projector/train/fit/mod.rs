@@ -58,7 +58,10 @@ pub(crate) use self::{
     error::{TargetRefusal, TargetRefusalCause, TrainError},
     evidence::{BoundaryEvidence, FrozenRadius, RefreshFraction, TickTelemetry, TrainingEvidence},
     inputs::TrainerInputs,
-    options::{RelationLens, TrainOptions, TrainingSchedule},
+    options::{
+        RelationLens, TrainOptions, TrainingSchedule, TrainingScheduleError,
+        TrainingScheduleOptions,
+    },
 };
 use super::metrics::BudgetBreakdown;
 use crate::{
@@ -89,8 +92,8 @@ pub(crate) struct Model<N, B: AutodiffBackend> {
 #[derive(Debug)]
 #[expect(
     clippy::large_enum_variant,
-    reason = "the outcome is constructed and consumed once per run, so the size difference never \
-              rides a hot path"
+    reason = "the outcome is constructed and consumed once per run, and the size difference is \
+              never on a hot path"
 )]
 pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
     /// A completed run's trained model beside its evidence.
@@ -241,16 +244,23 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
         let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
         let record: ResumeRecord<B> = recorder.load(bytes, device)?;
 
-        let schedule = NonZero::new(record.steps)
+        let schedule_options = NonZero::new(record.steps)
             .zip(NonZero::new(record.refresh_interval))
             .zip(
                 PositiveUnitFraction::new(record.initial_learning_rate)
                     .zip(UnitFraction::new(record.minimum_learning_rate)),
             )
-            .and_then(|((steps, refresh_interval), (initial, minimum))| {
-                TrainingSchedule::new(steps, record.boundary, refresh_interval, initial, minimum)
-            })
-            .ok_or(CheckpointError::InvalidSchedule)?;
+            .map(
+                |((steps, refresh_interval), (initial, minimum))| TrainingScheduleOptions {
+                    steps,
+                    boundary: record.boundary,
+                    refresh_interval,
+                    initial_learning_rate: initial,
+                    minimum_learning_rate: minimum,
+                },
+            )
+            .ok_or(CheckpointError::MalformedSchedule)?;
+        let schedule = TrainingSchedule::new(schedule_options)?;
 
         // The scheduler advances once per step and reads its position before use. After the
         // opening segment's `boundary` steps it is therefore at `boundary - 1`. A boundary of

@@ -45,8 +45,8 @@ use crate::{
 pub(crate) struct ArchivedEntityUuid([u8; 16]);
 
 impl ArchivedEntityUuid {
-    /// Wraps raw uuid bytes.
-    #[cfg(test)] // The serve and delta tests build archived identities from seed bytes.
+    /// Constructs an identity from UUID bytes.
+    #[cfg(test)] // serve document codec tests need identities with chosen byte patterns.
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
@@ -117,8 +117,8 @@ impl Deref for ArchivedEntityUuid {
 pub(crate) struct ArchivedWebId([u8; 16]);
 
 impl ArchivedWebId {
-    /// Wraps raw uuid bytes.
-    #[cfg(test)] // The serve and delta tests build archived identities from seed bytes.
+    /// Constructs a web ID from UUID bytes.
+    #[cfg(test)] // serve document codec tests need identities with chosen byte patterns.
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
@@ -221,6 +221,22 @@ impl From<ArchivedEntityId> for EntityId {
     }
 }
 
+impl serde::Serialize for ArchivedEntityId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&EntityId::from(*self))
+    }
+}
+
+impl schemars::JsonSchema for ArchivedEntityId {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        "EntityId".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        String::json_schema(generator)
+    }
+}
+
 impl Key for ArchivedEntityId {
     type Payload = Legend;
 
@@ -258,18 +274,9 @@ impl ArchivedOntologyTypeUuid {
     pub(crate) fn from_url(url: &VersionedUrl) -> Self {
         Self::from(OntologyTypeUuid::from_url(url).into_uuid())
     }
-
-    /// Views archived uuids through the store's uuid type, without copying.
-    pub(crate) const fn into_slice(slice: &[Self]) -> &[OntologyTypeUuid] {
-        // SAFETY: the inverse of `from_slice`'s cast, sound by the same transparent layout
-        // chain down to the shared 16-byte array on both sides.
-        unsafe {
-            core::slice::from_raw_parts(slice.as_ptr().cast::<OntologyTypeUuid>(), slice.len())
-        }
-    }
 }
 
-impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
+const impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
         Self(id.into_bytes())

@@ -207,7 +207,7 @@ impl<'policy> From<&'policy CertifiedPolicies> for Policies<'policy> {
 /// The build's account of dropped instances and pruned force mass.
 ///
 /// The recorded threshold is the criterion the pruned/retained split was judged against.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BuildMeasurements {
     /// The force-pruning threshold the build applied.
     pub pruning_threshold: NonNegative,

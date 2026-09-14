@@ -17,11 +17,12 @@ use crate::{
 /// by default. A nonzero coefficient is accepted without checking any release criterion. The
 /// calibration starting grid is `2..=8`, to be judged against the generation's quality evidence.
 ///
-/// The pruning threshold `η_F` drops instances whose force mass `c · s · s+` cannot move the
-/// layout, and 0 retains every instance. The omitted-mass fraction a threshold produces
-/// ([`super::BuildMeasurements::omitted_mass_fraction`]) audits it, and the threshold controls only
-/// attraction sampling. Protection masses never pass through it.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// The pruning threshold `η_F` drops instances whose mass `c · s · s+` is strictly below it. It is
+/// zero by default, retaining every non-self instance, including zero-mass ones. Evaluate a chosen
+/// threshold through [`super::BuildMeasurements::omitted_mass_fraction`] and quality measurements.
+/// The mass excludes degree normalization, strength and class-energy derivatives, and is not a
+/// movement bound. Protection masses never pass through this predicate.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: NonNegative = NonNegative::ZERO,
     pruning_threshold: NonNegative = NonNegative::ZERO,

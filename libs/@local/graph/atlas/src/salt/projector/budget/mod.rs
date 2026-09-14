@@ -30,7 +30,7 @@ use crate::math::{NonNegative, Positive, Vec2};
 /// Every outcome measures the relation gradient against `max(‖semantic‖, floor)`. The floor matches
 /// the typical per-draw semantic gradient rather than ε: in a sampled batch most nodes' semantic
 /// pairs are not co-drawn, and their baselines would otherwise vanish.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Budget {
     /// The semantic-baseline floor.
     pub floor: Positive,
@@ -83,8 +83,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn new() -> Self {
@@ -107,8 +107,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn nodes(&self) -> usize {
@@ -138,8 +138,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn mean_ratio(&self) -> Option<f32> {

@@ -1,7 +1,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use alloc::boxed::Box;
+use alloc::{alloc::Allocator, boxed::Box};
 use core::{
+    clone::CloneToUninit,
     fmt, iter,
     marker::PhantomData,
     ops::{Index, IndexMut, Range},
@@ -43,7 +44,7 @@ const fn word_index_and_mask(row: u64) -> (usize, u64) {
 
 /// A byte frame [`DenseBitSlice::try_from_prefix`] refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ParseDenseBitSliceError {
+pub(crate) enum ParseDenseBitSliceError {
     /// The bytes end before the 8-byte domain header.
     Header {
         /// The refused buffer's byte length.
@@ -238,7 +239,7 @@ impl<T> DenseBitSlice<T> {
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "a frame is one header word plus whole storage words, so the division is exact"
+        reason = "a frame is one header word plus whole storage words. The division is exact"
     )]
     const unsafe fn from_frame_unchecked(bytes: &[u8]) -> &Self {
         let words = (bytes.len() - WORD_BYTES) / WORD_BYTES;
@@ -257,7 +258,7 @@ impl<T> DenseBitSlice<T> {
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "a frame is one header word plus whole storage words, so the division is exact"
+        reason = "a frame is one header word plus whole storage words. The division is exact"
     )]
     unsafe fn from_frame_unchecked_mut(bytes: &mut [u8]) -> &mut Self {
         let words = (bytes.len() - WORD_BYTES) / WORD_BYTES;
@@ -350,14 +351,14 @@ impl<T: Id> DenseBitSlice<T> {
 
     /// Returns the number of admitted rows below `row`: the row's rank in admission order.
     ///
-    /// A row at or beyond the domain ranks after every member, so it counts them all. The cost is
-    /// one popcount per word below `row`.
-    #[must_use]
+    /// A row at or beyond the domain counts all members. The cost is one popcount per word below
+    /// `row`.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
         reason = "the quotient names the row's word and the remainder its bit within that word"
     )]
+    #[must_use]
     pub(crate) fn count_below(&self, index: T) -> u64 {
         let row = index.as_u64().min(self.domain_size.get());
 
@@ -445,79 +446,48 @@ impl<T: Id> DenseBitSlice<T> {
             })
         })
     }
+}
 
-    /// Iterates the rows the set admits inside `range`, in ascending order.
-    ///
-    /// The range's end is clamped to the domain, so rows a longer range would name are simply
-    /// absent.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `range.start` exceeds `range.end`. An inverted range admits no iteration
-    /// order, so it is a caller bug rather than an empty result.
-    pub(crate) fn iter_in(&self, range: Range<T>) -> RowsIn<'_, T> {
-        let start = range.start.as_u64();
-        let end = range.end.as_u64();
-        assert!(
-            start <= end,
-            "an inverted row range admits no iteration order"
-        );
+// SAFETY: CloneToUninit requires a successful call to initialize a clone in the caller's
+// destination. IntoBytes exposes the complete initialized representation without padding. Copying
+// the domain header and all trailing words preserves the frame invariant under the source's
+// word-count metadata. PhantomData<T> occupies no bytes and does not clone a T. Therefore the byte
+// clone initializes a valid DenseBitSlice<T>.
+unsafe impl<T> CloneToUninit for DenseBitSlice<T> {
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        let bytes = self.as_bytes();
 
-        RowsIn {
-            words: &self.words,
-            position: start,
-            end: end.min(self.domain_size.get()),
-            marker: PhantomData,
+        // SAFETY: The byte-slice clone requires writable destination storage for its full length
+        // with the CloneToUninit caller's access guarantees. IntoBytes makes bytes.len() equal
+        // size_of_val(self), and both views require alignment one. The same destination range and
+        // non-overlap obligation pass through unchanged. Therefore the byte-slice call initializes
+        // the full frame representation.
+        unsafe {
+            bytes.clone_to_uninit(dest);
         }
     }
 }
 
-/// Iterator over the rows a [`DenseBitSlice`] admits inside a range, ascending.
-///
-/// The cursor is `u64` so the word-boundary jump cannot overflow at the top of a `u32` row
-/// domain. The end is at most the domain, so every word the cursor touches is in memory.
-#[derive(Debug)]
-pub(crate) struct RowsIn<'set, T> {
-    /// The set's member bits.
-    words: &'set [U64<LE>],
-    /// The next row to examine.
-    position: u64,
-    /// The first row past the range.
-    end: u64,
-    marker: PhantomData<T>,
-}
+impl<T, A: Allocator + Clone> Clone for Box<DenseBitSlice<T>, A> {
+    fn clone(&self) -> Self {
+        Self::clone_from_ref_in(&**self, Self::allocator(self).clone())
+    }
 
-impl<T: Id> Iterator for RowsIn<'_, T> {
-    type Item = T;
+    /// Overwrites this frame's words with `source`'s in place, keeping the allocation.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the two frames cover different domains, because a frame's word count is
+    /// fixed by its header and cannot follow `source`'s.
+    fn clone_from(&mut self, source: &Self) {
+        let &mut DenseBitSlice {
+            domain_size,
+            ref mut words,
+            marker: _,
+        } = &mut **self;
 
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the quotient names the cursor's word and the remainder its bit within that word"
-    )]
-    fn next(&mut self) -> Option<T> {
-        while self.position < self.end {
-            // Every row below `end` lies in the domain, so the word index is in bounds.
-            #[expect(clippy::cast_possible_truncation)]
-            let word = self.words[(self.position / WORD_BITS as u64) as usize].get();
-            // Mask off the bits below the cursor, then jump to the next set bit inside this
-            // word, if any.
-            let masked = word & (u64::MAX << (self.position % WORD_BITS as u64));
-            let next = (self.position / WORD_BITS as u64) * WORD_BITS as u64
-                + u64::from(masked.trailing_zeros());
-            if masked != 0 {
-                if next >= self.end {
-                    // The next set bit lies at or beyond the range.
-                    break;
-                }
-                self.position = next + 1;
-                return Some(T::from_u64(next));
-            }
-            // Skip to the next word boundary.
-            self.position = (self.position / WORD_BITS as u64 + 1) * WORD_BITS as u64;
-        }
-
-        None
+        assert_eq!(domain_size, source.domain_size);
+        words.clone_from_slice(&source.words);
     }
 }
 
@@ -641,7 +611,7 @@ unsafe impl<T> zerocopy::TryFromBytes for DenseBitSlice<T> {
 
 /// A byte region [`DenseBitSliceArray::try_from_bytes`] refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ParseDenseBitSliceArrayError {
+pub(crate) enum ParseDenseBitSliceArrayError {
     /// The region's byte length is not what its domain header and frame count occupy.
     Length {
         /// The length the domain header and the frame count occupy.
@@ -941,12 +911,17 @@ impl<T> DenseBitSliceArray<T> {
     }
 
     /// Returns the number of frames.
-    #[must_use]
+    ///
+    /// # Panics
+    ///
+    /// Panics if the frame stride exceeds `usize::MAX`, possible for a header-only array on a
+    /// 32-bit target.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "every door validated whole strides, so the division is exact"
+        reason = "the array construction contract requires a whole number of frame strides"
     )]
+    #[must_use]
     pub(crate) fn len(&self) -> usize {
         self.frames.len() / self.stride()
     }
