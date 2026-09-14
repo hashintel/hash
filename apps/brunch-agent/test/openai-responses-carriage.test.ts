@@ -1,4 +1,4 @@
-/** OpenAI Responses adapter acceptance of native Brunch schemas. Independent of Anthropic count-tokens. */
+/** Local conversion examples, not provider acceptance or the mounted-catalogue browser proof. */
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -48,7 +48,7 @@ const zeroUsage = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
 
-test("OpenAI Responses conversion accepts the native construction catalogue schemas", () => {
+test("OpenAI Responses converts example native tools in non-strict mode and tool-bearing history", () => {
   const model = openaiProvider()
     .getModels()
     .find((entry) => entry.id === "gpt-5.6-sol");
@@ -84,7 +84,7 @@ test("OpenAI Responses conversion accepts the native construction catalogue sche
         keyword,
       );
     }
-    expect("strict" in tool).toBe(true);
+    expect(tool.strict).toBe(false);
   }
   const history = convertResponsesMessages(
     model!,
