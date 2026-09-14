@@ -1,8 +1,25 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vitest/config";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
+const packageManifest = JSON.parse(
+  readFileSync(new URL("package.json", import.meta.url), "utf8"),
+) as {
+  readonly dependencies?: Readonly<Record<string, string>>;
+  readonly peerDependencies?: Readonly<Record<string, string>>;
+};
+const externalPackageNames = Object.keys({
+  ...packageManifest.dependencies,
+  ...packageManifest.peerDependencies,
+});
+const isExternal = (moduleId: string): boolean =>
+  moduleId.startsWith("node:") ||
+  externalPackageNames.some(
+    (packageName) =>
+      moduleId === packageName || moduleId.startsWith(`${packageName}/`),
+  );
 
 export default defineConfig({
   build: {
@@ -22,7 +39,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [/^node:/u, /^@flue\/runtime(?:\/.*)?$/u, "valibot"],
+      external: isExternal,
     },
     sourcemap: true,
   },
