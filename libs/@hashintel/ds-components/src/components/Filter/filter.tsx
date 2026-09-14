@@ -246,6 +246,7 @@ export const Filter = <
   disabled,
   testId,
   size = "sm",
+  autoFocus = false,
   removeable,
 }: {
   className?: string;
@@ -260,6 +261,14 @@ export const Filter = <
   testId?: string;
   /** The size (height) of the element */
   size?: FormInputSize;
+  /**
+   * Focus the chip's first interactive segment (the operator trigger, or the
+   * first input) once on mount. For chips created by a user action whose
+   * mount coincides with their container's — where FilterGroup's own
+   * fresh-chip focus treats them as restored state — so keyboard flow still
+   * lands inside the new chip.
+   */
+  autoFocus?: boolean;
   removeable?:
     | false
     | {
@@ -294,6 +303,34 @@ export const Filter = <
   const abandonEligibleRef = useRef(false);
   const abandonEvaluateRef = useRef<() => void>(() => {});
   const abandonCancelRef = useRef<() => void>(() => {});
+  // Mount-only by design: `autoFocus` is a creation-time request, not a
+  // reactive control (mirroring the DOM attribute).
+  const autoFocusOnMountRef = useRef(autoFocus);
+  useEffect(() => {
+    if (!autoFocusOnMountRef.current) {
+      return;
+    }
+    // Double rAF so the focus lands after any menu/dropdown focus
+    // restoration from the interaction that created the chip.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const root = rootRef.current;
+        if (!root || !root.isConnected) {
+          return;
+        }
+        // The user already moved somewhere inside; don't yank focus around.
+        if (root.contains(document.activeElement)) {
+          return;
+        }
+        root
+          .querySelector<HTMLElement>(
+            'button:enabled:not([data-part="remove"]), input:enabled',
+          )
+          ?.focus();
+      });
+    });
+  }, []);
+
   useEffect(() => {
     const markEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isSelectDropdownOpen(inputRefs.current)) {
