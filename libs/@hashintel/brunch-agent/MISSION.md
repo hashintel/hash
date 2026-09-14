@@ -5,14 +5,14 @@
 Live constraints-only mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
 Publication base: restacked FE-1664 at
-[9499b9287b](https://github.com/hashintel/hash/commit/9499b9287bd69b751ebcdd61b0c6bf2586bc191e),
+[006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce),
 not `origin/main`. The original comparison revision is
 [3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54).
 Only this child's commits were rebased; FE-1664 and its PR are not modified by
 this mission. The sole conflict was this mission; the parent's newer consent and
 Thinking dock contracts are preserved below, without expanding the capture-only cut.
 The separate authority commit is
-[41671b9935](https://github.com/hashintel/hash/commit/41671b9935676744b024e4045f3e89237e74bef6).
+[8ebf29b85d](https://github.com/hashintel/hash/commit/8ebf29b85d4821a5f5199813d699c2205aac797a).
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
 Next: Kostandin's matched speaker/headphone witness below. Acoustic benefit and
