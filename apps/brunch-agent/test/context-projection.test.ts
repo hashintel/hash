@@ -171,6 +171,71 @@ test("leaves fake, malformed, and unknown records unprojected", () => {
   expect(projectBrunchContext(input)).toEqual(input);
 });
 
+test("does not reuse failed, pointer-only, or different-revision content", () => {
+  const failed = entries()[1]!;
+  const pointerOnly = entries()[1]!;
+  const otherRevision = entries()[2]!;
+  if (
+    failed.message.role !== "toolResult" ||
+    pointerOnly.message.role !== "toolResult" ||
+    otherRevision.message.role !== "toolResult"
+  )
+    throw new Error("Fixture drift");
+  const input: ContextProjectionEntry[] = [
+    {
+      ...failed,
+      id: "failed-result",
+      message: { ...failed.message, isError: true },
+    },
+    {
+      ...pointerOnly,
+      id: "pointer-only",
+      message: {
+        ...pointerOnly.message,
+        toolCallId: "pointer-only",
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              revisionId: "revision-1",
+              sha256,
+              ordinal: 1,
+            }),
+          },
+        ],
+      },
+    },
+    entries()[1]!,
+    {
+      ...otherRevision,
+      id: "other-revision",
+      message: {
+        ...otherRevision.message,
+        toolCallId: "other-revision",
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              currentWorkpiece: {
+                revisionId: "revision-2",
+                sha256,
+                ordinal: 2,
+                markdown,
+              },
+            }),
+          },
+        ],
+      },
+    },
+  ];
+  const projected = projectBrunchContext(input);
+  expect(projected.slice(0, 2)).toEqual(input.slice(0, 2));
+  expect(JSON.stringify(projected)).not.toContain("markdownReference");
+  expect(JSON.stringify(projected).split("markdownIdentity").length - 1).toBe(
+    2,
+  );
+});
+
 test("compacts verified browser proof carriage but preserves outcomes", () => {
   const output = {
     execution: "ordered-stop",
