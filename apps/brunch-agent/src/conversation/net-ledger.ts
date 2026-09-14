@@ -288,6 +288,14 @@ export const deriveNetLedger = async (
         );
         continue;
       }
+      if (record.outcome === "unknown") {
+        events.push(
+          unrecorded(
+            "The unknown aggregate mutation outcome cannot vouch for a post observation.",
+          ),
+        );
+        continue;
+      }
       if (isMutatePetrinautNetToolName(toolName)) {
         try {
           const batch = mutatePetrinetInputSchema.parse(call.input);

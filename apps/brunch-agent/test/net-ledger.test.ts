@@ -139,6 +139,9 @@ const mutationTurn = (
   toolCallId: string,
   pre: SDCPN,
   post: SDCPN | undefined,
+  outcome: ConstructionMutationAttempt["outcome"] = post === undefined
+    ? "unknown"
+    : "applied",
 ): FlueConversationMessage[] => {
   const operationId = "add-place";
   const batch = mutatePetrinetInputSchema.parse({
@@ -171,10 +174,13 @@ const mutationTurn = (
     attempts.push({
       request,
       binding,
-      outcome: "applied",
+      outcome,
       pre: observationOf(pre),
       post: observationOf(post),
       effects: deriveMutationEffects(request, pre, post),
+      ...(outcome === "unknown"
+        ? { error: "The final browser state is unknown." }
+        : {}),
     });
   }
   return [
@@ -189,13 +195,14 @@ const mutationTurn = (
         preHash: sha256Of(pre),
         postHash: sha256Of(post ?? pre),
         outcomes: [
-          post === undefined
+          outcome === "unknown"
             ? {
                 index: 0,
                 operationId,
                 basisId: "absent-basis",
                 status: "unknown",
                 preHash: sha256Of(pre),
+                ...(post === undefined ? {} : { postHash: sha256Of(post) }),
                 error: "The final browser state is unknown.",
               }
             : {
@@ -204,14 +211,14 @@ const mutationTurn = (
                 basisId: "absent-basis",
                 status: "applied",
                 preHash: sha256Of(pre),
-                postHash: sha256Of(post),
+                postHash: sha256Of(post ?? pre),
                 effects: [],
               },
         ],
       },
       {
         mutationRecord: {
-          outcome: post === undefined ? "unknown" : "applied",
+          outcome,
           attempts,
         },
       },
@@ -403,6 +410,41 @@ describe("the net ledger is a projection over Flue history", () => {
     expect(reasons[3]).toMatch(/hash/iu);
     expect(reasons[4]).toMatch(/incarnation|conversation/iu);
   });
+
+  test.each([
+    { toolName: mutatePetrinetToolName, aggregate: true },
+    { toolName: "legacy_mutation_tool", aggregate: false },
+  ])(
+    "preserves an unknown aggregate from $toolName as unrecorded despite its verified post",
+    async ({ toolName, aggregate }) => {
+      const turn = aggregate
+        ? mutationTurn("mutate-unknown", emptyNet, oneHopNet, "unknown")
+        : [
+            assistantCall("mutate-unknown", toolName),
+            resultDelivery(
+              "mutate-unknown",
+              toolName,
+              { finalState: "unknown" },
+              {
+                mutationRecord: {
+                  outcome: "unknown",
+                  attempts: [
+                    {
+                      outcome: "applied",
+                      post: observationOf(oneHopNet),
+                    },
+                  ],
+                },
+              },
+            ),
+          ];
+      await expect(
+        deriveNetLedger(snapshotOf(turn), browser),
+      ).resolves.toMatchObject([
+        { kind: "unrecorded", toolCallId: "mutate-unknown" },
+      ]);
+    },
+  );
 
   test("takes no live observation: the fold depends on history and the binding alone", async () => {
     expect(deriveNetLedger.length).toBe(2);

@@ -341,6 +341,31 @@ test("a re-read after the mutation is current again", async () => {
   ).toEqual({ kind: "current", hash: sha256Of(oneHopNet) });
 });
 
+test("an unknown aggregate with a verified final post leaves the current net unrecorded", async () => {
+  expect(
+    await deriveNetFreshness(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        ...mutationTurn(
+          "mutate-unknown",
+          emptyNet,
+          oneHopNet,
+          (attempt) => ({
+            ...attempt,
+            error: "The final browser state is unknown.",
+          }),
+          "unknown",
+        ),
+      ]),
+      browser,
+    ),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: undefined,
+  });
+});
+
 test("a mutation without a verifiable record leaves the current net unrecorded", async () => {
   expect(
     await deriveNetFreshness(
