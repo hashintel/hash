@@ -16,10 +16,12 @@ The separate authority commit is
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
 The semantic-VAD recut is implemented locally and provider-free checks pass.
-Next: the one authorized headless transcription probe below, then return to
-Kostandin with its result; physical speaker/headphone witnesses remain owner-held.
+The one headless probe completed with mixed results: semantic/low was accepted,
+but finalization was slow and the correction remained unfinished at shutdown.
+Next: implement and run Kostandin's accepted medium-eagerness comparison below;
+physical speaker/headphone witnesses remain owner-held.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
-Only the bounded transcription probe is provider-authorized; no new publication.
+The low allocation is consumed; one medium allocation is authorized, no publication.
 
 ## Imperative
 
@@ -70,13 +72,13 @@ Cold-start paths in `apps/petrinaut-website/src/main/app/voice-interview/`:
 Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
 
 - `openai-transcription-session.ts`: replace `server_vad` with
-  `{ type: "semantic_vad", eagerness: "low" }` for `gpt-4o-transcribe` only.
+  `{ type: "semantic_vad", eagerness: "medium" }` for `gpt-4o-transcribe` only.
   No silence timer, transcript aggregation, admission change or fallback retry.
 - `openai-transcription-session.test.ts`: update the existing exact outbound
   session-body assertion first; observe failure on server VAD, then pass on the
   selected semantic configuration. Preserve model, scoped credential and raw SDP.
 - `openai-voice-policy.ts` and Realtime routes remain unchanged. PR #9619 already
-  used semantic VAD with medium eagerness; low deliberately allows more hesitation.
+  used semantic VAD with medium eagerness; this comparison now matches that setting.
 
 ### Owner decisions
 
@@ -98,10 +100,30 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
 - **2026-09-14:** Kostandin authorizes one real `gpt-4o-transcribe` session with
   at most three minutes of synthetic audio, no microphone access and no retries,
   to test hesitation, short replies and correction retention headlessly.
+- **2026-09-14:** After the low run, Kostandin accepts testing medium eagerness:
+  change only that transcription setting and its exact request assertion, then
+  repeat one session under the same 180-second/audio limit, without retries,
+  microphone access, other providers, Brunch inference or publication.
 
 ## Proof
 
-### Bounded headless transcription probe — authorized, not yet run
+### Medium-eagerness comparison — authorized, not yet run
+
+Reuse the actual panel endpoint and the low run's five locally generated clips,
+one-second internal pauses, 12-second inter-case gaps and 15-second final wait.
+Inspect fixture contents before dispatch. Record outbound RTP and audio-source
+stats through the final silence to distinguish unfinished provider output from
+a stopped synthetic sender. Do not force a commit or manufacture a final event.
+The only new paid allocation is one `gpt-4o-transcribe` session, closed within
+180 seconds after connection, with at most 180 seconds of synthetic input.
+No retry or alternate setting in that session. Store safe native records under
+`/tmp/fe1712-semantic-vad-medium-T-01a09fe5/`; remove temporary harness/audio after
+inspection. The same boundary, retention, latency and cleanup oracles below apply.
+Provider-free proof: the exact request-body assertion must fail on low and pass
+on medium; rerun the five targeted suites, website typecheck and lint.
+This single synthetic comparison cannot establish human speech or echo behavior.
+
+### Bounded headless transcription probe — completed, acceptance not established
 
 Use the actual `createOpenAITranscriptionSessionHandler` with the website's Vite
 development environment loader (process values win). Drive its raw-SDP WebRTC
@@ -122,6 +144,32 @@ Keep request/session IDs, returned usage and safe events in one local-only nativ
 record under `/tmp/fe1712-semantic-vad-T-01a09fe5/`; unknown billing is not zero.
 Stop after the single run or first rejection and return its evidence. Remove
 temporary harness/audio after inspection; retain the safe native result.
+
+Observed 2026-09-14 via the already-running panel at `localhost:4915`, whose process
+cwd is this checkout's website and whose API loader imports the current handler:
+OpenAI session `sess_EO2KwbqCN3NRqcsrfVQ80` confirmed `gpt-4o-transcribe` and
+`semantic_vad` / `low`. Safe native records are `events.jsonl` and `attempt.json`
+in the local-only directory above. One attempt, roughly 48 seconds connected,
+5.49 seconds of synthesized speech plus silence, zero microphone calls; the peer,
+audio context and track all closed. No retry, GPT-Live or Brunch inference.
+
+- Hesitation: the one-second pause after “The inventory” stayed in one exact
+  completed sentence: “The inventory should contain twelve items, not twenty.”
+  Completion arrived 9.50 seconds after the scheduled end of that sentence.
+- Short reply: “Yes.” finalized before the next input, but 6.48 seconds after
+  its scheduled end. Promptness is not established.
+- Correction: “Set it to twenty.” finalized separately (1.34 seconds after its
+  end); the provider began another item for “Actually, twelve” but never emitted
+  its stop/commit/completion during the remaining 15 seconds. Both correction
+  words were verified in the exact input fixture after its internal pause.
+  Retention/finalization fails this bounded observation; this does not prove
+  permanent loss, its cause, or Brunch behavior because Brunch was not invoked.
+
+Latencies use the browser's common monotonic clock for scheduled audio and event
+receipt; they include provider/network delay, not just the VAD classifier.
+Completed items reported 79 audio-input and 23 output tokens (102 total).
+Unfinalized-item usage and invoice cost remain unknown, not zero. This evidence
+motivates the separately accepted medium comparison above, not an acceptance claim.
 
 ### Semantic turn-boundary recut — locally verified, owner witness pending
 
