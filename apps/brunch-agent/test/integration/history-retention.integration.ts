@@ -50,7 +50,6 @@ assert(
 const phase = process.env.A4_PHASE ?? "create";
 assert(phase === "create" || phase === "reopen");
 const projectionOracle = process.env.A4_PROJECTION_ORACLE === "1";
-assert(!projectionOracle || phase === "create");
 const identity = {
   principalKey: `a4-principal-${basename(directory)}`,
   conversationId: `a4-history-${basename(directory)}`,
@@ -89,6 +88,28 @@ globalThis.fetch = () => {
 
 const save = async (name: string, value: unknown) =>
   writeFile(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
+const countExactString = (value: unknown, target: string): number => {
+  if (value === target) return 1;
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed === value ? 0 : countExactString(parsed, target);
+    } catch {
+      return 0;
+    }
+  }
+  if (Array.isArray(value))
+    return value.reduce(
+      (total, member) => total + countExactString(member, target),
+      0,
+    );
+  if (typeof value === "object" && value !== null)
+    return Object.values(value).reduce(
+      (total, member) => total + countExactString(member, target),
+      0,
+    );
+  return 0;
+};
 const completedText = "A4 filler acknowledged.";
 type CompletionPin = {
   event: Extract<FlueObservation, { type: "turn" }>;
@@ -97,7 +118,7 @@ type CompletionPin = {
   message: FlueConversationSnapshot["messages"][number];
 };
 let completionPin: CompletionPin | undefined =
-  phase === "reopen"
+  phase === "reopen" && !projectionOracle
     ? (JSON.parse(
         await readFile(join(directory, "completed-response.json"), "utf8"),
       ) as CompletionPin)
@@ -448,7 +469,7 @@ try {
     foreignConversation: 403,
     correctlyBoundMissingConversation: 404,
   });
-  if (projectionOracle) {
+  if (projectionOracle && phase === "create") {
     const markdown = `# A4 projection workpiece\n\n${"Authoritative retained detail. ".repeat(900)}`;
     const emptyDefinition = {
       places: [],
@@ -736,30 +757,11 @@ try {
     );
     const finalPayload = serialized.at(-1);
     assert(finalPayload);
-    const countMarkdown = (value: unknown): number => {
-      if (value === markdown) return 1;
-      if (typeof value === "string") {
-        try {
-          const parsed: unknown = JSON.parse(value);
-          return parsed === value ? 0 : countMarkdown(parsed);
-        } catch {
-          return 0;
-        }
-      }
-      if (Array.isArray(value))
-        return value.reduce(
-          (total, member) => total + countMarkdown(member),
-          0,
-        );
-      if (typeof value === "object" && value !== null)
-        return Object.values(value).reduce(
-          (total, member) => total + countMarkdown(member),
-          0,
-        );
-      return 0;
-    };
     const encodedMarkdown = JSON.stringify(markdown).slice(1, -1);
-    const markdownOccurrences = countMarkdown(agentContexts.at(-1)?.context);
+    const markdownOccurrences = countExactString(
+      agentContexts.at(-1)?.context,
+      markdown,
+    );
     const compactionContexts = contexts.filter(
       (entry) =>
         entry.purpose === "compaction" || entry.purpose === "compaction_prefix",
@@ -773,6 +775,25 @@ try {
           `Compaction consumer ${entry.purpose}[${index}] has a content reference without its authoritative body: ${payload.slice(Math.max(0, payload.indexOf("markdownReference") - 300), payload.indexOf("markdownReference") + 500)}`,
         );
     }
+    assert(
+      compactionContexts.some(
+        (entry) =>
+          entry.purpose === "compaction_prefix" &&
+          JSON.stringify(entry.context).includes("markdownReference"),
+      ),
+      "The forced split-turn cut must exercise compact reference carriage",
+    );
+    assert(
+      compactionContexts.some(
+        (entry) =>
+          entry.purpose === "compaction_prefix" &&
+          !JSON.stringify(entry.context).includes("markdownReference") &&
+          JSON.stringify(entry.context).includes(
+            "Authoritative retained detail.",
+          ),
+      ),
+      "A split-turn consumer without the referenced target must restore the exact body instead of stranding a reference",
+    );
     const snapshot = await client.history();
     const workpieceOutputs = snapshot.messages
       .flatMap((message) => message.parts)
@@ -863,11 +884,65 @@ try {
       payloadClassCharacters,
       canonicalAndPublicMutationDefinitionsFull: true,
     });
+    await save("projection-reopen-seed.json", {
+      uid: admission.uid,
+      markdown,
+      snapshot,
+    });
     assert.equal(
       markdownOccurrences,
       1,
       "The final provider request must retain one authoritative Markdown body",
     );
+  } else if (projectionOracle) {
+    const seed = JSON.parse(
+      await readFile(join(directory, "projection-reopen-seed.json"), "utf8"),
+    ) as {
+      uid: string;
+      markdown: string;
+      snapshot: FlueConversationSnapshot;
+    };
+    const reopened = await client.history();
+    assert.deepEqual(
+      reopened,
+      seed.snapshot,
+      "Fresh-process reopen must preserve exact canonical/public history",
+    );
+    assert.equal(faux.state.callCount, 0);
+    responses.push(
+      tools("read_workpiece", {}, "a4-reopened-workpiece-read"),
+      fauxAssistantMessage("A4 reopened exact reread complete."),
+    );
+    await send(
+      {
+        kind: "user",
+        body: "A4 explicitly reread the exact retained workpiece after reopen.",
+      },
+      seed.uid,
+    );
+    const rereadContext = contexts.findLast(
+      (entry) => entry.purpose === "agent",
+    );
+    assert(rereadContext);
+    assert(
+      countExactString(rereadContext.context, seed.markdown) > 0,
+      "The fresh-process provider must receive the exact reread Markdown",
+    );
+    const continued = await client.history();
+    const reread = continued.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "a4-reopened-workpiece-read",
+      );
+    assert(reread?.state === "output-available");
+    assert.equal(
+      (reread.output as { currentWorkpiece: { markdown: string } })
+        .currentWorkpiece.markdown,
+      seed.markdown,
+    );
+    await save("projection-reopened.json", continued);
   } else if (phase === "create") {
     assert.equal(
       await status(() => client.history()),

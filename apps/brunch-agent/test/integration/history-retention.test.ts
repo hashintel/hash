@@ -33,16 +33,20 @@ const overflowContinuations = (directory: string) => {
 test("built app projects provider context without changing retained history", async () => {
   const directory = await mkdtemp(join(tmpdir(), "brunch-a4-projection-"));
   try {
-    const result = await runNodeScript(
-      join(import.meta.dirname, "history-retention.integration.ts"),
-      join(import.meta.dirname, "../../../.."),
-      {
-        A4_OUTPUT_DIRECTORY: directory,
-        A4_PROJECTION_ORACLE: "1",
-      },
-    );
-    expect(result.exitCode, result.stderr + result.stdout).toBe(0);
-    expect(result.stdout).toContain("A4_CREATE_PASS");
+    for (const phase of ["create", "reopen"]) {
+      // oxlint-disable-next-line no-await-in-loop -- Reopen must use the store after the first process has stopped.
+      const result = await runNodeScript(
+        join(import.meta.dirname, "history-retention.integration.ts"),
+        join(import.meta.dirname, "../../../.."),
+        {
+          A4_OUTPUT_DIRECTORY: directory,
+          A4_PROJECTION_ORACLE: "1",
+          A4_PHASE: phase,
+        },
+      );
+      expect(result.exitCode, result.stderr + result.stdout).toBe(0);
+      expect(result.stdout).toContain(`A4_${phase.toUpperCase()}_PASS`);
+    }
     if (process.env.A4_REPORT_METRICS === "1")
       console.info(
         readFileSync(
