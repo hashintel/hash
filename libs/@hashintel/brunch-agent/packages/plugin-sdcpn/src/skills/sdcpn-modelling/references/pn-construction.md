@@ -6,9 +6,9 @@ Construction translates recorded operational meaning into SDCPN structure. It ma
 
 ## Construction boundary
 
-Before constructing, confirm that the workpiece states what the model must support and contains a usable process spine: what flows, what admits it, what happens and in what order, what changes the path, what resources are occupied, and what outcome ends or hands off the case.
+Before constructing a fragment, confirm that the workpiece states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
 
-If materially different nets remain possible because one operational distinction is missing, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path.
+If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
@@ -34,7 +34,7 @@ When `mutate_petrinaut_net` is mounted, names such as `addPlace` and `addArc` ar
 
 1. Settle the supported account with `mutate_workpiece`. Use `read_workpiece` with `locateTexts` and no candidate Markdown to obtain the settled revision/hash and relevant passage spans. Complete required skill-resource reads here, before browser tools.
 2. Call only `read_petrinaut_net`. Copy `metadata.observation.toolCallId` and `metadata.observation.observed.sha256` into the next batch's `observation`. Inspect `extensions` before authoring extension-specific content.
-3. Call only `mutate_petrinaut_net` with a bounded, ordered chunk. Add types, parameters and differential equations before dependants; places and transitions before arcs. Each operation has its own `operationId` and references an entry in `bases` by `basisId`. Several operations may share one supported basis.
+3. Call only `mutate_petrinaut_net` with a bounded, ordered chunk for the next supported connected fragment. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Each operation has its own `operationId` and references an entry in `bases` by `basisId`. Several operations may share one supported basis.
 4. After code or code-dependency changes, call only `read_petrinaut_diagnostics`. Repeat a pending read until settled; repair reported errors from a fresh net observation. Structural acceptance is not compiler success.
 5. After adding or restructuring nodes, call only `layout_petrinaut_net` once diagnostics are settled. Use `askUserFirst: false` only if this conversation built the net from an empty canvas; otherwise request confirmation. Type/parameter/dynamics-only changes do not need layout.
 6. Read the net again before another mutation or a live explanation, and at delivery. A failed batch may have committed a prefix: inspect its outcomes and the current net, then submit only the needed repair and unattempted work against the new observation. Do not replay the whole batch.

@@ -5,7 +5,7 @@ description: Elicit or revise an operational process model, maintain its recover
 
 # Capability-aware lifecycle
 
-Use one conceptual lifecycle: orient, elicit or revise, maintain the workpiece, construct when supported, check, and deliver. The current conversation may expose only one branch of that lifecycle. Do not claim that an unavailable transition occurred.
+Interleave elicitation, workpiece settlement, supported construction and checks. These are recurring steps, not an interview phase followed by a construction phase. The current conversation may expose only one branch of that lifecycle. Do not claim that an unavailable transition occurred.
 
 ## Select the runtime branch
 
@@ -37,7 +37,9 @@ Settle the current account with `mutate_workpiece` before construction. Wait for
 
 Construct only from the current workpiece. Read `references/pn-construction.md` and `references/checks.md` before beginning. Use mounted Petrinaut tools for every net change and inspect the resulting definition rather than emitting free-form net JSON. If the required tools are absent, limit the result to the workpiece and construction-ready notes.
 
-Construction may infer a representation from recorded operational meaning; it may not invent operational facts. Record construction inferences, approximations, defaults, and target losses in the workpiece.
+After each meaning-bearing settlement, compare the supported account with the current net and apply its missing or changed fragment before the next unrelated interview question. A wording-only revision or already-represented meaning needs no net mutation. If the fragment lacks a load-bearing fact, ask the smallest resolving question when interactive; otherwise report the local blocker. Unrelated unknowns do not postpone supported construction.
+
+Construction may infer a representation from recorded operational meaning; it may not invent operational facts. Record construction inferences, defaults, approximations and target losses in the workpiece. Labelling an unsupported operational default as an assumption does not authorize using it.
 
 ### Check and deliver
 
