@@ -746,10 +746,10 @@ impl<D: Domain> CommandLoop<D> {
                 }
                 Command::CommitSnapshot { snapshot, reply } => {
                     let result = self.process_snapshot(snapshot).await;
-                    let terminal = result
-                        .as_ref()
-                        .err()
-                        .is_some_and(|error| is_terminal(error.kind));
+                    let terminal = result.as_ref().err().is_some_and(|error| {
+                        error.kind != ShardCommandErrorKind::CommitUnknown
+                            && is_terminal(error.kind)
+                    });
                     let terminal_error = result.as_ref().err().cloned();
                     let _: Result<_, _> = reply.send(result);
                     if terminal {
