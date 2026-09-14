@@ -9,6 +9,7 @@
 
 import {
   useAgentStart,
+  useContextProjection,
   useDelivery,
   useInitialData,
   useInstruction,
@@ -65,6 +66,7 @@ import {
   retainedSettledRevision,
   workpieceEvidenceSources,
 } from "../../conversation/workpiece.ts";
+import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
@@ -90,6 +92,7 @@ const chatModelOptions =
       };
 
 export function ChatAgent({ id }: AgentProps) {
+  useContextProjection(projectBrunchContext);
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
   const browserContext: BrowserContext | undefined = initialData?.construction
@@ -254,7 +257,7 @@ A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call read_petrinaut_net and nothing else, then end your response; query_workpiece is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call query_workpiece citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified read_petrinaut_net result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls read_petrinaut_net and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece citing that read's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

@@ -43,6 +43,13 @@ test("built app projects provider context without changing retained history", as
     );
     expect(result.exitCode, result.stderr + result.stdout).toBe(0);
     expect(result.stdout).toContain("A4_CREATE_PASS");
+    if (process.env.A4_REPORT_METRICS === "1")
+      console.info(
+        readFileSync(
+          join(directory, "projection-payload-metrics.json"),
+          "utf8",
+        ).trim(),
+      );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
