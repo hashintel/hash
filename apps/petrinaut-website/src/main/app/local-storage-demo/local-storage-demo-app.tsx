@@ -523,8 +523,9 @@ export const LocalStorageDemoApp = ({
     activeHandleRef.current = activeHandle;
   }, [activeHandle]);
 
-  // The most recent change the repository refused to persist, if any. Cleared
-  // once a later change to the same document lands.
+  // The most recent change the repository refused to persist, if any. It is
+  // about the open document: cleared once a later change to that document
+  // lands, or when another document is opened in its place.
   const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
     null,
   );
@@ -547,6 +548,13 @@ export const LocalStorageDemoApp = ({
       persistFailure?.handle !== previous.handle
         ? previous
         : createActiveHandle(currentDocument),
+    );
+    setPersistFailure((failure) =>
+      failure !== null &&
+      (failure.documentId !== currentDocument.documentId ||
+        failure.incarnationId !== currentDocument.incarnationId)
+        ? null
+        : failure,
     );
   }, [currentDocument, persistFailure]);
 

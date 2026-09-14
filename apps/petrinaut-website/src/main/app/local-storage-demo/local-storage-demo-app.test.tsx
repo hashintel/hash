@@ -134,6 +134,7 @@ const editorProps = vi.hoisted(() => ({
     }) => void;
     existingNets?: unknown;
     handle?: unknown;
+    loadPetriNet?: unknown;
     navigation?: unknown;
     title?: string;
   } | null,
@@ -1001,6 +1002,81 @@ describe("local document revision persistence", () => {
     expect(
       remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
     ).toMatchObject({ previousRevisionId: remoteDocument.revisionId });
+  });
+
+  test("forgets a refused change once another document is opened", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, Record<string, unknown>>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...stored,
+        "net-2": {
+          ...stored["net-1"],
+          id: "net-2",
+          title: "Second net",
+          incarnationId: "second-incarnation",
+          revisionId: "second-revision",
+          lastUpdated: "2019-01-01T00:00:00.000Z",
+        },
+      }),
+    );
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.revisionId.get()).toBe("local-revision-1");
+
+    // Another tab moves net-1 on; its storage event has not reached this tab.
+    // (Its place also keeps net-1 from being pruned as empty when net-2 opens.)
+    const otherTabPlace = {
+      id: "other-tab-place",
+      name: "Other tab place",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    };
+    const current = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, { sdcpn: Record<string, unknown> }>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...current,
+        "net-1": {
+          ...current["net-1"],
+          revisionId: "other-tab-revision",
+          sdcpn: { ...current["net-1"]?.sdcpn, places: [otherTabPlace] },
+        },
+      }),
+    );
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "refused-place",
+          name: "Refused place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    await screen.findByRole("alert");
+
+    const loadPetriNet = editorProps.current?.loadPetriNet as (
+      petriNetId: string,
+    ) => void;
+    act(() => loadPetriNet("net-2"));
+    await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    act(() => loadPetriNet("net-1"));
+    await waitFor(() => expect(editorProps.current?.title).toBe("Seeded net"));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
