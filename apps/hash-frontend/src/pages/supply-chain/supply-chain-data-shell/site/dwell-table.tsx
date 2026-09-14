@@ -45,6 +45,7 @@ const formatPolicyQuantity = (
 
 export const DwellTable = ({
   rows,
+  totalCount,
   siteId,
   sort,
   onSort,
@@ -58,6 +59,8 @@ export const DwellTable = ({
   filtersActive = false,
 }: {
   rows: DwellRow[];
+  /** Row count before filters and search; distinguishes no data from no matches. */
+  totalCount: number;
   /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   sort: { key: SortKey; dir: SortDir };
@@ -308,7 +311,7 @@ export const DwellTable = ({
             {displayedRows.length === 0 && (
               <tr>
                 <td colSpan={8} className={threshold.emptyCell}>
-                  {rows.length === 0
+                  {totalCount === 0
                     ? "No dwell steps for this site."
                     : "No dwell steps match the current filters."}
                 </td>

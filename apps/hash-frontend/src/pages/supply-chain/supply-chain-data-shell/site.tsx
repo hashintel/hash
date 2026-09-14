@@ -845,6 +845,7 @@ export const SiteOverview = ({
           {tab === "dwell" && (
             <DwellTable
               rows={filteredDwellRows}
+              totalCount={dwellRows.length}
               siteId={siteSlug}
               sort={dwellSort}
               onSort={setDwellSort}
@@ -861,6 +862,7 @@ export const SiteOverview = ({
           {tab === "planning" && (
             <PlanningTable
               rows={filteredPlanningRows}
+              totalCount={planningRows.length}
               siteId={siteSlug}
               sort={planSort}
               onSort={setPlanSort}
@@ -875,6 +877,7 @@ export const SiteOverview = ({
           {tab === "trends" && (
             <TrendTable
               rows={filteredTrendRows}
+              totalCount={trendRows.length}
               siteId={siteSlug}
               sort={trendSort}
               onSort={setTrendSort}
@@ -889,6 +892,7 @@ export const SiteOverview = ({
           {supplierPerformanceEnabled && tab === "suppliers" && (
             <SupplierTable
               rows={filteredSupplierRows}
+              totalCount={supplierRows.length}
               sort={supplierSort}
               onSort={setSupplierSort}
               onRowClick={(value) =>

@@ -119,6 +119,7 @@ const TrendSampleTooltip = ({
 };
 export const TrendTable = ({
   rows,
+  totalCount,
   siteId,
   sort,
   onSort,
@@ -130,6 +131,8 @@ export const TrendTable = ({
   filtersActive = false,
 }: {
   rows: TrendRow[];
+  /** Row count before filters and search; distinguishes no data from no matches. */
+  totalCount: number;
   /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   sort: { key: SortKey; dir: SortDir };
@@ -331,7 +334,7 @@ export const TrendTable = ({
             {displayedRows.length === 0 && (
               <tr>
                 <td colSpan={7} className={threshold.emptyCell}>
-                  {rows.length === 0
+                  {totalCount === 0
                     ? "No trend data for this site."
                     : "No trend data matches the current filters."}
                 </td>
