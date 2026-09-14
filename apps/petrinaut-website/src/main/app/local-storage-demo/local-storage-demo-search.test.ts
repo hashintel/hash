@@ -139,3 +139,18 @@ describe("local storage demo search", () => {
     expect(isCrewReservationFixtureSelected({})).toBe(false);
   });
 });
+
+test("clears bundle, fixture, and tracer identity when opening a local document", () => {
+  const next = withLocalStorageDemoIdentity(
+    {
+      bundle: "inventory-purchasing",
+      "brunch-fixture": crewReservationFixtureId,
+      brunchTracer: "construction",
+      itemId: "remote-place",
+      itemType: "place",
+    },
+    { bundle: undefined, "brunch-fixture": undefined, brunchTracer: undefined },
+  );
+  expect(localStorageDemoRouteIdentity(next)).toBe("ordinary");
+  expect(next.itemId).toBeUndefined();
+});

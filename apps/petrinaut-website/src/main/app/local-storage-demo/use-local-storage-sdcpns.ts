@@ -228,6 +228,7 @@ export const useLocalStorageSDCPNs = (input?: {
     enabled,
     fallback: noStoredSDCPNs,
     read: readStoredSDCPNs,
+    storageKey: rootLocalStorageKey,
     write: writeStoredSDCPNs,
     writeWhenDisabled: true,
   });

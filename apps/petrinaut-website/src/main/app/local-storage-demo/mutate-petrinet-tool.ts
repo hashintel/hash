@@ -1,4 +1,5 @@
 import {
+  assertStateIdentity,
   deriveMutationEffects,
   mutatePetrinetAttemptCallId,
   mutatePetrinetInputSchema,
@@ -219,6 +220,7 @@ export const createMutatePetrinetAutomaticTool = (
           requestedBaseHash: pre.sha256,
         };
         try {
+          assertStateIdentity(mutationRequest, pre.definition, []);
           executeCanonicalMutation(mutations, operation);
           const post = observeBrowserDefinition(handle);
           const effects = deriveMutationEffects(

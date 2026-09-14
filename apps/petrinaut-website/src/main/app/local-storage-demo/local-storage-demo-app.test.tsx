@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { isValidElement, type ReactNode } from "react";
+import { isValidElement, useState, type ReactNode } from "react";
 import {
   afterEach,
   describe,
@@ -35,6 +35,11 @@ import {
   LocalStorageDemoApp,
   requestFlueStop,
 } from "./local-storage-demo-app";
+import {
+  localStorageDemoRouteIdentity,
+  withLocalStorageDemoIdentity,
+  type LocalStorageDemoSearch,
+} from "./local-storage-demo-search";
 import {
   crewReservationConversationId,
   crewReservationFixtureId,
@@ -1514,13 +1519,23 @@ describe("worked-model net-projection selection", () => {
         subscribe: () => () => undefined,
       }),
     };
-    const onSearchChange = vi.fn();
-    const view = render(
-      <LocalStorageDemoApp
-        onSearchChange={onSearchChange}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
+    const RoutedApp = () => {
+      const [search, setSearch] = useState<LocalStorageDemoSearch>({
+        bundle: "inventory-purchasing",
+      });
+      return (
+        <LocalStorageDemoApp
+          key={localStorageDemoRouteIdentity(search)}
+          onSearchChange={(nextSearch) =>
+            setSearch((previous) =>
+              withLocalStorageDemoIdentity(previous, nextSearch),
+            )
+          }
+          search={search}
+        />
+      );
+    };
+    render(<RoutedApp />);
     await waitFor(() =>
       expect(editorProps.current?.title).toBe("Inventory purchasing"),
     );
@@ -1538,10 +1553,6 @@ describe("worked-model net-projection selection", () => {
         title: "Created locally",
       });
     });
-    expect(onSearchChange).toHaveBeenCalledWith({}, "push");
-    view.rerender(
-      <LocalStorageDemoApp onSearchChange={onSearchChange} search={{}} />,
-    );
     await waitFor(() =>
       expect(editorProps.current?.title).toBe("Created locally"),
     );

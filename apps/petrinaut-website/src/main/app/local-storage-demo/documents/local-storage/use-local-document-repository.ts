@@ -72,8 +72,13 @@ export const useLocalDocumentRepository = (input: {
   );
   const persistedRevisionsRef = useRef(new Map<string, DocumentRevisionId>());
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
-    () => mostRecentDocumentId(documents) ?? null,
+    null,
   );
+  if (enabled && storageReady && currentDocumentId === null) {
+    const initialDocumentId = mostRecentDocumentId(documents);
+    if (initialDocumentId !== undefined)
+      setCurrentDocumentId(initialDocumentId);
+  }
 
   const records = useMemo(
     () => Object.values(documents).map((stored) => toDocumentRecord(stored)),

@@ -1,8 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  parseClientToolResultMetadata,
   reconcileMutationAttempts,
   verifyMutationAttempt,
+  type ConstructionMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   createJsonDocHandle,
@@ -17,6 +19,7 @@ import {
 } from "./mutate-petrinet-tool";
 import {
   createBrowserMutationRecorder,
+  createJoinedBrowserMutationRecorder,
   observeBrowserDefinition,
 } from "./mutation-record";
 
@@ -851,3 +854,61 @@ describe("mutate_petrinet automatic host tool", () => {
     ).toThrow(/complete and ordered/u);
   });
 });
+
+test.each([tokenType, parameter, dynamics])(
+  "rejects duplicate $type identities before changing the document",
+  async (operation) => {
+    const instance = createInstance({
+      ...emptyDefinition,
+      types: [tokenType.input],
+      parameters: [parameter.input],
+      differentialEquations: [dynamics.input],
+    });
+    const before = observeBrowserDefinition(instance.handle);
+    const recorder = createJoinedBrowserMutationRecorder({
+      handle: instance.handle,
+      binding,
+      construction: true,
+    });
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    const output = mutatePetrinetOutputSchema.parse(
+      await run(
+        tool,
+        instance,
+        inputFor(instance, [operation, place]),
+        "duplicate-batch",
+      ),
+    );
+    expect(output.outcomes).toMatchObject([
+      {
+        operationId: operation.operationId,
+        status: "failed",
+        preHash: before.sha256,
+        postHash: before.sha256,
+        error: "Duplicate identity cannot be created.",
+      },
+      { operationId: place.operationId, status: "unattempted" },
+    ]);
+    const metadata = parseClientToolResultMetadata(
+      await recorder.clientToolResultMetadata({
+        toolCallId: "duplicate-batch",
+        toolName: tool.toolName,
+        output,
+      }),
+    );
+    expect(metadata?.mutationRecord?.outcome).toBe("failed");
+    expect(metadata?.mutationRecord?.attempts).toHaveLength(1);
+    for (const attempt of metadata?.mutationRecord?.attempts ?? []) {
+      await expect(
+        verifyMutationAttempt(attempt as ConstructionMutationAttempt),
+      ).resolves.toMatchObject({
+        outcome: "failed",
+      });
+    }
+    expect(instance.handle.doc()).toEqual(before.definition);
+    expect(output.postHash).toBe(before.sha256);
+    instance.dispose();
+  },
+);
