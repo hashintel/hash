@@ -108,7 +108,9 @@ test.each([false, true])(
       controls.close.mockRejectedValue(
         new Error("Synthetic browser close failure"),
       );
-    await expect(import("./persona-browser.integration.ts")).rejects.toThrow(
+    await expect(
+      import("./persona-construction.integration.ts"),
+    ).rejects.toThrow(
       closeRejects ? /cleanup incomplete/u : /Synthetic page setup failure/u,
     );
     expect(controls.stop).toHaveBeenCalledOnce();

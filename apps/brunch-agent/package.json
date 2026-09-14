@@ -33,6 +33,7 @@
     "test:mutate-petrinet-retry": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/mutate-petrinet-retry.integration.ts",
     "test:native-schema": "node --experimental-strip-types test/integration/native-schema-carriage.integration.ts",
     "test:passage-policy": "node --experimental-strip-types test/passage-policy.integration.ts",
+    "test:persona": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && env -u BRUNCH_STEP_A_ACCOUNTING -u HASH_OTLP_ENDPOINT node --experimental-transform-types test/persona-construction.integration.ts",
     "test:reopened-why": "M7_A5=1 node --experimental-strip-types test/mutation-records.integration.ts",
     "test:reopened-why-retention": "A5_RETENTION=1 vitest run --config vitest.integration.config.ts test/integration/reopened-why-retention.test.ts",
     "test:root-creation": "node --experimental-strip-types test/root-creation.integration.ts",

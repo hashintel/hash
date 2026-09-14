@@ -1,7 +1,14 @@
 /* eslint-disable no-await-in-loop -- Local services start in order; readiness is polled until ready or cancelled. */
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, open, readFile, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -51,11 +58,32 @@ const casesRoot = join(
   "libs/@hashintel/brunch-agent/evaluations/cases",
 );
 
+export const listPersonaCases = async () => {
+  const entries = await readdir(casesRoot, { withFileTypes: true });
+  const cases = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const files = await readdir(join(casesRoot, entry.name));
+        return files.includes("situation-pack.md") &&
+          files.includes("opening-message.md")
+          ? entry.name
+          : undefined;
+      }),
+  );
+  return cases.filter((name) => name !== undefined).sort();
+};
+
 export const readPersonaCase = async (directory: string) => {
   const [pack, openingFile] = await Promise.all([
     readFile(join(directory, "situation-pack.md"), "utf8"),
     readFile(join(directory, "opening-message.md"), "utf8"),
-  ]);
+  ]).catch((cause: unknown) => {
+    throw new Error(
+      `Case ${directory} requires readable situation-pack.md and opening-message.md files. Use --list-cases for available names.`,
+      { cause },
+    );
+  });
   // Existing case files have an operator header above a Markdown separator.
   const separator = /^---\s*$/mu.exec(openingFile);
   const opening = (
@@ -90,10 +118,6 @@ export const personaArguments = (
   join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
   "--brunch-browser-bridge",
   socketPath,
-  "--brunch-tool-host",
-  "none",
-  "--brunch-evidence-dir",
-  join(run, "evidence"),
   "--session-dir",
   join(run, "pi/sessions"),
   ...(piSession ? ["--session", piSession] : []),
@@ -266,6 +290,9 @@ export const launchPersona = async (
   resume?: Awaited<ReturnType<typeof readPersonaResume>>,
   acceptedUnknown?: number,
 ) => {
+  const { pack, opening } = resume
+    ? { pack: "", opening: "" }
+    : await readPersonaCase(caseDirectory);
   if (process.env.HERDR_ENV !== "1")
     throw new Error("Run brunch:persona from a Herdr terminal");
   if (!process.stdin.isTTY)
@@ -276,9 +303,6 @@ export const launchPersona = async (
     throw new Error(
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
     );
-  const { pack, opening } = resume
-    ? { pack: "", opening: "" }
-    : await readPersonaCase(caseDirectory);
   const env = environment();
   const model = STEP_A_MODEL_ID;
   const nativeModel = anthropicProvider()
@@ -675,6 +699,7 @@ if (
   const { values } = parseArgs({
     options: {
       case: { type: "string" },
+      "list-cases": { type: "boolean" },
       "budget-usd": { type: "string" },
       objective: { type: "string" },
       "initial-net": { type: "string" },
@@ -687,10 +712,15 @@ if (
   });
   if (values.help) {
     report(
-      "Resume: yarn brunch:persona --resume <run-directory> [--accept-unknown <request-sequence>]\nReuses the original profile, database, Pi session and allocation. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Unknown usage keeps its full hold.",
+      "Usage: yarn brunch:persona --case <name-or-directory> --budget-usd <allocation> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned metered services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6 and share the supplied budget (at most USD 100). Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
     );
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> --budget-usd <allocation> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nStarts owned metered services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6 and share the supplied budget (at most USD 100). Requires Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
+      "Resume: yarn brunch:persona --resume <run-directory> [--accept-unknown <request-sequence>]\nReuses the original profile, database, Pi session and allocation. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Unknown usage keeps its full hold.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
+    );
+  } else if (values["list-cases"]) {
+    const cases = await listPersonaCases();
+    report(
+      `${cases.length} persona cases in ${casesRoot}:\n${cases.join("\n")}`,
     );
   } else {
     const selected = values.case;
@@ -747,7 +777,7 @@ if (
                 directory,
                 Number(values["budget-usd"]),
                 values.objective,
-                values.route ?? (values["initial-net"] ? "/" : undefined),
+                values.route,
                 values["initial-net"]
                   ? resolve(
                       process.env.INIT_CWD ?? process.cwd(),

@@ -10,8 +10,17 @@ tree. Retention of any durable conclusion follows the [evidence contract](../doc
 | `oracles/` | Hidden truth ledgers and reusable grading rulers. |
 | `protocols/` | Supported procedures and their prompts. |
 
+## Browser-visible persona runs
+
+Use `yarn brunch:persona --case <name-or-directory> --budget-usd <allocation>` from the repository root. `--list-cases` discovers available packs; `--help` lists options without starting inference. The [operator guide](../../../../apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md) owns setup, recording, private context-pack inputs, stop/resume and run-data locations. Pi supplies ordinary utterances through the real panel; the browser executes Brunch's own tool calls against the visible document. There is no separate headless persona executor or spectator mode.
+
+Case selection does not authorize paid execution; follow the mission's allocation and [execution safety](#execution-safety). Persona records live under `apps/brunch-agent/.data-wipe-me/persona-runs/`, separate from other evaluation output. `yarn workspace @apps/brunch-agent test:persona` checks the browser mechanism with synthetic responses, not model fidelity or an accepted worked example.
+
+## Reusable inputs
+
 Current process-model-elicitation assets:
 
+- `cases/inventory-purchasing/` — the current from-scratch flagship; its hand-built reference net remains evaluator-only.
 - `cases/vestera-scheduling/` and `oracles/vestera-scheduling/` — the executed Vestera exemplar
   and its case-specific retrospective and prospective ledgers, plus the filled runbook IR used
   by the supported headless construction command.

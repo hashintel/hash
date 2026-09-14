@@ -14,6 +14,10 @@ import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
+  clientToolHistoryFrom,
+  clientToolResultSignal,
+} from "@hashintel/brunch-agent-transport-aisdk";
+import {
   petrinautAiTools,
   type PetrinautAiToolInput,
 } from "@hashintel/petrinaut-core/ai";
@@ -25,7 +29,6 @@ import {
 } from "../../conversation/identity.ts";
 import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
 import { installFauxProvider } from "../install-faux-provider.ts";
-import { createBrunchTurnTool } from "../persona/brunch-turn.ts";
 import { createHeadlessPetrinautClient } from "./headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
@@ -107,48 +110,44 @@ try {
       ),
     headers: agentOwnershipHeaders(identity),
   });
-  let firstSend = true;
-  const turn = createBrunchTurnTool({
-    conversationId: runId,
-    client: {
-      history: (...args) => client.history(...args),
-      read: (...args) => client.read(...args),
-      send: (input) => {
-        const initialData = firstSend
-          ? { mode: VALIDATED_CONSTRUCTION_MODE }
-          : undefined;
-        firstSend = false;
-        return client.send({ ...input, initialData });
-      },
+  const signal = AbortSignal.timeout(30_000);
+  let admission = await client.send({
+    initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+    message: {
+      kind: "user",
+      body: "This is an isolated test-authored carrier replay, not an operational interview. Read the empty document, then create only a ProductionEligibility type with product_family (string) and line_qualified (boolean) attributes, stable IDs and ordinary display settings. No real plant facts or process structure are represented.",
     },
-    retainSnapshot: (snapshot) => save("history.json", snapshot),
-    resolveClientToolHost: () => ({
-      kind: "real-headless",
-      async execute(call) {
-        assert(
-          ["getLatestNetDefinition", "addType"].includes(call.toolName),
-          `Probe does not authorize executing ${call.toolName}`,
-        );
-        const before = structuredClone(headless.definition());
-        const result = await headless.execute(call);
-        observations.push({
-          call,
-          before,
-          result,
-          after: structuredClone(headless.definition()),
-        });
-        return result.output;
-      },
-    }),
+    signal,
   });
-  const result = await turn.execute(
-    "a1-probe",
-    {
-      message:
-        "This is an isolated test-authored carrier replay, not an operational interview. Read the empty document, then create only a ProductionEligibility type with product_family (string) and line_qualified (boolean) attributes, stable IDs and ordinary display settings. No real plant facts or process structure are represented.",
-    },
-    AbortSignal.timeout(30_000),
-  );
+  // This fixed synthetic probe has two calls, not a persona or general tool-host loop.
+  /* eslint-disable no-await-in-loop -- Each synthetic continuation consumes its preceding call. */
+  for (const expectedId of ["read-before", "nested-type"]) {
+    await client.read(admission, { signal });
+    const snapshot = await client.history({ signal });
+    save("history.json", snapshot);
+    const pending = clientToolHistoryFrom(snapshot.messages);
+    const call = pending.calls.find((entry) => entry.toolCallId === expectedId);
+    assert(call, `Missing synthetic call ${expectedId}`);
+    assert(!pending.results.some((entry) => entry.toolCallId === expectedId));
+    assert(["getLatestNetDefinition", "addType"].includes(call.toolName));
+    const before = structuredClone(headless.definition());
+    const result = await headless.execute(call);
+    observations.push({
+      call,
+      before,
+      result,
+      after: structuredClone(headless.definition()),
+    });
+    admission = await client.send({
+      message: clientToolResultSignal([result]),
+      uid: admission.uid,
+      signal,
+    });
+  }
+  /* eslint-enable no-await-in-loop */
+  const result = await client.read(admission, { signal });
+  const history = await client.history({ signal });
+  save("history.json", history);
   save("turn-result.json", result);
   const generatedTools = contexts.flatMap((context) => context.tools ?? []);
   const generatedAddType = generatedTools.find(
@@ -168,10 +167,9 @@ try {
   ]);
   assert(headless.parse().ok, "Canonical document parse failed");
   assert(
-    result.details.toolActivity.some(
-      (activity) =>
-        activity.toolCallId === "nested-type" &&
-        activity.executor === "real-headless",
+    clientToolHistoryFrom(history.messages).results.some(
+      (entry) =>
+        entry.toolCallId === "nested-type" && entry.toolName === "addType",
     ),
     "Result was not correlated to the provider call",
   );

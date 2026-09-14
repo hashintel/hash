@@ -161,7 +161,7 @@ try {
   process.env.PI_SUBAGENT_NAME = "TEST-browser-construction";
   let persona: BrunchTurnTool | undefined;
   const hooks: (() => void | Promise<void>)[] = [];
-  await brunchPersonaTestingExtension({
+  brunchPersonaTestingExtension({
     registerProvider: () => {
       throw new Error("Must not register a live provider");
     },

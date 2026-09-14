@@ -1,6 +1,9 @@
+import { execFile } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import { afterEach, expect, test, vi } from "vitest";
 
@@ -69,6 +72,39 @@ test.each([true, false])(
   },
 );
 
+test("root launch command resolves a caller-relative case before checking interactive prerequisites", async () => {
+  const repo = fileURLToPath(new URL("../../../../../", import.meta.url));
+  const directory = await mkdtemp(join(tmpdir(), "TEST-persona case-"));
+  try {
+    await Promise.all([
+      writeFile(join(directory, "situation-pack.md"), "Private context"),
+      writeFile(join(directory, "opening-message.md"), "Public opening"),
+    ]);
+    await expect(
+      promisify(execFile)(
+        "yarn",
+        [
+          "brunch:persona",
+          "--case",
+          relative(repo, directory),
+          "--budget-usd",
+          "100",
+        ],
+        {
+          cwd: repo,
+          env: { ...process.env, HERDR_ENV: "0" },
+        },
+      ),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "Run brunch:persona from a Herdr terminal",
+      ) as unknown,
+    });
+  } finally {
+    await rm(directory, { recursive: true });
+  }
+}, 15_000);
+
 test("launches a fresh restricted persona using input files, not prior session or private content arguments", () => {
   const args = personaArguments(
     "/tmp/TEST-persona",
@@ -86,7 +122,6 @@ test("launches a fresh restricted persona using input files, not prior session o
   expect(args).not.toContain("--no-approve");
   expect(args).toContain("--brunch-browser-bridge");
   expect(args).toContain("/tmp/TEST-socket");
-  expect(args).not.toContain("--brunch-browser-session");
   expect(args.at(-1)).toBe("@/tmp/TEST-persona/persona-input.md");
   expect(args).not.toContain("--session");
   expect(args).not.toContain("--continue");

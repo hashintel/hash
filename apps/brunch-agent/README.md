@@ -10,7 +10,16 @@ yarn dev:brunch
 
 The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. The typed panel and Voice mode talk to one Flue chat agent composed from the context-independent core prompt in `@hashintel/brunch-agent/flue`, the SDCPN/Petrinaut instructions, modelling runbook skill, and the SDCPN plugin's client tools in `@hashintel/brunch-agent-plugin-sdcpn` (`readPetrinautDoc` plus, on ordinary configured Brunch and the empty-net tracer, `getLatestNetDefinition`, `getNetCompilationErrors`, `mutate_petrinet` (one ordered batch that adds, removes, or edits existing parts of the root net by ID), and the canonical `applyAutoLayout` command, whose browser result carries a separately recorded `layoutRecord` of observed pre/post hashes and position effects), and app-owned deployment material. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; the app's only model-facing diagnostic tool is `ping`. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled range of Flue history is applied into a JSON store beside the conversation database, not by the interviewer.
 
-A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
+For browser-visible persona testing, use the [persona launcher and operator guide](.pi/extensions/brunch-persona-testing/README.md):
+
+```sh
+yarn brunch:persona --list-cases
+yarn brunch:persona --case inventory-purchasing --budget-usd 100
+```
+
+The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Brunch's own tool calls update the visible net and workpiece. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. The guide owns prerequisites, allocation, stop/resume and evidence instructions; consult it before paid execution.
+
+The independent headless runbook construction probe is not a persona launch method:
 
 ```sh
 yarn workspace @apps/brunch-agent runbook:headless
