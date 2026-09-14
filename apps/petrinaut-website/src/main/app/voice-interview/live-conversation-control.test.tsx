@@ -9,12 +9,17 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "../local-storage-demo/brunch-panel-transport";
 import { createLiveConversation } from "./live-conversation";
 import {
   loadOpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "./voice-interview-control";
 
+import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.mock("./live-conversation", () => ({
@@ -22,6 +27,8 @@ vi.mock("./live-conversation", () => ({
     retryPlayback: vi.fn(async () => {}),
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
+    appendCommentary: vi.fn(() => true),
+    appendInstructions: vi.fn(() => true),
   })),
 }));
 afterEach(() => {
@@ -76,14 +83,99 @@ test("starts only one Live session when Start is activated twice", async () => {
   expect(createLiveConversation).toHaveBeenCalledOnce();
 });
 
-test("reuses setup, reports listening and speaking to the host dock, and clears it on failure", async () => {
+test("Cancel leaves consent without starting a provider session", () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  fireEvent.click(screen.getByRole("checkbox"));
+  expect(createLiveConversation).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(props.setInputMode).toHaveBeenCalledWith("text");
+  expect(createLiveConversation).not.toHaveBeenCalled();
+});
+
+test.each(["submitted", "streaming"] as const)(
+  "maps Brunch %s to thinking without replacing playback or connection status",
+  async (status) => {
+    const props = context();
+    const { rerender } = render(
+      <VoiceInterviewControl {...props} config={config} />,
+    );
+    await start();
+    const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+    act(() => onState({ phase: "connected", message: null }));
+
+    // A composer update must change the dock without another audio event.
+    rerender(
+      <VoiceInterviewControl {...props} config={config} status={status} />,
+    );
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "thinking" }),
+    );
+    act(() =>
+      onState({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0.2, outputActive: true },
+      }),
+    );
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "speaking" }),
+    );
+    act(() =>
+      onState({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0.2, outputActive: false },
+      }),
+    );
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "thinking" }),
+    );
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        config={config}
+        canAcceptVoiceInput={false}
+      />,
+    );
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "listening" }),
+    );
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        config={config}
+        status={status}
+        stopped
+      />,
+    );
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "listening" }),
+    );
+    rerender(
+      <VoiceInterviewControl {...props} config={config} status={status} />,
+    );
+    act(() => onState({ phase: "connecting", message: null }));
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "connecting" }),
+    );
+    act(() => onState({ phase: "error", message: "Connection lost" }));
+    expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "error" }),
+    );
+  },
+);
+
+test("reuses setup and reports failure to the host dock and notification surface", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
   expect(
     screen.getByRole("region", { name: "Voice mode consent" }),
   ).toBeTruthy();
-  expect(screen.getByText("GPT-Live · Experimental interview")).toBeTruthy();
-  expect(screen.queryByText(/Petrinaut saves finalized/)).toBeNull();
+  expect(screen.getByText("Start a voice conversation")).toBeTruthy();
+  expect(screen.getByText(/OpenAI processes microphone audio/)).toBeTruthy();
+  expect(screen.queryByText(/experimental|best-effort/i)).toBeNull();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Start voice" })
@@ -178,24 +270,43 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
   const liveSession = vi.mocked(createLiveConversation).mock.results[0]!
     .value as ReturnType<typeof createLiveConversation>;
   expect(liveSession.retryPlayback).toHaveBeenCalledOnce();
+  const connectionError =
+    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.";
   act(() =>
     onState({
       phase: "error",
-      message: "Connection failed. Remote session closure was not confirmed.",
+      message: connectionError,
     }),
   );
-  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(null);
-  expect(
-    screen.getByText(
-      "Connection error. Check microphone and server configuration.",
-    ),
-  ).toBeTruthy();
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    phase: "error",
+    errorMessage: connectionError,
+    microphoneLevel: 0,
+    microphoneMuted: true,
+    notice: null,
+  });
+  expect(screen.getByText(connectionError)).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Start voice" })
       .hasAttribute("disabled"),
   ).toBe(true);
   expect(createLiveConversation).toHaveBeenCalledOnce();
+});
+
+test("does not show a successful prior session close on the next consent card", async () => {
+  render(<VoiceInterviewControl {...context()} config={config} />);
+  await start();
+  const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+  act(() => onState({ phase: "connected", message: null }));
+  const closureMessage =
+    "Microphone and playback stopped. Live confirmed session closure.";
+  act(() => onState({ phase: "ended", message: closureMessage }));
+
+  expect(
+    screen.getByRole("region", { name: "Voice mode consent" }),
+  ).toBeTruthy();
+  expect(screen.queryByText(closureMessage)).toBeNull();
 });
 
 test("pins provider, ends through host controls, and never submits or stops canonical work", async () => {
@@ -268,5 +379,315 @@ test.each(["live", "realtime", "live-experience"])(
     expect(await loadOpenAIVoiceConfig(fetch)).toEqual(
       provider === "live-experience" ? null : { ...config, provider },
     );
+  },
+);
+
+test("final transcription enters the real admission helper and only its settled canonical prose reaches Live", async () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async ({ id }) => {
+    if (!id) throw new Error("Missing stable input identity");
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: id,
+      admission: {
+        submissionId: "root",
+        uid: "test",
+        offset: "opaque",
+        streamUrl: "http://local/stream",
+      },
+    });
+    return { kind: "message", messageId: id };
+  });
+  const wiring = {
+    resolveInputSubmission: tracker.submissionForInput.bind(tracker),
+    resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
+    subscribeToAdmission: (
+      target: Parameters<typeof tracker.subscribeToAdmission>[0],
+      listener: (id: string) => void,
+    ) =>
+      tracker.subscribeToAdmission(target, (event) =>
+        listener(event.admission.submissionId),
+      ),
+    subscribeToAdmissionFailure:
+      tracker.subscribeToAdmissionFailure.bind(tracker),
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+    subscribeToResponseMessageCompleted:
+      tracker.subscribeToResponseMessageCompleted.bind(tracker),
+    subscribeToStopRequested: tracker.subscribeToStopRequested.bind(tracker),
+  };
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+    .value as ReturnType<typeof createLiveConversation>;
+  act(() => call[0]({ phase: "connected", message: null }));
+  act(() => call[3]("delegation-1"));
+  await act(async () =>
+    call[2]({ id: "utterance-1", text: "Seven reviewers, not four." }),
+  );
+  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+  expect(props.submitVoiceInput).toHaveBeenCalledWith(
+    expect.objectContaining({ text: "Seven reviewers, not four." }),
+  );
+  const response = {
+    messageId: "answer",
+    submissionId: "root",
+    position: { batch: 1, index: 0 },
+  };
+  act(() => tracker.recordResponse(response));
+  const messages: PetrinautAiVoiceModeContext["messages"] = [
+    {
+      id: "answer",
+      role: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "Are all seven reviewers required?",
+          state: "done",
+        },
+      ],
+    },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      status="streaming"
+      config={config}
+    />,
+  );
+  act(() =>
+    tracker.recordResponseMessageCompleted({
+      ...response,
+      position: { batch: 2, index: 0 },
+    }),
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      settlements={[{ submissionId: "root", outcome: "completed" }]}
+      config={config}
+    />,
+  );
+  expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Are all seven reviewers required?",
+    "delegation-1",
+  );
+  act(() => tracker.recordStopRequested());
+  expect(session.stop).toHaveBeenCalled();
+  await act(async () => call[2]({ id: "late", text: "Late transcription" }));
+  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+});
+
+test.each(["answer", "folded-answer"])(
+  "the real transport's unobserved answered-by response reaches Live with rendered ID %s",
+  async (renderedId) => {
+    const tracker = new BrunchPanelConversationTracker();
+    const props = context();
+    const text = "Seven reviewers, not four. Is approval optional?";
+    const snapshot: FlueConversationState = {
+      conversationId: props.conversationId,
+      messages: [
+        {
+          id: "answer",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          submissionId: "answering",
+          parts: [
+            {
+              type: "reasoning",
+              state: "done",
+              text: "Private reasoning must not be spoken",
+            },
+            { type: "text", state: "done", text },
+          ],
+        },
+      ],
+      settlements: [
+        {
+          submissionId: "root",
+          outcome: "completed",
+          answeredBySubmissionId: "answering",
+        },
+        { submissionId: "answering", outcome: "completed" },
+      ],
+    };
+    const client = {
+      send: vi.fn<FlueClient["send"]>(async () => ({
+        submissionId: "root",
+        uid: "test",
+        offset: "opaque",
+        streamUrl: "http://local/stream",
+      })),
+      wait: vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+        await options?.onEvent?.({
+          type: "message-started",
+          conversationId: props.conversationId,
+          messageId: "answer",
+          submissionId: "answering",
+          turnId: "turn",
+          position: { batch: 1, index: 0 },
+        });
+        await options?.onEvent?.({
+          type: "message-completed",
+          conversationId: props.conversationId,
+          messageId: "answer",
+          position: { batch: 1, index: 1 },
+        });
+        await options?.onEvent?.({
+          type: "submission-settled",
+          conversationId: props.conversationId,
+          submissionId: "root",
+          outcome: "completed",
+          answeredBySubmissionId: "answering",
+          position: { batch: 1, index: 2 },
+        });
+      }),
+    } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+    const transport = createBrunchPanelTransport(
+      Promise.resolve(client),
+      tracker,
+    );
+    props.submitVoiceInput = async ({ id, text: input }) => {
+      if (!id) throw new Error("Missing identity");
+      const stream = await transport.sendMessages({
+        trigger: "submit-message",
+        chatId: props.conversationId,
+        messageId: undefined,
+        messages: [
+          { id, role: "user", parts: [{ type: "text", text: input }] },
+        ],
+        abortSignal: undefined,
+      });
+      const reader = stream.getReader();
+      while (!(await reader.read()).done) {
+        /* drain the real transport */
+      }
+      return { kind: "message", messageId: id };
+    };
+    const wiring = {
+      resolveInputSubmission: tracker.submissionForInput.bind(tracker),
+      resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
+      subscribeToResponseMessageStarted:
+        tracker.subscribeToResponseMessageStarted.bind(tracker),
+      subscribeToResponseMessageCompleted:
+        tracker.subscribeToResponseMessageCompleted.bind(tracker),
+    };
+    const { rerender } = render(
+      <VoiceInterviewControl {...props} {...wiring} config={config} />,
+    );
+    await start();
+    const call = vi.mocked(createLiveConversation).mock.lastCall!;
+    const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+      .value as ReturnType<typeof createLiveConversation>;
+    act(() => call[0]({ phase: "connected", message: null }));
+    await act(async () =>
+      call[2]({ id: "utterance", text: "Seven, not four" }),
+    );
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        {...wiring}
+        status="streaming"
+        config={config}
+      />,
+    );
+    expect(tracker.submissionsForResponse("answer")).toBeUndefined();
+    expect(tracker.canReplaceMessages(snapshot)).toBe(true);
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        {...wiring}
+        settlements={snapshot.settlements}
+        config={config}
+      />,
+    );
+    expect(session.appendCommentary).not.toHaveBeenCalled();
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        {...wiring}
+        snapshot={snapshot}
+        messages={[
+          {
+            id: renderedId,
+            role: "assistant",
+            parts: [{ type: "text", state: "done", text }],
+          },
+        ]}
+        settlements={snapshot.settlements}
+        config={config}
+      />,
+    );
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      text,
+      null,
+    );
+  },
+);
+
+test.each(["commentary", "instructions"] as const)(
+  "%s pending and accepted appends do not raise errors or replace actual failures",
+  async (kind) => {
+    const props = context();
+    const { unmount } = render(
+      <VoiceInterviewControl {...props} config={config} />,
+    );
+    await start();
+    const call = vi.mocked(createLiveConversation).mock.lastCall!;
+    act(() => call[0]({ phase: "connected", message: null }));
+    const result = {
+      eventId: "first",
+      kind,
+      delegationId: "delegation",
+    };
+    for (const eventId of ["first", "second"]) {
+      for (const status of ["unknown", "accepted"] as const) {
+        act(() => call[4]({ ...result, eventId, status }));
+        expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            phase: "listening",
+            errorMessage: null,
+            notice: null,
+          }),
+        );
+      }
+    }
+    for (const [status, text] of [
+      ["local-failure", "could not be sent to Live locally"],
+      ["rejected", "was rejected by Live"],
+    ] as const) {
+      act(() => call[4]({ ...result, eventId: status, status }));
+      expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          phase: "listening",
+          errorMessage: null,
+          notice: expect.stringContaining(text) as unknown,
+        }),
+      );
+      for (const nextStatus of ["unknown", "accepted"] as const) {
+        act(() => call[4]({ ...result, eventId: "later", status: nextStatus }));
+        expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            notice: expect.stringContaining(text) as unknown,
+          }),
+        );
+      }
+    }
+    unmount();
+    vi.mocked(props.reportVoiceSessionState).mockClear();
+    act(() => call[4]({ ...result, status: "rejected" }));
+    expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
   },
 );

@@ -2,6 +2,12 @@
 
 > Future sequence and decision register only; not execution authority. [`MISSION.md`](MISSION.md) owns live scope and progress. Successor drafts become executable only after an owner-authorized cut; archives and git history retain prior contracts.
 
+On this stacked voice branch, `MISSION.md` owns FE-1664. The inherited Mission 7c
+map and its mission-section references below belong to the
+[upstream contract](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md)
+on #9667, not to a second execution authority here. The stack does not close that
+mission or grant its paid-run permissions to voice work.
+
 ## How to use this spine
 
 Read this file to answer four questions:
@@ -30,7 +36,10 @@ The first composed product is `process-sdcpn`: operational processes represented
 
 Brunch is intended to become Petrinaut's default operational-process assistant. Petrinaut's stock assistant remains an alternate selected by a host feature flag. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
-For live route and assistant-selection behavior, see [mission ownership constraints](MISSION.md#ownership). Future deployment policy and remote switching are the [host-choice fork](#host-choice-and-continuity).
+For live route and assistant-selection behavior, see the
+[Mission 7c ownership constraints](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#ownership).
+Future deployment policy and remote switching are the
+[host-choice fork](#host-choice-and-continuity).
 
 The accepted naming target is:
 
@@ -67,7 +76,7 @@ A flagship proves one accepted product path. It does not prove every operational
 - Mission 7 tracks [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) and partially advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without closing the broader provenance objective.
 - [Mission 7a](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md) established workpiece, construction-record and explanation groundwork and landed on `main`.
 - [Mission 7b](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) established the ordinary selected structural batch, correction, recorded basis/effects, reopen and experimental create-new seam. Its engineering [PR #9649](https://github.com/hashintel/hash/pull/9649) remains a separate external closeout.
-- [Mission 7c](MISSION.md) is provisionally closed for engineering review with browser-visible persona construction and verified repairs. The Inventory worked example remains unaccepted; consult its [Status](MISSION.md#status) and [proof dispositions](MISSION.md#proof).
+- [Mission 7c](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md) is provisionally closed for engineering review with browser-visible persona construction and verified repairs. The Inventory worked example remains unaccepted; consult its [Status](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#status) and [proof dispositions](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#proof).
 - **Authorized next cut — Mission 7d:** `ln/fe-1573-mission-7d-provider-worked-example` qualifies one alternative provider and completes the retained Inventory example. It consumes all open 7c readiness obligations, not fixture distribution or portfolio breadth. Lu authorizes reuse of FE-1573; no tracker state change is implied.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
@@ -123,22 +132,22 @@ This register records product consequences, not every engineering idea. A scope 
 
 ### Decisions to report or confirm now
 
-- **Assistant scope — PM communication required:** communicate the accepted [product boundary](MISSION.md#product-boundary).
+- **Assistant scope — PM communication required:** communicate the accepted [product boundary](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#product-boundary).
 - **Assistant deployment policy — future owner decision:** resolve the [host-choice fork](#host-choice-and-continuity).
-- **Live exclusions:** [MISSION.md](MISSION.md#scope-boundary-and-external-owners) settles the current boundary; [distribution and breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) owns the deferred portfolio and bundle scope. These are not pending confirmations here.
-- **Assumption-based preview — open PM decision:** the candidate policy and unanswered questions have one home in the [live Fog-line](MISSION.md#fog-line).
-- **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); the live mission's [claim discipline](MISSION.md#claim-discipline) determines its evidence tier.
+- **Live exclusions:** [Mission 7c](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#scope-boundary-and-external-owners) settles the current boundary; [distribution and breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) owns the deferred portfolio and bundle scope. These are not pending confirmations here.
+- **Assumption-based preview — open PM decision:** the candidate policy and unanswered questions have one home in the [Mission 7c Fog-line](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#fog-line).
+- **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); [Mission 7c's claim discipline](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#claim-discipline) determines its evidence tier.
 
 ### Capability and lifecycle strains
 
-- **Capability and portfolio obligations:** [Mission 7c](MISSION.md#proof) owns the selected run's evidence; [its successor](docs/mission-drafts/worked-example-distribution-and-breadth.md#outcome-2--establish-portfolio-breadth) owns breadth and full-envelope adjudication.
+- **Capability and portfolio obligations:** [Mission 7c](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#proof) owns the selected run's evidence; [its successor](docs/mission-drafts/worked-example-distribution-and-breadth.md#outcome-2--establish-portfolio-breadth) owns breadth and full-envelope adjudication.
 - **Repeat/change/retirement/concurrency — Mission 9.** Mission 7c should leave stable IDs, fresh-base discipline, ordinary correction and current-state why as a usable handoff.
 - **General reviewer revision — Mission 10.** Mission 7c's ordinary correction does not establish reviewer authority, qualification, conflict handling or general patch locality.
 - **Optimization handoff — Mission 11.** Do not infer an optimization product from code-bearing dynamics.
 
 ### Conditional technical strains
 
-- **Compaction survival:** consume the live mission's [compaction disposition](MISSION.md#readiness-gate) before Mission 9 or a long-lived hosted provenance claim. If proof remains open, exercise recovery and explanation across compaction first.
+- **Compaction survival:** consume [Mission 7c's compaction disposition](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md#readiness-gate) before Mission 9 or a long-lived hosted provenance claim. If proof remains open, exercise recovery and explanation across compaction first.
 - **Passage identity across revisions:** rename/move/paraphrase/split/merge/delete/reintroduce continuity belongs to Mission 9/10; consume the live mission's current-revision evidence without inferring continuity.
 - **Arbitrary import/clone:** re-enter general import, attachment rebinding or complete effect-history migration only for a named portability consumer; the planned fixture-copy boundary is defined in the [successor draft](docs/mission-drafts/worked-example-distribution-and-breadth.md#connected-bundle-contract).
 - **Provider qualification — Mission 7d.** Repeated Anthropic refusals blocked the retained example. The next cut owns canonical schema carriage, tool selection/arguments, native-history continuity and compiler repair for one alternative provider on that example, with observed latency and cost. A general fallback framework and portfolio-wide provider comparison remain outside the cut; re-enter those only for a named broader consumer. Provider success does not establish semantic or behavioral correctness, and no production default switch is authorized by the branch transition.
@@ -193,6 +202,12 @@ Typed claims, closed slots, per-statement epistemic enums or a target-shaped wor
 Immediate switching from a review or gap report into renewed elicitation remains unimplemented. Re-enter when a real review must continue immediately or repeated gap-only reports create visible user friction. Preserve the ability to report a gap without automatically starting an interview.
 
 ### Voice after the live transport cut
+
+The FE-1664 integration is governed by this branch's [mission](MISSION.md).
+Native Live delivery and canonical transcription do not waive the recovery
+obligation below or establish live provider compatibility. Historical waiver and
+attribution rationale remains in the
+[pre-restack voice record](https://github.com/hashintel/hash/blob/14cad8904de351166c1d58ad0973e643082e747a/libs/%40hashintel/brunch-agent/MISSION.next.md#voice-after-the-live-transport-cut).
 
 Kostandin owns the current Voice continuation. The accepted path covers microphone input, mutation, resume and durable Stop. Direct spoken-user attribution after hydration, durable recovery of locally withheld post-settlement browser work and comparative latency remain unproved.
 

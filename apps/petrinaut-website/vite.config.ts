@@ -27,6 +27,7 @@ const apiModules = [
   ["/api/voice/config", "/api/voice/config.ts"],
   ["/api/voice/realtime-call", "/api/voice/realtime-call.ts"],
   ["/api/voice/live-session", "/api/voice/live-session.ts"],
+  ["/api/voice/transcription-session", "/api/voice/transcription-session.ts"],
 ] as const;
 
 // Plugin required to serve the Vercel fetch handlers in dev. In production,

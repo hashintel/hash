@@ -136,9 +136,7 @@ export const VoiceInterviewDisclosure = ({
           </span>
           <div className={disclosureTitleStyle}>
             <strong className={disclosureHeadingStyle}>
-              {experimental
-                ? "GPT-Live · Experimental interview"
-                : "Start a voice conversation"}
+              Start a voice conversation
             </strong>
             {!experimental && (
               <span className={disclosureSubtitleStyle}>
@@ -147,17 +145,16 @@ export const VoiceInterviewDisclosure = ({
             )}
           </div>
         </div>
-        {!experimental && (
-          <p className={disclosureCopyStyle}>
-            OpenAI processes live audio and speaks the interviewer’s words.
-            Petrinaut saves finalized answers—not audio.
-          </p>
-        )}
+        <p className={disclosureCopyStyle}>
+          {experimental
+            ? "OpenAI processes microphone audio for voice and transcription. Petrinaut saves text, not audio."
+            : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
+        </p>
         <Checkbox
           className={disclosureConsentStyle}
           label={
             experimental
-              ? "Allow OpenAI to process microphone audio."
+              ? "Allow microphone audio for voice and transcription."
               : "I understand how voice data is handled."
           }
           onChange={onConsentChange}
@@ -189,7 +186,7 @@ export const VoiceInterviewDisclosure = ({
           )}
           {onExit && (
             <Button onClick={onExit} size="xs" type="button" variant="subtle">
-              Exit experiment
+              Cancel
             </Button>
           )}
         </div>
