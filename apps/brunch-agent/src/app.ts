@@ -5,6 +5,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
@@ -33,6 +34,8 @@ import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
+
+import type { Provider } from "@earendil-works/pi-ai";
 
 // Failed runtime events (tools, turns, tasks, compaction, operations,
 // settlement, recovery) reach the server log with their runtime IDs; the
@@ -77,23 +80,25 @@ if (accounting) {
 // Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
-const nativeProvider = anthropicProvider();
-setProvider(
-  withBufferedToolAdmission(
-    accounting?.wrap(
-      nativeProvider,
+const browserToolNames = new Set([
+  ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  ...observedConstructionBrowserToolNames,
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+]);
+const registerAdmittedProvider = (provider: Provider) => {
+  setProvider(
+    withBufferedToolAdmission(
+      accounting?.wrap(provider, () => admissionScope.getStore() === true) ??
+        provider,
       () => admissionScope.getStore() === true,
-    ) ?? nativeProvider,
-    () => admissionScope.getStore() === true,
-    new Set([
-      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-      ...observedConstructionBrowserToolNames,
-      layoutPetrinautNetToolName,
-      mutatePetrinautNetToolName,
-      READ_PETRINAUT_DOCS_TOOL_NAME,
-    ]),
-  ),
-);
+      browserToolNames,
+    ),
+  );
+};
+registerAdmittedProvider(anthropicProvider());
+registerAdmittedProvider(openaiProvider());
 
 const app = new Hono();
 

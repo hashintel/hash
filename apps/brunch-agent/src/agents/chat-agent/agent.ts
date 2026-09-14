@@ -37,7 +37,11 @@ import {
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
 
-import { selectChatModel } from "../../chat-model.ts";
+import {
+  selectChatModel,
+  selectChatModelSpecifier,
+  selectChatThinking,
+} from "../../chat-model.ts";
 import {
   ACTIVATE_SKILL_TOOL_NAME,
   isClientToolResultDelivery,
@@ -67,10 +71,23 @@ import { ping } from "./tools/ping.ts";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export const CHAT_MODEL_ID = selectChatModel();
+export const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
+const chatThinkingLevel = selectChatThinking();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 const testCompactionConfig = loadTestCompactionConfig();
+const chatModelOptions =
+  testCompactionConfig === undefined && chatThinkingLevel === undefined
+    ? undefined
+    : {
+        ...(testCompactionConfig === undefined
+          ? {}
+          : { compaction: testCompactionConfig }),
+        ...(chatThinkingLevel === undefined
+          ? {}
+          : { thinkingLevel: chatThinkingLevel }),
+      };
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
@@ -110,8 +127,8 @@ export function ChatAgent({ id }: AgentProps) {
     }
   }
   const coreSystemPrompt = useBrunchAgent(
-    `anthropic/${CHAT_MODEL_ID}`,
-    testCompactionConfig,
+    CHAT_MODEL_SPECIFIER,
+    chatModelOptions,
     (currentRevision) => {
       useSdcpnPlugin({
         currentRevision,

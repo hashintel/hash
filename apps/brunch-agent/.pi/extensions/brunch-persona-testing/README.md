@@ -11,7 +11,15 @@ yarn brunch:persona --case inventory-purchasing
 
 Replace the case name with any listed case. `--help` lists launch and resume options without starting services or inference. If the default dev ports are occupied, leave those services alone and select an unused pair, for example `BRUNCH_CHAT_PORT=4332 BRUNCH_PANEL_PORT=4926 yarn brunch:persona --case truck-fleet-maintenance`.
 
-The command uses the app's normal development configuration: `apps/brunch-agent/.env*`, with process environment taking precedence. Google Chrome in `/Applications`, `pi` and `herdr` on PATH, and installed workspace dependencies are required. Both participants use `claude-sonnet-4-6`. Paid runs still require owner authorization under the current [mission](../../../../../libs/@hashintel/brunch-agent/MISSION.md) and [execution safety](../../../../../libs/@hashintel/brunch-agent/evaluations/README.md#execution-safety); the existence of this command grants none.
+The command uses the app's normal development configuration: `apps/brunch-agent/.env*`, with process environment taking precedence. Google Chrome in `/Applications`, `pi` and `herdr` on PATH, and installed workspace dependencies are required. Defaults: Brunch `openai/gpt-5.6-sol` at low reasoning, persona `anthropic/claude-sonnet-4-6` at low reasoning. Override without source edits:
+
+```sh
+yarn brunch:persona --case inventory-purchasing \
+  --brunch-model openai/gpt-5.6-sol --brunch-thinking low \
+  --persona-model anthropic/claude-sonnet-4-6 --persona-thinking medium
+```
+
+`--help` lists every flag. `OPENAI_API_KEY` is required for the default Brunch model; `ANTHROPIC_API_KEY` is required for the persona. Paid runs still require owner authorization under the current [mission](../../../../../libs/@hashintel/brunch-agent/MISSION.md) and [execution safety](../../../../../libs/@hashintel/brunch-agent/evaluations/README.md#execution-safety); the existence of this command grants none.
 
 **Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. Pi uses its native provider. There are no request reservations, budget/unknown-usage refusals, or `--budget-usd` / `--accept-unknown` flags. Usage remains observational in the native records below; missing usage is not zero cost. There is no fixed turn-count limit. Use Ctrl-C to stop the run.
 
@@ -78,7 +86,7 @@ The panel opens first and the launcher waits for recording readiness **before st
 
 Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-runs/`:
 
-- `run.json`: case/configuration paths, private socket path and owned process/pane identifiers; no credentials.
+- `run.json`: case/configuration paths, effective Brunch and persona model/effort settings, private socket path and owned process/pane identifiers; no credentials. Resume of older Sonnet-only runs still reads the legacy `model` field.
 - `configuration-preflight.json`: request-free Brunch configuration checks. The launcher separately checks Pi's isolated configuration before startup.
 - `conversation.db` and adjacent capture files: this run's original local conversation/workpiece stores, retained for original-session reopening. Flue's canonical `assistant_message_completed` records retain provider usage and cost estimates in the conversation stream tables; the projected `evidence/snapshot.json` omits that usage.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.

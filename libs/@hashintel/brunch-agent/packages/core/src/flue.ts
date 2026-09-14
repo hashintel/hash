@@ -55,15 +55,32 @@ const _preparedWorkpieceDeliveryIsDispatchable = (
  * Core contributes the always-on universal prompt, one `elicitation`
  * capability skill and durable workpiece revisions.
  */
+type BrunchModelOptions = {
+  compaction?: CompactionConfig;
+  thinkingLevel?: NonNullable<Parameters<typeof useModel>[1]>["thinkingLevel"];
+};
+
 export function useBrunchAgent(
   model: string,
-  compaction?: CompactionConfig,
+  options?: BrunchModelOptions,
   consumeRevision?: (revision: WorkpieceRevision | null) => void,
   readEvidenceSources?: (
     current: WorkpieceRevision | null,
   ) => ReturnType<WorkpieceEvidenceServices["readSources"]>,
 ): string {
-  useModel(model, compaction === undefined ? undefined : { compaction });
+  const modelOptions =
+    options === undefined ||
+    (options.compaction === undefined && options.thinkingLevel === undefined)
+      ? undefined
+      : {
+          ...(options.compaction === undefined
+            ? {}
+            : { compaction: options.compaction }),
+          ...(options.thinkingLevel === undefined
+            ? {}
+            : { thinkingLevel: options.thinkingLevel }),
+        };
+  useModel(model, modelOptions);
   useSkill(elicitationSkill);
   const [revision, setRevision] = usePersistentState<WorkpieceRevision | null>(
     workpieceRevisionStateKey,

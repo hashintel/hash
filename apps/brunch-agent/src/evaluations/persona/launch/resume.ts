@@ -9,25 +9,35 @@ import * as v from "valibot";
 import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { STEP_A_MODEL_ID } from "../../../chat-model.ts";
 import { isAwaitingClient } from "../../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../../conversation/identity.ts";
+import { roleSettingsFromRun } from "./role-settings.ts";
 
 import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
 
 const text = v.pipe(v.string(), v.minLength(1));
-const runSchema = v.looseObject({
-  caseDirectory: text,
-  model: v.literal(STEP_A_MODEL_ID),
-  databasePath: text,
-  browserProfile: text,
-  panelOrigin: text,
-  route: text,
-});
+const runSchema = v.pipe(
+  v.looseObject({
+    caseDirectory: text,
+    databasePath: text,
+    browserProfile: text,
+    panelOrigin: text,
+    route: text,
+    model: v.optional(v.string()),
+    brunchModel: v.optional(text),
+    brunchThinking: v.optional(text),
+    personaModel: v.optional(text),
+    personaThinking: v.optional(text),
+  }),
+  v.transform((config) => ({
+    ...config,
+    ...roleSettingsFromRun(config),
+  })),
+);
 const sessionSchema = v.object({
   url: text,
   principalKey: text,

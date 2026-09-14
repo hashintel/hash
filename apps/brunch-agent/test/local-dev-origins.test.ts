@@ -80,6 +80,13 @@ test("forwards the deployment CORS allowlist to local development", () => {
   expect(turboConfig.tasks.dev.passThroughEnv).toContain(
     "BRUNCH_CORS_ALLOWED_ORIGINS",
   );
+  expect(turboConfig.tasks.dev.passThroughEnv).toEqual(
+    expect.arrayContaining([
+      "BRUNCH_CHAT_MODEL",
+      "BRUNCH_CHAT_THINKING",
+      "OPENAI_API_KEY",
+    ]),
+  );
 });
 
 test("forwards the port variables to both dev tasks through Turbo", () => {
