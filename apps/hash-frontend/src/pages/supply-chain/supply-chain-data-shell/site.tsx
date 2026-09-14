@@ -811,6 +811,7 @@ export const SiteOverview = ({
       <div className={content}>
         <OpportunitiesTable
           opportunities={opportunities}
+          generatedCount={generatedOpportunities.length}
           siteId={siteSlug}
           statusHistory={opportunityStatusHistory}
           onRowClick={(opportunity) =>

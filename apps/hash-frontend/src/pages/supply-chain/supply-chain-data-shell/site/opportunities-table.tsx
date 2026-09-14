@@ -234,7 +234,10 @@ const OPPORTUNITY_SECTIONS: OpportunitySection[] = [
 ];
 
 interface OpportunitiesTableProps {
+  /** Already filtered by the page's filter chips and search. */
   opportunities: SiteOpportunity[];
+  /** Unfiltered generated total, for the "N visible of M" subtitle. */
+  generatedCount: number;
   /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   statusHistory?: StatusStore;
@@ -376,6 +379,7 @@ function sortOpportunities(
 
 export const OpportunitiesTable = ({
   opportunities,
+  generatedCount,
   siteId,
   statusHistory = {},
   onRowClick,
@@ -482,8 +486,8 @@ export const OpportunitiesTable = ({
           <div className={titleWrap}>
             <h2 className={title}>Opportunities</h2>
             <p className={subtitle}>
-              {visibleCount} visible of {opportunities.length} generated from
-              dwell cost and planning variance.
+              {visibleCount} visible of {generatedCount} generated from dwell
+              cost and planning variance.
             </p>
           </div>
           <div className={headerActions}>
@@ -680,7 +684,7 @@ export const OpportunitiesTable = ({
             <tbody className={threshold.tbodyDivide}>
               <tr>
                 <td colSpan={5} className={threshold.emptyCell}>
-                  {opportunities.length === 0
+                  {generatedCount === 0
                     ? "No opportunities have been generated for this site yet."
                     : "No opportunities match the current filters. Try resetting filters."}
                 </td>
