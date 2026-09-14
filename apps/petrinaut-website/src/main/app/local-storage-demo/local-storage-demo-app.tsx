@@ -250,7 +250,10 @@ type ActiveHandle = {
 };
 
 type PersistFailure = {
+  /** The handle whose change was refused; it is replaced, not kept. */
   handle: PetrinautDocHandle;
+  documentId: DocumentRecord["documentId"];
+  incarnationId: DocumentRecord["incarnationId"];
   error: Error;
 };
 
@@ -520,6 +523,17 @@ export const LocalStorageDemoApp = ({
     activeHandleRef.current = activeHandle;
   }, [activeHandle]);
 
+  // The most recent change the repository refused to persist, if any. Cleared
+  // once a later change to the same document lands.
+  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
+    null,
+  );
+
+  // The handle follows the repository: it is recreated from the repository's
+  // record whenever the two diverge — the record shows a revision this handle
+  // never emitted (another tab wrote it), or the repository refused one of
+  // this handle's changes, after which every further change from it would be
+  // refused too, because each names the rejected revision as predecessor.
   useEffect(() => {
     if (currentDocument === null) {
       // eslint-disable-next-line react-hooks-js/set-state-in-effect -- repository selection synchronizes the selected document handle
@@ -529,18 +543,12 @@ export const LocalStorageDemoApp = ({
     setActiveHandle((previous) =>
       previous?.document.documentId === currentDocument.documentId &&
       previous.document.incarnationId === currentDocument.incarnationId &&
-      previous.emittedRevisionIds.has(currentDocument.revisionId)
+      previous.emittedRevisionIds.has(currentDocument.revisionId) &&
+      persistFailure?.handle !== previous.handle
         ? previous
         : createActiveHandle(currentDocument),
     );
-  }, [currentDocument]);
-
-  // The most recent change the repository refused to persist, if any. Cleared
-  // once a later change from the same handle lands, or when the handle is
-  // replaced; a new handle opens from what the repository actually holds.
-  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
-    null,
-  );
+  }, [currentDocument, persistFailure]);
 
   useEffect(() => {
     if (!activeHandle) {
@@ -562,18 +570,25 @@ export const LocalStorageDemoApp = ({
         .then(
           () =>
             setPersistFailure((failure) =>
-              failure?.handle === handle ? null : failure,
+              failure?.documentId === document.documentId &&
+              failure.incarnationId === document.incarnationId
+                ? null
+                : failure,
             ),
           (error: unknown) =>
             setPersistFailure({
               handle,
+              documentId: document.documentId,
+              incarnationId: document.incarnationId,
               error: error instanceof Error ? error : new Error(String(error)),
             }),
         );
     });
   }, [activeHandle, source.repository]);
   const unsavedChangeMessage =
-    persistFailure !== null && persistFailure.handle === activeHandle?.handle
+    persistFailure !== null &&
+    persistFailure.documentId === currentDocument?.documentId &&
+    persistFailure.incarnationId === currentDocument.incarnationId
       ? persistFailure.error.message
       : null;
 
@@ -1048,7 +1063,8 @@ export const LocalStorageDemoApp = ({
                 padding: "10px 12px",
               }}
             >
-              Changes not saved: {unsavedChangeMessage}
+              Changes not saved: {unsavedChangeMessage} The editor shows the
+              last saved version.
             </p>
           ) : null}
         </div>

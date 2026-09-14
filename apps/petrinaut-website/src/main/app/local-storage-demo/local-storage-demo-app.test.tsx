@@ -782,6 +782,10 @@ describe("local document revision persistence", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
+    remoteRepositoryOperations.persistRevision.mockReset();
+    remoteRepositoryOperations.persistRevision.mockImplementation(
+      async (): Promise<void> => undefined,
+    );
   });
 
   test("retains direct document changes across handle reopen", async () => {
@@ -933,13 +937,22 @@ describe("local document revision persistence", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  test("reports a change the repository refused to persist until a later change succeeds", async () => {
+  test("reports a refused change and reopens the editor from the repository's record so the next change is accepted", async () => {
     stubStorage();
     vi.clearAllMocks();
     selectRemoteDocument();
-    remoteRepositoryOperations.persistRevision.mockRejectedValueOnce(
-      new Error("Worked-model write refused."),
-    );
+    // Like the worked-model repository: the first write is refused, and any
+    // later write is refused unless it follows the revision the record holds.
+    // A handle kept after the refusal would name its refused revision as the
+    // predecessor and be refused again.
+    remoteRepositoryOperations.persistRevision
+      .mockRejectedValueOnce(new Error("Worked-model write refused."))
+      .mockImplementation(async (change) => {
+        if (change.previousRevisionId !== remoteDocument.revisionId)
+          throw new Error(
+            `Worked-model write refused: ${change.previousRevisionId} is not the stored revision.`,
+          );
+      });
     render(
       <LocalStorageDemoApp
         onSearchChange={() => {}}
@@ -949,8 +962,8 @@ describe("local document revision persistence", () => {
     await waitFor(() =>
       expect(editorProps.current?.title).toBe("Inventory purchasing"),
     );
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-    const addPlace = (id: string) =>
+    const refusedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    const addPlace = (handle: PetrinautDocHandle, id: string) =>
       act(() => {
         handle.change((draft) => {
           draft.places.push({
@@ -965,17 +978,29 @@ describe("local document revision persistence", () => {
         });
       });
 
-    addPlace("refused-place");
+    addPlace(refusedHandle, "refused-place");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("not saved");
     expect(alert.textContent).toContain("Worked-model write refused.");
-    // The record still names the handle's starting revision while the write is
-    // outstanding; that must not rebuild the handle.
-    expect(editorProps.current?.handle).toBe(handle);
+    // The refused change is dropped: the editor reopens from the record.
+    await waitFor(() =>
+      expect(editorProps.current?.handle).not.toBe(refusedHandle),
+    );
+    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(reopenedHandle.revisionId.get()).toBe(remoteDocument.revisionId);
+    expect(reopenedHandle.doc()?.places).toEqual([]);
+    // The notice outlives the handle it was raised for.
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Worked-model write refused.",
+    );
 
-    addPlace("accepted-place");
+    addPlace(reopenedHandle, "accepted-place");
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(editorProps.current?.handle).toBe(handle);
+    expect(editorProps.current?.handle).toBe(reopenedHandle);
+    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledTimes(2);
+    expect(
+      remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
+    ).toMatchObject({ previousRevisionId: remoteDocument.revisionId });
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
