@@ -337,8 +337,8 @@ export const ABANDONED_FADE_MS = 2000;
 
 /** How often a held removal re-checks whether the interaction has ended. */
 const ABANDONED_HOLD_RECHECK_MS = 250;
-/** How long a previously held chip's width-collapse runs before onRemove. */
-export const ABANDONED_COLLAPSE_MS = 200;
+/** How long a chip's width-collapse removal runs before onRemove fires. */
+export const CHIP_COLLAPSE_MS = 200;
 
 /** Inline style applied to the chip root while the abandoned fade runs. */
 export const abandonedFadeStyle: CSSProperties = {
@@ -347,6 +347,42 @@ export const abandonedFadeStyle: CSSProperties = {
 };
 
 export type AbandonmentPhase = "idle" | "fading" | "held" | "collapsing";
+
+/**
+ * Whether removing this chip should animate: inside a FilterGroup, removal
+ * reflows the sibling chips, so a width collapse keeps the row from
+ * snapping; a standalone chip leaves nothing behind to reflow. Reduced
+ * motion always removes instantly.
+ */
+export const shouldAnimateChipRemoval = (root: HTMLElement | null): boolean =>
+  !!root?.closest("[data-part=filter-group]") &&
+  !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Kick off the chip's width collapse: pin the measured width, then
+ * transition it to zero over {@link CHIP_COLLAPSE_MS}. Inline styles (not
+ * the React style prop) so the measure→transition sequence is not at the
+ * mercy of commit timing; pair with {@link clearChipCollapseStyles} if the
+ * chip survives (a rescue) rather than unmounting.
+ */
+export const startChipCollapse = (root: HTMLElement): void => {
+  const { style } = root;
+  style.width = `${root.getBoundingClientRect().width}px`;
+  style.minWidth = "0";
+  style.overflow = "hidden";
+  // Commit the start width before the transition targets zero.
+  root.getBoundingClientRect();
+  style.transition = `width ${CHIP_COLLAPSE_MS}ms ease`;
+  style.width = "0px";
+};
+
+export const clearChipCollapseStyles = (root: HTMLElement): void => {
+  const { style } = root;
+  style.removeProperty("width");
+  style.removeProperty("min-width");
+  style.removeProperty("overflow");
+  style.removeProperty("transition");
+};
 
 /**
  * Whether the chip currently counts as abandonable: its draft is incomplete
@@ -406,11 +442,11 @@ export interface AbandonmentController {
  * within the chip's own scope (its enclosing FilterGroup, or its parent when
  * standalone), or the pointer rests over that scope, the fully faded chip is
  * *held* (`onPhaseChange("held")`): a faint inert placeholder keeping its
- * space (see the `abandonedGhost` recipe class). Once the interaction ends, a
- * held chip collapses its width over {@link ABANDONED_COLLAPSE_MS}
+ * space (see the `abandonedGhost` recipe class). The dismissal itself
+ * collapses the chip's width over {@link CHIP_COLLAPSE_MS}
  * (`onPhaseChange("collapsing")`) before `onDismiss`, so the row closes up
- * smoothly; a never-held chip is removed immediately, with no placeholder or
- * animation.
+ * smoothly — inside a FilterGroup; a standalone chip (nothing to reflow) is
+ * removed instantly (see {@link shouldAnimateChipRemoval}).
  */
 export const createAbandonmentController = ({
   isEligible,
@@ -464,13 +500,9 @@ export const createAbandonmentController = ({
   // must undo them for the rescued chip to lay out normally again.
   const clearCollapseStyles = () => {
     const root = getRoot();
-    if (!root) {
-      return;
+    if (root) {
+      clearChipCollapseStyles(root);
     }
-    root.style.removeProperty("width");
-    root.style.removeProperty("min-width");
-    root.style.removeProperty("overflow");
-    root.style.removeProperty("transition");
   };
   const stopHold = () => {
     held = false;
@@ -526,33 +558,23 @@ export const createAbandonmentController = ({
   };
 
   /**
-   * A previously held chip leaves by collapsing its width, so the row closes
-   * up smoothly right in front of the user rather than snapping. The inline
-   * width animation is driven here (not via the React style prop) so its
-   * start value can be measured and the transition applied in one sequence.
+   * A dismissed chip leaves by collapsing its width (inside a FilterGroup —
+   * see {@link shouldAnimateChipRemoval}), so the row closes up smoothly
+   * rather than snapping.
    */
   const collapseThenDismiss = () => {
     const root = getRoot();
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (!root || reduceMotion) {
+    if (!root || !shouldAnimateChipRemoval(root)) {
       onDismiss();
       return;
     }
     onPhaseChange("collapsing");
-    root.style.width = `${root.getBoundingClientRect().width}px`;
-    root.style.minWidth = "0";
-    root.style.overflow = "hidden";
-    // Commit the start width before the transition targets zero.
-    root.getBoundingClientRect();
-    root.style.transition = `width ${ABANDONED_COLLAPSE_MS}ms ease`;
-    root.style.width = "0px";
+    startChipCollapse(root);
     timers.collapse = window.setTimeout(() => {
       timers.collapse = null;
       clearCollapseStyles();
       onDismiss();
-    }, ABANDONED_COLLAPSE_MS);
+    }, CHIP_COLLAPSE_MS);
   };
 
   finalize = () => {
@@ -579,12 +601,8 @@ export const createAbandonmentController = ({
       }
       return;
     }
-    if (held) {
-      stopHold();
-      collapseThenDismiss();
-      return;
-    }
-    onDismiss();
+    stopHold();
+    collapseThenDismiss();
   };
 
   const evaluate = () => {

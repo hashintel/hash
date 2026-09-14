@@ -26,7 +26,10 @@ import {
   type FilterValue,
   type InputFor,
   abandonedFadeStyle,
+  CHIP_COLLAPSE_MS,
   focusWithoutRing,
+  shouldAnimateChipRemoval,
+  startChipCollapse,
   type AbandonmentPhase,
   createAbandonmentController,
   isAbandonable,
@@ -718,6 +721,26 @@ export const Filter = <
       abandonEvaluateRef.current();
     }
   }, [value]);
+
+  // Manual removal matches the abandoned dismissal: inside a FilterGroup the
+  // chip collapses its width before onRemove so the row closes up smoothly;
+  // standalone chips are removed instantly. The ref guards double-clicks
+  // during the animation.
+  const removingRef = useRef(false);
+  const handleRemove = () => {
+    if (!removeable || removingRef.current) {
+      return;
+    }
+    const root = rootRef.current;
+    if (!root || !shouldAnimateChipRemoval(root)) {
+      removeable.onRemove();
+      return;
+    }
+    removingRef.current = true;
+    startChipCollapse(root);
+    window.setTimeout(removeable.onRemove, CHIP_COLLAPSE_MS);
+  };
+
   const classes = filterRecipe({
     size,
     invalid,
@@ -928,7 +951,7 @@ export const Filter = <
           type="button"
           data-part="remove"
           className={classes.remove}
-          onClick={removeable.onRemove}
+          onClick={handleRemove}
           aria-label={`Remove ${propertyLabel} filter`}
         >
           <Icon name="close" size={caretSizeMap[size]} />
