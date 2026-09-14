@@ -295,12 +295,16 @@ const dailyConsumptionOf = (
  * Days on hand beyond what the inventory policy forces: cycle stock from the
  * MOQ averages out to half an order, safety stock is held in full, and both
  * convert to days through the observed consumption rate. Positive = stock the
- * policy does not explain.
+ * policy does not explain. Only dwell steps measure days on hand; procurement
+ * and production durations are lead/processing times, so those rows yield null.
  */
 const excessVsPolicyOf = (
   row: FilterableStepRow,
   context: StepFilterContext,
 ): number | null => {
+  if (!isDwellType(row.type)) {
+    return null;
+  }
   const policy = row.inventory_policy;
   const daysOnHand = measureValueOf(row, context);
   if (!policy || daysOnHand == null) {
