@@ -27,13 +27,31 @@ export const sortFromMenu = (
   dir: direction === "ASCENDING" ? "asc" : "desc",
 });
 
-export const DWELL_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
+/**
+ * Display context for sorter names. Only qualifiers that change the resulting
+ * order belong here: the measure (median vs P95 sort differently) and the
+ * analysis window. Plain units (currency, days) are omitted — the order is
+ * the same regardless of unit.
+ */
+export interface SorterDisplay {
+  /** Active measure label, e.g. "Median". */
+  measureLabel: string;
+  timeRange: string;
+}
+
+/** "(12m)" suffix for period-scoped metrics. */
+const periodSuffix = ({ timeRange }: SorterDisplay): string =>
+  ` (${timeRange})`;
+
+export const dwellSorters = (
+  display: SorterDisplay,
+): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
-  { name: "Observed days", sortKey: "median" },
-  { name: "Carrying cost", sortKey: "cost" },
+  { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
+  { name: `Carrying cost${periodSuffix(display)}`, sortKey: "cost" },
   { name: "Cost trend", sortKey: "costTrend" },
   { name: "Timing trend", sortKey: "trend" },
-  { name: "Change (days)", sortKey: "changeDays" },
+  { name: "Change", sortKey: "changeDays" },
   { name: "Previous value", sortKey: "previous" },
   { name: "MOQ", sortKey: "moq" },
   { name: "Safety stock", sortKey: "safetyStock" },
@@ -43,18 +61,23 @@ export const DWELL_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
   { name: "Status", sortKey: "status" },
 ];
 
-export const PLANNING_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
+export const planningSorters = (
+  display: SorterDisplay,
+): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
   { name: "Supplier", sortKey: "supplier" },
   { name: "Basis", sortKey: "basis" },
-  { name: "Material value", sortKey: "materialValue" },
+  {
+    name: `Material value${periodSuffix(display)}`,
+    sortKey: "materialValue",
+  },
   { name: "Planned days", sortKey: "planned" },
-  { name: "Observed days", sortKey: "median" },
+  { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
   { name: "Deviation %", sortKey: "deviation" },
   { name: "% exceeding plan", sortKey: "exceeding" },
-  { name: "Buffer releasable (days)", sortKey: "bufferReleasable" },
+  { name: "Buffer releasable", sortKey: "bufferReleasable" },
   { name: "Trend", sortKey: "trend" },
-  { name: "Change (days)", sortKey: "changeDays" },
+  { name: "Change", sortKey: "changeDays" },
   { name: "Previous value", sortKey: "previous" },
   { name: "Tail ratio (P95 ÷ median)", sortKey: "tailRatio" },
   { name: "Variability (CV)", sortKey: "variability" },
@@ -62,11 +85,13 @@ export const PLANNING_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
   { name: "Status", sortKey: "status" },
 ];
 
-export const TREND_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
+export const trendSorters = ({
+  measureLabel,
+}: Pick<SorterDisplay, "measureLabel">): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
-  { name: "Current value", sortKey: "median" },
+  { name: `Current value (${measureLabel})`, sortKey: "median" },
   { name: "Previous value", sortKey: "previous" },
-  { name: "Change (days)", sortKey: "changeDays" },
+  { name: "Change", sortKey: "changeDays" },
   { name: "Trend %", sortKey: "trend" },
   { name: "Tail ratio (P95 ÷ median)", sortKey: "tailRatio" },
   { name: "Variability (CV)", sortKey: "variability" },

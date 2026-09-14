@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { monthKeyMonthsAgo } from "../../../shared/time-range";
 import {
   applicableFilterKeys,
+  STEP_FILTER_DEFINITIONS,
+  stepFilterLabel,
   applyStepFilters,
   applyVendorStepFilters,
   buildStepFilterContext,
@@ -11,6 +13,7 @@ import {
   type ActiveStepFilter,
   type FilterableStepRow,
   type StepFilterContext,
+  type StepFilterOptions,
 } from "./step-filters";
 
 import type {
@@ -334,6 +337,38 @@ describe("vendorApplicableFilterKeys", () => {
   });
 });
 
+describe("stepFilterLabel", () => {
+  const display: StepFilterOptions = {
+    materialItems: [],
+    productItems: [],
+    supplierItems: [],
+    currency: "CHF",
+    timeRange: "12m",
+    measure: "p95",
+  };
+
+  const labelOf = (key: string) =>
+    stepFilterLabel(
+      STEP_FILTER_DEFINITIONS.find((definition) => definition.key === key)!,
+      display,
+    );
+
+  it("resolves unit-aware labels from the display context", () => {
+    expect(labelOf("carryingCost")).toBe("Carrying cost (12m)");
+    expect(labelOf("materialValue")).toBe("Material value (12m)");
+    expect(labelOf("measureValue")).toBe("Observed days (P95)");
+    expect(labelOf("stepType")).toBe("Step type");
+  });
+
+  it("carries the currency in the input placeholder, not the label", () => {
+    const carryingCost = STEP_FILTER_DEFINITIONS.find(
+      (definition) => definition.key === "carryingCost",
+    )!;
+    const [firstOperator] = carryingCost.operators(display);
+    expect(firstOperator?.input).toMatchObject({ placeholder: "CHF" });
+  });
+});
+
 describe("buildStepFilterOptions", () => {
   it("derives sorted, deduplicated items from the row union", () => {
     const rows = [
@@ -352,7 +387,11 @@ describe("buildStepFilterOptions", () => {
         products: [{ id: "prod-2", name: "Product 2" }],
       }),
     ];
-    const options = buildStepFilterOptions(rows);
+    const options = buildStepFilterOptions(rows, {
+      currency: "CHF",
+      timeRange: "12m",
+      measure: "median",
+    });
     expect(options.supplierItems.map((item) => item.value)).toEqual([
       "Acme",
       "Zeta",

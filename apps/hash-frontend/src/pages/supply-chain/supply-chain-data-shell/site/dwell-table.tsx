@@ -23,7 +23,7 @@ import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import { type DwellRow, type SortKey, type SortDir } from "./shared/row-types";
 import {
-  DWELL_SORTERS,
+  dwellSorters,
   sortFromMenu,
   sortMenuValueOf,
 } from "./shared/sort-menus";
@@ -100,7 +100,10 @@ export const DwellTable = ({
           <div className={threshold.filterHeaderActions}>
             {!filtersActive && filterBar}
             <SortMenu
-              items={DWELL_SORTERS}
+              items={dwellSorters({
+                measureLabel: MEASURE_LABELS[measure],
+                timeRange,
+              })}
               value={sortMenuValueOf(sort)}
               onChange={(key, direction) =>
                 applySort(sortFromMenu(key, direction))

@@ -18,6 +18,7 @@ import {
   statusKey,
   type StatusStore,
 } from "../../shared/status";
+import { useTimeRange } from "../../shared/time-range-context";
 import { TrendIndicator } from "../../shared/trend-indicator";
 import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortPlanningRows } from "./shared/helpers";
@@ -29,7 +30,7 @@ import {
   type SortDir,
 } from "./shared/row-types";
 import {
-  PLANNING_SORTERS,
+  planningSorters,
   sortFromMenu,
   sortMenuValueOf,
 } from "./shared/sort-menus";
@@ -112,6 +113,7 @@ export const PlanningTable = ({
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
+  const { timeRange } = useTimeRange();
 
   const { displayedRows, toggleSort, applySort } =
     useStepTableView<PlanningRow>({
@@ -135,7 +137,7 @@ export const PlanningTable = ({
           <div className={threshold.filterHeaderActions}>
             {!filtersActive && filterBar}
             <SortMenu
-              items={PLANNING_SORTERS}
+              items={planningSorters({ measureLabel, timeRange })}
               value={sortMenuValueOf(sort)}
               onChange={(key, direction) =>
                 applySort(sortFromMenu(key, direction))

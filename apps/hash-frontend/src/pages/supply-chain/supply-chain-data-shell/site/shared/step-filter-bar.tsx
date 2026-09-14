@@ -11,6 +11,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import {
   STEP_FILTER_DEFINITIONS,
+  stepFilterLabel,
   type ActiveStepFilter,
   type StepFilterKey,
   type StepFilterOptions,
@@ -64,7 +65,7 @@ export const StepFilterBar = ({
       const groupItems = groups.get(definition.group) ?? [];
       groupItems.push({
         id: definition.key,
-        text: definition.label,
+        text: stepFilterLabel(definition, options),
         onClick: () =>
           onFiltersChange([
             ...filters,
@@ -78,7 +79,7 @@ export const StepFilterBar = ({
       label,
       items,
     }));
-  }, [filters, onFiltersChange, addableKeys]);
+  }, [filters, onFiltersChange, addableKeys, options]);
 
   const setFilterValue = (
     filterKey: StepFilterKey,
@@ -135,11 +136,12 @@ export const StepFilterBar = ({
           return null;
         }
         const skipped = skippedKeys?.has(filter.filterKey) ?? false;
+        const label = stepFilterLabel(definition, options);
         const chip = (
           <Filter
             key={filter.filterKey}
             property={filter.filterKey}
-            propertyLabel={definition.label}
+            propertyLabel={label}
             operators={definition.operators(options)}
             value={filter.value}
             disabled={skipped}
@@ -163,7 +165,7 @@ export const StepFilterBar = ({
         return (
           <Tooltip
             key={filter.filterKey}
-            content={`"${definition.label}" does not apply to any row of this table, so it is not being applied here.`}
+            content={`"${label}" is ignored as it does not apply to this table.`}
           >
             {chip}
           </Tooltip>

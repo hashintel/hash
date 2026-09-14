@@ -28,7 +28,7 @@ import { type SortDir, type SortKey, type TrendRow } from "./shared/row-types";
 import {
   sortFromMenu,
   sortMenuValueOf,
-  TREND_SORTERS,
+  trendSorters,
 } from "./shared/sort-menus";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
@@ -171,7 +171,7 @@ export const TrendTable = ({
           <div className={threshold.filterHeaderActions}>
             {!filtersActive && filterBar}
             <SortMenu
-              items={TREND_SORTERS}
+              items={trendSorters({ measureLabel })}
               value={sortMenuValueOf(sort)}
               onChange={(key, direction) =>
                 applySort(sortFromMenu(key, direction))
