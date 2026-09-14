@@ -159,7 +159,7 @@ pub(crate) struct Summary {
     pub passes: bool,
     /// Whether the run activated the generation.
     pub activated: bool,
-    /// The full admission report as pretty-printed JSON.
+    /// The full structured admission report.
     pub report: QualityReport,
 }
 
