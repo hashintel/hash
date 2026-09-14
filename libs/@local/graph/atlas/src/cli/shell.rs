@@ -209,10 +209,12 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
 /// resolved.
 #[cfg(feature = "cli")]
 async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
-    let mut storage = Storage::in_temp_dir();
+    let mut storage = Storage::in_temp_dir().await?;
+
     if let Some(client) = s3.client().await? {
         storage.set_s3(client);
     }
+
     Ok(storage)
 }
 
