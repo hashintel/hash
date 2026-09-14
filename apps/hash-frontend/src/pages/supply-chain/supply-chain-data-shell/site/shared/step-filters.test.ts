@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { monthKeyMonthsAgo } from "../../../shared/time-range";
 import {
   applyStepFilters,
   applyVendorStepFilters,
@@ -154,6 +155,50 @@ describe("applyStepFilters", () => {
     expect(
       rowsAfter(rows, [filter("carryingCost", "gte", 1_000)], ctx),
     ).toEqual([dwell]);
+  });
+
+  it("only evaluates excess vs policy on dwell-type rows", () => {
+    const inventoryPolicy = {
+      material: "MAT-P",
+      plant: "PLA",
+      minimum_order_qty: 1_000,
+      order_multiple_qty: null,
+      order_uom: null,
+      minimum_order_source: null,
+      safety_stock_qty: 100,
+      safety_stock_uom: null,
+      safety_stock_source: null,
+      warnings: [],
+    };
+    // 36,528 units over 12 months (365.28 days) = exactly 100 units/day
+    const materialValue = {
+      unit_cost: 1,
+      currency: "USD",
+      unit_cost_source: null,
+      uom: null,
+      monthly: [{ month: monthKeyMonthsAgo(0), quantity: 36_528 }],
+    };
+    const dwellWithPolicy = row({
+      id: "raw_material_dwell_mat-p",
+      type: "raw_material_dwell",
+      material: "MAT-P",
+      inventory_policy: inventoryPolicy,
+      material_value: materialValue,
+    });
+    const procurementWithPolicy = row({
+      id: "procurement_mat-p",
+      type: "procurement",
+      material: "MAT-P",
+      inventory_policy: inventoryPolicy,
+      material_value: materialValue,
+    });
+    const policyRows = [dwellWithPolicy, procurementWithPolicy];
+    const ctx = context(policyRows);
+    // dwell: 8 observed - (1000/2 + 100)/100 = 6 policy days = +2 excess;
+    // procurement's duration is lead time, not days on hand, so it is excluded
+    expect(
+      rowsAfter(policyRows, [filter("excessVsPolicy", "gte", 1)], ctx),
+    ).toEqual([dwellWithPolicy]);
   });
 
   it("detects steps that crossed their plan this period", () => {
