@@ -517,7 +517,6 @@ fn radix_key_order(
     source
 }
 
-#[expect(clippy::missing_panics_doc)]
 impl WalkBench {
     /// Builds the corpus and runs the production cascade over it.
     ///
@@ -3316,7 +3315,6 @@ impl WalkBench {
     }
 }
 
-#[expect(clippy::missing_panics_doc)]
 impl VisibleCellPyramid {
     /// Counts the depth's cells inside `cell` holding a visible point.
     ///
@@ -3682,7 +3680,6 @@ impl ServedGeneration {
     }
 }
 
-#[expect(clippy::missing_panics_doc)]
 impl VisibleCascade {
     /// Returns the tile's scheduled count under the visible-only assignment.
     ///
