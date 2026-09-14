@@ -1,3 +1,5 @@
+//! Labelled prose with its description divided into a lead sentence and removable detail.
+
 use alloc::borrow::Cow;
 use core::{fmt, fmt::Display};
 
@@ -14,16 +16,18 @@ pub(crate) struct Description<'text> {
 /// A transferable label and optional description, with no source id.
 ///
 /// Every labelled item on a card - inverse, ancestor, endpoint type, example endpoint - is a
-/// phrase, so rendering and detail truncation are uniform whether or not a description is present.
+/// phrase. Rendering and detail truncation are uniform whether or not a description is present.
 pub(crate) struct Phrase<'text> {
+    /// The normalized label.
     pub label: Cow<'text, str>,
+    /// The normalized description, divided at its first sentence boundary.
     pub description: Option<Description<'text>>,
 }
 
 impl<'text> Phrase<'text> {
     /// Normalizes a labelled input into a phrase.
     ///
-    /// A whitespace-only label yields `Ok(None)`; a whitespace-only description yields a bare
+    /// A whitespace-only label yields `Ok(None)`. A whitespace-only description yields a bare
     /// label.
     ///
     /// # Errors

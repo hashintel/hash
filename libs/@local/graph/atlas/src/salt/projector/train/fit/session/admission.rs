@@ -17,8 +17,8 @@ use crate::salt::{
 ///
 /// The decision whether the boundary can freeze a radius is structural: force, review coverage, and
 /// the presence of an opening segment to measure after are properties of the index, the verdicts,
-/// and the schedule, not of coordinates, so an impossible boundary fails here instead of after the
-/// opening segment.
+/// and the schedule rather than of coordinates. An impossible boundary therefore fails here instead
+/// of after the opening segment.
 ///
 /// The columns, the semantic graph, and the support anchors share one corpus row domain - a
 /// wiring contract checked in debug builds, since all of them come from one generation.
@@ -51,7 +51,7 @@ where
     );
 
     let force = ForceClasses::measure(inputs.attraction);
-    // A measured radius needs the semantic-only baseline in front of the boundary; measuring on the
+    // A measured radius needs the semantic-only baseline in front of the boundary. Measuring on the
     // untrained init map would freeze a meaningless radius.
     if force.proximal && options.schedule.boundary() == 0 {
         return Err(TrainError::UnbaselinedRadius);
@@ -93,10 +93,10 @@ impl ForceClasses {
     }
 }
 
-/// Whether any reviewed-Proximal verdict covers a group that exerts Proximal force.
+/// Returns whether any reviewed-Proximal verdict covers a group that exerts Proximal force.
 ///
 /// This is the coordinate-free core of the boundary measurement: the calibration's pair weights are
-/// positive exactly on these groups' instances, so a positive measured mass exists if and only if
+/// positive exactly on these groups' instances, and a positive measured mass exists if and only if
 /// this holds.
 fn reviewed_proximal_force<N, E>(
     index: &AttractionIndex<N, E>,
@@ -118,7 +118,7 @@ fn reviewed_proximal_force<N, E>(
         })
 }
 
-/// Whether a group can exert any force.
+/// Returns whether a group can exert any force.
 ///
 /// Instances exist and the strength multiplier passes them through.
 const fn exerts_force<N, E>(group: &AttractionGroup<N, E>) -> bool {

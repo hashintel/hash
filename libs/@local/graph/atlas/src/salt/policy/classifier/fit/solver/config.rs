@@ -1,13 +1,12 @@
 //! Validated solver-loop configuration.
 //!
-//! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius domain,
+//! `SolverOptions` carries every knob of the trust-region exact-Newton loop: the radius domain,
 //! shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp counts, and the
-//! inclusive outer-iteration budget. Per-field domains travel in the field types - the validated
-//! scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a configuration
-//! value that exists is in domain. [`validate`](SolverConfig::validate) checks only what no field
-//! type can carry alone: the radius ordering and the acceptance-threshold ordering, in declared
-//! order, reporting the first violation. The preparation-side knobs ride along as
-//! [`PreparationSettings`], so one validated configuration covers the whole fit.
+//! inclusive outer-iteration budget. Per-field domains are carried by the field types, the
+//! validated scalars of [`math`](crate::math) and the non-zero integers of [`core::num`].
+//! `SolverConfig::new` checks the radius and acceptance-threshold orderings that no field type
+//! can carry alone. A [`SolverConfig`] value is therefore in domain. [`PreparationSettings`]
+//! supplies the preparation-side knobs within the same configuration.
 //!
 //! The outer-iteration budget is an inclusive maximum: equality is allowed and starting one more
 //! iteration fails the solve. It is the loop's only work limit. Per-request work is bounded by the
@@ -26,13 +25,18 @@ use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 pub(crate) enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
     RadiusDomain {
+        /// The configured minimum radius.
         minimum: DPositive,
+        /// The configured initial radius.
         initial: DPositive,
+        /// The configured maximum radius.
         maximum: DPositive,
     },
     /// The acceptance thresholds violate `accept < expand`.
     AcceptanceThresholds {
+        /// The configured acceptance threshold.
         accept: OpenUnitFraction,
+        /// The configured expansion threshold.
         expand: OpenUnitFraction,
     },
 }
@@ -96,7 +100,7 @@ pub(crate) struct SolverConfig {
 }
 
 impl SolverConfig {
-    /// Admits the configuration or names the first violated cross-field constraint.
+    /// Admits raw solver options after checking their cross-field orderings.
     ///
     /// # Errors
     ///
@@ -124,12 +128,13 @@ impl SolverConfig {
         Ok(())
     }
 
-    /// The gradient-certificate threshold `max(absolute, relative·‖gζ,0‖₂)`, derived once from the
-    /// initial scaled gradient norm.
+    /// Derives the gradient-certificate threshold from the initial scaled gradient norm.
+    ///
+    /// The threshold is `max(absolute, relative·‖gζ,0‖₂)`.
     ///
     /// A zero threshold is valid. With the absolute floor at zero and an exactly-zero initial norm,
     /// only an exactly-zero gradient certifies. The derivation is total: the relative tolerance
-    /// lies below one, so the scaled term never exceeds the norm. The maximum of two in-domain
+    /// lies below one, and the scaled term never exceeds the norm. The maximum of two in-domain
     /// values therefore stays in domain.
     pub(super) const fn gradient_threshold(&self, initial_norm: DNonNegative) -> DNonNegative {
         self.absolute_scaled_gradient_tolerance

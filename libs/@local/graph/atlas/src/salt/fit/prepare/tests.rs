@@ -46,10 +46,12 @@ impl Matrix {
         Self { storage, rows }
     }
 
+    /// Mutable access to row `row`'s components.
     fn row_mut(&mut self, row: usize) -> &mut [f32] {
         &mut self.storage.as_array_mut()[row * PROJECTOR_DIMENSIONS..][..PROJECTOR_DIMENSIONS]
     }
 
+    /// The resident rows as an aligned row-indexed slice.
     fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
         IdSlice::from_raw(
             AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
@@ -81,6 +83,10 @@ fn nodes_only(embeddings: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>>) -> MemoryDataset
     MemoryDataset::new(nodes, vec![], vec![], HashMap::new(), HashMap::new())
 }
 
+/// Writes a three-node dataset and reads the `f32` array file back bit for bit.
+///
+/// Writing a three-node dataset produces an `f32` array file of shape `[3, PROJECTOR_DIMENSIONS]`
+/// whose row `i` is node row `i`'s embedding bit for bit, with three ids and type lists.
 #[tokio::test]
 async fn representations_persist_row_aligned_with_the_node_stream() {
     let embeddings = vec![unit(0), unit(7), unit(511)];
@@ -113,6 +119,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     }
 }
 
+/// An empty dataset persists as a header-only array file with no ids or types.
 #[tokio::test]
 async fn empty_dataset_seals_an_empty_matrix() {
     let dataset = nodes_only(vec![]);
@@ -141,7 +148,7 @@ fn spot_check_certifies_a_normalized_matrix() {
     )
     .expect("a non-empty matrix under a sound budget checks");
 
-    // The corpus sits far below the sample size, so the check is exhaustive and the certification
+    // The corpus lies far below the sample size: the check is exhaustive and the certification
     // exact.
     assert_eq!(check.rows, 5);
     assert_eq!(check.sampled_rows, 5);
@@ -152,6 +159,7 @@ fn spot_check_certifies_a_normalized_matrix() {
     assert_eq!(check.confidence, open_unit_fraction!(0.999));
 }
 
+/// A NaN row and an over-norm row both appear in the check's defects, and the check fails.
 #[test]
 fn spot_check_lists_every_defective_sampled_row() {
     let mut matrix = Matrix::units(6);
@@ -181,6 +189,10 @@ fn spot_check_lists_every_defective_sampled_row() {
     );
 }
 
+/// Passes a `4e-5` norm residual at the default tolerance and fails it a hundredfold tighter.
+///
+/// A row `4e-5` over unit norm passes the default tolerance and fails a hundredfold tighter one,
+/// which names it as a defect.
 #[test]
 fn spot_check_honours_a_configured_tolerance() {
     let mut matrix = Matrix::units(4);
@@ -212,6 +224,7 @@ fn spot_check_honours_a_configured_tolerance() {
     );
 }
 
+/// A 700-row matrix under the default budget samples 688 rows and passes.
 #[test]
 fn spot_check_samples_large_matrices() {
     let matrix = Matrix::units(700);
@@ -228,6 +241,7 @@ fn spot_check_samples_large_matrices() {
     assert!(check.passes());
 }
 
+/// `spot_check` over no rows fails with `SpotCheckError::Empty`.
 #[test]
 fn spot_check_rejects_an_empty_matrix() {
     assert_eq!(
@@ -252,6 +266,10 @@ fn spool_root(name: &str) -> camino::Utf8PathBuf {
     dir
 }
 
+/// Round-trips every presence combination of the three optional confidences.
+///
+/// Every presence combination of the three optional confidences survives the record encode and
+/// decode, along with the row ids and multiplicity.
 #[test]
 fn instance_records_round_trip_their_option_confidences() {
     // Every presence combination of the three scores survives the
@@ -350,6 +368,7 @@ fn spool_round_trips_through_its_scratch_file() {
     assert_eq!(read_back, expected);
 }
 
+/// A spool sealed without records has count zero and maps to no records.
 #[test]
 #[expect(
     clippy::significant_drop_tightening,
@@ -367,6 +386,10 @@ fn empty_spool_maps_to_zero_readings() {
     assert!(mapped.records().is_empty());
 }
 
+/// Parses a valid record and fails one with an out-of-domain link confidence.
+///
+/// A valid record parses, and planting an out-of-domain value in its link-confidence lane makes the
+/// parse fail.
 #[test]
 #[expect(
     clippy::little_endian_bytes,
@@ -386,8 +409,8 @@ fn spool_record_parse_refuses_an_out_of_domain_confidence() {
         Ok(_)
     );
 
-    // The link confidence sits behind the record's row ids: `repr(C)` places it after the
-    // edge, relation, source, and target columns, one u64 lane each.
+    // The link confidence follows the record's row ids: `repr(C)` places it after the edge,
+    // relation, source, and target columns, one u64 lane each.
     let link_offset = 4 * size_of::<u64>();
     let mut bytes = record.as_bytes().to_vec();
     bytes[link_offset..link_offset + size_of::<f64>()].copy_from_slice(&2.0_f64.to_le_bytes());

@@ -11,8 +11,8 @@
 //! The document is the wire boundary between the annotation tooling and the fit. Rendered card
 //! text, embeddings, class counts, and smoothed targets all derive in Rust from these fields.
 //!
-//! [`AnnotationCorpus::from_slice`] runs the whole wire contract at construction, so consumers read
-//! cards without re-checking. The contract covers:
+//! [`AnnotationCorpus::from_slice`] runs the whole wire contract at construction, and consumers
+//! read cards without re-checking. The contract covers:
 //!
 //! - the declared schema
 //! - cards strictly ascending by identity in byte order
@@ -25,14 +25,15 @@
 //!
 //! A card's identity is its canonical URL. A type from the hash store carries its full versioned
 //! URL, because versions are immutable and distinct and each version's card is its own annotation
-//! subject. A wikidata record carries no version at source, so a retrieval timestamp and the digest
-//! of the retrieved source record pin its entity-URL identity ([`CardIdentity`]).
+//! subject. A wikidata record carries no version at source, and a retrieval timestamp and the
+//! digest of the retrieved source record therefore pin its entity-URL identity
+//! ([`CardIdentity`]).
 //!
 //! # Vote semantics
 //!
 //! Votes are verbatim five-way records, covering the three [`GeometryClass`]es plus `unclear` (the
 //! judge found the card ambiguous) and `abstain` (the judge withheld an answer).
-//! [`Card::vote_counts`] derives the class counts by counting the vote list, so a document cannot
+//! [`Card::vote_counts`] derives the class counts by counting the vote list, and a document cannot
 //! carry counts that disagree with their own provenance. Unclear and abstain votes assert no
 //! geometry class, and neither the per-class counts nor the target weight include them, which
 //! discounts an uncertain card without distorting its target distribution.
@@ -87,7 +88,7 @@ pub enum InvalidAnnotationCorpus {
     Schema { found: Box<str> },
     /// A card is not strictly after its predecessor in byte order of identity.
     ///
-    /// Which also covers duplicated identities.
+    /// This also covers duplicated identities.
     UnorderedCards { index: usize },
     /// A card's identity does not parse under its source's identity form.
     IdentityForm { index: usize, source: Source },
@@ -289,7 +290,7 @@ impl From<Direction> for card::Direction {
 ///
 /// Every boolean field is tri-state: `true` asserts the property, `false` asserts its absence, and
 /// `null` records that the source does not record the fact. The exporter always writes every key,
-/// so an absent key is a wire violation rather than a third spelling of `null`.
+/// and an absent key is therefore a wire violation rather than a third spelling of `null`.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Constraints {
@@ -337,7 +338,7 @@ pub(crate) struct Content {
     pub title: String,
     /// The relation's description prose, when any survives.
     ///
-    /// Identifier sanitization at the source can drop every sentence of a description; a card
+    /// Identifier sanitization at the source can drop every sentence of a description, and a card
     /// without one records `null`.
     #[serde(deserialize_with = "nullable")]
     pub description: Option<String>,
@@ -362,11 +363,15 @@ pub(crate) struct Content {
     pub slug: String,
 }
 
-/// The leakage axes that group a card.
+/// A card's leakage axes, the recorded values behind its validation group.
 ///
-/// Evaluation folds union cards sharing any axis value, so related cards never straddle a
-/// train/validation split. Axis values are grouping strings; identity semantics live in
-/// [`CardIdentity`] alone.
+/// Training-set assembly unites cards into validation groups through their identity and inverse
+/// identities, their relation family and base URL, and near-duplicate embeddings. Where a group
+/// exceeds its budget, subdivision relaxes the family union, then the base-URL union, then cuts
+/// near-duplicate edges farthest-first, down to an empty cut that separates even zero-distance
+/// pairs. Identity and inverse-identity edges never relax. The publisher is a recorded fact for
+/// stratified evaluation and not a union axis. Axis values are grouping strings, and identity
+/// semantics live in [`CardIdentity`] alone.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Axes {
@@ -418,7 +423,7 @@ impl HoldoutClass {
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Flags {
-    /// Annotation prompts disclosed the card's verdict, so it carries no votes.
+    /// Annotation prompts disclosed the card's verdict, and it therefore carries no votes.
     pub shot_excluded: bool,
     /// The human verdict class held out for evaluation, when one exists.
     #[serde(deserialize_with = "nullable")]
@@ -598,9 +603,8 @@ struct Document {
 /// A validated annotation-corpus document.
 ///
 /// Construction checks the whole wire contract, and the module documentation lists the clauses. The
-/// manifest pins the document by the SHA-256 of exactly the supplied bytes, whatever the format;
-/// JSON-vs-columnar for the corpus and verdict documents is an open format decision on the supply
-/// boundary, not a property of this type.
+/// manifest pins the document by the SHA-256 of exactly the supplied bytes, and the pin does not
+/// depend on the document's format.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct AnnotationCorpus {
     cards: Vec<Card>,
@@ -652,14 +656,18 @@ impl AnnotationCorpus {
 
 /// One card's admission under the wire contract.
 ///
-/// The admission owns the card's row index, so each contract clause reports its position without
-/// carrying it through every check.
+/// The admission owns the card's row index, and each contract clause therefore reports its
+/// position without carrying it through every check.
 struct CorpusAdmission {
     index: usize,
 }
 
 impl CorpusAdmission {
     /// Checks one wire card's contract clauses and types its identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first violated clause as an [`InvalidAnnotationCorpus`].
     fn admit(&self, card: WireCard) -> Result<Card, InvalidAnnotationCorpus> {
         let index = self.index;
         let identity = self.identity(&card)?;
@@ -703,6 +711,10 @@ impl CorpusAdmission {
     }
 
     /// Types a wire card's identity under its source's form and pin rules.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first violated identity or pin clause as an [`InvalidAnnotationCorpus`].
     fn identity(&self, card: &WireCard) -> Result<CardIdentity, InvalidAnnotationCorpus> {
         let index = self.index;
         match card.source {
@@ -763,6 +775,11 @@ impl CorpusAdmission {
     }
 
     /// Checks one card's content strings and endpoint bounds.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first empty field, identifier-carrying field, or inverted endpoint bound as an
+    /// [`InvalidAnnotationCorpus`].
     fn content(&self, content: &Content) -> Result<(), InvalidAnnotationCorpus> {
         let index = self.index;
         let mut prose: Vec<(&'static str, &str)> = vec![
@@ -827,6 +844,10 @@ impl CorpusAdmission {
     }
 
     /// Checks one card's axis strings.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first empty axis field as an [`InvalidAnnotationCorpus`].
     fn axes(&self, axes: &Axes) -> Result<(), InvalidAnnotationCorpus> {
         let index = self.index;
         let mut fields: Vec<(&'static str, &str)> = vec![
@@ -844,7 +865,14 @@ impl CorpusAdmission {
         Ok(())
     }
 
-    /// Checks every vote's provenance strings and temperature.
+    /// Checks every vote's provenance strings.
+    ///
+    /// The temperature needs no check here: its [`DFinite`] type refuses a non-finite reading at
+    /// deserialization.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first empty vote field as an [`InvalidAnnotationCorpus`].
     fn votes(&self, votes: &[Vote]) -> Result<(), InvalidAnnotationCorpus> {
         let index = self.index;
         for (vote_index, vote) in votes.iter().enumerate() {

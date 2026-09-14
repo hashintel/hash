@@ -26,8 +26,8 @@ impl AffinityEnergy {
     /// Returns [`None`] unless the curve's exponent satisfies `b ≥ 0.5`. The offset keeps the
     /// attraction value finite for far pairs and bounds the repulsion gradient for near pairs.
     /// The exponent bound keeps the coordinate gradient finite at coincidence, where its
-    /// magnitude scales as `d^(2b - 1)` (fitted curves land well inside the bound - rejecting
-    /// the rest makes gradient boundedness a property of the type, not of the corpus).
+    /// magnitude scales as `d^(2b - 1)`. Fitted curves lie well inside the bound. Rejecting the
+    /// rest makes gradient boundedness a property of the type rather than of the corpus.
     #[must_use]
     pub(crate) fn new(curve: AffinityCurve, epsilon: Positive) -> Option<Self> {
         (curve.b() >= 0.5).then_some(Self { curve, epsilon })
@@ -71,7 +71,7 @@ impl AffinityEnergy {
         (value, derivative)
     }
 
-    /// Computes the shared derivative mass `a b u^(b - 1) q^2`.
+    /// Computes the shared derivative mass `a b u^(b - 1) q²`.
     ///
     /// `-q'(u)` in both derivatives; the callers divide by their respective logarithm arguments and
     /// choose the sign.
@@ -95,7 +95,7 @@ impl AffinityEnergy {
 /// radius and stays positive at every finite distance, asymptotically a factor of `e` per
 /// temperature of depth inside, with residual `sigmoid(-radius / temperature)` at coincidence.
 ///
-/// The energy is strictly increasing, so coincidence is its unique minimum. That residual and the
+/// The energy is strictly increasing, and coincidence is its unique minimum. That residual and the
 /// competing terms jointly set a pair's equilibrium distance.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
@@ -240,9 +240,10 @@ impl RelationEnergy {
     ///
     /// The mixture scales each class energy by its weight, and the derivative is the matching
     /// weighted sum of class derivatives. The fold widens the f32-born readings once and runs
-    /// in double width, and a product of unbounded weights and saturated energies can still
-    /// overflow, so the pair rides as unclaimed derivations and each consumer folds the
-    /// reading under its own check.
+    /// in double width, where a product of two in-domain `f32` operands lies far inside the
+    /// `f64` range and cannot overflow. The types carry no such bound. The pair therefore
+    /// returns as unclaimed [`Derivation`]s, and each consumer chooses its own exit: a checked
+    /// finish or a raw fold.
     pub(crate) fn mixture(
         self,
         normalized: NonNegative,

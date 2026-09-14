@@ -1,4 +1,4 @@
-//! One receipt-dumping solve of a fold subset from a frozen corpus.
+//! One record-dumping solve of a fold subset from a frozen corpus.
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
@@ -29,15 +29,21 @@ pub(crate) struct ProbeArgs {
     #[arg(long, requires = "root")]
     generation: Option<GenerationId>,
 
-    /// Directory of supplied annotation artifacts under their staged names
-    /// (annotation-corpus.json, annotation-embeddings.arr, annotation-hashes.arr), probed under
-    /// the compiled deployment defaults; the corpus of a fit that never published probes through
-    /// this form.
+    /// Directory of supplied annotation artifacts under their staged names.
+    ///
+    /// The staged names are annotation-corpus.json, annotation-embeddings.arr and
+    /// annotation-hashes.arr, probed under the compiled deployment defaults. The corpus of a fit
+    /// that never published probes through this form.
     #[arg(long, value_hint = ValueHint::DirPath)]
     inputs: Option<Utf8PathBuf>,
 
-    /// The fold-assignment seed; the configured seed probes the production assignment, any other
-    /// seed probes an alternative.
+    /// The fold-assignment seed.
+    ///
+    /// The configured seed probes the production assignment, and any other seed probes an
+    /// alternative.
+    ///
+    /// Defaults to `0`. This flag reads no environment variable. A deployment whose seed is not
+    /// zero passes it here to probe the production assignment.
     #[arg(long, default_value_t = 0)]
     seed: u64,
 
@@ -55,8 +61,9 @@ pub(crate) struct ProbeArgs {
 }
 
 impl ProbeArgs {
-    /// Reconstructs the frozen corpus and solves the fold subset solo, then dumps every receipt
-    /// with its curvature censuses.
+    /// Reconstructs the frozen corpus and solves the fold subset solo.
+    ///
+    /// The run then dumps every record with its curvature censuses.
     ///
     /// # Panics
     ///

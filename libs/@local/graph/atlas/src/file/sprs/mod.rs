@@ -79,8 +79,10 @@ use crate::file::region::{
     padded_size,
 };
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -295,9 +297,11 @@ pub(crate) trait SprsIndex: SpIndex + FromBytes + IntoBytes + Immutable {
     const VARIANT: IndexVariant;
 }
 
-// One-line impls over every fixed-width scalar: enough expansions that
-// drift between hand-written copies is the likelier bug. The assert
-// keeps each scalar tag's pinned width equal to the type's real width.
+/// Implements [`SprsValue`] for each `type => tag` pair, asserting the widths agree.
+///
+/// One-line impls over every fixed-width scalar: enough expansions that
+/// drift between hand-written copies is the likelier bug. The assert
+/// keeps each scalar tag's pinned width equal to the type's real width.
 macro_rules! sprs_value {
     ($($element:ty => $variant:ident,)*) => {
         $(
@@ -312,6 +316,7 @@ macro_rules! sprs_value {
     };
 }
 
+/// Implements [`SprsIndex`] for each `type => variant` pair, asserting the widths agree.
 macro_rules! sprs_index {
     ($($element:ty => $variant:ident,)*) => {
         $(
@@ -366,8 +371,10 @@ sprs_index! {
     i64 => I64,
 }
 
-// The scalar tags mirror ArrayVariant's discriminants, so the two formats speak one scalar
-// vocabulary. The asserts below keep the two sets of discriminants equal.
+/// Asserts that each named tag has the same discriminant in both formats.
+///
+/// The scalar tags use [`ArrayVariant`]'s discriminants. The assertions below keep the two sets
+/// equal.
 macro_rules! tag_mirrors_variant {
     ($($variant:ident,)*) => {
         const _: () = {

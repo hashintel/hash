@@ -30,6 +30,7 @@ fn new_validates_corners() {
     assert!(Bounds2::new(Vec2::ZERO, Vec2::new(f32::INFINITY, 1.0)).is_none());
 }
 
+/// `from_points` over the shared fixture yields the tight minimum, maximum, size and centre.
 #[test]
 fn from_points_finds_tight_extent() {
     let bounds = Bounds2::from_points(POINTS).expect("points are finite and non-empty");
@@ -40,6 +41,7 @@ fn from_points_finds_tight_extent() {
     assert_eq!(bounds.centre(), Vec2::new(2.5, 6.5));
 }
 
+/// `from_points` returns `None` for no points and for any non-finite point wherever it sits.
 #[test]
 fn from_points_rejects_empty_and_non_finite() {
     assert!(Bounds2::from_points([]).is_none());
@@ -63,6 +65,7 @@ fn contains_is_boundary_inclusive() {
     assert!(!bounds.contains(Vec2::new(f32::NAN, 1.0)));
 }
 
+/// `union` takes the componentwise minimum of the minima and maximum of the maxima.
 #[test]
 fn union_covers_both_operands() {
     let left = Bounds2::new(Vec2::new(-1.0, 0.0), Vec2::new(1.0, 2.0))
@@ -75,6 +78,8 @@ fn union_covers_both_operands() {
     assert_eq!(union.max(), Vec2::new(4.0, 2.0));
 }
 
+/// `with_minimum_extent` widens a zero-extent axis symmetrically about the centre and leaves an
+/// axis already wider alone.
 #[test]
 fn minimum_extent_widens_degenerate_axes_only() {
     // All points on a vertical line: x extent is zero, y extent is 4.
@@ -89,6 +94,8 @@ fn minimum_extent_widens_degenerate_axes_only() {
     assert_eq!(widened.max().x(), 4.0);
 }
 
+/// `with_aspect_ratio` grows only the axis that is short for the ratio, keeping the centre: a
+/// wide box gains height and a tall box gains width.
 #[test]
 fn aspect_ratio_grows_the_axis_that_is_short_for_it() {
     let wide = Bounds2::new(Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0))
@@ -108,6 +115,8 @@ fn aspect_ratio_grows_the_axis_that_is_short_for_it() {
     assert_eq!(grown.centre(), tall.centre());
 }
 
+/// A zero-extent axis grows out of the other under `with_aspect_ratio`, and a single point stays
+/// a point.
 #[test]
 fn aspect_ratio_takes_a_degenerate_axis_out_of_the_other() {
     let ratio = Positive::new(2.0).expect("2 is positive");
@@ -119,11 +128,13 @@ fn aspect_ratio_takes_a_degenerate_axis_out_of_the_other() {
     assert_eq!(grown.size(), Vec2::new(8.0, 4.0));
     assert_eq!(grown.centre(), line.centre());
 
-    // A single point has no extent to take a ratio of.
+    // A single point has no extent to take a ratio of, and comes back bit for bit.
     let point = Bounds2::new(Vec2::splat(3.0), Vec2::splat(3.0)).expect("a point is a valid box");
     assert_eq!(point.with_aspect_ratio(ratio).size(), Vec2::ZERO);
 }
 
+/// `scaled_about_centre` multiplies the size by the factor while keeping the centre, for factors
+/// above and below one.
 #[test]
 fn scaling_about_the_centre_moves_both_corners() {
     let bounds = Bounds2::new(Vec2::new(0.0, 2.0), Vec2::new(4.0, 6.0))
@@ -144,8 +155,8 @@ fn scaling_about_the_centre_moves_both_corners() {
 fn quantize_maps_onto_the_axis_grid_and_clamps_outside_points() {
     let bounds = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 1.0)).expect("the corners are ordered");
 
-    // The minimum corner takes cell zero; the maximum edge takes the last cell; the midpoint
-    // lands exactly on the middle cell because every `f32` coordinate quantizes exactly.
+    // the unit interval's midpoint scales to exactly 2³¹. The maximum endpoint clamps to
+    // `u32::MAX`, while the minimum maps to zero.
     assert_eq!(bounds.quantize(Vec2::ZERO), [0, 0]);
     assert_eq!(bounds.quantize(Vec2::new(1.0, 0.5)), [u32::MAX, 1 << 31]);
 
@@ -180,6 +191,7 @@ fn from_slice_par_matches_serial() {
     assert_eq!(Bounds2::from_slice_par(&[]), None);
 }
 
+/// A NaN deep in a later parallel chunk makes `from_slice_par` return `None`.
 #[test]
 fn from_slice_par_poisons_on_non_finite_in_any_chunk() {
     let mut points = scattered_points(10_000);
@@ -189,6 +201,9 @@ fn from_slice_par_poisons_on_non_finite_in_any_chunk() {
     assert_eq!(Bounds2::from_slice_par(&points), None);
 }
 
+/// `fit` maps the layout's corners and centre onto the viewport's within rounding, the batched
+/// application agrees with the scalar one, and every mapped point lies inside the viewport up to
+/// an ulp-scale margin.
 #[test]
 fn fit_maps_corners_onto_target() {
     let layout = Bounds2::from_points(POINTS).expect("points are finite and non-empty");
@@ -223,6 +238,8 @@ fn fit_maps_corners_onto_target() {
     }
 }
 
+/// `fit` returns `None` for a zero-extent axis and `Some` once `with_minimum_extent` has widened
+/// it.
 #[test]
 fn fit_rejects_degenerate_extents_until_widened() {
     let target =
@@ -234,6 +251,8 @@ fn fit_rejects_degenerate_extents_until_widened() {
     assert!(collinear.with_minimum_extent(1.0).fit(target).is_some());
 }
 
+/// `normalize_into` lands the corners and centre exactly on the target's, since it computes the
+/// unit coordinate before scaling.
 #[test]
 fn normalize_into_maps_corners_and_midpoints_exactly() {
     let layout = Bounds2::from_points(POINTS).expect("points are finite and non-empty");
@@ -247,6 +266,8 @@ fn normalize_into_maps_corners_and_midpoints_exactly() {
     assert_eq!(mapped, [Vec2::ZERO, Vec2::splat(10.0), Vec2::splat(5.0)]);
 }
 
+/// `normalize_into` maps a zero-extent axis to the target's centre while the other axis maps
+/// affinely.
 #[test]
 fn normalize_into_collapses_a_zero_extent_axis_to_the_target_centre() {
     let collinear = Bounds2::from_points([Vec2::new(3.0, 0.0), Vec2::new(3.0, 4.0)])
@@ -260,6 +281,8 @@ fn normalize_into_collapses_a_zero_extent_axis_to_the_target_centre() {
     assert_eq!(mapped, [Vec2::new(0.0, -0.5)]);
 }
 
+/// A unit box at `2¹⁴` maps its quarter point exactly to `-0.5` through the per-axis `f64` map,
+/// where an `f32` scale-translate composition would cancel.
 #[test]
 fn normalize_into_stays_exact_far_from_the_origin() {
     // A box sitting at 2^14 with unit extent: the world minimum dwarfs
@@ -438,11 +461,6 @@ fn aspect_ratio_contains_the_box_and_holds_its_ratio(
     );
 }
 
-/// Scaling about the centre scales both extents by the factor and fixes the centre.
-///
-/// A factor above one grows the box and one below shrinks it, so the same law states containment in
-/// whichever direction the factor points. Tolerances scale with the scaled box's magnitude, since
-/// that is what its corners were rebuilt from.
 #[property_test]
 fn scaling_about_the_centre_scales_both_extents(
     #[strategy = bounds_strategy()] bounds: Bounds2,
@@ -491,6 +509,8 @@ mod miri {
     use super::scattered_points;
     use crate::math::{Bounds2, Vec2};
 
+    /// `from_slice` equals `from_points` for lengths 0, 1, 3, 4, 5, 8 and 11, covering the empty,
+    /// remainder-only, exact-batch and mixed paths.
     #[test]
     fn from_slice_matches_from_points_for_every_remainder_length() {
         // Cover empty, remainder-only, exact-batch, and mixed lengths.
@@ -505,6 +525,7 @@ mod miri {
         }
     }
 
+    /// `from_slice` equals `from_points` for every start offset across a batch stride.
     #[test]
     fn from_slice_matches_from_points_at_every_alignment_offset() {
         // Slide the slice start across a full batch stride so the split lands
@@ -522,6 +543,7 @@ mod miri {
         }
     }
 
+    /// A NaN or infinity in the batched body or the remainder makes `from_slice` return `None`.
     #[test]
     fn from_slice_rejects_non_finite_in_batch_and_remainder() {
         // Position 2 falls in the batched body, position 9 in the remainder of an 11-point slice.

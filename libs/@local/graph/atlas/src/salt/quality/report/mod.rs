@@ -1,49 +1,48 @@
 //! Rendered probe evidence and the release verdict it supports.
 //!
-//! [`assess`] turns one probe's readings into a flat, serializable record: every grid's whole-probe
-//! metrics per neighbourhood size, per-subgroup readings on the primary grid, the subgroup flags
-//! the degradation rule raises, and the thresholds the run applied. The report is a rendering of
-//! [`ProbeReadings`] - regrouping or re-assessment starts from the readings, never from the report.
+//! [`assess`] renders [`ProbeReadings`] as whole-probe metrics, per-type neighbourhood rows,
+//! subgroup flags and the applied thresholds. Retain the per-anchor readings for regrouping into
+//! different subgroups. The report contains aggregates, not individual anchor cells.
 //!
-//! The primary fidelity surface is the corpus-exact map-versus-representation grid. The pass ranks
-//! each sampled anchor against the full corpus, so the comparison universe carries no subsampling,
-//! while the anchors themselves come from a sample, so aggregate means retain anchor-sampling
-//! uncertainty. The thresholds bind there, against the observed probe statistic rather than a
-//! population guarantee or lower confidence bound. The sampled grids provide context - the
-//! canonical triangle that supplies the representation baseline for the map's canonical reading -
-//! and stay report-only.
+//! Neighbourhood thresholds apply to the corpus map-versus-representation grid. Its comparison
+//! universe contains every non-anchor row, but the aggregate retains anchor-sampling uncertainty.
+//! Thresholds check observed statistics rather than population guarantees or confidence bounds.
+//! Sampled neighbourhood grids provide map-versus-canonical context alongside the representation
+//! baseline and remain report-only.
 //!
-//! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
-//! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
-//! its degradation - one minus recall - exceeds the configured factor times the whole-probe
-//! degradation - twice, by the normative default. The rule raises a flag per neighbourhood size, so
-//! the size trend - recall rising with the neighbourhood suggests near-tie reshuffling rather than
-//! placement loss, evidence rather than a classifier - shows up in the flags and in every
-//! subgroup's rows. Subgroups below the configured anchor floor never flag - a handful of anchors
-//! cannot support a degradation ratio - but the report still carries their rows.
+//! Subgroups are entity types. An anchor contributes once per direct-type list entry, including
+//! repeated entries. With unique type lists, multi-typed anchors count once in each group. At each
+//! neighbourhood size, a sufficiently sampled subgroup flags when dₛ > f · d, where dₛ and d are
+//! one minus subgroup and whole-probe recall, and f is a finite configured factor (2 by default).
+//! The subtraction and comparison use f64 readings. A NaN factor instead flags every sufficiently
+//! sampled subgroup because the implementation tests the negation of dₛ ≤ f · d. Subgroups below
+//! the anchor floor (8 by default) never flag, but keep their rows. This limits individual-anchor
+//! leverage without establishing statistical significance. Recall increasing with neighbourhood
+//! size can suggest boundary reshuffling, but does not classify its cause.
 //!
-//! Density distortion reads the spread of log neighbourhood-radius ratios over the anchors, a
-//! unit-free reading of uneven compression; the triplet rows read distance-order preservation over
-//! the probe's shared pair sample for all three space pairs. The report renders both from the
-//! readings like every other row.
+//! Density distortion is the unscaled median absolute deviation of log neighbourhood-radius ratios
+//! across anchors. With positive finite map radius rₘ and representation radius rᵣ, each log ratio
+//! is ln(rₘ) − ln(rᵣ). Uniform radius rescaling adds a constant to all ratios and leaves the spread
+//! unchanged in exact arithmetic. Triplet rows measure distance-order preservation over the shared
+//! pair sample for every space pair. Admission checks map-versus-representation triplet agreement
+//! and density spread alongside the neighbourhood metrics.
 //!
-//! When the probe carries a clump grouping, the report adds the corpus reading collapsed onto clump
-//! ids and re-evaluates every flag on those ids. A flag whose collapsed degradation satisfies the
-//! same factor rule comes out clump-resolved, meaning the breach vanishes once recall counts by
-//! component label. That is a triage diagnostic and nothing stronger, since chaining lets ε
-//! single-linkage components reach arbitrary diameter, so resolution certifies neither component
-//! compactness nor within-component placement. Subgroup flags and their resolution are report-only
-//! either way, and they steer the human reading the report without affecting admission.
+//! When the probe carries [`Clumps`](super::clump::Clumps), the report adds collapsed corpus and
+//! representation-baseline recall. Each plain subgroup flag is clump-resolved when its collapsed
+//! degradations satisfy dₛ ≤ f · d. This marks agreement after collapsing rows onto their
+//! components. Single-linkage components can have diameter much greater than ε, and resolution
+//! certifies neither compactness nor within-component placement. Subgroup flags and clump
+//! resolution never affect admission.
 //!
-//! The thresholds default to maximally permissive values - floors at zero, ceilings at their domain
-//! edge - and the default verdict therefore turns on evidence presence rather than fidelity. An
-//! invented floor would rest release verdicts on fiction. Deployments impose measured bounds
-//! through the run's validated thresholds document.
+//! Default thresholds accept all in-domain fidelity values while requiring readings. Configure
+//! measured bounds through [`ThresholdOverrides`] for a stricter assessment.
+//! [`QualityReport::controls`] defines the evidence-presence checks, which do not validate report
+//! provenance or cross-field consistency.
 //!
-//! The suite's instruments over published artifacts live beside the rendering they read:
-//! [`calibration`] sweeps the clump threshold over a published k-NN table for the evidence behind
-//! the grouping's default, and [`live`] runs one whole assessment of a root's active generation
-//! against the store at the snapshot the generation records.
+//! For measurements over published artifacts:
+//! [`calibration`] sweeps the clump threshold over a published k-NN table. [`live`] assesses the
+//! generation selected by a root's current pointer, querying the store with its recorded temporal
+//! axes.
 
 use alloc::collections::BTreeMap;
 
@@ -69,7 +68,15 @@ mod thresholds;
 
 /// Renders one probe's typed readings into a report under the thresholds.
 ///
-/// Subgroup readings merge the per-anchor cells, so the report costs no ranking work.
+/// Subgroup readings merge per-anchor cells without ranking work. `readings` must preserve
+/// [`ProbeReadings`]' axis, shape and arithmetic-capacity requirements. Type-list entries become
+/// subgroup memberships without deduplication.
+///
+/// # Panics
+///
+/// Panics on empty primary anchor or neighbourhood axes, out-of-domain grid indices, or
+/// incompatible aggregate shapes. Inconsistent radius counts can also panic with integer overflow
+/// checks enabled.
 #[must_use]
 pub(crate) fn assess<N>(
     readings: TypedReadings<'_, N>,
@@ -95,8 +102,7 @@ pub(crate) fn assess<N>(
                 .collect()
         });
 
-    // Membership by ontology row; the map iterates ascending, so
-    // subgroups and flags order deterministically.
+    // ontology-row ordering fixes subgroup and flag order
     let mut members: BTreeMap<OntologyRowId, Vec<AnchorOrdinal>> = BTreeMap::new();
     for (anchor, types) in anchor_types.iter().enumerate() {
         for &ontology in types {
@@ -172,8 +178,13 @@ pub(crate) fn assess<N>(
 
 /// Merges subgroup memberships into per-type rows and degradation flags.
 ///
-/// When clump readings exist, the same factor rule over the collapsed recalls re-evaluates every
-/// breach on clump ids and decides the flag's resolution.
+/// When clump readings exist, the same factor rule over collapsed recalls decides each flag's
+/// resolution. `overall` and `clump_overall` must align with the neighbourhood axis.
+///
+/// # Panics
+///
+/// Panics for empty membership lists, invalid grid indices or incompatible aggregate shapes. Clump
+/// readings require corresponding whole-probe clump aggregates.
 fn subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     overall: &[MetricRow],
@@ -204,8 +215,7 @@ fn subgroup_reports<N>(
                     continue;
                 }
 
-                // The triage re-evaluation applies the same rule on clump
-                // ids, subgroup against the whole probe.
+                // compare collapsed subgroup degradation with collapsed whole-probe degradation
                 let collapsed = readings.clumps.as_ref().map(|clumps| {
                     let merged = clumps.map_representation.merged(anchors, step);
                     let overall = &clump_overall
@@ -240,9 +250,12 @@ fn subgroup_reports<N>(
 
 /// Merges subgroup memberships into per-type representation-baseline rows.
 ///
-/// Every row merges the sampled representation-versus-canonical cells of the subgroup's anchors,
-/// plain and - when clump readings exist - collapsed, so the audit stratification and its triage
-/// evidence travel together.
+/// Each row compares plain sampled representation-versus-canonical recall with its collapsed
+/// counterpart, when available.
+///
+/// # Panics
+///
+/// Panics for an empty membership list, an invalid grid index or incompatible aggregate shapes.
 fn baseline_subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     members: &BTreeMap<OntologyRowId, Vec<AnchorOrdinal>>,
@@ -281,7 +294,16 @@ fn baseline_subgroup_reports<N>(
         .collect()
 }
 
-/// Reads each neighbourhood size's density distortion from the radii.
+/// Computes each neighbourhood size's median log ratio and unscaled MAD.
+///
+/// Positive radii contribute, and zero radii count as degenerate. Finite positive inputs are
+/// required for finite log ratios. Infinity produced by overflowing distance arithmetic survives
+/// the positivity filter.
+///
+/// # Panics
+///
+/// Panics with integer overflow checks enabled when a step has more contributing radius pairs than
+/// anchors.
 fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
     let steps = readings.neighbourhoods.len();
     readings
@@ -318,8 +340,6 @@ fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
         .collect()
 }
 
-// Statistics vocabulary promotes to a shared module on its second
-// consumer. Median and MAD have one consumer.
 /// Returns the median, averaging the middle pair over even lengths.
 ///
 /// Empty input yields [`None`]. Sorts `values` in place.

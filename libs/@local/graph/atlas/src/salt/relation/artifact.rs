@@ -1,15 +1,14 @@
 //! The relation indexes' published forms and their mapped readers.
 //!
-//! A [`ProtectionIndex`] publishes as one [`crate::file::sprs`] file holding its
-//! [`ProtectionMatrix`](super::protection::ProtectionMatrix) verbatim; the evidence pair travels as
-//! an opaque 8-byte value. [`ProtectionArchive`] reopens the file over a whole-file mapping and
-//! validates the index invariants once, so hard-negative mining reads the evidence from the page
-//! cache without holding it on the heap.
+//! [`ProtectionIndex`] writes a [`crate::file::sprs`] matrix with opaque 8-byte evidence values.
+//! [`AttractionIndex`] writes [`crate::file::attraction`] group records and a flat edge array. Both
+//! archive types validate local index invariants over mapped bytes without copying those regions
+//! onto the heap.
 //!
-//! An [`AttractionIndex`] publishes as one [`crate::file::attraction`] file: group records over a
-//! flat edge array, the same factorization the resident index stores. [`AttractionArchive`] reopens
-//! it the same way and validates the index invariants once, so relation-edge sampling reads groups
-//! and edges from the page cache.
+//! Mapped borrowing requires the backing bytes to remain immutable. The archives verify no shared
+//! provenance between the files and reconstruct no evidence from links and policies. Sparse-view
+//! creation and attraction-region access repeat lower-level validation, with the costs documented
+//! on the accessors.
 #![cfg_attr(
     not(test),
     expect(
@@ -51,15 +50,6 @@ where
 {
     type Error = WriteSprsError;
 
-    /// Writes the index as a sparse matrix file.
-    ///
-    /// Returns the SHA-256 of the written bytes, which is the identity the repository records for
-    /// the published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails, or the index spans zero rows, which the
-    /// format cannot represent: a generation without node rows publishes no artifacts.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -68,7 +58,7 @@ where
 
         write_matrix(&self.matrix(), &mut writer).map_err(|error| match error {
             error @ (WriteSprsError::Io(_) | WriteSprsError::ZeroDimension { .. }) => error,
-            // A validated index is row-compressed and unsliced.
+            // index validation accepts offset pointers, while the writer requires an initial zero.
             WriteSprsError::Sliced => {
                 unreachable!("a validated index's pointers begin at zero")
             }
@@ -78,8 +68,7 @@ where
     }
 }
 
-// Only the corpus-domain index publishes; the distinct-domain twin feeds the trainer and
-// never stages.
+// publication is restricted to the corpus row domain.
 impl WriteAs<artifact::Protection> for ProtectionIndex<NodeRowId> {}
 
 /// An opened sparse matrix file does not hold a valid protection index.
@@ -119,10 +108,9 @@ impl Error for InvalidProtectionFile {
 
 /// A published protection index opened over its mapped file.
 ///
-/// Construction checks the index invariants once, so an open index only serves valid views; the
-/// matrix regions stay in the page cache under memory pressure and off the heap. Each
-/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
-/// so stages call it once and hold the view.
+/// Construction checks the index invariants once. Matrix regions borrow from the file mapping
+/// rather than a heap copy. [`Self::view`] repeats [`SprsFile::matrix`]'s value-pattern and
+/// sparse-structure checks. Reuse a view for repeated lookups.
 #[derive(Debug)]
 pub(crate) struct ProtectionArchive<N> {
     file: SprsFile,
@@ -137,8 +125,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the index's matrix layout or the matrix
-    /// violates a [`ProtectionIndex`] invariant.
+    /// Returns [`InvalidProtectionFile`] for an incompatible matrix layout or an index-invariant
+    /// violation.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidProtectionFile> {
         let matrix = file.matrix().map_err(InvalidProtectionFile::Matrix)?;
@@ -150,7 +138,12 @@ where
         })
     }
 
-    /// Borrows the validated index.
+    /// Borrows the index after rechecking value patterns and sparse structure.
+    ///
+    /// # Complexity
+    ///
+    /// Takes `O(N + M)` time for `N` rows and `M` stored entries. It borrows the regions without
+    /// copying them.
     #[must_use]
     pub(crate) fn view(&self) -> ProtectionView<'_, N> {
         let matrix = self
@@ -169,10 +162,9 @@ where
 {
     /// Writes the index as an attraction file.
     ///
-    /// The file persists the index's row domains in its header, so it reopens only under the
-    /// same types. `rows` is the row count of the endpoint domain the edges index into; the
-    /// index does not carry it, the caller's generation does. Returns the SHA-256 of the written
-    /// bytes: the identity the repository records for the published file.
+    /// The header records `N` and `E`'s row-kind tags and the writer's byte order. `rows` must
+    /// cover every endpoint, but writing does not check this bound. Returns the SHA-256 of the
+    /// written bytes. A [`io::BufWriter`] can combine the small per-record writes.
     ///
     /// # Errors
     ///
@@ -226,9 +218,9 @@ pub(crate) enum InvalidAttractionIndex {
     BrokenEdgeRanges { group: usize },
     /// An edge references a node row outside the corpus domain.
     RowOutOfDomain { edge: usize },
-    /// An edge carries score-provenance bits this module does not speak.
+    /// An edge sets score-provenance bits outside [`Scored`]'s flags.
     UnknownScoredBits { edge: usize },
-    /// The edges within one group break the ascending `(source, target, edge)` order.
+    /// The edges within one group break the strictly ascending `(source, target, edge)` order.
     UnorderedEdges { edge: usize },
 }
 
@@ -266,15 +258,14 @@ impl Error for InvalidAttractionIndex {}
 
 /// A published attraction index opened over its mapped file.
 ///
-/// Construction checks every index invariant once, so an open index only serves valid groups
-/// and consumers re-validate nothing. The invariants:
+/// Construction checks strict relation and in-group edge order, nonempty ranges partitioning the
+/// edge region, endpoint bounds and score-presence flags. [`AttractionFile`] checks each scalar
+/// field's domain. These checks do not reject self-edges or verify that factors derive from a
+/// policy and instance set.
 ///
-/// - relations ascend strictly
-/// - edge ranges partition the edge region into non-empty spans
-/// - weights and scores stay in their domains
-/// - edges ascend within their group
-///
-/// The regions stay in the page cache under memory pressure and off the heap.
+/// Regions borrow from the mapping rather than a heap copy. Access to either raw region repeats its
+/// scalar validation through [`AttractionFile::groups`] or [`AttractionFile::edges`]. Even count
+/// accessors can scan an entire region.
 #[derive(Debug)]
 pub(crate) struct AttractionArchive<N, E> {
     file: AttractionFile<N, E>,
@@ -289,7 +280,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates an attraction-index invariant.
+    /// Returns [`InvalidAttractionIndex`] for a range, ordering, endpoint or score-flag violation.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: AttractionFile<N, E>) -> Result<Self, InvalidAttractionIndex> {
         let groups = file.groups();
@@ -325,7 +316,7 @@ where
             .map(GroupRecord::edge_offset)
             .peekable();
         for (index, edge) in edges.iter().enumerate() {
-            // Group boundaries reset the in-group order comparison.
+            // compare edge order only within a group.
             if boundaries.next_if_eq(&(index as u64)).is_some() {
                 previous = None;
             }
@@ -356,14 +347,14 @@ where
         self.file.rows()
     }
 
-    /// Returns the relation group count.
+    /// Returns the relation group count, revalidating the group region in `O(G)` time.
     #[inline]
     #[must_use]
     pub(crate) fn group_count(&self) -> usize {
         self.file.groups().len()
     }
 
-    /// Returns the retained instance count over all groups.
+    /// Returns the retained instance count, revalidating the edge region in `O(E)` time.
     #[inline]
     #[must_use]
     pub(crate) fn edge_count(&self) -> usize {
@@ -371,6 +362,11 @@ where
     }
 
     /// Borrows one relation group.
+    ///
+    /// # Complexity
+    ///
+    /// Takes `O(G + E)` time for `G` groups and `E` edges, revalidating both complete record
+    /// regions before borrowing the selected span.
     ///
     /// # Panics
     ///
@@ -380,8 +376,7 @@ where
         let groups = self.file.groups();
         let record = &groups[index];
 
-        // Construction validated the ranges against the edge region, so
-        // the narrowing repeats accepted in-bounds values.
+        // construction bounded these offsets by the resident edge region's length.
         let start = usize::try_from(record.edge_offset())
             .expect("a validated edge offset fits the address space");
         let end = groups.get(index + 1).map_or_else(
@@ -429,13 +424,17 @@ where
         }
     }
 
-    /// Iterates the instances, ascending by `(source, target, edge)`.
+    /// Iterates the instances in strictly ascending `(source, target, edge)` order.
     pub(crate) fn edges(&self) -> impl ExactSizeIterator<Item = AttractionEdge<N, E>> + '_ {
         self.records.iter().map(decode)
     }
 }
 
-/// Decodes one validated edge record into the resident edge type.
+/// Decodes one edge record with validated score-presence flags.
+///
+/// # Panics
+///
+/// Panics when `record` sets a bit outside [`Scored`]'s flags.
 fn decode<N, E>(record: &EdgeRecord<N, E>) -> AttractionEdge<N, E>
 where
     N: NodeRow,

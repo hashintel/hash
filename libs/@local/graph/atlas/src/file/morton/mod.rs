@@ -112,6 +112,15 @@ pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
 pub(crate) struct Fenceposts<I>([U64<LE>; POSTS], PhantomData<fn(&I)>);
 
 impl<I> Fenceposts<I> {
+    /// Checks the two structural rules every fencepost array obeys.
+    ///
+    /// The array anchors at zero and never decreases, which together make each consecutive pair
+    /// a well-formed range.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FencepostError::Anchor`] when the first post is not zero, and
+    /// [`FencepostError::Order`] naming the first post smaller than its predecessor.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "fencepost indices are bounded by the 34 posts"
@@ -170,10 +179,12 @@ impl<I> Fenceposts<I> {
         Ok(Self(posts, PhantomData))
     }
 
+    /// Returns the persisted words, giving up the validated wrapper.
     const fn into_raw(self) -> [U64<LE>; POSTS] {
         self.0
     }
 
+    /// Borrows the persisted words without giving up the wrapper.
     const fn as_raw(&self) -> &[U64<LE>; POSTS] {
         &self.0
     }
@@ -247,8 +258,10 @@ impl<I: Id> Fenceposts<I> {
     }
 }
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

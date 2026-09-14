@@ -40,7 +40,7 @@ where
     /// # Panics
     ///
     /// This panics when the two tables disagree about the row count. Both leave one frozen
-    /// ruler, so a mismatch is a wiring defect.
+    /// ruler, and a mismatch is therefore a wiring defect.
     pub(crate) fn new(
         scales: Box<IdSlice<N, NonNegative>>,
         neighbours: IdMatrix<N, NeighbourSlot, N>,
@@ -85,7 +85,7 @@ where
         &self.neighbours
     }
 
-    /// Neighbour entries per row.
+    /// Returns the neighbour entries per row.
     #[cfg_attr(
         not(test),
         expect(
@@ -103,9 +103,9 @@ where
 /// The target objective's run evidence, one record per target-configured run segment.
 ///
 /// The identity carries the freeze's scalar constants, and the typed artifacts - the boundary
-/// field and the ruler's tables - ride beside it in their own containers, so the writer that
-/// persists a generation receives the exact values every reading was measured on and owns
-/// their file identity. The estimand trajectory and the per-evaluation readings hold the
+/// field and the ruler's tables - accompany it in their own containers. The writer that
+/// persists a generation therefore receives the exact values every reading was measured on and
+/// owns their file identity. The estimand trajectory and the per-evaluation readings hold the
 /// run's measurements, and the enforcement record's final state closes the record.
 #[derive(Debug, PartialEq)]
 pub(crate) struct TargetEvidence<N> {
@@ -133,7 +133,7 @@ pub(crate) struct TargetEvidence<N> {
     /// The final per-row enforcement maxima `u(n) = max ‖z_pre − z_K‖/s_ref`, node-row order.
     ///
     /// Already dimensionless: the band record divides every displacement by the reference
-    /// spread as it accumulates, so the calibration consumes these readings unscaled.
+    /// spread as it accumulates, and the calibration consumes these readings unscaled.
     pub row_maxima: Box<IdSlice<N, DNonNegative>>,
     /// The enforcement record's final cumulative readings.
     pub enforcement: EnforcementSummary,

@@ -1,3 +1,12 @@
+//! Fixed-size store identities for dataset records and mapped identity tables.
+//!
+//! These identities have byte alignment and compare and hash by their stored bytes. UUID components
+//! retain the byte order of [`uuid::Uuid::as_bytes`], independent of the host's endianness.
+//!
+//! [`ArchivedEntityId`] combines a web ID and an entity UUID to identify a non-draft entity.
+//! [`ArchivedOntologyTypeUuid`] identifies a versioned ontology type by its URL-derived UUID. Both
+//! implement [`Key`] for storage in identity tables.
+
 use core::ops::Deref;
 
 use type_system::{
@@ -14,9 +23,10 @@ use crate::{
     file::identity::{Key, KeyKind},
 };
 
-/// The byte-level form of an [`EntityUuid`].
+/// An entity UUID stored as 16 bytes.
 ///
-/// The derived order is uuid-byte order.
+/// Conversion to and from [`EntityUuid`] preserves all UUID bytes. Ordering is lexicographic in
+/// [`uuid::Uuid::as_bytes`] order.
 #[derive(
     Debug,
     Copy,
@@ -41,7 +51,7 @@ impl ArchivedEntityUuid {
         Self(bytes)
     }
 
-    /// Returns the raw uuid bytes.
+    /// Returns the UUID bytes in their stored order.
     pub(crate) const fn to_bytes(self) -> [u8; 16] {
         self.0
     }
@@ -85,9 +95,10 @@ impl Deref for ArchivedEntityUuid {
     }
 }
 
-/// The byte-level form of a [`WebId`].
+/// A web ID stored as 16 UUID bytes.
 ///
-/// The derived order is uuid-byte order.
+/// Conversion to and from [`WebId`] preserves all UUID bytes. Ordering is lexicographic in
+/// [`uuid::Uuid::as_bytes`] order.
 #[derive(
     Debug,
     Copy,
@@ -112,7 +123,7 @@ impl ArchivedWebId {
         Self(bytes)
     }
 
-    /// Returns the raw uuid bytes.
+    /// Returns the UUID bytes in their stored order.
     pub(crate) const fn to_bytes(self) -> [u8; 16] {
         self.0
     }
@@ -157,11 +168,15 @@ impl Deref for ArchivedWebId {
     }
 }
 
-/// The byte-level form of a non-draft entity identity.
+/// A non-draft entity identity stored as a web ID followed by an entity UUID.
 ///
-/// Drafts never enter a dataset's scope, so the identity is the web and entity components alone.
+/// The representation is 32 bytes with no padding. Ordering compares web ID bytes first, then
+/// entity UUID bytes. Serialization uses [`EntityId`]'s `web_id~entity_uuid` string form.
 ///
-/// The derived order is identity-byte order: web id bytes, then entity uuid bytes.
+/// # Warning
+///
+/// Conversion from [`EntityId`] discards any draft ID. Conversion back always sets `draft_id` to
+/// [`None`]. Only non-draft entity identities round-trip without loss.
 #[derive(
     Debug,
     Copy,
@@ -184,7 +199,7 @@ pub(crate) struct ArchivedEntityId {
     pub entity_uuid: ArchivedEntityUuid,
 }
 
-// No multi-byte fields: both components are byte arrays, so no byte order arises.
+// UUID components are byte arrays with no host-endian integer fields.
 crate::dataset::offline::portable::self_archived!(ArchivedEntityId);
 
 impl From<EntityId> for ArchivedEntityId {
@@ -212,7 +227,10 @@ impl Key for ArchivedEntityId {
     const KIND: KeyKind = KeyKind::EntityId;
 }
 
-/// The byte-level form of an [`OntologyTypeUuid`].
+/// A versioned ontology type's identity stored as 16 UUID bytes.
+///
+/// Construct it from a [`uuid::Uuid`] or derive it from a [`VersionedUrl`] with
+/// [`from_url`](Self::from_url). The bytes represent the same identity as [`OntologyTypeUuid`].
 #[derive(
     Debug,
     Copy,
@@ -228,14 +246,14 @@ impl Key for ArchivedEntityId {
 #[repr(transparent)]
 pub(crate) struct ArchivedOntologyTypeUuid([u8; 16]);
 
-// No multi-byte fields: the identity is a byte array, so no byte order arises.
+// the UUID is a byte array with no host-endian integer fields.
 crate::dataset::offline::portable::self_archived!(ArchivedOntologyTypeUuid);
 
 impl ArchivedOntologyTypeUuid {
-    /// Derives the identity of the versioned type `url` names.
+    /// Derives a UUID v5 from the versioned type URL.
     ///
-    /// Any [`VersionedUrl`] spelling the same versioned type derives the same identity, so
-    /// equality on the result is equality of the named type.
+    /// The derivation uses the URL namespace and the UTF-8 bytes of `url`'s string form, matching
+    /// [`OntologyTypeUuid::from_url`].
     #[inline]
     pub(crate) fn from_url(url: &VersionedUrl) -> Self {
         Self::from(OntologyTypeUuid::from_url(url).into_uuid())

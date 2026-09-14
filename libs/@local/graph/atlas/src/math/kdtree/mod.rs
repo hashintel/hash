@@ -1,63 +1,62 @@
-//! Exact k-nearest-neighbour readouts over a placed 2D frame.
+//! Nearest-neighbour readouts with row-ordered distance ties.
 //!
-//! [`KdTree`] indexes a borrowed point slice, the frame, and answers the exact `k` nearest other
-//! rows of any frame row, ascending by squared distance with ties resolved by row. The frame
-//! arrives as an [`IdSlice`], so every readout names rows in the frame's own id domain and a
-//! consumer never rediscovers which domain a raw position meant. Equality with a full scan is
-//! the contract: a query selects exactly the rows that sorting every other row's
-//! [`Vec2::distance_squared_wide`] reading would select. The tree only accelerates that
-//! selection, and no readout depends on its internal shape. A point query
-//! ([`KdTree::nearest_point_in`]) answers the exact `k` nearest frame rows of any finite point
-//! under the same contract, with no row excluded.
+//! [`KdTree`] indexes a borrowed [`FinitePointField`], the frame. Row queries exclude the query
+//! row. Point queries accept any finite point and exclude no row. Both return up to `k` entries
+//! ordered by squared distance, then row ID. Every published distance uses
+//! [`Vec2::distance_squared_wide`]. Duplicated positions retain distinct row identities.
 //!
-//! Readouts are deterministic. A readout is a function of the frame bytes, the query, and `k`,
-//! and row ids double as the tie-break identity, so a frame with duplicated positions still
-//! orders every readout totally.
+//! # Example
+//!
+//! This in-crate example is ignored because the math API is crate-private.
 //!
 //! ```ignore
+//! use hashql_core::id::IdSlice;
+//! use crate::math::{FinitePointField, KdTree, Vec2, nz};
+//! # hashql_core::id::newtype! { #[id(const)] struct RowId(u32) }
 //! let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, 2.0)];
 //! let frame = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
 //!     .expect("the example points are finite");
 //! let tree = KdTree::build(frame);
 //!
-//! let neighbours = tree.nearest(RowId::new(0), NonZero::new(2).expect("two is nonzero"));
+//! let neighbours = tree.nearest(RowId::new(0), nz!(2));
 //! assert_eq!(neighbours[0].row, RowId::new(1));
 //! assert_eq!(neighbours[1].row, RowId::new(2));
 //! ```
 //!
-//! # Engine
+//! # Selection
 //!
-//! The index is kiddo's immutable kd-tree over the frame's `f32` coordinates, with the
-//! Eytzinger stem layout and soft-bucketed arena leaves, so a run of co-located rows wider than
-//! a bucket becomes one over-full leaf instead of refusing construction. The engine computes in
-//! `f64` over its `f32` storage, and its readings are bit-identical to
-//! [`Vec2::distance_squared_wide`]: it widens each coordinate exactly before subtracting, and
-//! its squared distance rounds once per multiply and once per add, x before y. That identity is
-//! what lets the engine's radius selection decide membership under the one metric.
+//! A nearest-`k` engine query can choose arbitrary members of an equal-distance class at its
+//! boundary. Selecting the entire boundary class before sorting makes the row ID decide ties. The
+//! first walk probes for a distance boundary. The second performs an inclusive radius query at that
+//! boundary. Each candidate is re-read through [`Vec2::distance_squared_wide`], ordered by
+//! `(distance_squared, row)`, and retained only if it is among the first `k`.
 //!
-//! The engine resolves equal readings in traversal order, so a single k-query cannot honour the
-//! `(reading, row)` tie contract when a tie class straddles the boundary: which co-located rows
-//! enter the result would depend on the tree's internal shape. A readout therefore composes two
-//! walks. The first probes for the k-th smallest reading, the boundary. The second selects
-//! every row reading at most the boundary, which admits each boundary tie class whole; the
-//! readout then re-reads every candidate through [`Vec2::distance_squared_wide`], orders by
-//! `(reading, row)`, and keeps the first `k`.
+//! With complete radius selection and the correct probed boundary, this composition equals sorting
+//! a full scan. It includes every closer row and every boundary tie before applying the row
+//! ordering. A row query probes one extra entry to account for its excluded zero-distance row.
 //!
 //! # Precision
 //!
-//! Coordinates widen exactly from `f32` to `f64` before any arithmetic, and squared distances
-//! accumulate in `f64` ([`Vec2::distance_squared_wide`]). A consumer that compares its own
-//! readings against the tree's computes them through that one metric, so tie sets never depend
-//! on the call site.
+//! Finite `f32` coordinates widen exactly to `f64` before subtraction. The engine's mixed-precision
+//! leaf metric squares each rounded difference separately and adds x before y, matching
+//! [`Vec2::distance_squared_wide`]. Use that method when comparing published readings.
+//!
+//! Radius membership also depends on the engine's rectangle bounds. Their incremental `f64` updates
+//! can round above the point metric at a box corner. The radius query makes no allowance for
+//! outward rounding. Re-reading and sorting candidates preserves their published distances and
+//! ordering, but cannot recover a row pruned at a rounding-sensitive boundary.
 //!
 //! # Complexity
 //!
-//! The build median-splits on alternating axes in parallel above the engine's own threshold,
-//! and runs in expected `O(N·log N)` for `N` rows. A readout on a well-spread frame walks the
-//! tree twice in expected `O(log N + k)`. Rows sharing one position defeat the spatial pruning
-//! and degrade a readout toward the full `O(N)` scan, with the result unchanged. The index owns
-//! a copy of the coordinates and one item per row beside the borrowed frame, 16 bytes per row
-//! for a 64-bit id.
+//! Construction copies the coordinates and one item per row, using soft buckets that permit
+//! co-located rows to exceed [`BUCKET_ROWS`]. The point payload is 8 bytes plus the ID size per
+//! row. Stem storage, leaf extents, alignment padding and spare capacity add to that payload.
+//!
+//! A readout performs two tree walks and sorts `m` radius candidates, where `m` can be the entire
+//! frame even for a small `k`. Sorting costs O(m log m) comparisons in the worst case. The returned
+//! vector retains the candidate allocation after truncation. Its initial capacity is
+//! `k.saturating_add(1)`, independent of frame size. The supplied allocator controls this vector.
+//! Multi-entry engine probes use separate allocations.
 
 #![expect(
     clippy::min_ident_chars,
@@ -78,28 +77,13 @@ use super::{FinitePointField, scalar::DNonNegative, vec2::Vec2};
 #[cfg(test)]
 mod tests;
 
-/// A frame row as the engine stores it against a point.
-///
-/// The engine keeps items in fixed-size leaf arrays that it initialises before filling, so its
-/// item type must have a default for the unused tail of a partly-filled leaf. A row id has none:
-/// every id names a real row. This wrapper supplies the one the engine needs, and the wrapper
-/// exists so that the requirement is stated here rather than forced onto the id domain.
-///
-/// The padding is [`Id::MIN`], which is also a real row. Nothing distinguishes the two by value,
-/// and nothing needs to: a query reads only within a leaf's extent, and every item inside an
-/// extent is written at construction. The alternative, an extra inhabitant through [`Option`],
-/// would make padding loud at a cost of double the item storage, because a row id wraps a plain
-/// integer and leaves no niche for one. Items are the per-point storage the engine scans, so
-/// that is the wrong trade.
-///
-/// The ordering is the id's own and exists because the engine's query bound asks for one;
-/// consumers order distance ties by row, and the engine's k-nearest queries never consult it.
+/// A frame-row identity for the engine's stored items.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 struct Leaf<N>(N);
 
 impl<N> Leaf<N> {
-    /// Wraps the frame row.
+    /// Creates an engine item naming `row`.
     pub(crate) const fn new(row: N) -> Self {
         Self(row)
     }
@@ -110,6 +94,9 @@ impl<N> Leaf<N> {
     }
 }
 
+// kiddo's Content bound requires Default, including for a nearest-one query's initial best item.
+// VecOfArenas copies populated items only. MIN is a provisional item value, not leaf padding or an
+// extra ID inhabitant.
 impl<N> Default for Leaf<N>
 where
     N: Id,
@@ -120,12 +107,15 @@ where
 }
 
 /// A frame row together with its squared distance to the query.
+///
+/// Equality and ordering compare `(distance_squared, row)`.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct KdNeighbour<I> {
     /// The neighbouring frame row.
     pub row: I,
-    /// The row's squared Euclidean distance to the query, per
-    /// [`Vec2::distance_squared_wide`].
+    /// The row's squared distance to the query.
+    ///
+    /// Computed by [`Vec2::distance_squared_wide`].
     pub distance_squared: DNonNegative,
 }
 
@@ -161,10 +151,10 @@ where
     }
 }
 
-/// The engine's leaf bucket capacity, in rows.
+/// The engine's target leaf size, exceeded when a split cannot separate coordinates.
 const BUCKET_ROWS: usize = 32;
 
-/// Kiddo's immutable tree over the frame's widened coordinates, one [`Leaf`] item per row.
+/// The engine over stored `f32` coordinates and frame-row identities.
 type Engine<I> = kiddo::kd_tree::KdTree<
     f32,
     Leaf<I>,
@@ -174,15 +164,15 @@ type Engine<I> = kiddo::kd_tree::KdTree<
     BUCKET_ROWS,
 >;
 
-/// An exact k-nearest-neighbour index over a borrowed 2D frame.
+/// A nearest-neighbour index over a borrowed finite 2D frame.
 ///
-/// Building validates the frame once and borrows it for the tree's lifetime. Frame rows are the
-/// identities: a query names a row, and readouts name rows. The module documentation states the
-/// exactness, determinism, and complexity guarantees.
+/// Construction borrows the validated field for the tree's lifetime. Readouts use the frame's row
+/// IDs. See the [module documentation](crate::math::kdtree) for the selection model, precision
+/// limits and allocation costs.
 pub(crate) struct KdTree<'frame, I> {
     /// The borrowed frame, indexed by row.
     points: &'frame FinitePointField<I>,
-    /// The engine over the frame's widened coordinates.
+    /// The engine over the frame's stored coordinates.
     engine: Engine<I>,
 }
 
@@ -190,15 +180,15 @@ impl<'frame, I> KdTree<'frame, I>
 where
     I: Id,
 {
-    /// Builds the index over `points`.
+    /// Builds an index whose row IDs address `points`.
     ///
-    /// The field becomes the frame, so row `r` is `points[r]` and readouts name these rows.
-    /// Finiteness arrives proven with the field, so construction cannot refuse.
+    /// The field supplies the finite-coordinate invariant. Soft buckets permit repeated positions.
+    /// Construction uses the engine's adaptive serial/parallel policy.
     ///
     /// # Panics
     ///
-    /// This panics when the frame holds more rows than `I` addresses, which the frame's
-    /// constructor is contracted to prevent.
+    /// Panics if a stored row index cannot be represented by `I` or if an engine allocation exceeds
+    /// its capacity limits.
     pub(crate) fn build(points: &'frame FinitePointField<I>) -> Self {
         let engine = Engine::new_from_source_parallel(
             points.as_raw(),
@@ -213,16 +203,17 @@ where
         Self { points, engine }
     }
 
-    /// Returns the `k` nearest other rows of `row`, allocating the readout in `alloc`.
+    /// Selects up to `k` other rows, allocating candidates in `alloc`.
     ///
-    /// The readout ascends by `(distance_squared, row)`: exactly the first `k` entries of the
-    /// sorted full scan over every other row. A bump allocator makes the readout free to create
-    /// and abandon per query: allocate a reading loop's readouts in a scratch arena and reset it
-    /// between readings.
+    /// The readout ascends by `(distance_squared, row)`, subject to the module's radius-selection
+    /// precision limits. The result retains its candidate capacity after truncation. Multi-entry
+    /// engine probes allocate separately.
     ///
     /// # Panics
     ///
-    /// This panics when `row` is not a frame row.
+    /// Panics if `row` is outside the frame, if the one-past-end frame index is not representable
+    /// by `I`, or if the requested candidate capacity exceeds the vector's limits. The initial
+    /// reservation uses `k.saturating_add(1)` even for a smaller nonempty frame.
     #[must_use]
     pub(crate) fn nearest_in<A>(
         &self,
@@ -238,28 +229,29 @@ where
         self.readout_in(self.points[row], Some(row), k, alloc)
     }
 
-    /// Returns the `k` nearest other rows of `row`: [`nearest_in`](Self::nearest_in) in the
-    /// global allocator.
+    /// Selects up to `k` other rows using the global allocator.
+    ///
+    /// See [`Self::nearest_in`] for ordering, precision and allocation behavior.
     ///
     /// # Panics
     ///
-    /// This panics when `row` is not a frame row.
+    /// Panics under the same conditions as [`Self::nearest_in`].
     #[must_use]
     pub(crate) fn nearest(&self, row: I, k: NonZero<usize>) -> Vec<KdNeighbour<I>> {
         self.nearest_in(row, k, Global)
     }
 
-    /// Returns the `k` nearest frame rows of `point`, allocating the readout in `alloc`.
+    /// Selects up to `k` rows near `point`, allocating candidates in `alloc`.
     ///
-    /// The query point needs no frame membership, and no row is excluded: a frame row co-located
-    /// with `point` is a candidate at distance zero. The readout holds one entry per frame row up
-    /// to `k`, so a frame with fewer than `k` rows returns them all, ordered as
-    /// [`nearest_in`](Self::nearest_in) states.
+    /// The point needs no frame membership. No row is excluded, including a row at the same
+    /// position. An empty frame returns an empty vector. Ordering and radius-selection precision
+    /// follow [`Self::nearest_in`].
     ///
     /// # Panics
     ///
-    /// This panics when `point` has a NaN or infinite component, which would break the pruning's
-    /// soundness argument.
+    /// Panics if `point` has a NaN or infinite component, or if the requested candidate capacity
+    /// exceeds the vector's limits. The initial reservation uses `k.saturating_add(1)` even for a
+    /// smaller nonempty frame.
     #[must_use]
     pub(crate) fn nearest_point_in<A>(
         &self,
@@ -275,27 +267,29 @@ where
         self.readout_in(point, None, k, alloc)
     }
 
-    /// Returns the `k` nearest frame rows of `point`:
-    /// [`nearest_point_in`](Self::nearest_point_in) in the global allocator.
+    /// Selects up to `k` rows near `point` using the global allocator.
+    ///
+    /// See [`Self::nearest_point_in`] for ordering, precision and allocation behavior.
     ///
     /// # Panics
     ///
-    /// This panics when `point` has a NaN or infinite component.
+    /// Panics under the same conditions as [`Self::nearest_point_in`].
     #[must_use]
     pub(crate) fn nearest_point(&self, point: Vec2, k: NonZero<usize>) -> Vec<KdNeighbour<I>> {
         self.nearest_point_in(point, k, Global)
     }
 
-    /// Selects the exact `k`-set of `query` under `(reading, row)`, the two-walk composition.
+    /// Probes a boundary, gathers its radius candidates and applies row-ordered truncation.
     ///
-    /// The probe walk asks the engine for the `k` smallest readings, `k + 1` when `exclude`
-    /// names a frame row, because that row's own zero reading occupies one slot. The largest
-    /// probed reading is the boundary: the multiset of the `k` smallest readings is a function
-    /// of the frame alone, whichever tied rows the engine kept. The selection walk then admits
-    /// every row reading at most the boundary, inclusively, so each boundary tie class arrives
-    /// whole and the engine's traversal order decides nothing. Re-reading the candidates through
-    /// [`Vec2::distance_squared_wide`] makes the published readings the one metric's by
-    /// construction. The engine's bit-identical readings only steered the selection.
+    /// `query` must be finite. If `exclude` is present, it must name a frame row at `query`. For N
+    /// frame rows, the probe requests min(k + 1, N) entries for exclusion and min(k, N) otherwise,
+    /// with saturating addition. Including the excluded zero-distance row in this count preserves
+    /// the desired boundary even when the probe chooses other rows from the same tie class. The
+    /// module's selection argument requires complete engine radius membership.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the candidate reservation exceeds the vector's capacity limits.
     fn readout_in<A>(
         &self,
         query: Vec2,
@@ -316,10 +310,9 @@ where
 
         let mut scratch = QueryScratch::new();
 
-        // A single-reading probe is its own boundary, and the single-item query returns without
-        // the result vector a top-k probe buffers into. The engine has no visitor for a top-k:
-        // a bounded k-set evicts rows while the walk runs, so it only exists once the walk ends,
-        // and the executed vector is that collection itself.
+        // a nearest-one probe returns its boundary without a result vector. Larger probes retain a
+        // bounded collection until traversal has finished, then reduce its distances to the
+        // boundary.
         let boundary = if probe_size == NonZero::<usize>::MIN {
             self.engine
                 .query(query.as_array())
@@ -347,8 +340,8 @@ where
             boundary
         };
 
-        // Without boundary ties the selection returns exactly the probed rows, so `k + 1` is the
-        // readout's usual size and a wider tie class is the one case that grows the buffer.
+        // the probe bounds its size by the frame length, but this reservation uses k directly.
+        // Radius ties can grow the candidate vector beyond this initial capacity.
         let mut readout = Vec::with_capacity_in(k.get().saturating_add(1), alloc);
         self.engine
             .query(query.as_array())
@@ -370,6 +363,7 @@ where
         readout
     }
 
+    /// Returns the point slice the tree indexes, in row order.
     pub(crate) const fn points(&self) -> &'frame IdSlice<I, Vec2> {
         self.points
     }

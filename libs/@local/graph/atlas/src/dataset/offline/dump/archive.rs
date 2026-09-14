@@ -1,12 +1,12 @@
 //! Serializing one stream file as one rkyv archive.
 //!
-//! [`write_archive`] serializes a complete root value, which fits the streams whose records
-//! carry out-of-line data and stay small enough to collect. [`StreamArchive`] writes a file
-//! column by column instead: [`Column`] takes inline records one at a time straight to the
-//! digesting writer, so a heavy embedding column costs one record of memory rather than the
-//! whole column, and [`StreamArchive::finish`] emplaces the root over the columns' resolvers
-//! at the file's end, where the reader derives the root position from the file's length. Both
-//! paths return the file's manifest row, binding its length and digest.
+//! [`write_archive`] serializes a complete root value, which fits the streams whose records carry
+//! out-of-line data and stay small enough to collect. [`StreamArchive`] writes a file column by
+//! column instead: [`Column`] takes inline records one at a time straight to the digesting writer.
+//! A heavy embedding column costs one record of memory rather than the whole column, and
+//! [`StreamArchive::finish`] emplaces the root over the columns' resolvers at the file's end, where
+//! the reader derives the root position from the file's length. Both paths return the file's
+//! manifest row, binding its length and digest.
 
 use core::{marker::PhantomData, mem::MaybeUninit};
 use std::{
@@ -41,6 +41,14 @@ pub(super) type ArchiveSerializer<'arena> =
     HighSerializer<ArchiveWriter, ArenaHandle<'arena>, rancor::Error>;
 
 /// Serializes one stream's root value into its file and returns the file's manifest row.
+///
+/// The call flushes the buffered bytes into the file. It never synchronizes that file to durable
+/// storage: the returned row describes bytes the operating system has accepted.
+///
+/// # Errors
+///
+/// Returns [`DumpError::Io`] when creating the file fails, [`DumpError::Archive`] when the value
+/// does not serialize, and [`DumpError::Io`] again when the flush fails.
 pub(super) fn write_archive<T, D, E>(
     directory: &Utf8Path,
     kind: StreamKind,
@@ -85,6 +93,10 @@ pub(super) struct StreamArchive<'arena> {
 
 impl<'arena> StreamArchive<'arena> {
     /// Creates the stream file and the digesting serializer over it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DumpError::Io`] when creating the file under `directory` fails.
     pub(super) fn create<D, E>(
         directory: &Utf8Path,
         kind: StreamKind,
@@ -112,6 +124,15 @@ impl<'arena> StreamArchive<'arena> {
     ///
     /// The column is the serializer's tail from here on: nothing else may write to this
     /// archive until the column closes, and [`Column::push`] checks that per record.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DumpError::Archive`] when the padding that aligns the archive for `T` does not
+    /// reach the writer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if aligning the current position for `T` requires more than 32 padding bytes.
     pub(super) fn column<T, D, E>(&mut self) -> Result<Column<T>, DumpError<D, E>> {
         let kind = self.kind;
         let pos = self
@@ -127,6 +148,10 @@ impl<'arena> StreamArchive<'arena> {
     }
 
     /// Serializes a collected column whole, for record types that carry out-of-line data.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DumpError::Archive`] when a record or the vector around it does not serialize.
     pub(super) fn slice_column<U, D, E>(
         &mut self,
         values: &[U],
@@ -142,9 +167,19 @@ impl<'arena> StreamArchive<'arena> {
 
     /// Emplaces the root at the file's end and seals the file into its manifest row.
     ///
-    /// `resolve` receives the root's place and resolves each field from its column's resolver
-    /// and count. The root is the file's last write, so the reader derives its position from
-    /// the file's length.
+    /// `resolve` receives the root's place and resolves each field from its column's resolver and
+    /// count. Writing the root last lets the reader derive its position from the file's length.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DumpError::Archive`] twice over: for the root's alignment padding, before
+    /// `resolve` runs, and for the resolved root itself, after it. Returns [`DumpError::Io`]
+    /// when flushing the buffered bytes into the file fails. That flush never synchronizes the
+    /// file to durable storage.
+    ///
+    /// # Panics
+    ///
+    /// Panics if aligning the root requires more than 32 padding bytes, or if `resolve` panics.
     pub(super) fn finish<R, D, E>(
         mut self,
         resolve: impl FnOnce(Place<R>),
@@ -195,18 +230,24 @@ pub(super) struct Column<T> {
 }
 
 impl<T: Portable> Column<T> {
-    /// Records already pushed.
+    /// Returns the number of records already pushed into this column.
     pub(super) const fn count(&self) -> usize {
         self.count
     }
 
     /// Serializes one record into the column.
     ///
+    /// # Errors
+    ///
+    /// Returns [`DumpError::Archive`] when the record does not serialize, or when resolving it
+    /// into the column does not reach the writer.
+    ///
     /// # Panics
     ///
-    /// This panics when the archive's position has moved between pushes, and when the record's
-    /// serialization writes out-of-line data. Every type pushed here archives in place, so a
-    /// panic means a record type changed shape rather than a runtime condition.
+    /// This panics when the serializer's position on entry is not the column's tail, `pos + count *
+    /// size_of::<T>()`. It panics again when the position after serializing the record is not that
+    /// same tail. Holding the serializer at the tail across both checks is what keeps the column's
+    /// records contiguous and inline.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the position asserts are the column's structural contract, and the unsafe \

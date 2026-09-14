@@ -1,4 +1,6 @@
-//! The postings build turns the row-order type column into the file's regions.
+//! Per-type membership derived from direct types in base delivery order.
+//!
+//! The direct map and its transpose are built together to keep both lookup directions consistent.
 
 use std::io;
 
@@ -17,7 +19,7 @@ use crate::{
     runs::{Runs, RunsBuilder},
 };
 
-/// Building the postings failed.
+/// An out-of-domain type reference encountered while building postings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum PostingsError {
     /// A node row's direct types name an ontology row outside the type domain.
@@ -48,25 +50,22 @@ impl core::error::Error for PostingsError {}
 
 /// The type postings of one generation, in writable form.
 ///
-/// The direct map is the one stored relation - the row-order type column gathered into position
-/// order - and the membership regions are its inversion, so the two directions agree by
-/// construction. Construction picks each type's representation and lays every region out in the
-/// file's order, with the fencepost columns at the build's native width; the writer persists
-/// them little-endian as it streams. A type goes dense exactly when its dense set costs fewer
-/// bytes than its list - [`DenseBitSlice::total_byte_len`] of the point domain against four
-/// bytes per member. The choice therefore follows from the sizes alone and carries no tuning
-/// knob. At equal cost the list wins because it reads without bit decoding.
+/// The direct map is the row-order type column gathered into position order. Deriving membership by
+/// inversion keeps the two directions consistent. A type uses a dense set exactly when that set
+/// costs fewer bytes than its list: [`DenseBitSlice::total_byte_len`] of the point domain against
+/// four bytes per member. The choice follows from the sizes alone and carries no tuning knob. At
+/// equal cost the list wins because it reads without bit decoding.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Postings {
     /// The types whose membership is a dense set.
     flags: Box<DenseBitSlice<OntologyRowId>>,
     /// Each list type's membership positions, ascending per type. A dense type's run is empty.
     lists: Runs<OntologyRowId, BasePosition>,
-    /// The dense membership sets, one frame per dense type in ascending type order, each over
-    /// the point domain.
+    /// Dense membership frames in ascending type order, each over the point domain.
     dense_sets: Box<DenseBitSliceArray<BasePosition>>,
-    /// Each position's direct type rows, ascending per position. Its run count is the
-    /// base-position domain `N`.
+    /// Each position's direct type rows, ascending per position.
+    ///
+    /// Its run count is the base-position domain `N`.
     direct: Runs<BasePosition, OntologyRowId>,
     /// Each type's direct parent rows, ascending per type.
     parents: Runs<OntologyRowId, OntologyRowId>,
@@ -76,13 +75,11 @@ impl Postings {
     /// Builds the postings over the finished lod permutation.
     ///
     /// `types` holds each node row's direct types in **row** order, exactly as the dataset streams
-    /// them (ascending, deduplicated); `row_of_position` is the lod's gather order, so the direct
-    /// map and the membership follow base delivery order. `parents` holds each ontology row's
-    /// direct parents in ontology-row order - the
-    /// [`Ontology::parents`](crate::dataset::Ontology::parents) contract, restated in file shape -
-    /// and its length is the type domain `T`. The build gathers the direct map first and derives
-    /// the membership regions from it by [`Inverse::new`], so every check of one direction binds
-    /// the other.
+    /// them (ascending, deduplicated). `row_of_position` must be a permutation of that row domain.
+    /// It gathers the direct map and membership into base delivery order. `parents` holds each
+    /// ontology row's direct parents in ontology-row order, following the
+    /// [`Ontology::parents`](crate::dataset::Ontology::parents) contract. Its length is the type
+    /// domain `T`.
     ///
     /// # Errors
     ///
@@ -91,10 +88,9 @@ impl Postings {
     ///
     /// # Panics
     ///
-    /// This panics when `types` and `row_of_position` cover different row counts, and when a
-    /// row's direct types do not ascend strictly. The lod build already rejected mismatched
-    /// columns and the dataset contract promises ascending, deduplicated lists, so either
-    /// disagreement here is a producer bug.
+    /// This panics when `types` and `row_of_position` cover different row counts, when the
+    /// permutation names a row outside `types`, or when a row's direct types or a type's direct
+    /// parents do not ascend strictly.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries domain errors; mismatched columns and unsorted streams are \
@@ -114,9 +110,8 @@ impl Postings {
 
         let domain = parents.len();
 
-        // The direct map is the gather itself: each position's run restates its row's type list
-        // verbatim, so the runs inherit the column's ascent and deduplication. The domain and
-        // ascent checks ride the gather. Every pass below trusts them.
+        // gather whole type lists into position order, checking ascent and domain as each list is
+        // read. Every pass below trusts these checks.
         let mut direct = RunsBuilder::with_capacity(row_of_position.len(), 0);
         for (_position, &row) in row_of_position.iter_enumerated() {
             let list = &types[row];
@@ -152,10 +147,7 @@ impl Postings {
         })
     }
 
-    /// Measures the finished regions for the generation metadata.
-    ///
-    /// The measurements the manifest records so the representation split follows data rather than
-    /// taste: how many types went dense, and the region populations behind the artifact's size.
+    /// Counts the dense types and region populations behind the artifact's size.
     #[must_use]
     pub(crate) fn measurements(&self) -> PostingsMeasurements {
         PostingsMeasurements {
@@ -181,16 +173,19 @@ struct Inverse {
 impl Inverse {
     /// Inverts the position-major direct map into the per-type membership regions.
     ///
-    /// This is the transpose: a type's membership holds exactly the positions whose direct runs
-    /// name the type, so the two directions carry one relation. Walking positions ascending makes
-    /// every list run sorted by construction: no sort pass exists.
+    /// A type's membership holds exactly the positions whose direct runs name the type. Walking
+    /// positions ascending produces sorted list runs without a sort pass.
     ///
-    /// Every direct id lies below `domain`. [`Postings::build`] validated that while gathering.
+    /// Every direct id must lie below `domain`.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a direct id lies outside `domain`.
     fn new(direct: &Runs<BasePosition, OntologyRowId>, domain: usize) -> Self {
         let points = direct.runs();
 
-        // Member counts first: they pick each type's representation and become the fenceposts, so
-        // the fill pass below writes each entry at its final slot.
+        // member counts determine each type's representation and its final region. Their prefix
+        // sums place each list run for the fill pass.
         let mut counts = IdVec::from_elem(0_u64, domain);
         for &id in direct.items() {
             counts[id] += 1;
@@ -203,8 +198,8 @@ impl Inverse {
         let dense_bytes = DenseBitSlice::<BasePosition>::total_byte_len(points as u64);
         let is_dense = |count: u64| dense_bytes < count * size_of::<BasePosition>() as u64;
 
-        // The dense count is known before the region exists, so the sets live in one allocation
-        // laid out exactly as the file stores them.
+        // counting dense types before allocation gives one region laid out exactly as the file
+        // stores it.
         let dense_count = counts.iter().filter(|&&count| is_dense(count)).count();
         let mut dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(points, dense_count);
 
@@ -228,8 +223,8 @@ impl Inverse {
             list_posts.push(total);
         }
 
-        // Fill in position order: each list run's cursor starts at its fencepost and ascending
-        // positions land ascending in place. Dense members insert into their type's set.
+        // fill in position order: each list run's cursor starts at its fencepost and writes
+        // ascending positions without a sort. Dense members insert into their type's set.
         let mut list_entries = vec![BasePosition::from_u32(0); total];
         let mut cursors: IdVec<OntologyRowId, usize> =
             IdVec::from_raw(list_posts[..domain].to_vec());
@@ -270,14 +265,6 @@ impl WriteAs<crate::file::salt::artifact::Postings> for Postings {}
 impl WriteInto for Postings {
     type Error = io::Error;
 
-    /// Writes the postings as a postings file.
-    ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -308,7 +295,7 @@ impl WriteInto for Postings {
 pub(crate) struct PostingsMeasurements {
     /// Types in the domain.
     pub types: u64,
-    /// Types whose membership went dense under the size comparison.
+    /// Types whose membership uses a dense set under the size comparison.
     pub dense_types: u64,
     /// Entries in the list region: every list type's positions.
     pub list_entries: u64,
@@ -320,16 +307,15 @@ pub(crate) struct PostingsMeasurements {
 
 /// Gathers the parent lists into their per-type runs.
 ///
-/// The runs restate the dataset's stream. The domain check is the one condition the stream
-/// cannot carry itself (parents may point forward). Ascent is the stream's own contract and is
-/// asserted here, so a defective stream fails the build instead of publishing a file the next
-/// open refuses.
+/// Parent references may point forward. Their domain is the full length of `parents`.
+///
+/// # Errors
+///
+/// Returns [`PostingsError`] for an out-of-domain parent reference.
 ///
 /// # Panics
 ///
-/// This panics when a type's direct parents do not ascend strictly. The
-/// [`Ontology::parents`](crate::dataset::Ontology::parents) contract promises ascending,
-/// deduplicated lists, so a violation here is a producer bug.
+/// This panics when a type's direct parents do not ascend strictly.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries domain errors; an unsorted parent stream is a caller contract \

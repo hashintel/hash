@@ -9,13 +9,17 @@ use crate::{
     file::array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
 };
 
-/// A uniquely named file in the system temporary directory, removed on drop.
+/// A scratch array file for mapped representation fixtures.
 struct TempFile {
     path: PathBuf,
 }
 
 impl TempFile {
     /// Writes an f32 array file holding one `width`-component row per value, filled with it.
+    ///
+    /// # Panics
+    ///
+    /// This panics when file creation or array writing fails.
     fn representation_rows(values: &[f32], width: usize) -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -46,6 +50,10 @@ impl Drop for TempFile {
 }
 
 /// Maps `written` as a fixture generation's representations.
+///
+/// # Panics
+///
+/// This panics when the array file cannot be opened.
 fn representations(written: &TempFile) -> Representations {
     Representations {
         generation: "3a"

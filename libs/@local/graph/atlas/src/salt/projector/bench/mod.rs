@@ -9,8 +9,8 @@
 //!
 //! This module synthesizes batches at the corpus shape the trainer feeds: unit-norm 512-wide
 //! representations, mixed roles, a width-1 `[eta]` condition. The backward pass drives a
-//! mean-coordinate loss; gradient values are meaningless, but the traversal is the full autodiff
-//! graph the composite objective shares, so its wall time is the decision's number.
+//! mean-coordinate loss. Gradient values are meaningless, but the traversal is the full autodiff
+//! graph the composite objective shares, and its wall time is the decision's number.
 
 use burn::{
     DispatchDevice,
@@ -32,7 +32,7 @@ const ARCHITECTURE: Architecture = Architecture::default();
 
 /// One synthesized batch at the trainer's input shape.
 ///
-/// Holds the raw columns; tensors materialize per run so device transfer and graph construction
+/// Holds the raw columns. Tensors materialize per run so device transfer and graph construction
 /// stay inside the timed region, exactly as they recur per training step.
 pub struct Batch {
     rows: usize,
@@ -136,6 +136,7 @@ pub struct Model {
 }
 
 impl Model {
+    /// Builds models with matching parameters from one seed on the chosen device.
     #[must_use]
     pub fn build<R>(device: PinnedDevice, seed: u64) -> Self
     where
@@ -150,6 +151,9 @@ impl Model {
         }
     }
 
+    /// Runs the plain forward pass and returns the output sum.
+    ///
+    /// The sum's readback synchronizes the device.
     pub fn forward(&self, batch: &Batch) -> f32 {
         let output = self
             .projector

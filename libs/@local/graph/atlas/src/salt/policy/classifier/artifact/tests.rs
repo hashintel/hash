@@ -91,6 +91,7 @@ fn fixture_header() -> FileHeader {
     FileHeader::new(CANONICAL_DIMENSIONS as u64, 5, 1.5, [0.25, -0.5, 0.125])
 }
 
+/// The fixture classifier written to bytes.
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     fixture()
@@ -107,6 +108,7 @@ fn reopen(name: &str, bytes: &[u8]) -> Result<Classifier, InvalidClassifierFile>
     Classifier::from_artifact(&file)
 }
 
+/// Writing the fixture classifier and reopening it yields an equal classifier.
 #[test]
 fn round_trip_is_bit_exact() {
     let original = fixture();
@@ -115,6 +117,7 @@ fn round_trip_is_bit_exact() {
     assert_eq!(reopened, original);
 }
 
+/// The mapped classifier predicts the same output as the fitted one on a patterned embedding.
 #[test]
 fn mapped_and_fitted_predictions_agree() {
     const PATTERN: [f32; 8] = [-1.0, -0.25, 0.5, -0.75, 0.0, 0.75, -0.5, 0.25];
@@ -138,6 +141,7 @@ fn mapped_and_fitted_predictions_agree() {
     assert_eq!(actual, expected);
 }
 
+/// A file whose coefficient rows are four wide fails to open with `Dimension { dimension: 4 }`.
 #[test]
 fn rejects_foreign_dimension() {
     let path = scratch("dimension.clsf");
@@ -162,6 +166,10 @@ fn rejects_foreign_dimension() {
     );
 }
 
+/// A negative temperature fails with `Temperature`, an infinite intercept names its class.
+///
+/// A negative temperature fails with `Temperature` carrying the value and an infinite intercept
+/// with `NonFiniteIntercept` naming its class.
 #[test]
 fn rejects_tampered_scalars() {
     // Temperature at header offset 32.
@@ -183,6 +191,10 @@ fn rejects_tampered_scalars() {
     );
 }
 
+/// A NaN coefficient, a NaN mean and a zeroed inverse scale fail with their variants.
+///
+/// A NaN coefficient fails with `NonFiniteCoefficient` naming class and component, a NaN mean with
+/// `NonFiniteMean`, and a zeroed inverse scale with `InverseScale`.
 #[test]
 fn rejects_tampered_vectors() {
     let nan = f64::NAN.to_le_bytes();
@@ -229,6 +241,10 @@ fn rejects_tampered_vectors() {
     );
 }
 
+/// Lowered, negative and absent distances fail with their three variants.
+///
+/// A distance lowered below its predecessors fails with `UnorderedDistances`, a negative one with
+/// `Distance`, and a zeroed distance count with `EmptyDistances`.
 #[test]
 fn rejects_tampered_distances() {
     let distances_offset = usize::try_from(

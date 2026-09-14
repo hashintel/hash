@@ -24,7 +24,7 @@ use crate::{
 
 /// The policy stage failed and staged no table.
 ///
-/// One variant per way the stage refuses, so a policy failure attributes to this stage by
+/// One variant per way the stage refuses. A policy failure therefore attributes to this stage by
 /// construction.
 #[derive(Debug)]
 pub(crate) enum PolicyError {
@@ -108,10 +108,10 @@ impl<'fit> PolicyResolution<'fit> {
     /// Classifies every relation type's card and resolves the policy table.
     ///
     /// The relation universe is the distinct ontology rows the edge stream carried. Each indexes
-    /// the staged card table, which is row-aligned with the type table. Every card exists, so
-    /// every relation classifies. The resolved table returns owned and certified beside its
-    /// staged binding, so the relation stage consumes the certified value rather than the staged
-    /// bytes.
+    /// the staged card table, which is row-aligned with the type table. Every card exists, and
+    /// every relation therefore classifies. The resolved table returns owned and certified beside
+    /// its staged binding, and the relation stage consumes the certified value rather than the
+    /// staged bytes.
     ///
     /// # Errors
     ///
@@ -123,8 +123,8 @@ impl<'fit> PolicyResolution<'fit> {
     pub(super) fn run(
         self,
     ) -> Result<Staged<CertifiedPolicies, artifact::Policy, PolicyEvidence>, PolicyError> {
-        // The staged card table is row-aligned with the type table, so its rows index by
-        // ontology row: the handle's id domain makes that claim once.
+        // The staged card table is row-aligned with the type table, and its rows therefore index
+        // by ontology row: the handle's id domain makes that claim once.
         let cards: VectorFile<OntologyRowId, CANONICAL_DIMENSIONS> = VectorFile::open(
             self.context
                 .staging

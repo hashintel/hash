@@ -1,3 +1,5 @@
+//! Whitespace normalization for card prose.
+
 use alloc::borrow::Cow;
 use std::sync::LazyLock;
 

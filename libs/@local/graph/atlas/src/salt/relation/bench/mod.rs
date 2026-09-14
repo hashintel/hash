@@ -1,21 +1,35 @@
-//! Benchmark seams over the relation-index build.
+//! Synthetic corpora and stage runners for measuring relation-index construction.
 //!
-//! Wall-time claims about the build - the mega relation no longer serializes emission, assembly is
-//! sort-dominated, the emission chunk is a batch size rather than a tuned number - are claims about
-//! parallel composition, and only hold or fail at realistic scale and skew. This module gives the
-//! bench target (an external crate) exactly the levers those claims need while every internal type
-//! stays private: corpus synthesis at measured live shapes ([`Corpus`], [`Profile`]), each
-//! production stage runnable from its own input state, and plain-number summaries
-//! ([`BuildSummary`]).
+//! Use [`production_corpus`] to construct inputs with the production row types. [`Profile`] varies
+//! relation concentration, with the fixture's statistical and multiplicity limitations documented
+//! on [`Corpus::synthesize`]. The runners expose the production stages of
+//! [`RelationIndexes::build`] to measure group-emission scaling, assembly cost and the effect of
+//! the emission-chunk size.
 //!
-//! The stage runners call the production functions that [`RelationIndexes::build`] composes, never
-//! mirrors of them, so the benchmarks measure a change to the build rather than diverging from it
-//! unnoticed. Stages that reorder their input take a [`Scratch`] buffer the caller clones outside
-//! the timed region. Stages that only read consume the corpus's pre-sorted copies directly.
+//! Clone [`Scratch`] and [`Records`] outside the timed region. A corpus lazily caches grouped
+//! instances, emitted records and a protection index. Warm the relevant accessor or stage before
+//! timing if those initializations should be excluded. Stage runners still include the allocations
+//! performed by the stage itself.
 //!
-//! Beside the build seams, the judge runners (`judge`) compare the two access layouts hard-negative
-//! mining could vet candidates through: pointwise pair probes against per-row partner merges, over
-//! one synthesized mining sweep ([`JudgeProbes`]).
+//! [`JudgeProbes`] supplies one candidate sweep to compare pointwise lookups with a row-merge
+//! implementation. The comparison evaluates an alternative access pattern under the default
+//! protection settings, not a complete mining algorithm.
+//!
+//! # Example
+//!
+//! With the `bench` feature enabled, a small corpus can exercise the build without timing it:
+//!
+//! ```rust
+//! use hash_graph_atlas::bench::relation::{Profile, production_corpus};
+//!
+//! let corpus = production_corpus(Profile::Live, 128, 42);
+//! assert_eq!(corpus.instance_count(), 256);
+//! let mut scratch = corpus.scratch();
+//! let proper = scratch.sort_by_group();
+//! let summary = corpus.build_in(&mut scratch, 0.0, 0.0);
+//! assert_eq!(summary.retained_edges, proper);
+//! assert_eq!(summary.pruned_edges, 0);
+//! ```
 
 use hashql_core::id::Id;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -40,17 +54,20 @@ mod judge;
 #[cfg(test)]
 mod tests;
 
-/// The production emission chunk size, for sweeping around it.
+/// Returns the production emission chunk size for comparison with nearby sizes.
 #[must_use]
 pub const fn production_chunk() -> usize {
     EMISSION_CHUNK
 }
 
-/// Synthesizes a corpus at the production row-id instantiation, under the fixture generator.
+/// Synthesizes a corpus with the production node and edge row types.
 ///
-/// The benchmark targets measure the build over exactly the id types production indexes, and this
-/// constructor is what fixes them, so a target never names an id type itself. Equal arguments
-/// synthesize equal corpora ([`Corpus::synthesize`]).
+/// Uses [`Xoshiro256PlusPlus`] with [`Corpus::synthesize`]'s fixture model and replay limits. See
+/// the [module example](self).
+///
+/// # Panics
+///
+/// Panics when synthesis exceeds representable instance counts or allocation capacity.
 #[must_use]
 pub fn production_corpus(
     profile: Profile,
@@ -67,7 +84,7 @@ pub struct BuildSummary {
     pub retained_edges: usize,
     /// Attraction edges dropped by the pruning predicate.
     pub pruned_edges: usize,
-    /// The fraction of total force mass the pruning dropped, read out at the hook boundary.
+    /// The fraction of `c · s · s+` mass dropped by pruning.
     pub omitted_mass_fraction: f64,
     /// Stored protection entries.
     ///
@@ -77,8 +94,8 @@ pub struct BuildSummary {
 
 /// An owned instance buffer for stages that reorder their input.
 ///
-/// Cloning one costs a large memcpy at bench scales; do it in the benchmark harness's setup phase,
-/// outside the timed region.
+/// Cloning copies the full instance buffer. Do it in the benchmark harness's setup phase, outside
+/// the timed region.
 #[derive(Clone)]
 pub struct Scratch<N, E>(Vec<super::RelationInstance<N, E>>);
 
@@ -86,7 +103,7 @@ impl<N, E> Scratch<N, E> {
     /// Runs the group sort alone, returning the proper instance count.
     ///
     /// The buffer should hold instances in synthesis order ([`Corpus::scratch`]): the sort has a
-    /// sortedness fast path, so only an unsorted buffer measures the production pass.
+    /// sortedness fast path. Reusing the sorted result would measure a different input state.
     pub fn sort_by_group(&mut self) -> usize
     where
         N: Id,
@@ -98,8 +115,7 @@ impl<N, E> Scratch<N, E> {
 
 /// An owned protection-record buffer for the assembly stage, in emission order.
 ///
-/// The assembly reorders its input, so each timed run takes a fresh clone; clone in the benchmark
-/// harness's setup phase, outside the timed region.
+/// Assembly reorders the records. Clone a fresh buffer outside the timed region for each run.
 #[derive(Clone)]
 pub struct Records<N>(Vec<ProtectionRecord<N>>);
 
@@ -115,6 +131,12 @@ where
     }
 
     /// Clones the emitted protection records in emission order, the assembly's input state.
+    ///
+    /// The first call initializes the grouped-instance and emitted-record caches.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `N` cannot represent zero.
     #[must_use]
     pub fn records_scratch(&self) -> Records<N> {
         Records(self.records().to_vec())
@@ -122,10 +144,14 @@ where
 
     /// Runs the full production build over `scratch`.
     ///
+    /// `scratch` must come from this corpus. Supplying another corpus's instances does not validate
+    /// their provenance.
+    ///
     /// # Panics
     ///
-    /// This panics when the settings are not finite and non-negative, or the build rejects the
-    /// corpus, which the synthesis contract excludes.
+    /// Panics for non-finite or negative settings, a row domain exceeding `u32`, uncovered
+    /// relations, or endpoints outside this corpus's row domain. `N` must represent every row,
+    /// including zero.
     #[must_use]
     pub fn build_in(
         &self,
@@ -133,8 +159,8 @@ where
         coincident: f32,
         pruning: f32,
     ) -> BuildSummary {
-        // The hook synthesizes its typed inputs from the sweep's plain settings: a bench target
-        // is its own crate and cannot name the crate-internal scalar types.
+        // the external benchmark target supplies plain settings because the scalar types are
+        // crate-private.
         let attraction = AttractionOptions::new(
             NonNegative::new(coincident).expect("the sweep passes a finite non-negative setting"),
             NonNegative::new(pruning).expect("the sweep passes a finite non-negative setting"),
@@ -153,13 +179,13 @@ where
 
     /// Runs the group emission alone with `chunk` as the emission chunk size.
     ///
-    /// Reads the corpus's group-sorted instances and allocates the protection record buffer it
-    /// fills, exactly as the production build does.
+    /// Includes group-range resolution and allocation of the protection records. The first call
+    /// also initializes the cached group-sorted instances.
     ///
     /// # Panics
     ///
-    /// This panics when the corpus references an uncovered relation, which the synthesis contract
-    /// excludes.
+    /// Panics when `N` cannot represent zero, or when `chunk` is zero and the corpus has a non-self
+    /// group.
     pub fn emit_groups(&self, chunk: usize) {
         let ranges = build::resolve_groups(self.grouped(), self.policies())
             .expect("the synthesized corpus covers every relation");
@@ -175,21 +201,27 @@ where
 
     /// Runs the protection assembly alone.
     ///
-    /// The assembly covers the record sort, the aggregation, and the scatter.
+    /// Includes record sorting, aggregation, scatter and index validation. `records` must come from
+    /// this corpus.
+    ///
+    /// # Panics
+    ///
+    /// Panics when record endpoints are outside this corpus's row domain, required row positions
+    /// are unrepresentable, or the assembled matrix fails validation.
     pub fn assemble_protection(&self, records: &mut Records<N>) {
         drop(build::assemble_protection(self.rows(), &mut records.0));
     }
 
     /// Runs the protection index's validation alone, over the corpus's assembled index.
     ///
-    /// Assembly constructs every invariant the validation re-checks; timing the check against
-    /// [`assemble_protection`](Self::assemble_protection) attributes the assembly stage's cost
-    /// between the scatter and the re-validation.
+    /// The first call also assembles and caches the index. Warm it before timing validation
+    /// separately. Comparing with [`Self::assemble_protection`] estimates the validation share of
+    /// that stage, with cache and measurement effects.
     ///
     /// # Panics
     ///
-    /// This panics when the assembled matrix fails its own validation, which the scatter contract
-    /// excludes.
+    /// Panics if the initial assembly fails for an unrepresentable domain or the matrix violates an
+    /// index invariant.
     pub fn validate_protection(&self) {
         let matrix = self.protection().matrix();
         super::protection::validate(matrix).expect("the assembled matrix is valid");

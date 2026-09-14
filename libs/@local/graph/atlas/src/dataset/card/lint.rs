@@ -1,3 +1,5 @@
+//! The final text lint that refuses identifiers, URLs and UUIDs in rendered card text.
+
 use core::{error::Error, fmt};
 use std::sync::LazyLock;
 
@@ -31,8 +33,10 @@ impl Error for IdentifierLeakError {}
 
 /// Rejects universal keys and the adapter's known source identifiers.
 ///
-/// Every check requires that a match begin and end at a token boundary, so ordinary prose that
-/// merely resembles an identifier passes. This ignores empty identifiers.
+/// Every check requires a match to begin at a token boundary, and the UUID and source-identifier
+/// checks require one at its end as well. The URL check cannot ask for that, because its match
+/// ends at `://` with the rest of the URL still to come. Ordinary prose that merely resembles an
+/// identifier passes either way, and this ignores empty identifiers.
 ///
 /// # Errors
 ///
@@ -76,7 +80,17 @@ pub(crate) fn lint_card_text(
     Ok(())
 }
 
-// `\b` cannot express these boundaries. It tests the word class `[0-9A-Za-z_]`, while the URL check needs alphanumeric boundaries (`_https://x` leaks but has no word boundary before `h`) and the UUID check needs hex boundaries (`key123e4567-...` has no word boundary before the `1`, so `\b` never even attempts that match). Consuming prefix classes would distort offsets, so the search retries from one past a failed match start until a match begins and ends at a real boundary.
+// `\b` cannot express these boundaries. It tests the Unicode word class, which holds `_` and every
+// letter and digit alike, while the URL check needs alphanumeric boundaries (`_https://x` leaks but
+// has no word boundary before `h`) and the UUID check needs hex boundaries (`key123e4567-...` has
+// no word boundary before the `1`, so `\b` never even attempts that match). Consuming prefix
+// classes would distort offsets. The search retries from one past a failed match start until a
+// match satisfies the boundaries the caller requires.
+/// Returns whether `pattern` matches somewhere in `text` at the boundaries the caller requires.
+///
+/// `before` and `after` are the byte classes that must not touch the match. A match preceded by a
+/// `before` member, or followed by an `after` member, is a fragment of a longer token and does
+/// not count. `None` for `after` accepts any byte after the match.
 fn find_with_boundaries(
     pattern: &Regex,
     text: &str,
@@ -90,13 +104,14 @@ fn find_with_boundaries(
         {
             return true;
         }
-        // Both patterns begin with an ASCII byte, so one past the match
-        // start stays on a character boundary.
+        // Both patterns begin with an ASCII byte. One past the match start stays on a character
+        // boundary.
         search_start = found.start() + 1;
     }
     false
 }
 
+/// Returns whether `identifier` occurs in `text` as a whole alphanumeric token.
 #[expect(
     clippy::string_slice,
     reason = "offsets advance by whole characters from match starts, so slicing stays on \
@@ -116,11 +131,13 @@ fn contains_identifier(text: &str, identifier: &str) -> bool {
     false
 }
 
+/// Returns whether the byte before `index` is absent or outside the `member` class.
 #[inline]
 fn boundary_before(text: &str, index: usize, member: fn(&u8) -> bool) -> bool {
     index == 0 || !member(&text.as_bytes()[index - 1])
 }
 
+/// Returns whether the byte at `index` is absent or outside the `member` class.
 #[inline]
 fn boundary_after(text: &str, index: usize, member: fn(&u8) -> bool) -> bool {
     index == text.len() || !member(&text.as_bytes()[index])

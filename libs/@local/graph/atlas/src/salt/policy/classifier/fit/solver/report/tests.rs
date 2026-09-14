@@ -1,4 +1,4 @@
-//! Certificates of the report instruments: the probe's curvature census.
+//! Certificates of the report probes: the probe's curvature census.
 
 use super::super::{
     SOLVER_DIMENSIONS,
@@ -45,8 +45,14 @@ fn fixture_corpus() -> (MatrixN<CANONICAL_DIMENSIONS>, Vec<TrainingRow>) {
     (embeddings, training)
 }
 
-/// At the physical origin every row's probabilities are uniform, so the curvature scale is exactly
-/// `(1/3)·(2/3)` for every row.
+/// Reads every origin row's curvature scale as the `f64` reference `p·(1 − p)`, bit for bit.
+///
+/// At the physical origin every row's probabilities are uniform, and the curvature scale
+/// `max_c p_c(1 − p_c)` is `(1/3)·(2/3) = 2/9` in real arithmetic. The census computes it as the
+/// `f64` expression `p·(1 − p)` with `p = 1/3`, the rounded expression the test builds as its
+/// reference, and the two agree bit for bit. That reference differs from the `f64` nearest to
+/// `2/9` by one unit in the last place, and the assertion pins the computed expression rather
+/// than the exactly rounded fraction.
 #[test]
 fn curvature_scales_at_the_origin_are_uniform() {
     let (embeddings, training) = fixture_corpus();
@@ -82,8 +88,10 @@ fn curvature_scales_at_the_origin_are_uniform() {
     }
 }
 
-/// The census pairs each row's reading with that row's own weight in original order and carries
-/// the preparation-validated total, so a weight share divides by the exact row-order sum.
+/// Pairs each census reading with its row's own weight and the preparation-validated total.
+///
+/// The census pairs each row's reading with that row's own weight in original order and carries the
+/// preparation-validated total: a weight share divides by the exact row-order sum.
 #[test]
 fn census_readings_carry_row_weights_and_the_validated_total() {
     let (embeddings, _) = fixture_corpus();

@@ -1,3 +1,4 @@
+//! Certificates for the policy file's format.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -18,6 +19,10 @@ use super::{
 };
 use crate::file::region::{header::HeaderError, machine::Machine};
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 2, this
+/// machine's information, the policy count as a little-endian `u64`, and zero padding out to
+/// 4096. The expected file length is the header page plus one 56-byte row per policy, and an
+/// overflowing count reports none, because it matches no real file.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(3));
@@ -53,6 +58,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// A resolved policy row for `relation`, varying only the coincident weights.
 fn fixture_row(relation: u64, coincident: f64) -> PolicyRow {
     PolicyRow {
         relation,
@@ -66,6 +72,7 @@ fn fixture_row(relation: u64, coincident: f64) -> PolicyRow {
     }
 }
 
+/// Builds a policy file with three rows in ascending relation order.
 fn fixture_bytes() -> Vec<u8> {
     let rows = [
         fixture_row(2, 0.0),
@@ -98,6 +105,8 @@ fn written_rows_reopen_verbatim() {
     assert_eq!(rows[1].strength, 1.0);
 }
 
+/// A zero-row table is valid geometry: it writes, reopens, and hands out an empty row region
+/// rather than failing the open.
 #[test]
 fn empty_table_reopens() {
     // A zero count is valid geometry: one empty region.

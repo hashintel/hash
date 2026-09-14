@@ -13,10 +13,19 @@ use crate::salt::projector::scale::LocalScales;
 /// Zero through the opening segment, round-robin across [`STEPS`] once the ladder opens.
 ///
 /// A vacuous run pins the zero step throughout. With no relation force the objective is identical
-/// at every step, so lens variation could teach the modulation head nothing but batch-sampling
-/// noise. A zero condition instead leaves the head's condition weights with exactly zero gradient,
-/// so every projected step of a forceless corpus is bit-identical - the flat ladder is a
-/// certificate, not an accident.
+/// at every lens step, and lens variation could teach the modulation head nothing but
+/// batch-sampling noise. A zero condition instead leaves the head's condition weights with exactly
+/// zero gradient. The trainer's Adam applies no weight decay, and a parameter with zero gradient
+/// and zero moments does not move under it while the optimizer arithmetic is finite and preserves
+/// the zero. That Adam narrows its step count to `i32` for the bias corrections, and the argument
+/// therefore covers step counts below `2³¹`. The head's bias receives gradient and can train
+/// between optimizer updates, and every condition shares it. From the standard initialization (a
+/// zero `FiLM` map and bias, fresh moments) a forceless run therefore projects, at any one model
+/// state, the same map from representation to coordinate at every lens step, and the flat ladder
+/// is a certificate rather than an accident. Bit identity between the projected lens steps holds
+/// within one deterministic execution of one batch shape, as the projector's introduction states.
+/// A supplied model with nonzero condition weights, or a resumed optimizer with nonzero moments, is
+/// outside that argument.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "the step round-robin is an index modulus"
@@ -29,12 +38,12 @@ pub(super) const fn step(step_index: usize, boundary: usize, vacuous: bool) -> u
     }
 }
 
-/// Assembles one step's drawn populations at their step.
+/// Assembles one step's drawn populations at their lens step.
 ///
 /// # Panics
 ///
 /// This panics when relation draws happen before a scale-bearing tick. The boundary always runs
-/// one, so a miss is a wiring defect.
+/// one, and a miss is therefore a wiring defect.
 pub(super) fn assemble_batch<N, E>(
     populations: Populations<'_, N, E>,
     step_index: usize,

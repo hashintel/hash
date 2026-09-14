@@ -14,7 +14,6 @@ use crate::file::region::{
 };
 
 /// Opening a sparse matrix file failed.
-// pub: rides `OpenAtlasError`'s public adjacency variant.
 #[derive(Debug)]
 pub enum OpenSprsError {
     /// Reading the header page failed.
@@ -72,14 +71,17 @@ impl Error for OpenSprsError {
 }
 
 /// Viewing an opened file's matrix failed.
-// pub: rides `InvalidAdjacencyFile`'s public matrix variant.
 #[derive(Debug)]
 pub enum SprsMatrixError {
     /// The file stores different element types than the requested ones.
     Elements {
+        /// The value type the file stores.
         value: ValueTag,
+        /// The width in bytes of the value type the file stores.
         value_width: u64,
+        /// The index type the file stores for its entry coordinates.
         index: IndexVariant,
+        /// The index type the file stores for its pointer region.
         iptr: IndexVariant,
     },
     /// The matrix does not fit the address space.

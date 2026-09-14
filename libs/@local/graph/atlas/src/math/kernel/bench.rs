@@ -1,14 +1,12 @@
-//! Measurement seam for the vendored transcendental kernels.
+//! Benchmark entry points for production and candidate transcendental kernels.
 //!
-//! The `math_kernels` benchmark target measures each production wrapper exactly as production calls
-//! it, so a rewrite of the vendored kernels shows up as an instruction-count or cycle change
-//! against the saved per-event baselines. Nothing here is API for consumers of the crate.
+//! The exponential and power functions expose the production wrappers. The table functions expose
+//! alternative exponential implementations for comparison on the same inputs. Inlining these entry
+//! points permits the benchmark caller to optimize the surrounding expression.
 
 use core::simd::{f32x4, f32x8, f64x4};
 
-/// Base-e exponential of each `f64` lane.
-///
-/// As the production wrapper computes it.
+/// Approximates each lane's exponential through [`super::exp_f64x4`].
 #[expect(
     clippy::inline_always,
     reason = "the seam must measure the wrapper as production calls it: transparently inlined, \
@@ -20,9 +18,7 @@ pub fn exp_f64x4(values: f64x4) -> f64x4 {
     super::exp_f64x4(values)
 }
 
-/// Base-e exponential of each `f32` lane.
-///
-/// As the production wrapper computes it.
+/// Approximates each lane's exponential through [`super::exp_f32x8`].
 #[expect(
     clippy::inline_always,
     reason = "the seam must measure the wrapper as production calls it: transparently inlined, \
@@ -34,10 +30,9 @@ pub fn exp_f32x8(values: f32x8) -> f32x8 {
     super::exp_f32x8(values)
 }
 
-/// Base-e exponential of each `f32` lane, table-based alternative in its portable gather form.
+/// Approximates each lane's exponential with portable table gathers.
 ///
-/// Not a production wrapper: this entry keeps the 16-entry hi/lo-table candidate measured against
-/// [`exp_f32x8`].
+/// This exposes the 16-entry split-table candidate for comparison with [`exp_f32x8`].
 #[expect(
     clippy::inline_always,
     reason = "the seam must measure the candidate as a production wrapper would call it: \
@@ -49,10 +44,10 @@ pub fn exp_f32x8_table_gather(values: f32x8) -> f32x8 {
     super::exp_table::exp_f32(values)
 }
 
-/// Base-e exponential of each `f32` lane, table-based alternative through paired `TBL4` lookups.
+/// Approximates each lane's exponential with target-selected table lookups.
 ///
-/// Not a production wrapper: this entry keeps the aarch64 lookup form of the table candidate
-/// measured against [`exp_f32x8`].
+/// On little-endian aarch64, the candidate uses paired `TBL4` lookups when NEON is enabled and
+/// portable gathers otherwise. Compare with [`exp_f32x8`].
 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
 #[expect(
     clippy::inline_always,
@@ -65,9 +60,10 @@ pub fn exp_f32x8_table_tbl4(values: f32x8) -> f32x8 {
     super::exp_table::exp_f32x8(values)
 }
 
-/// Lanewise power for strictly positive bases.
+/// Approximates lanewise powers through [`super::pow_f32x4`].
 ///
-/// As the production wrapper computes it.
+/// Bases must be strictly positive and finite. The production wrapper's range and precision limits
+/// apply.
 #[expect(
     clippy::inline_always,
     reason = "the seam must measure the wrapper as production calls it: transparently inlined, \

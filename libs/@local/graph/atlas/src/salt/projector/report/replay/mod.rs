@@ -6,10 +6,9 @@
 //! generation never saw, projected online through the fitted generation's own published
 //! projector. This report replays that deployment retrospectively over two published generations.
 //! The arrivals of the later generation `G1` project through `G0`'s certified projector, and each
-//! projected
-//! neighbourhood is read against the representation-space truth, beside the counterfactual
-//! reading the arrival's own `G1` fit produced and beside fitted controls that share every
-//! normalizer.
+//! projected neighbourhood is read against the representation-space truth, beside the
+//! counterfactual reading the arrival's own `G1` fit produced and beside fitted controls that
+//! share every normalizer.
 //!
 //! # Populations and estimands
 //!
@@ -17,19 +16,19 @@
 //! (present in `G1`, absent from `G0`), stable comparison rows (present in both with byte-equal
 //! projector representations), and revised fitted rows (present in both with differing bytes).
 //! Revised rows are counted and excluded, because serving never projects revised bytes. A
-//! post-fit edition keeps its fitted coordinate until a refit, so an arrival label on such a row
-//! would read the wrong mechanism. Arrivals split further by whether their representation bytes
-//! already occur anywhere in `G0` - only a novel representation tests generalization beyond an
-//! input the model has already seen. An empty arrival population is a refusal, never a perfect
-//! result.
+//! post-fit edition keeps its fitted coordinate until a refit, and an arrival label on such a row
+//! would therefore read the wrong mechanism. Arrivals split further by whether their
+//! representation bytes already occur anywhere in `G0` - only a novel representation tests
+//! generalization beyond an input the model has already seen. An empty arrival population is a
+//! refusal, never a perfect result.
 //!
-//! An entity estimand and a class estimand ride every reading. The entity estimand samples rows, so
-//! a duplicated representation weighs by its multiplicity: the consumer-facing view, where a
-//! heavily duplicated entity really does dominate what serving shows. The class estimand forms
-//! byte-exact representation classes over the full eligible populations first and samples
-//! classes with equal weight, each read at its deterministic representative (the class's lowest
-//! later row), so multiplicity buys a class neither inclusion odds nor query weight. A
-//! deduplication diagnostic beside them restricts the entity draw's own universe to one member
+//! Every reading carries an entity estimand and a class estimand. The entity estimand samples
+//! rows, and a duplicated representation therefore weighs by its multiplicity: the consumer-facing
+//! view, where a heavily duplicated entity really does dominate what serving shows. The class
+//! estimand forms byte-exact representation classes over the full eligible populations first and
+//! samples classes with equal weight, each read at its deterministic representative (the class's
+//! lowest later row). Multiplicity therefore buys a class neither inclusion odds nor query weight.
+//! A deduplication diagnostic beside them restricts the entity draw's own universe to one member
 //! per class, isolating how much duplication inside that draw moved the entity readings.
 //!
 //! # Orderings and readings
@@ -54,9 +53,9 @@
 //! able to carry the experiment. Everything below the artifact extraction - every data refusal,
 //! the partition, the class formation, the sampling, the incident scan - runs identically on
 //! extracted and on fabricated columns. [`ArrivalReplay::report`] then drives one
-//! [`PublishedProjector`](projection::PublishedProjector),
-//! the trait standing where `G0`'s reopened projector stands in production. The production
-//! adapter binds the real projector and its construction-time certificate.
+//! [`PublishedProjector`](projection::PublishedProjector), the trait standing where `G0`'s
+//! reopened projector stands in production. The production adapter binds the real projector and
+//! its construction-time certificate.
 //!
 //! [`NeighbourhoodAggregate`]: crate::salt::quality::metric::NeighbourhoodAggregate
 
@@ -98,8 +97,9 @@ mod tests;
 
 /// One value per generation of the replayed pair, named by its temporal side.
 ///
-/// Every earlier/later duo travels through this carrier, so two same-typed values cannot swap
-/// silently at a call boundary.
+/// Every earlier/later duo passes through this carrier, and each side is assigned and read by
+/// name rather than by position. The names make a swap of two same-typed values visible at the
+/// construction site, though not a type error.
 pub(super) struct Pair<T> {
     /// The value on the earlier, deployed side `G0`.
     pub earlier: T,
@@ -239,16 +239,20 @@ impl PopulationCounts {
 /// One replay, extracted and validated, ready to drive a published projector.
 ///
 /// Construction copies everything the run reads, from sampled embeddings and wire coordinates to
-/// populations and designs, so the source generations' mappings are released before the run
-/// starts and the run itself touches no artifact.
+/// populations and designs. The source generations' mappings are therefore released before the
+/// run starts, and the run itself touches no artifact.
 pub(crate) struct ArrivalReplay {
     /// The pair's identities.
     generation: Pair<GenerationId>,
     /// The pair's recorded snapshot axes.
     axes: Pair<TemporalAxes>,
+    /// The seed every sample drew under.
     seed: u64,
+    /// The requested sizes, echoed into the report.
     requested: RequestedDesign,
+    /// The population, class, and sample counts.
     populations: PopulationCounts,
+    /// The validated neighbourhood designs, one per requested size.
     designs: Vec<NeighbourhoodDesign>,
     /// The distinct rows both estimands project, each once.
     plan: ProjectionPlan,
@@ -275,7 +279,7 @@ impl ArrivalReplay {
     /// generation's identity, representation, row-position, and wire-coordinate artifacts plus
     /// the later generation's edge endpoints. The joined rows are partitioned and the
     /// byte-exact classes formed over the full populations. Every sample draws under the seed,
-    /// and construction copies what the run reads, so the returned value holds no artifact
+    /// and construction copies what the run reads. The returned value therefore holds no artifact
     /// mapping.
     ///
     /// # Errors
@@ -319,6 +323,12 @@ impl ArrivalReplay {
     ///
     /// Validation, partition, class formation, sampling, and copying all run here, identically
     /// on extracted and on fabricated columns.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`ReplayError`] naming the first refusal: the pair's snapshot order, no
+    /// requested neighbourhood, a universe beyond the rank domain, an empty arrival population, a
+    /// draw the populations cannot carry, or a design the samples cannot carry.
     fn from_columns(
         columns: &Pair<GenerationColumns<'_>>,
         edges: &IdSlice<EdgeRowId, [NodeRowId; 2]>,

@@ -1,24 +1,25 @@
 //! The semantic graph of fuzzy edge weights over the k-NN table.
 //!
-//! [`SemanticGraph`] is a symmetric sparse matrix over the node-row domain whose entry `(i, j)`
-//! weights the semantic edge between rows `i` and `j` in `(0, 1]`. It is the weighted form of the
-//! [`Knn`](super::knn::table::Knn) table: distances calibrate into directed fuzzy memberships per
-//! row ([`bandwidth`]), and the directed memberships combine into one undirected weight by the
-//! probabilistic union
+//! [`SemanticGraph`] is a symmetric sparse matrix over the node-row domain. Each stored entry `(i,
+//! j)` weights the semantic edge between distinct rows `i` and `j` in `(0, 1]`.
+//! [`SemanticGraph::build`] calibrates the distances in a [`Knn`](super::knn::table::Knn) table
+//! into directed fuzzy memberships per row ([`bandwidth`]). The directed memberships combine into
+//! an undirected weight by the probabilistic union. In mathematical notation,
 //!
 //! ```text
-//! w(i, j) = p(i → j) + p(j → i) - p(i → j) · p(j → i),
+//! w(i, j) = p(i → j) + p(j → i) - p(i → j) · p(j → i).
 //! ```
 //!
-//! an absent direction contributing zero, so a one-sided edge keeps its directed membership. The
-//! union's support is the union of the directed supports. A row carries its `k` outgoing edges plus
-//! one edge for every other row that names it, so degrees start at `k` and only the row domain
-//! bounds them. A hub named by many rows carries many edges. The graph stores every edge in both of
-//! its rows with bit-equal weight.
+//! Here `p(i → j)` is the calibrated membership of neighbour `j` in row `i`. An absent direction
+//! contributes zero, and a one-sided edge keeps its directed membership. The union's support is the
+//! union of the directed supports. A built row carries its `k` outgoing neighbours plus each
+//! incoming neighbour absent from that outgoing set. Its degree lies between `k` and `n - 1` for
+//! `n` node rows. A hub named by many rows can have a high degree. The graph stores every edge in
+//! both of its rows with bit-equal weight.
 //!
-//! The graph is the training-side attraction structure, and training and release evaluation both
-//! read it from its published artifact, so backend variation in the k-NN build cannot confound
-//! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
+//! Publishing these attraction weights fixes the semantic input for model comparisons that reopen
+//! the same artifact through [`artifact::SemanticGraphArchive`]. Rebuilding the k-NN table can
+//! change that input.
 
 use core::marker::PhantomData;
 
@@ -40,25 +41,28 @@ mod error;
 #[cfg(test)]
 mod tests;
 
-/// The graph's matrix layout, shared with the k-NN table.
+/// A sparse `f32` weight matrix with `u32` columns and `u64` row pointers.
 pub(crate) type SemanticMatrix = CsMatI<f32, u32, u64>;
 
 /// A borrowed [`SemanticMatrix`].
 pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 
-/// Smooth-kNN calibration settings.
+/// Smooth-kNN convergence limits and the distance-scaled bandwidth floor.
 ///
 /// The defaults are the established UMAP fuzzy-set kernel constants.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SmoothingOptions {
-    /// Absolute tolerance on the membership-sum equation at which the bisection stops early.
-    pub tolerance: DPositive = d_positive!(1.0e-5),
-    /// Scale factor of the `σ` floor.
+    /// Absolute membership-sum residual below which bisection stops early.
     ///
-    /// `σ` never falls below this fraction of the row's mean distance (the corpus mean for rows
-    /// without a positive distance).
+    /// The tolerance is `1.0e-5` by default. Reaching the iteration limit can leave a larger residual.
+    pub tolerance: DPositive = d_positive!(1.0e-5),
+    /// Scale factor of the distance-based `σ` floor.
+    ///
+    /// This is `1.0e-3` by default. For a finite nonnegative factor, `σ` never falls below its product with the row's mean distance (the corpus mean for rows without a positive distance). A zero or underflowed product supplies no positive floor.
     pub bandwidth_floor: f32 = 1.0e-3,
-    /// Bisection iterations per row when the tolerance is not met earlier.
+    /// Maximum bisection iterations per row.
+    ///
+    /// This is `64` by default. Zero iterations keep the initial trial bandwidth of `1.0` before applying the floor. Large limits can drive the trial bandwidth to zero or infinity in `f32`.
     pub bisection_iterations: usize = 64,
 }
 
@@ -68,7 +72,11 @@ const impl Default for SmoothingOptions {
     }
 }
 
-/// Checks every graph invariant over a borrowed matrix.
+/// Checks the graph's shape, weight domain and symmetry.
+///
+/// # Errors
+///
+/// Returns [`SemanticValidationError`] when the matrix violates a graph invariant.
 #[expect(
     clippy::float_cmp,
     reason = "the union weight is computed from commutative operations, so the two directions of \
@@ -135,9 +143,11 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
 ///
 /// Row `i` stores the weights of every semantic edge at node row `i`, keyed by the other endpoint
 /// in ascending row order. Weights are finite in `(0, 1]`, no row references itself, and the graph
-/// stores every edge in both of its rows with bit-equal weight. A row's edges are the union of the
-/// directed supports: at least the `k` outgoing edges of a `k`-neighbour table, plus one for every
-/// other row naming it.
+/// stores every edge in both of its rows with bit-equal weight. The square matrix spans at least
+/// two rows. [`Self::new`] also accepts empty rows and graphs with no edges. [`Self::build`]
+/// establishes the k-NN support relationship described by this module.
+///
+/// `N` must represent every row in the matrix's domain for typed traversal.
 #[derive(Debug, Clone)]
 pub(crate) struct SemanticGraph<N>(SemanticMatrix, PhantomData<N>);
 
@@ -149,9 +159,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not square over at least two rows,
-    /// self-referencing, stores a weight outside the finite `(0, 1]` range, or stores an edge whose
-    /// two directions are missing or unequal.
+    /// Returns [`SemanticValidationError`] when the matrix violates a graph invariant.
     pub(crate) fn new(matrix: SemanticMatrix) -> Result<Self, SemanticValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix, PhantomData))
@@ -159,10 +167,21 @@ where
 
     /// Weighs a k-NN table into the symmetric semantic graph.
     ///
-    /// Each row's distances calibrate a [`bandwidth`] whose exponential memberships sum to
-    /// `log2(k)`. The directed memberships then combine by the probabilistic union. Rows calibrate
-    /// in parallel and deterministically: each row writes its result into its own slot regardless
-    /// of completion order.
+    /// Calibration uses each row's distances to approach a membership sum of `log₂(k)` through a
+    /// [`bandwidth`]. Tied distances can make that target unattainable, and iteration limits or the
+    /// floors can also leave a residual. The directed memberships then combine by the probabilistic
+    /// union.
+    ///
+    /// Row completion order preserves the association between each membership and its edge. With
+    /// the default settings, each row's weights have a fixed arithmetic order for a given numerical
+    /// environment. Cross-target bit equality is outside this contract.
+    ///
+    /// # Complexity
+    ///
+    /// For `n` rows, `k` neighbours per row and at most `b` calibration iterations, calibration
+    /// takes O(n · k · (b + 1)) work. The directed matrices and union use O(n · k) additional
+    /// space. Final validation checks each reverse edge by binary search, adding O(m · log n) work
+    /// for `m` union entries.
     #[expect(
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
@@ -175,6 +194,8 @@ where
         let (_, indices, distances) = knn.matrix().into_raw_storage();
 
         let target = (neighbours as f64).log2();
+        // the parallel sum can vary its rounding order. Only all-zero rows use this fallback,
+        // and their memberships are one for every finite positive bandwidth.
         let corpus_mean = (distances
             .par_iter()
             .map(|&distance| f64::from(distance))
@@ -201,10 +222,10 @@ where
 
         let transposed = directed.transpose_view().to_csr();
 
-        // (a + b) - a · b: both operations are commutative, so the two directions of an edge
-        // compute bit-equal weights. The expression is ≤ 1 over memberships in [0, 1] - at the
-        // maximum the two roundings leave a half-ulp that ties-to-even returns to 1.0 - and the
-        // clamp is the unit fraction's ceiling.
+        // Swapping finite memberships preserves both their rounded sum and their exact product.
+        // The fused operation subtracts that product from the same rounded sum in either order.
+        // Therefore both directions compute bit-equal weights. The final clamp enforces the
+        // unit-fraction ceiling at 1.0.
         let union = csmat_binop(directed.view(), transposed.view(), |&lhs, &rhs| {
             lhs.mul_add(-rhs, lhs + rhs).min(1.0)
         });
@@ -244,10 +265,10 @@ impl<'view, N> SemanticGraphView<'view, N>
 where
     N: Id,
 {
-    /// Wraps a matrix whose invariants already hold.
+    /// Borrows a matrix satisfying the graph invariants.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
-    /// own.
+    /// `matrix` must satisfy [`validate`].
+    // These invariants govern graph correctness, not memory safety.
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: SemanticMatrixView<'view>) -> Self {
@@ -272,7 +293,8 @@ where
     ///
     /// # Panics
     ///
-    /// This panics when `row` is outside the graph's row domain.
+    /// This panics when [`Id::as_usize`] maps `row` outside the matrix's row domain. Iteration
+    /// panics if `N` cannot represent a stored endpoint.
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = SemanticEdge<N>> + '_ {
         let (columns, weights) = self
             .0
@@ -292,7 +314,12 @@ where
 
     /// Sums the graph's positive edge weight in double precision.
     ///
-    /// Every stored entry contributes, so each undirected edge counts once per endpoint row.
+    /// Every stored entry contributes in row and endpoint order, and each undirected edge counts
+    /// once per endpoint row.
+    ///
+    /// # Panics
+    ///
+    /// This panics if `N` cannot represent a matrix row.
     #[must_use]
     pub(crate) fn total_weight(&self) -> DNonNegative {
         let mut total = DNonNegative::ZERO;

@@ -1,9 +1,9 @@
 //! Certificates for the gauge alignment.
 //!
 //! A square constellation under scale 2 and a right-angle rotation, translated by integers,
-//! lands every fit coefficient and both adjoint fields on exactly representable values, and the
-//! Euler sums with them, so the recovery fixture asserts exact contracts. The finite-difference
-//! certificate uses a generic constellation and an f64 mirror of the closed form.
+//! makes every fit coefficient, both adjoint fields and the Euler sums exactly representable, and
+//! the recovery fixture therefore asserts exact contracts. The finite-difference certificate uses
+//! a generic constellation and an f64 mirror of the closed form.
 
 #![expect(
     clippy::float_cmp,
@@ -38,16 +38,19 @@ fn fit_fields(
     )
 }
 
+/// A duplicate class id from a literal.
 fn class(id: u32) -> DuplicateClassId {
     DuplicateClassId::new(id)
 }
 
+/// Builds a [`Positive`] from a literal test value.
 fn positive(value: f32) -> Positive {
     Positive::new(value).expect("test value is positive")
 }
 
-/// A gauge over corpus rows 1, 2, 4, 5 with distinct duplicate classes, frozen against
-/// `snapshot`.
+/// Builds a gauge over corpus rows 1, 2, 4, 5 frozen against `snapshot`.
+///
+/// The anchors carry distinct duplicate classes.
 fn square_gauge(snapshot: &[Vec2]) -> GaugeAnchors<NodeRowId> {
     GaugeAnchors::freeze(
         Box::new([1, 2, 4, 5].map(NodeRowId::new)),
@@ -79,8 +82,10 @@ const ZERO: [Vec2; 6] = [
     Vec2::new(3.0, -2.0),
 ];
 
-/// Every fit coefficient lands exactly on this fixture, and so do the adjoint fields and the
-/// Euler sums. Anchors sit at non-contiguous corpus rows, so the gather is also under test.
+/// Reads every fit coefficient, adjoint field and Euler sum exactly on the square fixture.
+///
+/// Every fit coefficient is exact on this fixture, and so are the adjoint fields and the Euler
+/// sums. Anchors lie at non-contiguous corpus rows: the gather is also under test.
 #[test]
 fn recovers_an_exact_similarity_with_exact_adjoints() {
     let gauge = square_gauge(&ZERO);
@@ -110,7 +115,7 @@ fn recovers_an_exact_similarity_with_exact_adjoints() {
     );
 
     // Euler laws: the scale is degree −1 in the canonical constellation and degree +1 in the
-    // zero one, so the centred dot of each field with its adjoints reads ∓s exactly.
+    // zero one: the centred dot of each field with its adjoints reads ∓s exactly.
     let rows = [1_usize, 2, 4, 5];
     let canonical_euler: f32 = rows
         .iter()
@@ -167,6 +172,8 @@ fn mirror_scale(source: &[(f64, f64)], target: &[(f64, f64)]) -> f64 {
     dot.hypot(perp) / variance
 }
 
+/// Matches both adjoint fields to central finite differences on a generic constellation.
+///
 /// Both adjoint fields match central finite differences of the closed form on a generic
 /// constellation.
 #[test]
@@ -254,6 +261,8 @@ fn adjoints_match_finite_differences() {
     }
 }
 
+/// Moves the fitted translation alone when the zero field translates.
+///
 /// Translating the zero field moves the fitted translation alone: the centred quantities and
 /// therefore both adjoint fields are bit-identical.
 #[test]
@@ -279,7 +288,7 @@ fn adjoints_are_invariant_under_zero_field_translation() {
 /// The minimum-spread rule binds at the freeze, inclusively at its edge.
 #[test]
 fn the_spread_floor_binds_at_the_freeze() {
-    // Frozen spread is exactly 2, so a band of 0.5 reads a ratio of exactly 4.
+    // Frozen spread is exactly 2: a band of 0.5 reads a ratio of exactly 4.
     GaugeAnchors::freeze(
         Box::new([1, 2, 4, 5].map(NodeRowId::new)),
         Box::new([class(0), class(1), class(2), class(3)]),
@@ -337,8 +346,10 @@ fn the_effective_count_deduplicates_by_class() {
     assert_eq!(admitted.effective_count(), DNonNegative::from_usize(3));
 }
 
-/// A deformation orthogonal to the fit's normal equations leaves the similarity exactly in
-/// place and lands whole in the residual, so the bar's reading is exact.
+/// Leaves the similarity in place under a deformation orthogonal to the normal equations.
+///
+/// A deformation orthogonal to the fit's normal equations leaves the similarity exactly in place
+/// and enters the residual whole: the bar's reading is exact.
 #[test]
 fn the_residual_bar_binds_at_the_fit() {
     let canonical = [
@@ -347,8 +358,8 @@ fn the_residual_bar_binds_at_the_fit() {
         Vec2::new(0.0, 1.0),
         Vec2::new(0.0, -1.0),
     ];
-    // Identity similarity plus the orthogonal deformation (0, ±0.5): Σe = 0, Σu·e = 0,
-    // Σu⊥·e = 0, so the fit stays the identity and the residual RMS is exactly 0.5.
+    // Identity similarity plus the orthogonal deformation (0, ±0.5): Σe = 0, Σu·e = 0 and
+    // Σu⊥·e = 0, hence the fit stays the identity and the residual RMS is exactly 0.5.
     let zero = [
         Vec2::new(1.0, 0.5),
         Vec2::new(-1.0, 0.5),

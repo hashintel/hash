@@ -48,7 +48,6 @@ impl core::error::Error for UnknownRepositoryVersion {}
 ///
 /// The entry names the file and carries the SHA-256 the publisher computed over its bytes. A
 /// verification hashes the file as it is on disk and compares.
-// pub: rides `OpenAtlasError`'s public corruption variant.
 #[derive(Debug)]
 pub enum IntegrityVerificationError {
     /// The file's bytes hash to a digest other than the recorded one.
@@ -194,6 +193,11 @@ impl FileName {
         &self.0
     }
 
+    /// Answers whether `name` is usable as a file name within a generation directory.
+    ///
+    /// A usable name is nonempty and holds no `/` or NUL byte, and it does not begin with a dot.
+    /// The first two keep the name from addressing anything outside its directory, and the third
+    /// keeps it out of the hidden-file space that holds the generation's own bookkeeping.
     const fn valid(name: &str) -> bool {
         let bytes = name.as_bytes();
         if bytes.is_empty() || bytes[0] == b'.' {
@@ -254,10 +258,10 @@ impl AsRef<Path> for VerifiedUtf8PathBuf {
 }
 
 /// One published file, identified by its name within the repository and the SHA-256 of its bytes.
-// pub: rides `IntegrityVerificationError`'s public checksum variant.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RepositoryFile {
     pub name: FileName,
+    /// The SHA-256 the publisher computed over the file's bytes.
     pub hash: Sha256Digest,
 }
 

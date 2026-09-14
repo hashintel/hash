@@ -10,13 +10,13 @@ use crate::{
 
 /// Runs one production generation over the dump directory at `dump`.
 ///
-/// The dump carries the snapshot, its temporal axes, and every embedding the run requests, so the
-/// run reaches neither the store nor the embedding provider. The generation publishes under the
-/// generation root at `root` exactly as a live run's does, and equal dumps under equal options
-/// describe the same run.
+/// The dump supplies the snapshot and its temporal axes. All embedding requests resolve locally,
+/// and the generation publishes under `root`. The dump must cover the requested canonical sample
+/// and every requested card text, including texts from a supplied annotation corpus. A missing
+/// embedding fails the run instead of making a provider request.
 ///
-/// The supplied documents resolve before the dump opens, because admitting them costs file reads
-/// while opening the dump hashes every stream, so each step fails ahead of everything costlier.
+/// Resolving supplied documents before opening the dump rejects invalid supplies without hashing
+/// the dump's streams.
 ///
 /// # Errors
 ///

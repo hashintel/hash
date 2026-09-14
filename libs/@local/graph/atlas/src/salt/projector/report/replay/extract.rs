@@ -34,7 +34,7 @@ pub(super) struct GenerationColumns<'run> {
 }
 
 impl<'run> GenerationColumns<'run> {
-    /// Admits the columns of one corpus, so a value cannot hold mismatched columns.
+    /// Admits the columns of one corpus. A value therefore cannot hold mismatched columns.
     ///
     /// # Errors
     ///
@@ -94,14 +94,23 @@ impl<'run> GenerationColumns<'run> {
 
 /// One generation's opened artifact files, alive while the columns borrow from them.
 pub(super) struct GenerationArtifacts {
+    /// The validated node identity table.
     identities: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
+    /// The mapped representation matrix.
     representations: ArrayFile,
+    /// The mapped row-position column.
     positions: ArrayFile,
+    /// The mapped wire-coordinate column.
     wire: ArrayFile,
 }
 
 impl GenerationArtifacts {
     /// Opens one generation's identity, representation, row-position, and wire artifacts.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`ReplayError`] naming the first artifact that fails to open, or the identity
+    /// table that opens but does not validate.
     pub(super) fn open(generation: &Generation) -> Result<Self, ReplayError> {
         let id = generation.id();
         let files = &generation.repository().files;
@@ -147,7 +156,11 @@ impl GenerationArtifacts {
     /// Gathers the published wire coordinate of every node row.
     ///
     /// The wire column lives in base delivery order. The row-position column maps each node row
-    /// to its base position, so the gather leaves one wire point per node row.
+    /// to its base position, and the gather therefore leaves one wire point per node row.
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors [`WireArtifacts::gathered`] documents.
     pub(super) fn wire_of_row(
         &self,
         generation: &Generation,
@@ -160,6 +173,12 @@ impl GenerationArtifacts {
     }
 
     /// Borrows the columns the partition consumes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReplayError::InvalidRepresentations`] when the representation matrix does not
+    /// read as rows of the projector width, and [`ReplayError::Rows`] when the columns disagree
+    /// on their row count.
     pub(super) fn columns<'files>(
         &'files self,
         generation: &Generation,
@@ -206,8 +225,8 @@ impl WireArtifacts<'_> {
     /// # Panics
     ///
     /// This panics when the position column names a slot beyond the wire column. Both columns
-    /// belong to one rehashed generation, so such a slot is a publisher defect, never a lawful
-    /// input.
+    /// belong to one rehashed generation, and such a slot is therefore a publisher defect, never
+    /// a lawful input.
     pub(super) fn gathered(
         self,
         generation: GenerationId,
@@ -227,8 +246,8 @@ impl WireArtifacts<'_> {
 
 /// The later generation's opened edge-endpoint artifact.
 ///
-/// The open and the decode are two steps because the decoded pairs borrow the mapped file, so
-/// the type owns the file and the borrow happens through [`pairs`](Self::pairs).
+/// The open and the decode are two steps because the decoded pairs borrow the mapped file. The
+/// type therefore owns the file, and the borrow happens through [`pairs`](Self::pairs).
 pub(super) struct EndpointArtifact {
     /// The mapped edge-endpoint column.
     file: ArrayFile,
@@ -251,8 +270,8 @@ impl EndpointArtifact {
 
     /// Views the staged endpoint column as the artifact stores it.
     ///
-    /// The node row id is little-endian by construction, so the typed column is the stored form
-    /// and the view is exact on every architecture.
+    /// The node row id is little-endian by construction. The typed column is therefore the stored
+    /// form, and the view is exact on every architecture.
     ///
     /// # Errors
     ///
@@ -287,6 +306,7 @@ mod tests {
         identity::{BasePosition, NodeRowId},
     };
 
+    /// A generation id whose 64 hex digits spell `ordinal`.
     fn generation(ordinal: u8) -> GenerationId {
         format!("{ordinal:064x}")
             .parse()
@@ -308,8 +328,8 @@ mod tests {
 
     /// Stages a row-position column through the pipeline's own column writer.
     ///
-    /// [`SizedColumn`] stamps the variant from the element type, so the staged file carries
-    /// the exact tag every published `position-of-row.arr` carries.
+    /// [`SizedColumn`] stamps the variant from the element type, and the staged file therefore
+    /// carries the exact tag every published `position-of-row.arr` carries.
     fn staged_positions(directory: &Utf8PathBuf, positions: &[u32]) -> ArrayFile {
         let column: Vec<BasePosition> = positions
             .iter()
@@ -333,8 +353,8 @@ mod tests {
 
     /// Stages an endpoint column with the given variant tag.
     ///
-    /// [`ArrayVariant::U64Le`] mirrors the ingest's own writer call; the native variant stages
-    /// the refusal fixture.
+    /// [`ArrayVariant::U64Le`] mirrors the ingest's own writer call, and the native variant
+    /// stages the refusal fixture.
     fn staged_endpoints(
         directory: &Utf8PathBuf,
         pairs: &[[u64; 2]],
@@ -351,6 +371,10 @@ mod tests {
         ArrayFile::open(&path).expect("the staged column opens")
     }
 
+    /// `GenerationColumns::new` fails with `Rows` on columns of unequal length.
+    ///
+    /// `GenerationColumns::new` fails with `Rows` when the id, representation and wire columns
+    /// disagree in length.
     #[test]
     fn columns_refuse_mismatched_rows() {
         let wire = [Vec2::new(0.0, 0.5)];
@@ -373,6 +397,10 @@ mod tests {
         ));
     }
 
+    /// Gathers each row's wire coordinate through a staged position permutation.
+    ///
+    /// Gathering the wire column through a staged position permutation returns each row's wire
+    /// coordinate.
     #[test]
     fn wire_gathers_the_staged_artifacts() {
         let directory = scratch("wire-gathers");
@@ -403,9 +431,13 @@ mod tests {
         );
     }
 
+    /// A native-endian position column fails with `InvalidPositions` naming the generation.
+    ///
+    /// A position column tagged native-endian rather than little-endian fails with
+    /// `InvalidPositions` naming the generation.
     #[test]
     fn wire_refuses_a_native_position_column() {
-        // The pipeline persists base positions little-endian; a native-tagged column is not
+        // The pipeline persists base positions little-endian. A native-tagged column is not
         // the published form and refuses rather than reads.
         let directory = scratch("wire-refuses-native");
         let path = directory.join("position-of-row.arr");
@@ -433,11 +465,15 @@ mod tests {
         ));
     }
 
+    /// Panics with the standard out-of-bounds message on a position beyond the wire column.
+    ///
+    /// A position naming a slot beyond the wire column panics with the standard out-of-bounds
+    /// message.
     #[test]
     #[should_panic(expected = "index out of bounds")]
     fn wire_position_beyond_column_panics() {
-        // Both columns belong to one rehashed generation, so a position naming a slot beyond
-        // the wire column is a publisher defect and dies loudly instead of misreading.
+        // Both columns belong to one rehashed generation. A position naming a slot beyond
+        // the wire column is therefore a publisher defect and dies loudly instead of misreading.
         let directory = scratch("wire-beyond-panics");
         let positions = staged_positions(&directory, &[0, 5]);
         let wire = staged_wire(&directory, &[Vec2::new(0.0, 0.5), Vec2::new(1.0, 1.5)]);
@@ -451,6 +487,7 @@ mod tests {
         );
     }
 
+    /// A little-endian staged endpoint column reads back as its source-target pairs.
     #[test]
     fn endpoints_read_the_staged_column() {
         let directory = scratch("endpoints-read");
@@ -468,6 +505,7 @@ mod tests {
         assert_eq!(read, [[0, 1], [7, 7]]);
     }
 
+    /// A native-endian endpoint column fails with `InvalidEndpoints` naming the generation.
     #[test]
     fn endpoints_refuse_the_native_variant() {
         let directory = scratch("endpoints-refuse-native");

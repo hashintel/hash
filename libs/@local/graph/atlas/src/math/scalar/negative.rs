@@ -10,22 +10,23 @@ use super::raw_interop;
 
 /// A finite, strictly negative `f32`, valid by construction.
 ///
-/// The sign mirror of [`Positive`](super::Positive), for readings whose sign is part of the
-/// contract: a slope that rewards rather than corrects carries its direction in the type, and the
-/// consuming site validates nothing.
+/// Use [`Positive`](super::Positive) for the positive domain.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
-/// assert_eq!(Negative::new(-2.5).expect("-2.5 is negative").get(), -2.5);
+/// use crate::math::{Negative};
+///
+/// assert_eq!(f64::from(Negative::new(-2.5).expect("-2.5 is negative")), -2.5);
 /// assert_eq!(Negative::new(0.0), None);
 /// assert_eq!(Negative::new(-0.0), None);
 /// assert_eq!(Negative::new(f32::NAN), None);
 /// ```
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value.
-/// The domain excludes NaN and both zeros, so every value owns one bit pattern with no
-/// canonicalization step.
+/// Excluding NaN and both zeros gives every value one bit pattern without canonicalization.
 #[derive(Copy, Clone)]
 #[repr(transparent)]
 pub(crate) struct Negative(f32);
@@ -63,7 +64,7 @@ impl Negative {
 const impl PartialEq for Negative {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -80,8 +81,8 @@ const impl PartialOrd for Negative {
 const impl Ord for Negative {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        // For negative floats the bit pattern is monotone in the magnitude, so the value order
-        // is the bit order reversed: still a GPR compare with no NaN branch and no panic path.
+        // Negative finite floats have unsigned bit patterns increasing with magnitude. Reversing
+        // the bit comparison gives numeric order.
         other.0.to_bits().cmp(&self.0.to_bits())
     }
 }
@@ -89,7 +90,7 @@ const impl Ord for Negative {
 impl Hash for Negative {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // one bit pattern per value, so `Hash` agrees with `Eq`
+        // hashing the unique representation agrees with numeric equality
         state.write_u32(self.0.to_bits());
     }
 }
@@ -107,7 +108,6 @@ impl fmt::Display for Negative {
 }
 
 const impl From<Negative> for f64 {
-    /// Widens into double precision, exactly.
     #[inline]
     fn from(value: Negative) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.

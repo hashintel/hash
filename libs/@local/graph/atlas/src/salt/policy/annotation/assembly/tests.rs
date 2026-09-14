@@ -22,16 +22,26 @@ use crate::{
     },
 };
 
+/// The record hash every fixture card and vote carries.
 const DIGEST: &str = "6cf1a86693da441a9c86ed4dcf2bcdad6cf1a86693da441a9c86ed4dcf2bcdad";
 
+/// Identity of the rich `part of` card, the inverse of [`HAS_PART`].
 const PART_OF: &str = "http://www.wikidata.org/entity/P361";
+/// Identity of the `has part` card, the inverse of [`PART_OF`].
 const HAS_PART: &str = "http://www.wikidata.org/entity/P527";
+/// Identity of one of the near-tie pair whose embeddings nearly coincide.
 const ALPHA: &str = "http://www.wikidata.org/entity/P600";
+/// Identity of the other near-tie card.
 const BETA: &str = "http://www.wikidata.org/entity/P601";
+/// Identity of a card standing alone in its own group.
 const GAMMA: &str = "http://www.wikidata.org/entity/P602";
+/// Identity of a card whose votes are all unclear. It carries zero weight and is dropped.
 const ALL_UNCLEAR: &str = "http://www.wikidata.org/entity/P700";
+/// Identity of the shot-excluded card.
 const SHOT: &str = "http://www.wikidata.org/entity/P800";
+/// Identity of the held-out card with a human proximal verdict.
 const HOLDOUT: &str = "http://www.wikidata.org/entity/P900";
+/// Identity of the hash-sourced `Employed By` card with a single simple endpoint pair.
 const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
 
 /// A uniquely named file in the system temporary directory, removed on drop.
@@ -40,6 +50,7 @@ struct TempFile {
 }
 
 impl TempFile {
+    /// Writes `bytes` to a fresh uniquely numbered file in the system temp dir.
     fn create(bytes: &[u8]) -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -69,9 +80,10 @@ impl ProgrammedEmbedder {
     /// Alpha and beta lie `0.005` radians apart (`1 - cos(0.005) ≈ 1.25e-5`), a true near-duplicate
     /// pair decades below every other distance. Beta and delta lie `0.006` radians apart (`≈
     /// 1.8e-5`), a farther member of the same duplicate cluster. The next distance up in any corpus
-    /// here is `≥ 1.0e-2`, so the boundary derivation finds the void between the cluster and the
-    /// bulk. Twins share one angle exactly, so every twin pair sits at distance zero: the
-    /// coincident clique the empty-cut witness scatters.
+    /// here is `≥ 1.0e-2` (gamma against beta, `1 - cos(0.145)`), and the boundary derivation
+    /// therefore finds the void between the cluster and the bulk. Twins share one angle exactly,
+    /// and every twin pair lies at distance zero: the coincident clique the empty-cut witness
+    /// scatters.
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
@@ -318,6 +330,7 @@ fn group_digest(members: &[&str]) -> crate::integrity::Sha256Digest {
     hasher.finalize()
 }
 
+/// Rendering the rich fixture card reproduces the Python exporter's card text section for section.
 #[test]
 fn template_renders_the_python_card_text() {
     let corpus = fixture_corpus();
@@ -499,6 +512,10 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     );
 }
 
+/// Forms a valid [`TrainingSet`] from a staged, remapped embedding matrix.
+///
+/// The staged embedding matrix written to a file and remapped, sliced to the trained rows, forms a
+/// valid `TrainingSet` with the assembled rows.
 #[tokio::test]
 async fn staged_table_and_rows_satisfy_the_training_contract() {
     let corpus = fixture_corpus();
@@ -525,7 +542,7 @@ async fn staged_table_and_rows_satisfy_the_training_contract() {
 
     // The trained rows lead the table; the holdout rows after them are
     // evaluation material, not training supply. The mapped file hands back a
-    // raw slice, so entering the card-row domain is this seam's own doing.
+    // raw slice, and entering the card-row domain is this boundary's own doing.
     TrainingSet::new(
         IdSlice::from_raw(&embeddings[..assembled.rows().len()]),
         assembled.rows(),
@@ -551,6 +568,10 @@ async fn corpus_with_no_admissible_card_is_an_empty_assembly() {
     assert_matches!(error, AssemblyError::Empty);
 }
 
+/// A German card fails to assemble with `AssemblyError::Language` naming card and language.
+///
+/// A card recorded in German fails to assemble with `AssemblyError::Language` naming the card and
+/// language.
 #[tokio::test]
 async fn language_the_template_does_not_render_is_rejected() {
     let mut card = wikidata_card(ALPHA, "alpha", "f-600", &[vote("overlay")]);
@@ -674,8 +695,8 @@ async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
 
 #[tokio::test]
 async fn subdivision_cuts_near_duplicates_farthest_first() {
-    // A near-duplicate triangle - alpha-beta at ~1.25e-5, beta-delta
-    // at ~1.8e-5, alpha-delta at ~6.05e-5 - against three far cards
+    // A near-duplicate triangle (alpha-beta at ~1.25e-5, beta-delta
+    // at ~1.8e-5, alpha-delta at ~6.05e-5) against three far cards
     // supplying the corpus bulk. The derived boundary joins the whole
     // triangle; the budget rejects it, and the cut drops the farther
     // links and keeps the nearest pair.
@@ -697,7 +718,7 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
     assert_eq!(evidence.fold_groups, 5);
     assert_eq!(evidence.subdivided_groups, 1);
     assert_eq!(evidence.oversized_accepted, 0);
-    // A fitting cut exists, so the empty-cut counter stays untouched.
+    // A fitting cut exists, and the empty-cut counter stays untouched.
     assert_eq!(evidence.empty_cut_components, Some(0));
     assert_eq!(
         evidence.deepest_relaxation,
@@ -767,6 +788,10 @@ async fn identity_web_is_accepted_over_budget() {
     }
 }
 
+/// Scatters five byte-identical cards into five groups under the empty cut.
+///
+/// Five byte-identical cards form a clique no cut can split, and the assembly scatters them into
+/// five groups and counts one empty-cut component.
 #[tokio::test]
 async fn empty_cut_scatters_the_coincident_clique_and_counts_itself() {
     let cards: Vec<Value> = [
@@ -801,6 +826,7 @@ async fn empty_cut_scatters_the_coincident_clique_and_counts_itself() {
     assert_eq!(twin_groups.len(), 5);
 }
 
+/// Assembling the same oversized component twice yields identical groups and evidence.
 #[tokio::test]
 async fn subdivision_is_deterministic() {
     let cards: Vec<Value> = [

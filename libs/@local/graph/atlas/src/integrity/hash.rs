@@ -9,6 +9,7 @@ use super::{
     writer::Update,
 };
 
+/// The digest width in bytes, read off the hash itself rather than written down as 32.
 const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::OutputSize::USIZE;
 
 /// A SHA-256 content identity.
@@ -18,8 +19,7 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 /// recompute and compare them to detect substitution or corruption.
 ///
 /// The text and JSON form is 64 characters of canonical lowercase hexadecimal. Parsing rejects
-/// uppercase digits and noncanonical lengths, so a digest that round-trips through text is
-/// byte-identical.
+/// uppercase digits and noncanonical lengths.
 #[derive(
     Debug,
     Copy,
@@ -43,7 +43,7 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 #[repr(transparent)]
 pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
-// No multi-byte fields: the digest is a byte array, so no byte order arises.
+// byte arrays have identical representations on little- and big-endian targets.
 crate::dataset::offline::portable::self_archived!(Sha256Digest);
 
 impl Sha256Digest {
@@ -53,8 +53,7 @@ impl Sha256Digest {
     /// Adopts `bytes` as a digest without computing anything.
     ///
     /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this
-    /// value names. This constructor cannot verify that. Use this to restore digests from storage
-    /// formats that persist raw bytes rather than hexadecimal text.
+    /// value names. This constructor cannot verify that.
     #[must_use]
     #[inline]
     pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
@@ -139,6 +138,10 @@ impl Update for Sha256 {
     }
 }
 
+/// Certificates for the digest's value and its text and JSON forms.
+///
+/// The published SHA-256 vectors pin the hasher against the standard rather than against itself,
+/// and the round-trip tests pin the canonical text form, including what it refuses.
 #[cfg(test)]
 mod tests {
     use core::assert_matches;
@@ -146,7 +149,9 @@ mod tests {
     use super::{Sha256, Sha256Digest};
     use crate::integrity::{Update as _, hex::ParseHexError};
 
+    /// The published SHA-256 of `b"abc"`.
     const ABC_DIGEST: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    /// The published SHA-256 of the empty input.
     const EMPTY_DIGEST: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     #[test]

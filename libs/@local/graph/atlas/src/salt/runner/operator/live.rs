@@ -14,9 +14,9 @@ use crate::{
 
 /// Runs one production generation over the store's snapshot at `axes`.
 ///
-/// The run publishes the generation under the generation root at `root`; the caller names the
-/// snapshot explicitly, so equal inputs describe the same run. Cards embed through `embedder`, the
-/// provider the shell constructed with its credentials.
+/// The dataset holds one repeatable-read transaction across fitting and admission at the requested
+/// temporal axes. Cards embed through `embedder`, and the generation publishes under `root`.
+/// Repeating the axes alone does not freeze a later transaction to the same database snapshot.
 ///
 /// # Errors
 ///

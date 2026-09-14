@@ -16,8 +16,8 @@ use crate::math::Derivation;
 
 /// Validates a positive double-precision literal at compile time.
 ///
-/// The expansion is a `const` block over [`DPositive::new`], so a literal outside the domain fails
-/// the build instead of a test run. Runtime values keep the checked constructor.
+/// A `const` block validates the literal with [`DPositive::new`] during compilation. A literal
+/// outside the domain fails the build. Runtime values use the checked constructor.
 macro_rules! d_positive {
     ($value:expr) => {
         const { $crate::math::DPositive::new($value).expect("the literal is finite and positive") }
@@ -42,13 +42,15 @@ impl Error for NotPositive {}
 
 /// A finite, strictly positive `f64`, valid by construction.
 ///
-/// The double-precision twin of [`Positive`], named as [`DVecN`](crate::math::DVecN) is to
-/// [`VecN`](crate::math::VecN): configuration fields that steer double-precision arithmetic
-/// carry their domain in the type, and the consuming site validates nothing.
+/// Use [`Positive`] when the finite domain needs only single precision.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{DPositive};
+///
 /// assert_eq!(
 ///     DPositive::new(1.0e-8)
 ///         .expect("the radius floor is positive")
@@ -59,14 +61,18 @@ impl Error for NotPositive {}
 /// assert_eq!(DPositive::new(f64::INFINITY), None);
 /// ```
 ///
-/// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value.
-/// The domain excludes NaN and both zeros, so every value owns one bit pattern with no
-/// canonicalization step.
+/// The domain excludes NaN and both zeros, giving every value one bit pattern without
+/// canonicalization. [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow
+/// numeric value.
 #[derive(Copy, Clone, zerocopy::Immutable)]
 #[repr(transparent)]
 pub(crate) struct DPositive(f64);
 
 impl DPositive {
+    /// The unit in the last place of one, `2⁻⁵²`.
+    ///
+    /// The spacing between one and the next larger `f64`, the unit a tolerance stated in ulps
+    /// multiplies.
     pub(crate) const EPSILON: Self = Self::new(f64::EPSILON).unwrap();
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
@@ -90,8 +96,8 @@ impl DPositive {
 
     /// Converts a nonzero count, exactly.
     ///
-    /// Every nonzero `u16` is strictly positive and far inside `f64`'s exact-integer range, so
-    /// the conversion is total and no re-validation happens.
+    /// Every nonzero `u16` is strictly positive and exactly representable in `f64`. The conversion
+    /// is total and requires no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn from_u16(value: NonZero<u16>) -> Self {
@@ -100,8 +106,8 @@ impl DPositive {
 
     /// Converts a nonzero count, exactly.
     ///
-    /// Every nonzero `u32` is strictly positive and inside `f64`'s exact-integer range, so the
-    /// conversion is total and no re-validation happens.
+    /// Every nonzero `u32` is strictly positive and exactly representable in `f64`. The conversion
+    /// is total and requires no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn from_u32(value: NonZero<u32>) -> Self {
@@ -124,15 +130,13 @@ impl DPositive {
 
     /// Returns whether `value`'s exact bits are a stored positive value.
     ///
-    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: the domain
-    /// holds no zero of either sign and accepted values store bit for bit, so the bits are
-    /// valid exactly when [`new`](Self::new) accepts the value.
+    /// Accepted values retain their bits, and the domain excludes both zeros. This validates
+    /// persisted bits exactly when [`new`](Self::new) accepts the corresponding value.
     #[inline]
     #[must_use]
     pub(crate) const fn is_canonical(value: f64) -> bool {
         match Self::new(value) {
-            // Compare against what construction stored, so the check follows any future
-            // normalization.
+            // compare with the constructed value to account for normalization
             Some(accepted) => accepted.0.to_bits() == value.to_bits(),
             None => false,
         }
@@ -170,7 +174,7 @@ impl DPositive {
     ///
     /// The logarithm of a positive value is never NaN and always finite, because the smallest
     /// positive subnormal's logarithm is only about `-745` and the largest finite value's about
-    /// `710`. The sign is the reading, so the result carries finiteness alone.
+    /// `710`.
     #[inline]
     #[must_use]
     pub(crate) fn ln(self) -> DFinite {
@@ -180,8 +184,8 @@ impl DPositive {
     /// Divides, refusing the escape.
     ///
     /// The quotient of positives is never NaN and never negative. Returns [`None`] exactly when
-    /// the quotient leaves the domain, overflowing to `+∞` or underflowing to zero, where the
-    /// plain division would escape and assert.
+    /// the quotient leaves the domain, overflowing to positive infinity or underflowing to zero.
+    /// The division operator instead carries that raw result in a [`Derivation`].
     #[inline]
     #[must_use]
     pub(crate) const fn checked_div(self, rhs: Self) -> Option<Self> {
@@ -192,7 +196,7 @@ impl DPositive {
 const impl PartialEq for DPositive {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -218,7 +222,7 @@ const impl Ord for DPositive {
 impl Hash for DPositive {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // one bit pattern per value, so `Hash` agrees with `Eq`
+        // hashing each value's unique bit pattern preserves agreement with `Eq`
         state.write_u64(self.0.to_bits());
     }
 }
@@ -244,11 +248,10 @@ impl fmt::Display for DPositive {
 const impl core::ops::Div<DPositive> for f64 {
     type Output = f64;
 
-    /// Divides a double-precision measurement by the positive value, staying in `f64`.
+    /// Divides a raw reading by a finite nonzero divisor.
     ///
-    /// The divisor is never zero and never NaN, so a NaN quotient arrives only through the
-    /// numerator. An infinite quotient arrives through the numerator or through overflow
-    /// against a small divisor.
+    /// The divisor is never zero or NaN. The quotient is NaN only for a NaN numerator. An infinite
+    /// numerator or overflow of a finite quotient produces infinity.
     #[inline]
     fn div(self, rhs: DPositive) -> f64 {
         self / rhs.0
@@ -256,7 +259,6 @@ const impl core::ops::Div<DPositive> for f64 {
 }
 
 const impl core::ops::DivAssign<DPositive> for f64 {
-    /// Divides a double-precision measurement in place, as the binary form does.
     #[inline]
     fn div_assign(&mut self, rhs: DPositive) {
         *self /= rhs.0;
@@ -268,9 +270,9 @@ const impl core::ops::Sub for DPositive {
 
     /// Subtracts, into the finite domain.
     ///
-    /// The difference of two positive finite values is finite, with no re-validation: its
-    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
-    /// operands give `+0.0`.
+    /// The difference of two positive finite values has a magnitude that never exceeds the larger
+    /// operand. The subtraction cannot overflow and requires no re-validation. Equal operands give
+    /// `+0.0`.
     #[inline]
     fn sub(self, rhs: Self) -> DFinite {
         DFinite::new_unchecked(self.0 - rhs.0)
@@ -300,10 +302,8 @@ const impl core::ops::Mul<PositiveUnitFraction> for DPositive {
 
     /// Scales by a positive fraction.
     ///
-    /// The product of a positive value and a fraction in `(0, 1]` is positive, at most the
-    /// value, and never NaN, so overflow cannot occur. Underflow escapes to zero - a wrong
-    /// reading rather than a soundness break, since no unsafe code trusts the domain - and
-    /// asserts in debug builds through the constructor.
+    /// The rounded product must remain positive. For in-domain operands it cannot exceed the
+    /// positive value or become NaN, but underflow can round it to zero.
     #[inline]
     fn mul(self, rhs: PositiveUnitFraction) -> Self {
         Self::new_unchecked(self.0 * rhs.get())
@@ -315,10 +315,8 @@ const impl core::ops::Mul<DPositive> for OpenUnitFraction {
 
     /// Scales a positive value toward zero.
     ///
-    /// The product of a positive value and a fraction in `(0, 1)` is less than the value and
-    /// never NaN, so overflow cannot occur. Underflow escapes to zero - a wrong reading rather
-    /// than a soundness break, since no unsafe code trusts the domain - and asserts in debug
-    /// builds through the constructor.
+    /// The rounded product must remain positive. For in-domain operands it cannot exceed the
+    /// positive value or become NaN. Rounding can leave the value unchanged or underflow to zero.
     #[inline]
     fn mul(self, rhs: DPositive) -> DPositive {
         DPositive::new_unchecked(self.get() * rhs.0)
@@ -335,7 +333,6 @@ const impl core::ops::Mul for DPositive {
 }
 
 const impl From<DPositive> for f64 {
-    /// Reads the value, exactly.
     #[inline]
     fn from(value: DPositive) -> Self {
         value.0
@@ -345,10 +342,6 @@ const impl From<DPositive> for f64 {
 const impl core::ops::Add<f64> for DPositive {
     type Output = f64;
 
-    /// Adds a raw offset.
-    ///
-    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
-    /// float.
     #[inline]
     fn add(self, rhs: f64) -> f64 {
         self.0 + rhs
@@ -356,7 +349,6 @@ const impl core::ops::Add<f64> for DPositive {
 }
 
 const impl PartialEq<DNonNegative> for DPositive {
-    /// Compares across the scalar family, in one precision with no widening.
     #[inline]
     fn eq(&self, other: &DNonNegative) -> bool {
         self.0 == other.get()
@@ -364,7 +356,6 @@ const impl PartialEq<DNonNegative> for DPositive {
 }
 
 const impl PartialOrd<DNonNegative> for DPositive {
-    /// Orders across the scalar family, in one precision with no widening.
     #[inline]
     fn partial_cmp(&self, other: &DNonNegative) -> Option<Ordering> {
         self.0.partial_cmp(&other.get())
@@ -372,7 +363,6 @@ const impl PartialOrd<DNonNegative> for DPositive {
 }
 
 const impl PartialEq<OpenUnitFraction> for DPositive {
-    /// Compares across the scalar family, in one precision with no widening.
     #[inline]
     fn eq(&self, other: &OpenUnitFraction) -> bool {
         self.0 == other.get()
@@ -380,7 +370,6 @@ const impl PartialEq<OpenUnitFraction> for DPositive {
 }
 
 const impl PartialOrd<OpenUnitFraction> for DPositive {
-    /// Orders across the scalar family, in one precision with no widening.
     #[inline]
     fn partial_cmp(&self, other: &OpenUnitFraction) -> Option<Ordering> {
         self.0.partial_cmp(&other.get())
@@ -390,7 +379,6 @@ const impl PartialOrd<OpenUnitFraction> for DPositive {
 const impl TryFrom<DNonNegative> for DPositive {
     type Error = NotPositive;
 
-    /// Narrows from the enclosing domain, refusing exactly zero.
     #[inline]
     fn try_from(value: DNonNegative) -> Result<Self, Self::Error> {
         let value = value.get();
@@ -399,9 +387,6 @@ const impl TryFrom<DNonNegative> for DPositive {
 }
 
 const impl From<Positive> for DPositive {
-    /// Widens into double precision, exactly.
-    ///
-    /// Every positive `f32` denotes a positive, finite `f64`, so no re-validation happens.
     #[inline]
     fn from(value: Positive) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -414,7 +399,6 @@ impl proptest::arbitrary::Arbitrary for DPositive {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -425,14 +409,12 @@ impl proptest::arbitrary::Arbitrary for DPositive {
 }
 
 impl serde::Serialize for DPositive {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for DPositive {
-    /// Deserializes a plain number, refusing values outside the finite strictly positive range.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f64::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {

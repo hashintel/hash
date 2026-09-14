@@ -1,14 +1,12 @@
 //! k-nearest-neighbour list construction.
 //!
-//! [`KnnConstruction`] separates what the pipeline needs (every row's nearest-neighbour list) from
-//! how a constructor produces it. Both consumers read one [`NeighbourLists`] value. The recall spot
-//! check reads sampled rows from it, and the persisted table slices its stored prefix from it, so
-//! one construction at one width feeds both.
+//! [`KnnConstruction`] produces one [`NeighbourLists`] value at a width sufficient for both recall
+//! measurement and table storage. Keeping the wider lists lets a recall check inspect more
+//! neighbours than the persisted prefix contains, without a second construction.
 //!
-//! [`IndexConstruction`] adapts any [`NearestNeighboursIndex`] search backend to the seam. It
-//! ingests every row and links the backend, then answers each row's list with one search. A
-//! constructor that derives the lists directly without a search structure implements the trait
-//! itself.
+//! [`IndexConstruction`] produces these lists through a [`NearestNeighboursIndex`] search backend.
+//! A constructor that derives lists directly can implement the trait without maintaining a search
+//! index.
 
 use core::{
     num::NonZero,
@@ -32,16 +30,15 @@ use crate::{
 
 /// Rows one batched loop covers between progress reports.
 ///
-/// The insertion and the readback both report at this cadence. A corpus of a million rows draws a
-/// couple of hundred observations, so a watching operator sees the counter move while the loops pay
-/// one report per few thousand rows rather than one per row.
+/// Insertion and readback each report once per 4,096 rows and at completion. A million-row loop
+/// produces ceil(1,000,000 / 4,096) = 245 observations, retaining progress updates without per-row
+/// reporting.
 const REPORT_CADENCE: usize = 4_096;
 
-/// Whether a batched loop over `total` rows reports at `done` rows covered.
+/// Tests whether `done` is a report-cadence multiple or the completed total.
 ///
-/// A loop reports every [`REPORT_CADENCE`] rows and once more as its last row lands, so a corpus
-/// below the cadence reports exactly once - at completion - and the last report of any corpus is
-/// the complete one.
+/// For a nonempty loop over `1..=total`, this reports every [`REPORT_CADENCE`] rows and at
+/// completion. A loop below the cadence reports exactly once.
 const fn reports_at(done: usize, total: usize) -> bool {
     done.is_multiple_of(REPORT_CADENCE) || done == total
 }
@@ -52,11 +49,11 @@ hashql_core::id::newtype! {
     pub(crate) struct NeighbourSlot(u32)
 }
 
-/// Every row's nearest non-self neighbours, at one uniform width.
+/// Per-row approximate neighbour lists at one uniform width.
 ///
-/// Row-major storage: row `i` holds exactly [`width`](Self::width) entries in ascending `(distance,
-/// id)` order, with distances on the `[0, 2]` cosine scale. The producing constructor guarantees
-/// the entries, and the type only stores them.
+/// Row `i` holds exactly [`width`](Self::width) entries. Producers must supply distinct non-self
+/// neighbours in ascending `(distance, id)` order, with distances on the `[0, 2]` cosine scale.
+/// This type checks the rectangular shape only.
 #[derive(Debug)]
 pub(crate) struct NeighbourLists<N> {
     entries: IdMatrix<N, NeighbourSlot, Neighbour<N>>,
@@ -66,7 +63,7 @@ impl<N> NeighbourLists<N>
 where
     N: Id,
 {
-    /// Wraps row-major entries whose per-row contract the producer established.
+    /// Stores row-major entries satisfying the producer's per-row contract.
     ///
     /// # Panics
     ///
@@ -106,23 +103,26 @@ where
     }
 }
 
-/// A constructor of every row's nearest-neighbour list.
-///
-/// One construction serves one generation's rows: `embeddings` holds the l2-normalized projector
-/// representations in node-row order, and the result holds each row's `width` nearest non-self
-/// neighbours. The construction clamps a `width` at or beyond the corpus to every non-self row.
-/// `rng` drives the constructor's randomized choices, so a seeded generator pins its sampling
-/// streams.
+/// A constructor of approximate neighbour lists over one row domain.
 pub(crate) trait KnnConstruction<N>
 where
     N: Id,
 {
+    /// The failure [`construct`](Self::construct) reports.
     type Error;
 
-    /// Produces every row's `width` nearest non-self neighbours.
+    /// Produces every row's approximate non-self neighbours at a requested width.
     ///
-    /// The construction reports its batched loops and its named phases to `progress` as they
-    /// happen; it observes nothing the run acts on, so the lists are identical under any observer.
+    /// `embeddings` must hold l2-normalized projector representations in row order. The result
+    /// clamps `width` to the number of non-self rows. `rng` drives randomized choices. A seed
+    /// determines the random stream, without requiring deterministic parallel update order.
+    ///
+    /// # Implementation Note
+    ///
+    /// Implementations must satisfy the per-row [`NeighbourLists`] contract and report batched
+    /// loops and named phases through `progress`. Reports observe the construction without
+    /// supplying algorithm inputs. Parallel constructions can still vary between runs with the same
+    /// inputs and observer.
     ///
     /// # Errors
     ///
@@ -138,20 +138,21 @@ where
         P: Progress + Sync;
 }
 
-/// Adapts a [`NearestNeighboursIndex`] search backend to [`KnnConstruction`].
+/// A [`KnnConstruction`] that obtains lists from a [`NearestNeighboursIndex`].
 ///
 /// The construction ingests every row and links the backend under `rng`, then queries each row's
 /// neighbours in parallel. The assembled lists are deterministic for a deterministic backend
 /// because the construction writes each row's results into that row's slot regardless of completion
 /// order.
 ///
-/// The construction distrusts the backend's responses at the seam. A short result, a duplicate, or
-/// a neighbour outside the row domain fails the construction.
+/// A result of the wrong length, a duplicate neighbour or a neighbour outside the row domain fails
+/// construction. Ordering, self-exclusion and distance semantics rely on the backend's trait
+/// contract.
 #[derive(Debug)]
 pub(crate) struct IndexConstruction<I>(I);
 
 impl<I> IndexConstruction<I> {
-    /// Wraps an empty backend.
+    /// Creates a list constructor from an empty search backend.
     pub(crate) const fn new(index: I) -> Self {
         Self(index)
     }
@@ -183,11 +184,9 @@ where
 
         self.0
             .insert_many(embeddings.iter().enumerate().map(|(row, components)| {
-                // A backend ingests the whole corpus inside one write
-                // transaction, so the insertion reports from the iterator
-                // it draws the rows through rather than from a batched
-                // call sequence - which would commit once per batch and
-                // let an observer change what the run costs.
+                // report iterator consumption without splitting insert_many into batches.
+                // Transactional backends can keep their single write transaction independently of
+                // the report cadence.
                 let done = row + 1;
                 if reports_at(done, rows) {
                     progress.knn_insert(Batch { done, total: rows });
@@ -254,8 +253,7 @@ where
 
                 slots.copy_from_slice(&found);
 
-                // Rows finish out of order, so the readback's position is
-                // how many rows have landed, never this row's index.
+                // count completed rows, never the row index: completion order is parallel.
                 let done = covered.fetch_add(1, Ordering::Relaxed) + 1;
                 if reports_at(done, rows) {
                     progress.knn_readback(Batch { done, total: rows });

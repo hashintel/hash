@@ -10,8 +10,7 @@ use super::{DPositive, Finite, Negative, raw_interop, unsafe_impl_try_from_bytes
 
 /// Validates a positive literal at compile time.
 ///
-/// The expansion is a `const` block over [`Positive::new`], so a literal outside the domain fails
-/// the build instead of a test run. Runtime values keep the checked constructor.
+/// A literal outside the domain fails the build. Use [`Positive::new`] to check runtime values.
 macro_rules! positive {
     ($value:expr) => {
         const { $crate::math::Positive::new($value).expect("the literal is finite and positive") }
@@ -21,20 +20,23 @@ pub(crate) use positive;
 
 /// A finite, strictly positive `f32`, valid by construction.
 ///
-/// The shared definition of the finite-and-positive check that recurs across configuration and
-/// weight fields: a value that exists is valid, and the consuming site validates nothing.
+/// Use [`DPositive`] when the finite domain needs double precision. Products and quotients return a
+/// [`Derivation`] because rounding can produce infinity or zero.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{Positive};
+///
 /// assert_eq!(Positive::new(2.5).expect("2.5 is positive").get(), 2.5);
 /// assert_eq!(Positive::new(0.0), None);
 /// assert_eq!(Positive::new(f32::NAN), None);
 /// ```
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value.
-/// The domain excludes NaN and both zeros, so every value owns one bit pattern with no
-/// canonicalization step.
+/// Excluding NaN and both zeros gives every value one bit pattern without canonicalization.
 #[derive(Copy, Clone, zerocopy::Immutable, zerocopy::IntoBytes, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub(crate) struct Positive(f32);
@@ -46,9 +48,6 @@ impl Positive {
     /// value overflows to `+∞` and leaves the domain.
     pub(crate) const MAX: Self = Self(f32::MAX);
     /// The domain's smallest value, the smallest positive subnormal `2⁻¹⁴⁹`.
-    ///
-    /// The domain admits subnormals, so this is the exact floor a representation check
-    /// compares against.
     pub(crate) const MIN: Self = Self(f32::from_bits(1));
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
@@ -84,40 +83,42 @@ impl Positive {
 
     /// Returns whether `value`'s exact bits are a stored positive value.
     ///
-    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: the domain
-    /// holds no zero of either sign and accepted values store bit for bit, so the bits are
-    /// valid exactly when [`new`](Self::new) accepts the value.
+    /// For validating persisted bytes, this accepts exactly the values accepted by
+    /// [`new`](Self::new). The domain excludes both zeros and preserves accepted values bit for
+    /// bit.
     #[inline]
     #[must_use]
     pub(crate) const fn is_canonical(value: f32) -> bool {
         match Self::new(value) {
-            // Compare against what construction stored, so the check follows any future
-            // normalization.
             Some(accepted) => accepted.0.to_bits() == value.to_bits(),
             None => false,
         }
     }
 
+    /// Returns whether the value is a normal `f32`, at or above `2⁻¹²⁶`.
+    ///
+    /// The domain admits subnormals, and a subnormal carries fewer than 24 significand bits. A
+    /// caller whose relative-error argument assumes the full significand checks this before
+    /// relying on it.
     #[inline]
     #[must_use]
     pub(crate) const fn is_normal(self) -> bool {
         self.0.is_normal()
     }
 
-    /// Returns whether the value stayed in domain.
+    /// Returns whether the stored reading is finite.
     ///
-    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
-    /// non-finite reading is exactly an escaped one.
-    ///
-    /// The one caller shape is a validation point that rejects escaped readings before acting on
-    /// a computed value. Anywhere else the query re-checks what construction already proved, and
-    /// the check itself is the defect.
+    /// Detects a non-finite result after arithmetic whose range requirements were not met.
     #[inline]
     #[must_use]
     pub(crate) const fn is_finite(self) -> bool {
         self.0.is_finite()
     }
 
+    /// Widens to double precision, exactly.
+    ///
+    /// Every finite `f32` is exactly representable as `f64`. Widening preserves strict positivity.
+    /// Therefore the widened value is the same real number with no rounding and no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn widen(self) -> DPositive {
@@ -126,9 +127,10 @@ impl Positive {
 
     /// Multiplies into double precision, exactly and totally.
     ///
-    /// Two 24-bit significands multiply within 53 bits, so the widened product is the exact
-    /// real product with no rounding, and two `f32` exponents sum hundreds of shells inside
-    /// the `f64` range in both directions, so the product never leaves the positive domain.
+    /// The product of two 24-bit significands fits within 53 bits, and the product of two
+    /// positive finite `f32` values lies between `2⁻²⁹⁸` and `2²⁵⁶`. Widening both operands
+    /// before multiplication represents that product exactly in `f64`. Therefore the product
+    /// never leaves the positive domain and has no rounding error.
     #[inline]
     #[must_use]
     pub(crate) const fn mul_wide(self, rhs: Self) -> DPositive {
@@ -137,9 +139,9 @@ impl Positive {
 
     /// Divides into double precision, totally.
     ///
-    /// The quotient of two `f32`-born positives is never NaN, and its exponent - one `f32`
-    /// exponent less another - stays hundreds of shells inside the `f64` range in both
-    /// directions, so the quotient never leaves the positive domain. One rounding.
+    /// Positive finite `f32` values lie in [2⁻¹⁴⁹, 2¹²⁸). Their quotient lies between
+    /// 2⁻²⁷⁷ and 2²⁷⁷, inside the normal `f64` range. Widening before division therefore gives
+    /// a finite positive result with one rounding.
     #[inline]
     #[must_use]
     pub(crate) const fn div_wide(self, rhs: Self) -> DPositive {
@@ -148,9 +150,9 @@ impl Positive {
 
     /// Squares into double precision, exactly and totally.
     ///
-    /// A 24-bit significand squares within 53 bits, so the widened square carries no rounding.
-    /// A doubled `f32` exponent sits far inside the `f64` range on both sides, so the square
-    /// never leaves the positive domain.
+    /// Squaring a 24-bit significand needs at most 48 bits, within `f64`'s 53-bit precision. Every
+    /// positive finite `f32` square lies in [2⁻²⁹⁸, 2²⁵⁶), inside the normal `f64` range. Widening
+    /// before multiplication therefore gives an exact square that never leaves the positive domain.
     #[inline]
     #[must_use]
     pub(crate) const fn square_wide(self) -> DPositive {
@@ -159,9 +161,8 @@ impl Positive {
 
     /// Multiplies, refusing an escape from the domain.
     ///
-    /// A product of positives is never NaN and never negative, so [`None`] is exactly an
-    /// overflow to `+∞` or an underflow to zero, and the caller owns the refusal that escape
-    /// deserves.
+    /// A product of positives is never NaN and never negative. Returns [`None`] exactly on overflow
+    /// to `+∞` or underflow to zero.
     #[inline]
     #[must_use]
     pub(crate) const fn checked_mul(self, other: Self) -> Option<Self> {
@@ -187,18 +188,18 @@ impl Positive {
     #[inline]
     #[must_use]
     pub(crate) fn sqrt(self) -> Self {
-        // In domain with no check: sqrt is monotone from (0, MAX] into (0, ~1.8e19], never NaN
-        // for a positive operand, and never zero - the root halves the exponent, so the
-        // smallest input roots far above the underflow threshold.
+        // The square root is monotone and never NaN for a positive finite operand. In-domain inputs
+        // lie in [2⁻¹⁴⁹, 2¹²⁸), with real roots in [√(2⁻¹⁴⁹), 2⁶⁴). These bounds fit inside the
+        // normal `f32` range. The rounded root remains positive and finite, never zero, without
+        // re-validation.
         Self::new_unchecked(self.0.sqrt())
     }
 
     /// Returns the geometric mean `√(self · rhs)`, total.
     ///
-    /// The widened product is exact, its root is at most the larger operand and at least the
-    /// smaller, and one `f64` rounding cannot carry a value bounded by [`MAX`](Self::MAX) past
-    /// the narrowing's rounding boundary, so the mean of two representable positives is
-    /// representable: the narrowing needs no check.
+    /// The exact geometric mean lies between the operands. The widened product is exact, and
+    /// both root rounding and narrowing are monotone. Therefore the result remains between
+    /// the representable positive operands and needs no range check.
     #[inline]
     #[must_use]
     pub(crate) fn geometric_mean(self, rhs: Self) -> Self {
@@ -212,10 +213,9 @@ impl Positive {
 
     /// Returns the reciprocal.
     ///
-    /// The reciprocal of a positive value is positive and never rounds to zero, since even the
-    /// largest finite input's reciprocal stays above the smallest subnormal. An operand below
-    /// `1/MAX` overflows to `+∞` - a wrong reading rather than a soundness break, since no
-    /// unsafe code trusts the domain - and asserts in debug builds.
+    /// The rounded reciprocal must be finite. A sufficiently small operand produces positive
+    /// infinity. A valid operand's reciprocal never rounds to zero: even the reciprocal of
+    /// [`Self::MAX`] exceeds the smallest positive subnormal.
     #[inline]
     #[must_use]
     pub(crate) const fn recip(self) -> Self {
@@ -232,7 +232,7 @@ impl Positive {
 const impl PartialEq for Positive {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -258,7 +258,7 @@ const impl Ord for Positive {
 impl Hash for Positive {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // one bit pattern per value, so `Hash` agrees with `Eq`
+        // hashing the unique representation agrees with numeric equality
         state.write_u32(self.0.to_bits());
     }
 }
@@ -286,7 +286,6 @@ const impl core::ops::Neg for Positive {
 }
 
 const impl From<Positive> for f64 {
-    /// Widens into double precision, exactly.
     #[inline]
     fn from(value: Positive) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -299,9 +298,9 @@ const impl core::ops::Sub for Positive {
 
     /// Subtracts, into the finite domain.
     ///
-    /// The difference of two positive finite values is finite, with no re-validation: its
-    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
-    /// operands give `+0.0`.
+    /// The magnitude of a difference of two positive finite values never exceeds the larger
+    /// operand. The subtraction cannot overflow and needs no re-validation. Equal operands give
+    /// `+0.0`.
     #[inline]
     fn sub(self, rhs: Self) -> Finite {
         Finite::new_unchecked(self.0 - rhs.0)
@@ -313,8 +312,8 @@ const impl core::ops::Div<Positive> for f32 {
 
     /// Divides a raw `f32` by a positive divisor, which is never zero.
     ///
-    /// The result is a raw float: the numerator is arbitrary, so the quotient can leave any
-    /// bounded domain.
+    /// An arbitrary numerator can produce a quotient outside any bounded domain. The result remains
+    /// a raw float.
     #[inline]
     fn div(self, rhs: Positive) -> f32 {
         self / rhs.0
@@ -326,7 +325,6 @@ impl proptest::arbitrary::Arbitrary for Positive {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -337,14 +335,12 @@ impl proptest::arbitrary::Arbitrary for Positive {
 }
 
 impl serde::Serialize for Positive {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for Positive {
-    /// Deserializes a plain number, refusing values outside the finite positive range.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f32::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {

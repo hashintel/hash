@@ -1,14 +1,14 @@
 //! One quality probe over a published generation.
 //!
-//! [`run`] wires the suite end to end. It opens the generation's mapped artifacts (the k-NN table
-//! for the clump grouping, the representation matrix, the coordinate frame, and the node
-//! identities) and probes them against the dataset's canonical space. It resolves the sampled
-//! anchors' direct types through the dataset's probe-scoped type stream, then renders the readings
-//! into a [`QualityReport`] under the given thresholds.
+//! [`run`] opens a generation's k-NN table, representation matrix, coordinate frame and node
+//! identities. It groups stored near-duplicate edges and probes neighbourhood fidelity against
+//! dataset canonical embeddings. After resolving the anchors' direct types, it returns a
+//! [`QualityReport`] under the configured thresholds.
 //!
-//! The dataset must observe the snapshot the fit read (the generation's metadata records the axes),
-//! because the runner matches artifact rows to source identities through the identity artifact and
-//! a dataset at other axes would resolve types for a different corpus.
+//! The dataset must supply canonical embeddings and type memberships consistent with the fitted
+//! corpus. Matching source ids and counts leaves those values unverified. Recorded temporal axes
+//! select the same query parameters, but do not by themselves restore the fit's database snapshot.
+//! The report is returned in memory without changing activation.
 
 use hashql_core::id::IdSlice;
 use rand::Rng;
@@ -34,11 +34,11 @@ use crate::{
 /// Sampling, grouping, and threshold settings for one quality run.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct QualityRunOptions {
-    /// The probe's sampling and neighbourhood settings.
+    /// Sampling settings, using [`ProbeOptions::default`] by default.
     pub probe: ProbeOptions = ProbeOptions::default(),
-    /// The report's thresholds.
+    /// Thresholds, using the permissive [`QualityThresholds::default`] by default.
     pub thresholds: QualityThresholds = QualityThresholds::default(),
-    /// The clump grouping's distance threshold.
+    /// Clump cosine-distance threshold, using [`DEFAULT_EPSILON`](super::clump::DEFAULT_EPSILON) (0.002) by default.
     pub epsilon: f32 = super::clump::DEFAULT_EPSILON,
 }
 
@@ -50,16 +50,24 @@ const impl Default for QualityRunOptions {
 
 /// Probes a published generation and reports its map fidelity.
 ///
-/// The generation's artifacts are read from their whole-file mappings; nothing is copied onto the
-/// heap beyond the probe's own bounded scratch. The dataset serves two probe-scoped streams -
-/// canonical embeddings for the sampled rows, direct types for the anchors - and must observe the
-/// snapshot recorded in the generation's metadata.
+/// Artifact arrays borrow whole-file mappings. Clump construction allocates corpus-sized labels and
+/// working state, in addition to probe scratch, sampled canonical payloads and report data. Backing
+/// files must remain immutable while mapped. The dataset supplies canonical embeddings for sampled
+/// rows and direct types for anchors, consistent with the fitted corpus.
+///
+/// [`probe`] defines numerical and design-capacity requirements beyond artifact layout and
+/// row-count checks. In particular, finite coordinates do not guarantee finite squared distances,
+/// and the representation matrix's layout check does not validate its components.
 ///
 /// # Errors
 ///
-/// Returns an error when an artifact cannot be opened or does not hold its role's layout, the
-/// artifacts disagree about the corpus row count, the probe design cannot run over the corpus, or a
-/// dataset stream fails or misdelivers.
+/// Returns [`QualityRunError`] for an invalid or unreadable artifact, mismatched row counts, a
+/// failed probe or mismatched type delivery.
+///
+/// # Panics
+///
+/// Unchecked design or aggregate arithmetic can panic when integer overflow checks are enabled, as
+/// described by [`probe`].
 pub(crate) async fn run<D: Dataset>(
     dataset: &D,
     generation: &Generation,

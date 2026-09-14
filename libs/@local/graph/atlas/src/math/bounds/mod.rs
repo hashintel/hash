@@ -23,18 +23,20 @@ mod tests;
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
-/// The minimum and maximum corners define a [`Bounds2`]. Every value upholds two invariants: both
-/// corners are finite, and `min ≤ max` holds per component. Constructors enforce this by returning
-/// [`None`] for invalid input, so downstream code can rely on the box being usable without
-/// re-validating.
+/// Every value has finite minimum and maximum corners with `min ≤ max` per component. Constructors
+/// return [`None`] for invalid input.
 ///
-/// The primary workflow is: gather the extent of a point set with
-/// [`from_points`](Self::from_points), then map the points onto a target region with
-/// [`normalize_into`](Self::normalize_into), the per-axis affine box-to-box map.
+/// Gather the extent of a point set with [`from_points`](Self::from_points), then map the points
+/// onto a target region with [`normalize_into`](Self::normalize_into), the per-axis affine
+/// box-to-box map.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{Bounds2, Vec2};
+///
 /// let bounds = Bounds2::from_points([
 ///     Vec2::new(2.0, -1.0),
 ///     Vec2::new(6.0, 3.0),
@@ -47,9 +49,6 @@ mod tests;
 /// assert_eq!(bounds.size(), Vec2::new(4.0, 4.0));
 /// assert_eq!(bounds.centre(), Vec2::new(4.0, 1.0));
 /// ```
-// No `FromBytes`: it would construct boxes with NaN or inverted corners in
-// safe code, bypassing the validating constructors. `FromZeros` is fine
-// (the zeroed box is the valid degenerate box at the origin).
 #[derive(
     Debug,
     Copy,
@@ -151,10 +150,10 @@ impl Bounds2 {
     /// or any non-finite coordinate. Rayon workers fold chunks of the slice with
     /// [`from_slice`](Self::from_slice), and [`union`](Self::union) combines the results.
     ///
-    /// The fold is memory-bound. A single core already streams near the machine's bandwidth, so the
-    /// parallel gain is real but modest (measured around a third at a million points) and does not
-    /// grow with core count. Below about a hundred thousand points,
-    /// [`from_slice`](Self::from_slice) is faster outright.
+    /// The recorded bounds benchmark measured a gain of around a third at a million points,
+    /// with the serial [`from_slice`](Self::from_slice) faster below about a hundred thousand.
+    /// These are machine-dependent crossover points. Measure with wall time when choosing
+    /// between the serial and parallel forms.
     ///
     /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points. Use
     /// [`from_slice_par_with`](Self::from_slice_par_with) to choose a different chunk size.
@@ -195,7 +194,8 @@ impl Bounds2 {
 
     /// Returns the per-axis extent, `max - min`.
     ///
-    /// Both components are non-negative by the type's invariant.
+    /// Both components are non-negative by the type's invariant. A difference can overflow to
+    /// positive infinity even though both corners are finite.
     #[inline]
     #[must_use]
     pub(crate) const fn size(self) -> Vec2 {
@@ -203,6 +203,10 @@ impl Bounds2 {
     }
 
     /// Returns the centre of the box.
+    ///
+    /// Each component is the exact midpoint of its axis rounded once to the nearest `f32`. The
+    /// result is finite and lies inside the box: the midpoint lies between two `f32` corners and
+    /// rounding is monotone.
     #[inline]
     #[must_use]
     pub(crate) const fn centre(self) -> Vec2 {
@@ -233,10 +237,14 @@ impl Bounds2 {
 
     /// Widens any axis narrower than `minimum` to exactly `minimum`.
     ///
-    /// Symmetrically around its centre.
+    /// Each narrow axis grows symmetrically in exact arithmetic. Rounding follows
+    /// [`with_aspect_ratio`](Self::with_aspect_ratio). An axis already at least `minimum` wide
+    /// keeps its corners bit for bit.
     ///
     /// This repairs degenerate boxes (all points on a line, or a single point) before operations
     /// that divide by the extent, such as box-to-box fitting or density rasterization.
+    ///
+    /// Returns [`None`] when a widened corner would lie beyond the finite `f32` range.
     #[inline]
     #[must_use]
     pub(crate) fn with_minimum_extent(self, minimum: f32) -> Self {
@@ -251,20 +259,39 @@ impl Bounds2 {
         }
     }
 
-    /// Grows the box about its centre until its extent has the given width-to-height ratio.
+    /// Grows the shorter axis toward the given width-to-height ratio.
     ///
-    /// The result is the smallest box of ratio `ratio` containing this one: the axis already long
-    /// enough keeps its extent, the other grows about the shared centre, and `size().x() /
-    /// size().y() = ratio` holds to within one rounding of the ratio itself.
+    /// The result contains this box. The axis already long enough for the ratio keeps its corners
+    /// bit for bit, and the other grows symmetrically in exact arithmetic.
     ///
-    /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
-    /// `down` cells keeps its own shape when this method grows its extent to `across / down` first,
-    /// because equal extent per cell on both axes is what one square cell means. Fitting the grown
-    /// box onto its target then scales both axes by the same factor.
+    /// A viewport on a grid of square cells needs equal data extent per cell on both axes. Growing
+    /// to `across / down` supplies that ratio in exact arithmetic. The represented ratio also
+    /// depends on the corner spacing described below.
     ///
-    /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
-    /// still yields a viewport. A box degenerate on both axes has no extent to take a ratio of and
-    /// stays degenerate. [`with_minimum_extent`](Self::with_minimum_extent) gives it one.
+    /// An axis with no extent grows from the other axis's extent. A box degenerate on both axes
+    /// remains degenerate. [`with_minimum_extent`](Self::with_minimum_extent) supplies an extent.
+    ///
+    /// Returns [`None`] when a grown corner would lie beyond the finite `f32` range.
+    ///
+    /// # Rounding
+    ///
+    /// This method, [`with_minimum_extent`](Self::with_minimum_extent) and
+    /// [`scaled_about_centre`](Self::scaled_about_centre) compute per-corner shifts in `f64`, then
+    /// round the low corner down and the high corner up to `f32`. A positive outward shift too
+    /// small to change the `f64` corner instead takes one outward `f32` step. Growth contains the
+    /// original axis and shrinking lies within it. A target equal to the current extent preserves
+    /// both corners bit for bit.
+    ///
+    /// Rounding can move the midpoint and change the achieved extent. Outward narrowing encloses
+    /// the computed `f64` corners, not necessarily the exact real-valued result: earlier `f64`
+    /// rounding can leave an extent slightly short of its target.
+    ///
+    /// # Warning
+    ///
+    /// Corner spacing can be comparable to the box's extent far from the origin. For example,
+    /// `[2²⁴, 0]..[2²⁴ + 2, 2]` grown to ratio 2 becomes `[2²⁴ - 1, 0]..[2²⁴ + 4, 2]`, with
+    /// ratio 2.5. The requested upper corner `2²⁴ + 3` lies between adjacent `f32` values.
+    /// Containment takes precedence over an exact ratio.
     ///
     /// # Examples
     ///
@@ -274,7 +301,9 @@ impl Bounds2 {
     /// let ratio = Positive::new(4.0).expect("4 is positive");
     ///
     /// // The box is 16 by 2, wider than 4:1, so the height grows to 4 and the width stays.
-    /// let viewport = bounds.with_aspect_ratio(ratio);
+    /// let viewport = bounds
+    ///     .with_aspect_ratio(ratio)
+    ///     .expect("the grown corners are far inside the `f32` range");
     /// assert_eq!(viewport.size(), Vec2::new(16.0, 4.0));
     /// assert_eq!(viewport.centre(), bounds.centre());
     /// ```
@@ -299,18 +328,27 @@ impl Bounds2 {
 
     /// Scales the box about its centre by `factor`.
     ///
-    /// Both axes scale by the same factor and the centre does not move, so the result contains this
-    /// box for a factor above one and sits inside it below one. A factor of one returns the same
-    /// extent, to within the rounding of the halved arithmetic.
+    /// The result contains this box for a factor above one and lies within it for a factor below
+    /// one. A factor of one returns the box bit for bit. Rounding follows
+    /// [`with_aspect_ratio`](Self::with_aspect_ratio) and can leave an axis unchanged when its
+    /// corners are adjacent `f32` values.
     ///
-    /// # Examples
+    /// Returns [`None`] when a scaled corner would lie beyond the finite `f32` range.
+    ///
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{Bounds2, Positive, Vec2};
+    ///
     /// let bounds =
     ///     Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
     /// let margin = Positive::new(1.5).expect("1.5 is positive");
     ///
-    /// let widened = bounds.scaled_about_centre(margin);
+    /// let widened = bounds
+    ///     .scaled_about_centre(margin)
+    ///     .expect("the scaled corners are far inside the `f32` range");
     /// assert_eq!(widened.min(), Vec2::splat(-1.5));
     /// assert_eq!(widened.max(), Vec2::splat(1.5));
     /// ```
@@ -326,21 +364,26 @@ impl Bounds2 {
         }
     }
 
-    /// Returns the transform mapping this box onto `target`.
+    /// Fits an axis-aligned transform from this box to `target`.
     ///
-    /// The transform scales and translates each axis independently, so `self.min` lands on
-    /// `target.min` and `self.max` on `target.max`. This is the normalize-into-viewport operation:
-    /// fit a layout's extent, then map every point into `[0, size]` coordinates with one batched
-    /// transform.
+    /// In exact arithmetic, independent scale and translation map each source endpoint to the
+    /// corresponding target endpoint. Fit a layout's extent, then apply the transform in batches to
+    /// map points into viewport coordinates. The `f32` extents, scales and composed coefficients
+    /// round, and endpoint equality is not guaranteed.
     ///
-    /// Returns [`None`] when this box has an axis with zero, subnormal, or otherwise non-normal
-    /// extent, where the scale factor degenerates. Widen with
-    /// [`with_minimum_extent`](Self::with_minimum_extent) first when the point set may be
-    /// collinear.
+    /// Returns [`None`] when a source extent computed by [`Self::size`] is zero, subnormal or
+    /// infinite. Widen with [`Self::with_minimum_extent`] first when the point set may be
+    /// collinear. Target extents and computed coefficients are not validated: target-extent or
+    /// scale overflow can produce a transform containing infinities or NaNs. Use
+    /// [`Self::normalize_into`] for per-point mapping with widened arithmetic.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{Bounds2, Vec2};
+    ///
     /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
     ///     .expect("corners are finite and ordered");
     /// let viewport =
@@ -368,22 +411,30 @@ impl Bounds2 {
         )
     }
 
-    /// Maps points from this box onto `target`, exactly per axis.
+    /// Maps points between boxes with per-axis double-precision arithmetic.
     ///
-    /// Each axis maps affinely in `f64` - subtract this box's minimum, divide by its extent, scale
-    /// onto the target axis - and rounds once to `f32`, so every output component is within one
-    /// `f32` ULP of the exact mapping for every input magnitude, including boxes sitting far from
-    /// the origin relative to their extent. This box's corners map onto the target's corners.
-    /// Points outside this box extrapolate along the same map. A zero-extent axis (every point
-    /// identical on it) maps to the centre of the target's axis.
+    /// For source axis [a, b] and target axis [c, d], the map is
+    /// c + (p − a) · (d − c)/(b − a) in exact arithmetic. A zero-extent source axis maps to the
+    /// target midpoint. Points outside this box extrapolate along the same map.
     ///
-    /// This method maps points in parallel, four at a time per axis: each batch converts to
-    /// [`Vec2x4T`] at the loop boundary and widens its lane groups to `f64`, so the batched and
-    /// scalar paths round identically and the output is independent of the split.
+    /// Coordinates widen before the differences are formed. Computing the unit coordinate
+    /// before target scaling avoids an `f32` scale-translation composition that loses small
+    /// offsets far from the origin. The `f64` operations still round before the final narrowing.
+    /// Cancellation near zero can magnify their error in output ULPs, and a rounded target
+    /// extent can prevent even a source endpoint from reaching its target endpoint exactly.
+    /// Extrapolated results can overflow to infinity.
     ///
-    /// # Examples
+    /// The parallel batch and scalar remainder use the same sequence of rounded operations.
+    /// Finite input points give the same results regardless of the split. NaN payloads are not
+    /// part of this agreement.
+    ///
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{Bounds2, Vec2};
+    ///
     /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
     ///     .expect("corners are finite and ordered");
     /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
@@ -422,14 +473,24 @@ impl Bounds2 {
 impl Bounds2 {
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
-    /// Each axis maps affinely onto `[0, 2^32)` in `f64` (so every `f32` coordinate quantizes
-    /// exactly) and floors. Coordinates outside the bounds clamp onto the boundary cells: points at
-    /// or beyond the maximum edge take the last cell, points below the minimum take cell zero. A
-    /// zero-extent axis maps to cell zero.
+    /// Divides the coordinate's offset from the minimum by the extent returned by [`Self::size`],
+    /// then scales by 2³². The offset and division use `f64`, but the extent is already rounded
+    /// to `f32`. The float-to-integer conversion truncates toward zero and saturates to the
+    /// `u32` range. NaN maps to cell zero.
     ///
-    /// # Examples
+    /// # Warning
+    ///
+    /// Rounding the extent can move a grid boundary, including making the maximum corner map
+    /// below the last cell. A zero or infinite extent maps every coordinate to cell zero. This
+    /// operation does not guarantee exact quantization of the real-valued box.
+    ///
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{Bounds2, Vec2};
+    ///
     /// let bounds = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 1.0)).expect("the bounds are ordered");
     /// assert_eq!(bounds.quantize(Vec2::ZERO), [0, 0]);
     /// assert_eq!(bounds.quantize(Vec2::new(1.0, 0.5)), [u32::MAX, 1 << 31]);
@@ -463,9 +524,8 @@ fn quantize_axis(value: f32, min: f32, extent: f32) -> u32 {
     }
 
     let unit = (f64::from(value) - f64::from(min)) / f64::from(extent);
-    // Rust float-to-int casts saturate: negative inputs clamp to cell
-    // zero, inputs at or beyond the maximum edge to the last cell, and
-    // a NaN coordinate to cell zero.
+    // the cast saturates the computed scaled value: negatives and NaN become zero, and values at or
+    // above u32::MAX become the last cell.
     (unit * AXIS_CELLS) as u32
 }
 
@@ -480,6 +540,9 @@ struct AxisMap {
 }
 
 impl AxisMap {
+    /// Builds the map sending `[minimum, maximum]` onto `[target_minimum, target_maximum]`.
+    ///
+    /// Every input widens to `f64` before the extents and the target midpoint are formed.
     fn new(minimum: f32, maximum: f32, target_minimum: f32, target_maximum: f32) -> Self {
         let minimum = f64::from(minimum);
         let target_minimum = f64::from(target_minimum);
@@ -505,8 +568,8 @@ impl AxisMap {
         }
 
         let unit = (f64::from(value) - self.minimum) / self.extent;
-        // f64 fused multiply-add is correctly rounded by IEEE 754, so it
-        // is both more accurate and byte-reproducible across targets.
+        // fusion rounds the target product-plus-sum once. The unit coordinate and target
+        // extent already carry any rounding from their construction.
         unit.mul_add(self.target_extent, self.target_minimum) as f32
     }
 

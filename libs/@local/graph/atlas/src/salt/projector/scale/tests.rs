@@ -1,7 +1,7 @@
 //! Certificates for local-scale measurement.
 //!
-//! Fixture distances and coordinates are hand-picked exactly representable values, so the asserted
-//! medians are exact contracts.
+//! The asserted medians are exact contracts: fixture distances and coordinates are hand-picked
+//! exactly representable values.
 
 #![expect(
     clippy::float_cmp,
@@ -50,10 +50,10 @@ fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<NonNegative>) ->
 
 /// Selection follows stored distance, not storage order.
 ///
-/// Seventeen rows make row 0's table sixteen entries wide, one more than the scale uses. Row 1 -
-/// first in storage order - carries the largest stored distance, so the nearest fifteen are rows
-/// 2..=16. With row `j` placed at `(j, 0)`, the correct median over 2D distances `{2..=16}` is 9;
-/// selecting the first fifteen by storage order would include row 1 and yield 8.
+/// Seventeen rows make row 0's table sixteen entries wide, one more than the scale uses. Row 1,
+/// first in storage order, carries the largest stored distance. The nearest fifteen are therefore
+/// rows 2..=16, and with row `j` placed at `(j, 0)` the median over their 2D distances `{2..=16}`
+/// is 9. Selecting the first fifteen by storage order would include row 1 and yield 8.
 #[test]
 fn selects_neighbours_by_stored_distance_not_storage_order() {
     let rows = 17;
@@ -100,4 +100,5 @@ fn even_neighbour_counts_use_the_midpoint() {
 // No test drives a non-finite coordinate through `compute`. The one production caller
 // (`refresh::forward`) rejects non-finite readback points before the frame exists. The one
 // reachable non-finite reading, a distance overflowing to +∞ from pre-divergence coordinates,
-// is unconstructible in debug builds by design.
+// is unconstructible with debug assertions enabled: the assertions in `NonNegative`'s square
+// and sum refuse the escaped +∞ before the median sees it.

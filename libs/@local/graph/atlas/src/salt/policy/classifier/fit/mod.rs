@@ -11,16 +11,17 @@
 //! through the deterministic bounded trust-region exact-Newton [`solver`], which operates in
 //! contrast coordinates and certifies every solution against its gradient threshold. The data Gram
 //! matrix behind the solver's row-space factorization assembles once per fit and every fold solve
-//! reads its subset through a member view. Whole relation groups go to seeded, size-balanced folds
-//! before fitting, so near-duplicate corpus entries never straddle a train/validation split.
-//! [`regularization`] selects the penalty strength λ over those folds. Every candidate's fold
-//! models fit in parallel and the minimum out-of-fold cross-entropy wins, with an exact tie
+//! reads its subset through a member view. Whole validation groups go to seeded, size-balanced
+//! folds before fitting, and no fold divides a group. The corpus assembly decides which rows share
+//! a group (related or near-duplicate cards, up to its budgeted relaxation) before the rows reach
+//! the fit. [`regularization`] selects the penalty strength λ over those folds. Every candidate's
+//! fold models fit in parallel and the minimum out-of-fold cross-entropy wins, with an exact tie
 //! preferring the stronger penalty. The deployment model then fits at the winning strength over the
 //! complete corpus. The winner's concatenated out-of-fold logits calibrate one scalar deployment
 //! temperature ([`calibration`]), and [`applicability`] fits the applicability distribution over
 //! the complete corpus. Each fit's arithmetic is sequential and every candidate reuses the same
-//! fold assignment, so the result is deterministic. The out-of-fold metrics judge the selected
-//! configuration on the same folds that chose it.
+//! fold assignment. The result is therefore deterministic. The out-of-fold metrics judge the
+//! selected configuration on the same folds that chose it.
 //!
 //! Every fit certifies at the configured gradient threshold. A solve that ends at any typed
 //! terminal is an error, and the fit returns no best-effort model. The typed terminals are an
@@ -159,10 +160,12 @@ impl Error for FitError {}
 
 /// One soft label, vote weight, and indivisible validation group.
 ///
-/// The group digest names the finest unit a validation split never divides. Corpus assembly unions
-/// every leakage axis (relation family, inverse pair, base URL, publisher, near-duplicate card
-/// family) into this one label before rows reach the fit, so near-identical corpus entries can
-/// never straddle a train/validation boundary and inflate the out-of-fold metrics.
+/// The group digest names the finest unit a validation split never divides. Corpus assembly
+/// derives it before rows reach the fit, uniting cards through their identity and inverse
+/// identities, their relation family and base URL, and near-duplicate embeddings, and relaxing the
+/// family, base-URL and near-duplicate unions where a group would exceed its budget. The fit keeps
+/// the groups it receives whole and reconstructs no leakage relation itself. A pair the assembly
+/// separated under its budget can therefore straddle a train/validation boundary.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TrainingRow {
     /// Soft target over the geometry classes, in class order.
@@ -176,7 +179,7 @@ pub(crate) struct TrainingRow {
 /// Validated borrowed classifier training data.
 ///
 /// Both columns index by the corpus's card rows: the row at a card row labels the embedding at the
-/// same card row. The types carry the alignment claim across domains; the lengths still validate at
+/// same card row. The types carry the alignment claim across domains. The lengths still validate at
 /// construction.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TrainingSet<'training> {
@@ -206,10 +209,9 @@ impl<'training> TrainingSet<'training> {
             });
         }
 
-        // The scan touches every component once (a few MB of SIMD
-        // compares at annotation-corpus scale, well under a
-        // millisecond) and runs once per fit; the borrowed slice type
-        // carries no finiteness guarantee of its own.
+        // The scan touches every component once (a few MB of SIMD compares at annotation-corpus
+        // scale, well under a millisecond) and runs once per fit. The borrowed slice type
+        // has no finiteness guarantee of its own.
         for (row_index, embedding) in embeddings.iter_enumerated() {
             if embedding.is_finite() {
                 continue;
@@ -285,7 +287,7 @@ impl<'training> TrainingSet<'training> {
 /// Solver and grouped-validation settings.
 ///
 /// The solver defaults are the deployment configuration, with the regularization strength selected
-/// per fit ([`regularization`]); the out-of-fold metrics in [`FitEvidence`] judge the selected
+/// per fit ([`regularization`]). The out-of-fold metrics in [`FitEvidence`] judge the selected
 /// configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
@@ -351,7 +353,7 @@ pub(crate) struct Fit {
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] for invalid configuration, too few relation groups, a training portion
+/// Returns a [`FitError`] for too few relation groups, a training portion
 /// violating the preparation contract, a solve ending at a typed terminal, or a non-finite
 /// out-of-fold evaluation.
 ///
@@ -368,10 +370,10 @@ pub(crate) fn fit<P: Progress + Sync>(
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
     progress.classifier_started(config.folds);
 
-    // One Gram assembly serves every fold solve and the deployment fit; the assembly charge
-    // rides the deployment fit's counters, and fold solves read the shared matrix uncharged.
-    // The matrix speaks packed positional row indices by its own contract, so the card-row
-    // domain ends at its assembly boundary.
+    // One Gram assembly serves every fold solve and the deployment fit. The assembly charge is
+    // counted against the deployment fit's counters, and fold solves read the shared matrix
+    // uncharged. The matrix indexes packed positional rows by its own contract, and the
+    // card-row domain ends at its assembly boundary.
     let mut assembly_counters = WorkCounters::default();
     let gram = Gram::assemble(training.embeddings.as_raw(), &mut assembly_counters);
 
@@ -439,7 +441,7 @@ impl FoldedTraining<'_> {
     ) -> Result<(Parameters, u64), FitError> {
         // The held-out fold's complement materializes densely because the solver traverses whole
         // corpora and fold membership is not its contract. The gather re-bases the complement into
-        // the solve's own positional row space, so the card-row domain ends here. The
+        // the solve's own positional row space, and the card-row domain ends here. The
         // window records each solve row's original corpus index, which is the form the Gram
         // view documents.
         let subset = held_out.map(|held_out| {
@@ -532,8 +534,18 @@ fn split_parameters(
 /// Assigns whole groups to seeded, size-balanced folds.
 ///
 /// Each group joins the currently smallest fold, largest group first. Equal sizes break by a seeded
-/// hash of the group digest and then by the digest itself, so the assignment is deterministic and
-/// independent of row order.
+/// hash of the group digest and then by the digest itself. The assignment is therefore
+/// deterministic and independent of row order.
+///
+/// # Errors
+///
+/// Returns [`FitError::InsufficientGroups`] when the rows hold fewer distinct groups than
+/// `fold_count`.
+///
+/// # Panics
+///
+/// This panics for a zero `fold_count` with nonempty rows, where no fold can receive the first
+/// group. Zero folds with empty rows return an empty assignment.
 fn grouped_folds(
     rows: &IdSlice<CardRow, TrainingRow>,
     fold_count: usize,

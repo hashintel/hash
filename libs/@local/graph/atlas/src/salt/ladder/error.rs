@@ -9,7 +9,7 @@ use crate::math::NonNegative;
 pub(crate) enum ConditionsError {
     /// Fewer than two steps: nothing to compare across.
     TooFew {
-        /// steps offered.
+        /// Steps offered.
         count: usize,
     },
     /// The schedule's first step is not the exact zero-condition value `0.0`.
@@ -64,7 +64,7 @@ impl Error for ConditionsError {}
 pub(crate) enum LadderError {
     /// The field count does not match the schedule.
     FieldCount {
-        /// steps in the schedule.
+        /// Steps in the schedule.
         conditions: usize,
         /// Fields offered.
         fields: usize,
@@ -80,7 +80,8 @@ pub(crate) enum LadderError {
     },
     /// A step's field has no Procrustes alignment onto the compared field.
     ///
-    /// Its points are coincident or the covariance cancels exactly.
+    /// Alignment fails when the field has fewer than two rows, when its rounded variance or
+    /// covariance is unusable, or when the coefficients lie outside the accepted `f32` range.
     Degenerate {
         /// Position of the unalignable field.
         index: usize,
@@ -123,7 +124,7 @@ impl Error for LadderError {}
 /// A rejected canonical selection.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum CanonicalError {
-    /// The requested value is not a step of the measured ladder.
+    /// The requested value is absent from the supplied conditions.
     UnknownStep {
         /// The requested condition.
         value: NonNegative,

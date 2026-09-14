@@ -7,7 +7,7 @@
 //! them at a configured cadence.
 //!
 //! The neighbour set is the [`LOCAL_SCALE_NEIGHBOURS`] nearest rows by stored high-dimensional
-//! distance. The neighbour table stores each row's entries in ascending row order, so this module
+//! distance. The neighbour table stores each row's entries in ascending row order. This module
 //! selects the nearest subset by distance and breaks ties by row id.
 
 #[cfg(test)]
@@ -31,12 +31,15 @@ use crate::{
 /// neighbours the median. Tables storing fewer neighbours contribute them all.
 pub(crate) const LOCAL_SCALE_NEIGHBOURS: usize = 15;
 
-/// A node row's local scale overflowed the finite range.
+/// A node row's local scale, its selected median distance, overflowed the finite range.
 ///
 /// `row` is the smallest node row whose scale came out non-finite. The coordinates are finite at
-/// entry, so the only non-finite reading this computation can produce is a distance that
-/// overflows to `+∞`, from pre-divergence coordinates large enough that their difference leaves
-/// the finite range.
+/// entry, and the only non-finite reading this computation can produce is a 2D distance whose
+/// `f32` arithmetic overflows to `+∞`: the coordinate differences square and sum in `f32`, and a
+/// finite coordinate difference of `2⁶⁴` or more already overflows its square. The `+∞` sorts
+/// last among the row's distances, and the scale is non-finite when the median selection reaches
+/// an escaped distance and finite otherwise: one escaped distance is the median of a
+/// one-neighbour row, and escaped distances sorted past the median leave the scale finite.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct NonFiniteScale<N> {
     /// The smallest affected node row.
@@ -57,8 +60,8 @@ impl<N> Error for NonFiniteScale<N> where N: fmt::Debug + fmt::Display {}
 
 /// Validated per-node local radii in node-row order.
 ///
-/// Every value is a [`NonNegative`]: finite and at least zero, so dividing by a scale plus a
-/// positive ε is total.
+/// Every value is a [`NonNegative`], finite and at least zero. A scale plus a positive ε is a
+/// positive divisor, and it is finite whenever the `f32` sum is below `f32::MAX`.
 #[derive(Debug, PartialEq)]
 pub(crate) struct LocalScales<N>(Box<IdSlice<N, NonNegative>>);
 
@@ -79,13 +82,16 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`NonFiniteScale`] naming the smallest affected row when a distance overflows the
-    /// finite range (pre-divergence coordinates).
+    /// Returns [`NonFiniteScale`] naming the smallest row whose selected median is non-finite: a
+    /// 2D distance's `f32` square or sum overflowed to `+∞` between finite coordinates, and the
+    /// escaped distances reached the median. A row whose overflowed distances sort past the median
+    /// keeps a finite scale.
     ///
     /// # Panics
     ///
     /// This panics when the coordinate count differs from the table's row count or the table stores
-    /// no neighbours. Both artifacts come from one generation, so a mismatch is a wiring defect.
+    /// no neighbours. Both artifacts come from one generation, and a mismatch is therefore a wiring
+    /// defect.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "row-domain agreement is a wiring contract asserted at entry; the error channel \
@@ -136,9 +142,10 @@ where
     /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric mean of the
     /// pair's ε-shifted local scales. Dividing a pair's distance by it yields the locally
     /// normalized distance `z`, comparable between dense and sparse map regions. `epsilon`
-    /// shifts a zero scale off zero, and the geometric mean is total - the widened product is
-    /// exact and the mean of two representable positives is representable. Every configured
-    /// `ε` reads a finite normalization.
+    /// shifts a zero scale off zero. Each shift is an `f32` addition, finite whenever the scale
+    /// and `ε` sum below `f32::MAX`, and the geometric mean of two finite positives rounds within
+    /// their range (the mean of `1` and `2` is `√2`, rounded). A finite normalization does not by
+    /// itself bound the caller's `f32` quotient.
     ///
     /// # Panics
     ///
@@ -160,8 +167,8 @@ where
 /// A placed frame beside local scales covering the same rows.
 ///
 /// The pairing claims one row domain and nothing more. Scales are detached measurements that a
-/// consumer may read against a re-forwarded frame from a later step, so which frame measured them
-/// stays the call site's contract rather than this type's.
+/// consumer may read against a re-forwarded frame from a later step. Which frame measured them is
+/// the call site's contract rather than this type's.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ScaledFrame<'frame, N> {
     /// The placed coordinates.
@@ -179,7 +186,7 @@ where
     /// # Panics
     ///
     /// This panics when the scales do not cover the coordinate rows: the pair describes one
-    /// corpus, so a mismatch is a wiring defect.
+    /// corpus, and a mismatch is therefore a wiring defect.
     #[must_use]
     pub(crate) fn new(
         coordinates: &'frame FinitePointField<N>,
@@ -254,10 +261,12 @@ pub(crate) const fn sorted_median(distances: &[NonNegative]) -> NonNegative {
 
 /// Computes one row's median 2D distance to its nearest neighbours.
 ///
-/// A distance between pre-divergence coordinates can overflow, and the escaped `+∞` sorts last
-/// under the bit order, so it reaches the median only when overflow dominates the row. The
-/// median returns unclaimed, and the table constructor's finish detects divergence at the
-/// corpus level rather than per distance.
+/// The distance squares and sums the coordinate differences in `f32`, and a coordinate difference
+/// of `2⁶⁴` or more overflows its square to `+∞` between finite coordinates. The escaped `+∞`
+/// sorts last under the bit order, and the median is non-finite when the selection reaches an
+/// escaped distance, which one distance does in a one-neighbour row. The median returns
+/// unclaimed, and the table constructor's finish detects divergence at the corpus level rather
+/// than per distance.
 fn row_scale<N>(
     coordinates: &IdSlice<N, Vec2>,
     knn: &KnnView<'_, N>,
@@ -276,6 +285,9 @@ where
 
     let mut distances = [NonNegative::ZERO; LOCAL_SCALE_NEIGHBOURS];
     for (distance, &(_, neighbour)) in distances.iter_mut().zip(&nearest[..count]) {
+        // `Vec2::distance` squares and sums in `f32`, and an overflow escapes to `+∞` here. With
+        // debug assertions enabled the scalar square and sum assert at this operation, ahead of
+        // the finish's refusal.
         *distance = coordinates[row].distance(coordinates[neighbour]);
     }
     distances[..count].sort_unstable();

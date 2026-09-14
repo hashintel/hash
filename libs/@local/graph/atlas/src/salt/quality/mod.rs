@@ -1,25 +1,25 @@
-//! Map-fidelity metrics and release thresholds for the quality suite.
+//! Map-fidelity measurements and admission thresholds.
 //!
-//! The suite judges a projected map by how well small neighbourhoods survive the trip from the
-//! canonical embedding space to 2D. It compares neighbour rankings between three spaces - the 2D
-//! map, the 512-component training representation, and exact 3072-component canonical distances
-//! over bounded probe sets - and reports recall, trustworthiness, continuity, intrusion rates,
-//! triplet agreement, and density distortion, each for the whole probe and per subgroup. The
-//! 512-versus-3072 comparison is the representation baseline the suite judges the map readings
-//! against.
+//! The suite judges neighbourhood preservation between the 2D map, the 512-component training
+//! representation and the 3072-component canonical space. Map-versus-representation rankings cover
+//! every non-anchor row. Comparisons involving canonical embeddings use a bounded shared sample.
+//! The representation-versus-canonical reading supplies a baseline for the map's canonical reading
+//! at that sampled scale.
 //!
-//! [`metric`] holds the rank-based kernels: pure functions over neighbour orderings and distances,
-//! independent of which spaces produced them. [`clump`] groups near-duplicate rows over the
-//! 512-component neighbour table, which lets a reading collapse orderings onto clump ids and
-//! separate placement error from reshuffling among near-identical siblings. [`probe`] orchestrates
-//! the measurement from anchor and comparison sampling through canonical embeddings, three-space
-//! rankings, and per-anchor reading grids. [`report`] renders the readings under configured
-//! thresholds: whole-probe and per-subgroup metric rows, the subgroup degradation flags, and the
-//! release verdict.
+//! [`metric`] holds rank-based recall, trustworthiness, continuity, intrusion/extrusion and
+//! triplet-agreement kernels. [`clump`] groups rows through near-duplicate edges in the stored
+//! neighbour table. Collapsing recall onto these component labels measures overlap with row
+//! identity relaxed, without certifying compactness or within-component placement. [`probe`]
+//! samples anchors and comparisons, fetches canonical embeddings and produces per-anchor readings.
+//! [`report`] aggregates these into whole-probe measurements, per-type neighbourhood rows and
+//! subgroup flags, with density distortion from neighbourhood radii and a threshold verdict.
+//! [`runner`] assesses a published generation against a dataset.
 //!
-//! Every metric here is a function of rankings over a shared comparison universe. Probe-scoped
-//! readings are exact over their probe sets and estimates of the corpus-wide quantity; the report
-//! carries the probe sizes so a reading is never mistaken for a corpus-complete measurement.
+//! Rankings use computed distances over their stated universe. Aggregates retain anchor-sampling
+//! uncertainty even where ranking coverage is exact, and a sampled k-neighbourhood measures a
+//! coarser scale than the same k over the corpus. Reports retain both universe sizes. Admission
+//! checks the observed map-versus-representation metrics, density spread and sampled triplet
+//! agreement. Canonical comparisons and subgroup flags remain report-only.
 
 pub(crate) mod clump;
 pub(crate) mod error;
@@ -31,14 +31,11 @@ pub(crate) mod runner;
 #[cfg(test)]
 mod tests;
 
-/// One quality metric of the admission probe's six-threshold set.
-///
-/// Each variant names one control of the release battery, so a report's verdict and an observer's
-/// reading identify a metric the same way.
+/// A metric checked by the admission thresholds.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum QualityMetric {
-    /// The neighbour backend's measured recall.
+    /// Shared map-versus-representation neighbourhoods.
     Recall,
     /// Neighbourhood trustworthiness.
     Trustworthiness,
@@ -53,26 +50,22 @@ pub enum QualityMetric {
 }
 
 impl QualityMetric {
-    /// Every metric of the battery, in the order a report's controls carry them.
-    ///
-    /// An observer rendering the battery needs the set before the probe reports any of it, and the
-    /// readings arrive in one burst at the end of the probe, so this list carries the order rather
-    /// than arrival.
+    /// Every admission metric, in report-control order.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the index runs over the variant count, an order of magnitude inside u8"
     )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
-        // SAFETY: every variant is a unit variant of a `repr(u8)` enum. Its discriminants are then
-        // exactly the range `0..variant_count`, and `from_fn` calls the closure once per index of
-        // that range.
+        // SAFETY: a fieldless `repr(u8)` enum has u8 size and requires a valid discriminant. These
+        // six variants have implicit consecutive discriminants starting at zero. `from_fn`
+        // supplies exactly those indices, and each fits in u8. Therefore every transmute produces
+        // a valid variant.
         core::array::from_fn(const |index| unsafe { core::mem::transmute(index as u8) });
 
-    /// The metric's name, in the vocabulary its own threshold key uses.
+    /// Returns the metric noun used in its threshold key.
     ///
-    /// Each name is the noun of the report's own key, so `minimum_recall` is `recall` and
-    /// `maximum_density_spread` is `density spread`. A rendered reading and the threshold that
-    /// moves it therefore name one control.
+    /// For example, `minimum_recall` uses `recall` and `maximum_density_spread` uses `density
+    /// spread`.
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {

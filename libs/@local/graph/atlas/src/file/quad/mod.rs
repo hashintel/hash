@@ -88,8 +88,10 @@ mod tests;
 
 use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -188,8 +190,8 @@ impl Node {
 
     /// Creates a node record.
     ///
-    /// `children` are node indexes in Morton child order, [`None`] for absent quadrants;
-    /// `start..start + length` is the own-bucket run in base delivery positions; `points` counts
+    /// `children` are node indexes in Morton child order, with [`None`] for absent quadrants.
+    /// `start..start + length` is the own-bucket run in base delivery positions. `points` counts
     /// the whole subtree.
     ///
     /// # Panics

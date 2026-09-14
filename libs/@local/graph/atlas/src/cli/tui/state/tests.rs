@@ -1,7 +1,7 @@
 //! Every observation folded into the model, and everything the renderer reads back out of it.
 //!
-//! The reduction carries no clock of its own beyond the run's start, so each question here names
-//! the elapsed time it asks at ([`RunState::complete_at`]) and answers it without a terminal or a
+//! The reduction carries no clock of its own beyond the run's start. Each question here names the
+//! elapsed time it asks at ([`RunState::complete_at`]) and answers it without a terminal or a
 //! running fit.
 
 use core::time::Duration;
@@ -55,6 +55,9 @@ fn secs(seconds: u64) -> Duration {
     Duration::from_secs(seconds)
 }
 
+/// A model with nothing observed reports its first stage running for the whole elapsed time.
+///
+/// Every later stage stays pending, and no stage completes.
 #[test]
 fn a_fresh_run_is_inside_its_first_stage() {
     let state = RunState::new();
@@ -64,6 +67,9 @@ fn a_fresh_run_is_inside_its_first_stage() {
     assert_eq!(state.completed_stages(), 0);
 }
 
+/// Each completed stage's span is the gap between its own completion and the one before it.
+///
+/// The stage after the last completion runs for the time since it, and the rest stay pending.
 #[test]
 fn spans_are_differences_between_completions() {
     let mut state = RunState::new();
@@ -121,6 +127,9 @@ fn a_split_opens_the_counter_and_requests_advance_it() {
     );
 }
 
+/// A second reported split starts its own counter from zero.
+///
+/// The finished workload's progress does not carry into it.
 #[test]
 fn a_second_workload_replaces_the_first() {
     let mut state = RunState::new();
@@ -133,7 +142,7 @@ fn a_second_workload_replaces_the_first() {
         total: 49,
     });
 
-    // The corpus finished; the cards are their own workload and the
+    // The corpus finished. The cards are their own workload and the
     // counter must not carry the corpus's progress into them.
     state.start_embedding(&CardEmbeddingStats {
         reused: 12,
@@ -165,6 +174,9 @@ fn an_announced_fold_count_opens_the_counter_and_completions_advance_it() {
     );
 }
 
+/// A fold completion arriving before any fold count leaves the classifier counter closed.
+///
+/// The model invents no total to count against.
 #[test]
 fn a_fold_completion_without_an_announced_count_is_dropped() {
     let mut state = RunState::new();
@@ -173,6 +185,10 @@ fn a_fold_completion_without_an_announced_count_is_dropped() {
     assert_eq!(state.classifier(), None);
 }
 
+/// The knn field holds the latest reported activity only.
+///
+/// Insertion, then the backend's linking, then reading back, then the recall verdict each replace
+/// the predecessor.
 #[test]
 fn each_construction_activity_replaces_the_one_before_it() {
     let mut state = RunState::new();
@@ -203,6 +219,10 @@ fn each_construction_activity_replaces_the_one_before_it() {
     assert_eq!(state.knn(), Some(&KnnActivity::Measured(check(0.9021))));
 }
 
+/// The first reported step opens the descent curve with the schedule's total.
+///
+/// Later steps extend the loss window in order, and the done count and the latest breakdown track
+/// the newest step.
 #[test]
 fn the_first_training_step_opens_the_curve_and_the_rest_extend_it() {
     let mut state = RunState::new();
@@ -218,12 +238,16 @@ fn the_first_training_step_opens_the_curve_and_the_rest_extend_it() {
 
     let training = state.projector().expect("four steps opened the curve");
     assert_eq!(training.steps, 300);
-    // Steps are zero-based, so the fourth one reports index three.
+    // Steps are zero-based. The fourth one reports index three.
     assert_eq!(training.done, 4);
     assert_eq!(training.losses, [8.0, 7.0, 6.0, 5.0]);
     assert_eq!(training.last, loss(5.0));
 }
 
+/// A run longer than the loss window keeps the window at capacity.
+///
+/// The window holds the newest losses and drops as many oldest ones as the run ran over, while the
+/// done count keeps the whole run's length.
 #[expect(
     clippy::cast_precision_loss,
     reason = "the fixture's step count is exactly representable"
@@ -238,9 +262,8 @@ fn the_curve_scrolls_rather_than_growing_without_limit() {
 
     let training = state.projector().expect("the curve opened");
     assert_eq!(training.losses.len(), LOSS_CAPACITY);
-    // The run went two steps past the window, so the two oldest
-    // losses are the ones that left and the window holds steps two
-    // onward.
+    // The run went two steps past the window. Its two oldest losses are the ones that left, and the
+    // window holds steps two onward.
     assert_eq!(training.losses.front(), Some(&2.0));
     assert_eq!(training.losses.back(), Some(&(steps as f32 - 1.0)));
     assert_eq!(training.done, steps);
@@ -260,6 +283,9 @@ fn a_second_training_run_does_not_inherit_the_first_curve() {
     assert_eq!(training.losses, [4.0]);
 }
 
+/// The placement map holds the latest snapshot only.
+///
+/// The map shows where the placement is, not where it has been.
 #[test]
 fn a_snapshot_replaces_the_one_before_it() {
     let mut state = RunState::new();
@@ -289,6 +315,9 @@ fn a_landmark_count_past_the_reported_rows_is_clamped() {
     assert_eq!(placement.landmarks, 1);
 }
 
+/// An embedding batch arriving before any reported split leaves the workload closed.
+///
+/// Opening a counter would leave no reused-against-embedded split to report.
 #[test]
 fn a_request_without_a_split_is_dropped() {
     let mut state = RunState::new();
@@ -302,7 +331,7 @@ fn the_batterys_burst_lands_in_metric_order_however_it_arrives() {
     let mut state = RunState::new();
     assert_eq!(state.quality().count(), 0);
 
-    // The probe reports its readings as its report reduces them; the model owes the renderer
+    // The probe reports its readings as its report reduces them. The model owes the renderer
     // the battery's own order, not the arrival order.
     state.probe_quality(QualityMetric::TripletAgreement, 0.7820);
     state.probe_quality(QualityMetric::Recall, 0.9021);
@@ -318,20 +347,26 @@ fn the_batterys_burst_lands_in_metric_order_however_it_arrives() {
     );
 }
 
+/// Probing one metric twice leaves a single row carrying the fresher reading.
+///
+/// One reduction over the probe's steps answers one question.
 #[test]
 fn a_second_reading_of_one_metric_replaces_the_first() {
     let mut state = RunState::new();
     state.probe_quality(QualityMetric::Continuity, 0.8000);
     state.probe_quality(QualityMetric::Continuity, 0.9104);
 
-    // One reduction over the probe's steps answers one question,
-    // so a repeat is a fresher answer and never a second row.
+    // One reduction over the probe's steps answers one question. A repeat is a fresher answer and
+    // never a second row.
     assert_eq!(
         state.quality().collect::<Vec<_>>(),
         [(QualityMetric::Continuity, 0.9104)]
     );
 }
 
+/// Pushing one line past the log's capacity holds the tail at capacity.
+///
+/// The oldest line drops and the newest stays.
 #[test]
 fn the_log_tail_evicts_its_oldest_line() {
     let mut state = RunState::new();

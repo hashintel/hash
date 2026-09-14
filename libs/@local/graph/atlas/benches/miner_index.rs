@@ -5,14 +5,12 @@
 //! query sweeps. Each build starts from scratch because every point moves between ticks. The
 //! suite pits `kiddo` against `grid`:
 //!
-//! - `kiddo`: `ImmutableKdTree`, the miner's index. A balanced kd-tree adapts its partition depth
-//!   to local density, so its query cost is immune to the cluster skew attraction exists to produce
-//!   - the property the timings here certify.
-//! - `grid`: a uniform bucket grid over the known frame, written here (counting-sort build,
-//!   ring-expansion exact kNN). The natural alternative when the caller knows the frame ahead of
-//!   time, and the control that prices its one assumption. A query scans whole cells, so one global
-//!   cell size makes the sweep's cost grow with the sum of squared cell occupancies, quadratic in
-//!   exactly the density skew a projected map carries.
+//! - `kiddo`: [`ImmutableKdTree`], the miner's kd-tree index. The clustered fixtures measure how
+//!   its query cost responds to the density skew produced by attraction.
+//! - `grid`: a uniform bucket grid over the known frame, with counting-sort construction and
+//!   ring-expansion exact kNN. Each query scans its entire starting cell before expanding. A cell
+//!   with `n` points therefore contributes at least `n²` distance evaluations to a full per-point
+//!   sweep. This lower bound explains why concentrated occupancy can make a uniform grid expensive.
 //!
 //! The fixtures are synthetic point sets in the `[0, 10]^2` frame: `clustered` (Gaussian mixture
 //! over a uniform background - the shape a projected map takes), `uniform` (the grid's best case),
@@ -21,7 +19,7 @@
 //!
 //! - `build`: one index construction, single-threaded.
 //! - `sweep`: one full per-point kNN pass at k = 24, single-threaded. Sweeps parallelize
-//!   embarrassingly and identically for both engines, so the single-threaded number is the
+//!   embarrassingly and identically for both engines. The single-threaded number is therefore the
 //!   comparative one.
 //! - `tick`: two builds plus two sweeps over the two lens extremes' point sets on the clustered
 //!   shape, which is the unit the training-loop cadence actually spends.
@@ -39,8 +37,8 @@
 //!
 //! Timings default to 250K points so a full sweep stays in minutes. Set `MINER_BENCH_POINTS` (e.g.
 //! to `1000000`) for headline numbers at the expected map scale. Eligible-set subtraction (512-d
-//! neighbours, protected pairs, self) is frame-independent and happens downstream of the index, so
-//! every engine returns raw neighbours here, self included.
+//! neighbours, protected pairs, self) is frame-independent and happens downstream of the index.
+//! Every engine returns raw neighbours here, self included.
 #![expect(
     clippy::print_stderr,
     clippy::significant_drop_tightening,
@@ -89,10 +87,16 @@ const DEFAULT_POINTS: usize = 250_000;
 /// Ground-truth queries per fixture for the recall report.
 const RECALL_SAMPLE: usize = 512;
 
+/// The fixture seed every point set and corpus in this target synthesizes from.
 const SEED: u64 = 0x2D5A_17ED;
-/// The second lens extreme's point set for the tick unit.
+/// The seed of the second lens extreme's point set for the tick unit.
 const SEED_EXTREME: u64 = SEED ^ 0xFFFF_FFFF;
 
+/// Returns the point count the fixtures synthesize: `MINER_BENCH_POINTS`, or [`DEFAULT_POINTS`].
+///
+/// # Panics
+///
+/// This panics when `MINER_BENCH_POINTS` is set to a value that is not a point count.
 fn points_count() -> usize {
     std::env::var("MINER_BENCH_POINTS").map_or(DEFAULT_POINTS, |value| {
         value
@@ -104,18 +108,23 @@ fn points_count() -> usize {
 /// How a fixture distributes points over the frame.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Shape {
-    /// A Gaussian mixture over a uniform background: 256 clusters with log-uniform spreads hold 80%
-    /// of points. The shape a projected map takes, and the primary fixture.
+    /// A Gaussian mixture over a uniform background.
+    ///
+    /// 256 clusters with log-uniform spreads hold 80% of points. This is the shape a projected map
+    /// takes, and the primary fixture.
     Clustered,
-    /// Uniform over the frame: the grid's best case, kept as the control that shows how much the
-    /// mixture costs each engine.
+    /// Uniform over the frame: the grid's best case.
+    ///
+    /// Kept as the control that shows how much the mixture costs each engine.
     Uniform,
-    /// One near-coincident blob holds an eighth of all points: the bucket-skew stress a
-    /// coincident-geometry pile-up produces.
+    /// One near-coincident blob holding an eighth of all points.
+    ///
+    /// The bucket-skew stress a coincident-geometry pile-up produces.
     Pathological,
 }
 
 impl Shape {
+    /// Returns the fixture's segment of a benchmark id.
     const fn label(self) -> &'static str {
         match self {
             Self::Clustered => "clustered",
@@ -176,13 +185,23 @@ fn synthesize(shape: Shape, count: usize, seed: u64) -> Vec<[f32; 2]> {
         .collect()
 }
 
-/// One kNN candidate; the heap orders by distance, worst on top.
+/// One kNN candidate.
+///
+/// A [`BinaryHeap`] of candidates keeps the farthest on top: the worst of the k best a query holds.
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct Candidate {
+    /// The squared Euclidean distance from the query.
     distance: f32,
+    /// The point's index in the fixture.
     id: u32,
 }
 
+/// Reflexive on the `f32` field because no distance is `NaN`.
+///
+/// Every candidate comes from [`Grid::nearest`] with a distance between two in-frame points: a
+/// sum of squares of finite differences, never `NaN` and never negative zero. The derived
+/// equality is therefore reflexive, and `total_cmp` in [`Ord::cmp`] agrees with it on every
+/// reachable value, as the [`Ord`] laws require.
 impl Eq for Candidate {}
 
 impl PartialOrd for Candidate {
@@ -201,19 +220,28 @@ impl Ord for Candidate {
 
 /// A uniform bucket grid over the frame, the in-bench candidate.
 ///
-/// The build sizes cells so the average cell holds about k points. Build is one counting sort; a
-/// query expands Chebyshev rings around its cell, keeping the k best in a bounded heap, and stops
+/// The build sizes cells so the average cell holds about k points. The build is one counting sort.
+/// A query expands Chebyshev rings around its cell, keeping the k best in a bounded heap, and stops
 /// once no unvisited ring can beat the current worst, so results are exact.
 struct Grid {
+    /// One cell's side length.
     cell: f32,
+    /// Cells per axis.
     dim: usize,
+    /// Each cell's first slot in `ids` and `coords`, with one trailing end offset.
     starts: Vec<u32>,
+    /// Point indices grouped by cell.
     ids: Vec<u32>,
+    /// The coordinates of `ids`, slot for slot.
     coords: Vec<[f32; 2]>,
 }
 
 impl Grid {
     /// Builds the grid over `points`, sizing cells for about `occupancy` points each.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `occupancy` is zero.
     fn build(points: &[[f32; 2]], occupancy: usize) -> Self {
         let cells = points.len().div_ceil(occupancy).max(1);
         let dim = ((cells as f32).sqrt().ceil() as usize).max(1);
@@ -260,7 +288,13 @@ impl Grid {
             .unwrap_or(0)
     }
 
-    /// Collects the k nearest points to `query` into `heap`, worst on top; exact, self included.
+    /// Collects the k nearest points to `query` into `heap`, worst on top.
+    ///
+    /// The result is exact, and a query drawn from the indexed points recovers itself among them.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `k` is zero and the grid holds a point.
     fn nearest(&self, query: [f32; 2], k: usize, heap: &mut BinaryHeap<Candidate>) {
         heap.clear();
         let center_x = ((query[0] / self.cell) as usize).min(self.dim - 1);
@@ -271,8 +305,8 @@ impl Grid {
             .max(self.dim - 1 - center_y);
 
         for ring in 0..=reach {
-            // Every cell of ring r sits at least (r - 1) cells away, so
-            // a full heap whose worst lies inside that bound is final.
+            // Every cell of ring r sits at least (r - 1) cells away. A full heap whose worst lies
+            // inside that bound is final.
             if heap.len() == k && ring >= 2 {
                 let bound = (ring - 1) as f32 * self.cell;
                 let worst = heap.peek().expect("the heap is full").distance;
@@ -345,13 +379,25 @@ impl Grid {
     }
 }
 
+/// The miner's kd-tree over 2D `f32` points, the `kiddo` engine under test.
 type KdTree = ImmutableKdTree<f32, 2>;
 
+/// Builds the kd-tree over `points`.
+///
+/// # Panics
+///
+/// This panics when `points` holds more items than a `u32` index addresses: the tree numbers its
+/// items by slice position in `u32`, so construction refuses a slice whose last index does not
+/// fit one.
 fn build_kiddo(points: &[[f32; 2]]) -> KdTree {
     KdTree::new_from_slice(points).expect("the fixture fits the index's item domain")
 }
 
-/// Sums neighbour ids over a full per-point sweep, so the pass has an observable result.
+/// Sums neighbour ids over a full per-point sweep. The pass has an observable result.
+///
+/// # Panics
+///
+/// This panics when `k` is zero and `points` is not empty.
 fn sweep_grid(grid: &Grid, points: &[[f32; 2]], k: usize) -> u64 {
     let mut heap = BinaryHeap::with_capacity(k);
     let mut sum = 0_u64;
@@ -365,6 +411,11 @@ fn sweep_grid(grid: &Grid, points: &[[f32; 2]], k: usize) -> u64 {
     sum
 }
 
+/// Sums neighbour ids over a full per-point kd-tree sweep, the counterpart of [`sweep_grid`].
+///
+/// # Panics
+///
+/// This panics when `k` is zero.
 fn sweep_kiddo(tree: &KdTree, points: &[[f32; 2]], k: usize) -> u64 {
     let limit = NonZero::new(k).expect("the neighbour count is positive");
     points
@@ -393,6 +444,11 @@ fn tick<E>(
 }
 
 /// Exact k nearest ids per sampled query, by brute force.
+///
+/// # Panics
+///
+/// This panics when `k` is zero or exceeds the point count, or when a sample index lies outside
+/// `points`.
 fn ground_truth(points: &[[f32; 2]], samples: &[usize], k: usize) -> Vec<Vec<u32>> {
     let mut distances: Vec<(f32, u32)> = Vec::with_capacity(points.len());
     samples
@@ -431,6 +487,10 @@ fn recall(truth: &[Vec<u32>], results: &[Vec<u32>], k: usize) -> f64 {
 }
 
 /// Prints each engine's recall and the grid's occupancy skew.
+///
+/// # Panics
+///
+/// This panics when `count` is below [`K`], because the brute-force ground truth needs k points.
 fn report_recall(count: usize) {
     eprintln!("miner index recall audit: {count} points, k = {K}, {RECALL_SAMPLE} sampled queries");
 
@@ -558,8 +618,9 @@ fn bench_tick(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// One eighth of the measured live link volume; the resulting row domain times the candidate width
-/// lands the sweep in the millions of probe pairs.
+/// One eighth of the measured live link volume.
+///
+/// The resulting row domain times the candidate width yields a sweep of millions of probe pairs.
 const JUDGE_LINKS: usize = 275_000;
 
 /// Times the access layouts a mined sweep's protection vetting can take, per hit rate.
@@ -570,9 +631,8 @@ fn bench_judge(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("miner_index/judge");
     group.sample_size(10);
 
-    // Mining candidates are close 2D points: attraction pulls linked pairs together, so the
-    // realistic sweep is partner-rich; the uniform sweep bounds the layouts' spread from the
-    // other side.
+    // Mining candidates are close 2D points: attraction pulls linked pairs together. The realistic
+    // sweep is partner-rich. The uniform sweep bounds the layouts' spread from the other side.
     for (label, fraction) in [("uniform", 0.0), ("linked", 0.5)] {
         let probes = corpus.judge_probes::<Xoshiro256PlusPlus>(per_row, fraction, SEED);
         group.throughput(Throughput::Elements(probes.pairs() as u64));
@@ -588,12 +648,16 @@ fn bench_judge(criterion: &mut Criterion) {
     group.finish();
 }
 
+/// Returns the Criterion configuration the groups share.
+///
+/// Every benchmark warms up for half a second and measures for ten seconds.
 fn config() -> Criterion {
     Criterion::default()
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(10))
 }
 
+/// Prints the recall audit, then runs every timed group.
 fn benches_with_report(criterion: &mut Criterion) {
     report_recall(points_count());
     bench_build(criterion);

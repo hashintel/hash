@@ -4,6 +4,7 @@ use zerocopy::{LE, U64};
 use super::{Runs, RunsBuilder, RunsError, RunsView};
 use crate::identity::NodeRowId;
 
+/// A node row id from a literal.
 fn node(row: u64) -> NodeRowId {
     NodeRowId::new(row)
 }
@@ -13,6 +14,9 @@ fn le_posts(raw: &[u64]) -> IdVec<NodeRowId, U64<LE>> {
     IdVec::from_raw(raw.iter().copied().map(U64::new).collect())
 }
 
+/// Anchored, non-decreasing fenceposts closing at the item count build valid runs.
+///
+/// `run`, `span` and `iter` return the expected slices, empty runs included.
 #[test]
 fn from_parts_accepts_a_valid_structure() {
     let runs =
@@ -31,6 +35,7 @@ fn from_parts_accepts_a_valid_structure() {
     );
 }
 
+/// A lone zero fencepost builds an empty structure with no runs and no items.
 #[test]
 fn from_parts_accepts_an_empty_domain() {
     let runs = Runs::<NodeRowId, u32>::from_parts(le_posts(&[0]), vec![])
@@ -41,6 +46,10 @@ fn from_parts_accepts_an_empty_domain() {
     assert_eq!(runs.iter().next(), None);
 }
 
+/// `Runs::from_parts` fails with a distinct variant for each broken fencepost rule.
+///
+/// `Missing` covers no fenceposts, `Anchor` a nonzero first post, and the order and closing
+/// variants a decreasing post or one not ending at the item count.
 #[test]
 fn from_parts_rejects_each_broken_fencepost_rule() {
     assert_eq!(
@@ -65,6 +74,9 @@ fn from_parts_rejects_each_broken_fencepost_rule() {
     );
 }
 
+/// `RunsView::from_parts` wraps mapped columns as the owned structure does.
+///
+/// The view serves the same runs and the same iteration.
 #[test]
 fn view_wraps_mapped_columns() {
     let posts = [0_u64, 2, 2, 5].map(U64::<LE>::new);
@@ -83,6 +95,9 @@ fn view_wraps_mapped_columns() {
     );
 }
 
+/// `RunsView::from_parts` rejects the same fencepost violations as the owned constructor.
+///
+/// The `RunsError` variants match.
 #[test]
 fn view_from_parts_rejects_each_broken_fencepost_rule() {
     let items = [0_u32, 0, 0];
@@ -108,12 +123,13 @@ fn view_from_parts_rejects_each_broken_fencepost_rule() {
     );
 }
 
+/// A run borrowed through a view lives as long as the mapped columns, outliving the view value.
 #[test]
 fn view_runs_outlive_the_view_value() {
     let posts = [0_u64, 2, 2, 5].map(U64::<LE>::new);
     let items = [10_u32, 11, 20, 21, 22];
 
-    // `run` borrows for the mapping's lifetime, so the run survives the view that served it.
+    // `run` borrows for the mapping's lifetime. The run survives the view that served it.
     let run = {
         let view = RunsView::<NodeRowId, u32>::from_parts_unchecked(&posts, &items);
         view.run(node(2))
@@ -134,6 +150,7 @@ fn from_pairs_groups_pairs_by_key_and_keeps_arrival_order() {
     assert_eq!(runs.items(), [3, 4, 7, 9]);
 }
 
+/// `from_pairs` over a zero-key domain and no pairs yields no runs and no items.
 #[test]
 fn from_pairs_accepts_an_empty_domain() {
     let runs = Runs::<NodeRowId, u32>::from_pairs(0, core::iter::empty());
@@ -142,14 +159,17 @@ fn from_pairs_accepts_an_empty_domain() {
     assert!(runs.items().is_empty());
 }
 
+/// `from_pairs` panics with the documented message when a pair names a key beyond the domain.
 #[test]
 #[should_panic(expected = "every pair names a key inside the domain")]
 fn from_pairs_rejects_a_key_outside_the_domain() {
     let _runs = Runs::from_pairs(2, [(node(2), 1_u32)].into_iter());
 }
 
-/// An iterator whose clone yields one extra pair, breaking the repeatability
-/// the counting sort relies on.
+/// An iterator whose clone yields one extra pair for key zero.
+///
+/// The counting pass and the placement pass therefore disagree on that key's count, which is the
+/// agreement the counting sort needs.
 struct GrowingPairs {
     remaining: usize,
 }
@@ -171,12 +191,19 @@ impl Clone for GrowingPairs {
     }
 }
 
+/// `from_pairs` panics when the two passes disagree on a key's pair count.
+///
+/// One pass sees two pairs for key zero where the other sees one. The panic carries the documented
+/// message.
 #[test]
 #[should_panic(expected = "the placement pass replays the counting pass's pairs")]
 fn from_pairs_rejects_a_clone_that_repeats_a_different_sequence() {
     let _runs = Runs::from_pairs(1, GrowingPairs { remaining: 1 });
 }
 
+/// `RunsBuilder::push_run` returns successive keys.
+///
+/// `finish` builds the same structure as a validated `from_parts`.
 #[test]
 fn builder_appends_runs_in_key_order_and_reports_each_key() {
     let mut builder = RunsBuilder::<NodeRowId, u32>::with_capacity(3, 3);
@@ -190,6 +217,7 @@ fn builder_appends_runs_in_key_order_and_reports_each_key() {
     assert_eq!(built, validated);
 }
 
+/// `span` indexes a parallel per-item column to the same items a key's run covers.
 #[test]
 fn span_slices_a_parallel_column() {
     let pairs = [(node(1), 10_u32), (node(0), 20), (node(1), 30)];

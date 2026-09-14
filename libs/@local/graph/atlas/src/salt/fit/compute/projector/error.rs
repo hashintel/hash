@@ -1,10 +1,10 @@
 //! The placement stage's failure surface.
 //!
 //! [`ProjectorError`] holds every failure the placement stage produces, and nothing any other
-//! stage can reach: the trunk widens it once at the stage boundary, so a signature naming this
-//! type states exactly which failures its caller can observe. Like the trunk's error it carries
-//! no dataset or provider type, so it is `Send + 'static` by construction and crosses the rayon
-//! offload.
+//! stage can reach. The trunk widens it once at the stage boundary, and a signature naming this
+//! type therefore states exactly which failures its caller can observe. Like the trunk's error it
+//! carries no dataset or provider type, which makes it `Send + 'static` by construction, and it
+//! crosses the rayon offload.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-/// The placement stage failed to bind, train, measure, or publish.
+/// A placement-stage failure, in binding, training, measurement or publication.
 ///
 /// Every variant aborts the fit: a generation whose coordinates the configured placement could
 /// not produce publishes nothing.
@@ -44,12 +44,15 @@ pub(crate) enum ProjectorError {
     Ladder(LadderError),
     /// The ladder rejects the configured canonical condition.
     Canonical(CanonicalError),
-    /// A persisted coordinate column failed to map back for its measurement.
+    /// A staged coordinate column failed to map back as a finite point field.
+    ///
+    /// Every placement plan reopens the column it staged, and the ladder pass reopens it again for
+    /// its persisted-loss measurement.
     OpenCoordinates(OpenCoordinatesError),
     /// The canonical step's aligned frame has a non-finite point.
     ///
-    /// The alignment onto the baseline basis runs in `f32` and can overflow, so the aligned
-    /// frame is proven at its creation before it publishes, and the persisted coordinate
+    /// The alignment onto the baseline basis runs in `f32` and can overflow. The aligned frame
+    /// is therefore proven at its creation before it publishes, and the persisted coordinate
     /// column re-proves the same frame at its own readback.
     NonFiniteAligned {
         /// The first offending row.
@@ -59,7 +62,7 @@ pub(crate) enum ProjectorError {
     OpenAttraction(OpenAttractionError),
     /// The paired-movement salt preimage failed to serialize.
     ///
-    /// The preimage is a strict subset of the metadata document, so the seal would refuse the
+    /// The preimage is a strict subset of the metadata document, and the seal would refuse the
     /// same generation.
     SaltPreimage(EncodeError),
     /// A placement artifact failed to write or persist.

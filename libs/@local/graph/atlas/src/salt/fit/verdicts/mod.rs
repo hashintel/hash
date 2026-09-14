@@ -3,12 +3,13 @@
 //! The caller supplies a reviewed-verdicts document beside the corpus rather than deriving it,
 //! which puts the document in the same input category as the policy override table.
 //! [`SuppliedVerdicts`] runs the document's whole wire contract at construction through the verdict
-//! reader and keeps the exact wire bytes, so the staged artifact is byte-identical to the supplied
-//! file and the digest computed here is the supplied file's identity.
+//! reader and keeps the exact wire bytes. The staged artifact is therefore byte-identical to the
+//! supplied file, and the digest computed here is the supplied file's identity.
 //!
-//! The fit carries the document into the generation without acting on it: fan-out from verdicts to
-//! row pairs happens at the trainer's phase boundary, which consumes the staged artifact like every
-//! other training input.
+//! The fit stages the document verbatim and, in the placement stage, resolves its verdicts against
+//! the staged ontology identity column into the corpus row domain. The trainer's phase boundary
+//! consumes the resolved verdicts, fanning them out to row pairs over the attraction index when it
+//! freezes the Proximal radius.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -54,9 +55,10 @@ impl Error for SupplyError {
 
 /// One validated reviewed-verdicts document with its exact wire bytes.
 ///
-/// A value of this type is admissible by existence: construction validated the document, so a fit
-/// holding one stages the bytes verbatim and binds the digest without any further check.
-/// Construction rejects a document that would fail admission before the fit spends anything.
+/// A value of this type is admissible by existence. Construction validated the document, and a
+/// fit holding one therefore stages the bytes verbatim and binds the digest without any further
+/// check. Construction rejects a document that would fail admission before the fit spends
+/// anything.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuppliedVerdicts {
     bytes: Box<[u8]>,

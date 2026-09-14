@@ -5,14 +5,14 @@
 //! burn tensor work (forward, surrogate, backward, optimizer), how much is the crate's hand-rolled
 //! field evaluation, and how much is the CPU batch pipeline (draw, assemble, input
 //! materialization). The same decomposition prices the batch pipeline's allocator arena and any
-//! per-phase optimization argument, so one fixture feeds three decisions.
+//! per-phase optimization argument, and one fixture therefore feeds three decisions.
 //!
 //! [`Fixture::build`] synthesizes a corpus at the trainer's shape: a symmetric semantic graph,
 //! typed relation instances over sixteen relations, unit-norm representations, local scales, a
 //! landmark pool, and a mined frame produced by the real miner over a synthetic coordinate frame.
 //! Draws run the production [`BatchSampler`] at the ratified [`BatchPlan`] with every family
-//! populated (relation at the lens's active extreme), so a measured step carries the full composite
-//! objective, not a placeholder loss.
+//! populated (relation at the lens's active extreme). A measured step therefore carries the full
+//! composite objective, not a placeholder loss.
 //!
 //! Values are synthetic and costs are real. Every phase runs the production code path with the
 //! production types, and the numbers mean shape and traversal, never convergence.
@@ -62,7 +62,8 @@ use crate::{
 
 /// The relation-type count of the synthetic corpus.
 ///
-/// Comfortably above the ratified per-step draw of twelve, so type selection stays a real draw.
+/// Comfortably above the ratified per-step draw of twelve, which keeps type selection a real
+/// draw.
 const RELATION_TYPES: usize = 16;
 
 /// The landmark pool size the ratified draw of 512 samples from.
@@ -70,14 +71,23 @@ const LANDMARK_POOL: usize = 4096;
 
 /// One synthesized corpus at the trainer's live shape.
 pub struct Fixture {
+    /// The corpus row count.
     rows: usize,
+    /// The symmetric semantic graph.
     graph: SemanticGraph<NodeRowId>,
+    /// The attraction and protection indexes over the synthetic relation instances.
     indexes: RelationIndexes<NodeRowId, EdgeRowId>,
+    /// The unit-norm representations, one row per corpus row.
     representations: MatrixN<PROJECTOR_DIMENSIONS>,
+    /// The cycling node roles, one per corpus row.
     roles: Vec<NodeRole>,
+    /// The synthetic local scales, one per corpus row.
     scales: LocalScales<NodeRowId>,
+    /// The landmark anchor pool.
     landmarks: Vec<SupportAnchor<NodeRowId>>,
+    /// The mined hard negatives over a synthetic coordinate frame.
     mined: MinedFrame<NodeRowId>,
+    /// The ratified batch plan the draws run at.
     plan: BatchPlan,
 }
 
@@ -97,7 +107,9 @@ impl Assembled {
 
 /// The production sampler bound over the fixture, opaque to the bench target.
 pub struct Sampler<'fixture> {
+    /// The production sampler over the fixture's graph and indexes.
     sampler: BatchSampler<'fixture, NodeRowId, EdgeRowId>,
+    /// The fixture the draws read their mined frame and landmarks from.
     fixture: &'fixture Fixture,
 }
 
@@ -129,8 +141,8 @@ impl Fixture {
         let plan = crate::salt::fit::ProjectorOptions::ratified().plan;
 
         // The mined frame comes from the production miner over a synthetic
-        // coordinate frame: pooled hard negatives at the real quota, so the
-        // hard family draws and evaluates at its live shape.
+        // coordinate frame: pooled hard negatives at the real quota. The
+        // hard family therefore draws and evaluates at its live shape.
         let coordinates: Vec<Vec2> = core::iter::repeat_with(|| {
             Vec2::new(
                 rng.random_range(-1.0..=1.0_f32),
@@ -224,16 +236,20 @@ impl Sampler<'_> {
 
 /// The per-backend training state.
 struct Live<B: Backend<FloatElem = f32>> {
+    /// The training-decorated model, taken out for the optimizer step and put back.
     model: Option<Projector<Autodiff<B>>>,
+    /// The Adam optimizer over the model's parameters.
     optimizer: burn::optim::adaptor::OptimizerAdaptor<
         burn::optim::Adam,
         Projector<Autodiff<B>>,
         Autodiff<B>,
     >,
+    /// The device every tensor phase runs on.
     device: B::Device,
 }
 
 impl<B: Backend<FloatElem = f32>> Live<B> {
+    /// Builds the seeded model and a fresh Adam optimizer on `device`.
     fn build(device: B::Device, seed: u64) -> Self {
         Self {
             model: Some(Projector::new(
@@ -246,6 +262,11 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         }
     }
 
+    /// Materializes the batch's model input on the device and waits for the queue to drain.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the device fails to complete its queue.
     fn input(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) {
         let input = batch
             .0
@@ -254,6 +275,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         B::sync(&self.device).expect("the measured device should complete its queue");
     }
 
+    /// Runs the training-path forward and reads back the output sum, dropping the recorded graph.
     fn forward(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.as_ref().expect("the model is always present");
         let input = batch
@@ -262,6 +284,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         model.forward(input).sum().into_scalar()
     }
 
+    /// Runs the plain-backend forward of the validation model and reads back the output sum.
     fn refresh(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self
             .model
@@ -272,6 +295,14 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         model.forward(input).sum().into_scalar()
     }
 
+    /// Evaluates the full composite objective and returns its loss total.
+    ///
+    /// The return waits for the device queue.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the objective leaves the finite domain or the device fails to complete its
+    /// queue.
     fn objective(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.as_ref().expect("the model is always present");
         let mut metrics = BudgetBreakdown::default();
@@ -284,6 +315,14 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         total
     }
 
+    /// Runs one training step and returns the loss total.
+    ///
+    /// The step is objective, backward and optimizer, and the return waits for the device queue.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the objective leaves the finite domain or the device fails to complete its
+    /// queue.
     fn step(&mut self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.take().expect("the model is always present");
         let mut metrics = BudgetBreakdown::default();
@@ -304,7 +343,9 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
 /// context - columns, numerical contract, decile axis - binds once at build, as the session binds
 /// it once per run. The timed phases never pay setup.
 pub struct Stepper<'fixture> {
+    /// The model, optimizer, and device.
     live: Live<Inference>,
+    /// The evaluation context bound once at build.
     evaluation: Evaluation<'fixture, NodeRowId>,
 }
 
@@ -328,26 +369,30 @@ impl<'fixture> Stepper<'fixture> {
         }
     }
 
-    /// Materializes the batch's model input on the device, fenced.
+    /// Materializes the batch's model input on the device, then waits for the device queue.
     pub fn input(&self, batch: &Assembled) {
         self.live.input(batch, &self.evaluation);
     }
 
-    /// Runs the training-path forward (autodiff graph recorded), fenced by a scalar readback.
+    /// Runs the training-path forward with the autodiff graph recorded.
     ///
-    /// This drops the recorded graph unconsumed: no backward ever runs. On a pooled asynchronous
-    /// device a tight loop of these outruns buffer reclamation and exhausts memory, so the
-    /// decomposition phases are a synchronous-backend instrument; the production forward motion is
-    /// [`refresh`](Self::refresh).
+    /// A scalar readback synchronizes it.
+    ///
+    /// This drops the recorded graph without running backward.
+    ///
+    /// # Advice
+    ///
+    /// Use this decomposition phase only on the CPU backend. For production-style refresh, use
+    /// [`refresh`](Self::refresh), which runs the validation model on the plain backend.
     #[must_use]
     pub fn forward(&self, batch: &Assembled) -> f32 {
         self.live.forward(batch, &self.evaluation)
     }
 
-    /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
+    /// Runs the refresh forward on the plain backend, synchronized by a scalar readback.
     ///
-    /// This records no autodiff graph: it is the per-step refresh motion as production performs it,
-    /// safe to loop on any backend.
+    /// This runs the validation model without recording an autodiff graph, as production refresh
+    /// does.
     #[must_use]
     pub fn refresh(&self, batch: &Assembled) -> f32 {
         self.live.refresh(batch, &self.evaluation)
@@ -356,8 +401,8 @@ impl<'fixture> Stepper<'fixture> {
     /// Runs input, forward, and the full composite objective, returning the loss total.
     ///
     /// This is everything a step does before its backward pass. It covers the readback, the
-    /// hand-rolled budget-family fields, the clip, the surrogate construction, and the support
-    /// terms.
+    /// hand-rolled field evaluation, the budget measurement, the surrogate construction, and the
+    /// support terms.
     #[must_use]
     pub fn objective(&self, batch: &Assembled) -> f32 {
         self.live.objective(batch, &self.evaluation)
