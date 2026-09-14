@@ -67,10 +67,11 @@ A flagship proves one accepted product path. It does not prove every operational
 - Mission 7 tracks [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) and partially advances [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without closing the broader provenance objective.
 - [Mission 7a](docs/mission-archive/7a-workpiece-construction-explanation-groundwork.md) established workpiece, construction-record and explanation groundwork and landed on `main`.
 - [Mission 7b](docs/mission-archive/7b-ordinary-batched-construction-provenance.md) established the ordinary selected structural batch, correction, recorded basis/effects, reopen and experimental create-new seam. Its engineering [PR #9649](https://github.com/hashintel/hash/pull/9649) remains a separate external closeout.
-- Live [Mission 7c](MISSION.md) owns the Inventory worked example; consult its [Status](MISSION.md#status), [proof dispositions](MISSION.md#proof) and [scope constraints](MISSION.md#scope-boundary-and-external-owners).
+- [Mission 7c](MISSION.md) is provisionally closed for engineering review with browser-visible persona construction and verified repairs. The Inventory worked example remains unaccepted; consult its [Status](MISSION.md#status) and [proof dispositions](MISSION.md#proof).
+- **Authorized next cut — Mission 7d:** `ln/fe-1573-mission-7d-provider-worked-example` qualifies one alternative provider and completes the retained Inventory example. It consumes all open 7c readiness obligations, not fixture distribution or portfolio breadth. Lu authorizes reuse of FE-1573; no tracker state change is implied.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
-### Next mission — distribute the example and establish portfolio breadth
+### After the accepted example — distribute it and establish portfolio breadth
 
 The [successor draft](docs/mission-drafts/worked-example-distribution-and-breadth.md) consumes the accepted original example. It owns fixture distribution, connected-bundle copying and tiered portfolio breadth, including their carried capability gaps and proof obligations. Numbering, issue and branch assignment remain for its owner-authorized cut.
 
@@ -140,7 +141,7 @@ This register records product consequences, not every engineering idea. A scope 
 - **Compaction survival:** consume the live mission's [compaction disposition](MISSION.md#readiness-gate) before Mission 9 or a long-lived hosted provenance claim. If proof remains open, exercise recovery and explanation across compaction first.
 - **Passage identity across revisions:** rename/move/paraphrase/split/merge/delete/reintroduce continuity belongs to Mission 9/10; consume the live mission's current-revision evidence without inferring continuity.
 - **Arbitrary import/clone:** re-enter general import, attachment rebinding or complete effect-history migration only for a named portability consumer; the planned fixture-copy boundary is defined in the [successor draft](docs/mission-drafts/worked-example-distribution-and-breadth.md#connected-bundle-contract).
-- **Provider migration — unallocated; Lu owns assignment.** Re-enter when a provider change is proposed or the current provider cannot reliably carry the named portfolio. Compare canonical tool-schema carriage, tool selection, argument acceptance, compiler-repair behavior, latency and cost on representative cases. Provider success does not establish semantic or behavioral correctness.
+- **Provider qualification — Mission 7d.** Repeated Anthropic refusals blocked the retained example. The next cut owns canonical schema carriage, tool selection/arguments, native-history continuity and compiler repair for one alternative provider on that example, with observed latency and cost. A general fallback framework and portfolio-wide provider comparison remain outside the cut; re-enter those only for a named broader consumer. Provider success does not establish semantic or behavioral correctness, and no production default switch is authorized by the branch transition.
 
 ### External-owner strains
 
@@ -215,7 +216,7 @@ Retain the thin architecture unless observed product strain earns more. Do not i
 
 ## Detailed planning homes
 
-- [Worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) — next mission; consumes the accepted original example before delivering reusable copies and proving broader construction capability.
+- [Worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) — follows worked-example acceptance; consumes the accepted original example before delivering reusable copies and proving broader construction capability.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) — cross-scenario acquisition/conservation/construction quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle breadth.
 - [Mission 9](docs/mission-drafts/9-traceable-projection.md) — repeat, change, retirement, concurrency, expanded schema classes and current-state explanation.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) — reviewer authority, attributed revision, conflict, qualification, bounded patching and refusal.
