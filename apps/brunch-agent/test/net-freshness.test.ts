@@ -297,6 +297,20 @@ test("a caller-reported direct edit makes an otherwise hash-invisible revision s
   });
 });
 
+test("an edit and undo to the same hash is stale at its new revision", async () => {
+  const snapshot = snapshotOf(readTurn("read-1", emptyNet, "revision-before"));
+  expect(
+    await deriveNetFreshness(snapshot, browser, "revision-after-undo"),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: sha256Of(emptyNet),
+    lastReadRevisionId: "revision-before",
+    lastKnownRevisionId: "revision-before",
+    reportedRevisionId: "revision-after-undo",
+  });
+});
+
 test("a revision-aware read is stale when the caller cannot confirm the current revision", async () => {
   expect(
     await deriveNetFreshness(
@@ -603,3 +617,18 @@ test("a read belonging to another document incarnation is not a read", async () 
     }),
   ).toEqual({ kind: "never-read" });
 });
+
+test.each([
+  { documentId: "another-document" },
+  { incarnationId: "another-incarnation" },
+])(
+  "equal content from another document identity does not establish freshness",
+  async (bindingChange) => {
+    expect(
+      await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), {
+        binding: { ...binding, ...bindingChange },
+        construction: true,
+      }),
+    ).toEqual({ kind: "never-read" });
+  },
+);
