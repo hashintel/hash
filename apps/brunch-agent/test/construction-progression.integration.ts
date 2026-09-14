@@ -408,11 +408,13 @@ try {
       return tool(
         "query_workpiece",
         {
-          transition: "Start final inspection",
-          place: "Dispatch crew available",
-          arcDirection: "input",
-          field: "weight",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            transition: "Start final inspection",
+            place: "Dispatch crew available",
+            arcDirection: "input",
+            field: "weight",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "construction-why",
       );
@@ -640,11 +642,13 @@ try {
       return tool(
         "query_workpiece",
         {
-          transition: "Start final inspection",
-          place: "Dispatch crew available",
-          arcDirection: "input",
-          field: "weight",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            transition: "Start final inspection",
+            place: "Dispatch crew available",
+            arcDirection: "input",
+            field: "weight",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "hand-edit-why",
       );

@@ -367,13 +367,15 @@ try {
       tool(
         "query_workpiece",
         {
-          kind: "place",
-          name: queue.name,
-          field: "capacity",
-          observationToolCallId: browserResult(
-            context,
-            "getLatestNetDefinition",
-          ).metadata!.observation!.toolCallId,
+          selector: {
+            kind: "place",
+            name: queue.name,
+            field: "capacity",
+            observationToolCallId: browserResult(
+              context,
+              "getLatestNetDefinition",
+            ).metadata!.observation!.toolCallId,
+          },
         },
         "creation-why-capacity",
       ),
@@ -393,7 +395,13 @@ try {
       );
       return tool(
         "query_workpiece",
-        { kind: "transition", name: step.name, field: "lambdaCode" },
+        {
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "lambdaCode",
+          },
+        },
         "creation-why-pause",
       );
     }),
@@ -408,7 +416,7 @@ try {
       );
       return tool(
         "query_workpiece",
-        { kind: "place", name: queue.name, field: "entity" },
+        { selector: { kind: "place", name: queue.name, field: "entity" } },
         "creation-why-entity",
       );
     }),
@@ -420,7 +428,9 @@ try {
       assert.equal(answer.governing, undefined);
       return tool(
         "query_workpiece",
-        { kind: "transition", name: step.name, field: "inputArcs" },
+        {
+          selector: { kind: "transition", name: step.name, field: "inputArcs" },
+        },
         "creation-why-input-arcs",
       );
     }),
@@ -434,7 +444,13 @@ try {
       assert.equal(answer.recordedChange, undefined);
       return tool(
         "query_workpiece",
-        { kind: "transition", name: step.name, field: "outputArcs" },
+        {
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "outputArcs",
+          },
+        },
         "creation-why-output-arcs",
       );
     }),
@@ -744,10 +760,12 @@ try {
       return tool(
         "query_workpiece",
         {
-          kind: "place",
-          name: queue.name,
-          field: "capacity",
-          observationToolCallId: observation.toolCallId,
+          selector: {
+            kind: "place",
+            name: queue.name,
+            field: "capacity",
+            observationToolCallId: observation.toolCallId,
+          },
         },
         "creation-reopened-capacity-why",
       );
@@ -780,10 +798,12 @@ try {
       return tool(
         "query_workpiece",
         {
-          kind: "transition",
-          name: step.name,
-          field: "lambdaCode",
-          observationToolCallId: reopenedObservationId,
+          selector: {
+            kind: "transition",
+            name: step.name,
+            field: "lambdaCode",
+            observationToolCallId: reopenedObservationId,
+          },
         },
         "creation-reopened-code-why",
       );
@@ -900,10 +920,12 @@ try {
     tool(
       "query_workpiece",
       {
-        kind: "place",
-        name: queue.name,
-        field: "capacity",
-        observationToolCallId: envelope?.observationToolCallId,
+        selector: {
+          kind: "place",
+          name: queue.name,
+          field: "capacity",
+          observationToolCallId: envelope?.observationToolCallId,
+        },
       },
       "creation-external-why",
     ),

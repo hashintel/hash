@@ -519,9 +519,11 @@ export const runReopenedWhyWitness = async ({
           tool(
             "query_workpiece",
             {
-              ...query,
-              ...extra,
-              ...(mode === "live" ? { observationToolCallId: readId } : {}),
+              selector: {
+                ...query,
+                ...extra,
+                ...(mode === "live" ? { observationToolCallId: readId } : {}),
+              },
             },
             `a5-${cohort}-why-${sequence}`,
           ),

@@ -383,7 +383,12 @@ export const seedRetentionBrowser = async (options: {
       retentionCall("getLatestNetDefinition", {}, "retention-live-read"),
       retentionCall(
         "query_workpiece",
-        { ...retentionQuery, observationToolCallId: "retention-live-read" },
+        {
+          selector: {
+            ...retentionQuery,
+            observationToolCallId: "retention-live-read",
+          },
+        },
         "retention-live-why",
       ),
       fauxAssistantMessage([

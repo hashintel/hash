@@ -73,7 +73,7 @@ export {
 
 export const observedDefinitionReadTool = defineTool({
   name: readPetrinautNetToolName,
-  description: `${petrinautAiTools.getLatestNetDefinition.description}\nThe browser also returns metadata.observation: copy its toolCallId and observed.sha256 into mutate_petrinaut_net.observation.toolCallId and baseHash. For query_workpiece, copy the same toolCallId into observationToolCallId. These identify this exact document read, not the workpiece. Call in its own proposal and wait for the browser result before using it; obtain a fresh read after any mutation or layout.`,
+  description: `${petrinautAiTools.getLatestNetDefinition.description}\nThe browser also returns metadata.observation: copy its toolCallId and observed.sha256 into mutate_petrinaut_net.observation.toolCallId and baseHash. For query_workpiece, copy the same toolCallId into selector.observationToolCallId. These identify this exact document read, not the workpiece. Call in its own proposal and wait for the browser result before using it; obtain a fresh read after any mutation or layout.`,
   input: petrinautAiTools.getLatestNetDefinition.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
   run() {

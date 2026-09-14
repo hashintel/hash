@@ -62,6 +62,20 @@ Configuration readiness must be checked through the actual application's loading
 
 Free, non-sensitive authentication checks are owner-preauthorized for this project; a fresh confirmation is not required for each check. Verify that the operation is currently free, use the intended configuration, retain minimal safe status and stop rather than automatically retrying an unexplained failure. For Anthropic, send one fixed, non-sensitive message to `POST /v1/messages/count_tokens`, using the same resolved credential/model. Anthropic [documents token counting as free](https://platform.claude.com/docs/en/build-with-claude/token-counting). Confirm current endpoint pricing before use. Retain only safe status/request metadata; disable retries and do not send workpiece/case content. Distinguish authentication rejection, rate limiting, network failure and success. Success proves authentication for that operation, not generation credit, inference success or prior-request cost. Ordinary internet access and a free authentication check grant no paid inference and do not settle an unknown request.
 
+### Tool-schema acceptance
+
+When adding or changing Brunch tools, their schemas, mounts or provider adapters, run the native schema oracle and the opt-in Anthropic preflight before paid observation. From the HASH root:
+
+```sh
+yarn workspace @apps/brunch-agent test:anthropic-tools
+```
+
+This builds the current app and dependencies, then runs `test/integration/native-schema-carriage.integration.ts` in a separate process with forbidden network transports. That oracle captures the actual native SDK requests for both entrypoints across ordinary batched construction, the conversation-construction candidate, the prepared-fixture tracer and headless construction. It checks faithful serialization, object-root compatibility and native argument validation. Newly mounted tools enter the capture automatically; add a capture when introducing a new mode. `test:native-schema` remains independently runnable without credentials after a build.
+
+The live phase sends each distinct complete captured tool catalogue, unchanged, to the free count-tokens endpoint using the same development credential resolution and pinned Sonnet model as the persona launcher. It first verifies that a known-invalid top-level union receives the specific schema rejection. Only synthetic message text and tool definitions leave the process: no case pack, workpiece, conversation history or paid generation. HTTP errors and timeouts fail the command without retries; safe configuration/status/request IDs and synthetic capture records are retained in the printed temporary directory. This command is deliberately separate from offline unit tests and unauthenticated CI.
+
+Passing proves Anthropic count-tokens acceptance of those client-tool definitions, not generation quality, Messages API parity in every feature, or compatibility with another provider's schema subset or strict mode. Keep local parser/executor tests and provider-specific checks; do not weaken canonical schemas merely to guess a universal intersection.
+
 ### Paid work
 
 Paid inference requires an owner-authorized bounded allocation and an explicit model with no silent fallback. Record actual request identity and catalogue usage for every participant, including preparation, continuation, compaction, failures and retries. Catalogue estimates are not invoices. Do not invent settlement, silently retry, or treat a cloned or synthetic ledger as spend authority.

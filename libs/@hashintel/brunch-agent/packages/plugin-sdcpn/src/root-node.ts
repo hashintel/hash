@@ -28,14 +28,18 @@ export const rootNodeWhyInputSchema = z.strictObject({
 });
 export type RootNodeWhyInput = z.output<typeof rootNodeWhyInputSchema>;
 
-/** Every alternative is an object; retain Flue's object root without flattening its requirements. */
-export const constructionWhyInputSchema = z
-  .union([
-    rootArcWhyInputSchema,
-    rootNodeWhyInputSchema,
-    ...rootStateWhyInputSchema.options,
-  ])
-  .meta({ type: "object" });
+export const constructionWhyInputSchema = z.union([
+  rootArcWhyInputSchema,
+  rootNodeWhyInputSchema,
+  ...rootStateWhyInputSchema.options,
+]);
+
+/** Anthropic requires an object root; selector alternatives retain their full contracts inside it. */
+export const queryWorkpieceInputSchema = (construction: boolean) =>
+  z.strictObject({
+    selector: construction ? constructionWhyInputSchema : rootArcWhyInputSchema,
+  });
+
 export const parseConstructionWhyInput = (input: unknown) =>
   constructionWhyInputSchema.parse(input);
 

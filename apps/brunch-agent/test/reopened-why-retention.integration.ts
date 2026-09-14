@@ -436,17 +436,24 @@ try {
           { locateTexts: [retentionQuote] },
           readId,
         ),
-        retentionCall("query_workpiece", retentionQuery, whyId),
+        retentionCall("query_workpiece", { selector: retentionQuery }, whyId),
         retentionCall(
           "query_workpiece",
-          { ...retentionQuery, observationToolCallId: "retention-live-read" },
+          {
+            selector: {
+              ...retentionQuery,
+              observationToolCallId: "retention-live-read",
+            },
+          },
           oldId,
         ),
         retentionCall(
           "query_workpiece",
           {
-            ...retentionQuery,
-            observationToolCallId: "TEST-not-an-observed-read",
+            selector: {
+              ...retentionQuery,
+              observationToolCallId: "TEST-not-an-observed-read",
+            },
           },
           refusedId,
         ),

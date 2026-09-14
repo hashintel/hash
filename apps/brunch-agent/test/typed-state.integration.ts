@@ -357,7 +357,7 @@ const query = (context: Context, args: Record<string, unknown>, id: string) => {
   }
   return tool(
     "query_workpiece",
-    { ...fields, observationToolCallId: observation.toolCallId },
+    { selector: { ...fields, observationToolCallId: observation.toolCallId } },
     id,
   );
 };
@@ -1191,10 +1191,12 @@ try {
     tool(
       "query_workpiece",
       {
-        kind: "type",
-        name: selectedType.name,
-        field: "elements",
-        observationToolCallId: envelope?.observationToolCallId,
+        selector: {
+          kind: "type",
+          name: selectedType.name,
+          field: "elements",
+          observationToolCallId: envelope?.observationToolCallId,
+        },
       },
       "typed-external-why",
     ),

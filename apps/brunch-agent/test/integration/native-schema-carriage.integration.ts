@@ -21,13 +21,14 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   batchedConstructionMode,
-  constructionWhyInputSchema,
+  queryWorkpieceInputSchema,
   joinedRootArcInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinetToolName,
   parseConstructionWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  conversationConstructionMode,
   validatedFixtureMutationMode,
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -44,6 +45,8 @@ import {
   nativeSchemaProvider,
   type NativeRequestCapture,
 } from "../native-schema-provider.ts";
+
+import type { RootArcExplanation } from "../../src/conversation/why.ts";
 
 let networkAttempts = 0;
 const forbidden = () => {
@@ -277,47 +280,93 @@ try {
       assert.deepEqual(issuedType.input, nested);
       assert.deepEqual(issuedType.output, { awaiting: "client" });
 
-      const batchIdentity = {
-        ...identity,
-        conversationId: `${identity.conversationId}-batch`,
-      };
-      const batchClient = createFlueClient({
-        url: `http://brunch.local/agents/chat/${flueConversationIdFrom(batchIdentity)}`,
-        headers: agentOwnershipHeaders(batchIdentity),
-        fetch: async (input, init) =>
-          mounted.fetch(
-            input instanceof Request ? input : new Request(input, init),
+      for (const mode of [
+        batchedConstructionMode,
+        conversationConstructionMode,
+      ]) {
+        const batchIdentity = {
+          ...identity,
+          conversationId: `${identity.conversationId}-${mode}`,
+        };
+        const batchClient = createFlueClient({
+          url: `http://brunch.local/agents/chat/${flueConversationIdFrom(batchIdentity)}`,
+          headers: agentOwnershipHeaders(batchIdentity),
+          fetch: async (input, init) =>
+            mounted.fetch(
+              input instanceof Request ? input : new Request(input, init),
+            ),
+        });
+        faux.setResponses([
+          fauxAssistantMessage(
+            [
+              fauxToolCall(
+                "query_workpiece",
+                { selector: { kind: "place", name: "Waiting" } },
+                { id: `${method}-${mode}-query` },
+              ),
+            ],
+            { stopReason: "toolUse" },
           ),
-      });
-      faux.setResponses([
-        fauxAssistantMessage([
-          fauxText("Synthetic batched schema carriage control."),
-        ]),
-      ]);
-      await batchClient.wait(
-        await batchClient.send({
-          initialData: {
-            mode: batchedConstructionMode,
-            construction: {
-              binding: {
-                conversationId: batchIdentity.conversationId,
-                documentId: "synthetic-document",
-                incarnationId: "synthetic-incarnation",
+          fauxAssistantMessage([
+            fauxText("Synthetic batched schema carriage control."),
+          ]),
+        ]);
+        await batchClient.wait(
+          await batchClient.send({
+            initialData: {
+              mode,
+              construction: {
+                binding: {
+                  conversationId: batchIdentity.conversationId,
+                  documentId: "synthetic-document",
+                  incarnationId: "synthetic-incarnation",
+                },
               },
             },
-          },
-          message: {
-            kind: "user",
-            body: "Synthetic batched schema carriage control.",
-          },
-        }),
-      );
-      histories.push(await batchClient.history());
+            message: {
+              kind: "user",
+              body: "Synthetic batched schema carriage control.",
+            },
+          }),
+        );
+        const batchHistory = await batchClient.history();
+        histories.push(batchHistory);
+        const query = batchHistory.messages
+          .flatMap((message) => message.parts)
+          .find(
+            (part) =>
+              part.type === "dynamic-tool" &&
+              part.toolCallId === `${method}-${mode}-query`,
+          );
+        assert(query?.type === "dynamic-tool");
+        assert.equal(
+          query.state,
+          "output-available",
+          "Nested selector must reach the mounted query executor",
+        );
+        const explanation = query.output as RootArcExplanation;
+        assert.equal(explanation.disposition, "refused");
+        assert.equal(
+          explanation.reason,
+          "Current workpiece state is unknown; history cannot replace it.",
+        );
+      }
     }
   }
   for (const method of ["stream", "streamSimple"] as const) {
     const requests = captures.filter((capture) => capture.method === method);
     assert(requests.length > 0);
+    for (const request of requests) {
+      for (const tool of request.serialized.tools) {
+        assert(tool.input_schema && typeof tool.input_schema === "object");
+        for (const keyword of ["oneOf", "allOf", "anyOf"]) {
+          assert(
+            !(keyword in tool.input_schema),
+            `${tool.name}: Anthropic rejects top-level ${keyword} in input_schema`,
+          );
+        }
+      }
+    }
     const ordinaryRequest = requests.find((request) =>
       request.serialized.tools.some(
         (tool) => tool.name === mutatePetrinetToolName,
@@ -343,7 +392,7 @@ try {
     assert(queryTool);
     assert.deepEqual(
       queryTool.input_schema,
-      constructionWhyInputSchema["~standard"].jsonSchema.input({
+      queryWorkpieceInputSchema(true)["~standard"].jsonSchema.input({
         target: "draft-2020-12",
       }),
     );
@@ -380,7 +429,7 @@ try {
             type: "toolCall",
             id: "query-schema-control",
             name: queryTool.name,
-            arguments: structuredClone(input),
+            arguments: { selector: structuredClone(input) },
           },
         );
       };
@@ -392,6 +441,27 @@ try {
         assert.throws(() => parseConstructionWhyInput(input));
       }
     }
+    for (const arguments_ of [
+      {},
+      { kind: "place", name: "Waiting" },
+      { selector: { kind: "place", name: "Waiting" }, name: "outside" },
+    ]) {
+      assert.throws(() =>
+        validateToolArguments(
+          {
+            name: queryTool.name,
+            description: "Captured query tool",
+            parameters: queryTool.input_schema as Tool["parameters"],
+          },
+          {
+            type: "toolCall",
+            id: "query-envelope-control",
+            name: queryTool.name,
+            arguments: arguments_,
+          },
+        ),
+      );
+    }
     for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
       const expected = (
         name === "addArc"
@@ -400,9 +470,19 @@ try {
             ? petrinautAiTools.addType.inputSchema
             : mutatePetrinetInputSchema
       )["~standard"].jsonSchema.input({ target: "draft-2020-12" });
-      const tools = requests.flatMap((request) =>
-        request.serialized.tools.filter((tool) => tool.name === name),
-      );
+      // The candidate has observation-bearing wrappers for addArc/addType;
+      // nativeSchemaProvider checks those against their actual mounted source.
+      const tools = requests
+        .filter(
+          (request) =>
+            name === mutatePetrinetToolName ||
+            !request.serialized.tools.some(
+              (tool) => tool.name === "read_petrinaut_net",
+            ),
+        )
+        .flatMap((request) =>
+          request.serialized.tools.filter((tool) => tool.name === name),
+        );
       assert(tools.length > 0);
       // Headless mode also mounts its unchanged legacy addArc; inspect native joined arcs only.
       const nativeTools = tools.filter(

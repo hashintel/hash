@@ -89,6 +89,7 @@ export {
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,
+  queryWorkpieceInputSchema,
   parseConstructionWhyInput,
   rootNodeWhyInputSchema,
   type RootNodeWhyInput,
