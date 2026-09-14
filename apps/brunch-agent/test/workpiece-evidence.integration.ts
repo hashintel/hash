@@ -1,6 +1,7 @@
 /** Unpaid mounted-route evidence controls; scripted sources are TEST authorship, not expert testimony. */
 /* eslint-disable no-await-in-loop -- Each synthetic response queue is consumed by one sequential submission. */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -281,7 +282,97 @@ try {
     "TEST locate a different candidate without replacing the current workpiece.",
   );
   assert.equal(observations.length, 3);
+  const newTestimony = "TEST new testimony: the reserve lasts two hours.";
+  faux.setResponses([
+    call(
+      "read_workpiece",
+      { includeContent: false, locateTexts: ["Reserve one crew."] },
+      "focused-current",
+    ),
+    (context) => {
+      const result = toolResult(context, "read_workpiece");
+      assert.equal(result.currentWorkpiece, null);
+      assert.deepEqual(result.currentWorkpiecePointer, {
+        revisionId: "evidence-revision",
+        sha256: createHash("sha256").update(markdown).digest("hex"),
+        ordinal: 1,
+      });
+      const lookup = result.locatorLookup as {
+        subject: unknown;
+        queries: { occurrences: unknown }[];
+      };
+      assert.deepEqual(lookup.subject, {
+        kind: "current-revision",
+        revisionId: "evidence-revision",
+      });
+      assert.deepEqual(lookup.queries[0]?.occurrences, [
+        { start: 15, end: 32 },
+      ]);
+      assert(Array.isArray(result.sources));
+      const source: unknown = result.sources.find(
+        (entry: unknown) =>
+          typeof entry === "object" &&
+          entry !== null &&
+          "text" in entry &&
+          entry.text === newTestimony,
+      );
+      assert(
+        typeof source === "object" &&
+          source !== null &&
+          "id" in source &&
+          typeof source.id === "string",
+      );
+      observations.push({ focusedCurrent: result, newSourceId: source.id });
+      return call(
+        "read_workpiece",
+        {
+          includeContent: false,
+          includeSources: false,
+          markdown: "# A different unsettled candidate",
+          locateTexts: ["candidate"],
+        },
+        "focused-candidate",
+      );
+    },
+    (context) => {
+      const result = toolResult(context, "read_workpiece");
+      assert.equal(result.currentWorkpiece, null);
+      assert.deepEqual(result.sources, []);
+      const lookup = result.locatorLookup as {
+        subject: unknown;
+        queries: { occurrences: unknown }[];
+      };
+      assert.deepEqual(lookup.subject, { kind: "unsettled-candidate" });
+      assert.deepEqual(lookup.queries[0]?.occurrences, [
+        { start: 24, end: 33 },
+      ]);
+      assert.equal(
+        (result.currentWorkpiecePointer as { revisionId: string }).revisionId,
+        "evidence-revision",
+      );
+      observations.push({ focusedCandidate: result });
+      return fauxAssistantMessage([
+        fauxText(
+          "TEST focused retrieval leaves the current account unchanged.",
+        ),
+      ]);
+    },
+  ]);
+  await speak(newTestimony);
   const history = await client.history();
+  const focusedSource = history.messages.find(
+    (message) =>
+      message.role === "user" &&
+      message.purpose === "user" &&
+      message.parts.some(
+        (part) => part.type === "text" && part.text === newTestimony,
+      ),
+  );
+  assert(focusedSource);
+  assert.equal(
+    (observations[3] as { newSourceId: string }).newSourceId,
+    focusedSource.id,
+  );
   const preparedId = history.messages.find(
     (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
   )?.id;
@@ -303,7 +394,35 @@ try {
       ),
   });
   faux.setResponses([
-    fauxAssistantMessage([fauxText("Other conversation TEST control.")]),
+    call("read_workpiece", {}, "other-empty-read"),
+    (context) => {
+      assert.equal(
+        toolResult(context, "read_workpiece").currentWorkpiece,
+        null,
+      );
+      assert(!JSON.stringify(context).includes("markdownReference"));
+      // Same revision ID/hash as the first conversation deliberately stresses scope.
+      return call("mutate_workpiece", { markdown }, "evidence-revision");
+    },
+    (context) => {
+      assert.equal(toolResult(context, "mutate_workpiece").markdown, markdown);
+      return call("read_workpiece", {}, "other-current-read");
+    },
+    (context) => {
+      const settled = toolResult(context, "mutate_workpiece");
+      const current = toolResult(context, "read_workpiece")
+        .currentWorkpiece as {
+        markdownReference: { retainedEntryId: string };
+      };
+      assert.equal(settled.markdown, markdown);
+      assert.equal(
+        current.markdownReference.retainedEntryId,
+        (settled.markdownIdentity as { entryId: string }).entryId,
+      );
+      return fauxAssistantMessage([
+        fauxText("Other conversation TEST control."),
+      ]);
+    },
   ]);
   await otherClient.wait(
     await otherClient.send({
@@ -428,7 +547,7 @@ try {
   );
   assert.equal(
     observations.length,
-    10,
+    12,
     "Every model-facing positive, refusal, carry and reopen assertion must complete.",
   );
   writeFileSync(

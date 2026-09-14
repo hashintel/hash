@@ -549,7 +549,6 @@ try {
           originalAnswers[index]?.recordedChange,
         );
       }
-      const why = whyAnswers[0]!;
       const old = output(history, oldId) as RootArcExplanation;
       assertWhy(old, seed, expectedCurrent, 0);
       assert.equal(old.reconciliation.status, "as-of");
