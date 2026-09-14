@@ -48,6 +48,39 @@ describe("useLocalDocumentRepository", () => {
     expect(storage.setItem).not.toHaveBeenCalled();
   });
 
+  test("preserves stored local documents when creating from an inactive repository", () => {
+    const storage = stubStorage({
+      "document-1": {
+        id: "document-1",
+        incarnationId: "incarnation-1",
+        revisionId: "revision-1",
+        title: "Existing",
+        sdcpn: emptyDefinition,
+        lastUpdated: new Date(0).toISOString(),
+      },
+    });
+    const { result } = renderHook(() =>
+      useLocalDocumentRepository({ enabled: false, onOpen: vi.fn() }),
+    );
+
+    let createdId: string | undefined;
+    act(() => {
+      createdId = result.current.repository.actions.create?.({
+        definition: emptyDefinition,
+        title: "Created",
+      }).documentId;
+    });
+
+    const stored = JSON.parse(
+      storage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, unknown>;
+    expect(stored["document-1"]).toBeDefined();
+    expect(createdId).toBeDefined();
+    if (createdId === undefined)
+      throw new Error("Expected a created document.");
+    expect(stored[createdId]).toBeDefined();
+  });
+
   test("persists an identity-explicit revision and rename", async () => {
     stubStorage({
       "document-1": {

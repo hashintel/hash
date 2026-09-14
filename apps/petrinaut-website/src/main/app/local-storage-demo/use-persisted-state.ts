@@ -32,13 +32,15 @@ export const usePersistedState = <Value>({
       if (!enabled && !writeWhenDisabled) return;
       const next =
         typeof update === "function"
-          ? (update as (previous: Value) => Value)(currentValueRef.current)
+          ? (update as (previous: Value) => Value)(
+              enabled ? currentValueRef.current : read(),
+            )
           : update;
       currentValueRef.current = next;
       setValue(next);
       write(next);
     },
-    [enabled, write, writeWhenDisabled],
+    [enabled, read, write, writeWhenDisabled],
   );
 
   return [
