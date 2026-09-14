@@ -1000,20 +1000,22 @@ export const AiAssistantContents = ({
               tooltip={placementLabel}
             />
             {!isVoiceDockCollapsed && !isVoiceSessionLive && voiceAlertIndicator}
-            <Button
-              size="xs"
-              variant="ghost"
-              tone="error"
-              className={headerButtonStyle}
-              aria-label="Clear AI chat"
-              disabled={clearMessagesDisabled || messages.length === 0}
-              onClick={() => {
-                setVoiceAlerts([]);
-                onClearMessages?.();
-              }}
-              prefix={<ExperimentalIcon name="trash" size={14} />}
-              tooltip="Clear AI chat"
-            />
+            {messages.length > 0 && (
+              <Button
+                size="xs"
+                variant="ghost"
+                tone="error"
+                className={headerButtonStyle}
+                aria-label="Clear AI chat"
+                disabled={clearMessagesDisabled}
+                onClick={() => {
+                  setVoiceAlerts([]);
+                  onClearMessages?.();
+                }}
+                prefix={<ExperimentalIcon name="trash" size={14} />}
+                tooltip="Clear AI chat"
+              />
+            )}
             <Button
               size="xs"
               variant="ghost"

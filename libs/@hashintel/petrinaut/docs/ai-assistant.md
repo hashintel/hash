@@ -188,7 +188,7 @@ Voice ends when the panel closes. If Realtime Voice is interrupted, allow
 microphone access or check the connection, then select **Reconnect voice
 mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
-When no interview is active and the host permits clearing, **Clear AI chat** via the delete button in the top right of the panel wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
+The delete button appears in the top right of the panel once the conversation contains messages. When no interview is active and the host permits clearing, **Clear AI chat** wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
 
 ## What the assistant can do
 
