@@ -62,7 +62,7 @@ export const formatDiagnosticsForAi = ({
   );
 
   if (diagnostics.length === 0) {
-    return "No net-code diagnostics.";
+    return "No errors or warnings found in net function code.";
   }
 
   const shownDiagnostics = diagnostics.slice(0, maxDiagnostics);

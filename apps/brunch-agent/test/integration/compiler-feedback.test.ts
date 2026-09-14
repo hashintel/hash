@@ -36,7 +36,9 @@ test.skipIf(!enabled)(
     };
     expect(summary.mode).toBe("batched-construction");
     expect(summary.dirtyCompilation).toContain("definitelyNotDefined");
-    expect(summary.cleanCompilation).toBe("No net-code diagnostics.");
+    expect(summary.cleanCompilation).toBe(
+      "No errors or warnings found in net function code.",
+    );
     expect(summary.repairHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(summary.layoutHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(summary.layoutHash).not.toBe(summary.repairHash);
