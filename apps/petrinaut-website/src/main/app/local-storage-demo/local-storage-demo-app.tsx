@@ -28,6 +28,7 @@ import {
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
+  type DocumentRevisionId,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -239,6 +240,13 @@ const createConversationTrackerFor = (
 type ActiveHandle = {
   handle: PetrinautDocHandle;
   document: DocumentRecord;
+  /**
+   * Every revision this handle has produced (plus the one it opened at). A
+   * repository revision outside this set was written by someone else — another
+   * tab, typically — and the handle must be recreated from it rather than keep
+   * chaining edits from a predecessor the repository no longer holds.
+   */
+  emittedRevisionIds: Set<DocumentRevisionId>;
 };
 
 const useProcessAgentSession = (input: {
@@ -277,6 +285,7 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
   return {
     handle,
     document,
+    emittedRevisionIds: new Set([document.revisionId]),
   };
 };
 
@@ -514,7 +523,8 @@ export const LocalStorageDemoApp = ({
     }
     setActiveHandle((previous) =>
       previous?.document.documentId === currentDocument.documentId &&
-      previous.document.incarnationId === currentDocument.incarnationId
+      previous.document.incarnationId === currentDocument.incarnationId &&
+      previous.emittedRevisionIds.has(currentDocument.revisionId)
         ? previous
         : createActiveHandle(currentDocument),
     );
@@ -525,9 +535,10 @@ export const LocalStorageDemoApp = ({
       return;
     }
 
-    const { document, handle } = activeHandle;
+    const { document, emittedRevisionIds, handle } = activeHandle;
     const repository = source.repository;
     return handle.subscribe((event) => {
+      emittedRevisionIds.add(event.revisionId);
       void repository.persistRevision({
         documentId: document.documentId,
         incarnationId: document.incarnationId,

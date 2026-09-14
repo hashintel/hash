@@ -239,6 +239,16 @@ const stubStorage = () => {
   } satisfies Storage);
 };
 
+/**
+ * The `storage` event another tab's write raises. Built by hand because the
+ * stubbed store is not a jsdom `Storage`, which `StorageEvent` insists on.
+ */
+const otherTabStorageEvent = (key: string): Event =>
+  Object.defineProperties(new Event("storage"), {
+    key: { value: key },
+    storageArea: { value: localStorage },
+  });
+
 const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   stubStorage();
   localStorage.setItem(
@@ -816,6 +826,74 @@ describe("local document revision persistence", () => {
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+  });
+
+  test("adopts another tab's revision of the open document and chains later changes from it", async () => {
+    seedStoredNet("local-incarnation", "local-revision-1");
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
+
+    const otherTabPlace = {
+      id: "other-tab-place",
+      name: "Other tab place",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    };
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, { sdcpn: { places: unknown[] } }>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...stored,
+        "net-1": {
+          ...stored["net-1"],
+          revisionId: "other-tab-revision",
+          lastUpdated: "2026-01-01T00:00:00.000Z",
+          sdcpn: { ...stored["net-1"]?.sdcpn, places: [otherTabPlace] },
+        },
+      }),
+    );
+    act(() => {
+      window.dispatchEvent(otherTabStorageEvent("petrinaut-sdcpn"));
+    });
+
+    await waitFor(() =>
+      expect(
+        (
+          editorProps.current?.handle as PetrinautDocHandle | undefined
+        )?.revisionId.get(),
+      ).toBe("other-tab-revision"),
+    );
+    const adoptedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(adoptedHandle).not.toBe(firstHandle);
+    expect(adoptedHandle.doc()?.places.map((place) => place.id)).toEqual([
+      "other-tab-place",
+    ]);
+
+    act(() => {
+      adoptedHandle.change((draft) => {
+        draft.places.push({ ...otherTabPlace, id: "this-tab-place" });
+      });
+    });
+    const chainedRevisionId = adoptedHandle.revisionId.get();
+    await waitFor(() => {
+      const persisted = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<
+        string,
+        { revisionId?: string; sdcpn: { places: { id: string }[] } }
+      >;
+      expect(persisted["net-1"]?.revisionId).toBe(chainedRevisionId);
+      expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
+        ["other-tab-place", "this-tab-place"],
+      );
+    });
+    expect(editorProps.current?.handle).toBe(adoptedHandle);
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {

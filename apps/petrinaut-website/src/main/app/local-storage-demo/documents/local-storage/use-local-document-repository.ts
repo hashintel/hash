@@ -70,7 +70,21 @@ export const useLocalDocumentRepository = (input: {
         : storedSDCPNs,
     [defaultDocument, storageReady, storedSDCPNs],
   );
+  // Mirrors the revision each stored document sits at, keyed by
+  // `documentId:incarnationId`. `persistRevision` advances it synchronously so
+  // same-tick edits chain, and the effect below re-syncs it whenever storage
+  // changes — including writes made by another tab, which must become the
+  // predecessor of this tab's next edit rather than a permanent mismatch.
   const persistedRevisionsRef = useRef(new Map<string, DocumentRevisionId>());
+  useEffect(() => {
+    persistedRevisionsRef.current = new Map(
+      Object.values(storedSDCPNs).flatMap((stored) =>
+        stored.incarnationId === undefined || stored.revisionId === undefined
+          ? []
+          : [[`${stored.id}:${stored.incarnationId}`, stored.revisionId]],
+      ),
+    );
+  }, [storedSDCPNs]);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
     null,
   );
