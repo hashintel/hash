@@ -88,7 +88,7 @@ const EditorAtMode = ({ mode }: { mode: EditorGlobalMode }) => {
       <EditorContext.Provider
         value={{ ...editor, globalMode: mode, isAiAssistantOpen: true }}
       >
-        <EditorView aiAssistant={aiAssistant} />
+        <EditorView aiAssistant={aiAssistant} titleEditable />
       </EditorContext.Provider>
     </UserSettingsContext.Provider>
   );
