@@ -9,8 +9,8 @@ eagerness on the separate Live transcription session, and provider-free checks.
 It preserves native Live speech, separate finalized transcription and Realtime.
 Acoustic benefit remains Kostandin's matched speaker/headphone witness; no
 deterministic feedback prevention or migration-readiness claim is established.
-The sole mission also permits one bounded medium comparison after the low probe; natural
-human turn boundaries still require the owner witness. No new publication authority.
+The sole mission specifies bounded headless probe allocations and their results;
+natural human turn boundaries still require the owner witness. No new publication authority.
 
 The publication base is restacked FE-1664 at
 [9499b9287b](https://github.com/hashintel/hash/commit/9499b9287bd69b751ebcdd61b0c6bf2586bc191e).

@@ -16,12 +16,14 @@ The separate authority commit is
 The capture-only implementation is prepared: its assertion failed before the
 change, and 317 targeted tests, website typechecking, lint and build now pass.
 The semantic-VAD recut is implemented locally and provider-free checks pass.
-The one headless probe completed with mixed results: semantic/low was accepted,
-but finalization was slow and the correction remained unfinished at shutdown.
-Next: implement and run Kostandin's accepted medium-eagerness comparison below;
-physical speaker/headphone witnesses remain owner-held.
+The medium probe is complete: first two cases were faster than low, but the
+final correction is inconclusive because the synthetic sender stopped its packets.
+That discovered harness defect also invalidates the low correction verdict.
+Next: run Kostandin's authorized corrected medium probe with continuous silent
+audio; physical speaker/headphone witnesses remain owner-held.
 Acoustic benefit, natural turn boundaries and mission acceptance remain unproved.
-The low allocation is consumed; one medium allocation is authorized, no publication.
+The two earlier allocations are consumed; one corrected probe is authorized,
+with no further provider runs or publication beyond that allocation.
 
 ## Imperative
 
@@ -104,10 +106,26 @@ Turn-boundary recut in `apps/petrinaut-website/src/server/voice/`:
   change only that transcription setting and its exact request assertion, then
   repeat one session under the same 180-second/audio limit, without retries,
   microphone access, other providers, Brunch inference or publication.
+- **2026-09-14:** Kostandin authorizes one corrected medium session under the same
+  three-minute cap, with continuous synthetic silence, no microphone and no retries.
 
 ## Proof
 
-### Medium-eagerness comparison — authorized, not yet run
+### Corrected medium probe — authorized, not yet run
+
+One `gpt-4o-transcribe` session, semantic VAD / medium, at most 180 seconds of
+synthetic audio and closed within 180 seconds after connection. No retries,
+alternate model/setting, microphone, GPT-Live or Brunch inference. Use the same
+actual endpoint, fixture bytes (compare hashes to the medium run), pause schedule
+and 15-second final wait. Keep a zero-valued `ConstantSourceNode` connected and
+active until teardown; inspect increasing RTP packet count and sample duration
+through the final wait. No forced commits. Retain exact transcripts, timings,
+session identity, usage and verified cleanup in the local-only native record at
+`/tmp/fe1712-semantic-vad-medium-silence-T-01a09fe5/`. Remove temporary harness and
+audio after inspection. Stop after this allocation for owner review. This can
+adjudicate the three synthetic transcription cases, not human speech or echo.
+
+### Medium-eagerness comparison — completed, correction oracle invalid
 
 Reuse the actual panel endpoint and the low run's five locally generated clips,
 one-second internal pauses, 12-second inter-case gaps and 15-second final wait.
@@ -122,6 +140,33 @@ inspection. The same boundary, retention, latency and cleanup oracles below appl
 Provider-free proof: the exact request-body assertion must fail on low and pass
 on medium; rerun the five targeted suites, website typecheck and lint.
 This single synthetic comparison cannot establish human speech or echo behavior.
+
+Observed 2026-09-14: session `sess_EO2SYiIYt07MDK84kntaf` confirmed semantic VAD
+with medium eagerness. The inventory sentence stayed together and completed
+5.52 seconds after its scheduled end (low: 9.50); “Yes.” completed in 4.44 seconds
+(low: 6.48). The correction sequence started one item but never finalized.
+RTP evidence explains why that last case cannot adjudicate VAD: after the final
+clip, outbound packets remained at 1645 and source duration at 32.49 seconds
+throughout the 15-second wait. The audio context still ran, but sent no silence.
+The earlier cases had increasing packet counts during their pauses, so their
+latencies remain observations, not controlled proof of improvement across runs.
+
+A local-only RTC pair reproduced the instrument defect and checked its repair:
+after a completed clip, the old sender emitted zero additional packets over
+three seconds; an active `ConstantSourceNode` with offset zero emitted 150 packets
+and 3.01 additional audio seconds. No provider was called for this contrast.
+Any future paid probe must retain that zero-valued source through the final wait
+and inspect increasing outbound sample duration before judging finalization.
+This repairs only the synthetic instrument, not product microphone behavior.
+
+Native `events.jsonl`, `attempt.json` and `local-silence-check.jsonl` in the medium
+directory above retain the inspected evidence. One session, roughly 48 seconds,
+5.49 seconds of synthetic speech; zero microphone calls and verified teardown.
+Completed items reported 62 audio-input plus 16 output tokens (78 total);
+unfinalized-item usage and invoice remain unknown. No retry or publication.
+The medium request assertion failed on low then passed; all 127 targeted tests,
+changed-file formatting and 15 website typecheck/lint tasks pass (10 cached).
+Product code remains medium, unaccepted for full conversational quality.
 
 ### Bounded headless transcription probe — completed, acceptance not established
 
@@ -162,8 +207,11 @@ audio context and track all closed. No retry, GPT-Live or Brunch inference.
   end); the provider began another item for “Actually, twelve” but never emitted
   its stop/commit/completion during the remaining 15 seconds. Both correction
   words were verified in the exact input fixture after its internal pause.
-  Retention/finalization fails this bounded observation; this does not prove
-  permanent loss, its cause, or Brunch behavior because Brunch was not invoked.
+  **Correction oracle invalid:** the medium probe and local sender contrast above
+  exposed a shared harness defect: after the last clip it stops sending silence.
+  Retract the earlier retention/finalization-failure interpretation; this case
+  cannot establish provider loss or behavior with a real microphone. Brunch was
+  not invoked. No low-run RTP trace exists to adjudicate that session independently.
 
 Latencies use the browser's common monotonic clock for scheduled audio and event
 receipt; they include provider/network delay, not just the VAD classifier.
