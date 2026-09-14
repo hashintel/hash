@@ -36,9 +36,7 @@ test.skipIf(!enabled)(
     };
     expect(summary.mode).toBe("batched-construction");
     expect(summary.dirtyCompilation).toContain("definitelyNotDefined");
-    expect(summary.cleanCompilation).toBe(
-      "No errors detected in your model – everything compiles!",
-    );
+    expect(summary.cleanCompilation).toBe("No net-code diagnostics.");
     expect(summary.repairHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(summary.layoutHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(summary.layoutHash).not.toBe(summary.repairHash);

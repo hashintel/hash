@@ -299,10 +299,7 @@ try {
     checked((context) => {
       const result = browserResult(context, "getNetCompilationErrors");
       save("compilation", result);
-      assert.equal(
-        result.output,
-        "No errors detected in your model – everything compiles!",
-      );
+      assert.equal(result.output, "No net-code diagnostics.");
       return text("Native creation and canonical check completed.");
     }),
   ]);
@@ -504,7 +501,7 @@ try {
     requests: contexts.length,
     applied: records.length,
     schemaClasses: observedNodeMutationNames,
-    compilation: "No errors detected in your model – everything compiles!",
+    compilation: "No net-code diagnostics.",
     scope:
       "Same-session synthetic creation/correction only; reopen assertion follows.",
   });
