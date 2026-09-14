@@ -1,226 +1,136 @@
-# Improve Brunch Voice controls
+# Mission 7d — Complete the worked-example demo and configure an experiment (FE-1573)
 
 ## Status
 
-Live execution authority for
-[FE-1722](https://linear.app/hash/issue/FE-1722/improve-brunch-voice-controls).
-This branch is based directly on `origin/main` after
-[foundation PR #9745](https://github.com/hashintel/hash/pull/9745) merged.
-That foundation incorporates
-[FE-1712 PR #9704](https://github.com/hashintel/hash/pull/9704). FE-1712's
-implementation and evidence remain protected behavior; its unfinished speech,
-acoustic and recovery obligations are not accepted or replaced here.
+Live, not accepted, on `ln/fe-1573-mission-7d-provider-worked-example`, stacked directly above local `ln/fe-1573-mission-7c`. [Mission 7c](docs/mission-archive/7c-browser-persona-construction.md) is provisionally closed for engineering review in [PR #9667](https://github.com/hashintel/hash/pull/9667), not accepted as a worked example. This child has no PR yet.
 
-FE-1722 implementation exists on this branch across the shared-control,
-provider-control, documentation and lifecycle work reviewed in
-[PR #9747](https://github.com/hashintel/hash/pull/9747). It is the bottom entry
-of GitHub stack #9750, with follow-up
-[PR #9748](https://github.com/hashintel/hash/pull/9748) above it. The
-deterministic product proof below is established. Real microphone, speaker and
-headphone behavior remains unproven and owner-held; Kostandin owns that browser
-witness, and no microphone or provider session is authorized for an agent.
-
-The owner has authorized branch and PR maintenance for FE-1722. Merge,
-deployment and tracker writes remain unauthorized unless separately requested.
-
-## Imperative
-
-Make an active Brunch Voice session compact and predictable without changing
-who owns capture, canonical work or playback. Keep microphone mute immediately
-available, move secondary audio controls into one popover, expose the canonical
-Stop action only while Brunch is working, and use the existing conversation
-panel for visible output.
-
-## Throughline
-
-After the existing consented Start path connects either Live or Realtime,
-Petrinaut renders one compact Voice dock while the existing conversation panel
-continues to show the transcript and canonical Brunch output:
-
-1. The dock keeps microphone mute directly available. In Live, mute toggles the
-   one shared capture track that already feeds Live and the separate
-   transcription session; it does not mute playback or create another capture.
-   In Realtime, it preserves the existing microphone-gating behavior.
-2. One audio popover contains session-local speaker mute and normalized volume
-   for both providers. The existing read-full-response, repeat-question and
-   interruption-by-speaking controls remain Realtime-only in that popover.
-3. While canonical status is exactly `submitted` or `streaming`, both providers
-   show Stop and invoke the existing `onStop` path. Live consequently retains
-   the established `recordStopRequested()` →
-   `LiveBrunchBridge.stopResponse()` behavior: stop the current Brunch response
-   while leaving Live and transcription media connected.
-4. End remains the separate Voice-session teardown. It does not stop canonical
-   work. The existing session-collapse control is relabelled Show conversation
-   or Hide conversation and changes only conversation visibility.
-5. Status keeps the precedence connection/error → Speaking → Thinking →
-   microphone-muted → Listening. Speaker mute and volume zero do not make
-   Speaking false.
-6. Speaker mute and volume start from their ordinary unmuted/full-volume
-   defaults for every new Voice session and are never persisted.
-
-The protected source is FE-1712 at the pinned parent above. Its browser capture
-preferences, semantic VAD, patient-listening instruction and 500 ms
-output-activity hold are unchanged. The production destinations and permitted
-deltas are:
-
-- `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/`:
-  keep the dock and existing conversation panel as the visible surface; thread
-  the canonical busy state and `onStop` to the dock; relabel the visibility
-  action; and compose the common audio popover from existing design-system
-  primitives.
-- `libs/@hashintel/petrinaut/src/react/voice-session/` and
-  `libs/@hashintel/petrinaut/src/ui/types/ai-assistant-composer-control.ts`:
-  extend the host/session contract only enough to report and change
-  session-local speaker mute and normalized volume.
-- `apps/petrinaut-website/src/main/app/voice-interview/`: adapt the existing
-  Live and Realtime sessions to that contract, preserving shared capture,
-  Realtime gating, output ownership, admission, canonical Stop and teardown.
-
-Stop on an unlisted semantic delta. A local helper is warranted only when both
-providers actually share the same contract; do not add a second control
-surface, media owner or settings store.
+- **Established base:** the canonical browser-visible Pi persona method executes Brunch's own net/workpiece tools through the real interface. The parent records passing synthetic construction, Stop/recovery and compiler-feedback checks, plus schema, streaming and tool-progress repairs. These are inherited mechanism results, not proof that another provider works or that the example is faithful.
+- **Retained example:** local-only `apps/brunch-agent/.data-wipe-me/persona-runs/run-1vFeVo/` contains the original Sonaflozin/Inventory conversation, workpiece ordinal 15, net with 7 places and 8 transitions, Chrome profile association and Pi session. Construction and provenance querying occurred; diagnostics/repair, final correction and acceptance did not complete. Preserve the original stores and consult `run.json` for current paths rather than reviving old process IDs.
+- **Blocker:** Brunch received Anthropic refusals in the original run and again on continuation. The retained error names [refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback), but omits `stop_details`; the specific classifier/category is unknown. No alternative provider or fallback is configured. The continuation launcher is stopped.
+- **Next work — builder:** assess Chris's experiment PRs against configuration-only use and inspect recoverable earlier-run artifacts. In parallel with Lu gathering inputs, inspect existing model/effort/fallback configuration and persona posture controls. Propose the smallest changes that support the demo; no paid inference or upstream branch integration starts with this authority cut.
+- **Inputs — Lu/Chris:** confirm the authoritative experiment PR stack and intended representation of objectives/constraints; provide one concrete optimization objective and avoid-state/threshold example with units and hard/soft meaning. Lu supplies available provider/model preferences and the next paid allocation, desired persona style, recording location and critique-sharing destination. The builder can audit known code and retained records before these answers arrive.
 
 ### Owner decisions
 
-- **2026-09-15:** Kostandin accepts reduced Option B: compact dock, secondary
-  audio controls in one popover and the existing conversation panel for output.
-  The authority commit must remain separate from product code.
+- **2026-09-14 — Lu:** provisionally close 7c for review and cut a stacked successor for one alternative provider and worked-example completion. Reuse FE-1573 if no existing issue fits; the project search found no dedicated matching issue. This is an explicit exception to one issue per branch, not authority to reopen or rewrite the completed Linear issue.
+- **2026-09-14 — Lu, refined cut:** include model/fallback and persona-style options, another full persona observation, the captured construction/latency/framing issues, friendly tool/tab names, unseen-update/status badges and direct assistant prose. Assess Chris's open experiment PRs and deliver creation/configuration of an in-memory experiment from elicited objectives and restrictions; do not trigger optimization execution. Fixture extraction, seeding and distribution move beyond the demo without automatic next-mission priority. Collect earlier artifacts for possible critique, not reusable fixtures.
+- **Carried from 7c:** use the browser-visible, background-driven persona method; keep at least Sonnet-level models on both sides; retain usage observation without the retired accounting cutoffs; pause the identified Chrome window before inference for recording. The original US$100 ceiling is not reset by creating this branch; agree remaining spend before another paid continuation.
+
+## Imperative
+
+Finish a useful, recorded Inventory purchasing worked example through a reproducible browser-visible persona method, then help configure an in-memory experiment from the elicited objectives and restrictions without running it. Brunch must progressively construct a coherent compiler-clean net, explain two consequential elements from recorded basis, apply one bounded operational correction and survive original-session reopen. The interface must make model/workpiece development and pending conversation attention legible. Lu owns semantic and usefulness acceptance.
+
+Refine model, effort and supported fallback choices independently for Brunch and the persona, and offer a persona response-style override such as terse-but-cooperative. Preserve case knowledge and private-pack isolation. Recover prior artifacts for critique and continue the retained example where useful, but conduct a fresh full run to test progressive construction and the revised interaction. An accepted recording does not establish portfolio breadth, repeatability, simulation/optimization correctness or fixture distribution.
+
+## Throughline
+
+```text
+assess experiment configuration API; resolve concrete gaps with Chris
+→ qualify selected models/fallback behavior and persona style on the actual path
+→ retain earlier-run artifacts; resume without replay where useful
+→ fresh case run with empty net/workpiece/history for cadence observation
+→ identify the real Chrome window and pause for Lu's recording
+→ persona speaks ordinary language through the canonical launcher
+→ Brunch reads the current net and applies its own supported mutations
+→ real browser returns version-correlated diagnostics; Brunch repairs as needed
+→ recorded layout and viewport reframing keep the growing net visible
+→ persona asks why two consequential elements exist and changes one fact/policy
+→ workpiece and bounded net region settle; final diagnostics are clean
+→ close/reopen the original document/session and ask a current-basis question
+→ Brunch creates/updates an inspectable in-memory experiment configuration
+  from the workpiece's objectives, parameters and supported restrictions
+→ verify no optimization run started; user retains execution control
+→ Lu reviews the retained account, net, explanations and recording
+```
+
+### Cold-start reads
+
+- [Persona operator guide](../../../apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md), [launcher](../../../apps/brunch-agent/src/evaluations/persona/launch.ts) and `run-1vFeVo/run.json` under the run directory above: supported launch/resume and original identity. `yarn brunch:persona --resume <run-directory>` is the maintained path, not a guarantee that a different provider can consume retained history.
+- [Evaluation safety and schema acceptance](evaluations/README.md): synthetic isolation, actual native catalogues and provider-specific acceptance. Anthropic's free preflight passing is not cross-provider proof.
+- [Inventory case](evaluations/cases/inventory-purchasing/): private persona pack and shared opening. The hand-built `reference-sdcpn.json` has no original workpiece/session and stays evaluator-only, never an elicitor input or mutation answer key.
+- [Mission 7c proof](docs/mission-archive/7c-browser-persona-construction.md#proof): inherited tests, exact retained observations and their limits. [Compiler tracer](../../../apps/brunch-agent/test/compiler-feedback.integration.ts) and [persona integration](../../../apps/brunch-agent/test/persona-construction.integration.ts) are the existing browser mechanism oracles; rerun affected checks if this child changes their boundaries.
+- [Flue routing](docs/reference/architecture/flue-routing.md), [tool catalogue](../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts), [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) and [topology](docs/reference/architecture/topology.md): inspect actual composition before choosing an adapter change.
+- Chris's [experiment host #9676](https://github.com/hashintel/hash/pull/9676), [chat tool #9678](https://github.com/hashintel/hash/pull/9678) and [integration demo #9654](https://github.com/hashintel/hash/pull/9654): starting points, not frozen dependencies. Inspect current heads, core request/result schemas, browser host, tool dispatch and UI. The inspected host couples creation with execution and accepts saved scenario/metric IDs, numeric parameter ranges and a minimize/maximize objective; it has no general `constraints` field. Confirm upstream intent rather than treating those observations as the final contract.
+- [Persona SYSTEM.md](../../../apps/brunch-agent/.pi/extensions/brunch-persona-testing/SYSTEM.md): already teaches short natural replies and independent posture axes; measure whether an override changes actual behavior. [Anthropic writing-density guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1#writing-density): use literal, direct wording instead of mannered prose; test its relevance to the selected model rather than adopting unrelated instructions.
 
 ## Proof
 
-### Authority cut
+### Claim discipline
 
-Verified 2026-09-15: forced repository Markdown lint checked exactly this
-mission, its future pointer and the website pointer with zero errors;
-`git diff --check` also passed. These checks establish legible repository
-authority only; they do not establish any product behavior. The pre-cut focused
-baselines were reported as 51 Petrinaut tests and 218 website tests passing;
-they contain no FE-1722 implementation.
+Mutation application, exact-version compilation, semantic correspondence and executed behavior are distinct claims. This mission needs the first two through native records/diagnostics and the third through Lu's review. It makes no simulation or general reliability claim. Inherited coverage is not a fresh pass, a refusal is not successful ordinary construction, and a timeout is never clean diagnostics.
 
-### Deterministic product proof — established
+### Visible product advance
 
-- `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents.test.tsx`
-  owns the compact dock, Show/Hide conversation as visibility only, canonical
-  Stop only for `submitted`/`streaming`, separate End, common audio controls and
-  provider-capability presentation.
-- `libs/@hashintel/petrinaut/src/ui/types/ai-assistant-composer-control.test.ts`
-  and
-  `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.test.tsx`
-  own the host contract and provider-optional action forwarding without making
-  controls mandatory for unrelated hosts.
-- `apps/petrinaut-website/src/main/app/voice-interview/live-conversation.test.ts`
-  and `live-conversation-control.test.tsx` own shared-track microphone mute,
-  independent playback mute/volume, per-session reset and the unchanged
-  canonical Stop-to-`stopResponse()` path without media teardown.
-- `apps/petrinaut-website/src/main/app/voice-interview/openai-realtime-session.test.ts`,
-  `voice-turn-controller.test.ts` and `voice-interview-control.test.tsx` own
-  unchanged Realtime microphone gating, common speaker settings, per-session
-  reset and Realtime-only controls.
-- `apps/petrinaut-website/src/main/app/voice-interview/voice-session-state.test.ts`
-  and `live-conversation-control.test.tsx` own status precedence and prove that
-  speaker mute or volume zero does not rewrite Speaking.
+**Release-note sentence:** Brunch visibly builds and explains an operational model in conversation and prepares an experiment configuration from the user's goals, leaving execution to the user.
 
-Verified 2026-09-15:
+**Product-manager script:** watch a fresh Inventory persona interview develop both the operational account and connected model, with readable replies and tool labels. Switch tabs and see unseen-update/attention badges. Layout keeps the net in view. Ask why two elements exist, change one fact, then reopen the same session and ask about its basis again. Ask Brunch to configure an experiment for an elicited objective and restriction; inspect its parameters/options and confirm that no optimization runs. No tool vocabulary, operator-authored model repair or template copying is required.
 
-- Network-denied
-  `yarn workspace @hashintel/petrinaut test:unit --run`
-  over the three focused Voice files passed 160 tests after the rebase.
-- Network-denied `yarn workspace @apps/petrinaut-website test:unit` over the
-  eight focused unit files passed 349 tests after the rebase; the ninth
-  `voice-preview.integration.test.ts` file passed 5 tests under the same
-  network denial.
-- `build`, `lint:tsc` and `lint:eslint` passed independently for
-  `@hashintel/petrinaut` and `@apps/petrinaut-website`.
-- `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` reported 79
-  layers, 408 edges, 866 files, 80 generated pages and 40 authored pages.
-- Root `yarn lint:format`, exact Markdown lint over the changed mission,
-  pointer, user guide and changeset, plus working and committed
-  `git diff --check` checks passed.
+### Throughline proof floor
 
-These checks establish deterministic controls and regressions, not physical
-audio, conversational quality or visual usability.
+| Required result | Oracle | Current disposition |
+| --- | --- | --- |
+| Selected models and fallback behavior preserve the product path | Inspect actual native schemas, history conversion and streaming. Exercise supported failure/fallback cases synthetically, including refusal versus transport failure and partial output/tool effects; assert no duplicate mutation or lost identity. Then use an authorized real turn to read, mutate and receive the browser result. | Open: choices unselected. A fallback setting alone is not recovery proof; compatibility is provider-specific. |
+| Tool execution, diagnostics, progress and Stop survive the change | Existing `yarn workspace @apps/brunch-agent test:persona` and `test:compiler-feedback`, under the evaluation guide's loopback-only synthetic isolation, plus affected adapter/type checks. The compiler tracer discriminates dirty → repaired → changed-but-still-clean; persona checks browser execution, tab independence, Stop and no replay on resume. | Parent reported passing these checks. Reuse only as inherited coverage until changed boundaries are rerun; no all-green Brunch integration baseline is claimed. |
+| Chris's API is usable for configuration-only assistance | Assess current PR code for create/read/update without execute, objective/constraint expressiveness, scenario/metric dependencies, schema-host-tool-UI agreement and coverage of one concrete workpiece example. Record supported mappings and exact gaps in the branch/PR; resolve upstream gaps with Chris before claiming configuration support. | Initial inspection found create-and-run coupling and no general constraints field. No complete suitability judgment or integration performed. |
+| Earlier-run material is recoverable for critique | Compare review copies of net, workpiece and transcript with their native run records; label run identity, snapshot/revision, incomplete outcomes and missing artifacts. Exclude synthetic runs from live evidence and private actor/control/credential material from sharing. | Latest run has a net snapshot, transcript and 15 successful workpiece mutations containing Markdown; several earlier runs retain workpiece/transcript records. Collection is pending; sharing requires Lu's destination/audience. |
 
-### Product witness — pending, owner-held
+### Readiness gate
 
-Kostandin starts a fresh Live session and a fresh Realtime session through the
-real product door. In each, show and hide the conversation while speech and
-canonical work continue; mute and unmute the microphone; mute the speaker and
-move volume through zero during output; verify Speaking still reflects provider
-output; and Stop one submitted or streaming Brunch response without ending
-Voice. End Voice separately and confirm it does not stop canonical work. Start
-a second session and confirm speaker mute and volume reset. In Realtime only,
-also exercise read-full-response, repeat-question and
-interruption-by-speaking.
+The worked-example rows consume one selected full run and its original stores; the prior run remains a separately identified comparison/continuation. The inherited 7c gates are not waived. The new UI/configuration rows extend the demo's acceptance, without requiring an optimization result.
 
-This witness may accept the interaction and audible effect on the tested
-browser/device. It does not establish all-device media behavior, natural turn
-boundaries, echo mitigation or FE-1712's remaining owner-held obligations.
+| Acceptance result | Required oracle | Current disposition |
+| --- | --- | --- |
+| Connected, operationally coherent Inventory model | Lu reviews procurement, supplier disruption, transit, quality/quarantine, expiry/recall, production and demand decisions against the actual testimony and workpiece. | Open: 7 places/8 transitions is an observation, not semantic acceptance. |
+| Ordinary construction and bounded correction | Native persona history and before/after net/workpiece records show one changed operational fact or explicit policy choice updating the justified region without unrelated rebuilding. Unsupported work is disclosed, not silently omitted. | Partial construction observed; final correction remains open. No developer-authored repair counts. |
+| Compiler-clean and legible final model | Browser diagnostics for the exact final corrected definition return clean; errors trigger fresh observation and model-originated repair. Layout records pre/post hashes and position-only effects; Lu's recording shows a legible net. | Open: worker repair is synthetically verified, not confirmed on this example. |
+| Two consequential elements have a recorded basis | Persona asks ordinary why questions. Compare replies to native mutation-attempt records, current workpiece passages and session testimony. Missing/ambiguous provenance must be disclosed but cannot alone satisfy the two positive witnesses. | Querying reached; verified explanations remain open. |
+| From-scratch, persona-driven example | Inspect the original run's initial native/browser evidence for empty net, no prior workpiece and a fresh conversation. Recording/native history shows ordinary elicitation, repeated workpiece settlements, Brunch-originated construction, repair where needed, layout, explanation and correction. Private persona/evaluator material reaches Brunch only through ordinary persona utterances. | Run retained; full initial-state and recording acceptance remain open. A faithful continuation can complete that run but cannot establish faster fresh-start cadence. |
+| Original-session continuity | Close and reopen the same local document/conversation from their original stores, recover final net/workpiece, then obtain a current-basis answer backed by native records without replayed mutation. | Profile reopen was observed; completed-model reopen and answer remain open. |
+| Compaction dependence disclosed | Inspect whether the example crossed compaction. If yes, verify workpiece recovery and explanation after compaction and reopen; if no, explicitly state uncompacted-history dependence at close. | Open. General compaction qualification remains required before Mission 9 or hosted long-lived provenance claims. |
+| Persona controls and progressive construction improve the observed interaction | Retain selected case, models/effort/fallbacks and persona override. Compare actual replies and native timestamps for first supported activity/state, workpiece settlements and first connected fragment; inspect whether meaning-bearing updates lead to net growth without waiting for whole-process completion. Lu reviews time spent thinking and reply quality. | Open: prior first construction took roughly 12 minutes. Resume alone cannot satisfy this fresh-run observation; no arbitrary latency cutoff or script-authored construction substitutes for it. |
+| Panel communicates development and attention | In the running UI, inspect friendly tool labels without changing internal IDs; switch tabs and verify that each unseen settled workpiece update increments a numbered badge, viewing clears it, and a completed assistant reply needing a response signals attention while on the workpiece tab. Check multiple updates, errors/Stop and tab switching during streaming. Inspect rendered captures. | Open: proposed tab labels and exact badge acknowledgement semantics remain reversible UI choices. Token chunks/replayed history must not inflate counts. |
+| Layout includes viewport reframing | Browser witness after layout with offscreen/new content, plus an ordinary manual-layout case, shows intended content framed without extra model mutations or false provenance. Confirm switching tabs does not lose execution. | Open: position changes are verified on the parent; viewport framing is not. |
+| User-facing prose is direct and proportionate | Lu reviews sampled real replies for literal language, short relevant answers/questions and absence of stock flourish, repetitive recaps or performative phrasing, while retaining needed qualifications and uncertainty. Compare with retained-run replies. | Open: prompt packaging tests do not establish writing quality or reduced reasoning latency. |
+| Experiment is configured faithfully without execution | Through ordinary conversation, create and revise an actual in-memory configuration using supported objectives, parameter choices/ranges and restrictions from the workpiece. Inspect the resulting entity/options and their correspondence to the user's meaning; verify through the host/tool trace that no optimization execution starts. Unsupported restrictions are surfaced as gaps, never silently weakened. | Open: requires upstream configuration-only capability and agreed semantics. A prose proposal, a create-and-run call followed by cancellation, or a penalty substituted for a hard constraint does not pass. No persistence across reload is required for this entity. |
 
 ## Constraints
 
-- Preserve explicit consent, one-capture ownership, teardown, transcript
-  admission, delegation policy, canonical Brunch authority, provider pinning
-  and Realtime response ownership. Do not start microphone or provider sessions
-  on an agent's behalf; real media evidence remains owner-held.
-- Preserve FE-1712 browser capture preferences, semantic VAD,
-  patient-listening instruction and 500 ms output-activity hold.
-- Live microphone mute disables the one shared capture track feeding Live and
-  transcription without muting playback, ending either session or changing
-  canonical work. Realtime keeps its existing gating semantics.
-- Canonical Stop appears only for `submitted` or `streaming` and uses the
-  existing `onStop` path. Live Stop keeps media connected. End tears down Voice
-  and does not cancel canonical work.
-- Connection/error, Speaking, Thinking, microphone-muted and Listening retain
-  that precedence. Audio settings describe local audibility, not provider
-  output activity.
-- Show/Hide conversation changes visibility only. It must not change capture,
-  playback, work, session state, panel history or admission.
-- Speaker mute and normalized volume are session-local for both providers and
-  reset for every new session. Do not persist them.
-- A provider-finalized partial transcript admitted after mid-utterance mute is
-  allowed. Add no transcript suppression, fuzzy matching or timers.
-- Existing read-full-response, repeat-question and interruption-by-speaking
-  behavior stays Realtime-only.
+### Product boundary
+
+Brunch assists operational processes represented as SDCPNs, not arbitrary Petri-net jobs. The persona remains an isolated ordinary-language actor; the real browser executes Brunch's tools without screenshot-based AI operation or a human taking over construction. AI/Workpiece tab switching must not interrupt execution. Roughly 15–25 turns is an intended scale, not a fixed acceptance count.
+
+### Authority and ownership
+
+Flue owns canonical conversation history; the Markdown workpiece is the recoverable operational account; Petrinaut Core owns canonical schemas, mutation, compilation and commands. Core owns universal guidance, the SDCPN plugin owns formalism guidance and basis/effect interpretation, the app owns composition/history reconciliation, and the website owns browser execution and assistant selection. Preserve stock transport/tools/history isolation.
+
+Use the existing `mutate_petrinaut_net` carrier, fresh-base discipline and verified applied-effect records. Code/dependency changes require diagnostics for the exact definition before relying on them. Layout has position-only effects and cannot inherit testimony or mutate after its recorded final hash. `query_workpiece` joins recorded mutation-attempt identities to workpiece revisions/passages and actual turns; do not manufacture source links or semantic continuity. The [capability matrix](docs/reference/architecture/mutation-capability-matrix.md) owns the admitted set; schema size alone is not a provider limit.
+
+Preserve original stores and attribution through any provider conversion. Do not replay transcript text as new user turns, prewrite mutation batches, inject the hand-built comparator, or introduce a second history/store. Local-only evidence is sufficient for this bounded observation when inspected and named; it is not portable evidence. Reusable guidance stays independent of Inventory nouns and IDs. Preserve existing fixture/copy implementations and regression pins while their completion is deferred.
+
+### Scope boundary and external owners
+
+Model/effort/fallback choices and the minimal recovery support this demo requires are in scope, not a general routing framework or exhaustive provider matrix. Persona overrides vary interaction style independently of case facts; terseness must not imply hostility, ignorance or deliberate obstruction. Keep readable display names separate from stable internal tool identifiers. Badge semantics distinguish unseen workpiece revisions from an assistant reply needing attention, not merely inference activity.
+
+Chris owns the upstream experiment contract. This mission assesses it and integrates configuration-only assistance, including scenario/metric configuration where actually required by that contract. Core schema ownership stays upstream; no parallel Brunch experiment schema, fabricated constraint semantics or optimization execution enters the demo. Missing capabilities are explicit coordination items with Chris, not permission to silently reduce scope. In-memory configuration is sufficient; durable experiment jobs/results, fixture extraction/seeding/copying/distribution, portfolio expansion, hosted deployment and Voice work remain deferred. Tim owns hosted infrastructure; Kostandin owns Voice.
 
 ## Fog-line
 
-The exact compact spacing, icons, volume affordance and responsive fit remain
-implementation details to validate against the existing Petrinaut design
-system and accessibility semantics. They may not move microphone mute into the
-popover, create another output surface or alter the control policy above.
-
-Muting a capture track cannot retract audio the provider already received; a
-finalized partial transcript after mute is therefore neither automatically a
-bug nor evidence of suppression. Speaker mute and zero volume change local
-audibility, not whether output is active. Deterministic browser tests cannot
-establish subjective volume feel, physical routing or whether the compact dock
-is usable on Kostandin's device.
-
-FE-1712's acoustic benefit, natural turn-boundary quality, direct spoken-user
-attribution, withheld-work recovery and comparative latency remain unresolved
-at their existing parent or future-spine owners. This mission neither reruns
-nor accepts them.
+- **Provider and history continuity:** which available Sonnet-class-or-better models and effort settings fit each role, and which fallback transitions can preserve streaming/tool settlement and native history? Distinguish refusals from transient failures. Confirm selection and spend with Lu; preserve the original run even if continuation proves unsupported. Do not treat retries or changed providers as guaranteed success.
+- **Run quality:** separate delayed construction decisions, tool-argument failures, reasoning latency and verbose user-facing prose. Compare the fresh observation to retained evidence; do not assume one prompt change fixes all four. Pre-admission tool arguments remain invisible through Flue's remote stream and must not be represented as executed tools.
+- **Experiment meaning — Lu/Chris:** confirm configuration-only lifecycle, objective reductions over time, hard versus soft restrictions, units, parameter bounds and the scenario/metric prerequisites. The inspected PR uses last-sampled metrics, which may not express time-integrated or never-exceed requirements. Names alone do not settle semantics. Resolve concrete missing capability with Chris before implementation depends on it.
+- **Persona/panel choices — Lu and builder:** select a useful initial terse/cooperative portrayal, tab labels and attention treatment without a large persona-settings taxonomy or panel redesign. Existing short-reply instructions are a baseline, not evidence of effective brevity.
+- **Assumption-based preview — PM decision:** evidence-first remains current policy. A provisional model when blocked would require explicit assent, assumptions distinguished from testimony and made confirmable/replaceable/rejectable, plus agreement on authorized assumptions, UI presentation and semantic acceptance. No general preview policy is authorized here.
 
 ## Stop or reorient
 
-Stop and return to the owner if microphone mute silences output, creates a new
-capture, changes admission, or fails to gate both Live consumers of the shared
-track; if speaker controls alter microphone state or Speaking status; if Stop
-tears down Voice or End stops canonical work; if Show/Hide changes anything
-other than visibility; if settings survive a new session; or if Live gains
-Realtime-only controls.
-
-Also stop on an inaccessible or unusable compact layout, a provider-specific
-contract that cannot be represented without weakening the common invariants,
-an unlisted persistence or timer, a new provider/media session, or a required
-change to FE-1712's protected behavior. Do not select a broader redesign from
-mechanism failure without a new owner decision.
+- Stop on loss of native identity, replayed mutations, invented provenance, stale clean diagnostics or undisclosed representation loss.
+- Reorient if the chosen provider cannot reliably select/populate the actual carrier; do not replace the mission with an exhaustive provider search or arbitrary schema byte cap.
+- Return to Lu if provider conversion requires destructive history rewriting, a lower model class, additional spend or a change to the accepted example's scope. Fresh-run evaluation is in scope but still needs its paid allocation and recording readiness.
+- Stop experiment integration if configuration necessarily triggers execution, the intended restriction cannot be represented faithfully, or the route requires copied canonical contracts. Bring the smallest evidenced gap to Chris; do not report the experiment configured from prose alone.
+- Keep worked-example acceptance open for an inert, flattened, illegible, compiler-broken or operator-authored result. Lu's acceptance, not a tool success or branch close, finishes the example.
 
 ## Deferred
 
-[Voice control follow-up](MISSION.next.md#voice-control-follow-up) retains
-device switching, voice and speed selection, helmet animation and settings
-persistence. [Voice feedback follow-up](MISSION.next.md#voice-feedback-follow-up)
-and [Voice after the live transport cut](MISSION.next.md#voice-after-the-live-transport-cut)
-retain FE-1712's unfinished alternatives and owner-held obligations. None is
-authorized by this cut.
+- [Distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md): fixture extraction, versioned fixtures, build/Postgres seeding, complete connected-bundle copy/reset/reopen, identity/provenance remapping, template/sibling isolation, remote-mode continuity, six-pack probes, a non-Inventory witness and full-envelope/topology adjudication. Deferred beyond the demo, with no automatic next-mission assignment; known fork gaps and expected-failure pins remain unmet. Readable earlier-run review copies are not this distribution capability.
+- [Mission 9](docs/mission-drafts/9-traceable-projection.md): repeat/change/retirement, identity epochs, concurrent/manual edits and cross-revision passage identity. [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md): general reviewer authority. [Mission 11](docs/mission-drafts/11-optimisation-handoff.md): consumer-accepted optimization handoff.
+- [After-demo evaluation](docs/mission-drafts/7-explainable-construction.md): broader semantic/behavioral, provenance and lifecycle evaluation. [Future spine](MISSION.next.md): hosted/Voice obligations, wider provider comparisons and unallocated product concerns, including the carried shared-history projection and question-marker decisions.
