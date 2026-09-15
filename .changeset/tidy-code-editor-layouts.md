@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Expand model functions to full screen and return to their code fields in the Properties Panel.
+Expand code sections to fill the Properties Panel and return to the selected item’s other properties.

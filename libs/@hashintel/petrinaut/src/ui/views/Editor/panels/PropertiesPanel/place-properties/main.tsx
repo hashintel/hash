@@ -29,7 +29,8 @@ const baseSubViews: SubView[] = [
 
 const placeVisualizerSubView = createDeferredSubView({
   id: "place-visualizer",
-  headerActionMutates: false,
+  canMaximize: true,
+  headerActionMutates: true,
   title: "Visualizer",
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",
@@ -80,6 +81,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         updatePlace={updatePlace}
       >
         <VerticalSubViewsContainer
+          key={place.id}
+          returnLabel="Back to place"
           name="place-properties"
           subViews={subViews}
         />

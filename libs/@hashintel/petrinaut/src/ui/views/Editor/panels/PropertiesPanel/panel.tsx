@@ -2,7 +2,9 @@ import { use } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -58,6 +60,8 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
+  const { petriNetId } = use(SDCPNContext);
+  const { activeSubnetId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
 
   const isOpen = panelTarget.kind !== "none";
@@ -92,7 +96,9 @@ export const PropertiesPanel: React.FC = () => {
         maxSize: MAX_PROPERTIES_PANEL_WIDTH,
       }}
     >
-      <SelectedItemProperties />
+      <SelectedItemProperties
+        key={JSON.stringify([petriNetId, activeSubnetId])}
+      />
     </GlassPanel>
   );
 };

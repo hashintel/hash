@@ -14,7 +14,7 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { useCodeWorkspace } from "../../../../../monaco/code-workspace";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
 import { AddParameterAction } from "./entities-tree/add-parameter-action";
@@ -53,7 +53,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
-  const { enabled, entries, open } = useCodeWorkspace();
+  const { enabled, entries, open } = useCodeNavigation();
   const codeItems = enabled
     ? entries
         .filter((entry) => entry.selection.id === item.id)

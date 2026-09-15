@@ -1,21 +1,24 @@
 # Code Editor
 
-Edit a model’s functions in the Properties Panel or expand a code field to full screen.
+Edit model functions in the Properties Panel. Expand a code section to fill the panel while keeping its controls available.
 
 ## Open code
 
-Select a place, transition, or differential equation in the canvas or left sidebar. Expand its code section in the Properties Panel, then use **Full screen** above the code to enlarge it.
+Select a place, transition, or differential equation in the canvas or left sidebar. Open its code section in the Properties Panel:
 
-The code section’s **More options** menu also offers **Open in full screen** and **Open in properties panel**. The Properties Panel keeps the selected item’s fields and controls alongside its code. Drag the panel’s left edge or the divider between sections to resize it.
+- **Firing Time** contains a transition’s predicate or stochastic rate.
+- **Transition Results** contains a transition’s output function.
+- **Differential Equation** contains the equation’s properties and code.
+- **Visualizer** contains a place’s visualization code and preview.
 
 The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **Open equation code** beside its assigned differential equation opens that equation.
 
-## Full-screen editing
+## Fill the panel
 
-Full screen replaces the canvas with code and leaves the left sidebar available. The header shows the item’s kind and name. Open the name menu to jump to another function in the active net. Use the function buttons below the name to switch between a transition’s firing function and kernel.
+Use the **Fill panel** button in the section header to expand that section to the full width and height of the Properties Panel’s section area. Its controls stay beside the code. The canvas and the panel’s width stay unchanged.
 
-Use **Back to properties** or **Close code editor** to return to the same code section in the Properties Panel. Code, undo history, cursor position, diagnostics, and the section’s saved height carry over. Full-screen code shows line numbers, wrapped lines, and a minimap.
+Use the back arrow in the expanded section header to return to the item’s other properties. For a transition, this button is **Back to transition**. You can also press **Escape** when focus is inside the section. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
 
-Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Changing the file or active subnet closes the editor and resets its code undo history. Code opens in the Properties Panel the next time.
+Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
-Review layouts keep the code navigation actions available and hide template-loading and visualizer enablement controls.
+Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.

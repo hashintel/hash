@@ -2,6 +2,7 @@ import React, { Fragment, use, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import {
+  Button,
   HelpTooltip,
   Icon,
   useAvoidScrollWidthChange,
@@ -22,8 +23,16 @@ const HEADER_ICON_SIZE = 16;
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
 const containerStyle = css({
+  position: "relative",
   flex: "[1]",
   minHeight: "[0]",
+});
+
+const expandedSectionStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  zIndex: "[1]",
+  backgroundColor: "neutral.s00",
 });
 
 /**
@@ -141,6 +150,7 @@ const resizeHandleStyle = css({
 const headerRowStyle = cva({
   base: {
     height: "11",
+    flexShrink: 0,
     pl: "0.5",
     pr: "2",
 
@@ -163,6 +173,7 @@ const headerRowStyle = cva({
 const mainHeaderRowStyle = css({
   p: "3",
   h: "11",
+  flexShrink: 0,
 
   display: "flex",
   justifyContent: "space-between",
@@ -327,6 +338,9 @@ interface SubViewHeaderProps {
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
   alwaysShowHeaderAction?: boolean;
+  onExpand?: () => void;
+  onRestore?: () => void;
+  returnLabel: string;
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
@@ -340,12 +354,27 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   onToggle,
   renderHeaderAction,
   alwaysShowHeaderAction,
+  onExpand,
+  onRestore,
+  returnLabel,
 }) => (
   <div
+    data-subview-header
     className={
       main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
     }
   >
+    {onRestore && (
+      <Button
+        size="xs"
+        variant="ghost"
+        iconName="arrowLeft"
+        data-restore-subview
+        aria-label={returnLabel}
+        tooltip={returnLabel}
+        onClick={onRestore}
+      />
+    )}
     {main ? (
       <div className={mainHeaderContentStyle}>
         {HeaderIcon && (
@@ -393,14 +422,25 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         </span>
       </div>
     )}
-    {isExpanded && renderHeaderAction && (
+    {isExpanded && (renderHeaderAction || onExpand) && (
       <div
         {...(!alwaysShowHeaderAction && { "data-header-action": true })}
         className={
           alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle
         }
       >
-        {renderHeaderAction()}
+        {onExpand && (
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="expand"
+            data-expand-subview
+            aria-label={`Expand ${title}`}
+            tooltip="Fill panel"
+            onClick={onExpand}
+          />
+        )}
+        {renderHeaderAction?.()}
       </div>
     )}
   </div>
@@ -413,6 +453,7 @@ interface VerticalSubViewsContainerProps {
   subViews: SubView[];
   /** Whether sections should be expanded by default */
   defaultExpanded?: boolean;
+  returnLabel?: string;
 }
 
 /**
@@ -422,7 +463,30 @@ interface VerticalSubViewsContainerProps {
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
-> = ({ name, subViews, defaultExpanded = true }) => {
+> = ({
+  name,
+  subViews,
+  defaultExpanded = true,
+  returnLabel = "Back to sections",
+}) => {
+  const [maximizedId, setMaximizedId] = useState<string | null>(null);
+  const expandedHeader = useRef<HTMLElement | null>(null);
+  if (
+    maximizedId !== null &&
+    !subViews.some(
+      (subView) => subView.id === maximizedId && subView.canMaximize,
+    )
+  ) {
+    setMaximizedId(null);
+  }
+  const restore = () => {
+    setMaximizedId(null);
+    requestAnimationFrame(() =>
+      expandedHeader.current
+        ?.querySelector<HTMLButtonElement>("[data-expand-subview]")
+        ?.focus(),
+    );
+  };
   const presentation = usePetrinautPresentation();
   const { showAnimations, subViewPanels, updateSubViewSection } =
     use(UserSettingsContext);
@@ -474,8 +538,21 @@ export const VerticalSubViewsContainer: React.FC<
     <Group
       orientation="vertical"
       className={cx(containerStyle, isAnimating && panelTransitionStyle)}
+      onKeyDown={(event) => {
+        if (
+          maximizedId !== null &&
+          event.key === "Escape" &&
+          !event.defaultPrevented
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          restore();
+        }
+      }}
     >
       {subViews.map((subView, index) => {
+        const fillsContainer = maximizedId === subView.id;
+        const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
@@ -492,13 +569,22 @@ export const VerticalSubViewsContainer: React.FC<
               minSize={isExpanded ? minSize : HEADER_HEIGHT}
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
-              <div className={sectionWrapperStyle}>
+              <div
+                className={cx(
+                  sectionWrapperStyle,
+                  fillsContainer && expandedSectionStyle,
+                )}
+                style={isHidden ? { visibility: "hidden" } : undefined}
+                inert={isHidden}
+                aria-hidden={isHidden || undefined}
+                data-expanded-subview={fillsContainer || undefined}
+              >
                 <SubViewHeader
                   id={subView.id}
                   title={subView.title}
                   tooltip={subView.tooltip}
                   icon={subView.icon}
-                  main={isMain}
+                  main={isMain || fillsContainer}
                   renderTitle={subView.renderTitle}
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
@@ -509,10 +595,35 @@ export const VerticalSubViewsContainer: React.FC<
                       : subView.renderHeaderAction
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
+                  returnLabel={returnLabel}
+                  onRestore={fillsContainer ? restore : undefined}
+                  onExpand={
+                    subView.canMaximize && !fillsContainer
+                      ? () => {
+                          expandedHeader.current =
+                            document.activeElement instanceof HTMLElement
+                              ? document.activeElement.closest<HTMLElement>(
+                                  "[data-subview-header]",
+                                )
+                              : null;
+                          requestAnimationFrame(() =>
+                            expandedHeader.current
+                              ?.querySelector<HTMLButtonElement>(
+                                "[data-restore-subview]",
+                              )
+                              ?.focus(),
+                          );
+                          setMaximizedId(subView.id);
+                        }
+                      : undefined
+                  }
                 />
 
                 {isExpanded && (
-                  <div className={sectionContentStyle}>
+                  <div
+                    id={`subview-content-${subView.id}`}
+                    className={sectionContentStyle}
+                  >
                     <ScrollableContent>
                       <Component />
                     </ScrollableContent>
@@ -522,7 +633,13 @@ export const VerticalSubViewsContainer: React.FC<
             </Panel>
 
             {index < subViews.length - 1 && (
-              <Separator className={resizeHandleStyle} />
+              <Separator
+                className={resizeHandleStyle}
+                style={
+                  maximizedId !== null ? { visibility: "hidden" } : undefined
+                }
+                disabled={maximizedId !== null}
+              />
             )}
           </Fragment>
         );

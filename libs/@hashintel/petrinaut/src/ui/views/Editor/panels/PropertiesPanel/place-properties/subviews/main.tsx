@@ -23,7 +23,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
-import { useCodeWorkspace } from "../../../../../../monaco/code-workspace";
+import { useCodeNavigation } from "../../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { usePlacePropertiesContext } from "../context";
 
@@ -61,7 +61,7 @@ const arcStyle = css({
  * Rendered as a headerless SubView at the top of the proportional layout.
  */
 const PlaceMainContent: React.FC = () => {
-  const codeWorkspace = useCodeWorkspace();
+  const codeNavigation = useCodeNavigation();
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { selectItem } = use(EditorContext);
 
@@ -367,14 +367,14 @@ const PlaceMainContent: React.FC = () => {
                       >
                         Jump to Differential Equation
                       </Button>
-                      {codeWorkspace.enabled && (
+                      {codeNavigation.enabled && (
                         <Button
                           size="xs"
                           variant="ghost"
                           iconName="code"
                           onClick={() => {
                             if (place.differentialEquationId)
-                              codeWorkspace.open(
+                              codeNavigation.open(
                                 getDocumentUri(
                                   "differential-equation",
                                   place.differentialEquationId,

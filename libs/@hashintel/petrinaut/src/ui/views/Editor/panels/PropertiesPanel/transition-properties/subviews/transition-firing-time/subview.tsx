@@ -15,12 +15,8 @@ import {
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import {
-  useCodeEditorMenuItems,
-  SourceCodeEditor as CodeEditor,
-} from "../../../../../../../monaco/code-workspace";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { useTransitionPropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -60,17 +56,9 @@ const aiMenuItemStyle = css({
 });
 
 const FiringTimeHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, updateTransition, isReadOnly } =
+  const { logicAvailability, transition, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
-
-  const { showMutationActions } = usePetrinautPresentation();
-
-  const codeEditorItems = useCodeEditorMenuItems(
-    getDocumentUri("transition-lambda", transition.id),
-  );
-
-  if (!showMutationActions && codeEditorItems.length === 0) return null;
 
   if (globalMode !== "edit" || !logicAvailability.lambda) {
     return null;
@@ -93,43 +81,37 @@ const FiringTimeHeaderAction: React.FC = () => {
         />
       }
       items={[
-        ...codeEditorItems,
-        ...(showMutationActions
-          ? [
-              {
-                id: "load-default",
-                text: "Load default template",
-                disabled: isReadOnly,
-                onClick: () => {
-                  updateTransition({
-                    transitionId: transition.id,
-                    update: {
-                      lambdaType,
-                      lambdaCode: generateDefaultLambdaCode(lambdaType),
-                    },
-                  });
-                },
+        {
+          id: "load-default",
+          text: "Load default template",
+          onClick: () => {
+            updateTransition({
+              transitionId: transition.id,
+              update: {
+                lambdaType,
+                lambdaCode: generateDefaultLambdaCode(lambdaType),
               },
-              {
-                id: "generate-ai",
-                text: (
-                  <Tooltip
-                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                    position="bottom"
-                  >
-                    <div className={aiMenuItemStyle}>
-                      <Icon name="sparkles" size="sm" />
-                      Generate with AI
-                    </div>
-                  </Tooltip>
-                ),
-                disabled: true,
-                onClick: () => {
-                  // TODO: Implement AI generation
-                },
-              },
-            ]
-          : []),
+            });
+          },
+        },
+        {
+          id: "generate-ai",
+          text: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              position="bottom"
+            >
+              <div className={aiMenuItemStyle}>
+                <Icon name="sparkles" size="sm" />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
       ]}
     />
   );
@@ -211,6 +193,7 @@ const TransitionFiringTimeContent: React.FC = () => {
 
 export const transitionFiringTimeSubView: SubView = {
   id: "transition-firing-time",
+  canMaximize: true,
   title: "Firing Time",
   defaultCollapsed: true,
   tooltip:
