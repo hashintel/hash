@@ -1,97 +1,95 @@
 use alloc::sync::Arc;
-use core::future::Future;
-
-use deadpool_postgres::{
-    Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
+use core::{
+    future::Future,
+    ops::{Deref, DerefMut},
 };
+
+use deadpool::managed::{Object, Pool};
 use error_stack::{Report, ResultExt as _};
 use futures::TryStreamExt as _;
-use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use postgres_types::BorrowToSql;
-use tokio_postgres::{
-    Client, GenericClient, Row, Socket, ToStatement, Transaction,
-    tls::{MakeTlsConnect, TlsConnect},
-};
+use tokio_postgres::{Client, Config, GenericClient, Row, ToStatement, Transaction};
 
 use crate::store::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig},
     error::StoreError,
-    postgres::{PostgresStore, PostgresStoreSettings},
+    postgres::{
+        PostgresStore, PostgresStoreSettings,
+        connection::{ConnectionError, ConnectionManager, ManagedConnection, PostgresTls},
+    },
 };
+
+/// A connection checked out of a [`PostgresStorePool`], returned to it on drop.
+#[derive(Debug)]
+pub struct PooledConnection(Object<ConnectionManager>);
+
+impl Deref for PooledConnection {
+    type Target = ManagedConnection;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for PooledConnection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct PostgresStorePool {
-    pool: Pool,
+    pool: Pool<ConnectionManager>,
     pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStorePool {
-    /// Creates a new `PostgresDatabasePool`.
+    /// Creates a pool of connections to the database `db_info` names.
+    ///
+    /// No connection is established here: the pool builds one when it is first asked for a
+    /// connection, so a database that cannot be reached surfaces at [`StorePool::acquire`].
     ///
     /// # Errors
     ///
-    /// - if creating a connection returns an error.
+    /// - if the pool is configured with a timeout but has no runtime to enforce it
     #[tracing::instrument(skip(tls))]
-    pub async fn new<Tls>(
+    pub fn new<Tls>(
         db_info: &DatabaseConnectionInfo,
         pool_config: &DatabasePoolConfig,
         tls: Tls,
         settings: PostgresStoreSettings,
     ) -> Result<Self, Report<StoreError>>
     where
-        Tls: Clone
-            + MakeTlsConnect<
-                Socket,
-                Stream: Send + Sync,
-                TlsConnect: TlsConnect<Socket, Future: Send> + Send + Sync,
-            > + Send
-            + Sync
-            + 'static,
+        Tls: PostgresTls,
     {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
 
-        let config = deadpool_postgres::Config {
-            user: Some(db_info.user().to_owned()),
-            password: Some(db_info.password().to_owned()),
-            host: Some(db_info.host().to_owned()),
-            port: Some(db_info.port()),
-            dbname: Some(db_info.database().to_owned()),
-            pool: Some(PoolConfig {
-                max_size: pool_config.max_connections.get(),
-                timeouts: Timeouts {
-                    wait: None,
-                    create: None,
-                    recycle: None,
-                },
-                ..PoolConfig::default()
-            }),
-            manager: Some(ManagerConfig {
-                recycling_method: RecyclingMethod::Fast,
-            }),
-            ..deadpool_postgres::Config::default()
-        };
+        let mut config = Config::new();
+        config
+            .user(db_info.user())
+            .password(db_info.password())
+            .host(db_info.host())
+            .port(db_info.port())
+            .dbname(db_info.database());
 
         Ok(Self {
-            pool: config
-                .builder(tls)
-                .change_context(StoreError)
-                .attach_with(|| db_info.clone())?
-                .post_create(Hook::sync_fn(|_client, _metrics| {
-                    tracing::info!("Created connection to postgres");
-                    Ok(())
-                }))
+            // TODO(BE-703): The default timeouts are all unbounded, so a saturated pool waits
+            //   forever rather than reporting that it has nothing to give.
+            pool: Pool::builder(ConnectionManager::new(config, tls))
+                .max_size(pool_config.max_connections.get())
                 .build()
-                .change_context(StoreError)?,
+                .change_context(StoreError)
+                .attach_with(|| db_info.clone())?,
             settings: Arc::new(settings),
         })
     }
 }
 
 impl StorePool for PostgresStorePool {
-    type Error = PoolError;
-    type Store<'pool> = PostgresStore<Object>;
+    type Error = ConnectionError;
+    type Store<'pool> = PostgresStore<PooledConnection>;
 
     async fn acquire(
         &self,
@@ -104,19 +102,45 @@ impl StorePool for PostgresStorePool {
         &self,
         temporal_client: Option<Arc<TemporalClient>>,
     ) -> Result<Self::Store<'static>, Report<Self::Error>> {
+        let connection = self.pool.get().await.map_err(ConnectionError::from_pool)?;
+
         Ok(PostgresStore::new(
-            self.pool.get().await?,
+            PooledConnection(connection),
             temporal_client,
             Arc::clone(&self.settings),
         ))
     }
 }
 
+/// The isolation level of a database transaction.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum IsolationLevel {
+    /// An individual statement in the transaction will see rows committed before it began.
+    ReadCommitted,
+    /// All statements in the transaction will see the same view of rows committed before the
+    /// first query in the transaction.
+    RepeatableRead,
+    /// The reads and writes in this transaction must be able to be committed as an atomic "unit"
+    /// with respect to reads and writes of all other concurrent serializable transactions
+    /// without interleaving.
+    Serializable,
+}
+
+impl From<IsolationLevel> for tokio_postgres::IsolationLevel {
+    fn from(isolation_level: IsolationLevel) -> Self {
+        match isolation_level {
+            IsolationLevel::ReadCommitted => Self::ReadCommitted,
+            IsolationLevel::RepeatableRead => Self::RepeatableRead,
+            IsolationLevel::Serializable => Self::Serializable,
+        }
+    }
+}
+
 /// Options used to begin a database transaction.
 ///
 /// The options are collected by a [`PostgresStoreTransactionBuilder`] and compiled into the
-/// single `BEGIN` statement issued to the database when the transaction is begun, e.g. `START
-/// TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
+/// single `START TRANSACTION` statement issued to the database when the transaction is begun,
+/// e.g. `START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
 ///
 /// [`PostgresStoreTransactionBuilder`]: crate::store::PostgresStoreTransactionBuilder
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -135,11 +159,9 @@ mod sealed {
 ///
 /// The trait is sealed: the set of states is closed over [`NoTransaction`] and [`InTransaction`].
 /// The state determines which transaction APIs exist on the store: a *configurable* top-level
-/// transaction ([`Context::transaction`]) can only be begun in the [`NoTransaction`] state, while
-/// a store in the [`InTransaction`] state can only nest by creating savepoints, which have no
-/// configurable characteristics of their own.
-///
-/// [`Context::transaction`]: hash_graph_migrations::Context::transaction
+/// transaction ([`PostgresStore::transaction`]) can only be begun in the [`NoTransaction`] state,
+/// while a store in the [`InTransaction`] state can only nest by creating savepoints, which have
+/// no configurable characteristics of their own.
 pub trait TransactionState: sealed::Sealed + Send + Sync + 'static {}
 
 /// Marker for a [`PostgresStore`] which is not inside a database transaction.
@@ -201,20 +223,15 @@ pub trait GenericClientIter: GenericClient + Sync {
 
 impl<C> GenericClientIter for C where C: GenericClient + Sync {}
 
-impl AsClient for Object {
+impl AsClient for PooledConnection {
     type Client = Client;
 
-    // Deref-coercing to the raw `tokio_postgres::Client` bypasses deadpool's statement cache,
-    // so every query is re-prepared and Postgres plans it with the actual parameter values.
-    // The statement-shape strategy in the query compiler relies on that per-execution custom
-    // planning: a cached prepared statement would switch to a generic plan after a few
-    // executions and pick its plan blind to the parameters.
     fn as_client(&self) -> &Self::Client {
-        self
+        self.client()
     }
 
     fn as_mut_client(&mut self) -> &mut Self::Client {
-        self
+        self.client_mut()
     }
 }
 

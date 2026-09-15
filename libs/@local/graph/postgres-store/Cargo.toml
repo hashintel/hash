@@ -1,27 +1,24 @@
 [package]
-name              = "hash-graph-postgres-store"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-publish.workspace = true
 authors.workspace = true
 description       = "HASH Graph API"
+edition.workspace = true
+license.workspace = true
+name              = "hash-graph-postgres-store"
+publish.workspace = true
+version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
 hash-graph-authorization = { workspace = true, public = true, features = ["postgres"] }
-hash-graph-migrations    = { workspace = true, public = true }
 hash-graph-store         = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-validation    = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
 
 # Public third-party dependencies
-bon               = { workspace = true, public = true }
-deadpool          = { workspace = true, public = true }
-deadpool-postgres = { workspace = true, public = true }
-futures-sink      = { workspace = true, public = true }
-tokio             = { workspace = true, public = true, features = ["macros"] }
-tokio-postgres    = { workspace = true, public = true }
+bon            = { workspace = true, public = true }
+futures-sink   = { workspace = true, public = true }
+tokio          = { workspace = true, public = true, features = ["macros", "rt"] }
+tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true, features = ["std", "serde", "unstable"] }
@@ -36,6 +33,7 @@ type-system                    = { workspace = true, features = ["postgres"] }
 async-scoped     = { workspace = true, features = ["use-tokio"] }
 bytes            = { workspace = true }
 clap             = { workspace = true, optional = true, features = ["derive", "env"] }
+deadpool         = { workspace = true, features = ["managed"] }
 derive-where     = { workspace = true }
 derive_more      = { workspace = true }
 dotenv-flow      = { workspace = true }
@@ -63,8 +61,8 @@ hash-graph-test-data      = { workspace = true }
 hash-telemetry            = { workspace = true }
 indoc                     = { workspace = true }
 pretty_assertions         = { workspace = true }
-tokio                     = { workspace = true, features = ["macros"] }
-tracing-subscriber        = { workspace = true, features = ["env-filter"] }
+tokio                     = { workspace = true, features = ["macros", "time"] }
+tracing-subscriber        = { workspace = true, features = ["env-filter", "registry"] }
 
 [features]
 clap = ["dep:clap"]

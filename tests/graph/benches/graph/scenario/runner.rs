@@ -220,7 +220,6 @@ impl Runner {
                 ..PostgresStoreSettings::default()
             },
         )
-        .await
         .change_context(ScenarioError::Db)?;
 
         let mut store = pool.acquire(None).await.change_context(ScenarioError::Db)?;
@@ -245,7 +244,6 @@ impl Runner {
                 NoTls,
                 PostgresStoreSettings::default(),
             )
-            .await
             .change_context(ScenarioError::Db)?
             .acquire_owned(None)
             .await

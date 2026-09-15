@@ -31,8 +31,8 @@ use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, InTransaction,
-        PostgresStore, PostgresStorePool, PostgresStoreSettings,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, InTransaction, PostgresStore,
+        PostgresStorePool, PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
@@ -188,7 +188,6 @@ impl DatabaseTestWrapper {
             NoTls,
             settings,
         )
-        .await
         .expect("could not connect to database");
 
         let connection = pool
