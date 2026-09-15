@@ -25,7 +25,7 @@ export type ImportanceRow = {
 };
 
 export type ImportanceView = {
-  /** In binding order, so rows never move as estimates land. */
+  /** Descending importance, with unestimated parameters last. */
   rows: readonly ImportanceRow[];
   /** Whether PED-ANOVA can rank the study at all: it needs two or more optimized parameters. */
   rankable: boolean;
@@ -120,6 +120,9 @@ export const importanceRows = (
       importance: importance?.values[identifier] ?? null,
       correlation: correlations[identifier] ?? null,
     }),
+  );
+  rows.sort(
+    (left, right) => (right.importance ?? -1) - (left.importance ?? -1),
   );
   const effectiveCount = importance?.completedTrials ?? completedTrials;
   const floor = importanceFloor(requestedTrials);
