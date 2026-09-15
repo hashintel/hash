@@ -43,10 +43,11 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   };
 };
 
-const createDefaultDocument = () => createLocalStorageNetRecord({
-  title: "New Process",
-  petriNetDefinition: emptySDCPN,
-});
+const createDefaultDocument = () =>
+  createLocalStorageNetRecord({
+    title: "New Process",
+    petriNetDefinition: emptySDCPN,
+  });
 
 export const useLocalDocumentRepository = (input: {
   readonly enabled: boolean;
@@ -86,9 +87,8 @@ export const useLocalDocumentRepository = (input: {
     initialDocumentId ?? null,
   );
   if (enabled && storageReady && currentDocumentId === null) {
-    const initialDocumentId = mostRecentDocumentId(documents);
-    if (initialDocumentId !== undefined)
-      setCurrentDocumentId(initialDocumentId);
+    const latestDocumentId = mostRecentDocumentId(documents);
+    if (latestDocumentId !== undefined) setCurrentDocumentId(latestDocumentId);
   }
 
   const records = useMemo(
@@ -132,12 +132,7 @@ export const useLocalDocumentRepository = (input: {
       if (documentId !== currentDocumentId) onOpen(documentId);
       setCurrentDocumentId(documentId);
     },
-    [
-      currentDocumentId,
-      documents,
-      onOpen,
-      setCurrentDocumentId,
-    ],
+    [currentDocumentId, documents, onOpen, setCurrentDocumentId],
   );
 
   const create = useCallback(

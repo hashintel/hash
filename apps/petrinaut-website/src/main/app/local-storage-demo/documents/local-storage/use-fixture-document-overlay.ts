@@ -81,12 +81,12 @@ const createRootArcTracerDocument = (
     : structuredClone(preparedCrewReservationNet);
   const handle = createJsonDocHandle({
     id: documentId,
-    uuid: crypto.randomUUID(),
     initial: sdcpn,
     capabilities: fixtureCapabilities,
   });
   return {
     id: documentId,
+    uuid: crypto.randomUUID(),
     incarnationId: crypto.randomUUID(),
     revisionId: handle.revisionId.get(),
     rootArcRequestedBaseHash: rootCreationSelected

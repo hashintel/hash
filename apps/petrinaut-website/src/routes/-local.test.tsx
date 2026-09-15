@@ -117,6 +117,7 @@ test.each([
   "brunch-fixture=crew-reservation-v1&brunchTracer=root-arc",
   "brunchTracer=construction",
   "brunchTracer=root-creation",
+  "bundle=worked-model",
 ])(
   "keeps the explicit demo route %s without creating a local document",
   async (query) => {

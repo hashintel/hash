@@ -218,42 +218,62 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   return withIdentities;
 };
 
-const readStoredSDCPNs = (): LocalStorageSDCPNsStore => readLocalStorageNets(localStorage);
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
-const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
-  writeStore(localStorage, documents);
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
-
-export const readLocalStorageNets = (storage: Storage): Record<string, LocalStorageNetWithUuid> => {
+export const readLocalStorageNets = (
+  storage: Storage,
+): Record<string, LocalStorageNetWithUuid> => {
   const stored = readStore(storage);
   const usedUuids = new Set<string>();
-  const nets = Object.fromEntries(Object.entries(stored).map(([id, net]) => {
-    const candidate = net.uuid ?? net.id;
-    const uuid = uuidPattern.test(candidate) && !usedUuids.has(candidate.toLowerCase())
-      ? candidate.toLowerCase()
-      : crypto.randomUUID();
-    usedUuids.add(uuid);
-    return [id, { ...net, uuid }];
-  }));
-  if (Object.entries(nets).some(([id, net]) => stored[id]?.uuid !== net.uuid)) writeStore(storage, nets);
+  const nets = Object.fromEntries(
+    Object.entries(stored).map(([id, net]) => {
+      const candidate = net.uuid ?? net.id;
+      const uuid =
+        uuidPattern.test(candidate) && !usedUuids.has(candidate.toLowerCase())
+          ? candidate.toLowerCase()
+          : crypto.randomUUID();
+      usedUuids.add(uuid);
+      return [id, { ...net, uuid }];
+    }),
+  );
+  if (Object.entries(nets).some(([id, net]) => stored[id]?.uuid !== net.uuid))
+    writeStore(storage, nets);
   return nets;
 };
 
-export const saveLocalStorageNet = (storage: Storage, params: { petriNetDefinition: SDCPN; title: string }): LocalStorageNetWithUuid => {
+export const saveLocalStorageNet = (
+  storage: Storage,
+  params: { petriNetDefinition: SDCPN; title: string },
+): LocalStorageNetWithUuid => {
   const nets = readLocalStorageNets(storage);
   const net = createLocalStorageNetRecord(params);
   writeStore(storage, { ...nets, [net.id]: net });
   return net;
 };
 
-export const startEmptyNetInStorage = (storage: Storage): LocalStorageNetWithUuid => saveLocalStorageNet(storage, {
-  petriNetDefinition: emptySDCPN,
-  title: "New Process",
-});
+export const startEmptyNetInStorage = (
+  storage: Storage,
+): LocalStorageNetWithUuid =>
+  saveLocalStorageNet(storage, {
+    petriNetDefinition: emptySDCPN,
+    title: "New Process",
+  });
 
-export const getInitialLocalStorageNet = (storage: Storage): LocalStorageNetWithUuid =>
-  Object.values(readLocalStorageNets(storage)).toSorted((left, right) => new Date(right.lastUpdated).getTime() - new Date(left.lastUpdated).getTime())[0] ?? startEmptyNetInStorage(storage);
+export const getInitialLocalStorageNet = (
+  storage: Storage,
+): LocalStorageNetWithUuid =>
+  Object.values(readLocalStorageNets(storage)).toSorted(
+    (left, right) =>
+      new Date(right.lastUpdated).getTime() -
+      new Date(left.lastUpdated).getTime(),
+  )[0] ?? startEmptyNetInStorage(storage);
+
+const readStoredSDCPNs = (): LocalStorageSDCPNsStore =>
+  readLocalStorageNets(localStorage);
+
+const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
+  writeStore(localStorage, documents);
 
 export const useLocalStorageSDCPNs = (input?: {
   readonly enabled: boolean;

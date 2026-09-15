@@ -116,7 +116,11 @@ import {
 } from "./use-crew-reservation-fixture-session";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
-import { emptySDCPN, readLocalStorageNets, type LocalStorageNetWithUuid } from "./use-local-storage-sdcpns";
+import {
+  emptySDCPN,
+  readLocalStorageNets,
+  type LocalStorageNetWithUuid,
+} from "./use-local-storage-sdcpns";
 import {
   selectCrewReservationPreparationBrowser,
   usePrepareCrewReservationConversation,
@@ -475,20 +479,17 @@ export const LocalStorageDemoApp = ({
   const rootArcTracerSelected =
     crewReservationFixtureSelected &&
     (isRootArcTracerSelected(search) || constructionSelected);
-  const selectLocalRoute = useCallback(
-    () => {
-      if (onNetChange) return;
-      onSearchChange(
-        {
-          bundle: undefined,
-          "brunch-fixture": undefined,
-          brunchTracer: undefined,
-        },
-        "push",
-      );
-    },
-    [onNetChange, onSearchChange],
-  );
+  const selectLocalRoute = useCallback(() => {
+    if (onNetChange) return;
+    onSearchChange(
+      {
+        bundle: undefined,
+        "brunch-fixture": undefined,
+        brunchTracer: undefined,
+      },
+      "push",
+    );
+  }, [onNetChange, onSearchChange]);
   const { controller } = useDocumentController({
     bundleKey: search.bundle,
     chatEndpoint: brunchPreviewConfig.chatEndpoint,
