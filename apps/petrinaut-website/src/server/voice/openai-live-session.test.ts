@@ -198,7 +198,7 @@ describe("Live configuration and session creation", () => {
     },
   );
 
-  test("creates one client-delegated WebRTC session with trusted instructions and no tools", async () => {
+  test("creates one client-delegated WebRTC session with Brunch-authoritative delivery instructions and no tools", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(
         {
@@ -229,7 +229,7 @@ describe("Live configuration and session creation", () => {
         delegation: { type: "client" },
         store: false,
         instructions: expect.stringMatching(
-          /Interview approach:[\s\S]*Backchannel policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:\nBackend tools:\n- None\.[\s\S]*Delegate to the backend when:\n- Never in this experiment[\s\S]*Do not delegate to the backend when:[\s\S]*Never claim that anything was changed, executed, or saved\./,
+          /Backchannel policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:[\s\S]*Backend tools:[\s\S]*Brunch:[\s\S]*Delegate to the backend when:[\s\S]*Do not delegate to the backend when:[\s\S]*Delegate before giving an answer that depends on backend work\. Do not guess the result while waiting\.[\s\S]*Brunch is the sole authority[\s\S]*You have no tools[\s\S]*supplied settled Brunch context[\s\S]*best-effort/i,
         ) as unknown,
         audio: { output: { voice: "marin" } },
       },
@@ -249,6 +249,7 @@ describe("Live configuration and session creation", () => {
       fetch,
     })(request());
     expect(response.status).toBe(502);
+    expect(response.headers.get("x-voice-upstream-status")).toBe("429");
     expect(await response.text()).not.toContain("server-only-secret");
     expect(fetch).toHaveBeenCalledTimes(1);
   });

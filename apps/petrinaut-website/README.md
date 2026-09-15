@@ -146,15 +146,14 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
-### Experimental Live interview (FE-1663)
+### Experimental Brunch-backed Live interview (FE-1664)
 
-`PETRINAUT_VOICE_PROVIDER=live` selects a standalone GPT-Live-1 conversation
-inside the existing Voice entry. **It is not Brunch output.** It cannot see or
-submit chat, execute tools, or change the model/workpiece. No experimental
-transcripts are displayed or saved. The server uses client delegation, not
-managed Responses; transcript deltas and delegation metadata are ignored.
-The short process-interview prompt is conversational guidance, not a domain
-system or a guarantee of model compliance.
+`PETRINAUT_VOICE_PROVIDER=live` uses GPT-Live-1 for conversational audio while a
+separate `gpt-4o-transcribe` session supplies finalized user text to Brunch.
+Brunch remains the canonical conversation, domain and tool authority. Settled
+Brunch prose is offered to Live as delegation-correlated commentary; Live has no
+tools and must not answer domain questions independently. These instructions are
+best effort, not an enforced speech boundary.
 
 From the repository root, with `OPENAI_VOICE_API_KEY` already exported (or in
 this worktree's `apps/petrinaut-website/.env.local`):
@@ -165,24 +164,27 @@ turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-webs
 yarn workspace @apps/petrinaut-website codegen
 yarn workspace @apps/petrinaut-website examples:generate
 
-# Standalone Live needs only the existing panel launcher, not a running Brunch server.
-PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunch:panel
+# Live input and answers use the existing Brunch route.
+PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunch
 ```
 
 Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
 and select the waveform **Start voice mode** action in the empty composer.
-Read the experimental label, check consent, then choose **Start voice**.
+Read the short audio-processing disclosure, allow microphone audio for voice and
+transcription, then choose **Start voice**. **Cancel** returns to text without starting a session.
 Only that last action requests microphone access and a billable Live session.
 Use headphones for the first trial. HTTPS or localhost and an OpenAI project
 with GPT-Live-1 access are required.
 
-Once connected, the existing Voice dock replaces the composer with
-**Listening** or **Speaking**, collapse/expand and **End voice mode**.
-The experimental label appears only during consent. Local WebRTC audio levels
+Once connected, the Voice dock replaces the composer. It shows **Thinking** while
+a Brunch request is submitted or streaming, **Speaking** during active playback,
+and **Listening** when both are idle. Connection and error states take precedence.
+Thinking is a local work indicator, not a spoken progress update.
+The consent panel uses a plain voice-permission heading. Local WebRTC audio levels
 drive the microphone ribbon and Speaking indicator; Listening means the session
 is open for input, including while output is active. These are activity indicators,
 not authoritative turn boundaries or proof of heard playback. Browsers without
-audio-level telemetry retain Listening without an animated input level.
+audio-level telemetry omit the animated input level; Brunch work still shows Thinking.
 There is no separate experiment panel, replay menu, or microphone toggle.
 Connection errors return to setup; starting again requires fresh consent.
 Brief WebRTC interruptions show **Connecting** while the existing session has up
@@ -190,13 +192,10 @@ to the connection timeout (15 seconds by default) to recover. Media stays open;
 no new session is created and no input is replayed. End still stops both directions
 immediately. A failed connection or an expired recovery deadline ends the session.
 
-**End voice mode**, **Exit experiment** during setup, closing the panel, switching to text,
-changing conversation, and leaving the page stop local experimental capture
-and playback. Stop requests `session.close` only after `session.started` and
-waits up to two seconds for `session.closed` before releasing the transport.
-Local silence is not proof of remote closure or final usage. Connection failures are not retried.
-Starting again creates a new session with fresh consent; there is no resume,
-replay, "Your turn", or fabricated Realtime terminal lifecycle.
+**End voice mode**, **Cancel** during setup, closing the panel, switching to text,
+changing conversation, and leaving the page stop both Voice transports and local
+capture. Starting again creates fresh Live and transcription sessions; there is
+no resume, replay, automatic retry, or input resubmission.
 
 To return to the **unchanged integrated Realtime path**, Exit, stop the panel
 dev command with Ctrl-C, configure the existing local Brunch environment, and run:
@@ -215,28 +214,21 @@ the website's generic Turbo `dev` task does not forward arbitrary shell variable
 
 #### Manual test — 10–15 minutes
 
-1. **3 minutes:** explain a familiar process. Let Live ask relevant follow-ups.
-2. **2 minutes:** hesitate, pause, answer with one word, then elaborate. Note
-   whether it leaves room and follows the meaning rather than guessing a turn end.
-3. **2 minutes:** interrupt mid-sentence and correct an earlier detail. Note
-   whether the correction is retained and the interview advances.
-4. **2 minutes:** speak while Live responds. Listen for lost words, overlap,
-   unwanted acknowledgements, and long monologues. A button click is not an
-   acoustic-interruption test.
-5. **2–4 minutes:** End voice mode and check the browser microphone indicator and actual
-   speaker silence. Change to Realtime using the commands above, reload,
-   and begin a fresh session. Confirm the experiment added no canonical chat
-   messages or model changes.
+1. Explain a familiar process and answer one Brunch follow-up.
+2. Hesitate, elaborate, and correct a consequential detail. Confirm each retained
+   finalized utterance appears once in canonical history and later questions use
+   the correction.
+3. Request one available model operation. Compare the spoken result with settled
+   Brunch text and inspect the actual workpiece/model effect.
+4. Speak while Live responds and interrupt it acoustically. Record lost input,
+   overlap, unsupported acknowledgements, independent questions, or unsupported
+   completion claims separately from canonical Brunch behavior.
+5. End Voice mode and confirm microphone capture and speaker playback stop.
 
-Record **feeling heard and advancing the interview** separately from transport
-correctness. Note browser/headset, representative pauses/corrections, and which
-responses were excessive or useful. Prior relay/rephrasing/harness evidence is
-not a passing comparative baseline. This experiment has no audio harness or
-synthetic recordings.
-
-The intended successor is **Experiment Live Full Brunch Integration**, stacked
-on this branch; it is not implemented here. See [MISSION.md](MISSION.md) for
-the authority boundary and unresolved finalization/output-control questions.
+Use headphones while the known phantom-input risk is investigated. Server VAD can
+split hesitation into multiple finalized items, and the existing one-waiting-input
+policy may not retain all of them. See [MISSION.md](MISSION.md) for the current
+acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 

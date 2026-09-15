@@ -32,7 +32,9 @@ export type PetrinautAiVoiceSessionState = {
   microphoneMuted: boolean;
   /** Normalized 0–1 input level driving the listening indicator. */
   microphoneLevel: number;
-  /** Recoverable feedback about an utterance which was not submitted. */
+  /** Temporary operational status shown in place of the current phase. */
   notice?: string | null;
   phase: PetrinautAiVoiceSessionPhase;
+  /** Recoverable issue retained behind the Voice warning indicator. */
+  warningMessage?: string | null;
 };

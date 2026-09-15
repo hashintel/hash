@@ -1852,7 +1852,9 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(textarea.value).toBe("Keep this draft");
     expect(textarea.disabled).toBe(false);
     expect(latestVoiceContext?.inputMode).toBe("voice");
-    expect(screen.getByText("Voice invalidation failed.")).not.toBeNull();
+    expect(
+      await screen.findByText("Voice invalidation failed."),
+    ).not.toBeNull();
   });
 
   test("restores a typed draft when its post-Voice message submission rejects", async () => {
@@ -3344,7 +3346,7 @@ describe("AiAssistantPanel composer submissions", () => {
       await act(async () => latest?.stop());
       expect(requestStop).toHaveBeenCalledOnce();
       expect(
-        screen.getAllByText(/Durable stop failed/u).length,
+        (await screen.findAllByText(/Durable stop failed/u)).length,
       ).toBeGreaterThan(0);
 
       await act(async () => {

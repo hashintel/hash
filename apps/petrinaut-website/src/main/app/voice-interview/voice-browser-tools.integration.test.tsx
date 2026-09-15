@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
@@ -46,6 +46,13 @@ vi.hoisted(() => {
     },
   });
 });
+
+beforeAll(async () => {
+  // The real panel loads Monaco lazily. Resolve its browser capability checks
+  // during setup, rather than letting an import failure race a later test.
+  // Cold transforms exceeded the default 10s when the full suite ran in parallel.
+  await import("monaco-editor");
+}, 30_000);
 
 const VoiceObserver = ({
   current,
