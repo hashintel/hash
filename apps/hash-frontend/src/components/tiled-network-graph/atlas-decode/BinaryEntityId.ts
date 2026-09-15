@@ -1,5 +1,5 @@
 import * as Result from "./Result";
-import { TaggedError } from "./TaggedError";
+import * as TaggedError from "./TaggedError";
 
 /** Invalid identity storage or an index outside an identity column. */
 export type BinaryEntityIdErrorReason =
@@ -12,7 +12,7 @@ export type BinaryEntityIdErrorReason =
     };
 
 /** A malformed entity identity or an invalid column lookup. */
-export class BinaryEntityIdError extends TaggedError<
+export class BinaryEntityIdError extends TaggedError.TaggedError<
   "BinaryEntityIdError",
   BinaryEntityIdErrorReason
 > {

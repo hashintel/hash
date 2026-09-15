@@ -1,5 +1,5 @@
 import * as Result from "./Result";
-import { TaggedError } from "./TaggedError";
+import * as TaggedError from "./TaggedError";
 
 import type { Brand } from "@blockprotocol/type-system";
 
@@ -32,7 +32,7 @@ export type DecoderErrorReason =
     };
 
 /** A rejected byte read with its range or UTF-8 failure. */
-export class DecoderError extends TaggedError<
+export class DecoderError extends TaggedError.TaggedError<
   "DecoderError",
   DecoderErrorReason
 > {
