@@ -24,6 +24,16 @@ The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin 
 In production, the functions in the `api` folder are automatically deployed as
 Vercel Functions.
 
+## Petricon
+
+`/petricon` is the interactive icon collection. Browse the symbols, adjust their
+weight and timing, compare states, and copy React examples. Modeling studies offer
+three alternatives each for equations, parameters, variables, token types, and
+subnets, with action and progressive drawing playback. The inspector supports
+drawing order and manual progress. Math, code, and AI studies offer paired
+alternatives. The page uses the same Petricon
+renderer as the editor.
+
 ## Starting a new net
 
 `/new` creates an empty net in local storage and redirects to the editable demo,

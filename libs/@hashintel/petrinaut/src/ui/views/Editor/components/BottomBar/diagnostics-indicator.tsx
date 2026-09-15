@@ -1,9 +1,14 @@
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
+import {
+  DiagnosticsIcon,
+  useExperimentalIconMotionAllowed,
+  useExperimentalIconPackEnabled,
+} from "../../../../experimental-icons";
 import { ToolbarButton } from "./toolbar-button";
 
 const iconContainerStyle = cva({
@@ -38,6 +43,75 @@ const countStyle = css({
   fontWeight: "medium",
 });
 
+const animatedContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  fontSize: "sm",
+  lineHeight: "[20px]",
+  fontVariantNumeric: "tabular-nums",
+  "& > svg": { flexShrink: "0", position: "relative", zIndex: "[1]" },
+});
+
+const countWindowStyle = css({
+  flexShrink: "0",
+  overflow: "hidden",
+  maskImage: "[linear-gradient(to right, transparent, black 4px)]",
+});
+
+const animatedCountStyle = css({
+  display: "block",
+  paddingLeft: "[4px]",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+});
+
+const AnimatedDiagnosticsContents = ({
+  count,
+  status,
+  motionAllowed,
+}: {
+  count: number;
+  status: "valid" | "warning" | "error";
+  motionAllowed: boolean;
+}) => {
+  const [displayedCount, setDisplayedCount] = useState(count);
+  if (count > 0 && count !== displayedCount) {
+    setDisplayedCount(count);
+  }
+  const hasIssues = count > 0;
+  const timing = "320ms cubic-bezier(0.2, 0, 0.2, 1)";
+
+  return (
+    <div className={animatedContainerStyle}>
+      <DiagnosticsIcon status={status} size={16} duration={320} />
+      <span
+        className={countWindowStyle}
+        data-diagnostic-count=""
+        aria-hidden="true"
+        style={{
+          width: hasIssues
+            ? `calc(${String(displayedCount).length}ch + 4px)`
+            : "0px",
+          transition: motionAllowed ? `width ${timing}` : "none",
+        }}
+      >
+        <span
+          className={animatedCountStyle}
+          style={{
+            transform: hasIssues ? "translateX(0px)" : "translateX(-14px)",
+            opacity: hasIssues ? 1 : 0,
+            transition: motionAllowed
+              ? `transform ${timing}, opacity ${timing}`
+              : "none",
+          }}
+        >
+          {displayedCount}
+        </span>
+      </span>
+    </div>
+  );
+};
+
 interface DiagnosticsIndicatorProps {
   onClick: () => void;
   isExpanded: boolean;
@@ -59,6 +133,9 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
 
   const hasErrors = errorDiagnosticsCount > 0;
   const hasIssues = totalDiagnosticsCount > 0;
+  const experimentalIcons = useExperimentalIconPackEnabled();
+  const motionAllowed = useExperimentalIconMotionAllowed();
+  const status = hasErrors ? "error" : hasIssues ? "warning" : "valid";
 
   return (
     <ToolbarButton
@@ -70,19 +147,42 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
           : "No diagnostic issues"
       }
       ariaExpanded={isExpanded}
+      style={
+        experimentalIcons
+          ? {
+              width: "auto",
+              minWidth: 32,
+              flexShrink: 0,
+              transition: motionAllowed ? undefined : "none",
+            }
+          : undefined
+      }
     >
       <div
         className={iconContainerStyle({
           status: hasErrors ? "error" : hasIssues ? "warning" : "success",
         })}
+        style={
+          experimentalIcons
+            ? {
+                transition: motionAllowed
+                  ? "background-color 320ms ease, color 320ms ease"
+                  : "none",
+              }
+            : undefined
+        }
       >
-        {hasIssues ? (
-          <>
-            <Icon name="close" size="sm" />
-            <span className={countStyle}>{totalDiagnosticsCount}</span>
-          </>
+        {experimentalIcons ? (
+          <AnimatedDiagnosticsContents
+            count={totalDiagnosticsCount}
+            status={status}
+            motionAllowed={motionAllowed}
+          />
         ) : (
-          <Icon name="check" size="sm" />
+          <Icon name={hasIssues ? "close" : "check"} size="sm" />
+        )}
+        {!experimentalIcons && hasIssues && (
+          <span className={countStyle}>{totalDiagnosticsCount}</span>
         )}
       </div>
     </ToolbarButton>

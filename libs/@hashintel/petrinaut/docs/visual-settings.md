@@ -8,6 +8,82 @@ preferences and are not reverted by browser navigation.
 
 ## Available settings
 
+### Petricon
+
+In the **Viewport** section, turn on **Petricon (Experimental)** to use Petricon, Petrinaut's
+custom icons for entities, playback, zoom, and navigation. The pack includes the
+sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
+buttons, settings gears, editing actions, diagnostics, simulation and data views,
+and assistant and voice controls, including icons inside shared menus and forms.
+Checkbox marks and loading indicators keep their default appearance.
+The change applies immediately, and turning it off
+restores the default icons.
+
+**Add Place** and **Add Transition** show a plain circle and square. Hover over
+either button to reveal a plus at the bottom-right of its shape; the plus disappears
+when you move away. Selecting either tool fills its icon and plays a short bounce. Turning off **Animations** below keeps the selection feedback and removes
+the motion. Icons also respect your device's reduced-motion preference.
+The sidebar toggle keeps a thin line near the left edge of its frame when the
+sidebar is collapsed. Hovering makes it thicker and moves it slightly right.
+When open, the full-height divider sits left of center and nudges a little
+left on hover to suggest closing. The outer frame stays still.
+Settings gears have sharp teeth and turn slightly while their menu is open,
+returning to their resting angle when it closes. Turning off **Animations**
+changes the angle immediately.
+
+Other interactive icons give small action hints on hover: the trash lid lifts,
+the copy sheets separate, and arrows move slightly in their direction. The main
+menu icon changes when its menu opens, the playback icon changes between play
+and pause, and the microphone draws a slash when muted. These transitions follow
+the control's state. Decorative icons stay still, and disabled controls do not
+animate. The **Animations** setting and your device's reduced-motion preference
+apply throughout the pack.
+
+Clicking an action icon gives a brief response that follows its purpose: arrows
+move in their direction, sheets separate for copying, and parameter knobs scrub
+along their tracks. These movements settle back without changing the control's
+meaning. Controls with a persistent state keep their existing state animation.
+
+**Recent changes** uses a clock with a return arrow. Hovering or opening its menu
+briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
+quarter-turn when clicked. The click turn finishes even if you move the pointer
+or keyboard focus away; rear edges stay hidden throughout the turn.
+
+The running-person icon runs in place while you hover over its control or focus
+it with the keyboard. Clicking makes it jump, then land and continue running
+until you move away or move keyboard focus elsewhere.
+
+The AI assistant button uses a robot head. Hovering makes its eyes blink and
+its antenna move briefly before settling.
+
+Hovering over **Edit** turns the triangle toward the right, tilts the square and
+diamond separately, and nudges the circle. Selecting **Edit** moves the shapes
+into a different resting arrangement, which stays until you leave Edit mode.
+Both resting states keep the shapes aligned and the square upright.
+Hovering while Edit is selected adds smaller movements to that arrangement.
+
+Hovering over a parameter icon briefly scrubs its slider knobs along their tracks,
+then returns them to their starting positions. The tracks stay horizontal. This
+is a visual preview; your parameter values stay the same.
+
+In **Simulate**, the **Experiments** flask has a flat liquid surface at rest.
+Hovering sends a wave across the liquid, which then settles back to flat even if
+you move away. The glass stays still, and the shaded fill makes the fluid visible
+at small sizes. Selecting
+it raises the liquid slightly. The **Scenarios** icon gently separates its layers
+on hover and selection. Both respond quickly to pressing and settle when released;
+moving away returns them to the selected or unselected appearance.
+
+The diagnostics indicator transitions between a green check when valid, an
+amber exclamation mark for warnings, and a red cross for errors. The same two
+strokes move and change length between these shapes. The issue count slides
+out from behind the icon with a soft fade, and the badge smoothly resizes around
+it. Resolving every issue slides the count back away. These animations follow
+validation results; clicking the indicator opens Diagnostics.
+
+The pack is off by default. Your choice is saved in this browser and restored
+when you reopen Petrinaut.
+
 ### Animations
 
 Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues. The results drawers follow it too: the header's condensing, the cards' folds and bar fills, and the purple pulse of a sweep's **Parameters** card while the optimizer drives it all hold still when animations are off, or when your system asks for reduced motion.

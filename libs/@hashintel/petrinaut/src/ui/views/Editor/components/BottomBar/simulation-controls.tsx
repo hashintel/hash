@@ -6,6 +6,10 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import {
+  PlaybackIcon,
+  useExperimentalIconPackEnabled,
+} from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
@@ -112,6 +116,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   allowedPlaybackSpeeds,
 }) => {
   const presentation = usePetrinautPresentation();
+  const experimentalIcons = useExperimentalIconPackEnabled();
   const { dt, state: simulationState, reset } = use(SimulationContext);
 
   const {
@@ -236,7 +241,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isPlaybackPlaying ? (
+        {experimentalIcons ? (
+          <PlaybackIcon playing={isPlaybackPlaying} duration={200} />
+        ) : isPlaybackPlaying ? (
           <Icon name="pauseFilled" />
         ) : (
           <Icon name="playFilled" />

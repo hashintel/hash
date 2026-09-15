@@ -92,6 +92,11 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, keepPanelsMounted: value })),
     setCompactNodes: (value: boolean) =>
       setState((prev) => ({ ...prev, compactNodes: value })),
+    setEnableExperimentalIconPack: (value: boolean) =>
+      setState((settings) => ({
+        ...settings,
+        enableExperimentalIconPack: value,
+      })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
     setCursorMode: (value: CursorMode) =>

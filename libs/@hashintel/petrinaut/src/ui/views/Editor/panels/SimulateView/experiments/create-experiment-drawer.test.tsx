@@ -270,6 +270,7 @@ const TestProviders = ({
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
+    setEnableExperimentalIconPack: () => {},
     setArcRendering: () => {},
     setCursorMode: () => {},
     setIsLeftSidebarOpen: () => {},

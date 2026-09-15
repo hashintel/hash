@@ -94,6 +94,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setKeepPanelsMounted,
     compactNodes,
     setCompactNodes,
+    enableExperimentalIconPack,
+    setEnableExperimentalIconPack,
     arcRendering,
     setArcRendering,
     showMinimap,
@@ -138,6 +140,24 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
       <Dialog.Header title="Settings" />
       <Dialog.Body>
         <h3 className={sectionTitleStyle}>Viewport</h3>
+        <SettingRow
+          label={
+            <>
+              Petricon{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Animated SVG icons made for Petrinaut."
+        >
+          <Toggle
+            aria-label="Petricon experimental icon pack"
+            value={enableExperimentalIconPack}
+            onChange={setEnableExperimentalIconPack}
+            size="sm"
+          />
+        </SettingRow>
         <SettingRow
           label="Minimap"
           description="Show an overview minimap in the top-right corner"
