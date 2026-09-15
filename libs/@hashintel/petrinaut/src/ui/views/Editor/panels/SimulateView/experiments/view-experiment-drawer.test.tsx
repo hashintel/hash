@@ -246,6 +246,21 @@ const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
 });
 
 describe("ViewExperimentDrawer in the frame", () => {
+  it("renders inline results with the same status and no dialog", () => {
+    render(
+      <ViewExperimentDrawer
+        open
+        experiment={sweep}
+        onClose={() => {}}
+        presentation="inline"
+      />,
+    );
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Running")).toBeTruthy();
+    expect(screen.getByText("CPU")).toBeTruthy();
+  });
+
   it("titles the drawer in one line and puts the stats and the badge in the header", () => {
     renderDrawer(sweep);
 
