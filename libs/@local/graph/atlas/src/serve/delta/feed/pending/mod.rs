@@ -329,6 +329,7 @@ impl Pending {
             let Stage::Capture(geometry) = update.stage else {
                 continue;
             };
+
             let Some(Some(DisplayParts {
                 label,
                 icon,
@@ -337,6 +338,7 @@ impl Pending {
             else {
                 continue;
             };
+
             let Some((representative, registered)) = delta.register_ontology(representative, icon)
             else {
                 tracing::warn!(entity = ?update.event.entity, "No ontology row remains for the display");
@@ -363,10 +365,12 @@ impl Pending {
     /// Panics under the revision conditions on [`Delta::update_node`] and [`Delta::update_edge`].
     pub(super) fn apply(&mut self, delta: &mut Delta) -> bool {
         let mut changed = false;
+
         self.updates.retain(|&entity, update| {
             let Stage::Ready { geometry, legend } = &update.stage else {
                 return true;
             };
+
             let outcome = match *geometry {
                 Geometry::Node(position) => delta.update_node(entity, legend.clone(), position),
                 Geometry::Edge(Some([source, target])) => {
@@ -375,6 +379,7 @@ impl Pending {
                     else {
                         return true;
                     };
+
                     delta.update_edge(entity, legend.clone(), Some([source, target]))
                 }
                 Geometry::Edge(None) => return true,
@@ -384,9 +389,11 @@ impl Pending {
                 tracing::warn!(?entity, "No entity row remains for the update");
                 return true;
             };
+
             changed |= applied;
             false
         });
+
         changed
     }
 }
