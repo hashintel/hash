@@ -381,7 +381,7 @@ export const VoiceSessionListening: Story = {
   ),
 };
 
-export const VoiceSessionLongNotice: Story = {
+export const VoiceSessionLongWarning: Story = {
   render: () => (
     <Frame
       initialVoiceDockCollapsed
@@ -390,7 +390,7 @@ export const VoiceSessionLongNotice: Story = {
       voiceModeAvailable
       voiceSession={liveSession({
         phase: "connected",
-        notice:
+        warningMessage:
           "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
       })}
     />
@@ -406,7 +406,7 @@ export const VoiceSessionInputNotRetained: Story = {
       voiceModeAvailable
       voiceSession={liveSession({
         phase: "connected",
-        notice:
+        warningMessage:
           "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       })}
     />

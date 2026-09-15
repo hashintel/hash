@@ -9,6 +9,7 @@ import {
   useVoiceSessionCanTakeTurn,
   useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
+  useVoiceSessionNotice,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
@@ -128,6 +129,7 @@ export type VoiceDockProps = {
   indicator?: ReactNode;
   interruptionBySpeaking?: boolean;
   microphoneMuted: boolean;
+  notice?: string | null;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
@@ -149,6 +151,7 @@ export const VoiceDock = ({
   indicator,
   interruptionBySpeaking = false,
   microphoneMuted,
+  notice,
   onCollapsedEnd,
   onCollapsedToggle,
   phase,
@@ -168,7 +171,7 @@ export const VoiceDock = ({
   const statusLabel =
     purpose === "setup"
       ? voiceSetupLabels.status
-      : voiceSessionStatusLabel(phase);
+      : (notice ?? voiceSessionStatusLabel(phase));
 
   return (
     <section
@@ -325,6 +328,7 @@ export const LiveVoiceDock = ({
   const canTakeTurn = useVoiceSessionCanTakeTurn();
   const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
+  const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
 
   if (phase === null) {
@@ -342,6 +346,7 @@ export const LiveVoiceDock = ({
       errorIndicator={errorIndicator}
       interruptionBySpeaking={interruptionBySpeaking}
       microphoneMuted={microphoneMuted}
+      notice={notice}
       onCollapsedEnd={onCollapsedEnd}
       onCollapsedToggle={onCollapsedToggle}
       phase={phase}

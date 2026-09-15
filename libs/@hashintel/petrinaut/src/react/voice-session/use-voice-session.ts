@@ -113,6 +113,16 @@ export const useVoiceSessionNotice = (): string | null => {
   );
 };
 
+export const useVoiceSessionWarningMessage = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.warningMessage ?? null,
+    () => null,
+  );
+};
+
 export const useVoiceSessionInterruptionBySpeaking = (): boolean => {
   const store = use(VoiceSessionContext);
   return useSyncExternalStore(

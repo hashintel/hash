@@ -22,8 +22,8 @@ import {
 import { EditorContext } from "../../../../../react/state/editor-context";
 import {
   useVoiceSessionErrorMessage,
-  useVoiceSessionNotice,
   useVoiceSessionPhase,
+  useVoiceSessionWarningMessage,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
@@ -566,7 +566,7 @@ export const AiAssistantContents = ({
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
-  const voiceSessionNotice = useVoiceSessionNotice();
+  const voiceSessionWarningMessage = useVoiceSessionWarningMessage();
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
@@ -695,13 +695,13 @@ export const AiAssistantContents = ({
     recordVoiceAlert(voiceSessionErrorMessage);
   }, [voiceSessionErrorMessage, voiceSessionPhase]);
 
-  // Admission uncertainty and unretained input need the same on-demand recovery
-  // details even while Voice remains connected or listening.
+  // Host-designated recoverable issues need the same on-demand details even
+  // while Voice remains connected or listening.
   useEffect(() => {
-    if (voiceSessionNotice) {
-      recordVoiceAlert(voiceSessionNotice);
+    if (voiceSessionWarningMessage) {
+      recordVoiceAlert(voiceSessionWarningMessage);
     }
-  }, [voiceSessionNotice]);
+  }, [voiceSessionWarningMessage]);
 
   const voiceAlertIndicator =
     isOpen && voiceAlerts.length > 0 ? (

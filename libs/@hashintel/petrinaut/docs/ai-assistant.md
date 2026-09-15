@@ -89,13 +89,14 @@ flicker above the line. While the assistant speaks the ribbon takes on a restrai
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
 
-Voice failures and session notices, including unconfirmed submissions and input that was not
-retained, join the Voice warning indicator rather than appearing below the controls or as global
-notifications. Hover to preview or click to read the complete details, including while the panel is
-collapsed. Distinct issues share one icon with a count; long details wrap and scroll in the popover,
-where they can be copied or dismissed with **Dismiss Voice issues**. Issues stay in the list until
-dismissed or the chat is cleared; dismissing them does not trigger a retry or mean that unsent input
-was retained.
+Voice failures and recovery warnings, including unconfirmed submissions and input that was not
+retained, join the Voice warning indicator rather than appearing as global notifications. Hover to
+preview or click to read the complete details, including while the panel is collapsed. Distinct
+issues share one icon with a count; long details wrap and scroll in the popover, where they can be
+copied or dismissed with **Dismiss Voice issues**. Issues stay in the list until dismissed or the
+chat is cleared; dismissing them does not trigger a retry or mean that unsent input was retained.
+Temporary status notices, such as a pending handoff, replace the short dock state only while they
+apply and do not become Voice issues.
 
 Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
 stays current while the session runs and tools that edit the net remain visible. Select **Collapse

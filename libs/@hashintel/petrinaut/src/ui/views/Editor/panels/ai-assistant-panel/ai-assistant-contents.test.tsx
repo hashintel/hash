@@ -835,13 +835,22 @@ describe("AiAssistantContents", () => {
     });
     expect(
       within(dock).getByRole("status", { name: "Voice status" }).textContent,
-    ).toBe("Voice status: Listening");
+    ).toBe("Voice status: We didn't catch that. Please try again.");
     expect(
-      screen.queryByText("We didn't catch that. Please try again."),
-    ).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Show 1 Voice issue" }),
+      within(dock).getByText("We didn't catch that. Please try again."),
     ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /Show .*Voice issue/ }),
+    ).toBeNull();
+    act(() => {
+      store.setState({
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        notice: null,
+        phase: "listening",
+      });
+    });
     expect(within(dock).getByText("Listening")).toBeTruthy();
   });
 
@@ -849,15 +858,15 @@ describe("AiAssistantContents", () => {
     "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
     "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
   ])(
-    "contains a session notice in the warning popover until dismissed: %s",
-    async (notice) => {
+    "contains a session warning in the warning popover until dismissed: %s",
+    async (warningMessage) => {
       const store = createVoiceSessionStore();
       const state = {
         errorMessage: null,
         microphoneLevel: 0,
         microphoneMuted: false,
-        notice,
         phase: "connected" as const,
+        warningMessage,
       };
       store.setState(state);
       const end = vi.fn();
@@ -881,30 +890,30 @@ describe("AiAssistantContents", () => {
       );
       const dock = screen.getByTestId("ai-voice-dock");
       expect(within(dock).getByText("Connected")).toBeTruthy();
-      expect(screen.queryByText(notice)).toBeNull();
+      expect(screen.queryByText(warningMessage)).toBeNull();
       expect(within(dock).getByRole("status").textContent).toBe(
         "Voice status: Connected",
       );
       fireEvent.click(
         within(dock).getByRole("button", { name: "Show 1 Voice issue" }),
       );
-      expect(await screen.findByText(notice)).toBeTruthy();
-      expect(within(dock).queryByText(notice)).toBeNull();
+      expect(await screen.findByText(warningMessage)).toBeTruthy();
+      expect(within(dock).queryByText(warningMessage)).toBeNull();
       expect(
-        screen.getByText(notice).closest('[data-scope="toast"]'),
+        screen.getByText(warningMessage).closest('[data-scope="toast"]'),
       ).toBeNull();
       act(() => {
         store.setState({ ...state, phase: "thinking", microphoneLevel: 0.5 });
       });
-      expect(screen.getAllByText(notice)).toHaveLength(1);
+      expect(screen.getAllByText(warningMessage)).toHaveLength(1);
       act(() => {
-        store.setState({ ...state, notice: null });
+        store.setState({ ...state, warningMessage: null });
       });
-      expect(screen.getByText(notice)).toBeTruthy();
+      expect(screen.getByText(warningMessage)).toBeTruthy();
       fireEvent.click(
         screen.getByRole("button", { name: "Dismiss Voice issues" }),
       );
-      expect(screen.queryByText(notice)).toBeNull();
+      expect(screen.queryByText(warningMessage)).toBeNull();
       expect(
         screen.queryByRole("button", { name: /Show .*Voice issue/ }),
       ).toBeNull();
