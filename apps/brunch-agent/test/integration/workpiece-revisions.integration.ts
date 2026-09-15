@@ -144,15 +144,9 @@ const probe = async () => {
         elements: [],
       } satisfies PetrinautAiToolInput<"addType">;
       const generated = names.map((name) =>
-        fauxToolCall(
-          name,
-          name === "addType"
-            ? typeInput
-            : name === "mutate_workpiece"
-              ? { markdown }
-              : { question: "What remains unknown?" },
-          { id: `${caseId}-${name}` },
-        ),
+        fauxToolCall(name, name === "addType" ? typeInput : { markdown }, {
+          id: `${caseId}-${name}`,
+        }),
       );
       const contextStart = contexts.length;
       faux.setResponses([

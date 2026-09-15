@@ -60,7 +60,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
     const construction = readSkillFile("references/pn-construction.md");
 
     expect(instructions).toContain(
-      "returned Markdown, `revisionId`, and `sha256` as authoritative",
+      "submitted Markdown with its returned `revisionId` and `sha256` as authoritative",
     );
     expect(instructions).toContain(
       "Only when immediate construction needs settled-revision spans",

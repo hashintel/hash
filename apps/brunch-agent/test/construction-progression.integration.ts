@@ -52,7 +52,11 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { browserResultFrom, type BrowserResult } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+  type BrowserResult,
+} from "./browser-result.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -297,8 +301,8 @@ try {
     ...settle(quote, "construction-revision-one"),
     (context) => {
       const result = browserResult(context, readPetrinautNetToolName);
-      const observation = result.metadata?.observation;
-      assert(observation && basis);
+      const observation = modelVisibleObservationFrom(result);
+      assert(basis);
       const definition = (result.output as { definition: unknown })
         .definition as {
         places: { id: string; name: string }[];
@@ -320,7 +324,7 @@ try {
         brunch: {
           basis,
           observationToolCallId: observation.toolCallId,
-          requestedBaseHash: observation.observed.sha256,
+          requestedBaseHash: observation.sha256,
         },
       };
       completed++;
@@ -380,8 +384,8 @@ try {
     ...settle(corrected, "construction-revision-two"),
     (context) => {
       const result = browserResult(context, readPetrinautNetToolName);
-      const observation = result.metadata?.observation;
-      assert(observation && basis && firstCall);
+      const observation = modelVisibleObservationFrom(result);
+      assert(basis && firstCall);
       const { type: _type, brunch: _brunch, ...canonical } = firstCall;
       secondCall = {
         ...canonical,
@@ -389,7 +393,7 @@ try {
         brunch: {
           basis,
           observationToolCallId: observation.toolCallId,
-          requestedBaseHash: observation.observed.sha256,
+          requestedBaseHash: observation.sha256,
         },
       };
       completed++;
@@ -404,9 +408,9 @@ try {
       return tool(readPetrinautNetToolName, {}, "construction-why-read");
     },
     (context) => {
-      const observation = browserResult(context, readPetrinautNetToolName)
-        .metadata?.observation;
-      assert(observation);
+      const observation = modelVisibleObservationFrom(
+        browserResult(context, readPetrinautNetToolName),
+      );
       return tool(
         "query_workpiece",
         {
@@ -565,16 +569,17 @@ try {
   faux.setResponses([
     tool(readPetrinautNetToolName, {}, "before-hand-edit"),
     (context) => {
-      const observation = browserResult(context, readPetrinautNetToolName)
-        .metadata?.observation;
-      assert(observation && secondCall);
+      const observation = modelVisibleObservationFrom(
+        browserResult(context, readPetrinautNetToolName),
+      );
+      assert(secondCall);
       staleCall = {
         ...secondCall,
         weight: 4,
         brunch: {
           basis,
           observationToolCallId: observation.toolCallId,
-          requestedBaseHash: observation.observed.sha256,
+          requestedBaseHash: observation.sha256,
         },
       };
       return text("Read before the deliberate external edit.");
@@ -640,9 +645,9 @@ try {
   faux.setResponses([
     tool(readPetrinautNetToolName, {}, "hand-edit-why-read"),
     (context) => {
-      const observation = browserResult(context, readPetrinautNetToolName)
-        .metadata?.observation;
-      assert(observation);
+      const observation = modelVisibleObservationFrom(
+        browserResult(context, readPetrinautNetToolName),
+      );
       return tool(
         "query_workpiece",
         {

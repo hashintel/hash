@@ -145,7 +145,11 @@ try {
   faux.setResponses([
     call(
       "read_workpiece",
-      { markdown, locateTexts: ["Reserve one crew."] },
+      {
+        includeSources: true,
+        markdown,
+        locateTexts: ["Reserve one crew."],
+      },
       "discover-sources",
     ),
     (context) => {
@@ -286,7 +290,11 @@ try {
   faux.setResponses([
     call(
       "read_workpiece",
-      { includeContent: false, locateTexts: ["Reserve one crew."] },
+      {
+        includeContent: false,
+        includeSources: true,
+        locateTexts: ["Reserve one crew."],
+      },
       "focused-current",
     ),
     (context) => {
@@ -405,7 +413,12 @@ try {
       return call("mutate_workpiece", { markdown }, "evidence-revision");
     },
     (context) => {
-      assert.equal(toolResult(context, "mutate_workpiece").markdown, markdown);
+      const settled = toolResult(context, "mutate_workpiece");
+      assert.equal(settled.markdown, undefined);
+      assert.equal(
+        (settled.markdownReference as { revisionId: string }).revisionId,
+        "evidence-revision",
+      );
       return call("read_workpiece", {}, "other-current-read");
     },
     (context) => {
@@ -414,10 +427,10 @@ try {
         .currentWorkpiece as {
         markdownReference: { retainedEntryId: string };
       };
-      assert.equal(settled.markdown, markdown);
       assert.equal(
         current.markdownReference.retainedEntryId,
-        (settled.markdownIdentity as { entryId: string }).entryId,
+        (settled.markdownReference as { retainedEntryId: string })
+          .retainedEntryId,
       );
       return fauxAssistantMessage([
         fauxText("Other conversation TEST control."),

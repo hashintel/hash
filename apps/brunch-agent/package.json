@@ -13,6 +13,7 @@
     "fixture:worked-model": "node --experimental-strip-types src/evaluations/persona/create-worked-model-fixture.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "measure:context-replay": "node --experimental-strip-types src/diagnostics/context-replay-measurement.ts",
     "persona": "node --experimental-strip-types src/evaluations/persona/launch.ts",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "probe:rds-iam": "node --experimental-strip-types src/rds-iam-probe.ts",

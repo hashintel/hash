@@ -23,6 +23,44 @@ export type BrowserResult = Omit<ClientToolResult, "metadata"> & {
   };
 };
 
+export type ModelVisibleBrowserObservation = {
+  readonly toolCallId: string;
+  readonly sha256: string;
+};
+
+/** Read the minimal verified observation promoted into model-visible output. */
+export const modelVisibleObservationFrom = (
+  result: BrowserResult,
+): ModelVisibleBrowserObservation => {
+  const output =
+    typeof result.output === "object" &&
+    result.output !== null &&
+    !Array.isArray(result.output)
+      ? result.output
+      : undefined;
+  const observation =
+    output &&
+    "observation" in output &&
+    typeof output.observation === "object" &&
+    output.observation !== null &&
+    !Array.isArray(output.observation)
+      ? output.observation
+      : undefined;
+  if (
+    observation === undefined ||
+    !("toolCallId" in observation) ||
+    typeof observation.toolCallId !== "string" ||
+    !("sha256" in observation) ||
+    typeof observation.sha256 !== "string"
+  ) {
+    throw new Error("Browser result lacks model-visible observation identity.");
+  }
+  return {
+    toolCallId: observation.toolCallId,
+    sha256: observation.sha256,
+  };
+};
+
 /** Extract the latest browser result for one tool from the model-facing transcript texts. */
 export const browserResultFrom = (
   texts: readonly string[],

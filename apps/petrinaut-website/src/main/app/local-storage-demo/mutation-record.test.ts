@@ -230,11 +230,21 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     };
     joined.mapClientToolInput(call);
     const output = { definition: structuredClone(fixture.handle.doc()) };
-    expect(joined.clientToolResultMetadata({ ...call, output })).toMatchObject({
+    const metadata = joined.clientToolResultMetadata({ ...call, output });
+    expect(metadata).toMatchObject({
       observation: {
         toolCallId: "live-read",
         binding: fixture.request.binding,
         observed: observeBrowserDefinition(fixture.handle),
+      },
+    });
+    expect(
+      joined.clientToolResultOutput({ ...call, output }, metadata),
+    ).toEqual({
+      ...output,
+      observation: {
+        toolCallId: "live-read",
+        sha256: observeBrowserDefinition(fixture.handle).sha256,
       },
     });
     fixture.execute();

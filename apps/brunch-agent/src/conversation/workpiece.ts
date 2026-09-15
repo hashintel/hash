@@ -30,6 +30,8 @@ const settledRevisionFromPart = (
   )
     return undefined;
 
+  // Recovery joins the canonical input body to the successful pointer-only
+  // output identity/evidence. Neither side is authoritative by itself.
   const input = v.safeParse(
     v.object({ markdown: updateWorkpieceInputSchema.entries.markdown }),
     part.input,

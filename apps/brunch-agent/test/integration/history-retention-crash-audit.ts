@@ -139,15 +139,18 @@ export const assertCrashRecovery = (
   if (typeof receipt.markdown !== "string") {
     throw new Error("receipt markdown must be a string");
   }
-  const expected = {
+  const expectedPointer = {
     revisionId: "a4-crash-revision",
     sha256: createHash("sha256").update(receipt.markdown).digest("hex"),
     ordinal: 1,
+  };
+  const expected = {
+    ...expectedPointer,
     markdown: receipt.markdown,
   };
   const emptySha256 = createHash("sha256").update("").digest("hex");
   const expectedOutput = {
-    ...expected,
+    ...expectedPointer,
     mutation: {
       baseRevisionId: null,
       beforeSha256: null,
@@ -192,7 +195,7 @@ export const assertCrashRecovery = (
   assert.deepEqual(
     recovered.output,
     expectedOutput,
-    "Recovered tool output must match the crashed pointer and markdown",
+    "Recovered tool output must match the crashed pointer",
   );
   assert.deepEqual(
     lastRevision(

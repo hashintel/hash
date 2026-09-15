@@ -52,7 +52,7 @@ const voice = () => {
   return { bridge, speakCanonical };
 };
 
-test("buffered production output remains silent until approved; ordinary prose survives without a repeatable question or spoken tool payloads", () => {
+test("buffered production output remains silent until approved and derives the whole finalized turn", () => {
   const sample = result.buffering.find(
     ({ caseId }) => caseId === "buffered-valid",
   )!;
@@ -68,7 +68,9 @@ test("buffered production output remains silent until approved; ordinary prose s
   ]);
   expect(speakCanonical).not.toHaveBeenCalled();
   const completed = speechFrom(sample.projectedAfter);
-  expect(completed.questionSegment).toBeUndefined();
+  expect(completed.questionSegment?.text).toBe(
+    `${sample.text}\n\nTiming remains unknown.`,
+  );
   expect(completed.segments.map((segment) => segment.text)).toEqual([
     sample.text,
     "Timing remains unknown.",

@@ -1,7 +1,8 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { createFlueUiStream } from "../src";
 
+import type { LiveToolStreamEvent } from "../src";
 import type { ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
@@ -649,4 +650,291 @@ test("does not report tool failures from another submission", () => {
     position: position(1),
   });
   expect(reported).toEqual([]);
+});
+
+const liveEvent = (
+  sequence: number,
+  event:
+    | {
+        readonly kind: "tool-input-delta";
+        readonly inputTextDelta: string;
+        readonly toolCallId: string;
+        readonly toolName: string;
+      }
+    | {
+        readonly kind: "tool-input-start";
+        readonly toolCallId: string;
+        readonly toolName: string;
+      },
+): LiveToolStreamEvent => ({
+  ...event,
+  instanceId: "instance-1",
+  sequence,
+  submissionId: "submission-1",
+  turnId: "turn-1",
+  v: 1,
+});
+
+test("merges a pre-message live call with canonical validation without releasing input early", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["mutate_petrinet"]),
+    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    validatedClientToolNames: new Set(["mutate_petrinet"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.acceptLive(
+    liveEvent(0, {
+      kind: "tool-input-start",
+      toolCallId: "call-live",
+      toolName: "mutate_petrinet",
+    }),
+  );
+  projector.acceptLive(
+    liveEvent(1, {
+      kind: "tool-input-delta",
+      inputTextDelta: '{"operations":[',
+      toolCallId: "call-live",
+      toolName: "mutate_petrinet",
+    }),
+  );
+  expect(written).toEqual([]);
+
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "call-live",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    position: position(1),
+  });
+  expect(
+    written.filter((chunk) => chunk.type === "tool-input-start"),
+  ).toHaveLength(1);
+  expect(written).toContainEqual({
+    type: "tool-input-delta",
+    toolCallId: "call-live",
+    inputTextDelta: '{"operations":[',
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+
+  projector.accept({
+    type: "tool-output",
+    conversationId: "conversation-1",
+    toolCallId: "call-live",
+    output: { awaiting: "client" },
+    position: position(2),
+  });
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "call-live",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    dynamic: true,
+  });
+});
+
+test("does not regress admitted calls on duplicate, out-of-order, or terminal live events", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "canonical-call",
+    toolName: "read_workpiece",
+    input: {},
+    position: position(1),
+  });
+  const before = [...written];
+  projector.acceptLive(
+    liveEvent(3, {
+      kind: "tool-input-start",
+      toolCallId: "canonical-call",
+      toolName: "read_workpiece",
+    }),
+  );
+  projector.acceptLive(
+    liveEvent(3, {
+      kind: "tool-input-delta",
+      inputTextDelta: "{}",
+      toolCallId: "canonical-call",
+      toolName: "read_workpiece",
+    }),
+  );
+  projector.acceptLive(
+    liveEvent(2, {
+      kind: "tool-input-start",
+      toolCallId: "late-call",
+      toolName: "read_workpiece",
+    }),
+  );
+  projector.acceptLive({
+    instanceId: "instance-1",
+    kind: "turn-finished",
+    sequence: 4,
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    v: 1,
+  });
+  expect(written).toEqual(before);
+});
+
+test.each(["turn", "disconnect"] as const)(
+  "terminates an abandoned live proposal on %s",
+  (terminal) => {
+    const written: UIMessageChunk[] = [];
+    const projector = createFlueUiStream({
+      submissionId: "submission-1",
+      clientToolNames: new Set(),
+      write: (chunk) => written.push(chunk),
+    });
+    projector.accept({
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      position: position(0),
+    });
+    projector.acceptLive(
+      liveEvent(0, {
+        kind: "tool-input-start",
+        toolCallId: "abandoned-call",
+        toolName: "read_workpiece",
+      }),
+    );
+    if (terminal === "turn") {
+      projector.acceptLive({
+        instanceId: "instance-1",
+        kind: "turn-finished",
+        sequence: 1,
+        submissionId: "submission-1",
+        turnId: "turn-1",
+        v: 1,
+      });
+    } else {
+      projector.disconnectLive();
+    }
+    expect(written).toContainEqual({
+      type: "tool-input-error",
+      toolCallId: "abandoned-call",
+      toolName: "read_workpiece",
+      input: undefined,
+      errorText: "This tool proposal was not executed.",
+    });
+  },
+);
+
+test("lets canonical admission win the live turn-terminal race", () => {
+  vi.useFakeTimers();
+  try {
+    const written: UIMessageChunk[] = [];
+    const projector = createFlueUiStream({
+      submissionId: "submission-1",
+      clientToolNames: new Set(),
+      provisionalMessageId: (turnId) => `live:${turnId}`,
+      write: (chunk) => written.push(chunk),
+    });
+    projector.accept({
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      position: position(0),
+    });
+    projector.acceptLive(
+      liveEvent(0, {
+        kind: "tool-input-start",
+        toolCallId: "racing-call",
+        toolName: "read_workpiece",
+      }),
+    );
+    projector.acceptLive({
+      instanceId: "instance-1",
+      kind: "turn-finished",
+      sequence: 1,
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      v: 1,
+    });
+    projector.accept({
+      type: "tool-input",
+      conversationId: "conversation-1",
+      input: {},
+      messageId: "message-1",
+      position: position(1),
+      toolCallId: "racing-call",
+      toolName: "read_workpiece",
+    });
+    vi.runAllTimers();
+
+    expect(written.some((chunk) => chunk.type === "tool-input-error")).toBe(
+      false,
+    );
+    expect(written).toContainEqual({
+      type: "tool-input-available",
+      input: {},
+      providerExecuted: true,
+      toolCallId: "racing-call",
+      toolName: "read_workpiece",
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("hides speculative tools before creating a pending row", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    hiddenToolNames: new Set(["layout_petrinaut_net"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.acceptLive(
+    liveEvent(0, {
+      kind: "tool-input-start",
+      toolCallId: "hidden-call",
+      toolName: "layout_petrinaut_net",
+    }),
+  );
+  expect(
+    written.some(
+      (chunk) => "toolCallId" in chunk && chunk.toolCallId === "hidden-call",
+    ),
+  ).toBe(false);
 });

@@ -34,7 +34,10 @@ import {
   type WorkedModelFixture,
 } from "../src/worked-model-store.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import { browserResultFrom } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+} from "./browser-result.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 import type { BuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
@@ -166,18 +169,19 @@ try {
       ),
     () => tool(readPetrinautNetToolName, {}, "read-1"),
     (context: Context) => {
-      const observation = browserResultFrom(
-        textsFrom(context),
-        readPetrinautNetToolName,
-        "Missing net-projection observation",
-      ).metadata?.observation;
-      assert(observation);
+      const observation = modelVisibleObservationFrom(
+        browserResultFrom(
+          textsFrom(context),
+          readPetrinautNetToolName,
+          "Missing net-projection observation",
+        ),
+      );
       return tool(
         mutatePetrinetToolName,
         {
           observation: {
             toolCallId: observation.toolCallId,
-            baseHash: observation.observed.sha256,
+            baseHash: observation.sha256,
           },
           bases: [{ basisId: "receiving-basis", basis: locateBasis(context) }],
           operations: [operation],

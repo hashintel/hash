@@ -460,7 +460,10 @@ try {
       responses.push(
         retentionCall(
           "read_workpiece",
-          { locateTexts: [...retentionQuotes] },
+          {
+            includeSources: true,
+            locateTexts: [...retentionQuotes],
+          },
           readId,
         ),
         ...seed.witnesses.map((witness, index) =>

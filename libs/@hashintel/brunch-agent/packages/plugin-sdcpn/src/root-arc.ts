@@ -47,7 +47,7 @@ export const rootArcWhyInputSchema = z.strictObject({
     .string()
     .optional()
     .describe(
-      "Copy metadata.observation.toolCallId from a fresh read_petrinaut_net result. Omit only for an explicitly historical, as-of explanation, not a claim about the live canvas.",
+      "Copy output.observation.toolCallId from a fresh read_petrinaut_net result. Omit only for an explicitly historical, as-of explanation, not a claim about the live canvas.",
     ),
 });
 export type RootArcWhyInput = z.output<typeof rootArcWhyInputSchema>;

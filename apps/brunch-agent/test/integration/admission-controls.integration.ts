@@ -25,8 +25,6 @@ import {
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
-
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
@@ -70,7 +68,6 @@ const browserNames: ReadonlySet<string> = new Set([
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
     clientToolNames: browserNames,
-    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
 const faux = fauxProvider({
   provider: "anthropic",
@@ -156,6 +153,7 @@ const run = async () => {
       ["addType", "mutate_workpiece"],
       ["addType", "unmounted_admission_probe"],
       ["addType"],
+      ["mutate_workpiece"],
     ]) {
       caseId = names.join("-");
       const client = clientFor();

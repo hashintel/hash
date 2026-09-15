@@ -59,12 +59,18 @@ const createReadNetTool = (
   toolName: readPetrinautNetToolName,
   inputSchema: passthrough,
   outputSchema: passthrough,
-  execute: ({ handle }) => ({
-    title: readTitle(),
-    definition: observeBrowserDefinition(handle).definition,
-    extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-      .extensions,
-  }),
+  execute: ({ handle, toolCallId }) => {
+    const observed = observeBrowserDefinition(handle);
+    return {
+      title: readTitle(),
+      definition: observed.definition,
+      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+        .extensions,
+      // Model-required freshness identity belongs in output. The fuller
+      // binding/definition observation remains a host-only metadata sidecar.
+      observation: { toolCallId, sha256: observed.sha256 },
+    };
+  },
 });
 
 const readDiagnosticsTool: PetrinautAiAutomaticTool = {

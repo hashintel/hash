@@ -295,7 +295,7 @@ export const runReopenedWhyWitness = async ({
       faux.setResponses([
         tool(
           "read_workpiece",
-          { markdown, locateTexts },
+          { includeSources: true, markdown, locateTexts },
           `a5-${cohort}-sources`,
         ),
         (modelContext) => {

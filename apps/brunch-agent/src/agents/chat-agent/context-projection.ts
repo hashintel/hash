@@ -1,11 +1,5 @@
-import {
-  isMutatePetrinautNetToolName,
-  isReadPetrinautNetToolName,
-  layoutPetrinautNetToolName,
-  mutatePetrinetOutputSchema,
-  parseClientToolResultMetadata,
-  readPetrinautDiagnosticsToolName,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { createHash } from "node:crypto";
+
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isClientToolResult,
@@ -35,34 +29,102 @@ const parseTextJson = (
   }
 };
 
-type AuthoritativeContent = {
+type SettlementAuthority = {
+  callEntryIndex: number;
+  callEntryId: string;
+  resultEntryIndex: number;
+  toolCallId: string;
+  revisionId: string;
+  sha256: string;
+  markdown: string;
+};
+
+type ReadAuthority = {
   entryIndex: number;
   entryId: string;
   revisionId: string;
   sha256: string;
-  target: "mutation" | "read";
 };
 
-const authoritativeContent = (
+const sha256 = (markdown: string): string =>
+  createHash("sha256").update(markdown, "utf8").digest("hex");
+
+const settlementAuthorities = (
+  entries: readonly ContextProjectionEntry[],
+): SettlementAuthority[] => {
+  const calls = entries.flatMap((entry, entryIndex) => {
+    if (entry.message.role !== "assistant") return [];
+    return entry.message.content.flatMap((part) => {
+      if (
+        part.type !== "toolCall" ||
+        part.name !== "mutate_workpiece" ||
+        !isRecord(part.arguments) ||
+        typeof part.arguments.markdown !== "string"
+      )
+        return [];
+      return [
+        {
+          callEntryIndex: entryIndex,
+          callEntryId: entry.id,
+          toolCallId: part.id,
+          markdown: part.arguments.markdown,
+        },
+      ];
+    });
+  });
+
+  return entries.flatMap((entry, resultEntryIndex) => {
+    const { message } = entry;
+    if (
+      message.role !== "toolResult" ||
+      message.toolName !== "mutate_workpiece" ||
+      message.isError
+    )
+      return [];
+    const output = parseTextJson(message);
+    if (!output) return [];
+    const matchingCalls = calls.filter(
+      (call) => call.toolCallId === message.toolCallId,
+    );
+    const call = matchingCalls.length === 1 ? matchingCalls[0] : undefined;
+    if (
+      !call ||
+      call.callEntryIndex >= resultEntryIndex ||
+      typeof output.revisionId !== "string" ||
+      output.revisionId !== message.toolCallId ||
+      typeof output.sha256 !== "string" ||
+      output.sha256 !== sha256(call.markdown)
+    )
+      return [];
+    return [
+      {
+        ...call,
+        resultEntryIndex,
+        revisionId: output.revisionId,
+        sha256: output.sha256,
+      },
+    ];
+  });
+};
+
+const readAuthority = (
   entry: ContextProjectionEntry,
   entryIndex: number,
-): AuthoritativeContent | undefined => {
+): ReadAuthority | undefined => {
   const { message } = entry;
-  if (message.role !== "toolResult") return undefined;
+  if (message.role !== "toolResult" || message.toolName !== "read_workpiece")
+    return undefined;
   const output = parseTextJson(message);
-  if (!output) return undefined;
   const candidate =
-    message.toolName === "mutate_workpiece"
-      ? output
-      : message.toolName === "read_workpiece" &&
-          isRecord(output.currentWorkpiece)
-        ? output.currentWorkpiece
-        : undefined;
+    output && isRecord(output.currentWorkpiece)
+      ? output.currentWorkpiece
+      : undefined;
   if (
     !candidate ||
     typeof candidate.revisionId !== "string" ||
     typeof candidate.sha256 !== "string" ||
-    typeof candidate.markdown !== "string"
+    typeof candidate.markdown !== "string" ||
+    candidate.sha256 !== sha256(candidate.markdown)
   )
     return undefined;
   return {
@@ -70,12 +132,11 @@ const authoritativeContent = (
     entryId: entry.id,
     revisionId: candidate.revisionId,
     sha256: candidate.sha256,
-    target: message.toolName === "mutate_workpiece" ? "mutation" : "read",
   };
 };
 
 const contentKey = (
-  content: Pick<AuthoritativeContent, "revisionId" | "sha256">,
+  content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
 ) => `${content.revisionId}\u0000${content.sha256}`;
 
 const withTextJson = (
@@ -90,7 +151,7 @@ const withTextJson = (
 };
 
 const contentReference = (
-  content: AuthoritativeContent,
+  content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
   retainedEntryId: string,
 ) => ({
   revisionId: content.revisionId,
@@ -98,24 +159,46 @@ const contentReference = (
   retainedEntryId,
 });
 
-const compactWorkpieceResult = (
+const projectMutationResult = (
   entry: ContextProjectionEntry,
-  content: AuthoritativeContent,
-  retainedEntryId: string,
+  authority: SettlementAuthority,
 ): ContextProjectionEntry => {
   const output = parseTextJson(entry.message);
   if (!output) return entry;
-  if (content.target === "mutation") {
-    const { markdown: _markdown, ...pointer } = output;
+  const { markdown: _markdown, ...pointer } = output;
+  return {
+    ...entry,
+    message: withTextJson(entry.message, {
+      ...pointer,
+      markdownReference: contentReference(authority, authority.callEntryId),
+    }),
+  };
+};
+
+const projectReadResult = (
+  entry: ContextProjectionEntry,
+  content: ReadAuthority,
+  retainedEntryId: string,
+): ContextProjectionEntry => {
+  const output = parseTextJson(entry.message);
+  if (!output || !isRecord(output.currentWorkpiece)) return entry;
+  if (retainedEntryId === entry.id) {
+    const identity = {
+      entryId: entry.id,
+      revisionId: content.revisionId,
+      sha256: content.sha256,
+    };
     return {
       ...entry,
       message: withTextJson(entry.message, {
-        ...pointer,
-        markdownReference: contentReference(content, retainedEntryId),
+        ...output,
+        currentWorkpiece: {
+          markdownIdentity: identity,
+          ...output.currentWorkpiece,
+        },
       }),
     };
   }
-  if (!isRecord(output.currentWorkpiece)) return entry;
   const { markdown: _markdown, ...pointer } = output.currentWorkpiece;
   return {
     ...entry,
@@ -129,96 +212,61 @@ const compactWorkpieceResult = (
   };
 };
 
-const markRetainedWorkpieceResult = (
+const compactToolCallArguments = (
   entry: ContextProjectionEntry,
-  content: AuthoritativeContent,
+  entryIndex: number,
+  authorities: readonly SettlementAuthority[],
+  latestAuthority: SettlementAuthority | undefined,
 ): ContextProjectionEntry => {
-  const output = parseTextJson(entry.message);
-  if (!output) return entry;
-  const identity = {
-    entryId: entry.id,
-    revisionId: content.revisionId,
-    sha256: content.sha256,
-  };
-  if (content.target === "mutation")
+  if (entry.message.role !== "assistant") return entry;
+  const content = entry.message.content.map((part) => {
+    if (
+      part.type !== "toolCall" ||
+      !isRecord(part.arguments) ||
+      typeof part.arguments.markdown !== "string"
+    )
+      return part;
+    const markdown = part.arguments.markdown;
+    const authority =
+      part.name === "mutate_workpiece"
+        ? authorities.find(
+            (candidate) =>
+              candidate.callEntryId === entry.id &&
+              candidate.toolCallId === part.id,
+          )
+        : part.name === "read_workpiece"
+          ? authorities
+              .filter(
+                (candidate) =>
+                  candidate.sha256 === sha256(markdown) &&
+                  candidate.callEntryIndex > entryIndex,
+              )
+              .toSorted(
+                (left, right) => left.callEntryIndex - right.callEntryIndex,
+              )[0]
+          : undefined;
+    const shouldCompact =
+      authority !== undefined &&
+      (part.name === "read_workpiece" ||
+        authority.toolCallId !== latestAuthority?.toolCallId);
+    if (!shouldCompact) return part;
+    const { markdown: _markdown, ...argumentsWithoutMarkdown } = part.arguments;
     return {
-      ...entry,
-      message: withTextJson(entry.message, {
-        markdownIdentity: identity,
-        ...output,
-      }),
+      ...part,
+      arguments: {
+        ...argumentsWithoutMarkdown,
+        revisionId: authority.revisionId,
+        sha256: authority.sha256,
+        length: markdown.length,
+        markdownReference: contentReference(authority, authority.callEntryId),
+      },
     };
-  if (!isRecord(output.currentWorkpiece)) return entry;
+  });
   return {
     ...entry,
-    message: withTextJson(entry.message, {
-      ...output,
-      currentWorkpiece: {
-        markdownIdentity: identity,
-        ...output.currentWorkpiece,
-      },
-    }),
+    message: { ...entry.message, content },
   };
 };
-
-const compactObservation = (value: unknown): unknown => {
-  if (!isRecord(value)) return value;
-  const { definition: _definition, ...pointer } = value;
-  return pointer;
-};
-
-const compactMutationAttempt = (value: unknown): unknown => {
-  if (!isRecord(value)) return value;
-  return {
-    ...value,
-    pre: compactObservation(value.pre),
-    ...(value.post === undefined
-      ? {}
-      : { post: compactObservation(value.post) }),
-  };
-};
-
-const compactMetadata = (metadata: unknown): unknown => {
-  const parsed = parseClientToolResultMetadata(metadata);
-  if (!parsed) return metadata;
-  return {
-    ...parsed,
-    ...(parsed.observation
-      ? {
-          observation: {
-            ...parsed.observation,
-            observed: compactObservation(parsed.observation.observed),
-          },
-        }
-      : {}),
-    ...(parsed.mutationRecord
-      ? {
-          mutationRecord: {
-            ...parsed.mutationRecord,
-            attempts: parsed.mutationRecord.attempts.map(
-              compactMutationAttempt,
-            ),
-          },
-        }
-      : {}),
-    ...(parsed.layoutRecord
-      ? {
-          layoutRecord: {
-            ...parsed.layoutRecord,
-            pre: compactObservation(parsed.layoutRecord.pre),
-            post: compactObservation(parsed.layoutRecord.post),
-          },
-        }
-      : {}),
-  };
-};
-
-const projectsClientResult = (toolName: string, output: unknown): boolean =>
-  (isMutatePetrinautNetToolName(toolName) &&
-    mutatePetrinetOutputSchema.safeParse(output).success) ||
-  isReadPetrinautNetToolName(toolName) ||
-  toolName === readPetrinautDiagnosticsToolName ||
-  toolName === layoutPetrinautNetToolName;
 
 const compactClientToolSignal = (
   entry: ContextProjectionEntry,
@@ -236,46 +284,84 @@ const compactClientToolSignal = (
   } catch {
     return entry;
   }
-  if (!Array.isArray(raw) || !raw.every(isClientToolResult)) return entry;
-  const projected = raw.map((result) =>
-    projectsClientResult(result.toolName, result.output)
-      ? { ...result, metadata: compactMetadata(result.metadata) }
-      : result,
-  );
+  if (!Array.isArray(raw)) return entry;
+  const projected = raw.flatMap((member) => {
+    if (!isClientToolResult(member)) return [];
+    const { metadata: _metadata, ...result } = member;
+    return [result];
+  });
   return {
     ...entry,
     message: { ...message, content: JSON.stringify(projected) },
   };
 };
 
-/**
- * Brunch's model-only projection. Every invocation decides content
- * availability from exactly the entries it receives.
- */
-export const projectBrunchContext: ContextProjection = (entries) => {
-  const authorities = entries.flatMap((entry, entryIndex) => {
-    const content = authoritativeContent(entry, entryIndex);
-    return content ? [content] : [];
-  });
-  const retainedEntryIds = new Map<string, string>();
-  for (const content of authorities) {
-    const key = contentKey(content);
-    if (!retainedEntryIds.has(key)) retainedEntryIds.set(key, content.entryId);
-  }
-
-  return entries.map((entry, entryIndex) => {
-    const authority = authorities.find(
-      (candidate) => candidate.entryIndex === entryIndex,
-    );
-    const retainedEntryId = authority
-      ? retainedEntryIds.get(contentKey(authority))
-      : undefined;
-    const projected =
-      authority && retainedEntryId && retainedEntryId !== entry.id
-        ? compactWorkpieceResult(entry, authority, retainedEntryId)
-        : authority && retainedEntryId
-          ? markRetainedWorkpieceResult(entry, authority)
-          : entry;
-    return compactClientToolSignal(projected);
-  });
+export type BrunchContextProjectionOptions = {
+  /**
+   * Provider acceptance remains gated by WP-A.9. Canonical history is
+   * unchanged regardless of this model-context-only option.
+   */
+  projectSupersededWorkpieceArguments?: boolean;
 };
+
+/**
+ * Build Brunch's model-only projection. Every invocation decides authority
+ * from exactly the entries it receives.
+ */
+export const createBrunchContextProjection = (
+  options: BrunchContextProjectionOptions = {},
+): ContextProjection => {
+  return (entries) => {
+    const settlements = settlementAuthorities(entries);
+    const reads = entries.flatMap((entry, entryIndex) => {
+      const content = readAuthority(entry, entryIndex);
+      return content ? [content] : [];
+    });
+    const latestSettlement = settlements.toSorted(
+      (left, right) => right.resultEntryIndex - left.resultEntryIndex,
+    )[0];
+    const retainedEntryIds = new Map<string, string>();
+    for (const settlement of settlements) {
+      const key = contentKey(settlement);
+      if (!retainedEntryIds.has(key))
+        retainedEntryIds.set(key, settlement.callEntryId);
+    }
+    for (const read of reads) {
+      const key = contentKey(read);
+      if (!retainedEntryIds.has(key)) retainedEntryIds.set(key, read.entryId);
+    }
+
+    return entries.map((entry, entryIndex) => {
+      const withProjectedArguments =
+        options.projectSupersededWorkpieceArguments === true
+          ? compactToolCallArguments(
+              entry,
+              entryIndex,
+              settlements,
+              latestSettlement,
+            )
+          : entry;
+      const settlement = settlements.find(
+        (candidate) => candidate.resultEntryIndex === entryIndex,
+      );
+      if (settlement)
+        return compactClientToolSignal(
+          projectMutationResult(withProjectedArguments, settlement),
+        );
+      const read = reads.find(
+        (candidate) => candidate.entryIndex === entryIndex,
+      );
+      const retainedEntryId = read
+        ? retainedEntryIds.get(contentKey(read))
+        : undefined;
+      return compactClientToolSignal(
+        read && retainedEntryId
+          ? projectReadResult(withProjectedArguments, read, retainedEntryId)
+          : withProjectedArguments,
+      );
+    });
+  };
+};
+
+/** Argument projection stays default-off pending the bounded WP-A.9 probe. */
+export const projectBrunchContext = createBrunchContextProjection();

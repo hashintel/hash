@@ -46,14 +46,45 @@ stop and check the boundary summary before proceeding.
 Rows route to tickets by design: if your situation's "Escalate when" names an issue, the
 decision belongs there — record it there, not in the code comment.
 
+## Live pending-tool presentation
+
+Flue's durable conversation stream admits a tool call only after its complete arguments exist.
+For the local demo, Brunch supplements that canonical stream with a presentation-only channel:
+the first in-process `toolcall_delta` creates a speculative pending row and later deltas update it.
+This does not change Flue, tool execution, validation, canonical history or model context.
+
+- `GET /agents/chat/:id/live?submissionId=…` is mounted in `app.ts` behind the same ownership
+  guard as the conversation. The browser uses a fetch-based SSE reader so the principal and
+  conversation headers remain mandatory; identity never moves into the URL.
+- Every event carries instance, submission, model-turn and tool-call correlation plus a monotonic
+  per-instance sequence. The transport briefly buffers a pre-message event, then opens a
+  submission/turn-scoped provisional UI step rather than attaching it to an earlier response.
+  Canonical admission reconciles that step and remains the only source of complete input.
+- The in-memory broadcaster retains and queues only bounded event counts. A slow subscriber is
+  released instead of backpressuring model execution; closing one subscription does not affect
+  another. Initial subscription may consume bounded catch-up for the post-admission startup race.
+- Duplicate, late and out-of-order live events cannot regress an admitted or terminal call.
+  Turn/submission termination marks an abandoned proposal as not executed. A disconnect terminates
+  remaining speculative rows and disables live presentation for that submission; there is no
+  reconnection or replay.
+- Hidden-tool policy applies before speculative publication. Validated browser tools still release
+  `tool-input-available` only after the canonical server `tool-output`; live events never bypass
+  that gate.
+
+The channel is ephemeral, single-process and best effort. It has no persistent state, restart
+recovery or multi-process fan-out and therefore adds no hosted-readiness claim. Focused owners are
+the live broadcaster/route tests in `@apps/brunch-agent`, transport stream/merge tests in
+`@hashintel/brunch-agent-transport-aisdk`, and the faux-provider rendered pending witness in
+`@apps/petrinaut-website`.
+
 ## Model-context projection
 
 When tool evidence overwhelms the prompt, use the local `useContextProjection` extension in the [tracked Flue 2.0.3 patch](../../../../../../.yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch). It is not an upstream Flue API. [ChatAgent](../../../../../../apps/brunch-agent/src/agents/chat-agent/agent.ts) opts in to [Brunch's deterministic projector](../../../../../../apps/brunch-agent/src/agents/chat-agent/context-projection.ts); agents without the hook keep the default representation. Reapply and qualify the patch on runtime upgrades.
 
 - **One record, two consumers:** canonical storage and public history retain full tool calls, outcomes and browser evidence. Only the model-facing context is projected, before structured signals become XML. Provenance verification, UI history and workpiece recovery must continue to consume the retained originals. No second store, persistent read registry or AI-generated evidence summary is introduced.
-- **Preserve proposals and outcomes:** authored tool arguments remain exact, including proposed Markdown. Brunch removes repeated pre/post definitions only from recognized browser observation/mutation/layout metadata, preserving operation order, partial failures, actionable errors, effects and identities. A current-net read's canonical output remains complete; unknown/malformed records and user-authored lookalike prose are not promoted into receipts.
-- **Workpiece availability is prompt-local:** retain one successful content-bearing result per revision ID/hash and replace duplicate result Markdown with a reference to that retained entry. A successful mutation readback counts as a read; candidate arguments, failed mutations, pointers and compaction prose do not. New user testimony does not change the workpiece revision. [The read tool](../../../packages/core/src/flue.ts) independently accepts `includeContent: false` for source/locator-only retrieval and `includeSources: false` when excerpts are unnecessary. Preserve exact source authorization, UTF-16 spans and candidate-versus-settled identity.
-- **Net freshness is different:** the browser can edit directly. The existing binding (conversation/document/incarnation), verified observation and browser-reported revision govern freshness. Equal content after edit-and-undo or in another document cannot confirm the bound revision. Compact mutation receipts are not complete current-net observations; read again when revision confirmation or exact content is unavailable.
+- **Preserve proposals and outcomes:** authored tool arguments remain exact by default. The optional projection of superseded workpiece Markdown arguments is deliberately default-off pending the WP-A.9 provider-acceptance gate; when enabled, it rewrites only model-facing superseded settlement/candidate bodies to revision/hash/length references and leaves canonical history untouched. `metadata` on every structurally valid client-tool result is a host sidecar for server and hydration consumers; it never reaches model context, regardless of tool name. Anything the model needs belongs in `output`, which the projection preserves with every other protocol field. Unknown tool names follow the same rule. Malformed members of an otherwise valid result array are omitted rather than promoted into evidence; malformed JSON, non-array signals and user-authored lookalike prose remain unprojected.
+- **Workpiece availability is prompt-local:** canonical mutation input supplies the revision body; its successful pointer-only output supplies identity and validated evidence. Authority discovery joins the call and result, requires `revisionId === toolCallId`, and verifies the submitted body's SHA-256 before using it. Failed, stale-base and hash-mismatched calls never supersede the latest successful body. Content reads can rematerialize exact state after compaction; each independently projected slice keeps a body whenever its reference target is absent. [The read tool](../../../packages/core/src/flue.ts) defaults source excerpts off, accepts `includeContent: false` for focused retrieval, and refuses candidate Markdown without locator texts as an ordinary tool result. Preserve exact source authorization, UTF-16 spans and candidate-versus-settled identity.
+- **Net freshness is different:** the browser can edit directly. The existing binding (conversation/document/incarnation), verified observation and browser-reported revision govern freshness. `read_petrinaut_net` promotes the model-required `observation.toolCallId` and `observation.sha256` into `output`; the fuller binding and definition observation remains a host-only sidecar. Equal content after edit-and-undo or in another document cannot confirm the bound revision. Compact mutation receipts are not complete current-net observations; read again when revision confirmation or exact content is unavailable.
 - **Project each consumer's actual retained slice:** the hook covers same-response server-tool continuation, browser-result continuation, rebuild/reopen and compaction. Compaction plans from projected context, then independently projects summary and split-prefix slices; rebuilding the retained suffix rematerializes an exact result body if its former reference target was cut. Never let a compact confirmation point only into discarded history. Historical provider usage is unchanged: usage-plus-tail estimates can remain conservative when reopening pre-projection history, and character reductions are not token/cost measurements.
 
 ### Regression owners and limits
@@ -61,9 +92,10 @@ When tool evidence overwhelms the prompt, use the local `useContextProjection` e
 Run from the HASH root after building `@apps/brunch-agent` and its dependencies. Follow [evaluation isolation](../../../evaluations/README.md#execution-safety); these probes use synthetic responses, not paid inference.
 
 - `yarn workspace @apps/brunch-agent test:unit test/context-projection.test.ts test/net-freshness.test.ts test/chat-agent-compaction.test.ts` owns result reuse, unchanged authored calls, no-hook runtime behavior, revision distinctions and compaction configuration.
-- `yarn workspace @apps/brunch-agent test:integration test/integration/history-retention.test.ts` owns actual provider captures, full canonical/public retention, immediate tool continuation, split/overflow/Stop and fresh-process reopen. `A4_REPORT_METRICS=1` prints result-payload class counts separately from the preserved authored Markdown.
+- `yarn workspace @apps/brunch-agent test:integration test/integration/history-retention.test.ts` owns actual provider captures, pointer-only settlement reconstruction, full canonical/public retention, immediate tool continuation, split/overflow/Stop and fresh-process reopen. `A4_REPORT_METRICS=1` prints payload class counts separately from the default-preserved authored Markdown.
 - `yarn workspace @apps/brunch-agent test:reopened-why-retention` owns three-process create/fold/reopen, two exact governing passages and original user-source/mutation identities without tool replay, including missing/ambiguous controls.
 - `yarn workspace @apps/brunch-agent test:workpiece-evidence` owns focused content/source/locator options through the built route, new testimony without invalidating a settled readback, and independent availability in another conversation with equal revision ID/hash. The app mounts one root agent; non-opt-in behavior is checked at the patched runtime boundary rather than inventing a second production agent.
 - `yarn workspace @apps/brunch-agent test:integration test/integration/net-freshness.test.ts` owns direct edit/undo, unchanged/missing reported revision, and rejection of equal-content foreign document/incarnation receipts before model continuation.
+- `yarn workspace @apps/brunch-agent measure:context-replay <consistent conversation.db snapshot>` reduces every retained batch prefix through the installed runtime's canonical reducer and context builder, then reports unprojected, default-projected and default-off argument-projection character counts per step and revision. It is an offline measurement over retained history, not a provider or latency oracle; take a SQLite backup first when the source may have a WAL.
 
 These checks qualify bounded representation and original-store recovery, not live model call frequency, latency, semantic quality, fallback reliability, arbitrary truncation recovery or document portability. [Mission 7d](../../../MISSION.md#readiness-gate) owns live worked-example acceptance; [the future spine](../../../MISSION.next.md#conditional-technical-strains) owns broader persistence/history concerns. Preserve the original `run-K8TxLU` failure and its six-turn baseline rather than resuming or compacting it as a synthetic fixture.

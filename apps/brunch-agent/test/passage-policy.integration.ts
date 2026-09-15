@@ -611,7 +611,11 @@ try {
     let read: ReadResult | undefined;
     setResponses([
       call("mutate_workpiece", { markdown: base, evidence }, id),
-      call("read_workpiece", { locateTexts: [quote] }, `${id}-read`),
+      call(
+        "read_workpiece",
+        { includeSources: true, locateTexts: [quote] },
+        `${id}-read`,
+      ),
       (context) => {
         read = modelOutput(context, `${id}-read`);
         assert.deepEqual(read.currentWorkpiece, negativeSeed.revision);

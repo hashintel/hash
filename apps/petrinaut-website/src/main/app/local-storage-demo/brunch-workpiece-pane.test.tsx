@@ -92,27 +92,35 @@ test("warns when the live document differs without exposing raw tool output", ()
   expect(html).not.toContain("Temporal context is not support.");
 });
 
-const settlementMessage = (revisionId: string, markdown?: string) => ({
+/**
+ * A successful settlement: pointer-only output bound to the call, body in the
+ * canonical input. `boundRevisionId` lets a fixture leave the output unbound.
+ */
+const settlementMessage = (
+  toolCallId: string,
+  markdown: string,
+  boundRevisionId: string = toolCallId,
+) => ({
   role: "assistant",
   purpose: "assistant",
   parts: [
     {
       type: "dynamic-tool",
       toolName: "mutate_workpiece",
-      toolCallId: revisionId,
+      toolCallId,
       state: "output-available",
-      input: { markdown: "Unvalidated input must not be displayed" },
+      input: { markdown },
       output: {
-        revisionId,
+        revisionId: boundRevisionId,
         sha256: "d".repeat(64),
         ordinal: 2,
-        ...(markdown === undefined ? {} : { markdown }),
+        mutation: { baseRevisionId: null },
       },
     },
   ],
 });
 
-test("shows successful settlement output without requiring a model-chosen query", () => {
+test("shows a successful settlement body from its bound input without a model-chosen query", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane
       messages={[settlementMessage("settled-call", "# Settled account")]}
@@ -122,7 +130,35 @@ test("shows successful settlement output without requiring a model-chosen query"
   );
   expect(html).toContain("<h1>Settled account</h1>");
   expect(html).not.toContain("settled-call");
-  expect(html).not.toContain("Unvalidated input must not be displayed");
+});
+
+test("does not display the input of a failed settlement", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        settlementMessage("settled-call", "# Settled account"),
+        {
+          role: "assistant",
+          purpose: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "refused-call",
+              state: "output-error",
+              input: { markdown: "# Refused stale-base account" },
+              errorText: "baseRevisionId does not match",
+            },
+          ],
+        },
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("<h1>Settled account</h1>");
+  expect(html).not.toContain("Refused stale-base account");
+  expect(html).not.toContain("A newer Ledger revision exists");
 });
 
 test("a later settlement replaces the displayed query while retaining the recorded why", () => {
@@ -159,12 +195,12 @@ test("an explicit later query replaces a recorded settlement", () => {
   expect(html).not.toContain("<h1>Earlier account</h1>");
 });
 
-test("a later pointer-only legacy settlement marks the displayed account stale", () => {
+test("a later settlement whose output is not bound to its call marks the displayed account stale", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane
       messages={[
         settlementMessage("settled-call", "# Earlier account"),
-        settlementMessage("legacy-call"),
+        settlementMessage("unbound-call", "# Unbound account", "other-call"),
       ]}
       binding={binding}
       liveHash={undefined}
@@ -172,10 +208,10 @@ test("a later pointer-only legacy settlement marks the displayed account stale",
   );
   expect(html).toContain("<h1>Earlier account</h1>");
   expect(html).toContain("A newer Ledger revision exists");
-  expect(html).not.toContain("Unvalidated input must not be displayed");
+  expect(html).not.toContain("Unbound account");
 });
 
-test("does not reconstruct current state from historical revision input", () => {
+test("does not reconstruct current state from an input its output does not bind", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane
       messages={[
@@ -211,9 +247,9 @@ test("folds unique validated settlement identities without treating queries as a
   expect(history.report?.source).toBe("query");
 });
 
-test("does not count incomplete settlement pointers as activity", () => {
+test("does not count unbound settlement pointers as activity", () => {
   const history = foldBrunchWorkpieceHistory(
-    [settlementMessage("pointer-only")],
+    [settlementMessage("pointer-only", "# Unbound", "other-call")],
     binding,
   );
   expect(history.activityIdentities).toEqual([]);

@@ -3,8 +3,6 @@ import {
   FlueChatAdmissionError,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
-
 import { sweepOutputSchema } from "../brunch-sweep-output";
 import { brunchClientToolNames } from "./brunch-client-tools";
 
@@ -347,12 +345,14 @@ export const createBrunchPanelTransport = (
     readonly dynamicClientToolNames?: ReadonlySet<string>;
     readonly validatedClientToolNames?: ReadonlySet<string>;
     readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
+    readonly clientToolResultOutput?: FlueChatTransportOptions["clientToolResultOutput"];
     readonly mapClientToolInput?: (input: {
       readonly input: unknown;
       readonly toolName: string;
       readonly toolCallId: string;
     }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
+    readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
   },
 ): PetrinautAiChatTransport => ({
@@ -370,10 +370,11 @@ export const createBrunchPanelTransport = (
           dynamicClientToolNames: options?.dynamicClientToolNames,
           validatedClientToolNames: options?.validatedClientToolNames,
           clientToolResultMetadata: options?.clientToolResultMetadata,
+          clientToolResultOutput: options?.clientToolResultOutput,
+          liveToolStream: options?.liveToolStream,
           ...(options?.mapClientToolInput === undefined
             ? {}
             : { mapClientToolInput: options.mapClientToolInput }),
-          hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);

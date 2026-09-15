@@ -390,7 +390,7 @@ test("projects fixture client-tool results from canonical signal history", async
   expect(harness.refresh).toHaveBeenCalledTimes(1);
 });
 
-test("retains browser tools for UI execution while hiding server-only markers", async () => {
+test("hydrates legacy question data while hiding its retired tool row", async () => {
   const retainedParts = [
     {
       type: "dynamic-tool" as const,
@@ -399,6 +399,13 @@ test("retains browser tools for UI execution while hiding server-only markers", 
       state: "output-available" as const,
       input: {},
       output: { marked: true },
+    },
+    {
+      type: "data-brunch-question" as const,
+      data: {
+        question: "Which legacy question was marked?",
+        toolCallId: "question-1",
+      },
     },
     {
       type: "dynamic-tool" as const,
@@ -441,6 +448,13 @@ test("retains browser tools for UI execution while hiding server-only markers", 
 
   await waitFor(() => expect(result.current.ready).toBe(true));
   expect(result.current.messages?.[0]?.parts).toEqual([
+    {
+      type: "data-brunch-question",
+      data: {
+        question: "Which legacy question was marked?",
+        toolCallId: "question-1",
+      },
+    },
     expect.objectContaining({
       type: "tool-layout_petrinaut_net",
       toolCallId: "layout-1",

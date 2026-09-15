@@ -79,10 +79,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
       "Which documentation page should we inspect next?",
     );
     expect(result.questionResponseProviderCalls).toBe(1);
-    expect(result.questionMarkerLive).toBeUndefined();
-    expect(result.questionToolVisibleLive).toBe(false);
-    expect(result.questionMarkerHistory).toBeUndefined();
-    expect(result.questionToolVisibleHistory).toBe(false);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
 
@@ -159,8 +155,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(resumeResult.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-    expect(resumeResult.questionMarkerHistory).toBeUndefined();
-    expect(resumeResult.questionToolVisibleHistory).toBe(false);
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain(
       `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,

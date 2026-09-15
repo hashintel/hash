@@ -274,6 +274,51 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("records question visibility only when finalized-turn identity changes", async () => {
+    const harness = createHarness();
+    const initial = markedQuestion("finalized-turn-1", "First response?");
+    const next = markedQuestion(
+      "finalized-turn-2",
+      "Explanation.\n\nNext question?",
+    );
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial],
+      questionSegment: initial,
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "An answer.",
+      deliveryId: "delivery-1",
+      type: "submission-started",
+    });
+    harness.advanceTime(25);
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial, next],
+      questionSegment: next,
+      status: "ready",
+    });
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial, next],
+      questionSegment: next,
+      status: "ready",
+    });
+
+    expect(harness.latencyEvents).toContainEqual({
+      correlationId: next.id,
+      elapsedMs: 25,
+      name: "question-visible",
+    });
+    expect(
+      harness.latencyEvents.filter(({ name }) => name === "question-visible"),
+    ).toHaveLength(1);
+    expect(harness.controller.getSnapshot().currentQuestion).toBe(next.text);
+  });
+
   test("tracks assistant playback without admitting automatic barge-in", async () => {
     const harness = createHarness();
     await harness.controller.start();

@@ -33,7 +33,10 @@ import {
 } from "../src/evaluations/persona/launch/resume.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import { browserResultFrom } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+} from "./browser-result.ts";
 import { nativeOpenaiProvider } from "./native-openai-provider.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
@@ -80,6 +83,18 @@ const call = (name: string, args: Record<string, unknown>, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id: toolId(id) })], {
     stopReason: "toolUse",
   });
+/** The Ledger pane renders Markdown; assert the heading and body it produces. */
+const expectLedgerDocument = async (
+  page: Awaited<ReturnType<typeof openBrowserFixture>>["page"],
+  heading: string,
+  body: string,
+) => {
+  const document = page.getByTestId("brunch-workpiece-document");
+  await expect(
+    document.getByRole("heading", { level: 1, name: heading }),
+  ).toBeVisible();
+  await expect(document.getByRole("paragraph")).toHaveText(body);
+};
 try {
   fixture = await openBrowserFixture(
     { fetch: (request) => app.fetch(request), stop: () => app.stop() },
@@ -152,7 +167,7 @@ try {
     [],
     "Ordinary route starts with an empty net",
   );
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveCount(0);
+  await expect(page.getByTestId("brunch-workpiece-document")).toHaveCount(0);
   writeFileSync(
     join(output, "initial-snapshot.json"),
     JSON.stringify(opened.snapshot, null, 2),
@@ -208,18 +223,19 @@ try {
       ),
       call("read_petrinaut_net", {}, `read-${index}`),
       async (context: Context) => {
-        const observation = browserResultFrom(
-          context.messages.flatMap((message) =>
-            typeof message.content === "string"
-              ? [message.content]
-              : message.content.flatMap((part) =>
-                  part.type === "text" ? [part.text] : [],
-                ),
+        const observation = modelVisibleObservationFrom(
+          browserResultFrom(
+            context.messages.flatMap((message) =>
+              typeof message.content === "string"
+                ? [message.content]
+                : message.content.flatMap((part) =>
+                    part.type === "text" ? [part.text] : [],
+                  ),
+            ),
+            "read_petrinaut_net",
+            "Missing browser observation",
           ),
-          "read_petrinaut_net",
-          "Missing browser observation",
-        ).metadata?.observation;
-        assert(observation);
+        );
         reachedRead.resolve();
         await continueRead.promise;
         return call(
@@ -227,7 +243,7 @@ try {
           {
             observation: {
               toolCallId: observation.toolCallId,
-              baseHash: observation.observed.sha256,
+              baseHash: observation.sha256,
             },
             bases: [
               {
@@ -316,8 +332,10 @@ try {
       "aria-selected",
       "true",
     );
-    await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-      markdown,
+    await expectLedgerDocument(
+      page,
+      "Synthetic operation",
+      `There are ${index} waiting stages. Timing is unknown.`,
     );
     const history = await client.history();
     const workpiece = history.messages
@@ -411,8 +429,10 @@ try {
   assert.equal(stale.state, "output-error");
   assert.match(stale.errorText, /baseRevisionId/);
   await page.getByRole("tab", { name: /^Ledger/u }).click();
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  await expectLedgerDocument(
+    page,
+    "Synthetic operation",
+    "There are 2 waiting stages. Timing is unknown.",
   );
   await page.getByRole("tab", { name: /^Chat/u }).click();
   finishBarrier = Promise.withResolvers<void>();
@@ -506,8 +526,10 @@ try {
     net,
   );
   await page.getByRole("tab", { name: /^Ledger/u }).click();
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  await expectLedgerDocument(
+    page,
+    "Synthetic operation",
+    "There are 2 waiting stages. Timing is unknown.",
   );
   await page.getByRole("tab", { name: /^Chat/u }).click();
   faux.setResponses([

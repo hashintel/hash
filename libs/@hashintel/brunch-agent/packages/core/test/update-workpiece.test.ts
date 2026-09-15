@@ -71,13 +71,12 @@ test("returns revisionId equal to toolCallId and sha256 of the Markdown", async 
       revisionId: "actual-tool-call",
       sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
       ordinal: 1,
-      markdown,
       mutation: deriveWorkpieceMutation(null, markdown),
     },
     terminate: false,
   });
-  const { mutation: _mutation, ...settled } = result.output;
-  expect(current).toEqual(settled);
+  const { mutation: _mutation, ...pointer } = result.output;
+  expect(current).toEqual({ ...pointer, markdown });
 });
 
 test("accepts retained pointer-only update output", () => {
@@ -100,9 +99,9 @@ test("persists Markdown with the pointer", async () => {
     { locator: { start: 0, end: 8 }, messageIds: [], kind: "default" },
   ];
   const result = await run("# Second", "second", evidence, "first");
-  const { mutation: _mutation, ...settled } = result.output;
+  const { mutation: _mutation, ...pointer } = result.output;
   expect(current).toEqual({
-    ...settled,
+    ...pointer,
     markdown: "# Second",
     evidence,
     evidenceValidated: true,
@@ -190,7 +189,7 @@ test("captures the persistent-state setter at render and writes from run", async
   );
   expect(revisionTool).toBeDefined();
   expect(prompt).toContain(
-    "Call `mutate_workpiece` with the full next Markdown account",
+    "call `mutate_workpiece` with the full next Markdown account",
   );
   expect(prompt).toContain("as soon as one consequential distinction exists");
   expect(prompt).toContain("after each useful stretch or correction");
@@ -215,7 +214,7 @@ test("captures the persistent-state setter at render and writes from run", async
     "Never combine it with browser construction in one batch",
   );
   expect(revisionTool?.description).toContain(
-    "returned Markdown, revisionId, and sha256 are authoritative",
+    "submitted Markdown remains the authoritative body",
   );
   expect(
     v.getDescription(updateWorkpieceInputSchema.entries.baseRevisionId),
@@ -459,7 +458,7 @@ test("discovers every authorized true-user source ID and truncates long excerpts
     readSources: async () => sources,
   });
   const result = await reader.run({
-    data: {},
+    data: { includeSources: true },
     toolCallId: "read-1",
     log: { info: () => {}, warn: () => {}, error: () => {} },
   });
@@ -539,6 +538,86 @@ test("one focused read carries sources and unsettled-candidate locators without 
   expect(JSON.stringify(result.output)).not.toContain(currentMarkdown);
 });
 
+test("defaults to current content without source excerpts", async () => {
+  const markdown = "# Current account";
+  const currentRevision = {
+    revisionId: "rev-defaults",
+    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    ordinal: 4,
+    markdown,
+  };
+  const readSources = vi.fn<
+    Parameters<typeof createWorkpieceReadTool>[0]["readSources"]
+  >(async () => [
+    {
+      id: "user-source",
+      role: "user",
+      purpose: "user",
+      text: "Source excerpt",
+    },
+  ]);
+  const reader = createWorkpieceReadTool({ currentRevision, readSources });
+  const context = {
+    toolCallId: "read-defaults",
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+  };
+
+  const result = await reader.run({ ...context, data: {} });
+  expect(result.output.currentWorkpiece).toEqual(currentRevision);
+  expect(result.output.currentWorkpiecePointer).toMatchObject({
+    revisionId: currentRevision.revisionId,
+    sha256: currentRevision.sha256,
+  });
+  expect(result.output.sources).toEqual([]);
+  expect(readSources).not.toHaveBeenCalled();
+
+  const withSources = await reader.run({
+    ...context,
+    data: { includeSources: true },
+  });
+  expect(withSources.output.currentWorkpiece).toEqual(currentRevision);
+  expect(withSources.output.sources).toMatchObject([
+    { id: "user-source", text: "Source excerpt" },
+  ]);
+  expect(readSources).toHaveBeenCalledOnce();
+});
+
+test("refuses candidate Markdown without locator texts as an ordinary result", async () => {
+  const markdown = "# Settled";
+  const currentRevision = {
+    revisionId: "rev-current",
+    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    ordinal: 1,
+    markdown,
+  };
+  const readSources = vi.fn<
+    Parameters<typeof createWorkpieceReadTool>[0]["readSources"]
+  >(async () => []);
+  const reader = createWorkpieceReadTool({ currentRevision, readSources });
+
+  const result = await reader.run({
+    data: {
+      includeContent: false,
+      markdown: "# Unsettled candidate",
+    },
+    toolCallId: "invalid-candidate",
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+  });
+
+  expect(result.terminate).toBe(false);
+  expect(result.output.currentWorkpiece).toBeNull();
+  expect(result.output.currentWorkpiecePointer).toMatchObject({
+    revisionId: currentRevision.revisionId,
+  });
+  expect(result.output.locatorLookup).toEqual({
+    subject: { kind: "unsettled-candidate" },
+    reason:
+      "Unsettled candidate Markdown was refused: omit markdown when no locator lookup is needed, or supply locateTexts for the candidate.",
+  });
+  expect(result.output.sources).toEqual([]);
+  expect(readSources).not.toHaveBeenCalled();
+});
+
 test("focused reads return settled identity without retransmitting Markdown", async () => {
   const markdown = "# Account\nReserve one crew.";
   const currentRevision = {
@@ -568,7 +647,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
 
   const sources = await reader.run({
     ...context,
-    data: { includeContent: false },
+    data: { includeContent: false, includeSources: true },
   });
   expect(sources.output).toMatchObject({
     currentWorkpiece: null,

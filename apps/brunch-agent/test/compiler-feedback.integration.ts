@@ -31,7 +31,10 @@ import {
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import { browserResultFrom } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+} from "./browser-result.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 const cleanCompilation =
@@ -195,18 +198,19 @@ const mutateCall = (
   operations: readonly MutatePetrinetOperation[],
   id: string,
 ) => {
-  const observation = browserResultFrom(
-    textsFrom(context),
-    readPetrinautNetToolName,
-    "Missing observation",
-  ).metadata?.observation;
-  assert(observation);
+  const observation = modelVisibleObservationFrom(
+    browserResultFrom(
+      textsFrom(context),
+      readPetrinautNetToolName,
+      "Missing observation",
+    ),
+  );
   return tool(
     mutatePetrinetToolName,
     {
       observation: {
         toolCallId: observation.toolCallId,
-        baseHash: observation.observed.sha256,
+        baseHash: observation.sha256,
       },
       bases: [{ basisId: "decay-basis", basis: locateBasis(context) }],
       operations,

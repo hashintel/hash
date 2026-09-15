@@ -138,6 +138,14 @@ those remain with their definition owners.
 | `query_workpiece` | Brunch app | Brunch app | current-model explanation and provenance query |
 | `ping` | Brunch app | Brunch app | server diagnostic |
 
+Voice derives its repeatable question segment in the browser from the whole
+finalized assistant text of the folded turn. A text part followed by more tool
+work is not final; after a client-tool continuation, all finalized text parts
+in that assistant message form one stable, message-addressed segment. Empty,
+tool-only and stopped replies produce no new segment. Historical
+`brunch_mark_question` rows remain hidden and `data-brunch-question` parts
+remain loadable as inert data, but neither can select or override Voice speech.
+
 Stock Petrinaut has its own canonical individual AI-tool surface and history.
 Legacy/headless Brunch modes still mount individual construction tools for
 their bounded tests; they are not the ordinary product surface.

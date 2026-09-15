@@ -248,7 +248,11 @@ export const seedRetentionBrowser = async (options: {
     faux.setResponses([
       retentionCall(
         "read_workpiece",
-        { markdown: retentionMarkdown, locateTexts: [retentionQuote] },
+        {
+          includeSources: true,
+          markdown: retentionMarkdown,
+          locateTexts: [retentionQuote],
+        },
         "retention-discover",
       ),
       (context) => {
