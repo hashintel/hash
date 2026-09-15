@@ -47,22 +47,12 @@ const reasoningHeaderStyle = css({
   },
 });
 
-const reasoningLabelGroupStyle = css({
-  display: "flex",
-  flex: "[1]",
-  alignItems: "baseline",
-  gap: "[6px]",
-  minWidth: "[0]",
-});
-
-const reasoningHeadingStyle = css({
+const reasoningTitleStyle = css({
   flex: "[1]",
   minWidth: "[0]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  color: "neutral.s80",
-  fontWeight: "normal",
 });
 
 // The elapsed-time span sits between two flexible siblings; without an
@@ -252,14 +242,7 @@ export const AiAssistantReasoning = ({
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
         <Icon name="list" size="sm" />
-        <span className={reasoningLabelGroupStyle}>
-          <span>Reasoning</span>
-          {heading && (
-            <span className={reasoningHeadingStyle}>
-              ({heading.toLowerCase()})
-            </span>
-          )}
-        </span>
+        <span className={reasoningTitleStyle}>{heading ?? "Reasoning"}</span>
         {elapsedTime !== undefined && (
           <span
             className={reasoningElapsedStyle}

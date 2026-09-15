@@ -292,14 +292,13 @@ try {
     }
     await reachedRead.promise;
     if (index === 1) {
-      await page.getByRole("button", { name: /^2 operations/u }).click();
       await expect(
-        page.getByText("mutate_workpiece", { exact: true }),
+        page.getByRole("button", { name: /Updated ledger/u }),
       ).toBeVisible();
-      await page.screenshot({
-        path: join(output, "tools.png"),
-        animations: "disabled",
-      });
+      await expect(
+        page.getByRole("button", { name: /Read current model/u }).last(),
+      ).toBeVisible();
+      await page.screenshot({ path: join(output, "tools.png") });
     }
     // Switch during the client continuation, not merely between turns.
     await page.getByRole("tab", { name: /^Ledger/u }).click();
