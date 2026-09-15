@@ -1024,13 +1024,25 @@ describe("AiAssistantContents", () => {
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          status="ready"
+          status="streaming"
         />
       </VoiceSessionContext.Provider>,
     );
 
     const dock = screen.getByRole("region", { name: "Voice session" });
     expect(within(dock).getByText("Speaking")).not.toBeNull();
+    for (const label of [
+      "Mute microphone",
+      "Stop AI response",
+      "End voice mode",
+    ]) {
+      const button = within(dock).getByRole("button", { name: label });
+      const icon = button.querySelector("svg");
+      expect(icon?.getAttribute("viewBox")).toBe("0 0 20 20");
+      expect(icon?.getAttribute("width")).toBe("16");
+      expect(icon?.getAttribute("height")).toBe("16");
+      expect(within(button).queryByText(label)).toBeNull();
+    }
 
     fireEvent.click(
       within(dock).getByRole("button", { name: "Mute microphone" }),

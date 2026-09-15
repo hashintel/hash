@@ -23,6 +23,7 @@ import {
 import { aiFooterMinHeight } from "./footer-height";
 import { AudioPopover } from "./voice-dock/audio-popover";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
+import { EndIcon, StopIcon } from "./voice-dock/session-action-icons";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
@@ -308,8 +309,8 @@ export const VoiceDock = ({
             {assistantBusy && (
               <Button
                 aria-label={voiceSessionActionLabels.stop}
-                iconName="stopFilled"
                 onClick={onStop}
+                prefix={<StopIcon />}
                 size="sm"
                 tooltip={voiceSessionActionLabels.stop}
                 type="button"
@@ -318,16 +319,16 @@ export const VoiceDock = ({
             )}
             <Button
               aria-label={voiceSessionActionLabels.end}
-              iconName="close"
               onClick={() => {
                 actions.end();
                 if (collapsed) {
                   onCollapsedEnd?.();
                 }
               }}
+              prefix={<EndIcon />}
               size="sm"
               tone="error"
-              tooltip="End voice mode"
+              tooltip={voiceSessionActionLabels.end}
               type="button"
               variant="ghost"
             />
