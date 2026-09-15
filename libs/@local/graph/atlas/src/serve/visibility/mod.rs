@@ -5,7 +5,7 @@
 //! the node and edge rows the actor may receive, together with the principal and instance-
 //! administrator status used for resolution. Filter construction receives property-protection
 //! configuration as a separate input. The mask freezes the resulting permission-store decision.
-//! `cache` defines when requests reuse, refresh or refuse it.
+//! [`cache`] defines when requests reuse, refresh or refuse it.
 //!
 //! A mask is either the whole corpus or an explicit row set, and
 //! [`VisibilityKind`] names which. That distinction is the actor's admitted policy rather than an
@@ -23,6 +23,9 @@ use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
 };
+
+pub(crate) mod cache;
+pub(crate) mod resolver;
 
 /// A visible row set over one row domain.
 #[derive(Debug, Clone, PartialEq, Eq)]
