@@ -86,11 +86,12 @@ pub(crate) struct LocateResponse {
 pub(crate) trait LocateResolver {
     /// Fills the requested slots and returns the source's capped properties.
     ///
-    /// Leave unavailable entities unresolved. On error, discard all written details.
+    /// Unavailable entities remain unresolved.
     ///
     /// # Errors
     ///
-    /// Returns [`HydrateError`] when a store read fails.
+    /// Returns [`HydrateError`] when a store read fails. Errors may leave partially populated
+    /// slots. Discard those results. Reset all slot details to [`None`] before retrying.
     fn resolve(
         &self,
         request: LocateRequest<'_>,
