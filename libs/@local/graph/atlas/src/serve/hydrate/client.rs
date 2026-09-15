@@ -163,10 +163,23 @@ async fn read_detail(
     Ok(Some(LocateProperties { values, complete }))
 }
 
-/// Live detail reads over the serving store pool.
+/// A PostgreSQL client for live graph hydration.
 ///
-/// The pool's settings determine property protection. Call the resolvers from a blocking worker
-/// while the supplied runtime drives I/O.
+/// Entity lookups select current, non-archived editions. Ontology lookups include archived types.
+///
+/// Property protection follows the store pool's configured rules for the request's actor.
+///
+/// # Execution
+///
+/// Resolution blocks the calling thread. Use a blocking worker while the supplied runtime processes
+/// I/O.
+///
+/// # Panics
+///
+/// Resolution panics in an asynchronous execution context or if a returned column fails to decode.
+///
+/// Entity lookups also panic if a query returns an unrequested identity, a direct-type count is
+/// negative, or a scalar-property aggregate is not a JSON object.
 #[derive(Debug)]
 pub(crate) struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
@@ -356,15 +369,6 @@ impl GraphDatabaseClient {
 }
 
 impl TypeUrlResolver for GraphDatabaseClient {
-    /// Blocks the calling thread on [`Self::read_type_urls`].
-    ///
-    /// This client's captured Tokio [`Handle`] drives the read. Callers place it on a
-    /// blocking-safe worker, since it drives an `async` read from synchronous code.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called from an asynchronous execution context, as [`Handle::block_on`] requires,
-    /// and on [`Self::read_type_urls`]'s own column-decoding conditions.
     fn resolve(
         &self,
         types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator>,
@@ -375,16 +379,6 @@ impl TypeUrlResolver for GraphDatabaseClient {
 }
 
 impl LocateResolver for GraphDatabaseClient {
-    /// Blocks the calling thread on concurrent node and link reads.
-    ///
-    /// This client's captured Tokio [`Handle`] drives [`Self::read_locate_nodes`] and
-    /// [`Self::read_locate_links`] together. Callers place it on a blocking-safe worker, since it
-    /// drives `async` reads from synchronous code.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called from an asynchronous execution context, as [`Handle::block_on`] requires,
-    /// and on the store-row and column-decoding conditions of the two reads it drives.
     fn resolve(
         &self,
         LocateRequest {
