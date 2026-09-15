@@ -144,13 +144,21 @@ const unrecognizedEntries = (
 const writeStore = (
   storage: Storage,
   documents: LocalStorageSDCPNsStore,
-  raw: Record<string, unknown> = readRawStore(storage),
-): void =>
-  writeBrowserStorage(
-    storage,
-    rootLocalStorageKey,
-    JSON.stringify({ ...unrecognizedEntries(raw), ...documents }),
-  );
+  {
+    raw = readRawStore(storage),
+    requirePersistence = false,
+  }: { raw?: Record<string, unknown>; requirePersistence?: boolean } = {},
+): void => {
+  const serialized = JSON.stringify({
+    ...unrecognizedEntries(raw),
+    ...documents,
+  });
+  if (requirePersistence) {
+    storage.setItem(rootLocalStorageKey, serialized);
+  } else {
+    writeBrowserStorage(storage, rootLocalStorageKey, serialized);
+  }
+};
 
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   const raw = readRawStore(storage);
@@ -213,7 +221,7 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
     }),
   );
   if (needsNormalization) {
-    writeStore(storage, withIdentities, raw);
+    writeStore(storage, withIdentities, { raw });
   }
   return withIdentities;
 };
@@ -238,7 +246,7 @@ export const readLocalStorageNets = (
     }),
   );
   if (Object.entries(nets).some(([id, net]) => stored[id]?.uuid !== net.uuid))
-    writeStore(storage, nets);
+    writeStore(storage, nets, { requirePersistence: true });
   return nets;
 };
 
@@ -248,7 +256,7 @@ export const saveLocalStorageNet = (
 ): LocalStorageNetWithUuid => {
   const nets = readLocalStorageNets(storage);
   const net = createLocalStorageNetRecord(params);
-  writeStore(storage, { ...nets, [net.id]: net });
+  writeStore(storage, { ...nets, [net.id]: net }, { requirePersistence: true });
   return net;
 };
 

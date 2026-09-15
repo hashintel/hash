@@ -68,6 +68,15 @@ describe("/new", () => {
     });
   });
 
+  test("reports a storage failure before redirecting to an unwritten document", () => {
+    const failure = new DOMException("Storage full", "QuotaExceededError");
+    localStorage.setItem = () => {
+      throw failure;
+    };
+    expect(visit()).toBe(failure);
+    expect(storedNets()).toEqual([]);
+  });
+
   test("leaves one empty net for the editor to open", () => {
     visit();
 

@@ -7,7 +7,8 @@ clearing browser storage shows “Local document not found”. Export the file t
 move it between browsers.
 
 To edit a published example, choose **Make a local copy** in its top bar. The copy
-opens at its own local URL, and the published example stays unchanged.
+opens at its own local URL, and the published example stays unchanged. If your
+browser cannot save the copy, the example stays open and shows a storage error.
 
 ## Editor layout
 

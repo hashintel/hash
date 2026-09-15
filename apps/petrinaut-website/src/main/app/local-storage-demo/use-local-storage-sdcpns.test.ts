@@ -168,6 +168,36 @@ describe("startEmptyNetInStorage", () => {
   });
 });
 
+describe("required document persistence", () => {
+  test.each(["QuotaExceededError", "SecurityError"])(
+    "rejects creating a local copy when storage throws %s",
+    (name) => {
+      const storage = createStorage();
+      storage.setItem = () => {
+        throw new DOMException("Storage unavailable", name);
+      };
+      expect(() =>
+        saveLocalStorageNet(storage, {
+          petriNetDefinition: drawnNet,
+          title: "Example (copy)",
+        }),
+      ).toThrow("Storage unavailable");
+      expect(readNets(storage)).toEqual({});
+    },
+  );
+
+  test("does not return a migrated URL that could not be persisted", () => {
+    const storage = createStorage(
+      JSON.stringify(Object.fromEntries([storedNet("legacy", drawnNet)])),
+    );
+    storage.setItem = () => {
+      throw new DOMException("Storage full", "QuotaExceededError");
+    };
+    expect(() => readLocalStorageNets(storage)).toThrow("Storage full");
+    expect(readNets(storage).legacy?.uuid).toBeUndefined();
+  });
+});
+
 describe("local document identity", () => {
   test("creates distinct UUIDs even within the same millisecond", () => {
     const records = Array.from({ length: 100 }, () =>

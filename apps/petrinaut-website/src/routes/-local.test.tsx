@@ -128,3 +128,15 @@ test.each([
     expect(localStorage.getItem("petrinaut-sdcpn")).toBeNull();
   },
 );
+
+test("the home page reports failed persistence without navigating to a missing document", async () => {
+  localStorage.setItem = () => {
+    throw new DOMException("Storage unavailable", "SecurityError");
+  };
+  const router = await open("/");
+  expect(router.state.location.pathname).toBe("/");
+  expect(router.state.matches.some((match) => match.status === "error")).toBe(
+    true,
+  );
+  expect(screen.queryByText("Local document not found")).toBeNull();
+});
