@@ -30,7 +30,7 @@ describe("readCurrentDiagnostics", () => {
     try {
       await expect(
         readCurrentDiagnostics(instance, request),
-      ).resolves.toContain("everything compiles");
+      ).resolves.toContain("No errors or warnings found in net function code.");
       instance.mutations.addParameter({
         id: "rate",
         name: "Rate",
@@ -40,7 +40,7 @@ describe("readCurrentDiagnostics", () => {
       });
       await expect(
         readCurrentDiagnostics(instance, request),
-      ).resolves.toContain("everything compiles");
+      ).resolves.toContain("No errors or warnings found in net function code.");
       expect(
         request.mock.calls.map(([definition]) => definition.parameters.length),
       ).toEqual([0, 1]);
@@ -69,7 +69,9 @@ describe("readCurrentDiagnostics", () => {
       });
       result.resolve({ byUri: new Map(), total: 0, errorCount: 0 });
       await expect(read).resolves.toMatch(/changed.*check again/iu);
-      await expect(read).resolves.not.toMatch(/everything compiles/iu);
+      await expect(read).resolves.not.toContain(
+        "No errors or warnings found in net function code.",
+      );
     } finally {
       instance.dispose();
     }

@@ -5279,7 +5279,7 @@ describe("AiAssistantPanel host interactive tools", () => {
     expect(diagnosticsOutputs).toHaveLength(2);
     expect(
       diagnosticsOutputs.every((output) =>
-        output.includes("everything compiles"),
+        output.includes("No errors or warnings found in net function code."),
       ),
     ).toBe(true);
     expect(

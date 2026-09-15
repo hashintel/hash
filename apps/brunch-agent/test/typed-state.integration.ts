@@ -631,7 +631,7 @@ try {
       compilations.push(result);
       assert.equal(
         result.output,
-        "No errors detected in your model – everything compiles!",
+        "No errors or warnings found in net function code.",
         "Final corrected net must report clean canonical diagnostics; no scenario execution follows",
       );
       return text(
