@@ -459,7 +459,9 @@ export const attachAbandonmentController = ({
       onFadingChange(true);
       fadeTimer = window.setTimeout(() => {
         fadeTimer = null;
-        for (const chip of getChips()) {
+        // Snapshot: a dismissal can remove its chip synchronously (the chip
+        // flushSyncs its onRemove), unregistering it mid-iteration.
+        for (const chip of [...getChips()]) {
           chip.dismiss();
         }
         onFadingChange(false);

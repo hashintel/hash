@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -678,17 +679,24 @@ export const Filter = <
     },
     [],
   );
+  // a group dismissal removes several chips in one turn so we flushSync to ensure they
+  // that any consumer closures are not redefined in between dismissals
+  const removeNow = () => {
+    flushSync(() => {
+      onRemoveRef.current?.();
+    });
+  };
   const collapseThenRemove = () => {
     const root = rootRef.current;
     if (!root || !shouldAnimateChipRemoval(root)) {
-      onRemoveRef.current?.();
+      removeNow();
       return;
     }
     removingRef.current = true;
     startChipCollapse(root);
     removeTimerRef.current = window.setTimeout(() => {
       removeTimerRef.current = null;
-      onRemoveRef.current?.();
+      removeNow();
     }, CHIP_COLLAPSE_MS);
   };
   const handleRemove = () => {
