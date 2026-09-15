@@ -13,6 +13,7 @@ import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../../../../../../react/navigation";
+import { Table } from "../../../../../components/table";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { SimulationPanel } from "./simulation-panel";
 
@@ -23,6 +24,72 @@ class ObserverStub {
 }
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 afterEach(cleanup);
+
+it("opens resources with one click and keeps arrow selection in the list as panels change", () => {
+  const rows = [{ id: "Moon" }, { id: "Earth" }, { id: "Mars" }];
+  const ResourceList = () => {
+    const { state, navigate } = usePetrinautNavigation();
+    const selected = state.simulateResource;
+    return (
+      <SimulationWorkspace>
+        <Table
+          columns={[{ id: "name", header: "Name", render: (row) => row.id }]}
+          emptyLabel="No scenarios"
+          rows={rows}
+          getRowId={(row) => row.id}
+          selectedRowId={selected?.id}
+          onRowSelect={(row) =>
+            navigate(
+              { simulateResource: { type: "scenario", id: row.id } },
+              { cause: "user", action: "simulation-resource" },
+            )
+          }
+        />
+        {selected && (
+          <SimulationPanel
+            key={selected.id}
+            title={selected.id}
+            onClose={() =>
+              navigate(
+                { simulateResource: null },
+                { cause: "user", action: "simulation-resource" },
+              )
+            }
+          >
+            <SimulationPanel.Header />
+          </SimulationPanel>
+        )}
+      </SimulationWorkspace>
+    );
+  };
+  render(
+    <PetrinautNavigationProvider initialState={{ mode: "simulate" }}>
+      <ResourceList />
+    </PetrinautNavigationProvider>,
+  );
+  const moonRow = screen.getByRole("row", { name: "Moon" });
+  fireEvent.click(moonRow, { detail: 1 });
+  expect(screen.getByRole("region", { name: "Moon" })).toBeDefined();
+  expect(document.activeElement).toBe(moonRow);
+  fireEvent.keyDown(moonRow, { key: "ArrowDown" });
+  const earthRow = screen.getByRole("row", { name: "Earth" });
+  expect(screen.getByRole("region", { name: "Earth" })).toBeDefined();
+  expect(earthRow.getAttribute("aria-selected")).toBe("true");
+  expect(document.activeElement).toBe(earthRow);
+  fireEvent.keyDown(earthRow, { key: "ArrowDown" });
+  const marsRow = screen.getByRole("row", { name: "Mars" });
+  expect(screen.getByRole("region", { name: "Mars" })).toBeDefined();
+  expect(document.activeElement).toBe(marsRow);
+  fireEvent.keyDown(marsRow, { key: "ArrowUp" });
+  expect(document.activeElement).toBe(earthRow);
+  expect(screen.getByRole("region", { name: "Earth" })).toBeDefined();
+  const close = screen.getByRole("button", { name: "Close panel" });
+  close.focus();
+  fireEvent.click(close);
+  expect(screen.queryByRole("region")).toBeNull();
+  expect(document.activeElement).toBe(earthRow);
+  expect(earthRow.getAttribute("aria-selected")).toBe("false");
+});
 
 const NavigationProbe = () => {
   const { state } = usePetrinautNavigation();

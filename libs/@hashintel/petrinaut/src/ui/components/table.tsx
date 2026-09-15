@@ -4,7 +4,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { focusLands } from "../worksheet/focus-flow";
 import { useFocusStops } from "../worksheet/use-focus-stops";
-import { useSelectFirstActivation } from "../worksheet/use-select-first";
 
 import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 import type { CSSProperties, ReactNode } from "react";
@@ -94,8 +93,6 @@ const selectedRowStyle = css({
 const selectableTableRowStyle = css({
   cursor: "pointer",
   outline: "none",
-  // Select-first needs the focused row visible to pointer users too, so the
-  // ring shows on any focus rather than only `:focus-visible`.
   _focus: {
     boxShadow: "[inset 0 0 0 2px {colors.neutral.a25}]",
   },
@@ -165,8 +162,7 @@ const renderCellContent = (
 /**
  * A read-only data table. With `onRowSelect` its rows follow the worksheet
  * keyboard flow: the table is one Tab stop, ArrowUp/ArrowDown walk the rows,
- * and activation is select-first (the first click focuses a row, a click on
- * the focused row or Enter/Space calls `onRowSelect`).
+ * and a click or arrow move selects and opens the focused row.
  */
 export function Table<Row>({
   columns,
@@ -185,9 +181,17 @@ export function Table<Row>({
   const { onKeyDown, onFocusTarget, tabIndexFor, attach } = useFocusStops({
     stops,
     columnCount: 1,
-    focusTarget: (target) => focusLands(targets.current.get(target.stopId)),
+    focusTarget: (target) => {
+      const focused = focusLands(targets.current.get(target.stopId));
+      const row = rows.find(
+        (candidate) => getRowId(candidate) === target.stopId,
+      );
+      if (focused && row !== undefined && target.stopId !== selectedRowId) {
+        onRowSelect?.(row);
+      }
+      return focused;
+    },
   });
-  const { onPointerDown, shouldActivate } = useSelectFirstActivation();
 
   if (rows.length === 0) {
     return <div className={tableEmptyStateStyle}>{emptyLabel}</div>;
@@ -214,11 +218,9 @@ export function Table<Row>({
           onFocusTarget(target);
         }
       },
-      onPointerDown,
       onClick: (event: React.MouseEvent<HTMLElement>) => {
-        if (shouldActivate(event)) {
-          select(row);
-        }
+        event.currentTarget.focus();
+        select(row);
       },
       onKeyDown: (event: React.KeyboardEvent) => {
         if (event.target !== event.currentTarget) {

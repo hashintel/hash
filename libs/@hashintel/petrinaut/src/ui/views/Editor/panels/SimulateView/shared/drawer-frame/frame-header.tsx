@@ -23,6 +23,7 @@ import { createContext, type ReactNode, use, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { simulationHeaderHeight } from "../simulation-header";
 import { Fold } from "./fold";
 import { FrameAnimateContext } from "./frame-animate-context";
 import { useOverflows } from "./use-overflows";
@@ -30,9 +31,9 @@ import { useOverflows } from "./use-overflows";
 import type { FrameHeaderEngagement } from "./use-header-engaged";
 
 /** The header's height in pixels at rest with labelled columns: the title line, the gap, the strip and the padding. */
-export const FRAME_HEADER_HEIGHT = 74;
+export const FRAME_HEADER_HEIGHT = simulationHeaderHeight + 38;
 /** The header's height in pixels once the body has scrolled: the title line and the padding. */
-export const FRAME_HEADER_CONDENSED_HEIGHT = 36;
+export const FRAME_HEADER_CONDENSED_HEIGHT = simulationHeaderHeight;
 
 /** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
 export type FrameStatsDensity = "full" | "compact";
@@ -48,8 +49,8 @@ const rootStyle = css({
   boxSizing: "border-box",
   minWidth: "[0]",
   overflow: "hidden",
-  paddingTop: "1.5",
-  paddingBottom: "1.5",
+  paddingTop: "[14px]",
+  paddingBottom: "[14px]",
   paddingLeft: "5",
   paddingRight: "5",
   backgroundColor: "neutral.s00",

@@ -204,7 +204,7 @@ Experiments belong to the current session. Reloading a link after that session h
 
 ### Actions
 
-In the experiment's view panel (open it from the list, where the first click selects a row and a click on the selected row or Enter opens it, or via any experiment in the top-bar **Active experiments** popover):
+In the experiment's view panel (open it with a single click in the list, with **Up** or **Down** while browsing the list, or via any experiment in the top-bar **Active experiments** popover):
 
 - **Cancel** -- stops the experiment. Offered while it is initializing or running, and while a study drives a sweep, which it stops too. Once a sweep is cancelled its sliders and its surface lock; a selection that failed locks nothing, and the next selection computes normally.
 - **Remove** -- deletes the record and disposes the experiment's workers (and, for a sweep, its study). It sits at the left edge of the footer.

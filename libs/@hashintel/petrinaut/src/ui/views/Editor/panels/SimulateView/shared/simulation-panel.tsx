@@ -13,6 +13,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../../../react/navigation";
 import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace";
+import { simulationHeaderStyle } from "./simulation-header";
 
 interface SimulationPanelProps {
   title: string;
@@ -44,6 +45,7 @@ const PanelContent = ({
     layer === "resource" &&
     (state.overlay?.type === "create-scenario" ||
       state.overlay?.type === "create-experiment");
+  const fullscreen = state.simulatePresentation === "fullscreen";
 
   useEffect(() => {
     if (hidden) {
@@ -51,7 +53,9 @@ const PanelContent = ({
     }
     const panel = panelRef.current;
     const opener = document.activeElement;
-    (initialFocusRef?.current ?? panel)?.focus({ preventScroll: true });
+    if (layer === "creation" || opener === document.body) {
+      (initialFocusRef?.current ?? panel)?.focus({ preventScroll: true });
+    }
     return () => {
       if (
         opener instanceof HTMLElement &&
@@ -62,7 +66,14 @@ const PanelContent = ({
         opener.focus({ preventScroll: true });
       }
     };
-  }, [hidden, initialFocusRef]);
+  }, [hidden, initialFocusRef, layer]);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!hidden && fullscreen && !panel?.contains(document.activeElement)) {
+      (initialFocusRef?.current ?? panel)?.focus({ preventScroll: true });
+    }
+  }, [fullscreen, hidden, initialFocusRef]);
 
   return (
     <PanelContext value={{ title, onClose, closeDisabled }}>
@@ -168,11 +179,17 @@ const PanelHeader = ({ description }: { description?: ReactNode }) => {
   const { title } = use(PanelContext);
   return (
     <header
-      className={css({
-        padding: "5",
-        flexShrink: "0",
-        borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
-      })}
+      className={cx(
+        simulationHeaderStyle({ withDescription: !!description }),
+        css({
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          paddingX: "5",
+          paddingY: "3",
+          borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
+        }),
+      )}
     >
       <div
         className={css({
@@ -190,6 +207,9 @@ const PanelHeader = ({ description }: { description?: ReactNode }) => {
             fontSize: "sm",
             fontWeight: "semibold",
             color: "neutral.s120",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           })}
         >
           {title}
