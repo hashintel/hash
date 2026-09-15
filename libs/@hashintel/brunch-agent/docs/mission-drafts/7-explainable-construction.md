@@ -8,7 +8,7 @@ Evaluate the effectiveness of Brunch's structurally checked but semantically mod
 
 The retained complex-case candidate is Vestera's multi-line production eligibility and changeovers: shared crew contention, asymmetric family changes, product/line restrictions and distinctions among staging, availability, occupancy and release. The original full-region and 100% useful ordinary behaviour-affecting explanation goals survive here as evaluation targets to re-evaluate with Lu before a campaign, not September execution prerequisites or permission to invent missing quantities. General portfolio coverage belongs to [distribution and breadth](worked-example-distribution-and-breadth.md); [Mission 9](9-traceable-projection.md) selects additional cases/classes needed for its repeat/change/retirement claims.
 
-The former packet is recoverable at `8ee42f81b7:libs/@hashintel/brunch-agent/docs/mission-drafts/7-explainable-construction.md`. Its campaign sequencing, inherited budget/repair-count defaults, and mandatory predecessor gates are superseded by the demo recut. Its substantive unresolved obligations have the current homes below; historical test names and source paths must be re-resolved before use.
+The former packet's campaign sequencing, inherited budget/repair-count defaults, and mandatory predecessor gates are superseded by the demo recut. Its substantive unresolved obligations have the current homes below; historical test names and source paths must be re-resolved before use.
 
 ## Evaluation questions and credible oracles
 

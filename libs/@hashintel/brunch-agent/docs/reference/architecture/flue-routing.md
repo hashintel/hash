@@ -7,8 +7,8 @@ where canon stops and a human or an owning ticket decides. Every row is grounded
 [architecture cheatsheet](flue-architecture-cheatsheet.md) and the
 [patterns audit](../../evidence/audits/flue-patterns-audit-2026-08-17.md). Installed Flue 2.0.3
 docs win when those paraphrases disagree.
-The 2026-08-14 Flue-vs-tilde dump was removed from the living tree on 2026-09-07; last copy
-`69c02f69a9:libs/@hashintel/brunch-agent/docs/research/amp-analysis-flue-vs-tilde.md`.
+The 2026-08-14 Flue-vs-tilde dump was removed from the living tree on 2026-09-07;
+the relevant conclusions survive in the cheatsheet and patterns audit linked above.
 
 **Which lane am I in?** Flue's surface sorts our system into three lanes (cheatsheet,
 boundary summary). _Shell-facing_ (UI transport, observability, evals, schedules, deploy):
