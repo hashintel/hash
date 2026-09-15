@@ -6,7 +6,7 @@ on:
       - ".github/workflows/housekeeping.yml"
       - ".github/renovate.json"
   schedule:
-    - cron: "0/30 * * * *"
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       repoCache:
