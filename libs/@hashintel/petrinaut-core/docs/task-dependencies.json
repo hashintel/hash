@@ -5,8 +5,7 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": [],
-      "cache": false
+      "dependsOn": []
     },
     "fix:eslint": {
       "dependsOn": [
