@@ -1,17 +1,10 @@
-/**
- * The sweep-experiment drawer against fake compute: drag a parameter slider
- * and the charts bridge the compute gap with the previous picture, dimmed,
- * until the new selection's first frames arrive. For a sweep created with
- * Optimize the drawer also shows the study it was created with: its
- * headline, its Steps columns, its Constraints and Sensitivity cards and its
- * steps table, in one shape from its first frame.
- */
 import { use } from "react";
 
 import {
   type ExperimentRecord,
   ExperimentsContext,
 } from "../../../../../../react/experiments/context";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   foldBestTrial,
@@ -20,6 +13,15 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+/**
+ * The sweep-experiment drawer against fake compute: drag a parameter slider
+ * and the charts bridge the compute gap with the previous picture, dimmed,
+ * until the new selection's first frames arrive. For a sweep created with
+ * Optimize the drawer also shows the study it was created with: its
+ * headline, its Steps columns, its Constraints and Sensitivity cards and its
+ * steps table, in one shape from its first frame.
+ */
+import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { WithUserSettings } from "../simulate-view-story-harness";
 import {
   FakeExperimentsProvider,
@@ -47,6 +49,21 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 const meta = {
   title: "Simulate / ViewExperimentDrawer",
   parameters: { layout: "fullscreen" },
+  decorators: [
+    (Story) => (
+      <PetrinautNavigationProvider
+        initialState={{
+          simulateResource: { type: "experiment", id: "story-experiment" },
+        }}
+      >
+        <div style={{ height: "100vh", display: "flex" }}>
+          <SimulationWorkspace>
+            <Story />
+          </SimulationWorkspace>
+        </div>
+      </PetrinautNavigationProvider>
+    ),
+  ],
 } satisfies Meta;
 
 export default meta;
@@ -54,9 +71,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const DrawerFromContext = ({
-  presentation = "drawer",
+  presentation = "panel",
 }: {
-  presentation?: "drawer" | "inline";
+  presentation?: "panel" | "inline";
 }) => {
   const { experiments } = use(ExperimentsContext);
   return (

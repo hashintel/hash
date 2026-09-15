@@ -10,17 +10,13 @@ const ExperimentDrawer = ({
 }: {
   experiment: ExperimentRecord;
   onClose: () => void;
-  presentation: "drawer" | "inline";
+  presentation: "panel" | "inline";
 }) => {
   const model = useExperimentResultsModel(experiment, onClose);
   return (
     <ResultsView
       model={model}
-      drawer={
-        presentation === "drawer"
-          ? { onClose, swapKey: "experiment" }
-          : undefined
-      }
+      panel={presentation === "panel" ? { onClose } : undefined}
     />
   );
 };
@@ -29,12 +25,12 @@ export const ViewExperimentDrawer = ({
   open,
   onClose,
   experiment,
-  presentation = "drawer",
+  presentation = "panel",
 }: {
   open: boolean;
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
-  presentation?: "drawer" | "inline";
+  presentation?: "panel" | "inline";
 }) =>
   open && experiment ? (
     <ExperimentDrawer

@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Button, Drawer } from "@hashintel/ds-components";
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocStateFromScenario,
@@ -11,6 +11,7 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
   useAdHocScenarioAuthoring,
@@ -104,14 +105,14 @@ const ViewScenarioContent = ({
   };
 
   return (
-    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
-      <Drawer.Header title={scenario.name} />
+    <SimulationPanel title={scenario.name} onClose={onClose}>
+      <SimulationPanel.Header />
       <AdHocScenarioAuthoringBody authoring={authoring}>
         {source.kind === "per_place" ? (
           <p className={migrationNoteStyle}>{perPlaceMigrationNote}</p>
         ) : null}
       </AdHocScenarioAuthoringBody>
-      <Drawer.Footer
+      <SimulationPanel.Footer
         secondaryActions={
           <DrawerErrorDisplay
             count={authoring.errorCount + (saveError ? 1 : 0)}
@@ -136,7 +137,7 @@ const ViewScenarioContent = ({
           </>
         }
       />
-    </Drawer>
+    </SimulationPanel>
   );
 };
 

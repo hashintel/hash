@@ -1,11 +1,12 @@
 import { use, useState } from "react";
 
-import { Button, Drawer } from "@hashintel/ds-components";
+import { Button } from "@hashintel/ds-components";
 import { scenarioSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
   useAdHocScenarioAuthoring,
@@ -45,13 +46,14 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
-      <Drawer.Header
-        title="Create a scenario"
-        description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode"
-      />
+    <SimulationPanel
+      title="Create a scenario"
+      onClose={onClose}
+      layer="creation"
+    >
+      <SimulationPanel.Header description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode" />
       <AdHocScenarioAuthoringBody authoring={authoring} />
-      <Drawer.Footer
+      <SimulationPanel.Footer
         secondaryActions={
           <DrawerErrorDisplay
             count={authoring.errorCount + (saveError ? 1 : 0)}
@@ -76,7 +78,7 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
           </>
         }
       />
-    </Drawer>
+    </SimulationPanel>
   );
 };
 
