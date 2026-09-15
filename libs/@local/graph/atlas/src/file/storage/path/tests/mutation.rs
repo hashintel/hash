@@ -114,6 +114,8 @@ async fn put_absent_existing() {
         fs::read(&file).expect("should read the destination"),
         b"retained"
     );
+
+    drop(storage);
     drop(directory);
 }
 
@@ -123,14 +125,17 @@ async fn put_match_missing() {
     let directory = scratch();
     let storage = Storage::new(root(&directory).to_owned());
     let file = root(&directory).join("current");
+
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     fs::write(&file, b"old").expect("should seed the destination");
+
     let (_, revision) = path
         .get(&storage)
         .await
         .expect("should capture a revision")
         .into_parts();
     fs::remove_file(&file).expect("should remove the destination");
+
     let error = path
         .put(
             &storage,
@@ -139,8 +144,11 @@ async fn put_match_missing() {
         )
         .await
         .expect_err("should refuse the missing revision");
+
     assert_matches!(error, StorageError::PreconditionFailed);
     assert!(!file.exists(), "should leave the destination absent");
+
+    drop(storage);
     drop(directory);
 }
 
@@ -197,6 +205,8 @@ async fn put_absent_competing() {
         fs::read(&file).expect("should read the selected body"),
         expected
     );
+
+    drop(storage);
     drop(directory);
 }
 
@@ -233,6 +243,8 @@ async fn put_match_competing() {
         fs::read(&file).expect("should read the selected body"),
         expected
     );
+
+    drop(storage);
     drop(directory);
 }
 
@@ -253,7 +265,10 @@ async fn put_reserved_destination() {
             .expect_err("should refuse the temporary storage namespace");
         assert_matches!(error, StorageError::InvalidLocalDestination);
     }
+
     assert_eq!(entry_count(root(&directory)), 0);
+
+    drop(storage);
     drop(directory);
 }
 
@@ -288,6 +303,8 @@ async fn copy_local_nested() {
         fs::read(&target).expect("should read the retained destination"),
         b"complete artifact"
     );
+
+    drop(storage);
     drop(directory);
 }
 
