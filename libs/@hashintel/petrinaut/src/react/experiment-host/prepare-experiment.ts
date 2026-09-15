@@ -1,15 +1,15 @@
-import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core/ai";
-import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core/optimization";
+import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core/experiments";
 
-import { buildParameterAxis } from "../experiments/parameter-grid";
+import {
+  buildParameterAxis,
+  type ExperimentParameterAxis,
+} from "../experiments/parameter-grid";
+import { buildSweepOptimizationInput } from "../experiments/sweep-optimization";
 
 import type { CreateExperimentInput } from "../experiments/context";
 import type { SDCPN } from "@hashintel/petrinaut-core";
-import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/ai";
-import type {
-  PetrinautOptimizationInput,
-  PetrinautOptimizationParameterBinding,
-} from "@hashintel/petrinaut-core/optimization";
+import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/experiments";
+import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core/optimization";
 
 export const prepareExperiment = (
   rawRequest: PetrinautExperimentRequest,
@@ -37,14 +37,16 @@ export const prepareExperiment = (
       throw new Error(`Scenario parameter "${identifier}" does not exist`);
     }
   }
+  const metricFor = (id: string) => {
+    const metric = definition.metrics?.find((candidate) => candidate.id === id);
+    if (!metric) {
+      throw new Error(`Metric "${id}" does not exist`);
+    }
+    return metric;
+  };
   const metricSpecs: CreateExperimentInput["metricSpecs"] =
     request.metricIds.map((id) => {
-      const metric = definition.metrics?.find(
-        (candidate) => candidate.id === id,
-      );
-      if (!metric) {
-        throw new Error(`Metric "${id}" does not exist`);
-      }
+      const metric = metricFor(id);
       return {
         id: metric.id,
         label: metric.name,
@@ -54,10 +56,8 @@ export const prepareExperiment = (
         runOutput: { type: "distribution" },
       };
     });
-  const parameterBindings: Record<
-    string,
-    PetrinautOptimizationParameterBinding
-  > = {};
+  const parameterAxes: ExperimentParameterAxis[] = [];
+  const fixedScenarioValues: Record<string, number> = {};
   const scenarioParameterValues: CreateExperimentInput["scenarioParameterValues"] =
     {};
   const fixedValues: Record<string, number | boolean> = {};
@@ -69,24 +69,7 @@ export const prepareExperiment = (
         throw new Error(outcome.error);
       }
       scenarioParameterValues[parameter.identifier] = selected;
-      parameterBindings[parameter.identifier] = {
-        kind: "optimize",
-        domain:
-          parameter.type === "integer"
-            ? {
-                kind: "integer",
-                minimum: selected.min,
-                maximum: selected.max,
-                step: 1,
-                scale: "linear",
-              }
-            : {
-                kind: "continuous",
-                minimum: selected.min,
-                maximum: selected.max,
-                scale: "linear",
-              },
-      };
+      parameterAxes.push(outcome.axis);
     } else {
       const value =
         selected?.value ??
@@ -105,7 +88,7 @@ export const prepareExperiment = (
         );
       }
       fixedValues[parameter.identifier] = value;
-      parameterBindings[parameter.identifier] = { kind: "fixed", value };
+      fixedScenarioValues[parameter.identifier] = Number(value);
       scenarioParameterValues[parameter.identifier] = {
         mode: "fixed",
         value: String(value),
@@ -126,32 +109,20 @@ export const prepareExperiment = (
   const execution = request.execution;
   const optimization =
     execution.mode === "optimize"
-      ? petrinautOptimizationInputSchema.parse({
-          kind: "petrinaut-optimization",
-          version: 1,
-          name: request.name,
-          model: {
-            title,
-            definition: {
-              ...definition,
-              scenarios: [scenario],
-              metrics: definition.metrics?.filter(
-                (metric) => metric.id === execution.objectiveMetricId,
-              ),
-            },
+      ? buildSweepOptimizationInput({
+          title,
+          definition,
+          experiment: {
+            ...input,
+            scenario,
+            parameterAxes,
+            scenarioParameterValues: fixedScenarioValues,
+            constraints: [],
+            constraintPolicy: null,
           },
-          scenario: { id: scenario.id, parameterBindings },
-          objective: {
-            metricId: execution.objectiveMetricId,
-            direction: execution.direction,
-          },
-          execution: {
-            seed: request.seed,
-            dt: request.dt,
-            maxTime: request.maxTime,
-            seedsPerTrial: execution.runsPerStep,
-          },
-          study: { trials: execution.steps, sampler: "tpe" },
+          metric: metricFor(execution.objectiveMetricId),
+          objective: execution,
+          runsPerStep: execution.runsPerStep,
         })
       : null;
   return { request, input, fixedValues, optimization };

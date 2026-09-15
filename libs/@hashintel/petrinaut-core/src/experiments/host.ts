@@ -1,7 +1,3 @@
-/**
- * @layerRoot core.ai
- * @role Defines contracts for host-run AI experiments
- */
 import { z } from "zod";
 
 import type { AbortSignalLike } from "../environment";
@@ -25,7 +21,7 @@ export const petrinautExperimentRequestSchema = z
       .describe(
         "Scenario parameter identifiers mapped to typed fixed values or optimization ranges. Omitted parameters use their saved defaults.",
       ),
-    runCount: z.number().int().min(1).max(1000),
+    runCount: z.number().int().min(1).max(100_000),
     seed: z.number().int().min(0).max(4294967295),
     dt: z.number().positive().max(1_000_000),
     maxTime: z.number().positive().max(1_000_000),
@@ -114,7 +110,7 @@ export const petrinautExperimentRequestSchema = z
     }
   })
   .describe(
-    "Create and run an Experiment in the connected Petrinaut host using a saved scenario and saved metrics. Returns the final result after bounded simulation or optimization finishes. Read the net first to obtain scenario and metric IDs and scenario parameter identifiers. The host validates and compiles a frozen model before running; local progress appears while this tool waits.",
+    "Run an experiment in the connected Petrinaut host using a saved scenario and saved metrics. Returns the final result after bounded simulation or optimization finishes. Read the net first to obtain scenario and metric IDs and scenario parameter identifiers. The host validates and compiles a frozen model before running and reports progress through onProgress.",
   );
 
 export type PetrinautExperimentRequest = z.infer<
@@ -158,8 +154,8 @@ export type PetrinautExperimentResult = z.infer<
 >;
 
 export type PetrinautExperimentHost = {
-  /** Resolves with a captured terminal result; progress stays local to the host. */
-  createExperiment: (
+  /** Reports updates through onProgress and resolves with a captured terminal result. */
+  runExperiment: (
     request: PetrinautExperimentRequest,
     options?: {
       signal?: AbortSignalLike;

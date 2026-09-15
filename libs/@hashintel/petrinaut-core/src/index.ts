@@ -213,8 +213,6 @@ export {
   petrinautAiTools,
   petrinautDocNames,
   petrinautDocSummaries,
-  petrinautExperimentRequestSchema,
-  petrinautExperimentResultSchema,
   placeSchema,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
@@ -235,11 +233,16 @@ export type {
   PetrinautAiToolName,
   PetrinautAiTools,
   PetrinautDocName,
-  PetrinautExperimentHost,
-  PetrinautExperimentProgress,
-  PetrinautExperimentRequest,
-  PetrinautExperimentResult,
 } from "./ai";
+
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
+} from "./experiments";
 
 // --- Simulation ---
 export {

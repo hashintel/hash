@@ -15,7 +15,7 @@ it.each(["simulate", "optimize"] as const)(
           mode === "optimize"
             ? { infected_ratio: { mode: "range", min: 0.01, max: 0.1 } }
             : {},
-        runCount: 25,
+        runCount: 100_000,
         seed: 42,
         dt: 1,
         maxTime: 10,
@@ -34,6 +34,7 @@ it.each(["simulate", "optimize"] as const)(
       sirModel.petriNetDefinition,
       sirModel.title,
     );
+    expect(input.runCount).toBe(100_000);
     expect(input.metricSpecs).toEqual([
       {
         id: "metric__infected_fraction",

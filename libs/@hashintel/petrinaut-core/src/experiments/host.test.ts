@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   petrinautExperimentRequestSchema,
   petrinautExperimentResultSchema,
-} from "../ai";
+} from "../experiments";
 
 const simulation = {
   name: "Baseline",
@@ -30,7 +30,7 @@ const optimization = {
   },
 };
 
-describe("experiment tool schemas", () => {
+describe("experiment host schemas", () => {
   it("accepts typed fixed values and bounded optimization", () => {
     expect(petrinautExperimentRequestSchema.parse(simulation)).toEqual(
       simulation,
@@ -60,7 +60,7 @@ describe("experiment tool schemas", () => {
     },
     { ...simulation, metricIds: ["cost", "cost"] },
     { ...simulation, runCount: 0 },
-    { ...simulation, runCount: 1001 },
+    { ...simulation, runCount: 100_001 },
     { ...simulation, dt: 1e-10 },
     { ...simulation, dt: 11 },
     {
@@ -72,6 +72,18 @@ describe("experiment tool schemas", () => {
       false,
     );
   });
+
+  it.each([simulation, optimization])(
+    "accepts a 100,000-run final budget",
+    (request) => {
+      expect(
+        petrinautExperimentRequestSchema.parse({
+          ...request,
+          runCount: 100_000,
+        }).runCount,
+      ).toBe(100_000);
+    },
+  );
 
   it("exposes an object JSON schema for tool providers", () => {
     const schema = z.toJSONSchema(petrinautExperimentRequestSchema);

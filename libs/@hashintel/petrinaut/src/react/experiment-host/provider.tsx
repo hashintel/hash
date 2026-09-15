@@ -1,5 +1,5 @@
 /**
- * @layerRoot react.ai-experiments
+ * @layerRoot react.experiment-host
  * @role Runs bounded host requests over experiments and their optimizer
  */
 import { use, useEffect, useRef, useState } from "react";
@@ -13,15 +13,15 @@ import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
 import { SDCPNContext } from "../state/sdcpn-context";
-import { AiExperimentsContext } from "./context";
-import { runExperiment } from "./run-experiment";
+import { ExperimentHostContext } from "./context";
+import { runExperiment as runHostExperiment } from "./run-experiment";
 
 import type { ExperimentRecord } from "../experiments/context";
 import type { OptimizationRecord } from "../optimizations/context";
-import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/ai";
+import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experiments";
 import type { PropsWithChildren } from "react";
 
-export const AiExperimentsProvider = ({ children }: PropsWithChildren) => {
+export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
   const { petriNetDefinition, extensions, title } = use(SDCPNContext);
   const instance = use(PetrinautInstanceContext);
   const experimentsContext = use(ExperimentsContext);
@@ -52,7 +52,7 @@ export const AiExperimentsProvider = ({ children }: PropsWithChildren) => {
       active.clear();
     };
   }, []);
-  const createExperiment: PetrinautExperimentHost["createExperiment"] =
+  const runExperiment: PetrinautExperimentHost["runExperiment"] =
     useStableCallback(async (request, options) => {
       const controller = new AbortController();
       const cancel = () => controller.abort();
@@ -62,7 +62,7 @@ export const AiExperimentsProvider = ({ children }: PropsWithChildren) => {
       }
       controllers.current.add(controller);
       try {
-        const result = await runExperiment(
+        const result = await runHostExperiment(
           {
             definition: instance?.definition.get() ?? petriNetDefinition,
             extensions: instance?.extensions ?? extensions,
@@ -114,11 +114,11 @@ export const AiExperimentsProvider = ({ children }: PropsWithChildren) => {
       }
     });
   const [value] = useState<PetrinautExperimentHost>(() => ({
-    createExperiment,
+    runExperiment,
   }));
   return (
-    <AiExperimentsContext.Provider value={value}>
+    <ExperimentHostContext.Provider value={value}>
       {children}
-    </AiExperimentsContext.Provider>
+    </ExperimentHostContext.Provider>
   );
 };

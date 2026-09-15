@@ -20,7 +20,7 @@ import type {
   PetrinautExperimentHost,
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
-} from "@hashintel/petrinaut-core/ai";
+} from "@hashintel/petrinaut-core/experiments";
 
 export type ExperimentHostDependencies = {
   definition: SDCPN;
@@ -88,8 +88,8 @@ const waitForRecord = <Record extends { id: string }>(
 
 export const runExperiment = async (
   dependencies: ExperimentHostDependencies,
-  rawRequest: Parameters<PetrinautExperimentHost["createExperiment"]>[0],
-  options?: Parameters<PetrinautExperimentHost["createExperiment"]>[1],
+  rawRequest: Parameters<PetrinautExperimentHost["runExperiment"]>[0],
+  options?: Parameters<PetrinautExperimentHost["runExperiment"]>[1],
 ): Promise<PetrinautExperimentResult> => {
   const controller = new AbortController();
   const { signal } = controller;

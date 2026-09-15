@@ -1,9 +1,9 @@
 import { createContext } from "react";
 
-import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/ai";
+import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experiments";
 
-export const AiExperimentsContext = createContext<PetrinautExperimentHost>({
-  createExperiment: (request) =>
+export const ExperimentHostContext = createContext<PetrinautExperimentHost>({
+  runExperiment: (request) =>
     Promise.resolve({
       status: "error",
       experimentId: null,

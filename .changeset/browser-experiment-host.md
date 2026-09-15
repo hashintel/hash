@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Expose a browser experiment host with validation, progress, cancellation, and captured results. Preserve metric distributions and protect active experiment inputs.
+Expose `ExperimentHostContext.runExperiment` with validation, progress callbacks, cancellation, and captured results for up to 100,000 runs.

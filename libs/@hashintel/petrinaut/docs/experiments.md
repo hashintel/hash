@@ -16,6 +16,8 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 An application embedding Petrinaut can start an experiment with a saved
 scenario and metrics, including a search over numeric parameter ranges.
 These experiments appear in the Experiments list.
+Each request supports up to 100,000 simulation runs, or 100,000 final runs
+at the best parameter values after optimization.
 
 While the request runs, parameter changes and removal are locked. You can
 inspect the charts. Controls become available when the request finishes.

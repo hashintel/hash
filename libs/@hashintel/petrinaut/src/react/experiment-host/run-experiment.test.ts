@@ -20,7 +20,7 @@ import type {
   MonteCarloUserDefinedMetricFrame,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/ai";
+import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/experiments";
 
 const makeDefinition = (): SDCPN => ({
   places: [],
@@ -203,6 +203,27 @@ const completeSearch = (harness: ReturnType<typeof createHarness>) => {
 };
 
 describe("runExperiment", () => {
+  it("uses the sweep's rounded integer bounds for optimization", () => {
+    const request = makeRequest(true);
+    request.scenarioParameterValues = {
+      count: { mode: "range", min: 1.2, max: 7.8 },
+      enabled: { mode: "fixed", value: true },
+    };
+    const { optimization } = prepareExperiment(
+      request,
+      makeDefinition(),
+      "Net",
+    );
+    expect(optimization?.scenario.parameterBindings).toMatchObject({
+      count: {
+        kind: "optimize",
+        domain: { kind: "integer", minimum: 1, maximum: 8, step: 1 },
+      },
+      enabled: { kind: "fixed", value: true },
+      rate: { kind: "fixed", value: 0.5 },
+    });
+  });
+
   it("coalesces progress outside store publication and ignores unchanged values", async () => {
     const harness = createHarness();
     const onProgress = vi.fn();

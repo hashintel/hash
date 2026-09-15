@@ -2,10 +2,10 @@
 title: Browser experiment host
 description: Validate and run bounded experiment requests in the browser.
 sidebar_order: 40
-attachTo: react.ai-experiments
+attachTo: react.experiment-host
 ---
 
-`PetrinautExperimentHost` creates ordinary experiments from bounded requests.
+`PetrinautExperimentHost` runs ordinary experiments from bounded requests.
 The browser validates the captured model, reports progress, and returns a
 captured result. Optimization uses the same request and experiment record.
 
@@ -13,10 +13,10 @@ captured result. Optimization uses the same request and experiment record.
 
 ## Request and result
 
-The [core contract](layer:core.ai) exports Zod schemas and the host interface
-from `@hashintel/petrinaut-core/ai`. The [browser provider](layer:react.ai-experiments)
-implements `createExperiment(request, { signal, onProgress })` and exposes it
-through `AiExperimentsContext` from `@hashintel/petrinaut/react`.
+The [core contract](layer:core.experiments) exports Zod schemas and the host interface
+from `@hashintel/petrinaut-core/experiments`. The [browser provider](layer:react.experiment-host)
+implements `runExperiment(request, { signal, onProgress })` and exposes it
+through `ExperimentHostContext` from `@hashintel/petrinaut/react`.
 
 Use saved scenario and metric IDs, and scenario parameter identifiers, from
 the document definition:
@@ -49,7 +49,8 @@ as `{ "mode": "range", "min": 1, "max": 8 }` and this execution object:
 }
 ```
 
-`runCount` is the simulation budget or the final budget at the best point.
+`runCount` is the simulation budget or the final budget at the best point,
+up to 100,000 runs.
 `runsPerStep` controls each search trial. The schema bounds runs, steps,
 duration, and metric count. The host resolves references, checks parameter
 types, and runs [snapshot diagnostics](doc:ai/snapshot-diagnostics) before
@@ -58,9 +59,16 @@ compiling the selected scenario and metrics. Execution uses CPU workers.
 The promise resolves with `status` (`complete`, `cancelled`, or `error`),
 experiment ID, name, completed runs, and metric values. Optimization adds
 selected parameter values, objective value, and completed steps. Failures
-include a message. Progress uses a local callback while the promise waits.
+include a message. `onProgress` receives updates while the request runs.
+The promise resolves with the terminal result; it contains no progress history.
 
 ## Execution and ownership
+
+The host uses the same experiment runtime, sweep optimization input builder,
+and optimizer as the creation drawer. The drawer returns a record when work
+starts. The host awaits completion, including final refinement, and captures
+the result for its caller. Its cancellation and input ownership cover that
+request lifetime. AI tools and other integrations use this same host API.
 
 ![Browser experiment flow](@diagrams/ai-experiments-flow.svg)
 
