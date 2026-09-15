@@ -30,15 +30,19 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
   > & {
+    readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
       typeof LiveBrunchBridge
     >[0]["submit"];
     readonly connectionTimeoutMs: number;
+    readonly isDisclosureAcknowledged: () => boolean;
   };
 
 export const LiveConversationControl = ({
+  acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
+  isDisclosureAcknowledged,
   registerVoiceModeSessionControls,
   reportVoiceSessionState,
   setVoiceActive,
@@ -70,6 +74,7 @@ export const LiveConversationControl = ({
     null,
   );
   const sessionActive = useRef(false);
+  const handledVoiceSelection = useRef(false);
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
@@ -134,6 +139,85 @@ export const LiveConversationControl = ({
     setConsented(false);
     await closing;
   }, [setVoiceActive]);
+  const start = useCallback(() => {
+    if (phase === "stopping" || sessionActive.current) return;
+    sessionActive.current = true;
+    setConsented(false);
+    setMicrophoneMutedState(false);
+    setSpeakerMutedState(false);
+    setSpeakerVolumeState(1);
+    setWarningMessage(null);
+    setState({ phase: "connecting", message: null });
+    const next = createLiveConversation(
+      (nextState) => {
+        if (session.current !== next) return;
+        if (
+          nextState.phase === "stopping" ||
+          nextState.phase === "ended" ||
+          nextState.phase === "error"
+        ) {
+          sessionActive.current = false;
+        }
+        if (
+          nextState.phase === "error" ||
+          nextState.phase === "ended" ||
+          nextState.phase === "stopping"
+        )
+          bridge.current?.stop();
+        setState(nextState);
+        setVoiceActive(
+          nextState.phase === "connecting" || nextState.phase === "connected",
+        );
+      },
+      connectionTimeoutMs,
+      (input) => {
+        if (session.current === next) void bridge.current?.accept(input);
+      },
+      (delegationId) => {
+        if (session.current === next)
+          bridge.current?.acceptDelegation(delegationId);
+      },
+      (result) => {
+        if (session.current !== next) return;
+        // Every successful local send starts as unknown. Neither waiting
+        // for acceptance nor acceptance itself is an error or resolves a
+        // failure from another append.
+        if (result.status === "unknown" || result.status === "accepted") return;
+        const label =
+          result.kind === "commentary" ? "answer" : "continuation instruction";
+        const outcome =
+          result.status === "local-failure"
+            ? "could not be sent to Live locally"
+            : "was rejected by Live";
+        setWarningMessage(
+          `The ${label} ${outcome}. Check the conversation; no automatic retry or replay was made. Acceptance does not confirm playback.`,
+        );
+      },
+    );
+    next.setMicrophoneMuted(false);
+    next.setSpeakerMuted(false);
+    next.setSpeakerVolume(1);
+    bridge.current = new LiveBrunchBridge({
+      submit: (input) => latest.current.submit(input),
+      appendCommentary: next.appendCommentary,
+      appendInstructions: next.appendInstructions,
+      notice: setWarningMessage,
+    });
+    bridge.current.update(latest.current.chat);
+    session.current = next;
+    setVoiceActive(true);
+    void next.start();
+  }, [connectionTimeoutMs, phase, setVoiceActive]);
+  useLayoutEffect(() => {
+    if (inputMode !== "voice" || !isAiAssistantOpen) {
+      handledVoiceSelection.current = false;
+      return;
+    }
+    if (handledVoiceSelection.current) return;
+    handledVoiceSelection.current = true;
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes persisted disclosure state with the Live session
+    if (isDisclosureAcknowledged()) start();
+  }, [inputMode, isAiAssistantOpen, isDisclosureAcknowledged, start]);
   const setMicrophoneMuted = useCallback((muted: boolean) => {
     if (!sessionActive.current || !session.current) return;
     session.current.setMicrophoneMuted(muted);
@@ -169,7 +253,8 @@ export const LiveConversationControl = ({
     () =>
       registerVoiceModeSessionControls({
         end,
-        // Closing the panel ends Live. Reopening requires consent and a new session.
+        // Closing the panel ends Live. Reopening starts a new session after
+        // the first disclosure has been acknowledged.
         pause: () => {
           void end();
         },
@@ -266,77 +351,9 @@ export const LiveConversationControl = ({
       startDisabled={phase === "stopping"}
       microphoneCheck={phase === "error" ? (state.message ?? "") : ""}
       onStart={() => {
-        if (!consented || phase === "stopping" || sessionActive.current) return;
-        sessionActive.current = true;
-        setConsented(false);
-        setMicrophoneMutedState(false);
-        setSpeakerMutedState(false);
-        setSpeakerVolumeState(1);
-        setWarningMessage(null);
-        setState({ phase: "connecting", message: null });
-        const next = createLiveConversation(
-          (nextState) => {
-            if (session.current !== next) return;
-            if (
-              nextState.phase === "stopping" ||
-              nextState.phase === "ended" ||
-              nextState.phase === "error"
-            ) {
-              sessionActive.current = false;
-            }
-            if (
-              nextState.phase === "error" ||
-              nextState.phase === "ended" ||
-              nextState.phase === "stopping"
-            )
-              bridge.current?.stop();
-            setState(nextState);
-            setVoiceActive(
-              nextState.phase === "connecting" ||
-                nextState.phase === "connected",
-            );
-          },
-          connectionTimeoutMs,
-          (input) => {
-            if (session.current === next) void bridge.current?.accept(input);
-          },
-          (delegationId) => {
-            if (session.current === next)
-              bridge.current?.acceptDelegation(delegationId);
-          },
-          (result) => {
-            if (session.current !== next) return;
-            // Every successful local send starts as unknown. Neither waiting
-            // for acceptance nor acceptance itself is an error or resolves a
-            // failure from another append.
-            if (result.status === "unknown" || result.status === "accepted")
-              return;
-            const label =
-              result.kind === "commentary"
-                ? "answer"
-                : "continuation instruction";
-            const outcome =
-              result.status === "local-failure"
-                ? "could not be sent to Live locally"
-                : "was rejected by Live";
-            setWarningMessage(
-              `The ${label} ${outcome}. Check the conversation; no automatic retry or replay was made. Acceptance does not confirm playback.`,
-            );
-          },
-        );
-        next.setMicrophoneMuted(false);
-        next.setSpeakerMuted(false);
-        next.setSpeakerVolume(1);
-        bridge.current = new LiveBrunchBridge({
-          submit: (input) => latest.current.submit(input),
-          appendCommentary: next.appendCommentary,
-          appendInstructions: next.appendInstructions,
-          notice: setWarningMessage,
-        });
-        bridge.current.update(latest.current.chat);
-        session.current = next;
-        setVoiceActive(true);
-        void next.start();
+        if (!consented) return;
+        acknowledgeDisclosure();
+        start();
       }}
       onExit={() => {
         void end();

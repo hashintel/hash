@@ -600,7 +600,9 @@ const PinnedVoiceInterviewControl = ({
     return (
       <LiveConversationControl
         {...context}
+        acknowledgeDisclosure={acknowledgeVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
+        isDisclosureAcknowledged={isVoiceInterviewDisclosureAcknowledged}
         registerVoiceModeSessionControls={
           context.registerVoiceModeSessionControls
         }

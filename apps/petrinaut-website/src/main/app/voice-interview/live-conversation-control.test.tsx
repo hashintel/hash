@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   BrunchPanelConversationTracker,
@@ -16,6 +16,7 @@ import {
 import { createLiveConversation } from "./live-conversation";
 import {
   loadOpenAIVoiceConfig,
+  VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
 } from "./voice-interview-control";
 
@@ -41,9 +42,26 @@ vi.mock("./live-conversation", () => ({
     setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
   })),
 }));
+beforeEach(() => {
+  const values = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      get length() {
+        return values.size;
+      },
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    } satisfies Storage,
+  });
+});
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 const context = (): PetrinautAiVoiceModeContext => ({
@@ -78,6 +96,32 @@ const start = async () => {
   );
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
+
+test("starts Live directly after the voice disclosure is acknowledged", () => {
+  window.localStorage.setItem(
+    VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+
+  render(<VoiceInterviewControl {...context()} config={config} />);
+
+  expect(
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+});
+
+test("records the voice disclosure acknowledgement when Live starts", async () => {
+  render(<VoiceInterviewControl {...context()} config={config} />);
+
+  expect(
+    window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+  ).toBeNull();
+  await start();
+  expect(
+    window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+  ).toBe("acknowledged");
+});
 
 test("starts only one Live session when Start is activated twice", async () => {
   render(<VoiceInterviewControl {...context()} config={config} />);
