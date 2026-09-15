@@ -31,9 +31,16 @@ import { useOptimizationSource } from "../../../../../../react/optimizations/use
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import {
+  OverlayScrollArea,
+  overlayScrollDrawerBodyStyle,
+  overlayScrollDrawerViewportStyle,
+} from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
+import { FocusControls } from "../../../../../worksheet/focus-controls";
+import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import {
@@ -1173,261 +1180,313 @@ export const CreateExperimentDrawer = ({
   }
 
   return (
-    <SimulationPanel
-      title="Create an experiment"
-      layer="creation"
-      closeDisabled={isSubmitting}
-      onClose={handleClose}
-    >
-      <SimulationPanel.Header description="Run a Monte Carlo experiment from the current model and scenario" />
-      <SimulationPanel.Body>
-        <SectionList>
-          <Section title="Experiment" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Name</span>
-              <TextInput size="sm" value={name} onChange={setName} />
-            </div>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                {/* A sweep refines each selection progressively (8, 25, 100,
+    <FocusRoot>
+      <FocusStack axis="vertical">
+        <SimulationPanel
+          title="Create an experiment"
+          layer="creation"
+          closeDisabled={isSubmitting}
+          onClose={handleClose}
+        >
+          <FocusControls axis="horizontal">
+            <SimulationPanel.Header description="Run a Monte Carlo experiment from the current model and scenario" />
+          </FocusControls>
+          <SimulationPanel.Body
+            withPadding={false}
+            scrollable={false}
+            className={overlayScrollDrawerBodyStyle}
+          >
+            <OverlayScrollArea
+              viewportClassName={overlayScrollDrawerViewportStyle}
+            >
+              <SectionList>
+                <Section title="Experiment" collapsible defaultOpen>
+                  <FocusControls>
+                    <div className={fieldStyle}>
+                      <label className={labelStyle} htmlFor="experiment-name">
+                        Name
+                      </label>
+                      <TextInput
+                        htmlForId="experiment-name"
+                        size="sm"
+                        value={name}
+                        onChange={setName}
+                      />
+                    </div>
+                  </FocusControls>
+                  <FocusControls axis="horizontal">
+                    <div className={gridStyle}>
+                      <div className={fieldStyle}>
+                        {/* A sweep refines each selection progressively (8, 25, 100,
                     ... 1000, 5000, ...) up to this budget, so for sweeps this
                     is a ceiling, not a batch size — 100,000 is a reasonable
                     value on the GPU. */}
-                <span className={labelStyle}>
-                  {sweepSummary ? "Max runs per selection" : "Runs"}
-                </span>
-                <NumberInput
-                  size="sm"
-                  min={1}
-                  value={runCount === "" ? null : Number(runCount)}
-                  onChange={(nextRunCount) =>
-                    setRunCount(
-                      nextRunCount === null ? "" : String(nextRunCount),
-                    )
-                  }
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Time step</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={dt === "" ? null : Number(dt)}
-                  onChange={(nextDt) =>
-                    setDt(nextDt === null ? "" : String(nextDt))
-                  }
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Max time (s)</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={maxTime === "" ? null : Number(maxTime)}
-                  onChange={(nextMaxTime) =>
-                    setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
-                  }
-                />
-              </div>
-              {/* A labelled cell in the same grid as Runs / Time step / Max time:
+                        <label className={labelStyle} htmlFor="experiment-runs">
+                          {sweepSummary ? "Max runs per selection" : "Runs"}
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-runs"
+                          size="sm"
+                          min={1}
+                          value={runCount === "" ? null : Number(runCount)}
+                          onChange={(nextRunCount) =>
+                            setRunCount(
+                              nextRunCount === null ? "" : String(nextRunCount),
+                            )
+                          }
+                        />
+                      </div>
+                      <div className={fieldStyle}>
+                        <label
+                          className={labelStyle}
+                          htmlFor="experiment-time-step"
+                        >
+                          Time step
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-time-step"
+                          size="sm"
+                          min={0}
+                          step="any"
+                          value={dt === "" ? null : Number(dt)}
+                          onChange={(nextDt) =>
+                            setDt(nextDt === null ? "" : String(nextDt))
+                          }
+                        />
+                      </div>
+                      <div className={fieldStyle}>
+                        <label
+                          className={labelStyle}
+                          htmlFor="experiment-max-time"
+                        >
+                          Max time (s)
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-max-time"
+                          size="sm"
+                          min={0}
+                          step="any"
+                          value={maxTime === "" ? null : Number(maxTime)}
+                          onChange={(nextMaxTime) =>
+                            setMaxTime(
+                              nextMaxTime === null ? "" : String(nextMaxTime),
+                            )
+                          }
+                        />
+                      </div>
+                      {/* A labelled cell in the same grid as Runs / Time step / Max time:
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
-              {webGpuEnabled && webGpuAvailable && (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Backend</span>
-                  <ComputeBackendToggle
-                    gpu={gpu}
-                    selected={gpuSelected}
-                    onSelectedChange={setGpuRequested}
-                  />
-                </div>
-              )}
-            </div>
-            {/* Only shown once WebGPU is switched on in settings — otherwise the
-                choice does not exist and the row would be noise. */}
-          </Section>
-
-          <Section title="Scenario" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <Select
-                required
-                value={effectiveSelectedScenarioId}
-                onChange={handleScenarioChange}
-                items={scenarioOptions}
-                size="sm"
-                renderItem={(value) => {
-                  const option = scenarioOptions.find(
-                    (opt) => opt.value === value,
-                  );
-                  return (
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      {value === NO_SCENARIO_VALUE && (
-                        <Icon
-                          name="dash"
-                          size="xs"
-                          className={css({ opacity: "[0.4]" })}
-                        />
+                      {webGpuEnabled && webGpuAvailable && (
+                        <div className={fieldStyle}>
+                          <span className={labelStyle}>Backend</span>
+                          <ComputeBackendToggle
+                            gpu={gpu}
+                            selected={gpuSelected}
+                            onSelectedChange={setGpuRequested}
+                          />
+                        </div>
                       )}
-                      {option?.text}
-                    </span>
-                  );
-                }}
-              />
-            </div>
+                    </div>
+                  </FocusControls>
+                  {/* Only shown once WebGPU is switched on in settings — otherwise the
+                choice does not exist and the row would be noise. */}
+                </Section>
 
-            {selectedScenario ? (
-              // The selected scenario shows through the form in run mode:
-              // scenario parameters editable in worksheet style, and a
-              // collapsed "Computed state" preview of the exact values and
-              // tokens each run starts with.
-              <>
-                <ExperimentScenarioRun
-                  scenario={selectedScenario}
-                  context={adHocFormContext}
-                  inputs={paramInputs}
-                  selection={selection}
-                  onInputsChange={(updates) =>
-                    setParamInputs((prev) => {
-                      const next = { ...prev };
-                      for (const update of updates) {
-                        next[update.identifier] = update.input;
-                      }
-                      return next;
-                    })
-                  }
-                />
-                {sweepSummaryLine}
-              </>
-            ) : (
-              // With no scenario, the experiment's Initial State + Parameters
-              // are defined inline and compile through a scenario generated
-              // at experiment start, never persisted. Left untouched, the
-              // experiment runs from the model's own initial marking.
-              <>
-                <AdHocScenarioForm
-                  state={adHocState ?? EMPTY_AD_HOC_STATE}
-                  onChange={setAdHocState}
-                  context={adHocFormContext}
-                  selection={selection}
-                />
-                {sweepSummaryLine}
-              </>
-            )}
-          </Section>
+                <Section title="Scenario" collapsible defaultOpen>
+                  <FocusControls>
+                    <div className={fieldStyle}>
+                      <Select
+                        required
+                        aria-label="Scenario"
+                        value={effectiveSelectedScenarioId}
+                        onChange={handleScenarioChange}
+                        items={scenarioOptions}
+                        size="sm"
+                        renderItem={(value) => {
+                          const option = scenarioOptions.find(
+                            (opt) => opt.value === value,
+                          );
+                          return (
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              {value === NO_SCENARIO_VALUE && (
+                                <Icon
+                                  name="dash"
+                                  size="xs"
+                                  className={css({ opacity: "[0.4]" })}
+                                />
+                              )}
+                              {option?.text}
+                            </span>
+                          );
+                        }}
+                      />
+                    </div>
+                  </FocusControls>
 
-          {objectiveEnabled ? (
-            <ObjectiveSection
-              draft={objectiveDraft}
-              metricId={objectiveMetricId}
-              metrics={objectiveMetrics}
-              error={objectiveError}
-              onChange={setObjectiveDraft}
-              disabled={isSubmitting}
-            />
-          ) : null}
+                  {selectedScenario ? (
+                    // The selected scenario shows through the form in run mode:
+                    // scenario parameters editable in worksheet style, and a
+                    // collapsed "Computed state" preview of the exact values and
+                    // tokens each run starts with.
+                    <>
+                      <ExperimentScenarioRun
+                        scenario={selectedScenario}
+                        context={adHocFormContext}
+                        inputs={paramInputs}
+                        selection={selection}
+                        onInputsChange={(updates) =>
+                          setParamInputs((prev) => {
+                            const next = { ...prev };
+                            for (const update of updates) {
+                              next[update.identifier] = update.input;
+                            }
+                            return next;
+                          })
+                        }
+                      />
+                      {sweepSummaryLine}
+                    </>
+                  ) : (
+                    // With no scenario, the experiment's Initial State + Parameters
+                    // are defined inline and compile through a scenario generated
+                    // at experiment start, never persisted. Left untouched, the
+                    // experiment runs from the model's own initial marking.
+                    <>
+                      <AdHocScenarioForm
+                        state={adHocState ?? EMPTY_AD_HOC_STATE}
+                        onChange={setAdHocState}
+                        context={adHocFormContext}
+                        selection={selection}
+                      />
+                      {sweepSummaryLine}
+                    </>
+                  )}
+                </Section>
 
-          {constraintsEnabled ? (
-            <ConstraintsSection
-              drafts={constraintDrafts}
-              onChange={setConstraintDrafts}
-              scenarioParameters={selectedScenario.scenarioParameters}
-              disabled={isSubmitting}
-            />
-          ) : null}
+                {objectiveEnabled ? (
+                  <FocusControls>
+                    <ObjectiveSection
+                      draft={objectiveDraft}
+                      metricId={objectiveMetricId}
+                      metrics={objectiveMetrics}
+                      error={objectiveError}
+                      onChange={setObjectiveDraft}
+                      disabled={isSubmitting}
+                    />
+                  </FocusControls>
+                ) : null}
 
-          <Section title="Metrics" collapsible defaultOpen>
-            <div className={metricListStyle}>
-              <div className={metricHeaderStyle}>
-                <span className={metricCountStyle}>
-                  {metricDrafts.length === 0
-                    ? "No experiment metrics"
-                    : `${metricDrafts.length} experiment metric${
-                        metricDrafts.length === 1 ? "" : "s"
-                      }`}
-                </span>
+                {constraintsEnabled ? (
+                  <FocusControls>
+                    <ConstraintsSection
+                      drafts={constraintDrafts}
+                      onChange={setConstraintDrafts}
+                      scenarioParameters={selectedScenario.scenarioParameters}
+                      disabled={isSubmitting}
+                    />
+                  </FocusControls>
+                ) : null}
+
+                <Section title="Metrics" collapsible defaultOpen>
+                  <FocusControls>
+                    <div className={metricListStyle}>
+                      <div className={metricHeaderStyle}>
+                        <span className={metricCountStyle}>
+                          {metricDrafts.length === 0
+                            ? "No experiment metrics"
+                            : `${metricDrafts.length} experiment metric${
+                                metricDrafts.length === 1 ? "" : "s"
+                              }`}
+                        </span>
+                        <Button
+                          variant="subtle"
+                          tone="neutral"
+                          size="sm"
+                          prefix={<Icon name="plus" size="sm" />}
+                          onClick={handleAddMetric}
+                        >
+                          Add metric
+                        </Button>
+                      </div>
+
+                      {metricDrafts.map((metric) => (
+                        <ExperimentMetricRow
+                          key={metric.id}
+                          metric={metric}
+                          sdcpn={petriNetDefinition}
+                          kindGroups={metricKindGroups}
+                          autoFocusLabel={metric.id === metricLabelFocusId}
+                          onChange={handleMetricChange}
+                          onLspDiagnosticsChange={(diagnostics) =>
+                            handleMetricLspDiagnosticsChange(
+                              metric.id,
+                              diagnostics,
+                            )
+                          }
+                          onRemove={() => handleMetricRemove(metric.id)}
+                        />
+                      ))}
+                    </div>
+                  </FocusControls>
+                </Section>
+              </SectionList>
+            </OverlayScrollArea>
+          </SimulationPanel.Body>
+          <SimulationPanel.Footer
+            secondaryActions={
+              footerError ? (
+                <span className={errorStyle}>{footerError}</span>
+              ) : undefined
+            }
+            actions={
+              <FocusControls axis="horizontal">
                 <Button
                   variant="subtle"
                   tone="neutral"
                   size="sm"
-                  prefix={<Icon name="plus" size="sm" />}
-                  onClick={handleAddMetric}
+                  disabled={isSubmitting}
+                  onClick={handleClose}
                 >
-                  Add metric
+                  Cancel
                 </Button>
-              </div>
-
-              {metricDrafts.map((metric) => (
-                <ExperimentMetricRow
-                  key={metric.id}
-                  metric={metric}
-                  sdcpn={petriNetDefinition}
-                  kindGroups={metricKindGroups}
-                  autoFocusLabel={metric.id === metricLabelFocusId}
-                  onChange={handleMetricChange}
-                  onLspDiagnosticsChange={(diagnostics) =>
-                    handleMetricLspDiagnosticsChange(metric.id, diagnostics)
+                <Button
+                  variant="solid"
+                  tone="neutral"
+                  size="sm"
+                  disabled={!canRun}
+                  tooltip={
+                    metricFormError ??
+                    objectiveError ??
+                    constraintLspError ??
+                    undefined
                   }
-                  onRemove={() => handleMetricRemove(metric.id)}
-                />
-              ))}
-            </div>
-          </Section>
-        </SectionList>
-      </SimulationPanel.Body>
-      <SimulationPanel.Footer
-        secondaryActions={
-          footerError ? (
-            <span className={errorStyle}>{footerError}</span>
-          ) : undefined
-        }
-        actions={
-          <>
-            <Button
-              variant="subtle"
-              tone="neutral"
-              size="sm"
-              disabled={isSubmitting}
-              onClick={handleClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              tone="neutral"
-              size="sm"
-              disabled={!canRun}
-              tooltip={
-                metricFormError ??
-                objectiveError ??
-                constraintLspError ??
-                undefined
-              }
-              prefix={
-                isSubmitting ? (
-                  <LoadingSpinner size="sm" variant="bars" />
-                ) : objectiveEnabled ? (
-                  <Icon name="sparkles" size="sm" />
-                ) : sweepSummary ? undefined : (
-                  <Icon name="play" size="sm" />
-                )
-              }
-              onClick={() => {
-                void handleSubmit();
-              }}
-            >
-              {submitLabel}
-            </Button>
-          </>
-        }
-      />
-    </SimulationPanel>
+                  prefix={
+                    isSubmitting ? (
+                      <LoadingSpinner size="sm" variant="bars" />
+                    ) : objectiveEnabled ? (
+                      <Icon name="sparkles" size="sm" />
+                    ) : sweepSummary ? undefined : (
+                      <Icon name="play" size="sm" />
+                    )
+                  }
+                  onClick={() => {
+                    void handleSubmit();
+                  }}
+                >
+                  {submitLabel}
+                </Button>
+              </FocusControls>
+            }
+          />
+        </SimulationPanel>
+      </FocusStack>
+    </FocusRoot>
   );
 };

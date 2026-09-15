@@ -81,6 +81,7 @@ const context: AdHocSynthesisContext = {
       name: "Pumps",
       colorId: "colour-pump",
       dynamicsEnabled: false,
+      showAsInitialState: true,
       differentialEquationId: null,
       x: 0,
       y: 0,
@@ -90,6 +91,7 @@ const context: AdHocSynthesisContext = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
+      showAsInitialState: true,
       differentialEquationId: null,
       x: 0,
       y: 0,
@@ -147,6 +149,35 @@ const colouredPlace = (state: AdHocScenarioState | undefined) => {
 };
 
 describe("AdHocScenarioForm", () => {
+  it("filters starting places without changing their authored state", async () => {
+    const onChange = vi.fn();
+    render(
+      <AdHocScenarioForm
+        state={EMPTY_AD_HOC_STATE}
+        onChange={onChange}
+        context={{
+          ...context,
+          places: context.places.map((place) => ({
+            ...place,
+            showAsInitialState: place.id === "place-queue",
+          })),
+        }}
+        selection="none"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Pumps place" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Queue › count" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show all places" }));
+    expect(
+      await screen.findByRole("button", { name: "Pumps place" }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show all places" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Pumps place" })).toBeNull(),
+    );
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("selects a row's kind from the gutter menu", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
@@ -653,11 +684,13 @@ describe("AdHocScenarioForm", () => {
   it("walks between the form's members and toggles sections from their headers", async () => {
     render(<Harness />);
 
-    // Variables lead the form; down from the parameters grid (one row)
-    // lands on the Initial state section header.
+    // A model with only starting places needs no visibility toggle.
     const rateValue = screen.getByRole("button", { name: "Rate" });
     rateValue.focus();
     fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(
+      screen.queryByRole("checkbox", { name: "Show all places" }),
+    ).toBeNull();
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Toggle Initial state section" }),
     );
@@ -1271,6 +1304,16 @@ describe("AdHocScenarioForm", () => {
     addVariable.focus();
     fireEvent.keyDown(addVariable, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(optimizeToggle);
+
+    pumpsHeader.focus();
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowLeft" });
+    expect(pumpsHeader.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(pumpsHeader);
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(optimizeToggle);
+    fireEvent.keyDown(optimizeToggle, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pumpsHeader);
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowRight" });
 
     // Within the places column the walk still chains: up from the token
     // table's column header lands on the place's own add-variable line.

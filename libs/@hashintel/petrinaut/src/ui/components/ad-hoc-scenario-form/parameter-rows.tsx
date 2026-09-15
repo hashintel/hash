@@ -101,7 +101,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   target={target}
                   value={entry}
                   display={
-                    entry.optimize
+                    entry.optimize || mode === "run"
                       ? undefined
                       : entry.expression || (
                           <span className={defaultDisplayStyle}>

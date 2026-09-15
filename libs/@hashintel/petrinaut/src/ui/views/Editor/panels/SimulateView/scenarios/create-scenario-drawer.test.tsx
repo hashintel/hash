@@ -201,7 +201,9 @@ describe("CreateScenarioDrawer", () => {
     expect(screen.getByText("Parameters")).toBeTruthy();
     expect(screen.getByText("Initial state")).toBeTruthy();
     expect(screen.queryByText("Define as code")).toBe(null);
-    expect(screen.queryByText("Show all places")).toBe(null);
+    expect(
+      screen.getByRole("checkbox", { name: "Show all places" }),
+    ).toBeTruthy();
 
     // Every top-level Variable carries the Scenario Parameter pill.
     fireEvent.click(
