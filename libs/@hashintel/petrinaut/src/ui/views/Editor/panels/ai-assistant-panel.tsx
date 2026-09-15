@@ -73,7 +73,7 @@ import type {
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
-  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
@@ -571,9 +571,8 @@ const ConversationAiAssistantPanel = ({
     setVoiceActiveState(active);
   }, []);
   const voiceHandoffPendingRef = useRef(false);
-  const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
-    null,
-  );
+  const voiceModeControlsRef =
+    useRef<PetrinautAiVoiceModeSessionControls | null>(null);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
     null,
@@ -667,7 +666,7 @@ const ConversationAiAssistantPanel = ({
   );
 
   const registerVoiceModeControls = useCallback(
-    (controls: PetrinautAiVoiceModeControls) => {
+    (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
         // Ending returns the composer to text, which is also the path that

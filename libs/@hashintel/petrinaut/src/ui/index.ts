@@ -32,6 +32,7 @@ export type {
   PetrinautAiVoiceMode,
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
 } from "./types/ai-assistant-composer-control";
