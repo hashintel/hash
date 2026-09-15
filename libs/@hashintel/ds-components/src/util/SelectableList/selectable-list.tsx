@@ -46,6 +46,7 @@ const NestedMenu = ({
   subItems,
   body,
   className,
+  menuClassName,
   isSelected,
   ctx,
 }: {
@@ -53,6 +54,7 @@ const NestedMenu = ({
   subItems: Array<ItemOrGroup<Item>>;
   body: React.ReactNode;
   className: string | undefined;
+  menuClassName: string | undefined;
   isSelected: boolean;
   ctx: RenderCtx;
 }) => {
@@ -90,7 +92,7 @@ const NestedMenu = ({
                 onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
               >
                 <Menu.Content
-                  className={ctx.contentClassName}
+                  className={cx(ctx.contentClassName, menuClassName)}
                   onKeyDownCapture={(event) =>
                     handleCustomRowKeyDown(event, menu)
                   }
@@ -196,6 +198,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         subItems={item.subItems}
         body={body}
         className={classes.item}
+        menuClassName={item.menuClassName}
         isSelected={isSelected}
         ctx={ctx}
       />

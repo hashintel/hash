@@ -112,6 +112,17 @@ const canvasContainerStyle = css({
   flexGrow: 1,
 });
 
+// `white-space` inherits down to the item text, whose `overflow: hidden;
+// text-overflow: ellipsis` only elides on a non-wrapping line. `&&` outranks
+// the menu's own max-height class, which ties on specificity.
+const openSubmenuStyle = css({
+  whiteSpace: "nowrap",
+  "&&": {
+    maxWidth: "[min(600px, 70vw)]",
+    maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
+  },
+});
+
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -323,6 +334,7 @@ export const EditorView = ({
           {
             id: "open",
             text: "Open",
+            menuClassName: openSubmenuStyle,
             subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               text: net.title,
