@@ -1,7 +1,3 @@
-/**
- * One experiment in a drawer over the Experiments list: the shared results
- * view over the experiment's model, in a ds Drawer.
- */
 import { ResultsView } from "../shared/results-view";
 import { useExperimentResultsModel } from "./experiment-results";
 
@@ -10,13 +6,18 @@ import type { ExperimentRecord } from "../../../../../../react/experiments/conte
 const ExperimentDrawer = ({
   experiment,
   onClose,
+  presentation,
 }: {
   experiment: ExperimentRecord;
   onClose: () => void;
+  presentation: "panel" | "inline";
 }) => {
   const model = useExperimentResultsModel(experiment, onClose);
   return (
-    <ResultsView model={model} drawer={{ onClose, swapKey: "experiment" }} />
+    <ResultsView
+      model={model}
+      panel={presentation === "panel" ? { onClose } : undefined}
+    />
   );
 };
 
@@ -24,11 +25,17 @@ export const ViewExperimentDrawer = ({
   open,
   onClose,
   experiment,
+  presentation = "panel",
 }: {
   open: boolean;
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
+  presentation?: "panel" | "inline";
 }) =>
   open && experiment ? (
-    <ExperimentDrawer experiment={experiment} onClose={onClose} />
+    <ExperimentDrawer
+      experiment={experiment}
+      onClose={onClose}
+      presentation={presentation}
+    />
   ) : null;

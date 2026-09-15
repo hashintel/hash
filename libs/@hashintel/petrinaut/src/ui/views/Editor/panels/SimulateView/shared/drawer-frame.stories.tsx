@@ -1,3 +1,7 @@
+import { useEffect } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
+
 /**
  * The frame on its own, with placeholder cards: at rest, the header shows
  * the title line, the strip of stat columns and the bar; once the body has
@@ -5,10 +9,7 @@
  * pointer. The Parameters card spans the body and folds its fixed part behind
  * a footer button; the surface and the cards share the columns beneath it.
  */
-import { useEffect } from "react";
-
-import { css } from "@hashintel/ds-helpers/css";
-
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
 import { ChartCard, ChartCardGrid, chartCardHeight } from "./chart-card";
 import {
   ComputeBatchesChip,
@@ -24,6 +25,17 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 const meta = {
   title: "Simulate / DrawerFrame",
   parameters: { layout: "fullscreen" },
+  decorators: [
+    (Story) => (
+      <PetrinautNavigationProvider
+        initialState={{
+          simulateResource: { type: "experiment", id: "story-experiment" },
+        }}
+      >
+        <Story />
+      </PetrinautNavigationProvider>
+    ),
+  ],
 } satisfies Meta;
 
 export default meta;

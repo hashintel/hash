@@ -412,8 +412,7 @@ export type FrameHeaderProps = {
   /** The bar along the bottom edge, 0 to 100. Always drawn. */
   progress: number;
   condensed: boolean;
-  /** Room kept clear on the right for a close button the surrounding chrome draws. */
-  closeGutter?: number;
+  controls?: ReactNode;
   /** The pointer and focus handlers that hold the header open while the body is scrolled. */
   engagement: FrameHeaderEngagement;
 };
@@ -454,7 +453,7 @@ export const FrameHeader = ({
   badge,
   progress,
   condensed,
-  closeGutter = 0,
+  controls,
   engagement,
 }: FrameHeaderProps) => {
   const animate = use(FrameAnimateContext);
@@ -467,7 +466,6 @@ export const FrameHeader = ({
       data-frame-header
       data-condensed={condensed}
       data-animate={animate}
-      style={{ paddingRight: closeGutter > 0 ? closeGutter : undefined }}
       {...engagement}
     >
       <div className={titleRowStyle}>
@@ -487,6 +485,7 @@ export const FrameHeader = ({
           )}
           <CompactStats stats={stats} badge={badge} />
         </div>
+        {controls}
       </div>
       {/* The strip stays reachable while folded: focus into it grows the header. */}
       <Fold open={!condensed} keepAccessible data-frame-stats>

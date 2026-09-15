@@ -45,6 +45,12 @@ export const sharedSettingsSections = [
   "labs",
 ] as const;
 
+export const sharedResourceTypes = [
+  "scenario",
+  "metric",
+  "experiment",
+] as const;
+
 export type SharedMode = (typeof sharedModes)[number];
 export type SharedSimulateView = (typeof sharedSimulateViews)[number];
 export type SharedOverlay = (typeof sharedOverlays)[number];
@@ -67,6 +73,9 @@ export type SharedExampleSearch = {
   view?: SharedSimulateView;
   overlay?: SharedOverlay;
   settings?: (typeof sharedSettingsSections)[number];
+  resourceType?: (typeof sharedResourceTypes)[number];
+  resourceId?: string;
+  presentation?: "fullscreen";
 };
 
 /** The keys this contract owns. Anything else in a URL is foreign. */
@@ -79,6 +88,9 @@ const sharedSearchKeys = [
   "view",
   "overlay",
   "settings",
+  "resourceType",
+  "resourceId",
+  "presentation",
 ] as const satisfies readonly (keyof SharedExampleSearch)[];
 
 // `.catch(undefined)` is the contract's whole validation story: anything a URL
@@ -121,22 +133,42 @@ export const selectionToSearch = (
  */
 export const validateSharedExampleSearch = (
   input: Record<string, unknown>,
-): SharedExampleSearch => ({
-  scenario: optionalNonEmptyString.parse(input.scenario),
-  subnet: optionalNonEmptyString.parse(input.subnet),
-  mode: optionalMode.parse(input.mode),
-  view: optionalSimulateView.parse(input.view),
-  overlay: optionalOverlay.parse(input.overlay),
-  settings:
-    input.overlay === "user-settings"
-      ? z
-          .enum(sharedSettingsSections)
-          .optional()
-          .catch(undefined)
-          .parse(input.settings)
-      : undefined,
-  ...selectionToSearch(selectionFromInput(input)),
-});
+): SharedExampleSearch => {
+  const resourceType = z
+    .enum(sharedResourceTypes)
+    .optional()
+    .catch(undefined)
+    .parse(input.resourceType);
+  const resourceId = optionalNonEmptyString.parse(input.resourceId);
+  const hasResource = resourceType !== undefined && resourceId !== undefined;
+  const canExpand =
+    (hasResource && resourceType !== "metric") ||
+    input.overlay === "create-scenario" ||
+    input.overlay === "create-experiment";
+
+  return {
+    scenario: optionalNonEmptyString.parse(input.scenario),
+    subnet: optionalNonEmptyString.parse(input.subnet),
+    mode: optionalMode.parse(input.mode),
+    view: optionalSimulateView.parse(input.view),
+    overlay: optionalOverlay.parse(input.overlay),
+    settings:
+      input.overlay === "user-settings"
+        ? z
+            .enum(sharedSettingsSections)
+            .optional()
+            .catch(undefined)
+            .parse(input.settings)
+        : undefined,
+    ...selectionToSearch(selectionFromInput(input)),
+    resourceType: hasResource ? resourceType : undefined,
+    resourceId: hasResource ? resourceId : undefined,
+    presentation:
+      canExpand && input.presentation === "fullscreen"
+        ? "fullscreen"
+        : undefined,
+  };
+};
 
 /** Canonical query string for a validated search: sorted, contract keys only. */
 export const canonicalSearchString = (search: SharedExampleSearch): string => {

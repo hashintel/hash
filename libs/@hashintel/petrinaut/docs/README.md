@@ -36,6 +36,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
 - [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- The scenario form: define initial state and parameters inline for one run, or save them as a scenario.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
+- [Simulation Panels](simulation-panels.md) -- Open scenarios and experiments beside the main view, expand to fullscreen, and use links and browser history.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
