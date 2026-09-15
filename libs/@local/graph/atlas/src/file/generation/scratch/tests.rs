@@ -9,6 +9,10 @@ use uuid::Uuid;
 use super::{ScratchDirectory, ScratchFile};
 
 /// Creates a fixture scratch directory under the system temporary directory.
+///
+/// # Panics
+///
+/// Panics if the temporary path is not UTF-8 or creating the directory fails.
 #[expect(
     clippy::create_dir,
     reason = "the fixture must refuse an existing directory rather than reuse it"
@@ -27,6 +31,10 @@ pub(crate) fn root(directory: &ScratchDirectory) -> &Utf8Path {
 }
 
 /// Counts the entries directly inside `path`.
+///
+/// # Panics
+///
+/// Panics if opening `path` as a directory fails.
 pub(crate) fn entry_count(path: &Utf8Path) -> usize {
     fs::read_dir(path)
         .expect("should read the fixture directory")

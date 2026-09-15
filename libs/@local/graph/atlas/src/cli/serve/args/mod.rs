@@ -9,7 +9,7 @@ use core::{num::NonZero, time::Duration};
 use super::ServeCommand;
 use crate::{
     cli::RootArgs,
-    file::{generation::download::DownloadOptions, storage::path::FilePath},
+    file::{generation::DownloadOptions, storage::path::FilePath},
     integrity::SecretHexBytesValueParser,
     math::nz,
     serve::{

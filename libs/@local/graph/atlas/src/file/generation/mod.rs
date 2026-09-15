@@ -22,26 +22,28 @@ use uuid::Uuid;
 use crate::integrity::{ParseHexError, Sha256Digest};
 
 mod document;
-pub(crate) mod download;
+mod download;
 mod error;
 #[cfg(any(test, feature = "test-utils"))]
 mod fixture;
 mod open;
 mod remote;
-pub(crate) mod scratch;
+mod scratch;
 mod staging;
-#[cfg(feature = "test-utils")]
+#[cfg(any(test, feature = "test-utils"))]
 pub(crate) mod test_utils;
 #[cfg(test)]
 mod tests;
-pub(crate) mod upload;
+mod upload;
 
 pub(crate) use self::{
     document::GenerationDocument,
+    download::{Download, DownloadError, DownloadOptions, DownloadTask},
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
     staging::{PublishedGeneration, StagedGeneration},
+    upload::{Promotion, PromotionOptions, Upload, UploadError},
 };
 
 /// The metadata document's file name within a generation directory.
@@ -248,11 +250,13 @@ impl GenerationRoot {
 
     /// Replaces the current pointer while the caller holds the root lock.
     ///
-    /// Owns the temporary pointer file, removing it when the replacement fails.
+    /// The caller must hold the root's exclusive mutation lock. Owns the temporary pointer file and
+    /// attempts to remove it when the replacement fails.
     ///
     /// # Errors
     ///
-    /// Returns the [`io::Error`] of replacing the pointer.
+    /// Returns the [`io::Error`] from [`Self::replace_pointer`]. Logs temporary-file removal
+    /// failures without replacing that error.
     fn activate_locked(&self, id: GenerationId) -> io::Result<()> {
         let temporary = self.path.join(format!(".current-{}", Uuid::now_v7()));
 
@@ -277,7 +281,9 @@ impl GenerationRoot {
     ///
     /// # Errors
     ///
-    /// Returns the [`io::Error`] of creating, writing, syncing or renaming the pointer.
+    /// Returns the [`io::Error`] of creating, writing, syncing or renaming the pointer, or opening
+    /// and syncing the root. An error after pointer rename can leave the requested generation
+    /// selected.
     fn replace_pointer(&self, temporary: impl AsRef<Utf8Path>, id: GenerationId) -> io::Result<()> {
         let temporary = temporary.as_ref();
 
@@ -296,11 +302,11 @@ impl GenerationRoot {
     /// Activation and removal serialize through it. A removal cannot delete the generation an
     /// activation is about to name. Readers hold no lock: [`current`](Self::current) reads the
     /// pointer file and sees whichever of the two pointer versions the rename has published. The
-    /// lock releases when the returned file drops.
+    /// lock releases when the returned [`File`] drops. Retain it until the mutation finishes.
     ///
     /// # Errors
     ///
-    /// Returns the [`io::Error`] of opening or locking the lock file.
+    /// Returns the [`io::Error`] of opening or locking the persistent lock file.
     fn lock(&self) -> io::Result<File> {
         // The lock file must retain its inode across acquisitions. Removing it would let concurrent
         // opens lock different files for the same root.

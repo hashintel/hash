@@ -23,10 +23,7 @@ use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
     file::{
-        generation::{
-            GenerationRoot,
-            download::{Download, DownloadOptions, DownloadTask},
-        },
+        generation::{Download, DownloadOptions, DownloadTask, GenerationRoot},
         storage::{Storage, path::FilePath},
     },
     integrity::SecretString,
@@ -97,7 +94,7 @@ pub struct ServeOptions<P> {
 pub struct Serve {
     router: Router,
     manager: GenerationManagerTask,
-    download: Option<DownloadTask<Storage>>,
+    download: Option<DownloadTask<'static, Storage>>,
 }
 
 impl Serve {
@@ -233,8 +230,8 @@ impl ServeCommand {
         .change_context(ServeError::Manager)?;
 
         let download = if let Some(download) = download_path {
-            let download = Download::new(storage, self.root, download);
-            let task = download.into_task(download_options);
+            let download = Download::new(storage, &self.root, &download);
+            let task = download.into_task(download_options).into_owned();
             Some(task)
         } else {
             None
