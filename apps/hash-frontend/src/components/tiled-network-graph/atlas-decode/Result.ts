@@ -297,13 +297,29 @@ export const andThen: {
     isOk(result) ? func(result.value) : err(result.error),
 );
 
+/** Rejects self-context so a failed rewrap cannot create its own cause cycle. */
+const contextualizeError = <E1, E2 extends Error>(
+  error: E1,
+  context: (error: E1) => E2,
+): E2 => {
+  const next = context(error);
+  if (Object.is(next, error)) {
+    throw new TypeError("an error context must be distinct from its cause", {
+      cause: error,
+    });
+  }
+
+  next.cause = error;
+  return next;
+};
+
 /**
  * Replaces an error while retaining it as the new error's cause.
  *
  * The factory runs only on failure. Its returned error is used directly, and its `cause` is overwritten with the original error. See {@link changeContextIf} for conditional replacement.
  *
  * @returns The new error or the unchanged success value.
- * @throws If the factory throws or the returned error's cause cannot be assigned.
+ * @throws If the factory throws, returns the original error, or returns an error whose cause cannot be assigned.
  */
 export const changeContext: {
   <E1, E2 extends Error>(
@@ -323,10 +339,7 @@ export const changeContext: {
       return ok(result.value);
     }
 
-    const next = context(result.error);
-    next.cause = result.error;
-
-    return err(next);
+    return err(contextualizeError(result.error, context));
   },
 );
 
@@ -365,10 +378,7 @@ export const changeContextIf: {
       return err(result.error as Exclude<E1, E2>);
     }
 
-    const next = context(result.error);
-    next.cause = result.error;
-
-    return err(next);
+    return err(contextualizeError(result.error, context));
   },
 );
 
