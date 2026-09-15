@@ -2,7 +2,7 @@
 
 A status view maps net state to named statuses — Todo, In Progress, Blocked, Done — for the instances of one identity, such as tickets or machines. Which status an instance carries is derived from where its token sits; it is never stored, so a status view can never disagree with the net.
 
-Status views are experimental and off by default. Turn on **Settings → Labs → Status views** to show the Status views tab, the identity picker on token type attributes, the Kanban board toggle, and the Status changes column. A document's identities and status views are kept either way and round-trip through import and export.
+Status views are experimental and off by default. Turn on **Settings → Labs → Status views** to show the Status views tab, the identity picker on token type attributes, the Kanban board toggle, the Status changes column, and the Ticket Processing example in the Load example menu. A document's identities and status views are kept either way and round-trip through import and export.
 
 Status views power three surfaces:
 
