@@ -16,7 +16,6 @@ import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization"
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { CodeEditorLayoutSettings } from "../../../../monaco/code-editor-layout-settings";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
@@ -622,15 +621,6 @@ export const UserSettingsDialog = ({
                             onChange={settings.setEnableNetComponents}
                           />
                         )}
-                      </SettingsGroup>
-                      <SettingsGroup title="Code editing">
-                        <SettingRow
-                          label="Code editor"
-                          description="Choose where model functions open."
-                          wideControl
-                        >
-                          {() => <CodeEditorLayoutSettings />}
-                        </SettingRow>
                       </SettingsGroup>
                       <SettingsGroup title="Developer tools">
                         <SettingToggle
