@@ -94,4 +94,4 @@ Selecting a saved ad-hoc scenario in Simulation Settings shows it through the sa
 
 ## Errors
 
-Ad-hoc definitions are validated as you type, on the value they belong to, and again when you run. In quick simulation, compile problems also appear in the Simulation Settings error banner; in the experiment panel, in the footer.
+Ad-hoc definitions are validated as you type, on the value they belong to, and again when you run. Hover over an underlined value to read its error, or open the value editor to see the error below the input. In quick simulation, compile problems also appear in the Simulation Settings error banner; in the experiment panel, in the footer.

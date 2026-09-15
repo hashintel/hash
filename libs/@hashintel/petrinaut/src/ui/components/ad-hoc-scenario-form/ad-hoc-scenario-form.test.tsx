@@ -360,7 +360,7 @@ describe("AdHocScenarioForm", () => {
     expect(place.count.expression).toBe("parameters.rate * 4");
   });
 
-  it("renders a synthesis error on the closed slot's trigger", () => {
+  it("keeps bound errors visible when the editor opens", async () => {
     const initial: AdHocScenarioState = {
       variables: [],
       netParameters: [],
@@ -389,7 +389,33 @@ describe("AdHocScenarioForm", () => {
     const trigger = screen.getByRole("button", {
       name: "Pumps › item 0 › pressure",
     });
-    expect(trigger.getAttribute("title")).toContain("nope");
+    const error = trigger.getAttribute("title");
+    expect(error).toBeTruthy();
+    fireEvent.click(trigger);
+    expect((await screen.findByRole("alert")).textContent).toBe(error);
+  });
+
+  it("shows an invalid ratio value below valid optimization bounds", async () => {
+    render(
+      <Harness
+        initial={{
+          ...EMPTY_AD_HOC_STATE,
+          variables: [
+            {
+              name: "fill",
+              type: "ratio",
+              expression: "1.5",
+              optimize: { min: "0", max: "1", scale: "linear" },
+            },
+          ],
+        }}
+      />,
+    );
+    const trigger = screen.getByTitle(/between 0 and 1/);
+    fireEvent.click(trigger);
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "between 0 and 1",
+    );
   });
 
   it("removes the row when Delete is pressed on its gutter", async () => {
